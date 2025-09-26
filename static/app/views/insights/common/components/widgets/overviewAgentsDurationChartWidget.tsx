@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -16,8 +17,6 @@ import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {ModalChartContainer} from 'sentry/views/insights/common/components/insightsChartContainer';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
@@ -36,21 +35,18 @@ export default function OverviewAgentsDurationChartWidget(
     props.hasAgentRuns ? getAgentRunsFilter() : getAITracesFilter()
   );
 
-  const {data, isLoading, error} = useSpanSeries(
+  const {data, isLoading, error} = useFetchSpanTimeSeries(
     {
       ...pageFilterChartParams,
-      search: fullQuery,
+      query: fullQuery,
       yAxis: ['avg(span.duration)', 'p95(span.duration)'],
+      pageFilters: props.pageFilters,
     },
-    Referrer.AGENT_DURATION_WIDGET,
-    props.pageFilters
+    Referrer.AGENT_DURATION_WIDGET
   );
 
   const plottables = useMemo(() => {
-    return Object.keys(data).map(key => {
-      const series = data[key as keyof typeof data];
-      return new Line(convertSeriesToTimeseries(series));
-    });
+    return data?.timeSeries.map(timeSeries => new Line(timeSeries)) ?? [];
   }, [data]);
 
   const isEmpty = plottables.every(plottable => plottable.isEmpty);

@@ -1,11 +1,8 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PreventContext} from 'sentry/components/prevent/context/preventContext';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {useInfiniteTestResults} from './useGetTestResults';
 
@@ -95,18 +92,15 @@ describe('useInfiniteTestResults', () => {
       ],
     });
 
-    const wrapper = ({children}: {children: React.ReactNode}) => (
-      <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext value={organization}>
-          <PreventContext.Provider value={preventContextValue}>
-            {children}
-          </PreventContext.Provider>
-        </OrganizationContext>
-      </QueryClientProvider>
+    const additionalWrapper = ({children}: {children: React.ReactNode}) => (
+      <PreventContext.Provider value={preventContextValue}>
+        {children}
+      </PreventContext.Provider>
     );
 
-    const {result} = renderHook(() => useInfiniteTestResults({}), {
-      wrapper,
+    const {result} = renderHookWithProviders(() => useInfiniteTestResults({}), {
+      additionalWrapper,
+      organization,
     });
 
     await waitFor(() => {
@@ -152,24 +146,21 @@ describe('useInfiniteTestResults', () => {
       ],
     });
 
-    const wrapper = ({children}: {children: React.ReactNode}) => (
-      <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext value={organization}>
-          <PreventContext.Provider value={preventContextValue}>
-            {children}
-          </PreventContext.Provider>
-        </OrganizationContext>
-      </QueryClientProvider>
+    const additionalWrapper = ({children}: {children: React.ReactNode}) => (
+      <PreventContext.Provider value={preventContextValue}>
+        {children}
+      </PreventContext.Provider>
     );
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () =>
         useInfiniteTestResults({
           cursor: 'next-cursor',
           navigation: 'next',
         }),
       {
-        wrapper,
+        additionalWrapper,
+        organization,
       }
     );
 
@@ -197,18 +188,15 @@ describe('useInfiniteTestResults', () => {
       ],
     });
 
-    const wrapper = ({children}: {children: React.ReactNode}) => (
-      <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext value={organization}>
-          <PreventContext.Provider value={preventContextValue}>
-            {children}
-          </PreventContext.Provider>
-        </OrganizationContext>
-      </QueryClientProvider>
+    const additionalWrapper = ({children}: {children: React.ReactNode}) => (
+      <PreventContext.Provider value={preventContextValue}>
+        {children}
+      </PreventContext.Provider>
     );
 
-    const {result} = renderHook(() => useInfiniteTestResults({}), {
-      wrapper,
+    const {result} = renderHookWithProviders(() => useInfiniteTestResults({}), {
+      additionalWrapper,
+      organization,
     });
 
     await waitFor(() => {
@@ -232,18 +220,15 @@ describe('useInfiniteTestResults', () => {
       body: {error: 'Internal Server Error'},
     });
 
-    const wrapper = ({children}: {children: React.ReactNode}) => (
-      <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext value={organization}>
-          <PreventContext.Provider value={preventContextValue}>
-            {children}
-          </PreventContext.Provider>
-        </OrganizationContext>
-      </QueryClientProvider>
+    const additionalWrapper = ({children}: {children: React.ReactNode}) => (
+      <PreventContext.Provider value={preventContextValue}>
+        {children}
+      </PreventContext.Provider>
     );
 
-    const {result} = renderHook(() => useInfiniteTestResults({}), {
-      wrapper,
+    const {result} = renderHookWithProviders(() => useInfiniteTestResults({}), {
+      additionalWrapper,
+      organization,
     });
 
     await waitFor(() => {
@@ -286,18 +271,15 @@ describe('useInfiniteTestResults', () => {
       ],
     });
 
-    const wrapper = ({children}: {children: React.ReactNode}) => (
-      <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext value={organization}>
-          <PreventContext.Provider value={preventContextWithFilters}>
-            {children}
-          </PreventContext.Provider>
-        </OrganizationContext>
-      </QueryClientProvider>
+    const additionalWrapper = ({children}: {children: React.ReactNode}) => (
+      <PreventContext.Provider value={preventContextWithFilters}>
+        {children}
+      </PreventContext.Provider>
     );
 
-    const {result} = renderHook(() => useInfiniteTestResults({}), {
-      wrapper,
+    const {result} = renderHookWithProviders(() => useInfiniteTestResults({}), {
+      additionalWrapper,
+      organization,
     });
 
     await waitFor(() => {

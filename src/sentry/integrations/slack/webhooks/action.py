@@ -31,6 +31,13 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.slack.analytics import (
+    SlackIntegrationApproveMemberInvitation,
+    SlackIntegrationAssign,
+    SlackIntegrationChartUnfurlAction,
+    SlackIntegrationRejectMemberInvitation,
+    SlackIntegrationStatus,
+)
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.message_builder.routing import decode_action_id
 from sentry.integrations.slack.requests.action import SlackActionRequest
@@ -296,7 +303,7 @@ class SlackActionEndpoint(Endpoint):
             },
             request,
         )
-        analytics.record("integrations.slack.assign", actor_id=user.id)
+        analytics.record(SlackIntegrationAssign(actor_id=user.id))
 
     def on_status(
         self,
@@ -329,11 +336,12 @@ class SlackActionEndpoint(Endpoint):
         update_group(group, user, status, request)
 
         analytics.record(
-            "integrations.slack.status",
-            organization_id=group.project.organization.id,
-            status=status["status"],
-            resolve_type=resolve_type,
-            user_id=user.id,
+            SlackIntegrationStatus(
+                organization_id=group.project.organization.id,
+                status=status["status"],
+                resolve_type=resolve_type,
+                user_id=user.id,
+            )
         )
 
     def _handle_group_actions(
@@ -525,9 +533,10 @@ class SlackActionEndpoint(Endpoint):
         )
         if len(organization_integrations) > 0:
             analytics.record(
-                "integrations.slack.chart_unfurl_action",
-                organization_id=organization_integrations[0].id,
-                action=action,
+                SlackIntegrationChartUnfurlAction(
+                    organization_id=organization_integrations[0].id,
+                    action=action,
+                )
             )
         payload = {"delete_original": "true"}
         try:
@@ -727,25 +736,29 @@ class SlackActionEndpoint(Endpoint):
             )
             return self.respond()
 
-        if action == "approve_member":
-            event_name = "integrations.slack.approve_member_invitation"
-            verb = "approved"
-        else:
-            event_name = "integrations.slack.reject_member_invitation"
-            verb = "rejected"
-
         if original_status == InviteStatus.REQUESTED_TO_BE_INVITED:
             invite_type = "Invite"
         else:
             invite_type = "Join"
 
-        analytics.record(
-            event_name,
-            actor_id=identity_user.id,
-            organization_id=member.organization_id,
-            invitation_type=invite_type.lower(),
-            invited_member_id=member_id,
-        )
+        if action == "approve_member":
+            event = SlackIntegrationApproveMemberInvitation(
+                actor_id=identity_user.id,
+                organization_id=member.organization_id,
+                invitation_type=invite_type.lower(),
+                invited_member_id=member.id,
+            )
+            verb = "approved"
+        else:
+            event = SlackIntegrationRejectMemberInvitation(
+                actor_id=identity_user.id,
+                organization_id=member.organization_id,
+                invitation_type=invite_type.lower(),
+                invited_member_id=member.id,
+            )
+            verb = "rejected"
+
+        analytics.record(event)
 
         manage_url = member.organization.absolute_url(
             reverse("sentry-organization-members", args=[member.organization.slug])

@@ -6,6 +6,8 @@ import RadioField from 'sentry/components/forms/fields/radioField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 export function DetectorTypeForm() {
@@ -24,11 +26,27 @@ export function DetectorTypeForm() {
 }
 
 function MonitorTypeField() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const selectedDetectorType = location.query.detectorType as DetectorType;
+
+  const handleChange = (value: DetectorType) => {
+    navigate({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        detectorType: value,
+      },
+    });
+  };
+
   return (
     <StyledRadioField
       inline={false}
       flexibleControlStateSize
       name="detectorType"
+      value={selectedDetectorType}
+      onChange={handleChange}
       choices={
         [
           [

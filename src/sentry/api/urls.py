@@ -3408,12 +3408,12 @@ INTERNAL_URLS = [
     ),
     # Prevent AI (Overwatch) endpoints
     re_path(
-        r"^prevent/pr-review/configs/resolved$",
+        r"^prevent/pr-review/configs/resolved/$",
         PreventPrReviewResolvedConfigsEndpoint.as_view(),
         name="sentry-api-0-prevent-pr-review-configs-resolved",
     ),
     re_path(
-        r"^prevent/pr-review/github/sentry-org$",
+        r"^prevent/pr-review/github/sentry-org/$",
         PreventPrReviewSentryOrgEndpoint.as_view(),
         name="sentry-api-0-prevent-pr-review-github-sentry-org",
     ),

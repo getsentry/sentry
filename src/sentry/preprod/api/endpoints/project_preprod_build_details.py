@@ -12,6 +12,7 @@ from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEn
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     transform_preprod_artifact_to_build_details,
 )
+from sentry.preprod.models import PreprodArtifact
 
 logger = logging.getLogger(__name__)
 
@@ -52,5 +53,8 @@ class ProjectPreprodBuildDetailsEndpoint(PreprodArtifactEndpoint):
         ):
             return Response({"error": "Feature not enabled"}, status=403)
 
-        build_details = transform_preprod_artifact_to_build_details(head_artifact)
-        return Response(build_details.dict())
+        if head_artifact.state == PreprodArtifact.ArtifactState.FAILED:
+            return Response({"error": head_artifact.error_message}, status=400)
+        else:
+            build_details = transform_preprod_artifact_to_build_details(head_artifact)
+            return Response(build_details.dict())

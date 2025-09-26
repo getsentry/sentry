@@ -435,10 +435,10 @@ class EventTest(TestCase, PerformanceIssueTestCase):
 
         assert isinstance(default_variant, ComponentVariant)
         assert default_variant.config.id == DEFAULT_GROUPING_CONFIG
-        assert default_variant.component.id == "default"
-        assert len(default_variant.component.values) == 1
-        assert default_variant.component.values[0].id == "message"
-        assert default_variant.component.values[0].values == ["Dogs are great!"]
+        assert default_variant.root_component.id == "default"
+        assert len(default_variant.root_component.values) == 1
+        assert default_variant.root_component.values[0].id == "message"
+        assert default_variant.root_component.values[0].values == ["Dogs are great!"]
 
 
 class EventGroupsTest(TestCase):

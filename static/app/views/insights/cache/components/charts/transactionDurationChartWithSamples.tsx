@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import type {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
@@ -7,7 +8,6 @@ import {Referrer} from 'sentry/views/insights/cache/referrers';
 // TODO(release-drawer): Only used in cache/components/samplePanel
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {SpanQueryFilters} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -29,9 +29,9 @@ export function TransactionDurationChartWithSamples({samples}: Props) {
   } satisfies SpanQueryFilters);
   const referrer = Referrer.SAMPLES_CACHE_TRANSACTION_DURATION_CHART;
 
-  const {data, isPending, error} = useSpanSeries(
+  const {data, isPending, error} = useFetchSpanTimeSeries(
     {
-      search,
+      query: search,
       yAxis: [`avg(${SpanFields.SPAN_DURATION})`],
     },
     Referrer.SAMPLES_CACHE_TRANSACTION_DURATION
@@ -44,7 +44,7 @@ export function TransactionDurationChartWithSamples({samples}: Props) {
       title={t('Average Transaction Duration')}
       isLoading={isPending}
       error={error}
-      series={[data['avg(span.duration)']]}
+      timeSeries={data?.timeSeries}
       samples={samples}
     />
   );

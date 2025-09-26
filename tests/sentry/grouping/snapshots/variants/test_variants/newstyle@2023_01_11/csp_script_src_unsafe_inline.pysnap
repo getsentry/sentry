@@ -1,19 +1,19 @@
 ---
-created: '2024-12-17T22:47:09.815198+00:00'
+created: '2025-09-24T20:27:05.840011+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 default:
   hash: "d346ee37d19a2be6587e609075ca2d57"
   contributing component: csp
-  component:
+  root_component:
     default*
       csp*
         salt* (a static salt)
           "script-src"
         violation*
           "'unsafe-inline'"
-        uri (violation takes precedence)
+        uri (ignored because violation takes precedence)
           "'self'"
-      message (csp takes precedence)
+      message (ignored because csp takes precedence)
         "Blocked unsafe inline 'script'"

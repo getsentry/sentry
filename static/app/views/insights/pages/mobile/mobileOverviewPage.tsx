@@ -28,6 +28,7 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
@@ -72,6 +73,8 @@ function EAPMobileOverviewPage() {
   const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
+
+  useDefaultToAllProjects();
 
   const withStaticFilters = canUseMetricsData(organization);
 

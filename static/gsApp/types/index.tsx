@@ -1017,6 +1017,10 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   canProductTrial: boolean;
   /**
+   * The tooltip text for the checkout page
+   */
+  checkoutTooltip: string | null;
+  /**
    * The feature flag that enables the category
    */
   feature: string | null;
@@ -1036,10 +1040,6 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    * The maximum number of free events that can be gifted
    */
   maxAdminGift: number;
-  /**
-   * The tooltip text for the checkout page
-   */
-  reservedVolumeTooltip: string | null;
   /**
    * How usage is tallied for the category
    */

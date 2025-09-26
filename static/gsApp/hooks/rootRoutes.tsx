@@ -7,8 +7,7 @@ import OrganizationSubscriptionContext from 'getsentry/components/organizationSu
 const rootRoutes = (): SentryRouteObject => ({
   children: [
     {
-      // TODO(checkout v3): change this to the correct path (/settings/billing/checkout/)
-      // when GA'd
+      // TODO(checkout v3): rename this to /checkout/ when the legacy checkout route is removed
       path: '/checkout-v3/',
       component: errorHandler(OrganizationSubscriptionContext),
       deprecatedRouteProps: true,

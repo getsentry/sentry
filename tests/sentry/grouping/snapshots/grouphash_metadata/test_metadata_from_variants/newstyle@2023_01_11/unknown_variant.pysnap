@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:49:55.671362+00:00'
+created: '2025-09-24T20:28:39.412221+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -16,5 +16,5 @@ contributing variants:
   dogs*
     hash: "d41d8cd98f00b204e9800998ecf8427e"
     contributing component: null
-    component:
+    root_component:
       not_a_known_component_type*

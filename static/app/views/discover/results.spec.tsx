@@ -882,7 +882,7 @@ describe('Results', () => {
 
     it('respects pinned filters for prebuilt queries', async () => {
       const organization = OrganizationFixture({
-        features: [...features, 'global-views'],
+        features: [...features],
       });
 
       const {router} = initializeOrg({

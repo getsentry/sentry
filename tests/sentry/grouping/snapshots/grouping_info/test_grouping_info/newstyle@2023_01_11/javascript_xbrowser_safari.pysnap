@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:20:23.469432+00:00'
+created: '2025-09-24T22:53:04.781951+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -7,7 +7,7 @@ source: tests/sentry/grouping/test_grouping_info.py
   "app": {
     "component": {
       "contributes": false,
-      "hint": "exception of system takes precedence",
+      "hint": "ignored because system exception takes precedence",
       "id": "app",
       "name": "in-app",
       "values": [
@@ -21,7 +21,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": false,
               "hint": "ignored because it contains no in-app frames",
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": false,
@@ -135,7 +135,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "native code indicated by filename",
+                      "hint": "ignored because filename suggests native code",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -201,7 +201,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "native code indicated by filename",
+                      "hint": "ignored because filename suggests native code",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -331,7 +331,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "native code indicated by filename",
+                      "hint": "ignored because filename suggests native code",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -428,6 +428,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "in-app",
     "hash": null,
+    "hint": "ignored because system exception takes precedence",
     "key": "app",
     "type": "component"
   },
@@ -448,7 +449,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": true,
@@ -562,7 +563,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "native code indicated by filename",
+                      "hint": "ignored because filename suggests native code",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -628,7 +629,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "native code indicated by filename",
+                      "hint": "ignored because filename suggests native code",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -758,7 +759,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "native code indicated by filename",
+                      "hint": "ignored because filename suggests native code",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -853,8 +854,9 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "exception stack-trace",
+    "description": "exception stacktrace",
     "hash": "c63e8727af1a8fe75872b6a762797113",
+    "hint": null,
     "key": "system",
     "type": "component"
   }

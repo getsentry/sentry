@@ -74,6 +74,8 @@ export interface RendererExtra extends RenderFunctionBaggage {
   logColors: ReturnType<typeof getLogColors>;
   align?: 'left' | 'center' | 'right';
   canAppendTemplateToBody?: boolean;
+  logEnd?: string;
+  logStart?: string;
   meta?: EventsMetaType;
   onReplayTimeClick?: (fieldName: string) => void;
   project?: Project;
@@ -433,6 +435,7 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
   const template = props.extra.attributes?.[OurLogKnownFieldKey.TEMPLATE];
   const templateText =
     props.extra.canAppendTemplateToBody && template ? template : undefined;
+  const isBodyFiltered = props.item.value === '[Filtered]';
 
   return (
     <FilteredTooltip
@@ -442,7 +445,7 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
     >
       <WrappingText wrapText={props.extra.wrapBody}>
         <LogsHighlight text={highlightTerm}>{stripAnsi(attribute_value)}</LogsHighlight>
-        {templateText && (
+        {isBodyFiltered && templateText && (
           <FieldReplacementHelper
             original={attribute_value}
             replacement={templateText as string}
@@ -611,7 +614,12 @@ function ReplayIDRenderer(props: LogFieldRendererProps) {
 
   return (
     <Container>
-      <ViewReplayLink replayId={replayId} to={target}>
+      <ViewReplayLink
+        replayId={replayId}
+        to={target}
+        start={props.extra.logStart}
+        end={props.extra.logEnd}
+      >
         {getShortEventId(replayId)}
       </ViewReplayLink>
     </Container>

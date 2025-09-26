@@ -52,6 +52,10 @@ describe('BuildYourPlan', () => {
         invoiceItems: [],
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
   });
 
   function assertAllSubsteps(isNewCheckout: boolean) {

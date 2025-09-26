@@ -21,6 +21,7 @@ from sentry.integrations.messaging.metrics import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.slack.analytics import SlackIntegrationChartUnfurl
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.types import Handler, UnfurlableUrl, UnfurledUrl
@@ -299,10 +300,11 @@ def _unfurl_discover(
     first_org_integration = org_integrations[0] if len(org_integrations) > 0 else None
     if first_org_integration is not None and hasattr(first_org_integration, "id"):
         analytics.record(
-            "integrations.slack.chart_unfurl",
-            organization_id=first_org_integration.organization_id,
-            user_id=user.id if user else None,
-            unfurls_count=len(unfurls),
+            SlackIntegrationChartUnfurl(
+                organization_id=first_org_integration.organization_id,
+                user_id=user.id if user else None,
+                unfurls_count=len(unfurls),
+            )
         )
 
     return unfurls

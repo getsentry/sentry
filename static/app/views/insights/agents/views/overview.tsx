@@ -52,6 +52,7 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget';
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
 import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -75,6 +76,7 @@ function AgentsOverviewPage() {
   const showOnboarding = useShowOnboarding();
   const datePageFilterProps = limitMaxPickableDays(organization);
   const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
+  useDefaultToAllProjects();
 
   const {activeTable, onActiveTableChange} = useActiveTable();
 

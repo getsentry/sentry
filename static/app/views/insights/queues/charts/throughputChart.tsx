@@ -14,10 +14,11 @@ import {BaseChartActionDropdown} from 'sentry/views/insights/common/components/c
 // Our loadable chart widgets use this to render, so this import is ok
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
-import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/types';
 import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import {renameDiscoverSeries} from 'sentry/views/insights/common/utils/renameDiscoverSeries';
+import type {AddToSpanDashboardOptions} from 'sentry/views/insights/common/utils/useAddToSpanDashboard';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import type {Referrer} from 'sentry/views/insights/queues/referrers';
 import {FIELD_ALIASES} from 'sentry/views/insights/queues/settings';
@@ -95,9 +96,20 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
     referrer,
   });
 
+  const addToDashboardOptions: AddToSpanDashboardOptions = {
+    chartType: ChartType.LINE,
+    yAxes: [yAxis],
+    widgetName: title,
+    groupBy: [groupBy],
+    search,
+    topEvents: 2,
+    sort: {field: yAxis, kind: 'desc'},
+  };
+
   const extraActions = [
     <BaseChartActionDropdown
       key="throughput-chart-action"
+      addToDashboardOptions={addToDashboardOptions}
       alertMenuOptions={[
         {
           key: 'publish',

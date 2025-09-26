@@ -96,11 +96,7 @@ function SortableHeader({
         <NonSortableHeader role="columnheader">{label}</NonSortableHeader>
       )}
       {enableToggle ? <WrapToggle /> : null}
-      {tooltip ? (
-        <span>
-          <QuestionTooltip size="xs" title={tooltip} isHoverable />
-        </span>
-      ) : null}
+      {tooltip ? <QuestionTooltip size="xs" title={tooltip} isHoverable /> : null}
     </HeaderCell>
   );
 }

@@ -16,7 +16,11 @@ DEFAULT_DETECTOR_DISABLING_CONFIGS: list[DetectorDisablingConfig] = [
     {
         "detector_project_option": "consecutive_db_queries_detection_enabled",
         "languages_to_disable": {"ruby"},
-    }
+    },
+    {
+        "detector_project_option": "consecutive_http_spans_detection_enabled",
+        "languages_to_disable": {"python", "ruby", "other"},
+    },
 ]
 
 

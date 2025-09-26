@@ -5,6 +5,8 @@ import {Alert} from 'sentry/components/core/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import TimeSince from 'sentry/components/timeSince';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import Section from 'sentry/components/workflowEngine/ui/section';
@@ -12,6 +14,8 @@ import {IconJson} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
+import toArray from 'sentry/utils/array/toArray';
+import {useLocation} from 'sentry/utils/useLocation';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
@@ -42,12 +46,33 @@ function hasLastCheckIn(envs: MonitorEnvironment[]) {
 }
 
 export function CronDetectorDetails({detector, project}: CronDetectorDetailsProps) {
+  const location = useLocation();
   const dataSource = detector.dataSources[0];
 
   const {failure_issue_threshold, recovery_threshold} = dataSource.queryObj.config;
 
-  const monitorEnv = getLatestCronMonitorEnv(detector);
-  const hasCheckedIn = hasLastCheckIn(dataSource.queryObj.environments);
+  // Filter monitor environments based on the selected environment from page filters
+  const selectedEnvironments = toArray(location.query.environment).filter(Boolean);
+  const filteredMonitor = {
+    ...dataSource.queryObj,
+    environments:
+      selectedEnvironments.length > 0
+        ? dataSource.queryObj.environments.filter(env =>
+            selectedEnvironments.includes(env.name)
+          )
+        : dataSource.queryObj.environments,
+  };
+
+  const monitorEnv = getLatestCronMonitorEnv({
+    ...detector,
+    dataSources: [
+      {
+        ...detector.dataSources[0],
+        queryObj: filteredMonitor,
+      },
+    ],
+  });
+  const hasCheckedIn = hasLastCheckIn(filteredMonitor.environments);
 
   function getIntervalSecondsFromEnv(env?: MonitorEnvironment): number | undefined {
     if (!env?.lastCheckIn || !env?.nextCheckIn) {
@@ -80,11 +105,14 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
       <DetectorDetailsHeader detector={detector} project={project} />
       <DetailLayout.Body>
         <DetailLayout.Main>
+          <PageFilterBar condensed>
+            <EnvironmentPageFilter />
+            <DatePageFilter />
+          </PageFilterBar>
           {hasCheckedIn ? (
             <Fragment>
-              <DatePageFilter />
               <DetailsTimeline
-                monitor={dataSource.queryObj}
+                monitor={filteredMonitor}
                 onStatsLoaded={checkHasUnknown}
               />
               <ErrorBoundary mini>
@@ -97,7 +125,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                 <div>
                   <MonitorCheckIns
                     monitorSlug={dataSource.queryObj.slug}
-                    monitorEnvs={dataSource.queryObj.environments}
+                    monitorEnvs={filteredMonitor.environments}
                     project={project}
                   />
                 </div>

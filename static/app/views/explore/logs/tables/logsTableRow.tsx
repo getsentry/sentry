@@ -97,6 +97,8 @@ type LogsRowProps = {
     replay?: ReplayEmbeddedTableOptions;
   };
   isExpanded?: boolean;
+  logEnd?: string;
+  logStart?: string;
   onCollapse?: (logItemId: string) => void;
   /**
    * This should only be used in embedded views since we won't be opening the details.
@@ -141,6 +143,8 @@ export const LogRowContent = memo(function LogRowContent({
   blockRowExpanding,
   canDeferRenderElements,
   onEmbeddedRowClick,
+  logStart,
+  logEnd,
 }: LogsRowProps) {
   const location = useLocation();
   const organization = useOrganization();
@@ -261,6 +265,8 @@ export const LogRowContent = memo(function LogRowContent({
     traceItemMeta: traceItemsResult?.data?.meta,
     timestampRelativeTo: embeddedOptions?.replay?.timestampRelativeTo,
     onReplayTimeClick: embeddedOptions?.replay?.onReplayTimeClick,
+    logStart,
+    logEnd,
   };
 
   const rowInteractProps: ComponentProps<typeof LogTableRow> = blockRowExpanding

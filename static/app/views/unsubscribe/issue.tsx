@@ -8,20 +8,14 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 
-type RouteParams = {
-  id: string;
-  orgId: string;
-};
-
-type Props = RouteComponentProps<RouteParams>;
-
-function UnsubscribeIssue({location}: Props) {
+function UnsubscribeIssue() {
+  const location = useLocation();
   const signature = decodeScalar(location.query._);
   const params = useParams();
   return (

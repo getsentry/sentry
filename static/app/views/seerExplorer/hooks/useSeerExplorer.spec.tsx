@@ -1,10 +1,6 @@
-import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
-
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {useSeerExplorer} from './useSeerExplorer';
 
@@ -18,21 +14,10 @@ describe('useSeerExplorer', () => {
     hideAiFeatures: false,
   });
 
-  function createWrapper() {
-    return function TestWrapper({children}: {children: React.ReactNode}) {
-      const queryClient = makeTestQueryClient();
-      return (
-        <QueryClientProvider client={queryClient}>
-          <OrganizationContext value={organization}>{children}</OrganizationContext>
-        </QueryClientProvider>
-      );
-    };
-  }
-
   describe('Initial State', () => {
     it('returns initial state with no session data', () => {
-      const {result} = renderHook(() => useSeerExplorer(), {
-        wrapper: createWrapper(),
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
       });
 
       expect(result.current.sessionData).toBeNull();
@@ -91,8 +76,8 @@ describe('useSeerExplorer', () => {
         },
       });
 
-      const {result} = renderHook(() => useSeerExplorer(), {
-        wrapper: createWrapper(),
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
       });
 
       await act(async () => {
@@ -126,8 +111,8 @@ describe('useSeerExplorer', () => {
         body: {detail: 'Server error'},
       });
 
-      const {result} = renderHook(() => useSeerExplorer(), {
-        wrapper: createWrapper(),
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
       });
 
       // Should handle error without throwing
@@ -145,8 +130,8 @@ describe('useSeerExplorer', () => {
         body: {session: null},
       });
 
-      const {result} = renderHook(() => useSeerExplorer(), {
-        wrapper: createWrapper(),
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
       });
 
       act(() => {
@@ -166,8 +151,8 @@ describe('useSeerExplorer', () => {
         body: {session: null},
       });
 
-      const {result} = renderHook(() => useSeerExplorer(), {
-        wrapper: createWrapper(),
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
       });
 
       act(() => {
@@ -178,8 +163,8 @@ describe('useSeerExplorer', () => {
     });
 
     it('filters messages based on deleted index', () => {
-      const {result} = renderHook(() => useSeerExplorer(), {
-        wrapper: createWrapper(),
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
       });
 
       act(() => {
@@ -192,8 +177,8 @@ describe('useSeerExplorer', () => {
 
   describe('Polling Logic', () => {
     it('returns false for polling when no session exists', () => {
-      const {result} = renderHook(() => useSeerExplorer(), {
-        wrapper: createWrapper(),
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
       });
 
       expect(result.current.isPolling).toBe(false);

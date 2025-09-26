@@ -210,19 +210,14 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
 
   const {projectsForOnboarding} = filterProjects(projects);
 
-  const showOnboardingChecklist = organization.features.includes(
-    'performance-onboarding-checklist'
-  );
-
   useEffect(() => {
     if (
-      showOnboardingChecklist &&
       location.hash === '#performance-sidequest' &&
       projectsForOnboarding.some(p => p.id === project.id)
     ) {
       OnboardingDrawerStore.open(OnboardingDrawerKey.PERFORMANCE_ONBOARDING);
     }
-  }, [location.hash, projectsForOnboarding, project.id, showOnboardingChecklist]);
+  }, [location.hash, projectsForOnboarding, project.id]);
 
   function handleAdvance(step: number, duration: number) {
     trackAnalytics('performance_views.tour.advance', {
@@ -257,7 +252,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
     </LinkButton>
   );
 
-  if (hasPerformanceOnboarding && showOnboardingChecklist) {
+  if (hasPerformanceOnboarding) {
     setupButton = (
       <Button
         priority="primary"

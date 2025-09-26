@@ -465,7 +465,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
     if (
       currentDataset === DiscoverDatasets.TRANSACTIONS &&
-      deprecateTransactionAlerts(organization)
+      (deprecateTransactionAlerts(organization) ||
+        organization.features.includes('discover-saved-queries-deprecation'))
     ) {
       return null;
     }

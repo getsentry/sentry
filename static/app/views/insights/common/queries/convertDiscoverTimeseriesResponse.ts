@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 
-import type {DiscoverSeries} from './useDiscoverSeries';
+import type {DiscoverSeries} from './types';
 
 const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
 

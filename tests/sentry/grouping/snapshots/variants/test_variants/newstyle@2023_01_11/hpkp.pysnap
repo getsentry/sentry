@@ -1,12 +1,12 @@
 ---
-created: '2024-12-17T22:47:14.452884+00:00'
+created: '2025-09-24T20:27:07.587556+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 default:
   hash: "1e37a374cb33572622d02ff7a6237c44"
   contributing component: hpkp
-  component:
+  root_component:
     default*
       hpkp*
         salt* (a static salt)

@@ -20,6 +20,7 @@ export function DetectorQueryFilterBuilder() {
   const currentQuery = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
   const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
+  const environment = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.environment);
   const formContext = useContext(FormContext);
 
   const datasetConfig = useMemo(() => getDatasetConfig(dataset), [dataset]);
@@ -56,6 +57,7 @@ export function DetectorQueryFilterBuilder() {
           onClose={handleQueryChange}
           onSearch={handleQueryChange}
           dataset={datasetConfig.getDiscoverDataset()}
+          environment={environment}
         />
       </QueryFieldRowWrapper>
     </Flex>

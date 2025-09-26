@@ -37,4 +37,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0045_backfill_detector_thresholds
 
-workflow_engine: 0086_fix_cron_to_cron_workflow_links
+workflow_engine: 0087_relink_crons_to_compatible_issue_workflows

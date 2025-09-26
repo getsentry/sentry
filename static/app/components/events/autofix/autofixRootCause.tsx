@@ -20,14 +20,7 @@ import {
   useLaunchCodingAgent,
 } from 'sentry/components/events/autofix/useAutofix';
 import {formatRootCauseWithEvent} from 'sentry/components/events/autofix/utils';
-import {
-  IconArrow,
-  IconChat,
-  IconChevron,
-  IconClose,
-  IconCopy,
-  IconFocus,
-} from 'sentry/icons';
+import {IconChat, IconChevron, IconCopy, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -262,7 +255,6 @@ function AutofixRootCauseDisplay({
   const organization = useOrganization();
   const iconFocusRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement | null>(null);
-  const [isProvidingSolution, setIsProvidingSolution] = useState(false);
   const [solutionText, setSolutionText] = useState('');
   const {mutate: selectRootCause, isPending: isSelectingRootCause} = useSelectRootCause({
     groupId,
@@ -288,14 +280,25 @@ function AutofixRootCauseDisplay({
     }
   };
 
-  const handleSelectRootCause = () => {
-    if (cause?.id !== undefined && cause.id !== null) {
+  const submitFindSolution = () => {
+    if (cause?.id === undefined || cause.id === null) {
+      addErrorMessage(t('No root cause available.'));
+      return;
+    }
+
+    const instruction = solutionText.trim();
+    if (instruction) {
+      selectRootCause({
+        cause_id: cause.id,
+        instruction,
+      });
+    } else {
       selectRootCause({
         cause_id: cause.id,
       });
-    } else {
-      addErrorMessage(t('No root cause available.'));
     }
+
+    setSolutionText('');
   };
 
   // Find Cursor integration specifically
@@ -320,16 +323,6 @@ function AutofixRootCauseDisplay({
     });
   };
 
-  const handleMySolution = () => {
-    setIsProvidingSolution(true);
-    setSolutionText('');
-  };
-
-  const handleCancelSolution = () => {
-    setIsProvidingSolution(false);
-    setSolutionText('');
-  };
-
   // Shared UI state for "Find Solution" controls
   const isRootCauseAlreadySelected = Boolean(
     rootCauseSelection && 'cause_id' in rootCauseSelection
@@ -337,24 +330,6 @@ function AutofixRootCauseDisplay({
   const findSolutionPriority: React.ComponentProps<typeof Button>['priority'] =
     isRootCauseAlreadySelected ? 'default' : 'primary';
   const findSolutionTitle = t('Let Seer plan a solution to this issue');
-
-  const handleSubmitSolution = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!solutionText.trim()) {
-      return;
-    }
-
-    if (cause?.id !== undefined && cause.id !== null) {
-      selectRootCause({
-        cause_id: cause.id,
-        instruction: solutionText.trim(),
-      });
-      setIsProvidingSolution(false);
-      setSolutionText('');
-    } else {
-      addErrorMessage(t('No root cause available.'));
-    }
-  };
 
   if (!cause) {
     return (
@@ -443,102 +418,69 @@ function AutofixRootCauseDisplay({
       </Content>
       <BottomDivider />
       <BottomButtonContainer>
-        {isProvidingSolution ? (
-          <SolutionInputContainer>
-            <form onSubmit={handleSubmitSolution}>
-              <SolutionFormRow>
-                <SolutionInput
-                  autosize
-                  value={solutionText}
-                  maxLength={4096}
-                  onChange={e => setSolutionText(e.target.value)}
-                  placeholder={t('Provide a solution for Seer to follow...')}
-                  autoFocus
-                  maxRows={5}
-                  size="sm"
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmitSolution(e);
-                    } else if (e.key === 'Escape') {
-                      handleCancelSolution();
-                    }
-                  }}
-                />
-                <ButtonBar merged gap="0">
-                  <Button type="button" size="sm" onClick={handleCancelSolution}>
-                    <IconClose size="sm" />
-                  </Button>
-                  <Button
-                    type="submit"
-                    priority="primary"
-                    size="sm"
-                    busy={isSelectingRootCause}
-                    disabled={!solutionText.trim()}
-                  >
-                    <IconArrow direction="right" />
-                  </Button>
-                </ButtonBar>
-              </SolutionFormRow>
-            </form>
-          </SolutionInputContainer>
-        ) : (
-          <ButtonBar>
-            <CopyRootCauseButton cause={cause} event={event} />
-            <Button
-              size="sm"
-              onClick={handleMySolution}
-              title={t('Specify your own solution for Seer to follow')}
-            >
-              {t('Give Solution')}
-            </Button>
-            {cursorIntegration ? (
-              <ButtonBar merged gap="0">
-                <Button
-                  size="sm"
-                  priority={findSolutionPriority}
-                  busy={isSelectingRootCause}
-                  disabled={isLoadingAgents}
-                  onClick={handleSelectRootCause}
-                  title={findSolutionTitle}
-                >
-                  {t('Find Solution')}
-                </Button>
-                <DropdownMenu
-                  items={[
-                    {
-                      key: 'cursor-agent',
-                      label: t('Send to Cursor Background Agent'),
-                      onAction: handleLaunchCodingAgent,
-                      disabled: isLoadingAgents || isLaunchingAgent,
-                    },
-                  ]}
-                  trigger={(triggerProps, isOpen) => (
-                    <DropdownTrigger
-                      {...triggerProps}
-                      size="sm"
-                      priority={findSolutionPriority}
-                      busy={isLaunchingAgent}
-                      disabled={isLoadingAgents}
-                      aria-label={t('More solution options')}
-                      icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
-                    />
-                  )}
-                />
-              </ButtonBar>
-            ) : (
+        <SolutionInput
+          autosize
+          value={solutionText}
+          maxLength={4096}
+          onChange={e => setSolutionText(e.target.value)}
+          placeholder={t('Add context for the solution...')}
+          maxRows={3}
+          size="sm"
+          onKeyDown={e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              submitFindSolution();
+            }
+          }}
+        />
+        <ButtonBar>
+          <CopyRootCauseButton cause={cause} event={event} />
+          {cursorIntegration ? (
+            <ButtonBar merged gap="0">
               <Button
                 size="sm"
                 priority={findSolutionPriority}
                 busy={isSelectingRootCause}
-                onClick={handleSelectRootCause}
+                disabled={isLoadingAgents}
+                onClick={submitFindSolution}
                 title={findSolutionTitle}
               >
                 {t('Find Solution')}
               </Button>
-            )}
-          </ButtonBar>
-        )}
+              <DropdownMenu
+                items={[
+                  {
+                    key: 'cursor-agent',
+                    label: t('Send to Cursor Background Agent'),
+                    onAction: handleLaunchCodingAgent,
+                    disabled: isLoadingAgents || isLaunchingAgent,
+                  },
+                ]}
+                trigger={(triggerProps, isOpen) => (
+                  <DropdownTrigger
+                    {...triggerProps}
+                    size="sm"
+                    priority={findSolutionPriority}
+                    busy={isLaunchingAgent}
+                    disabled={isLoadingAgents}
+                    aria-label={t('More solution options')}
+                    icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+                  />
+                )}
+              />
+            </ButtonBar>
+          ) : (
+            <Button
+              size="sm"
+              priority={findSolutionPriority}
+              busy={isSelectingRootCause}
+              onClick={submitFindSolution}
+              title={findSolutionTitle}
+            >
+              {t('Find Solution')}
+            </Button>
+          )}
+        </ButtonBar>
       </BottomButtonContainer>
     </CausesContainer>
   );
@@ -586,6 +528,7 @@ const CausesContainer = styled('div')`
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding: ${p => p.theme.space.lg};
+  background: ${p => p.theme.background};
 `;
 
 const Content = styled('div')`
@@ -637,22 +580,12 @@ const BottomButtonContainer = styled('div')`
   padding-top: ${p => p.theme.space.xl};
 `;
 
-const SolutionInputContainer = styled('div')`
-  width: 100%;
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const SolutionFormRow = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  width: 100%;
-`;
-
 const SolutionInput = styled(TextArea)`
   flex: 1;
   resize: none;
+  margin-right: ${p => p.theme.space.lg};
+  margin-left: ${p => p.theme.space['3xl']};
+  max-width: 250px;
 `;
 
 const DropdownTrigger = styled(Button)`

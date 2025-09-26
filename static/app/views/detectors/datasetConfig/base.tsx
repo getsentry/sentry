@@ -18,6 +18,7 @@ import type {
 import type {FieldValue} from 'sentry/views/discover/table/types';
 
 export interface DetectorSearchBarProps {
+  environment: string;
   initialQuery: string;
   onClose: (query: string, state: {validSearch: boolean}) => void;
   onSearch: (query: string) => void;

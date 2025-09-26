@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:20:20.320093+00:00'
+created: '2025-09-24T22:53:02.525237+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -28,7 +28,7 @@ source: tests/sentry/grouping/test_grouping_info.py
             },
             {
               "contributes": false,
-              "hint": "not a local script violation",
+              "hint": "ignored because it's not a local script violation",
               "id": "violation",
               "name": "violation",
               "values": []
@@ -46,7 +46,7 @@ source: tests/sentry/grouping/test_grouping_info.py
         },
         {
           "contributes": false,
-          "hint": "csp takes precedence",
+          "hint": "ignored because csp takes precedence",
           "id": "message",
           "name": "message",
           "values": [
@@ -77,6 +77,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "URL",
     "hash": "666766514295bb52812324097cdaf53e",
+    "hint": null,
     "key": "default",
     "type": "component"
   }

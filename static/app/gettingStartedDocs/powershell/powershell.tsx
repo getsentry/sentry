@@ -71,7 +71,6 @@ const onboarding: OnboardingConfig = {
       description: t('Install the module:'),
       configurations: [
         {
-          partialLoading: params.sourcePackageRegistries.isLoading,
           code: [
             {
               language: 'powershell',

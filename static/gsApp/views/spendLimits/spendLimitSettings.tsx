@@ -1,13 +1,16 @@
 import type React from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import upperFirst from 'lodash/upperFirst';
 
 import {Input} from 'sentry/components/core/input';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {DataCategory} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -19,13 +22,15 @@ import {
   type OnDemandBudgets,
   type Plan,
 } from 'getsentry/types';
-import {formatReservedWithUnits} from 'getsentry/utils/billing';
+import {formatReservedWithUnits, isAm2Plan} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
   getSingularCategoryName,
 } from 'getsentry/utils/dataCategory';
 import CheckoutOption from 'getsentry/views/amCheckout/checkoutOption';
+import {getProductCheckoutDescription} from 'getsentry/views/amCheckout/steps/productSelect';
+import {renderPerformanceHovercard} from 'getsentry/views/amCheckout/steps/volumeSliders';
 import type {SelectableProduct} from 'getsentry/views/amCheckout/types';
 import {
   displayPrice,
@@ -51,6 +56,7 @@ interface SpendLimitSettingsProps {
   header: React.ReactNode;
   onDemandBudgets: OnDemandBudgets;
   onUpdate: ({onDemandBudgets}: {onDemandBudgets: OnDemandBudgets}) => void;
+  organization: Organization;
   footer?: React.ReactNode;
   isOpen?: boolean;
 }
@@ -58,7 +64,7 @@ interface SpendLimitSettingsProps {
 interface BudgetModeSettingsProps
   extends Omit<
     SpendLimitSettingsProps,
-    'header' | 'currentReserved' | 'additionalProducts'
+    'header' | 'currentReserved' | 'additionalProducts' | 'organization'
   > {}
 
 interface InnerSpendLimitSettingsProps extends Omit<SpendLimitSettingsProps, 'header'> {}
@@ -66,7 +72,7 @@ interface InnerSpendLimitSettingsProps extends Omit<SpendLimitSettingsProps, 'he
 interface SharedSpendLimitPriceTableProps
   extends Pick<
     SpendLimitSettingsProps,
-    'activePlan' | 'currentReserved' | 'additionalProducts'
+    'activePlan' | 'currentReserved' | 'additionalProducts' | 'organization'
   > {}
 interface SpendLimitInputProps extends Pick<SpendLimitSettingsProps, 'activePlan'> {
   budgetMode: OnDemandBudgetMode;
@@ -168,6 +174,7 @@ function SharedSpendLimitPriceTable({
   activePlan,
   currentReserved,
   additionalProducts,
+  organization,
 }: SharedSpendLimitPriceTableProps) {
   const addOnCategories = Object.values(activePlan.addOnCategories).flatMap(
     addOnInfo => addOnInfo.dataCategories
@@ -185,8 +192,14 @@ function SharedSpendLimitPriceTable({
       radius="md"
       padding="lg xl"
     >
-      <Grid gap="sm" columns={{xs: '1fr', md: 'repeat(2, 1fr)'}}>
+      <Grid gap="lg" columns={{xs: '1fr', md: 'repeat(2, 1fr)'}}>
         {baseCategories.map(category => {
+          // pre-AM3 specific behavior
+          const showPerformanceUnits =
+            isAm2Plan(activePlan.id) &&
+            organization?.features?.includes('profiling-billing') &&
+            category === DataCategory.TRANSACTIONS;
+
           const categoryInfo = getCategoryInfoFromPlural(category);
           const reserved = currentReserved[category] ?? 0;
           const paygPpe = getPaygPpe({
@@ -209,18 +222,27 @@ function SharedSpendLimitPriceTable({
             });
           return (
             <SharedSpendLimitPriceTableRow key={category}>
-              <Container>
+              <Flex gap="xs" align="center" paddingRight="xs">
                 <Text bold>{pluralName}</Text>
                 {reserved > 0 && (
                   <Text variant="accent">
-                    {tct(' ([formattedReserved] included)', {
+                    {tct('([formattedReserved] included)', {
                       formattedReserved: formatReservedWithUnits(reserved, category, {
                         isAbbreviated: true,
                       }),
                     })}
                   </Text>
                 )}
-              </Container>
+                {showPerformanceUnits
+                  ? renderPerformanceHovercard()
+                  : categoryInfo?.checkoutTooltip && (
+                      <QuestionTooltip
+                        title={categoryInfo.checkoutTooltip}
+                        position="top"
+                        size="xs"
+                      />
+                    )}
+              </Flex>
               <DashedBorder />
               <Container>
                 <Text>
@@ -246,10 +268,16 @@ function SharedSpendLimitPriceTable({
               product as unknown as ReservedBudgetCategoryType
             ];
           const reservedBudget = reservedBudgetInfo?.defaultBudget;
+          const tooltipText = getProductCheckoutDescription(
+            addOnInfo.apiName as unknown as SelectableProduct,
+            true,
+            displayPrice({cents: reservedBudgetInfo?.defaultBudget ?? 0}),
+            true
+          );
 
           return (
             <SharedSpendLimitPriceTableRow key={product}>
-              <Container>
+              <Flex gap="xs" align="center" paddingRight="xs">
                 <Text bold>{capitalize(addOnInfo.productName)}</Text>
                 {reservedBudget && (
                   <Text variant="accent">
@@ -258,7 +286,10 @@ function SharedSpendLimitPriceTable({
                     })}
                   </Text>
                 )}
-              </Container>
+                {tooltipText && (
+                  <QuestionTooltip title={tooltipText} position="top" size="xs" />
+                )}
+              </Flex>
               <DashedBorder />
               <Container>
                 {categories.map((category, index) => {
@@ -308,6 +339,7 @@ function InnerSpendLimitSettings({
   onUpdate,
   currentReserved,
   additionalProducts,
+  organization,
 }: InnerSpendLimitSettingsProps) {
   const handleUpdate = ({newData}: {newData: PartialSpendLimitUpdate}) => {
     if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
@@ -387,6 +419,11 @@ function InnerSpendLimitSettings({
             const hasConstantPpe = activePlan.planCategories[category]?.length === 1;
             const isLastInList =
               index === baseCategories.length - 1 && includedAddOns.length === 0;
+            const showPerformanceUnits =
+              isAm2Plan(activePlan.id) &&
+              organization?.features?.includes('profiling-billing') &&
+              category === DataCategory.TRANSACTIONS;
+
             return (
               <Flex
                 key={category}
@@ -397,7 +434,16 @@ function InnerSpendLimitSettings({
                 borderBottom={isLastInList ? undefined : 'primary'}
               >
                 <Flex gap="xs" align="center">
-                  <Text bold>{toTitleCase(pluralName, {allowInnerUpperCase: true})}</Text>
+                  <Text bold>{upperFirst(pluralName)}</Text>
+                  {showPerformanceUnits
+                    ? renderPerformanceHovercard()
+                    : categoryInfo?.checkoutTooltip && (
+                        <QuestionTooltip
+                          title={categoryInfo.checkoutTooltip}
+                          position="top"
+                          size="xs"
+                        />
+                      )}
                   <Text variant="muted">
                     {reserved === 0
                       ? t('None included')
@@ -444,6 +490,12 @@ function InnerSpendLimitSettings({
                 ]?.defaultBudget ?? 0);
             const reservedType = checkoutState.reservedType ?? 'budget';
             const isLastInList = index === includedAddOns.length - 1;
+            const tooltipText = getProductCheckoutDescription(
+              addOnInfo.apiName as unknown as SelectableProduct,
+              true,
+              displayPrice({cents: reserved}),
+              true
+            );
 
             return (
               <Flex
@@ -455,11 +507,10 @@ function InnerSpendLimitSettings({
                 borderBottom={isLastInList ? undefined : 'primary'}
               >
                 <Flex gap="xs" align="center">
-                  <Text bold>
-                    {toTitleCase(addOnInfo.productName, {
-                      allowInnerUpperCase: true,
-                    })}
-                  </Text>
+                  <Text bold>{upperFirst(addOnInfo.productName)}</Text>
+                  {tooltipText && (
+                    <QuestionTooltip title={tooltipText} position="top" size="xs" />
+                  )}
                   <Text variant="muted">
                     {reserved === 0
                       ? t('None included')
@@ -509,6 +560,7 @@ function InnerSpendLimitSettings({
           activePlan={activePlan}
           currentReserved={currentReserved}
           additionalProducts={additionalProducts}
+          organization={organization}
         />
       </Fragment>
     );
@@ -574,11 +626,9 @@ function BudgetModeSettings({
                 />
               </Container>
               <Heading as="h3" variant={isSelected ? 'accent' : 'primary'}>
-                {tct('[budgetMode] spending [limitTerm]', {
-                  budgetMode: budgetModeName,
-                  limitTerm:
-                    budgetMode === OnDemandBudgetMode.PER_CATEGORY ? 'limits' : 'limit',
-                })}
+                {budgetMode === OnDemandBudgetMode.PER_CATEGORY
+                  ? t('Set a spending limit for each product')
+                  : t('Set a spending limit shared across all products')}
               </Heading>
             </Flex>
           </CheckoutOption>
@@ -597,9 +647,10 @@ function SpendLimitSettings({
   isOpen,
   additionalProducts,
   footer,
+  organization,
 }: SpendLimitSettingsProps) {
   return (
-    <Flex direction="column">
+    <Flex direction="column" gap="sm">
       {header}
       {isOpen && (
         <Grid gap="2xl">
@@ -633,6 +684,7 @@ function SpendLimitSettings({
               onUpdate={onUpdate}
               currentReserved={currentReserved}
               additionalProducts={additionalProducts}
+              organization={organization}
             />
             {footer}
           </InnerContainer>

@@ -1,7 +1,7 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
+import AutofixInsightCards from 'sentry/components/events/autofix/insights/autofixInsightCards';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -28,7 +28,6 @@ describe('AutofixInsightCards', () => {
     return render(
       <AutofixInsightCards
         insights={sampleInsights}
-        hasStepAbove={false}
         hasStepBelow={false}
         groupId="1"
         runId="1"

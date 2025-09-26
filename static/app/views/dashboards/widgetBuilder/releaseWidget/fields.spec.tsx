@@ -117,6 +117,23 @@ describe('generateReleaseWidgetFieldOptions', () => {
           },
         },
       },
+      'function:count_unhandled': {
+        label: 'count_unhandled(…)',
+        value: {
+          kind: 'function',
+          meta: {
+            name: 'count_unhandled',
+            parameters: [
+              {
+                columnTypes: ['integer', 'string'],
+                defaultValue: 'session',
+                kind: 'column',
+                required: true,
+              },
+            ],
+          },
+        },
+      },
       'function:count_unique': {
         label: 'count_unique(…)',
         value: {

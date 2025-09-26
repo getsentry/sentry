@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
@@ -50,6 +49,7 @@ export function DateSelector() {
       value={preventPeriod ?? ''}
       onChange={handleChange}
       menuWidth={'16rem'}
+      menuTitle={t('Filter to time period')}
       trigger={(triggerProps, isOpen) => {
         const defaultLabel = options.some(item => item.value === preventPeriod)
           ? preventPeriod?.toUpperCase()
@@ -58,14 +58,12 @@ export function DateSelector() {
         return (
           <DropdownButton
             isOpen={isOpen}
+            icon={<IconCalendar />}
             data-test-id="prevent-time-selector"
             {...triggerProps}
           >
             <TriggerLabelWrap>
-              <Flex align="center" gap="sm">
-                <IconCalendar />
-                <TriggerLabel>{defaultLabel}</TriggerLabel>
-              </Flex>
+              <TriggerLabel>{defaultLabel}</TriggerLabel>
             </TriggerLabelWrap>
           </DropdownButton>
         );

@@ -7,13 +7,17 @@ from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason
 from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifyServiceAction
+from sentry.integrations.pagerduty.analytics import PagerdutyIntegrationNotificationSent
 from sentry.integrations.pagerduty.client import PAGERDUTY_SUMMARY_MAX_LENGTH
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_halt_metric, assert_slo_metric
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
-from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.analytics import (
+    assert_any_analytics_event,
+    assert_last_analytics_event,
+)
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import assume_test_silo_mode
@@ -120,14 +124,16 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
                 notification_uuid=notification_uuid,
             ),
         )
-        mock_record.assert_any_call(
-            "integrations.pagerduty.notification_sent",
-            category="issue_alert",
-            organization_id=self.organization.id,
-            project_id=event.project_id,
-            group_id=event.group_id,
-            notification_uuid=notification_uuid,
-            alert_id=self.project_rule.id,
+        assert_any_analytics_event(
+            mock_record,
+            PagerdutyIntegrationNotificationSent(
+                category="issue_alert",
+                organization_id=self.organization.id,
+                project_id=event.project_id,
+                group_id=event.group_id,
+                notification_uuid=notification_uuid,
+                alert_id=self.project_rule.id,
+            ),
         )
 
     @responses.activate

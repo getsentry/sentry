@@ -51,7 +51,7 @@ const REFERRER_FEATURE_HIGHLIGHTS = {
   'upsell-discover2': ['discover'],
 };
 
-export function getHighlightedFeatures(referrer?: string): string[] {
+function getHighlightedFeatures(referrer?: string): string[] {
   return referrer
     ? (REFERRER_FEATURE_HIGHLIGHTS[
         referrer as keyof typeof REFERRER_FEATURE_HIGHLIGHTS
@@ -245,6 +245,7 @@ function PlanSelect({
                       organization,
                       subscription,
                       source: 'checkout.plan_select',
+                      isNewCheckout: false,
                     });
                   }}
                 />

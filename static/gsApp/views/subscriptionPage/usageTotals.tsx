@@ -803,10 +803,6 @@ export function CombinedUsageTotals({
   const [state, setState] = useState<State>({expanded: false, trialButtonBusy: false});
   const theme = useTheme();
 
-  if (subscription.isSponsored) {
-    return null; // this is just a safety check but sponsored plans shouldn't have access to selectable products for now anyway
-  }
-
   const colors = theme.chart.getColorPalette(5);
   const categoryToColors: Partial<
     Record<DataCategory, {ondemand: string; reserved: string}>

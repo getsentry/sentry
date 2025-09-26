@@ -16,7 +16,6 @@ import type {LocationQuery} from 'sentry/utils/discover/eventView';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
-import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import type {
   ApiQueryKey,
   UseApiQueryOptions,
@@ -51,7 +50,6 @@ type Options = {
   period?: string | null;
   project?: readonly number[];
   query?: string;
-  queryBatching?: QueryBatching;
   queryExtras?: Record<string, string | boolean | number>;
   referrer?: string;
   sampling?: SamplingMode;
@@ -80,7 +78,6 @@ export type EventsStatsOptions<T extends boolean> = {includeAllArgs: T} & Option
  * @param {Boolean} options.includePrevious Should request also return reqsults for previous period?
  * @param {Number} options.limit The number of rows to return
  * @param {String} options.query Search query
- * @param {QueryBatching} options.queryBatching A container for batching functions from a provider
  * @param {Record<string, string>} options.queryExtras A list of extra query parameters
  * @param {(org: OrganizationSummary) => string} options.generatePathname A function that returns an override for the pathname
  */
@@ -105,7 +102,6 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean>(
     partial,
     withoutZerofill,
     referrer,
-    queryBatching,
     generatePathname,
     queryExtras,
     excludeOther,
@@ -155,10 +151,6 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean>(
       ...queryExtras,
     },
   };
-
-  if (queryBatching?.batchRequest) {
-    return queryBatching.batchRequest(api, pathname, queryObject);
-  }
 
   return api.requestPromise<IncludeAllArgsType>(pathname, queryObject);
 };

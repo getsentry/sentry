@@ -41,7 +41,7 @@ import {
   ModalChartContainer,
 } from 'sentry/views/insights/common/components/insightsChartContainer';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/types';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {BASE_FIELD_ALIASES, INGESTION_DELAY} from 'sentry/views/insights/settings';
 import type {SpanFields} from 'sentry/views/insights/types';

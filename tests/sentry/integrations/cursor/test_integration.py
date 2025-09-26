@@ -7,6 +7,7 @@ import pytest
 from sentry.integrations.cursor.integration import CursorAgentIntegrationProvider
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.silo import assume_test_silo_mode_of
 
 
 class CursorIntegrationTest(IntegrationTestCase):
@@ -129,3 +130,55 @@ class CursorIntegrationTest(IntegrationTestCase):
         mock_post.assert_called_once()
         call_args = mock_post.call_args
         assert call_args[0][0] == "/v0/agents"
+
+    def test_update_organization_config_persists_api_key_and_clears_org_config(self):
+        # Create a Cursor integration linked to this organization
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor",
+            name="Cursor Agent",
+            external_id="cursor",
+            metadata={
+                "api_key": "old_key",
+                "domain_name": "cursor.sh",
+                "webhook_secret": "secret123",
+            },
+        )
+
+        installation = integration.get_installation(organization_id=self.organization.id)
+
+        # Call update with a new API key
+        installation.update_organization_config({"api_key": "new_secret_key"})
+
+        # Metadata should be updated on the Integration
+        integration.refresh_from_db()
+        assert integration.metadata["api_key"] == "new_secret_key"
+
+        # OrganizationIntegration config should remain empty (no secret stored there)
+        from sentry.integrations.models.organization_integration import OrganizationIntegration
+
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            org_integration = OrganizationIntegration.objects.get(
+                integration_id=integration.id, organization_id=self.organization.id
+            )
+            assert org_integration.config == {}
+
+    def test_update_organization_config_missing_api_key_raises(self):
+        # Create a Cursor integration linked to this organization
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor",
+            name="Cursor Agent",
+            external_id="cursor",
+            metadata={
+                "api_key": "present_key",
+                "domain_name": "cursor.sh",
+                "webhook_secret": "secret123",
+            },
+        )
+
+        installation = integration.get_installation(organization_id=self.organization.id)
+
+        # Missing api_key should raise
+        with pytest.raises(IntegrationError, match="API key is required"):
+            installation.update_organization_config({})

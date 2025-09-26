@@ -6,7 +6,6 @@ from unittest.mock import patch
 from django.urls import reverse
 
 from sentry.constants import ObjectStatus
-from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 
 
@@ -94,7 +93,7 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
 
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
-        assert resp.data == {"org_ids": []}
+        assert resp.data == {"organizations": []}
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
@@ -110,19 +109,20 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
         org_without_consent.update_option("sentry:hide_ai_features", True)
 
         repo_id = "12345"
-        Repository.objects.create(
-            organization_id=org_with_consent.id,
+        project_with_consent = self.create_project(organization=org_with_consent)
+        project_without_consent = self.create_project(organization=org_without_consent)
+
+        self.create_repo(
+            project=project_with_consent,
             external_id=repo_id,
             name="org/repo",
             provider="integrations:github",
-            status=ObjectStatus.ACTIVE,
         )
-        Repository.objects.create(
-            organization_id=org_without_consent.id,
+        self.create_repo(
+            project=project_without_consent,
             external_id=repo_id,
             name="org/repo",
             provider="integrations:github",
-            status=ObjectStatus.ACTIVE,
         )
 
         url = reverse("sentry-api-0-prevent-pr-review-github-sentry-org")
@@ -132,8 +132,17 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
 
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
-        # Should only return the org with consent
-        assert resp.data == {"org_ids": [org_with_consent.id]}
+        # Should return both orgs with their consent status
+        expected_orgs = [
+            {"org_id": org_with_consent.id, "has_consent": True},
+            {"org_id": org_without_consent.id, "has_consent": False},
+        ]
+        # Sort both lists by org_id to ensure consistent comparison
+        expected_orgs = sorted(expected_orgs, key=lambda x: x["org_id"])
+        actual_data = {
+            "organizations": sorted(resp.data["organizations"], key=lambda x: x["org_id"])
+        }
+        assert actual_data == {"organizations": expected_orgs}
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
@@ -145,14 +154,17 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
         org.update_option("sentry:enable_pr_review_test_generation", True)
 
         repo_id = "12345"
+        project = self.create_project(organization=org)
 
-        Repository.objects.create(
-            organization_id=org.id,
+        # Note: create_repo doesn't support status parameter, so we need to update it after creation
+        repo = self.create_repo(
+            project=project,
             external_id=repo_id,
             name="org/repo",
             provider="integrations:github",
-            status=ObjectStatus.DISABLED,
         )
+        repo.status = ObjectStatus.DISABLED
+        repo.save()
 
         url = reverse("sentry-api-0-prevent-pr-review-github-sentry-org")
         params = {"repoId": repo_id}
@@ -162,4 +174,4 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
         # Should return empty list as the repository is inactive
-        assert resp.data == {"org_ids": []}
+        assert resp.data == {"organizations": []}

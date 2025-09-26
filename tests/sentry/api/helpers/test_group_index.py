@@ -127,7 +127,6 @@ class UpdateGroupsTest(TestCase):
         assert send_unresolved.called
 
     @patch("sentry.signals.issue_resolved.send_robust")
-    @with_feature("organizations:issue-open-periods")
     def test_resolving_unresolved_group(self, send_robust: Mock) -> None:
         unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
         add_group_to_inbox(unresolved_group, GroupInboxReason.NEW)
@@ -155,7 +154,6 @@ class UpdateGroupsTest(TestCase):
         assert open_period.date_ended is not None
 
     @patch("sentry.signals.issue_resolved.send_robust")
-    @with_feature("organizations:issue-open-periods")
     def test_resolving_unresolved_group_without_open_period(self, send_robust: Mock) -> None:
         unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
         add_group_to_inbox(unresolved_group, GroupInboxReason.NEW)

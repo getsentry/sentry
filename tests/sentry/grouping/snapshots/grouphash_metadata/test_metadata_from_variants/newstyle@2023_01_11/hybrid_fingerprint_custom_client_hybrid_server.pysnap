@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T18:40:14.091144+00:00'
+created: '2025-09-24T20:28:36.056103+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -31,7 +31,8 @@ contributing variants:
   app*
     hash: "19163f3ca34f5995c69d85351ce3d697"
     contributing component: exception
-    component:
+    fingerprint_info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\""}}
+    root_component:
       app*
         exception*
           stacktrace*
@@ -121,12 +122,12 @@ contributing variants:
                 "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
           type*
             "SoftTimeLimitExceeded"
-    fingerprint_info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\""}}
     values: ["{{ default }}","soft-timelimit-exceeded"]
   system*
     hash: "847950eb44d280e6758d136c763d6ddc"
     contributing component: exception
-    component:
+    fingerprint_info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\""}}
+    root_component:
       system*
         exception*
           stacktrace*
@@ -251,5 +252,4 @@ contributing variants:
                 "raise SoftTimeLimitExceeded()"
           type*
             "SoftTimeLimitExceeded"
-    fingerprint_info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\""}}
     values: ["{{ default }}","soft-timelimit-exceeded"]

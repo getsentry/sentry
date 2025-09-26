@@ -175,6 +175,7 @@ class SeerRpcServiceEndpoint(Endpoint):
     permission_classes = ()
     enforce_rate_limit = False
 
+    @sentry_sdk.trace
     def _is_authorized(self, request: Request) -> bool:
         if request.auth and isinstance(
             request.successful_authenticator, SeerRpcSignatureAuthentication
@@ -182,6 +183,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             return True
         return False
 
+    @sentry_sdk.trace
     def _dispatch_to_local_method(self, method_name: str, arguments: dict[str, Any]) -> Any:
         if method_name not in seer_method_registry:
             raise RpcResolutionException(f"Unknown method {method_name}")
@@ -189,6 +191,7 @@ class SeerRpcServiceEndpoint(Endpoint):
         method = seer_method_registry[method_name]
         return method(**arguments)
 
+    @sentry_sdk.trace
     def post(self, request: Request, method_name: str) -> Response:
         if not self._is_authorized(request):
             raise PermissionDenied

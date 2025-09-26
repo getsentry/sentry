@@ -280,7 +280,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                     value: 'yaml',
                     language: 'yaml',
                     filename: 'pubspec.yaml',
-                    partialLoading: params.sourcePackageRegistries?.isLoading,
                     code: getManualInstallSnippet(params),
                   },
                 ],

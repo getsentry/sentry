@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -8,7 +9,6 @@ import {
   SummaryContainer,
   SummaryEntries,
   SummaryEntry,
-  SummaryEntryLabel,
   SummaryEntryValue,
   SummaryEntryValueLink,
 } from 'sentry/components/prevent/summary';
@@ -32,12 +32,9 @@ export function CommitDetailSummary() {
         <PanelBody>
           <SummaryEntries largeColumnSpan={6} smallColumnSpan={2}>
             <SummaryEntry>
-              <SummaryEntryLabel
-                showUnderline
-                body={<p>{t('Repository coverage tooltip')}</p>}
-              >
+              <Tooltip showUnderline title={t('Repository coverage tooltip')}>
                 {t('Repository coverage')}
-              </SummaryEntryLabel>
+              </Tooltip>
               <SummaryEntryValue>98.98%</SummaryEntryValue>
               <StyledSubText>
                 {t('Head commit')}{' '}
@@ -47,42 +44,33 @@ export function CommitDetailSummary() {
               </StyledSubText>
             </SummaryEntry>
             <SummaryEntry>
-              <SummaryEntryLabel
-                showUnderline
-                body={<p>{t('Patch coverage tooltip')}</p>}
-              >
+              <Tooltip showUnderline title={t('Patch coverage tooltip')}>
                 {t('Patch coverage')}
-              </SummaryEntryLabel>
+              </Tooltip>
               <SummaryEntryValue>100%</SummaryEntryValue>
             </SummaryEntry>
             <SummaryEntry>
-              <SummaryEntryLabel
-                showUnderline
-                body={<p>{t('Uncovered lines tooltip')}</p>}
-              >
+              <Tooltip showUnderline title={t('Uncovered lines tooltip')}>
                 {t('Uncovered lines')}
-              </SummaryEntryLabel>
+              </Tooltip>
               <SummaryEntryValueLink filterBy="uncoveredLines">5</SummaryEntryValueLink>
             </SummaryEntry>
             <SummaryEntry>
-              <SummaryEntryLabel showUnderline body={<p>{t('Files changed tooltip')}</p>}>
+              <Tooltip showUnderline title={t('Files changed tooltip')}>
                 {t('Files changed')}
-              </SummaryEntryLabel>
+              </Tooltip>
               <SummaryEntryValueLink filterBy="filesChanged">4</SummaryEntryValueLink>
             </SummaryEntry>
             <SummaryEntry>
-              <SummaryEntryLabel
-                showUnderline
-                body={<p>{t('Indirect changes tooltip')}</p>}
-              >
+              <Tooltip showUnderline title={t('Indirect changes tooltip')}>
                 {t('Indirect changes')}
-              </SummaryEntryLabel>
+              </Tooltip>
               <SummaryEntryValueLink filterBy="indirectChanges">1</SummaryEntryValueLink>
             </SummaryEntry>
             <SourceEntry>
-              <SummaryEntryLabel showUnderline body={<p>{t('Source tooltip')}</p>}>
+              <Tooltip showUnderline title={t('Source tooltip')}>
                 {t('Source')}
-              </SummaryEntryLabel>
+              </Tooltip>
               <SourceText>
                 {t('This commit %s compared to', headCommit.shortSha)}{' '}
                 <Link to={`/prevent/coverage/commits/${baseCommit.sha}`}>
@@ -98,9 +86,9 @@ export function CommitDetailSummary() {
         <PanelBody>
           <SummaryEntries largeColumnSpan={1} smallColumnSpan={1}>
             <SummaryEntry>
-              <SummaryEntryLabel showUnderline body={<p>{t('Uploads count tooltip')}</p>}>
+              <Tooltip showUnderline title={t('Uploads count tooltip')}>
                 {t('Uploads count')}
-              </SummaryEntryLabel>
+              </Tooltip>
               <SummaryEntryValueLink filterBy="uploadsCount">65</SummaryEntryValueLink>
               <StyledSubText>{t('(%s processed, %s pending)', 65, 15)}</StyledSubText>
             </SummaryEntry>

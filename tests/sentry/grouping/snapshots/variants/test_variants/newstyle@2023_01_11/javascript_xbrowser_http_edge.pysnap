@@ -1,13 +1,13 @@
 ---
-created: '2025-04-25T21:22:09.242170+00:00'
+created: '2025-09-24T20:27:08.018602+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   contributing component: null
-  component:
-    app (exception of system takes precedence)
+  root_component:
+    app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
@@ -46,7 +46,7 @@ app:
           frame (marked out of app by the client)
             module*
               "test"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "native code"
             function* (trimmed javascript function)
               "map"
@@ -86,7 +86,7 @@ app:
 system:
   hash: "b2602ad455472dede8e4c340d8a7eaba"
   contributing component: exception
-  component:
+  root_component:
     system*
       exception*
         stacktrace*
@@ -126,7 +126,7 @@ system:
           frame (ignored low quality javascript frame)
             module*
               "test"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "native code"
             function* (trimmed javascript function)
               "map"

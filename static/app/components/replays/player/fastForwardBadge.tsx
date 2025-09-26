@@ -15,7 +15,7 @@ function FastForwardBadge({speed, className}: Props) {
     <Badge className={className}>
       <FastForwardTooltip title={t('Fast forwarding at %sx', speed)}>
         {t('Fast forwarding through inactivity')}
-        <IconArrow size="sm" direction="right" />
+        <StyledIconArrow size="sm" direction="right" />
       </FastForwardTooltip>
     </Badge>
   );
@@ -31,16 +31,16 @@ const Badge = styled('div')`
 
 /* Badge layout and style */
 const FastForwardTooltip = styled(Tooltip)`
-  display: grid;
-  grid-template-columns: max-content max-content;
-  gap: ${space(0.5)};
-  align-items: center;
-
   background: ${p => p.theme.gray300};
   color: ${p => p.theme.white};
   padding: ${space(1.5)} ${space(2)};
   border-top-right-radius: ${p => p.theme.borderRadius};
   z-index: ${p => p.theme.zIndex.initial};
+`;
+
+const StyledIconArrow = styled(IconArrow)`
+  margin-left: ${p => p.theme.space.sm};
+  vertical-align: text-top;
 `;
 
 export default FastForwardBadge;

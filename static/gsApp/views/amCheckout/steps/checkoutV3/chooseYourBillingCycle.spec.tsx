@@ -12,7 +12,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
-describe('BillingCycle', () => {
+describe('ChooseYourBillingCycle', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization, plan: 'am3_f'});
@@ -55,6 +55,10 @@ describe('BillingCycle', () => {
         invoiceItems: [],
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
   });
 
   afterEach(() => {
@@ -69,7 +73,9 @@ describe('BillingCycle', () => {
     monthlyInfo: string | RegExp;
     yearlyInfo: string | RegExp;
   }) {
-    expect(await screen.findByText('Billing cycle')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Pay monthly or yearly, your choice')
+    ).toBeInTheDocument();
 
     const monthlyOption = screen.getByTestId('billing-cycle-option-monthly');
     expect(within(monthlyOption).getByText('Monthly')).toBeInTheDocument();
@@ -82,7 +88,7 @@ describe('BillingCycle', () => {
     expect(within(yearlyOption).getByText('save 10%')).toBeInTheDocument();
     expect(within(yearlyOption).getByText(yearlyInfo)).toBeInTheDocument();
     expect(
-      within(yearlyOption).getByText("Discount doesn't apply to pay-as-you-go usage")
+      within(yearlyOption).getByText('PAYG usage billed monthly, discount does not apply')
     ).toBeInTheDocument();
   }
 
@@ -112,8 +118,8 @@ describe('BillingCycle', () => {
   it('renders for coterm upgrade', async () => {
     renderCheckout(true);
     await assertCycleText({
-      monthlyInfo: /Billed monthly starting on August 13/,
-      yearlyInfo: /Billed every 12 months on the 13th of August/,
+      monthlyInfo: /Billed on the 13th of each month/,
+      yearlyInfo: /Billed annually/,
     });
   });
 
@@ -127,8 +133,8 @@ describe('BillingCycle', () => {
     SubscriptionStore.set(organization.slug, annualSub);
     renderCheckout(true);
     await assertCycleText({
-      monthlyInfo: /Billed monthly starting on July 16/,
-      yearlyInfo: /Billed every 12 months on the 13th of August/, // annual can be applied immediately
+      monthlyInfo: /Billed on the 16th of each month/,
+      yearlyInfo: /Billed annually/,
     });
   });
 
@@ -152,7 +158,7 @@ describe('BillingCycle', () => {
     renderCheckout(true);
     await assertCycleText({
       monthlyInfo: /Billed monthly starting on your selected start date on submission/,
-      yearlyInfo: /Billed every 12 months from your selected start date on submission/,
+      yearlyInfo: /Billed annually from your selected start date on submission/,
     });
   });
 

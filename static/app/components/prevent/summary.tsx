@@ -2,7 +2,6 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Link} from 'sentry/components/core/link';
-import {Hovercard} from 'sentry/components/hovercard';
 import {IconFilter} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -33,24 +32,6 @@ export function useCreateSummaryFilterLink(filterBy: SummaryFilterKey) {
     isFiltered,
     filterLink: isFiltered ? revertFilterLink : filterLink,
   };
-}
-
-const StyledSummaryEntryLabel = styled('span')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
-`;
-
-interface SummaryEntryLabelProps extends React.ComponentProps<typeof Hovercard> {
-  children: React.ReactNode;
-}
-
-export function SummaryEntryLabel({children, ...props}: SummaryEntryLabelProps) {
-  return (
-    <Hovercard {...props}>
-      <StyledSummaryEntryLabel>{children}</StyledSummaryEntryLabel>
-    </Hovercard>
-  );
 }
 
 const SummaryEntryBase = css`

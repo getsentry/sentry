@@ -1,19 +1,19 @@
 ---
-created: '2025-09-11T18:38:52.769061+00:00'
+created: '2025-09-24T20:27:08.732319+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "d59239f5aad3304d60beb1fde3369b78"
   contributing component: exception
-  component:
+  root_component:
     app*
       exception*
         stacktrace*
           frame* (marked in-app by the client)
             module*
               "sentry.utils.safe"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "safe.py"
             function*
               "safe_execute"
@@ -22,7 +22,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "sentry.integrations.slack.notify_action"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "notify_action.py"
             function*
               "send_notification"
@@ -31,7 +31,7 @@ app:
           frame (marked out of app by the client)
             module*
               "requests.models"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "models.py"
             function*
               "raise_for_status"
@@ -45,22 +45,22 @@ app:
 default:
   hash: null
   contributing component: null
-  component:
-    default (exception of app/system takes precedence)
-      message (exception of app/system takes precedence)
+  root_component:
+    default (ignored because app/system exception takes precedence)
+      message (ignored because app/system exception takes precedence)
         "%s.process_error"
 --------------------------------------------------------------------------
 system:
   hash: "133db3f366b1327dab4e661f66dfb961"
   contributing component: exception
-  component:
+  root_component:
     system*
       exception*
         stacktrace*
           frame*
             module*
               "sentry.utils.safe"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "safe.py"
             function*
               "safe_execute"
@@ -69,7 +69,7 @@ system:
           frame*
             module*
               "sentry.integrations.slack.notify_action"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "notify_action.py"
             function*
               "send_notification"
@@ -78,7 +78,7 @@ system:
           frame*
             module*
               "requests.models"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "models.py"
             function*
               "raise_for_status"

@@ -5,6 +5,7 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Link} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -15,8 +16,6 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
-import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
@@ -29,6 +28,7 @@ import {
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export default function OverviewSlowNextjsSSRWidget(props: LoadableChartWidgetProps) {
   const theme = useTheme();
@@ -51,21 +51,22 @@ export default function OverviewSlowNextjsSSRWidget(props: LoadableChartWidgetPr
     Referrer.SLOW_SSR_CHART
   );
 
-  const timeSeriesRequest = useTopNSpanSeries(
+  const timeSeriesRequest = useFetchSpanTimeSeries(
     {
       ...pageFilterChartParams,
-      search: `span.group:[${spansRequest.data?.map(item => `"${item['span.group']}"`).join(',')}]`,
-      fields: ['span.group', 'avg(span.duration)'],
+      query: `span.group:[${spansRequest.data?.map(item => `"${item['span.group']}"`).join(',')}]`,
+      groupBy: [SpanFields.SPAN_GROUP],
       yAxis: ['avg(span.duration)'],
       sort: {field: 'avg(span.duration)', kind: 'desc'},
-      topN: 4,
+      topEvents: 4,
       enabled: !!spansRequest.data,
+      excludeOther: true,
+      pageFilters: props.pageFilters,
     },
-    Referrer.SLOW_SSR_CHART,
-    props.pageFilters
+    Referrer.SLOW_SSR_CHART
   );
 
-  const timeSeries = timeSeriesRequest.data.filter(ts => ts.seriesName !== 'Other');
+  const timeSeries = timeSeriesRequest.data?.timeSeries ?? [];
 
   const isLoading = timeSeriesRequest.isLoading || spansRequest.isLoading;
   const error = timeSeriesRequest.error || spansRequest.error;
@@ -74,10 +75,6 @@ export default function OverviewSlowNextjsSSRWidget(props: LoadableChartWidgetPr
     spansRequest.data && spansRequest.data.length > 0 && timeSeries.length > 0;
 
   const colorPalette = theme.chart.getColorPalette(timeSeries.length - 1);
-
-  const aliases = Object.fromEntries(
-    spansRequest.data?.map(item => [item['span.group'], item['span.description']]) ?? []
-  );
 
   const visualization = (
     <WidgetVisualizationStates
@@ -90,11 +87,7 @@ export default function OverviewSlowNextjsSSRWidget(props: LoadableChartWidgetPr
         id: 'overviewSlowNextjsSSRWidget',
         showLegend: 'never',
         plottables: timeSeries.map(
-          (ts, index) =>
-            new Line(convertSeriesToTimeseries(ts), {
-              color: colorPalette[index],
-              alias: aliases[ts.seriesName],
-            })
+          (ts, index) => new Line(ts, {color: colorPalette[index]})
         ),
         ...releaseBubbleProps,
       }}

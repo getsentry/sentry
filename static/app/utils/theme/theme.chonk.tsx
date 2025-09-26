@@ -1141,7 +1141,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
 
   prismVariables: generateThemePrismVariables(
     prismLight,
-    lightAliases.backgroundTertiary
+    lightAliases.backgroundSecondary
   ),
   prismDarkVariables: generateThemePrismVariables(
     prismDark,
@@ -1207,10 +1207,10 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
 
-  prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundTertiary),
+  prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundSecondary),
   prismDarkVariables: generateThemePrismVariables(
     prismDark,
-    darkAliases.backgroundTertiary
+    darkAliases.backgroundElevated
   ),
 
   stacktraceActiveBackground: darkTheme.stacktraceActiveBackground,

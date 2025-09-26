@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:20:24.813399+00:00'
+created: '2025-09-24T22:53:05.906276+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -21,7 +21,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": false,
@@ -1320,21 +1320,22 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app thread stack-trace",
+    "description": "in-app thread stacktrace",
     "hash": "54e8028fb2526cf31b12dd66c01ad9e2",
+    "hint": null,
     "key": "app",
     "type": "component"
   },
   "default": {
     "component": {
       "contributes": false,
-      "hint": "threads of app/system take precedence",
+      "hint": "ignored because app/system threads take precedence",
       "id": "default",
       "name": null,
       "values": [
         {
           "contributes": false,
-          "hint": "threads of app/system take precedence",
+          "hint": "ignored because app/system threads take precedence",
           "id": "message",
           "name": "message",
           "values": [
@@ -1365,6 +1366,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "default",
     "hash": null,
+    "hint": "ignored because app/system threads take precedence",
     "key": "default",
     "type": "component"
   },
@@ -1385,7 +1387,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": false,
@@ -2684,8 +2686,9 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "thread stack-trace",
+    "description": "thread stacktrace",
     "hash": "9e04decaf79ecba9dc0314dc0edd3993",
+    "hint": null,
     "key": "system",
     "type": "component"
   }

@@ -21,7 +21,7 @@ import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
 import Homepage from './homepage';
 
 describe('Discover > Homepage', () => {
-  const features = ['global-views', 'discover-query'];
+  const features = ['discover-query'];
   let initialData: ReturnType<typeof initializeOrg>;
   let organization: ReturnType<typeof OrganizationFixture>;
   let mockHomepage: jest.Mock;

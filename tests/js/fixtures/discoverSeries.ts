@@ -1,4 +1,4 @@
-import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/types';
 
 export function DiscoverSeriesFixture(
   params: Partial<DiscoverSeries> = {}

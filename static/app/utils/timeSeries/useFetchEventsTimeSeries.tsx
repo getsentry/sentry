@@ -15,38 +15,72 @@ import {
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
 import type {SpanProperty} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 import {getIntervalForTimeSeriesQuery} from './getIntervalForTimeSeriesQuery';
 
-interface UseFetchEventsTimeSeriesOptions<Field> {
-  yAxis: Field | Field[];
+interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
+  /**
+   * The fields (or single field) to fetch from the API. e.g., `"p50(span.duration)"`
+   */
+  yAxis: YAxis | YAxis[];
+  /**
+   * Boolean. If missing, the query is enabled. If supplied, the query will obey the prop as specified.
+   */
   enabled?: boolean;
-  groupBy?: Field[];
+  /**
+   * If true, the query will exclude the "other" group.
+   */
+  excludeOther?: boolean;
+  /**
+   * An array of tags by which to group the results. e.g., passing `["transaction"]` will group the results by the `"transaction"` tag. `["env", "transaction"]` will group by both the `"env"` and `"transaction"` tags.
+   */
+  groupBy?: Attribute[];
+  /**
+   * Duration between items in the time series, as a string. e.g., `"5m"`
+   */
   interval?: string;
   /**
-   * NOTE: If `pageFilters` are passed in, the implication is that these filters are ready, and have valid data. If present, the query is enabled immediately!
+   * Page filters to apply to the request. This applies the date selection, projects, and environments. By default uses the currently applied filters after waiting for them to become available. If `pageFilters` are passed as a prop, does not wait for readiness.
    */
   pageFilters?: PageFilters;
+  /**
+   * Query to apply to the data set. Can be either a `MutableSearch` object (preferred) or a plain string.
+   */
   query?: MutableSearch | string;
+  /**
+   * Sampling mode. Only specify this if you're sure you require a specific sampling mode. In most cases, the backend will automatically decide this.
+   */
   sampling?: SamplingMode;
+  /**
+   * Sort order for the results, only applies if `groupBy` is provided.
+   */
   sort?: Sort;
+  /**
+   * Number of groups for a `groupBy` request. e.g., if `topEvents` is `5` and `groupBy` is `["transaction"]` this will group the results by `transaction` and fetch the top 5 results
+   */
   topEvents?: number;
 }
 
-export function useFetchSpanTimeSeries<Fields extends SpanProperty>(
-  options: UseFetchEventsTimeSeriesOptions<Fields>,
-  referrer: string
-) {
-  return useFetchEventsTimeSeries<Fields>(DiscoverDatasets.SPANS, options, referrer);
+export function useFetchSpanTimeSeries<
+  Fields extends SpanProperty,
+  Attributes extends SpanFields,
+>(options: UseFetchEventsTimeSeriesOptions<Fields, Attributes>, referrer: string) {
+  return useFetchEventsTimeSeries<Fields, Attributes>(
+    DiscoverDatasets.SPANS,
+    options,
+    referrer
+  );
 }
 
 /**
  * Fetch time series data from the `/events-timeseries/` endpoint. Returns an array of `TimeSeries` objects.
  */
-export function useFetchEventsTimeSeries<T extends string>(
+export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends string>(
   dataset: DiscoverDatasets,
   {
     yAxis,
+    excludeOther,
     enabled,
     groupBy,
     interval,
@@ -55,7 +89,7 @@ export function useFetchEventsTimeSeries<T extends string>(
     pageFilters,
     sort,
     topEvents,
-  }: UseFetchEventsTimeSeriesOptions<T>,
+  }: UseFetchEventsTimeSeriesOptions<YAxis, Attribute>,
   referrer: string
 ) {
   const organization = useOrganization();
@@ -77,7 +111,7 @@ export function useFetchEventsTimeSeries<T extends string>(
       {
         query: {
           partial: 1,
-          excludeOther: 0,
+          excludeOther: excludeOther ? 1 : 0,
           dataset,
           referrer,
           yAxis,

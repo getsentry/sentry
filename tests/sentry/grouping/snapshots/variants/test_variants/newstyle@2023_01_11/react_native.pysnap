@@ -1,19 +1,19 @@
 ---
-created: '2025-09-11T18:38:52.880659+00:00'
+created: '2025-09-24T20:27:08.805605+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "73470e545e51eea9cff8a6c006f68f57"
   contributing component: exception
-  component:
+  root_component:
     app*
       exception*
         stacktrace*
           frame (marked out of app by the client)
             module*
               "react-native/Libraries/BatchedBridge/MessageQueue"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "messagequeue.js"
             function (ignored because sourcemap used and context line available)
               "value"
@@ -22,7 +22,7 @@ app:
           frame (marked out of app by the client)
             module*
               "react-native/Libraries/BatchedBridge/MessageQueue"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "messagequeue.js"
             function (ignored because sourcemap used and context line available)
               "flushedQueue"
@@ -31,7 +31,7 @@ app:
           frame (marked out of app by the client)
             module*
               "react-native/Libraries/BatchedBridge/MessageQueue"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "messagequeue.js"
             function (ignored because sourcemap used and context line available)
               "_inCall"
@@ -40,7 +40,7 @@ app:
           frame (marked out of app by the client)
             module*
               "react-native/Libraries/BatchedBridge/MessageQueue"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "messagequeue.js"
             function (ignored because sourcemap used and context line available)
               "flushedQueue"
@@ -49,7 +49,7 @@ app:
           frame (marked out of app by the client)
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "_lastFlush"
@@ -58,7 +58,7 @@ app:
           frame (marked out of app by the client)
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "_receiveRootNodeIDEvent"
@@ -67,7 +67,7 @@ app:
           frame (marked out of app by the client)
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "batchedUpdates"
@@ -76,7 +76,7 @@ app:
           frame (marked out of app by the client)
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "_batchedUpdates"
@@ -85,7 +85,7 @@ app:
           frame (marked out of app by the client)
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "fn"
@@ -94,7 +94,7 @@ app:
           frame (marked out of app by the client)
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "forEachAccumulated"
@@ -106,7 +106,7 @@ app:
           frame (marked out of app by the client)
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "D"
@@ -115,7 +115,7 @@ app:
           frame (marked out of app by the client)
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "executeDispatch"
@@ -124,7 +124,7 @@ app:
           frame (marked out of app by the client)
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "invokeGuardedCallbackAndCatchFirstError"
@@ -133,7 +133,7 @@ app:
           frame (marked out of app by the client)
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "apply"
@@ -142,7 +142,7 @@ app:
           frame (marked out of app by the client)
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "apply"
@@ -151,7 +151,7 @@ app:
           frame (marked out of app by the client)
             module*
               "react-native/Libraries/Components/Touchable/Touchable"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "touchable.js"
             function (ignored because sourcemap used and context line available)
               "arguments"
@@ -160,7 +160,7 @@ app:
           frame (marked out of app by the client)
             module*
               "react-native/Libraries/Components/Touchable/Touchable"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "touchable.js"
             function (ignored because sourcemap used and context line available)
               "_receiveSignal"
@@ -169,7 +169,7 @@ app:
           frame (marked out of app by the client)
             module*
               "react-native/Libraries/Components/Touchable/Touchable"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "touchable.js"
             function (ignored because sourcemap used and context line available)
               "_performSideEffectsForTransition"
@@ -178,7 +178,7 @@ app:
           frame (marked out of app by the client)
             module*
               "react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "touchablenativefeedback.android.js"
             function (ignored because sourcemap used and context line available)
               "this"
@@ -187,7 +187,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "App"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "app.js"
             function (ignored because sourcemap used and context line available)
               "onPress"
@@ -196,7 +196,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "App"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "app.js"
             function (ignored because sourcemap used and context line available)
               "Button"
@@ -210,14 +210,14 @@ app:
 system:
   hash: "ecd413627f0d90a5a25cb28d1ba9c39f"
   contributing component: exception
-  component:
+  root_component:
     system*
       exception*
         stacktrace*
           frame*
             module*
               "react-native/Libraries/BatchedBridge/MessageQueue"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "messagequeue.js"
             function (ignored because sourcemap used and context line available)
               "value"
@@ -226,7 +226,7 @@ system:
           frame*
             module*
               "react-native/Libraries/BatchedBridge/MessageQueue"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "messagequeue.js"
             function (ignored because sourcemap used and context line available)
               "flushedQueue"
@@ -235,7 +235,7 @@ system:
           frame*
             module*
               "react-native/Libraries/BatchedBridge/MessageQueue"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "messagequeue.js"
             function (ignored because sourcemap used and context line available)
               "_inCall"
@@ -244,7 +244,7 @@ system:
           frame*
             module*
               "react-native/Libraries/BatchedBridge/MessageQueue"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "messagequeue.js"
             function (ignored because sourcemap used and context line available)
               "flushedQueue"
@@ -253,7 +253,7 @@ system:
           frame*
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "_lastFlush"
@@ -262,7 +262,7 @@ system:
           frame*
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "_receiveRootNodeIDEvent"
@@ -271,7 +271,7 @@ system:
           frame*
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "batchedUpdates"
@@ -280,7 +280,7 @@ system:
           frame*
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "_batchedUpdates"
@@ -289,7 +289,7 @@ system:
           frame*
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "fn"
@@ -298,7 +298,7 @@ system:
           frame*
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "forEachAccumulated"
@@ -310,7 +310,7 @@ system:
           frame*
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "D"
@@ -319,7 +319,7 @@ system:
           frame*
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "executeDispatch"
@@ -328,7 +328,7 @@ system:
           frame*
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "invokeGuardedCallbackAndCatchFirstError"
@@ -337,7 +337,7 @@ system:
           frame*
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "apply"
@@ -346,7 +346,7 @@ system:
           frame*
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "reactnativerenderer-prod.js"
             function (ignored because sourcemap used and context line available)
               "apply"
@@ -355,7 +355,7 @@ system:
           frame*
             module*
               "react-native/Libraries/Components/Touchable/Touchable"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "touchable.js"
             function (ignored because sourcemap used and context line available)
               "arguments"
@@ -364,7 +364,7 @@ system:
           frame*
             module*
               "react-native/Libraries/Components/Touchable/Touchable"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "touchable.js"
             function (ignored because sourcemap used and context line available)
               "_receiveSignal"
@@ -373,7 +373,7 @@ system:
           frame*
             module*
               "react-native/Libraries/Components/Touchable/Touchable"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "touchable.js"
             function (ignored because sourcemap used and context line available)
               "_performSideEffectsForTransition"
@@ -382,7 +382,7 @@ system:
           frame*
             module*
               "react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "touchablenativefeedback.android.js"
             function (ignored because sourcemap used and context line available)
               "this"
@@ -391,7 +391,7 @@ system:
           frame*
             module*
               "App"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "app.js"
             function (ignored because sourcemap used and context line available)
               "onPress"
@@ -400,7 +400,7 @@ system:
           frame*
             module*
               "App"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "app.js"
             function (ignored because sourcemap used and context line available)
               "Button"

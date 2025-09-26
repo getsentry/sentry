@@ -80,8 +80,6 @@ x-sentry-service-config:
         branch: main
         repo_link: https://github.com/getsentry/taskbroker.git
         mode: containerized
-    rabbitmq:
-      description: Messaging and streaming broker
     memcached:
       description: Memcached used for caching
     spotlight:
@@ -154,8 +152,6 @@ x-sentry-service-config:
     # Uptime monitoring
     uptime-results:
       description: Kafka consumer for uptime monitoring results
-    celery-worker:
-      description: Worker that processes tasks from celery
 
   modes:
     default: [snuba, postgres, relay, spotlight]
@@ -168,7 +164,6 @@ x-sentry-service-config:
     taskworker:
       [snuba, postgres, relay, taskbroker, spotlight, taskworker, taskworker-scheduler]
     backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
-    rabbitmq: [postgres, snuba, rabbitmq, spotlight]
     symbolicator: [postgres, snuba, symbolicator, spotlight]
     memcached: [postgres, snuba, memcached, spotlight]
     tracing:
@@ -368,8 +363,6 @@ x-programs:
     command: sentry run consumer metrics-subscription-results --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   generic-metrics-subscription-results:
     command: sentry run consumer generic-metrics-subscription-results --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
-  celery-worker:
-    command: sentry run worker -c 1 --autoreload
 
 services:
   postgres:
@@ -422,19 +415,6 @@ services:
       - '127.0.0.1:7003:7003'
       - '127.0.0.1:7004:7004'
       - '127.0.0.1:7005:7005'
-    networks:
-      - devservices
-    extra_hosts:
-      - host.docker.internal:host-gateway
-    environment:
-      - IP=0.0.0.0
-    labels:
-      - orchestrator=devservices
-  rabbitmq:
-    image: ghcr.io/getsentry/image-mirror-library-rabbitmq:3-management
-    ports:
-      - '127.0.0.1:5672:5672'
-      - '127.0.0.1:15672:15672'
     networks:
       - devservices
     extra_hosts:

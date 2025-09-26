@@ -46,7 +46,10 @@ export default function MailboxPicker({onChange, value}: Props) {
                 linkSeer: <Link to={`/settings/${organization.slug}/seer/`} />,
                 linkGenAI: (
                   <Link
-                    to={`/settings/${organization.slug}/organization/#hideAiFeatures`}
+                    to={{
+                      pathname: `/settings/${organization.slug}/`,
+                      hash: 'hideAiFeatures',
+                    }}
                   />
                 ),
               }

@@ -60,13 +60,13 @@ GROUPING_METHODS_BY_DESCRIPTION = {
     # All frames from a stacktrace at the top level of the event, in `exception`, or in
     # `threads` (top-level stacktraces come, for example, from using `attach_stacktrace`
     # together with `capture_message`)
-    "stack-trace": HashBasis.STACKTRACE,
-    "exception stack-trace": HashBasis.STACKTRACE,
-    "thread stack-trace": HashBasis.STACKTRACE,
+    "stacktrace": HashBasis.STACKTRACE,
+    "exception stacktrace": HashBasis.STACKTRACE,
+    "thread stacktrace": HashBasis.STACKTRACE,
     # Same as above, but restricted to in-app frames
-    "in-app stack-trace": HashBasis.STACKTRACE,
-    "in-app exception stack-trace": HashBasis.STACKTRACE,
-    "in-app thread stack-trace": HashBasis.STACKTRACE,
+    "in-app stacktrace": HashBasis.STACKTRACE,
+    "in-app exception stacktrace": HashBasis.STACKTRACE,
+    "in-app thread stacktrace": HashBasis.STACKTRACE,
     # The value in `message` or `log_entry`, such as from using `capture_message` or calling
     # `capture_exception` on a string
     "message": HashBasis.MESSAGE,
@@ -531,19 +531,19 @@ def _get_fallback_hashing_metadata(
 
     if (
         "app" in variants
-        and variants["app"].component.values[0].hint == "ignored because it contains no frames"
+        and variants["app"].root_component.values[0].hint == "ignored because it contains no frames"
     ):
         reason = "no_frames"
 
     elif (
         "system" in variants
-        and variants["system"].component.values[0].hint
+        and variants["system"].root_component.values[0].hint
         == "ignored because it contains no contributing frames"
     ):
         reason = "no_contributing_frames"
 
     elif "system" in variants and "min-frames" in (
-        variants["system"].component.values[0].hint or ""
+        variants["system"].root_component.values[0].hint or ""
     ):
         reason = "insufficient_contributing_frames"
 

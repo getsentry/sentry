@@ -208,7 +208,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
             )
         data = self.share_discover_links_sdk()
 
-        unfurls = orjson.loads(data["unfurls"])
+        unfurls = data["unfurls"]
 
         # We only have two unfurls since one link was duplicated
         assert len(unfurls) == 2

@@ -16,8 +16,8 @@ from sentry.models.organization import Organization
 
 @region_silo_endpoint
 class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
-    # TODO: now that global-views is enabled for all plans, we may be able to consolidate this with the generic OrganizationEventsV2Endpoint
-    """The generic Events endpoints require that the `organizations:global-views` feature
+    # TODO: now that cross-project selection is enabled for all plans, we may be able to consolidate this with the generic OrganizationEventsV2Endpoint
+    """The generic Events endpoints require that the cross-project selection feature
     be enabled before they return across multiple projects.
 
 

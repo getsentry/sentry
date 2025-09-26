@@ -123,6 +123,18 @@ class SubscriptionProcessor:
         self.orig_trigger_alert_counts = deepcopy(self.trigger_alert_counts)
         self.orig_trigger_resolve_counts = deepcopy(self.trigger_resolve_counts)
 
+        self._has_workflow_engine_processing_only = features.has(
+            "organizations:workflow-engine-single-process-metric-issues",
+            self.subscription.project.organization,
+        )
+        self._has_workflow_engine_processing = (
+            features.has(
+                "organizations:workflow-engine-metric-alert-processing",
+                self.subscription.project.organization,
+            )
+            or self._has_workflow_engine_processing_only
+        )
+
     @property
     def active_incident(self) -> Incident | None:
         """
@@ -492,6 +504,137 @@ class SubscriptionProcessor:
             )
         return results
 
+    def process_legacy_metric_alerts(
+        self,
+        subscription_update: QuerySubscriptionUpdate,
+        aggregation_value: float,
+        detector: Detector | None,
+        results: list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]] | None,
+    ) -> list[IncidentTrigger] | None:
+        organization = self.subscription.project.organization
+        has_anomaly_detection = features.has("organizations:anomaly-detection-alerts", organization)
+        potential_anomalies = None
+
+        if (
+            has_anomaly_detection
+            and self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+            and not self._has_workflow_engine_processing
+        ):
+            with metrics.timer(
+                "incidents.subscription_processor.process_update.get_anomaly_data_from_seer_legacy"
+            ):
+                potential_anomalies = get_anomaly_data_from_seer_legacy(
+                    alert_rule=self.alert_rule,
+                    subscription=self.subscription,
+                    last_update=self.last_update.timestamp(),
+                    aggregation_value=aggregation_value,
+                )
+
+            if potential_anomalies is None:
+                return None
+
+        fired_incident_triggers: list[IncidentTrigger] = []
+        with transaction.atomic(router.db_for_write(AlertRule)):
+            # Triggers is the threshold - NOT an instance of a trigger
+            metrics_incremented = False
+            for trigger in self.triggers:
+                # dual processing of anomaly detection alerts
+                if (
+                    has_anomaly_detection
+                    and self._has_workflow_engine_processing
+                    and self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+                ):
+                    if not detector or results is None:
+                        raise ResourceDoesNotExist("Detector not found, cannot evaluate anomaly")
+
+                    is_anomalous = get_anomaly_evaluation_from_workflow_engine(detector, results)
+                    logger.info(
+                        "dual processing anomaly detection alert",
+                        extra={
+                            "rule_id": self.alert_rule.id,
+                            "detector_id": detector.id,
+                            "anomaly_evaluation": is_anomalous,
+                        },
+                    )
+                    if is_anomalous is None:
+                        # we only care about True and False — None indicates no change
+                        continue
+
+                    assert isinstance(is_anomalous, bool)
+                    fired_incident_triggers, metrics_incremented = self.handle_trigger_anomalies(
+                        is_anomalous,
+                        trigger,
+                        aggregation_value,
+                        fired_incident_triggers,
+                        metrics_incremented,
+                        detector,
+                    )
+
+                elif potential_anomalies:
+                    # NOTE: There should only be one anomaly in the list
+                    for potential_anomaly in potential_anomalies:
+                        # check to see if we have enough data for the dynamic alert rule now
+                        if self.alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
+                            if anomaly_has_confidence(potential_anomaly):
+                                # NOTE: this means "enabled," and it's the default alert rule status.
+                                # TODO: change these status labels to be less confusing
+                                self.alert_rule.status = AlertRuleStatus.PENDING.value
+                                self.alert_rule.save()
+                            else:
+                                # we don't need to check if the alert should fire if the alert can't fire yet
+                                continue
+
+                        is_anomalous = has_anomaly(potential_anomaly, trigger.label)
+                        fired_incident_triggers, metrics_incremented = (
+                            self.handle_trigger_anomalies(
+                                is_anomalous,
+                                trigger,
+                                aggregation_value,
+                                fired_incident_triggers,
+                                metrics_incremented,
+                                detector,
+                            )
+                        )
+                else:
+                    # ABOVE_AND_BELOW threshold type is only valid for dynamic detection with anomaly detection enabled
+                    if (
+                        self.alert_rule.threshold_type
+                        == AlertRuleThresholdType.ABOVE_AND_BELOW.value
+                    ):
+                        logger.info(
+                            "Skipping processing for ABOVE_AND_BELOW alert rule - anomaly detection likely disabled",
+                            extra={
+                                "rule_id": self.alert_rule.id,
+                                "detection_type": self.alert_rule.detection_type,
+                                "subscription_id": self.subscription.id,
+                                "organization_id": organization.id,
+                            },
+                        )
+                        return None
+
+                    fired_incident_triggers, metrics_incremented = self.handle_trigger_alerts(
+                        trigger,
+                        aggregation_value,
+                        fired_incident_triggers,
+                        metrics_incremented,
+                        detector,
+                    )
+
+            if fired_incident_triggers:
+                # For all the newly created incidents
+                # handle the associated actions (eg. send an email/notification)
+                self.handle_trigger_actions(
+                    incident_triggers=fired_incident_triggers, metric_value=aggregation_value
+                )
+
+        # We update the rule stats here after we commit the transaction. This guarantees
+        # that we'll never miss an update, since we'll never roll back if the process
+        # is killed here. The trade-off is that we might process an update twice. Mostly
+        # this will have no effect, but if someone manages to close a triggered incident
+        # before the next one then we might alert twice.
+        self.update_alert_rule_stats()
+        return fired_incident_triggers
+
     def process_update(self, subscription_update: QuerySubscriptionUpdate) -> None:
         """
         This is the core processing method utilized when Query Subscription Consumer fetches updates from kafka
@@ -546,172 +689,70 @@ class SubscriptionProcessor:
                     "result": subscription_update,
                 },
             )
-        has_metric_issue_single_processing = features.has(
-            "organizations:workflow-engine-single-process-metric-issues", organization
-        )
-        has_metric_alert_processing = (
-            features.has("organizations:workflow-engine-metric-alert-processing", organization)
-            or has_metric_issue_single_processing
-        )
-        has_anomaly_detection = features.has("organizations:anomaly-detection-alerts", organization)
 
         comparison_delta = None
         detector = None
         with (
             metrics.timer(
                 "incidents.alert_rules.process_update",
-                tags={"dual_processing": has_metric_alert_processing},
+                tags={"dual_processing": self._has_workflow_engine_processing},
             ),
             track_memory_usage(
                 "incidents.alert_rules.process_update_memory",
-                tags={"dual_processing": has_metric_alert_processing},
+                tags={"dual_processing": self._has_workflow_engine_processing},
             ),
         ):
-            detector = self.get_detector(has_metric_alert_processing)
+            detector = self.get_detector(self._has_workflow_engine_processing)
             comparison_delta = self.get_comparison_delta(detector)
             aggregation_value = self.get_aggregation_value(subscription_update, comparison_delta)
 
+            if aggregation_value is None:
+                metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
+                return
+
+            metric_prefix = "incidents.workflow_engine.processing"
             if aggregation_value is not None:
-                if has_metric_alert_processing:
-                    results = self.process_results_workflow_engine(
+                workflow_engine_results = None
+                legacy_results = None
+
+                if self._has_workflow_engine_processing:
+                    workflow_engine_results = self.process_results_workflow_engine(
                         subscription_update, aggregation_value, organization
                     )
-            else:
-                # XXX: after we fully migrate to single processing we can return early here
-                # this just preserves test functionality for now
-                metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
 
-            if has_metric_issue_single_processing:
-                # don't go through the legacy system
-                return
+                    if self._has_workflow_engine_processing_only:
+                        # Send a metric if are only evaluating in workflow engine
+                        # This can be used to show the amount of traffic on workflow_engine
+                        metrics.incr(f"{metric_prefix}.single")
 
-            potential_anomalies = None
-            if (
-                has_anomaly_detection
-                and self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
-                and not has_metric_alert_processing
-            ):
-                with metrics.timer(
-                    "incidents.subscription_processor.process_update.get_anomaly_data_from_seer_legacy"
+                if not self._has_workflow_engine_processing_only:
+                    """
+                    TODO - Remove this and related code once workflow_engine rollout is complete.
+
+                    The detector / results are required for the legacy system now,
+                    because anomaly detection can only be executed on the data set once.
+
+                    This allows us to process the anomaly detection results in
+                    workflow engine "and" metric alerts.
+                    """
+                    legacy_results = self.process_legacy_metric_alerts(
+                        subscription_update,
+                        aggregation_value,
+                        detector,
+                        workflow_engine_results,
+                    )
+
+                if not self._has_workflow_engine_processing_only and (
+                    workflow_engine_results or legacy_results
                 ):
-                    potential_anomalies = get_anomaly_data_from_seer_legacy(
-                        alert_rule=self.alert_rule,
-                        subscription=self.subscription,
-                        last_update=self.last_update.timestamp(),
-                        aggregation_value=aggregation_value,
+                    logger.info(
+                        metric_prefix,
+                        extra={
+                            "detector": detector,
+                            "workflow_engine_triggered": bool(workflow_engine_results),
+                            "metric_alert_triggered": bool(legacy_results),
+                        },
                     )
-                if potential_anomalies is None:
-                    return
-
-            if aggregation_value is None:
-                return
-
-            fired_incident_triggers: list[IncidentTrigger] = []
-            with transaction.atomic(router.db_for_write(AlertRule)):
-                # Triggers is the threshold - NOT an instance of a trigger
-                metrics_incremented = False
-                for trigger in self.triggers:
-                    # dual processing of anomaly detection alerts
-                    if (
-                        has_anomaly_detection
-                        and has_metric_alert_processing
-                        and self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
-                    ):
-                        if not detector:
-                            raise ResourceDoesNotExist(
-                                "Detector not found, cannot evaluate anomaly"
-                            )
-
-                        is_anomalous = get_anomaly_evaluation_from_workflow_engine(
-                            detector, results
-                        )
-                        logger.info(
-                            "dual processing anomaly detection alert",
-                            extra={
-                                "rule_id": self.alert_rule.id,
-                                "detector_id": detector.id,
-                                "anomaly_evaluation": is_anomalous,
-                            },
-                        )
-                        if is_anomalous is None:
-                            # we only care about True and False — None indicates no change
-                            continue
-
-                        assert isinstance(is_anomalous, bool)
-                        fired_incident_triggers, metrics_incremented = (
-                            self.handle_trigger_anomalies(
-                                is_anomalous,
-                                trigger,
-                                aggregation_value,
-                                fired_incident_triggers,
-                                metrics_incremented,
-                                detector,
-                            )
-                        )
-
-                    elif potential_anomalies:
-                        # NOTE: There should only be one anomaly in the list
-                        for potential_anomaly in potential_anomalies:
-                            # check to see if we have enough data for the dynamic alert rule now
-                            if self.alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
-                                if anomaly_has_confidence(potential_anomaly):
-                                    # NOTE: this means "enabled," and it's the default alert rule status.
-                                    # TODO: change these status labels to be less confusing
-                                    self.alert_rule.status = AlertRuleStatus.PENDING.value
-                                    self.alert_rule.save()
-                                else:
-                                    # we don't need to check if the alert should fire if the alert can't fire yet
-                                    continue
-
-                            is_anomalous = has_anomaly(potential_anomaly, trigger.label)
-                            fired_incident_triggers, metrics_incremented = (
-                                self.handle_trigger_anomalies(
-                                    is_anomalous,
-                                    trigger,
-                                    aggregation_value,
-                                    fired_incident_triggers,
-                                    metrics_incremented,
-                                    detector,
-                                )
-                            )
-                    else:
-                        # ABOVE_AND_BELOW threshold type is only valid for dynamic detection with anomaly detection enabled
-                        if (
-                            self.alert_rule.threshold_type
-                            == AlertRuleThresholdType.ABOVE_AND_BELOW.value
-                        ):
-                            logger.info(
-                                "Skipping processing for ABOVE_AND_BELOW alert rule - anomaly detection likely disabled",
-                                extra={
-                                    "rule_id": self.alert_rule.id,
-                                    "detection_type": self.alert_rule.detection_type,
-                                    "subscription_id": self.subscription.id,
-                                    "organization_id": organization.id,
-                                },
-                            )
-                            return
-
-                        fired_incident_triggers, metrics_incremented = self.handle_trigger_alerts(
-                            trigger,
-                            aggregation_value,
-                            fired_incident_triggers,
-                            metrics_incremented,
-                            detector,
-                        )
-
-                if fired_incident_triggers:
-                    # For all the newly created incidents
-                    # handle the associated actions (eg. send an email/notification)
-                    self.handle_trigger_actions(
-                        incident_triggers=fired_incident_triggers, metric_value=aggregation_value
-                    )
-
-            # We update the rule stats here after we commit the transaction. This guarantees
-            # that we'll never miss an update, since we'll never roll back if the process
-            # is killed here. The trade-off is that we might process an update twice. Mostly
-            # this will have no effect, but if someone manages to close a triggered incident
-            # before the next one then we might alert twice.
-            self.update_alert_rule_stats()
 
     def trigger_alert_threshold(
         self, trigger: AlertRuleTrigger, metric_value: float

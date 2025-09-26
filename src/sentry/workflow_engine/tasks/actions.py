@@ -74,7 +74,7 @@ def build_trigger_action_task_params(
         ),
     ),
 )
-@retry(timeouts=True, raise_on_no_retries=False)
+@retry(timeouts=True, raise_on_no_retries=False, ignore_and_capture=Action.DoesNotExist)
 def trigger_action(
     action_id: int,
     detector_id: int,

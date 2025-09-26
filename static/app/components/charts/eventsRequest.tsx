@@ -25,7 +25,6 @@ import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {getAggregateAlias, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 type TimeSeriesData = {
@@ -185,10 +184,6 @@ type EventsRequestPartialProps = {
    */
   project?: readonly number[];
   /**
-   * A container for query batching data and functions.
-   */
-  queryBatching?: QueryBatching;
-  /**
    * Extra query parameters to be added.
    */
   queryExtras?: Record<string, string | boolean | number>;
@@ -264,7 +259,6 @@ const propNamesToIgnore = [
   'children',
   'organization',
   'loading',
-  'queryBatching',
   'generatePathname',
 ];
 const omitIgnoredProps = (props: EventsRequestProps) =>

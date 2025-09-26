@@ -291,6 +291,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
       replays: updatedData.reserved.replays,
       monitorSeats: updatedData.reserved.monitorSeats,
       uptime: 1,
+      isNewCheckout: false,
     });
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith('checkout.product_select', {
@@ -300,6 +301,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
         enabled: true,
         previously_enabled: false,
       },
+      isNewCheckout: false,
     });
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
@@ -403,6 +405,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
       spans: updatedData.reserved.spans,
       profileDuration: updatedData.reserved.profileDuration,
       uptime: updatedData.reserved.uptime,
+      isNewCheckout: false,
     });
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
@@ -413,6 +416,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
         applyNow: false,
         daysLeft: 7,
         partner: 'FOO',
+        isNewCheckout: false,
       }
     );
   });
@@ -501,6 +505,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
       monitorSeats: updatedData.reserved.monitorSeats,
       spans: updatedData.reserved.spans,
       previous_uptime: 1,
+      isNewCheckout: false,
     });
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
@@ -511,6 +516,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
         applyNow: true,
         daysLeft: 20,
         partner: 'FOO',
+        isNewCheckout: false,
       }
     );
   });
@@ -713,6 +719,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
       monitorSeats: updatedData.reserved.monitorSeats,
       uptime: updatedData.reserved.uptime,
       spans: undefined,
+      isNewCheckout: false,
     });
     expect(trackGetsentryAnalytics).not.toHaveBeenCalledWith(
       'checkout.transactions_upgrade'
@@ -780,6 +787,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
       monitorSeats: updatedData.reserved.monitorSeats,
       uptime: updatedData.reserved.uptime,
       spans: undefined,
+      isNewCheckout: false,
     });
 
     expect(trackGetsentryAnalytics).not.toHaveBeenCalledWith(

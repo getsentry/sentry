@@ -211,7 +211,6 @@ function MetricDetectorChart({
       yAxis={yAxes.length === 1 ? yAxes[0] : undefined}
       grid={grid}
       xAxis={openPeriodMarkerResult.incidentMarkerXAxis}
-      ref={openPeriodMarkerResult.connectIncidentMarkerChartRef}
       tooltip={{
         valueFormatter: getDetectorChartFormatters({
           detectionType,
@@ -219,6 +218,10 @@ function MetricDetectorChart({
         }).formatTooltipValue,
       }}
       {...chartZoomProps}
+      onChartReady={chart => {
+        chartZoomProps.onChartReady(chart);
+        openPeriodMarkerResult.onChartReady(chart);
+      }}
     />
   );
 }

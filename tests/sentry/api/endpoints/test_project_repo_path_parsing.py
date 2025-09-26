@@ -211,6 +211,15 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
         assert resp.status_code == 400, resp.content
         assert resp.data == {"sourceUrl": ["Could not find repo"]}
 
+    def test_unsupported_frame_info(self) -> None:
+        source_url = (
+            "https://github.com/getsentry/sentry/blob/master/src/project_stacktrace_link.py"
+        )
+        stack_path = "project_stacktrace_link.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 400, resp.content
+        assert resp.data == {"detail": "Unsupported frame info"}
+
     def test_basic(self) -> None:
         source_url = "https://github.com/getsentry/sentry/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
         stack_path = "sentry/api/endpoints/project_stacktrace_link.py"

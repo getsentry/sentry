@@ -30,6 +30,7 @@ import OverviewRequestsChartWidget from 'sentry/views/insights/common/components
 import OverviewTimeConsumingQueriesWidget from 'sentry/views/insights/common/components/widgets/overviewTimeConsumingQueriesWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {Am1BackendOverviewPage} from 'sentry/views/insights/pages/backend/am1BackendOverviewPage';
@@ -84,6 +85,7 @@ function EAPBackendOverviewPage() {
   const navigate = useNavigate();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
+  useDefaultToAllProjects();
 
   const {query: searchBarQuery} = useLocationQuery({
     fields: {

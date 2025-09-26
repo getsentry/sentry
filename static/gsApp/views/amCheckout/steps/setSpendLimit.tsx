@@ -60,6 +60,7 @@ function SetSpendCap({
           plan: formData.plan,
           cents: totalBudget || 0,
           method: 'textbox',
+          isNewCheckout: true,
         });
       }
     },
@@ -69,6 +70,7 @@ function SetSpendCap({
   return (
     <Flex direction="column" gap="2xl">
       <SpendLimitSettings
+        organization={organization}
         header={
           <StepHeader
             title={t('Set your %s limit', activePlan.budgetTerm)}

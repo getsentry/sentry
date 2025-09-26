@@ -9,16 +9,24 @@ function ViewReplayLink({
   children,
   replayId,
   to,
+  start,
+  end,
 }: {
   children: React.ReactNode;
   replayId: number | string;
   to: LinkProps['to'];
+  end?: string;
+  start?: string;
 }) {
-  const {replayExists} = useReplayExists();
+  const {replayExists} = useReplayExists({start, end});
 
   if (!replayId || !replayExists(String(replayId))) {
     return (
-      <Tooltip title={t('This replay may have been rate limited or deleted.')}>
+      <Tooltip
+        title={t(
+          'This replay may been rate-limited, deleted, or not stored due to the error-based replay sampling rate.'
+        )}
+      >
         <EmptyValueContainer>{t('(missing)')}</EmptyValueContainer>
       </Tooltip>
     );

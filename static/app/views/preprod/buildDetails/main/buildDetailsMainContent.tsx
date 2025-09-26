@@ -1,4 +1,4 @@
-import {useState, type ReactNode} from 'react';
+import {type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -91,9 +91,19 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   const {isPending: isBuildDetailsPending, data: buildDetailsData} =
     props.buildDetailsQuery;
 
-  const [selectedContent, setSelectedContent] = useState<'treemap' | 'categories'>(
-    'treemap'
-  );
+  const [selectedContentParam, setSelectedContentParam] = useQueryParamState<
+    'treemap' | 'categories'
+  >({
+    fieldName: 'view',
+  });
+  const selectedContent =
+    selectedContentParam === 'treemap' || selectedContentParam === 'categories'
+      ? selectedContentParam
+      : 'treemap';
+
+  const handleContentChange = (value: 'treemap' | 'categories') => {
+    setSelectedContentParam(value === 'treemap' ? undefined : value);
+  };
   const [searchQuery, setSearchQuery] = useQueryParamState<string>({
     fieldName: 'search',
   });
@@ -229,12 +239,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     <Flex direction="column" gap="lg" minHeight="700px">
       <Flex align="center" gap="md">
         {categoriesEnabled && (
-          <SegmentedControl
-            value={selectedContent}
-            onChange={value => {
-              setSelectedContent(value);
-            }}
-          >
+          <SegmentedControl value={selectedContent} onChange={handleContentChange}>
             <SegmentedControl.Item key="treemap" icon={<IconGrid />} />
             <SegmentedControl.Item key="categories" icon={<IconGraphCircle />} />
           </SegmentedControl>

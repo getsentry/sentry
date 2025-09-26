@@ -73,16 +73,11 @@ class TreeEnricher:
         self._ttid_ts = _timestamp_by_op(spans, "ui.load.initial_display")
         self._ttfd_ts = _timestamp_by_op(spans, "ui.load.full_display")
 
-        self._has_gen_ai_spans = False
         self._span_map: dict[str, list[tuple[int, int]]] = {}
         for span in spans:
-
             if parent_span_id := span.get("parent_span_id"):
                 interval = _span_interval(span)
                 self._span_map.setdefault(parent_span_id, []).append(interval)
-
-            if not self._has_gen_ai_spans and get_span_op(span).startswith("gen_ai."):
-                self._has_gen_ai_spans = True
 
     def _data(self, span: SegmentSpan) -> dict[str, Any]:
         ret = {**span.get("data", {})}
@@ -113,8 +108,6 @@ class TreeEnricher:
             for key, value in shared_tags.items():
                 if ret.get(key) is None:
                     ret[key] = value
-            if self._has_gen_ai_spans and span is self._segment_span:
-                ret["sentry._internal.segment.contains_gen_ai_spans"] = True
 
         return ret
 

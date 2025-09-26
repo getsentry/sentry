@@ -59,7 +59,7 @@ class LinkSharedEventTest(BaseEventTest):
         assert len(mock_match_link.mock_calls) == 3
 
         data = self.mock_unfurl.call_args[1]
-        unfurls = orjson.loads(data["unfurls"])
+        unfurls = data["unfurls"]
 
         # We only have two unfurls since one link was duplicated
         assert len(unfurls) == 2
@@ -97,7 +97,7 @@ class LinkSharedEventTest(BaseEventTest):
         assert len(mock_match_link.mock_calls) == 3
 
         data = self.mock_unfurl.call_args[1]
-        unfurls = orjson.loads(data["unfurls"])
+        unfurls = data["unfurls"]
 
         # We only have two unfurls since one link was duplicated
         assert len(unfurls) == 2

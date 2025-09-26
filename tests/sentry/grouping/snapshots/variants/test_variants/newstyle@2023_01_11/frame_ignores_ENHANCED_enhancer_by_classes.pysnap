@@ -1,13 +1,13 @@
 ---
-created: '2024-12-17T22:47:11.492237+00:00'
+created: '2025-09-24T20:27:06.627584+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   contributing component: null
-  component:
-    app (stacktrace of system takes precedence)
+  root_component:
+    app (ignored because system stacktrace takes precedence)
       stacktrace (ignored because it contains no in-app frames)
         frame (non app frame)
           module* (removed codegen marker)
@@ -18,7 +18,7 @@ app:
 system:
   hash: "7d2cc7acbf90328200d960bf78a26234"
   contributing component: stacktrace
-  component:
+  root_component:
     system*
       stacktrace*
         frame*

@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:41.534351+00:00'
+created: '2025-09-24T20:28:36.741054+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -24,7 +24,7 @@ contributing variants:
   default*
     hash: "d2ab1028e9cb44352a824e878951f412"
     contributing component: message
-    component:
+    root_component:
       default*
         message* (stripped event-specific values)
           "Error key1=<quoted_str> key2=<int> key3=<bool> key4=<date> key5=<quoted_str> other_date=datetime.datetime(<int>, <int>, <int>, <int>, <int>, tzinfo=d..."

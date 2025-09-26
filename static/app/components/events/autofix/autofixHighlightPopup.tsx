@@ -17,7 +17,7 @@ import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicato
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
-import {FlippedReturnIcon} from 'sentry/components/events/autofix/autofixInsightCards';
+import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
 import {
   makeAutofixQueryKey,
   useAutofixData,
@@ -45,6 +45,7 @@ interface Props {
   selectedText: string;
   stepIndex: number;
   blockName?: string;
+  hasUserSelection?: boolean;
   isAgentComment?: boolean;
   onShouldPersistChange?: (shouldPersist: boolean) => void;
 }
@@ -198,6 +199,7 @@ function AutofixHighlightPopupContent({
   isAgentComment,
   blockName,
   isFocused,
+  hasUserSelection,
   onShouldPersistChange,
 }: Props & {isFocused?: boolean}) {
   const organization = useOrganization();
@@ -488,7 +490,7 @@ function AutofixHighlightPopupContent({
                 onChange={e => setComment(e.target.value)}
                 maxLength={4096}
                 size="sm"
-                autoFocus={!isAgentComment}
+                autoFocus={!isAgentComment && !hasUserSelection}
                 maxRows={5}
                 autosize
                 onKeyDown={e => {
@@ -724,8 +726,6 @@ const InputWrapper = styled('form')`
 
 const StyledInput = styled(TextArea)`
   flex-grow: 1;
-  background: ${p => p.theme.background}
-    linear-gradient(to left, ${p => p.theme.background}, ${p => p.theme.pink400}20);
   border-color: ${p => p.theme.innerBorder};
   padding-right: ${space(4)};
   padding-top: ${space(0.75)};

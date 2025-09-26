@@ -9,8 +9,8 @@ import {Text} from 'sentry/components/core/text/text';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {AppSizeInsightsSidebar} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebar';
+import {formatUpside} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebarRow';
 import {type ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 
 interface AppSizeInsightsProps {
@@ -70,7 +70,7 @@ export function AppSizeInsights({processedInsights}: AppSizeInsightsProps) {
             height="22px"
             padding="xs sm"
           >
-            <Text variant="accent" size="sm" bold>
+            <Text size="sm" bold>
               {insight.name}
             </Text>
             <Flex align="center" gap="sm">
@@ -84,7 +84,7 @@ export function AppSizeInsights({processedInsights}: AppSizeInsightsProps) {
                 align="right"
                 style={{width: '64px'}}
               >
-                (-{formatPercentage(insight.percentage / 100, 1)})
+                ({formatUpside(insight.percentage / 100)})
               </Text>
             </Flex>
           </Flex>

@@ -9,7 +9,7 @@
  *     case 'foo':
  *       break;
  *     default:
- *       return assertUnreachable(x); <-- this will throw a type error as x can still be 'bar'
+ *       return unreachable(x); <-- this will cause a type error as x can still be 'bar'
  *   }
  * }
  * ```

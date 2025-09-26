@@ -23,8 +23,10 @@ export function BuildError({title, message, children}: BuildErrorProps) {
     >
       <Flex maxWidth="500px" direction="column" align="center" gap="lg" padding="md">
         <AlertImage src={Missing} alt="Error image" />
-        <Heading as="h2">{title}</Heading>
-        <Text>{message}</Text>
+        <Heading as="h2" align="center">
+          {title}
+        </Heading>
+        <Text align="center">{message}</Text>
       </Flex>
       {children}
     </Flex>

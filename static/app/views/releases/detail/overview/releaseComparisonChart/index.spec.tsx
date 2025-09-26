@@ -58,7 +58,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
     expect(
       screen.getByTestId('release-comparison-table').textContent
     ).toMatchInlineSnapshot(
-      `"DescriptionAll ReleasesThis ReleaseChangeCrash Free Session Rate 99.516%95.006%4.51% Crash Free User Rate 99.908%75%24.908% Show 2 Others"` // eslint-disable-line no-irregular-whitespace
+      `"DescriptionAll ReleasesThis ReleaseChangeCrash Free Session Rate99.516%95.006%4.51% Crash Free User Rate99.908%75%24.908% Show 2 Others"`
     );
   });
 
@@ -141,12 +141,12 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
 
     await userEvent.click(screen.getByLabelText(/toggle additional/i));
 
-    expect(screen.getAllByRole('radio')).toHaveLength(12);
+    expect(screen.getAllByRole('radio')).toHaveLength(14);
     // lazy way to make sure that all percentages are calculated correctly
     expect(
       screen.getByTestId('release-comparison-table').textContent
     ).toMatchInlineSnapshot(
-      `"DescriptionAll ReleasesThis ReleaseChangeCrash Free Session Rate 99.516%95.006%4.51% Healthy 98.564%94.001%4.563% Abnormal 0%0%0% Errored 0.953%1.005%0.052% Crashed Session Rate 0.484%4.994%4.511% Crash Free User Rate 99.908%75%24.908% Healthy 98.994%72.022%26.972% Abnormal 0%0%0% Errored 0.914%2.493%1.579% Crashed User Rate 0.092%25.485%25.393% Session Count 205k9.8k—User Count 100k361—Hide 2 Others"` // eslint-disable-line no-irregular-whitespace
+      `"DescriptionAll ReleasesThis ReleaseChangeCrash Free Session Rate99.516%95.006%4.51% Healthy98.564%94.001%4.563% Abnormal0%0%0% Errored0.953%1.005%0.052% Unhandled0%0%0% Crashed Session Rate0.484%4.994%4.511% Crash Free User Rate99.908%75%24.908% Healthy98.994%72.022%26.972% Abnormal0%0%0% Errored0.914%2.493%1.579% Unhandled0%0%0% Crashed User Rate0.092%25.485%25.393% Session Count205k9.8k—User Count100k361—Hide 2 Others"`
     );
 
     // toggle back

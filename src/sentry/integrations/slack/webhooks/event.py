@@ -6,6 +6,7 @@ from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 import orjson
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 from slack_sdk.errors import SlackApiError
@@ -20,6 +21,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.slack.analytics import SlackIntegrationChartUnfurl
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.message_builder.prompt import SlackPromptLinkMessageBuilder
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
@@ -208,11 +210,16 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 and not slack_request.has_identity
                 and features.has("organizations:discover-basic", organization, actor=request.user)
             ):
-                analytics.record(
-                    "integrations.slack.chart_unfurl",
-                    organization_id=organization.id,
-                    unfurls_count=0,
-                )
+                try:
+                    analytics.record(
+                        SlackIntegrationChartUnfurl(
+                            organization_id=organization.id,
+                            unfurls_count=0,
+                        )
+                    )
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
+
                 self.prompt_link(slack_request)
                 return True
 
@@ -249,11 +256,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
             if "text" in link_info:
                 del link_info["text"]
 
-        payload = {
-            "channel": data["channel"],
-            "ts": data["message_ts"],
-            "unfurls": orjson.dumps(results).decode(),
-        }
+        payload = {"channel": data["channel"], "ts": data["message_ts"], "unfurls": results}
 
         with MessagingInteractionEvent(
             interaction_type=MessagingInteractionType.UNFURL_LINK,

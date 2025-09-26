@@ -144,7 +144,9 @@ def transform_preprod_artifact_to_build_details(
         date_built=(artifact.date_built.isoformat() if artifact.date_built else None),
         artifact_type=artifact.artifact_type,
         platform=(
-            platform_from_artifact_type(artifact.artifact_type) if artifact.artifact_type else None
+            platform_from_artifact_type(artifact.artifact_type)
+            if artifact.artifact_type is not None
+            else None
         ),
         is_installable=is_installable_artifact(artifact),
         build_configuration=(

@@ -24,6 +24,20 @@ import AMCheckout from 'getsentry/views/amCheckout';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 import {hasOnDemandBudgetsFeature} from 'getsentry/views/onDemandBudgets/utils';
 
+function assertCheckoutV3Steps(tier: PlanTier) {
+  expect(screen.getByTestId('checkout-steps')).toBeInTheDocument();
+  [
+    'Build your plan',
+    [PlanTier.AM1, PlanTier.AM2].includes(tier)
+      ? /Set your on-demand limit/
+      : /Set your pay-as-you-go limit/,
+    'Pay monthly or yearly, your choice',
+    'Edit billing information',
+  ].forEach(step => {
+    expect(screen.getByText(step)).toBeInTheDocument();
+  });
+}
+
 describe('AM1 Checkout', () => {
   let mockResponse: any;
   const api = new MockApiClient();
@@ -84,6 +98,41 @@ describe('AM1 Checkout', () => {
         })
       );
     });
+  });
+
+  it('renders for checkout v3', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+    });
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        checkoutTier={PlanTier.AM1}
+        navigate={jest.fn()}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        isNewCheckout
+      />,
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(mockResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am1'},
+        })
+      );
+    });
+
+    assertCheckoutV3Steps(PlanTier.AM1);
   });
 
   it('can skip to step and continue', async () => {
@@ -664,6 +713,41 @@ describe('AM2 Checkout', () => {
       method: 'GET',
       body: {},
     });
+  });
+
+  it('renders for checkout v3', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+    });
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        checkoutTier={PlanTier.AM2}
+        navigate={jest.fn()}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        isNewCheckout
+      />,
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(mockResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am2'},
+        })
+      );
+    });
+
+    assertCheckoutV3Steps(PlanTier.AM2);
   });
 
   it('renders for am1 team plan', async () => {
@@ -1370,6 +1454,46 @@ describe('AM3 Checkout', () => {
       method: 'GET',
       body: {},
     });
+  });
+
+  it('renders for checkout v3', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+    });
+    const mockResponse = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      method: 'GET',
+      body: BillingConfigFixture(PlanTier.AM3),
+    });
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        checkoutTier={PlanTier.AM3}
+        navigate={jest.fn()}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        isNewCheckout
+      />,
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(mockResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am3'},
+        })
+      );
+    });
+
+    assertCheckoutV3Steps(PlanTier.AM3);
   });
 
   it('renders for new customers (AM3 free plan)', async () => {

@@ -289,11 +289,7 @@ export function MetricDetectorChart({
           yAxis={yAxes.length === 1 ? yAxes[0] : undefined}
           grid={grid}
           xAxis={isAnomalyDetection ? anomalyMarkerResult.incidentMarkerXAxis : undefined}
-          ref={
-            isAnomalyDetection
-              ? anomalyMarkerResult.connectIncidentMarkerChartRef
-              : undefined
-          }
+          onChartReady={isAnomalyDetection ? anomalyMarkerResult.onChartReady : undefined}
           tooltip={{
             valueFormatter: getDetectorChartFormatters({detectionType, aggregate})
               .formatTooltipValue,

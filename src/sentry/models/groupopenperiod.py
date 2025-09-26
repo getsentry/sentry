@@ -8,7 +8,6 @@ from django.contrib.postgres.fields.ranges import RangeBoundary, RangeOperators
 from django.db import models, router, transaction
 from django.utils import timezone
 
-from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -134,9 +133,6 @@ def get_open_periods_for_group(
     query_end: datetime | None = None,
     limit: int | None = None,
 ) -> BaseQuerySet[GroupOpenPeriod] | list[None]:
-    if not features.has("organizations:issue-open-periods", group.organization):
-        return []
-
     if not query_start:
         # use whichever date is more recent to reduce the query range. first_seen could be > 90 days ago
         query_start = max(group.first_seen, timezone.now() - timedelta(days=90))
@@ -152,9 +148,6 @@ def get_open_periods_for_group(
 
 
 def create_open_period(group: Group, start_time: datetime) -> None:
-    if not features.has("organizations:issue-open-periods", group.project.organization):
-        return
-
     latest_open_period = get_latest_open_period(group)
     if latest_open_period and latest_open_period.date_ended is None:
         logger.warning("Latest open period is not closed", extra={"group_id": group.id})
@@ -201,9 +194,6 @@ def update_group_open_period(
     is unresolved manually without a regression. If the group is unresolved due to a regression, the
     open periods will be updated during ingestion.
     """
-    if not features.has("organizations:issue-open-periods", group.project.organization):
-        return
-
     # If a group was missed during backfill, we can create a new open period for it on unresolve.
     if not has_any_open_period(group) and new_status == GroupStatus.UNRESOLVED:
         create_open_period(group, timezone.now())
