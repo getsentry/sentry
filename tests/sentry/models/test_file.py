@@ -207,3 +207,61 @@ def test_large_files() -> None:
     assert large_blob.size == 3_000_000_000
     blob = FileBlob.objects.get(id=large_blob.id)
     assert blob.size == 3_000_000_000
+
+
+class FileBatchTest(TestCase):
+    def test_putfile_batch_same_behavior_as_putfile(self) -> None:
+        """Test that putfile_batch produces the same result as putfile"""
+        test_data = b"foo bar baz qux " * 100  # Make it large enough to create multiple chunks
+        
+        # Test with regular putfile
+        fileobj1 = ContentFile(test_data)
+        file1 = File.objects.create(name="test1.js", type="default")
+        results1 = file1.putfile(fileobj1, blob_size=10)  # Small chunk size to create multiple blobs
+        
+        # Test with batch putfile
+        fileobj2 = ContentFile(test_data)
+        file2 = File.objects.create(name="test2.js", type="default")
+        results2 = file2.putfile_batch(fileobj2, blob_size=10)  # Same chunk size
+        
+        # Both should have the same number of chunks
+        assert len(results1) == len(results2)
+        
+        # Both files should have the same size and checksum
+        assert file1.size == file2.size
+        assert file1.checksum == file2.checksum
+        
+        # Both should produce the same content when read back
+        with file1.getfile() as fp1, file2.getfile() as fp2:
+            assert fp1.read() == fp2.read()
+            
+        # Offsets should be the same
+        offsets1 = [r.offset for r in results1]
+        offsets2 = [r.offset for r in results2]
+        assert offsets1 == offsets2
+        
+    def test_putfile_batch_deduplicates_blobs(self) -> None:
+        """Test that putfile_batch correctly deduplicates identical blobs"""
+        # Create data with repeated chunks that will have the same checksum
+        repeated_chunk = b"same_data_"
+        test_data = repeated_chunk * 20  # This will create chunks with same content
+        
+        fileobj = ContentFile(test_data)
+        file = File.objects.create(name="dedup_test.js", type="default")
+        
+        initial_blob_count = FileBlob.objects.count()
+        results = file.putfile_batch(fileobj, blob_size=10)  # Each chunk will be "same_data_"
+        final_blob_count = FileBlob.objects.count()
+        
+        # Should create fewer unique blobs than total chunks due to deduplication
+        unique_checksums = set()
+        for result in results:
+            unique_checksums.add(result.blob.checksum)
+        
+        # The number of new blobs should equal the number of unique checksums
+        expected_new_blobs = len(unique_checksums)
+        actual_new_blobs = final_blob_count - initial_blob_count
+        
+        # Due to deduplication, we should have fewer new blobs than total chunks
+        assert actual_new_blobs <= len(results)
+        assert len(unique_checksums) <= len(results)

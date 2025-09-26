@@ -37,6 +37,9 @@ class ControlFile(AbstractFile[ControlFileBlobIndex, ControlFileBlob]):
     def _create_blob_from_file(self, contents: ContentFile, logger: Any) -> ControlFileBlob:
         return ControlFileBlob.from_file(contents, logger)
 
+    def _create_blobs_from_files_batch(self, file_chunks: list[tuple[Any, str, int]], logger: Any) -> dict[str, ControlFileBlob]:
+        return ControlFileBlob.from_files_batch(file_chunks, logger)
+
     def _get_blobs_by_id(self, blob_ids: Sequence[int]) -> models.QuerySet[ControlFileBlob]:
         return ControlFileBlob.objects.filter(id__in=blob_ids).all()
 
