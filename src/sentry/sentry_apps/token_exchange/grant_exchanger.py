@@ -6,6 +6,7 @@ from django.db import router, transaction
 from django.utils.functional import cached_property
 
 from sentry import analytics
+from sentry.analytics.events.sentry_app_token_exchanged import SentryAppTokenExchangedEvent
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
@@ -80,9 +81,10 @@ class GrantExchanger:
 
     def record_analytics(self) -> None:
         analytics.record(
-            "sentry_app.token_exchanged",
-            sentry_app_installation_id=self.install.id,
-            exchange_type="authorization",
+            SentryAppTokenExchangedEvent(
+                sentry_app_installation_id=self.install.id,
+                exchange_type="authorization",
+            )
         )
 
     def _validate(self) -> None:

@@ -9,26 +9,23 @@ import {ExternalLink} from 'sentry/components/core/link/link';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {integratedOrgIdToName} from 'sentry/components/prevent/utils';
-import {IconAdd, IconInfo} from 'sentry/icons';
-import {IconIntegratedOrg} from 'sentry/icons/iconIntegratedOrg';
+import {IconAdd, IconBuilding, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {Integration} from 'sentry/types/integrations';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
 
-const DEFAULT_ORG_LABEL = 'Select Integrated Org';
+const DEFAULT_ORG_LABEL = 'Select GitHub Org';
 
 function AddIntegratedOrgButton() {
   return (
     <LinkButton
-      href="https://github.com/apps/sentry/installations/select_target"
+      href="https://github.com/apps/sentry-io/installations/select_target"
       size="sm"
       icon={<IconAdd size="sm" />}
       priority="default"
       external
     >
-      {t('Integrated Organization')}
+      {t('GitHub Organization')}
     </LinkButton>
   );
 }
@@ -42,13 +39,13 @@ function OrgFooterMessage() {
         <IconInfo size="sm" style={{margin: '2px 0'}} />
         <div>
           <FooterInfoHeading>
-            To access{' '}
+            Access{' '}
             <ExternalLink href="https://github.com/apps/sentry-io">
-              Integrated Organization
+              GitHub Organization
             </ExternalLink>
           </FooterInfoHeading>
           <FooterInfoSubheading>
-            Ensure admins approve the installation.
+            Ensure admins approve the installation
           </FooterInfoSubheading>
         </div>
       </Flex>
@@ -57,20 +54,19 @@ function OrgFooterMessage() {
 }
 
 export function IntegratedOrgSelector() {
-  const {integratedOrgId, preventPeriod, changeContextValue} = usePreventContext();
+  const {integratedOrgId, integratedOrgName, preventPeriod, changeContextValue} =
+    usePreventContext();
   const organization = useOrganization();
 
-  const {data: integrations = []} = useApiQuery<Integration[]>(
-    [
-      `/organizations/${organization.slug}/integrations/`,
-      {query: {includeConfig: 0, provider_key: 'github'}},
-    ],
-    {staleTime: 0}
-  );
+  const {data: integrations = []} = useGetActiveIntegratedOrgs({organization});
 
   const handleChange = useCallback(
     (selectedOption: SelectOption<string>) => {
-      changeContextValue({preventPeriod, integratedOrgId: selectedOption.value});
+      changeContextValue({
+        preventPeriod,
+        integratedOrgId: selectedOption.value,
+        integratedOrgName: selectedOption.textValue,
+      });
     },
     [changeContextValue, preventPeriod]
   );
@@ -82,11 +78,11 @@ export function IntegratedOrgSelector() {
     ]);
 
     const makeOption = (value: string): SelectOption<string> => {
-      const integratedOrgName = integratedOrgIdToName(value, integrations);
+      const integratedOrgNameFromId = integratedOrgIdToName(value, integrations);
       return {
         value,
-        label: <OptionLabel>{integratedOrgName ?? DEFAULT_ORG_LABEL}</OptionLabel>,
-        textValue: integratedOrgName ?? DEFAULT_ORG_LABEL,
+        label: <OptionLabel>{integratedOrgNameFromId ?? DEFAULT_ORG_LABEL}</OptionLabel>,
+        textValue: integratedOrgNameFromId ?? DEFAULT_ORG_LABEL,
       };
     };
 
@@ -103,19 +99,12 @@ export function IntegratedOrgSelector() {
         return (
           <DropdownButton
             isOpen={isOpen}
+            icon={<IconBuilding />}
             data-test-id="page-filter-integrated-org-selector"
             {...triggerProps}
           >
             <TriggerLabelWrap>
-              <Flex justify="start" gap="sm" align="center">
-                <IconContainer>
-                  <IconIntegratedOrg />
-                </IconContainer>
-                <TriggerLabel>
-                  {integratedOrgIdToName(integratedOrgId, integrations) ??
-                    DEFAULT_ORG_LABEL}
-                </TriggerLabel>
-              </Flex>
+              <TriggerLabel>{integratedOrgName ?? DEFAULT_ORG_LABEL}</TriggerLabel>
             </TriggerLabelWrap>
           </DropdownButton>
         );
@@ -160,7 +149,7 @@ const FooterInfoSubheading = styled('p')`
 
 const MenuFooterDivider = styled('div')`
   position: relative;
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
   &:before {
     display: block;
     white-space: normal;
@@ -171,9 +160,4 @@ const MenuFooterDivider = styled('div')`
     right: 0;
     background: ${p => p.theme.border};
   }
-`;
-
-const IconContainer = styled('div')`
-  flex: 1 0 14px;
-  height: 14px;
 `;

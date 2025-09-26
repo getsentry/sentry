@@ -14,6 +14,7 @@ from sentry.preprod.build_distribution_utils import (
     is_installable_artifact,
 )
 from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
@@ -43,13 +44,15 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.ORGANIZATION: RateLimit(
-                limit=100, window=60
-            ),  # 100 requests per minute per org
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.ORGANIZATION: RateLimit(
+                    limit=100, window=60
+                ),  # 100 requests per minute per org
+            }
         }
-    }
+    )
 
     def get(self, request: Request, project) -> Response:
         """
