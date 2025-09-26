@@ -644,7 +644,7 @@ def test_create_feedback_spam_detection_with_seer(
     if feature_flag_enabled:
         expected_metric_value = f"seer-{str(is_spam_result).lower()}"
     else:
-        expected_metric_value = is_spam_result
+        expected_metric_value = str(is_spam_result)
     mock_metrics_incr.assert_any_call(
         "feedback.create_feedback_issue.spam_detection",
         tags={
