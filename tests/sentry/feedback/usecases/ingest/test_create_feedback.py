@@ -595,13 +595,7 @@ def test_create_feedback_spam_detection_set_status_ignored(default_project) -> N
         pytest.param(None, None, "error", id="error"),
     ],
 )
-@pytest.mark.parametrize(
-    "feature_flag_enabled, expected_metric_prefix",
-    [
-        pytest.param(True, "seer-", id="seer_enabled_metric_prefix"),
-        pytest.param(False, "", id="seer_disabled_no_metric_prefix"),
-    ],
-)
+@pytest.mark.parametrize("feature_flag_enabled", [True, False])
 @patch("sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled", return_value=True)
 @patch("sentry.feedback.usecases.ingest.create_feedback.is_spam_seer")
 @patch("sentry.feedback.usecases.ingest.create_feedback.is_spam")
@@ -614,7 +608,6 @@ def test_create_feedback_spam_detection_with_seer(
     default_project,
     mock_produce_occurrence_to_kafka,
     feature_flag_enabled,
-    expected_metric_prefix,
     is_spam_result,
     expected_evidence_data,
     expected_evidence_display,
@@ -624,7 +617,6 @@ def test_create_feedback_spam_detection_with_seer(
     mock_is_spam.return_value = is_spam_result
 
     event = mock_feedback_event(default_project.id, message="Test feedback message")
-
     with Feature({"organizations:user-feedback-seer-spam-detection": feature_flag_enabled}):
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
@@ -650,7 +642,7 @@ def test_create_feedback_spam_detection_with_seer(
 
     # Check DD metrics
     if feature_flag_enabled:
-        expected_metric_value = f"{expected_metric_prefix}{str(is_spam_result).lower()}"
+        expected_metric_value = f"seer-{str(is_spam_result).lower()}"
     else:
         expected_metric_value = is_spam_result
     mock_metrics_incr.assert_any_call(
@@ -661,14 +653,12 @@ def test_create_feedback_spam_detection_with_seer(
         },
     )
 
-    # Check group status for spam cases
+    # Check group status
     if is_spam_result:
-        # Should have status change kafka message for spam
         assert mock_produce_occurrence_to_kafka.call_count == 2
         status_change = mock_produce_occurrence_to_kafka.call_args_list[1].kwargs["status_change"]
         assert status_change.new_status == GroupStatus.IGNORED
     else:
-        # Should only have the initial occurrence message
         assert mock_produce_occurrence_to_kafka.call_count == 1
 
 

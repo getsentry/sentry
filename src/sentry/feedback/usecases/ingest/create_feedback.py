@@ -278,7 +278,7 @@ def create_feedback_issue(
             # Will be None if the request fails
             is_message_spam = is_spam_seer(feedback_message, project.organization_id)
             # Add "seer-" to the metric name to differentiate it from the LLM metric
-            is_message_spam_metric = "seer-" + str(is_message_spam).lower()
+            is_message_spam_metric = f"seer-{str(is_message_spam).lower()}"
         else:
             try:
                 is_message_spam = is_spam(feedback_message)
