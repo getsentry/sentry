@@ -7,11 +7,69 @@ import {IconClose, IconCommit, IconFocus, IconLock, IconTelescope} from 'sentry/
 import {t} from 'sentry/locale';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
+interface BuildButtonProps {
+  buildDetails: BuildDetailsApiResponse;
+  icon: React.ReactNode;
+  label: string;
+  onClick?: () => void;
+  onRemove?: () => void;
+}
+
+function BuildButton({buildDetails, icon, label, onClick, onRemove}: BuildButtonProps) {
+  const sha = buildDetails.vcs_info?.head_sha?.substring(0, 7);
+  const branchName = buildDetails.vcs_info?.head_ref;
+  const buildId = buildDetails.id;
+
+  return (
+    <Button onClick={onClick}>
+      <Flex align="center" gap="sm">
+        {icon}
+        <Text size="sm" variant="accent" bold>
+          {label}
+        </Text>
+        <Flex align="center" gap="md">
+          <Text size="sm" variant="accent" bold>
+            {`#${buildId}`}
+          </Text>
+          {sha && (
+            <Flex align="center" gap="xs">
+              <IconCommit size="xs" />
+              <Text size="sm" variant="accent" bold monospace>
+                {sha}
+              </Text>
+            </Flex>
+          )}
+        </Flex>
+        <BuildBranch>
+          <Text size="sm" variant="muted">
+            {branchName}
+          </Text>
+        </BuildBranch>
+        {onRemove && (
+          <Button
+            onClick={e => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            size="zero"
+            priority="transparent"
+            borderless
+            aria-label={t('Clear base build')}
+            icon={<IconClose size="xs" color="purple400" />}
+          />
+        )}
+      </Flex>
+    </Button>
+  );
+}
+
 interface SizeCompareSelectedBuildsProps {
   headBuildDetails: BuildDetailsApiResponse;
   isComparing: boolean;
   onClearBaseBuild: () => void;
   baseBuildDetails?: BuildDetailsApiResponse;
+  onBaseBuildClick?: () => void;
+  onHeadBuildClick?: () => void;
   onTriggerComparison?: () => void;
 }
 
@@ -19,87 +77,31 @@ export function SizeCompareSelectedBuilds({
   headBuildDetails,
   baseBuildDetails,
   isComparing,
+  onBaseBuildClick,
   onClearBaseBuild,
+  onHeadBuildClick,
   onTriggerComparison,
 }: SizeCompareSelectedBuildsProps) {
-  const headPrNumber = headBuildDetails.vcs_info?.pr_number;
-  const headSha = headBuildDetails.vcs_info?.head_sha?.substring(0, 7);
-  const headBranchName = headBuildDetails.vcs_info?.head_ref;
-
-  const basePrNumber = baseBuildDetails?.vcs_info?.pr_number;
-  const baseSha = baseBuildDetails?.vcs_info?.head_sha?.substring(0, 7);
-  const baseBranchName = baseBuildDetails?.vcs_info?.head_ref;
-
   return (
     <Flex align="center" gap="lg" width="100%" justify="center">
-      <Flex align="center" gap="sm">
-        <IconLock size="xs" locked />
-        <Text bold>{t('Your build:')}</Text>
-        <Flex align="center" gap="md">
-          {headPrNumber && (
-            <Text size="sm" variant="accent" bold>
-              {`#${headPrNumber} `}
-            </Text>
-          )}
-          {headSha && (
-            <Text size="sm" variant="accent" bold>
-              <Flex align="center" gap="xs">
-                <IconCommit size="xs" />
-                {headSha}
-              </Flex>
-            </Text>
-          )}
-        </Flex>
-        <BuildBranch>
-          <Text size="sm" variant="muted">
-            {headBranchName}
-          </Text>
-        </BuildBranch>
-      </Flex>
+      <BuildButton
+        buildDetails={headBuildDetails}
+        icon={<IconLock size="xs" locked />}
+        label={t('Head')}
+        onClick={onHeadBuildClick}
+      />
 
       <Text>{t('vs')}</Text>
 
       <Flex align="center" gap="sm">
         {baseBuildDetails ? (
-          <Button>
-            <Flex align="center" gap="sm">
-              <IconFocus size="xs" color="purple400" />
-              <Text size="sm" variant="accent" bold>
-                {t('Comparison:')}
-              </Text>
-              <Flex align="center" gap="md">
-                {basePrNumber && (
-                  <Text size="sm" variant="accent" bold>
-                    {`#${basePrNumber} `}
-                  </Text>
-                )}
-                {baseSha && (
-                  <Text size="sm" variant="accent" bold>
-                    <Flex align="center" gap="xs">
-                      <IconCommit size="xs" />
-                      {baseSha}
-                    </Flex>
-                  </Text>
-                )}
-              </Flex>
-              <BaseBuildBranch>
-                <Text size="sm" variant="muted">
-                  {baseBranchName}
-                </Text>
-              </BaseBuildBranch>
-              <Button
-                onClick={e => {
-                  e.stopPropagation();
-                  onClearBaseBuild();
-                }}
-                size="zero"
-                priority="transparent"
-                borderless
-                aria-label={t('Clear base build')}
-                icon={<IconClose size="xs" color="purple400" />}
-              />
-            </Flex>
-          </Button>
+          <BuildButton
+            buildDetails={baseBuildDetails}
+            icon={<IconFocus size="xs" color="purple400" />}
+            label={t('Base')}
+            onClick={onBaseBuildClick}
+            onRemove={onClearBaseBuild}
+          />
         ) : (
           <SelectBuild>
             <Text size="sm">{t('Select a build')}</Text>
@@ -128,12 +130,6 @@ export function SizeCompareSelectedBuilds({
 }
 
 const BuildBranch = styled('span')`
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
-  background-color: ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const BaseBuildBranch = styled('span')`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   background-color: ${p => p.theme.gray100};
   border-radius: ${p => p.theme.borderRadius};

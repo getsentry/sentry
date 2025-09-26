@@ -283,6 +283,18 @@ export function SizeCompareMainContent() {
             `/organizations/${organization.slug}/preprod/${projectId}/compare/${headArtifactId}/`
           );
         }}
+        onHeadBuildClick={() => {
+          navigate(
+            `/organizations/${organization.slug}/preprod/${projectId}/${sizeComparisonQuery.data.head_build_details.id}/`
+          );
+        }}
+        onBaseBuildClick={() => {
+          if (sizeComparisonQuery.data.base_build_details) {
+            navigate(
+              `/organizations/${organization.slug}/preprod/${projectId}/${sizeComparisonQuery.data.base_build_details.id}/`
+            );
+          }
+        }}
       />
 
       {/* Metrics Grid */}
