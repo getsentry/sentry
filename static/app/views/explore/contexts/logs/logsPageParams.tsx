@@ -1,4 +1,4 @@
-import {useCallback, useLayoutEffect, useState} from 'react';
+import {useLayoutEffect, useState} from 'react';
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
@@ -10,7 +10,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   defaultLogFields,
   getLogFieldsFromLocation,
@@ -105,7 +104,7 @@ type NonUpdatableParams =
   | 'groupBy';
 type LogPageParamsUpdate = NullablePartial<Omit<LogsPageParams, NonUpdatableParams>>;
 
-const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
+const [_LogsPageParamsProvider, useLogsPageParams, LogsPageParamsContext] =
   createDefinedContext<LogsPageParams>({
     name: 'LogsPageParamsContext',
   });
@@ -196,8 +195,6 @@ export function LogsPageParamsProvider({
   );
 }
 
-export const useLogsPageParams = _useLogsPageParams;
-
 const decodeLogsQuery = (location: Location): string => {
   if (!location.query?.[LOGS_QUERY_KEY]) {
     return '';
@@ -269,39 +266,6 @@ function updateNullableLocation(
   return false;
 }
 
-export function useSetLogsPageParams() {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  return useCallback(
-    (pageParams: LogPageParamsUpdate) => {
-      const target = setLogsPageParams(location, pageParams);
-      navigate(target);
-    },
-    [location, navigate]
-  );
-}
-
-export function useLogsSearch(): MutableSearch {
-  const {search} = useLogsPageParams();
-  return search;
-}
-
-export function useSetLogsSearch() {
-  const setPageParams = useSetLogsPageParams();
-  const {setSearchForFrozenPages, isTableFrozen} = useLogsPageParams();
-  const setPageParamsCallback = useCallback(
-    (search: MutableSearch) => {
-      setPageParams({search});
-    },
-    [setPageParams]
-  );
-  if (isTableFrozen) {
-    return setSearchForFrozenPages;
-  }
-  return setPageParamsCallback;
-}
-
 export interface PersistedLogsPageParams {
   fields: string[];
   sortBys: Sort[];
@@ -323,26 +287,6 @@ export function usePersistedLogsPageParams() {
       fields: defaultLogFields() as string[],
       sortBys: [logsTimestampDescendingSortBy],
     }
-  );
-}
-
-export function useLogsId() {
-  const {id} = useLogsPageParams();
-  return id;
-}
-
-export function useLogsTitle() {
-  const {title} = useLogsPageParams();
-  return title;
-}
-
-export function useSetLogsSavedQueryInfo() {
-  const setPageParams = useSetLogsPageParams();
-  return useCallback(
-    (id: string, title: string) => {
-      setPageParams({id, title});
-    },
-    [setPageParams]
   );
 }
 
@@ -389,26 +333,4 @@ function getLogsParamsStorageKey(version: number) {
 
 function getPastLogsParamsStorageKey(version: number) {
   return `logs-params-v${version - 1}`;
-}
-
-export function useLogsAddSearchFilter() {
-  const setLogsSearch = useSetLogsSearch();
-  const search = useLogsSearch();
-
-  return useCallback(
-    ({
-      key,
-      value,
-      negated,
-    }: {
-      key: string;
-      value: string | number | boolean;
-      negated?: boolean;
-    }) => {
-      const newSearch = search.copy();
-      newSearch.addFilterValue(`${negated ? '!' : ''}${key}`, String(value));
-      setLogsSearch(newSearch);
-    },
-    [setLogsSearch, search]
-  );
 }
