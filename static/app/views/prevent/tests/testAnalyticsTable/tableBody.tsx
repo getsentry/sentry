@@ -1,10 +1,10 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
   RIGHT_ALIGNED_FIELDS,
@@ -45,12 +45,15 @@ export function renderTableBody({column, row, wrapToggleValue}: TableBodyProps) 
         showUnderline
         isHoverable
         maxWidth={300}
-        title={
-          <Fragment>
-            {row.totalPassCount} Passed, {row.totalFailCount} Failed, (
-            {row.totalFlakyFailCount} Flaky), {row.totalSkipCount} Skipped
-          </Fragment>
-        }
+        title={tct(
+          '[passedCount] Passed, [failCount] Failed, ([flakyCount] Flaky), [skipCount] Skipped',
+          {
+            passedCount: row.totalPassCount,
+            failCount: row.totalFailCount,
+            flakyCount: row.totalFlakyFailCount,
+            skipCount: row.totalSkipCount,
+          }
+        )}
       >
         <NumberContainer>
           {isBrokenTest && <StyledTag type={'highlight'}>Broken test</StyledTag>}
