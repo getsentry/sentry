@@ -14,8 +14,7 @@ type AttributeValueType =
   | 'size'
   | 'rate'
   | 'score'
-  | 'currency'
-  | null;
+  | 'currency';
 
 type AttributeValueUnit = DataUnit | null;
 
@@ -30,6 +29,10 @@ export type TimeSeriesMeta = {
    * The type of the values (e.g., "duration")
    */
   valueType: TimeSeriesValueType;
+  /**
+   * The unit of the values, if available. The value unit is null if the value type is unitless (e.g., "number"), or the unit could not be determined (this is usually an error case).
+   */
+  valueUnit: TimeSeriesValueUnit;
   dataScanned?: 'partial' | 'full';
   /**
    * `isOther` is true if this `TimeSeries` is the result of a `groupBy` query, and this is the "other" group.
@@ -39,10 +42,6 @@ export type TimeSeriesMeta = {
    * For a top N request, the order is the position of this `TimeSeries` within the respective yAxis.
    */
   order?: number;
-  /**
-   * The unit of the values, if available. The value unit is null if the value type is unitless (e.g., "number"). The value unit may be missing altogether if the Y axis of the time series is something unknown.
-   */
-  valueUnit?: TimeSeriesValueUnit;
 };
 
 export type TimeSeriesItem = {
