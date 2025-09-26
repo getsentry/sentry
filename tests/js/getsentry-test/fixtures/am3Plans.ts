@@ -27,7 +27,7 @@ const AM3_ONDEMAND_CATEGORIES = [
   'seerScanner',
 ] as DataCategory[];
 
-const AM3_CATEGORIES = [...AM3_ONDEMAND_CATEGORIES, 'preventUser'] as DataCategory[];
+const AM3_CATEGORIES = [...AM3_ONDEMAND_CATEGORIES, 'preventUsers'] as DataCategory[];
 
 const AM3_DS_CHECKOUT_CATEGORIES = [
   ...AM3_CHECKOUT_CATEGORIES,

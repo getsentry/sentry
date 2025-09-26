@@ -32,7 +32,7 @@ const AM2_ONDEMAND_CATEGORIES = [
   'seerScanner',
 ] as DataCategory[];
 
-const AM2_CATEGORIES = [...AM2_ONDEMAND_CATEGORIES, 'preventUser'] as DataCategory[];
+const AM2_CATEGORIES = [...AM2_ONDEMAND_CATEGORIES, 'preventUsers'] as DataCategory[];
 
 const AM2_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
