@@ -9,6 +9,7 @@ from django.conf import settings
 from sentry.replays.data_export import (
     export_clickhouse_rows,
     export_replay_row_set,
+    get_replay_date_query_ranges,
     query_replays_dataset,
 )
 from sentry.replays.testutils import mock_replay
@@ -91,3 +92,38 @@ def test_export_replay_row_set(replay_store):
     assert len(rows) == 3
     assert rows[1][0] == replay1_id
     assert rows[2][0] == replay2_id
+
+
+@pytest.mark.snuba
+@requires_snuba
+def test_get_replay_date_query_ranges(replay_store):
+    replay1_id = str(uuid.uuid4())
+    replay2_id = str(uuid.uuid4())
+    replay3_id = str(uuid.uuid4())
+    replay4_id = str(uuid.uuid4())
+    replay5_id = str(uuid.uuid4())
+
+    t0 = datetime.datetime.now()
+    t1 = t0 + datetime.timedelta(days=10)
+    t2 = t0 + datetime.timedelta(days=20)
+
+    replay_store.save(mock_replay(t0, 1, replay1_id, segment_id=0))
+    replay_store.save(mock_replay(t1, 1, replay2_id, segment_id=0))
+    replay_store.save(mock_replay(t2, 1, replay3_id, segment_id=0))
+    replay_store.save(mock_replay(t2, 1, replay4_id, segment_id=0))
+    replay_store.save(mock_replay(t2, 2, replay5_id, segment_id=0))
+
+    results = list(get_replay_date_query_ranges(1))
+    assert len(results) == 3
+    assert results[0][0] == datetime.datetime(year=t0.year, month=t0.month, day=t0.day)
+    assert results[0][1] == datetime.datetime(
+        year=t0.year, month=t0.month, day=t0.day
+    ) + datetime.timedelta(days=1)
+    assert results[1][0] == datetime.datetime(year=t1.year, month=t1.month, day=t1.day)
+    assert results[1][1] == datetime.datetime(
+        year=t1.year, month=t1.month, day=t1.day
+    ) + datetime.timedelta(days=1)
+    assert results[2][0] == datetime.datetime(year=t2.year, month=t2.month, day=t2.day)
+    assert results[2][1] == datetime.datetime(
+        year=t2.year, month=t2.month, day=t2.day
+    ) + datetime.timedelta(days=1)

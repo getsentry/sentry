@@ -17,7 +17,6 @@ from google.type import date_pb2
 from sentry.replays.data_export import (
     create_transfer_job,
     export_replay_blob_data,
-    generate_ninety_days_pairs,
     retry_transfer_job_run,
 )
 from sentry.utils import json
@@ -170,23 +169,6 @@ def test_request_retry_transfer_job():
     # execute now.
     assert mock_rpc.call_count == 1
     mock_rpc.reset_mock()
-
-
-def test_generate_ninety_days_pairs():
-    dates = list(generate_ninety_days_pairs(datetime(year=2025, month=4, day=1, hour=9)))
-
-    expected_start = datetime(year=2025, month=1, day=1)
-    expected_end = datetime(year=2025, month=1, day=2)
-
-    for start, end in dates:
-        assert start == expected_start
-        assert end == expected_end
-
-        expected_start = end
-        expected_end = end + timedelta(days=1)
-
-    assert expected_start == datetime(year=2025, month=4, day=1)
-    assert expected_end == datetime(year=2025, month=4, day=2)
 
 
 def test_export_replay_blob_data():

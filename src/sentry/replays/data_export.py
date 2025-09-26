@@ -27,7 +27,6 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import options
 from sentry.models.files.utils import get_storage
 from sentry.utils.snuba import raw_snql_query
 
@@ -368,6 +367,51 @@ def query_replays_dataset(
     )
 
 
+def get_replay_date_query_ranges(project_id: int) -> Generator[tuple[datetime, datetime]]:
+    """
+    SQL:
+        SELECT formatDateTime(toStartOfDay(timestamp), '%F')
+        FROM replays_dist
+        WHERE project_id = 11276
+        GROUP BY toStartOfDay(timestamp)
+        ORDER BY toStartOfDay(timestamp)
+    """
+    to_start_of_day_timestamp = Function("toStartOfDay", parameters=[Column("timestamp")])
+
+    # Snuba requires a start and end range but we don't know the start and end yet! We specify an
+    # arbitrarily large range to accommodate. If you're debugging a failed export in the year 3000
+    # I am very sorry for the inconvenience this has caused you.
+    min = datetime(year=1970, month=1, day=1)
+    max = datetime(year=3000, month=1, day=1)
+
+    query = Query(
+        match=Entity("replays"),
+        select=[
+            Function("formatDateTime", parameters=[to_start_of_day_timestamp, "%F"], alias="day")
+        ],
+        where=[
+            Condition(Column("project_id"), Op.EQ, project_id),
+            Condition(Column("timestamp"), Op.GTE, min),
+            Condition(Column("timestamp"), Op.LT, max),
+        ],
+        orderby=[OrderBy(to_start_of_day_timestamp, Direction.ASC)],
+        groupby=[to_start_of_day_timestamp],
+    )
+
+    request = Request(
+        dataset="replays",
+        app_id="replay-backend-web",
+        query=query,
+        tenant_ids={},
+    )
+
+    results = raw_snql_query(request, "sentry.internal.eu-compliance-data-export.dates")["data"]
+    for result in results:
+        start = datetime.fromisoformat(result["day"])
+        end = start + timedelta(days=1)
+        yield start, end
+
+
 def export_replay_row_set(
     project_id: int,
     start: datetime,
@@ -386,9 +430,10 @@ def export_replay_row_set(
         )
     )
 
-    filename = f"replay-row-data/{uuid.uuid4().hex}"
-    csv_data = row_iterator_to_csv(rows)
-    write_to_sink(filename, csv_data)
+    if len(rows) > 0:
+        filename = f"replay-row-data/{uuid.uuid4().hex}"
+        csv_data = row_iterator_to_csv(rows)
+        write_to_sink(filename, csv_data)
 
     if len(rows) == (limit * num_pages):
         return initial_offset + len(rows)
@@ -399,20 +444,14 @@ def export_replay_row_set(
 def generate_ninety_days_pairs(dt: datetime) -> Iterator[tuple[datetime, datetime]]:
     start = datetime(year=dt.year, month=dt.month, day=dt.day) - timedelta(days=90)
     end = start + timedelta(days=1)
-    for _ in range(90):
+    for _ in range(91):
         yield (start, end)
         start = start + timedelta(days=1)
         end = end + timedelta(days=1)
 
 
 def save_to_gcs(destination_bucket: str, filename: str, contents: str) -> None:
-    backend = options.get("replay.storage.backend")
-    if backend:
-        storage_options = {"backend": backend, "options": options.get("replay.storage.options")}
-    else:
-        storage_options = None
-
-    storage = get_storage(storage_options)
+    storage = get_storage(None)
     storage.bucket_name = destination_bucket
     storage.save(filename, io.BytesIO(contents.encode()))
 
@@ -479,9 +518,15 @@ def export_replay_project_async(
     destination_bucket: str,
     num_pages: int = 10,
 ):
-    for start, end in generate_ninety_days_pairs(datetime.now(tz=timezone.utc)):
+    for start, end in get_replay_date_query_ranges(project_id):
         export_replay_row_set_async.delay(
-            project_id, start, end, limit, 0, destination_bucket, num_pages
+            project_id=project_id,
+            start=start,
+            end=end,
+            destination_bucket=destination_bucket,
+            limit=limit,
+            offset=0,
+            num_pages=num_pages,
         )
 
 
@@ -531,7 +576,7 @@ def export_replay_data(
     logger.info("Starting replay export...")
 
     try:
-        organization = Organization.objects.filter(organization_id=organization_id).get()
+        organization = Organization.objects.filter(id=organization_id).get()
         logger.info("Found organization", extra={"organization.slug": organization.slug})
     except Organization.DoesNotExist:
         logger.exception("Could not find organization", extra={"organization.id": organization_id})
