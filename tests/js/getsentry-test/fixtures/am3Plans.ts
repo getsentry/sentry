@@ -27,7 +27,7 @@ const AM3_ONDEMAND_CATEGORIES = [
   'seerScanner',
 ] as DataCategory[];
 
-const AM3_CATEGORIES = [...AM3_ONDEMAND_CATEGORIES] as DataCategory[];
+const AM3_CATEGORIES = [...AM3_ONDEMAND_CATEGORIES, 'preventUsers'] as DataCategory[];
 
 const AM3_DS_CHECKOUT_CATEGORIES = [
   ...AM3_CHECKOUT_CATEGORIES,
@@ -39,6 +39,7 @@ const AM3_DS_CATEGORIES = [
   'profileDurationUI',
   'seerAutofix',
   'seerScanner',
+  'preventUser',
 ] as DataCategory[];
 
 const AM3_AVAILABLE_RESERVED_BUDGET_TYPES = {
@@ -66,6 +67,7 @@ const AM3_CATEGORY_DISPLAY_NAMES = {
   logBytes: {singular: 'log', plural: 'logs'},
   seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
+  preventUsers: {singular: 'prevent user', plural: 'prevent users'},
 };
 
 const AM3_DS_CATEGORY_DISPLAY_NAMES = {
@@ -85,6 +87,7 @@ const AM3_FREE_FEATURES = [
   'user-spend-notifications-settings',
   'profiling-view',
   'uptime',
+  'prevent-billing',
 ];
 
 const AM3_TEAM_FEATURES = [
@@ -137,6 +140,17 @@ const AM3_DS_FEATURES = [
   'dynamic-sampling',
   'dynamic-sampling-custom',
 ];
+
+export const PREVENT_USER_TIERS = {
+  preventUsers: [
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 0,
+    },
+  ],
+};
 
 export const SEER_TIERS_DEVELOPER = {
   seerAutofix: [
@@ -978,6 +992,7 @@ const AM3_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS,
+      ...PREVENT_USER_TIERS,
     },
   },
   am3_business_auf: {
@@ -1477,6 +1492,7 @@ const AM3_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS_ANNUAL,
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -1576,6 +1592,7 @@ const AM3_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -1675,6 +1692,7 @@ const AM3_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -1782,6 +1800,7 @@ const AM3_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -1889,6 +1908,7 @@ const AM3_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -1988,6 +2008,7 @@ const AM3_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS_DEVELOPER,
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: 10,
     metricDetectorLimit: 20,
@@ -2087,6 +2108,7 @@ const AM3_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: 20,
     metricDetectorLimit: 20,
@@ -2194,6 +2216,7 @@ const AM3_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: 20,
     metricDetectorLimit: 20,
@@ -2697,6 +2720,7 @@ const AM3_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS,
+      ...PREVENT_USER_TIERS,
     },
   },
   am3_team_auf: {
@@ -3198,6 +3222,7 @@ const AM3_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS_ANNUAL,
+      ...PREVENT_USER_TIERS,
     },
   },
   am3_t: {
@@ -3288,6 +3313,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.5,
         },
       ],
+      ...PREVENT_USER_TIERS,
     },
   },
 };
