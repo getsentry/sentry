@@ -59,7 +59,6 @@ import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
 import SubscribeAction from 'sentry/views/issueDetails/actions/subscribeAction';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
-import useProjectReleaseVersionIsSemver from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
 import {
   useEnvironmentsFromUrl,
   useHasStreamlinedUI,
