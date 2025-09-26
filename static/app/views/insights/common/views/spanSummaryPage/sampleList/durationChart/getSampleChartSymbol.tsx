@@ -1,6 +1,6 @@
 import type {Theme} from '@emotion/react';
 
-import {isNearAverage as areAlmostEqual} from 'sentry/views/insights/common/components/samplesTable/common';
+import {areNumbersAlmostEqual} from 'sentry/utils/number/areNumbersAlmostEqual';
 import {
   crossIconPath,
   downwardPlayIconPath,
@@ -12,7 +12,7 @@ export function getSampleChartSymbol(
   baseline: number,
   theme: Theme
 ): {color: string; symbol: string} {
-  if (areAlmostEqual(value, baseline)) {
+  if (areNumbersAlmostEqual(value, baseline, 10)) {
     return {
       symbol: crossIconPath,
       color: theme.gray500,

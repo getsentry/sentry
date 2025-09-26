@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {areNumbersAlmostEqual} from 'sentry/utils/number/areNumbersAlmostEqual';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 
 type Props = {
@@ -20,7 +21,7 @@ export function DurationComparisonCell({
 }: Props) {
   const diff = duration - compareToDuration;
 
-  if (isNearAverage(duration, compareToDuration)) {
+  if (areNumbersAlmostEqual(duration, compareToDuration, 3)) {
     return <TextAlignRight {...containerProps}>{t('Near Average')}</TextAlignRight>;
   }
 
@@ -33,12 +34,6 @@ export function DurationComparisonCell({
     </ComparisonLabel>
   );
 }
-
-export const isNearAverage = (duration: number, compareToDuration: number) => {
-  const maxDiff = 0.03 * compareToDuration;
-  const diff = Math.abs(duration - compareToDuration);
-  return diff < maxDiff;
-};
 
 const ComparisonLabel = styled('span')<{value: number}>`
   color: ${p =>
