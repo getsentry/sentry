@@ -87,15 +87,7 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
-    return (
-      <TraceMissingInstrumentationRow
-        {...props}
-        // Won't need this cast once we use BaseNode type for props.node
-        node={
-          props.node as unknown as TraceTreeNode<TraceTree.MissingInstrumentationSpan>
-        }
-      />
-    );
+    return <TraceMissingInstrumentationRow {...props} node={props.node} />;
   }
 
   renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(

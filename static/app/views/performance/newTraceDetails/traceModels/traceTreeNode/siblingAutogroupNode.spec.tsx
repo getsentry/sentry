@@ -5,6 +5,7 @@ import {
   makeEAPSpan,
   makeSiblingAutogroup,
   makeSpan,
+  makeTraceError,
   makeTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
@@ -347,7 +348,7 @@ describe('SiblingAutogroupNode', () => {
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       // Add an error to trigger red color
-      const mockError = {event_id: 'error-1', level: 'error'} as any;
+      const mockError = makeTraceError({event_id: 'error-1', level: 'error'});
       node.errors.add(mockError);
 
       const mockTheme: Partial<Theme> = {

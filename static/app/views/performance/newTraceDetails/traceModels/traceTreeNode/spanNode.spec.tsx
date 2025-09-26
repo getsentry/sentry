@@ -30,7 +30,7 @@ describe('SpanNode', () => {
       expect(node.canAutogroup).toBe(true);
       expect(node.allowNoInstrumentationNodes).toBe(true);
       expect(node.space).toEqual([1000 * 1e3, (2000 - 1000) * 1e3]);
-      expect(node.searchPriority).toBe(1);
+      expect(node.searchPriority).toBe(2);
     });
 
     it('should collapse Android HTTP client spans by default', () => {

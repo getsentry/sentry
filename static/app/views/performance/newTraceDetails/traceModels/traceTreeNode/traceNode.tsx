@@ -52,13 +52,7 @@ export class TraceNode extends BaseNode<TraceTree.Trace> {
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<T>
   ): React.ReactNode {
-    return (
-      // Won't need this cast once we use BaseNode type for props.node
-      <TraceRootRow
-        {...props}
-        node={props.node as unknown as TraceTreeNode<TraceTree.Trace>}
-      />
-    );
+    return <TraceRootRow {...props} node={props.node} />;
   }
 
   renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(

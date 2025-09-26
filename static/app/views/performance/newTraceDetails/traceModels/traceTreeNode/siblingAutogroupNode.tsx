@@ -4,7 +4,6 @@ import {t} from 'sentry/locale';
 import {AutogroupNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/autogroup';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {SiblingAutogroupNode as LegacySiblingAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/siblingAutogroupNode';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {TraceAutogroupedRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceAutogroupedRow';
@@ -74,18 +73,12 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
-    return (
-      // Won't need this cast once we use BaseNode type for props.node
-      <TraceAutogroupedRow
-        {...props}
-        node={props.node as unknown as LegacySiblingAutogroupNode}
-      />
-    );
+    return <TraceAutogroupedRow {...props} node={props.node} />;
   }
 
   pathToNode(): TraceTree.NodePath[] {
     const path: TraceTree.NodePath[] = [];
-    const closestTransaction = this.findParent(p => isTransactionNode(p as any));
+    const closestTransaction = this.findParent(p => isTransactionNode(p));
 
     path.push(`ag-${this.id}`);
 
@@ -99,12 +92,7 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
   renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
-    return (
-      <AutogroupNodeDetails
-        {...props}
-        node={props.node as unknown as LegacySiblingAutogroupNode}
-      />
-    );
+    return <AutogroupNodeDetails {...props} node={props.node} />;
   }
 
   matchById(_id: string): boolean {

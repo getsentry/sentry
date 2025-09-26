@@ -405,7 +405,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   }
 
   expand(expanding: boolean, tree: TraceTree): boolean {
-    const index = tree.list.indexOf(this as any);
+    const index = tree.list.indexOf(this);
 
     // Expanding is not allowed for zoomed in nodes
     if (expanding === this.expanded || this.hasFetchedChildren) {
@@ -417,7 +417,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       this.expanded = expanding;
 
       // Flip expanded so that we can collect visible children
-      tree.list.splice(index + 1, 0, ...(this.visibleChildren as any));
+      tree.list.splice(index + 1, 0, ...this.visibleChildren);
     } else {
       tree.list.splice(index + 1, this.visibleChildren.length);
 

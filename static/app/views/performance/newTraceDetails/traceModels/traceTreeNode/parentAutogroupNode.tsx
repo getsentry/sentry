@@ -70,7 +70,7 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
 
   pathToNode(): TraceTree.NodePath[] {
     const path: TraceTree.NodePath[] = [];
-    const closestTransaction = this.findParent(p => isTransactionNode(p as any));
+    const closestTransaction = this.findParent(p => isTransactionNode(p));
 
     path.push(`ag-${this.id}`);
 
@@ -88,13 +88,7 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
-    return (
-      // Won't need this cast once we use BaseNode type for props.node
-      <TraceAutogroupedRow
-        {...props}
-        node={props.node as unknown as LegacyParentAutogroupNode}
-      />
-    );
+    return <TraceAutogroupedRow {...props} node={props.node} />;
   }
 
   renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(
@@ -171,7 +165,7 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
   }
 
   expand(expanding: boolean, tree: TraceTree): boolean {
-    const index = tree.list.indexOf(this as any);
+    const index = tree.list.indexOf(this);
 
     // Expanding is not allowed for zoomed in nodes
     if (expanding === this.expanded || this.hasFetchedChildren) {
@@ -198,12 +192,7 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
       // The node is part of the tree, but not visible yet.Check can be pushed to the top of the function
       // when we no longer have to support non-eap traces.
       if (index !== -1) {
-        tree.list.splice(
-          index + 1,
-          0,
-          this.head as any,
-          ...(this.head.visibleChildren as any)
-        );
+        tree.list.splice(index + 1, 0, this.head, ...this.head.visibleChildren);
       }
     } else {
       tree.list.splice(index + 1, this.visibleChildren.length);
@@ -214,7 +203,7 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
         c.parent = this;
       }
 
-      tree.list.splice(index + 1, 0, ...(this.tail.visibleChildren as any));
+      tree.list.splice(index + 1, 0, ...this.tail.visibleChildren);
     }
 
     this.invalidate();

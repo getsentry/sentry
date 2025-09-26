@@ -28,7 +28,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
 
   extra: TraceTreeNodeExtra;
 
-  searchPriority = 2;
+  searchPriority = 1;
 
   constructor(
     parent: BaseNode | null,
@@ -115,7 +115,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
   }
 
   expand(expanding: boolean, tree: TraceTree): boolean {
-    const index = tree.list.indexOf(this as any);
+    const index = tree.list.indexOf(this);
 
     // Expanding is not allowed for zoomed in nodes
     if (expanding === this.expanded || this.hasFetchedChildren) {
@@ -127,14 +127,14 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
       this.expanded = expanding;
 
       // Flip expanded so that we can collect visible children
-      tree.list.splice(index + 1, 0, ...(this.visibleChildren as any));
+      tree.list.splice(index + 1, 0, ...this.visibleChildren);
     } else {
       tree.list.splice(index + 1, this.visibleChildren.length);
 
       this.expanded = expanding;
 
       // When transaction nodes are collapsed, they still render child transactions
-      tree.list.splice(index + 1, 0, ...(this.visibleChildren as any));
+      tree.list.splice(index + 1, 0, ...this.visibleChildren);
     }
 
     this.invalidate();
@@ -150,13 +150,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
   }
 
   renderWaterfallRow<T extends TraceTree.Node>(props: TraceRowProps<T>): React.ReactNode {
-    return (
-      <TraceTransactionRow
-        {...props}
-        // Won't need this cast once we use BaseNode type for props.node
-        node={props.node as unknown as TraceTreeNode<TraceTree.Transaction>}
-      />
-    );
+    return <TraceTransactionRow {...props} node={props.node} />;
   }
 
   renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(
@@ -215,7 +209,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     }
 
     if (!fetching) {
-      const index = tree.list.indexOf(this as any);
+      const index = tree.list.indexOf(this);
 
       // Remove currently visible children
       tree.list.splice(index + 1, this.visibleChildren.length);
@@ -227,13 +221,11 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
       // Find all transactions that are children of the current transaction
       // remove all non transaction events from current node and its children
       // point transactions back to their parents
-      const transactions = this.findAllChildren(
-        c => isTransactionNode(c as any) && c !== this
-      );
+      const transactions = this.findAllChildren(c => isTransactionNode(c) && c !== this);
 
       for (const trace of transactions) {
         // point transactions back to their parents
-        const parent = trace.findParent(p => isTransactionNode(p as any));
+        const parent = trace.findParent(p => isTransactionNode(p));
 
         // If they already have the correct parent, then we can skip this
         if (trace.parent === parent) {
@@ -252,10 +244,10 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
         parent.children.push(trace);
       }
 
-      this.children = this.children.filter(c => isTransactionNode(c as any));
+      this.children = this.children.filter(c => isTransactionNode(c));
       this.children.sort(traceChronologicalSort);
 
-      tree.list.splice(index + 1, 0, ...(this.visibleChildren as any));
+      tree.list.splice(index + 1, 0, ...this.visibleChildren);
 
       this.invalidate();
       this.forEachChild(child => child.invalidate());
@@ -281,7 +273,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
         // happens, dont update the tree with the resolved data. Alternatively, we could implement
         // a cancellable promise and avoid this cumbersome heuristic.
         // Remove existing entries from the list
-        const index = tree.list.indexOf(this as any);
+        const index = tree.list.indexOf(this);
         this.fetchStatus = 'resolved';
 
         if (this.expanded && index !== -1) {
@@ -295,11 +287,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
         const spans = data.entries.find(s => s.type === 'spans') ?? {data: []};
         spans.data.sort((a: any, b: any) => a.start_timestamp - b.start_timestamp);
 
-        const [root, spanTreeSpaceBounds] = this._fromSpans(
-          this as any,
-          spans.data,
-          data
-        );
+        const [root, spanTreeSpaceBounds] = this._fromSpans(this, spans.data, data);
 
         root.hasFetchedChildren = true;
         // Spans contain millisecond precision, which means that it is possible for the
@@ -334,7 +322,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
         });
 
         if (index !== -1) {
-          tree.list.splice(index + 1, 0, ...(this.visibleChildren as any));
+          tree.list.splice(index + 1, 0, ...this.visibleChildren);
         }
         return data;
       })

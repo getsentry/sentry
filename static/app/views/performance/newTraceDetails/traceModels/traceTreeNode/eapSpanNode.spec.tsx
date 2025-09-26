@@ -38,7 +38,25 @@ describe('EapSpanNode', () => {
       expect(node.allowNoInstrumentationNodes).toBe(false);
       expect(node.opsBreakdown).toEqual([]);
       expect(node.isEAPEvent).toBe(true);
-      expect(node.searchPriority).toBe(2);
+      expect(node.searchPriority).toBe(1);
+    });
+
+    it('should initialize search priority for span', () => {
+      const extra = createMockExtra();
+      const value1 = makeEAPSpan({
+        event_id: 'test-span-1',
+        is_transaction: false,
+      });
+      const value2 = makeEAPSpan({
+        event_id: 'test-span-2',
+        is_transaction: true,
+      });
+
+      const node1 = new EapSpanNode(null, value1, extra);
+      const node2 = new EapSpanNode(null, value2, extra);
+
+      expect(node1.searchPriority).toBe(2);
+      expect(node2.searchPriority).toBe(1);
     });
 
     it('should initialize with basic properties for span', () => {

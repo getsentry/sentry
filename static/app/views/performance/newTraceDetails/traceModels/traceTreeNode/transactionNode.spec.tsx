@@ -38,7 +38,7 @@ describe('TransactionNode', () => {
 
       expect(node.canFetchChildren).toBe(true);
       expect(node.space).toEqual([1000 * 1e3, (2000 - 1000) * 1e3]);
-      expect(node.searchPriority).toBe(2);
+      expect(node.searchPriority).toBe(1);
     });
 
     it('should collect performance issues from transaction', () => {

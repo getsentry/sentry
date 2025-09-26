@@ -19,7 +19,6 @@ import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {traceChronologicalSort} from './utils';
 
 export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
-  searchPriority = 2;
   /**
    * The breakdown of the node's children's operations by count.
    */
@@ -38,6 +37,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
 
     super(parentNode, value, extra);
 
+    this.searchPriority = this.value.is_transaction ? 1 : 2;
     this.isEAPEvent = true;
     this.expanded = !value.is_transaction;
     this.canAutogroup = !value.is_transaction;
@@ -149,24 +149,22 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     const eapTransactions = findEAPTransactions(this);
 
     for (const txn of eapTransactions) {
-      if (isEAPTransaction(txn.value)) {
-        const newParent = findNewParent(txn);
+      const newParent = findNewParent(txn);
 
-        // If the transaction already has the correct parent, we can continue
-        if (newParent === txn.parent) {
-          continue;
-        }
+      // If the transaction already has the correct parent, we can continue
+      if (newParent === txn.parent) {
+        continue;
+      }
 
-        // If we have found a new parent to reparent the transaction under,
-        // remove it from its current parent's children and add it to the new parent
-        if (newParent) {
-          if (txn.parent) {
-            txn.parent.children = txn.parent.children.filter(c => c !== txn);
-          }
-          newParent.children.push(txn);
-          txn.parent = newParent;
-          txn.parent.children.sort(traceChronologicalSort);
+      // If we have found a new parent to reparent the transaction under,
+      // remove it from its current parent's children and add it to the new parent
+      if (newParent) {
+        if (txn.parent) {
+          txn.parent.children = txn.parent.children.filter(c => c !== txn);
         }
+        newParent.children.push(txn);
+        txn.parent = newParent;
+        txn.parent.children.sort(traceChronologicalSort);
       }
     }
   }
@@ -183,7 +181,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   }
 
   expand(expanding: boolean, tree: TraceTree): boolean {
-    const index = tree.list.indexOf(this as any);
+    const index = tree.list.indexOf(this);
 
     // Expanding is not allowed for zoomed in nodes
     if (expanding === this.expanded || this.hasFetchedChildren) {
@@ -220,7 +218,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       }
 
       // Flip expanded so that we can collect visible children
-      tree.list.splice(index + 1, 0, ...(this.visibleChildren as any));
+      tree.list.splice(index + 1, 0, ...this.visibleChildren);
     } else {
       tree.list.splice(index + 1, this.visibleChildren.length);
 
@@ -244,7 +242,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
 
       // When transaction nodes are collapsed, they still render child transactions
       if (this.value.is_transaction) {
-        tree.list.splice(index + 1, 0, ...(this.visibleChildren as any));
+        tree.list.splice(index + 1, 0, ...this.visibleChildren);
       }
     }
 
@@ -286,13 +284,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<T>
   ): React.ReactNode {
-    return (
-      // Won't need this cast once we use BaseNode type for props.node
-      <TraceSpanRow
-        {...props}
-        node={props.node as unknown as TraceTreeNode<TraceTree.EAPSpan>}
-      />
-    );
+    return <TraceSpanRow {...props} node={props.node} />;
   }
 
   renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(
