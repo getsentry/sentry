@@ -88,7 +88,7 @@ interface LogsPageParams {
   readonly title?: string;
 }
 
-const [_LogsPageParamsProvider, useLogsPageParams, LogsPageParamsContext] =
+const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
   createDefinedContext<LogsPageParams>({
     name: 'LogsPageParamsContext',
   });
