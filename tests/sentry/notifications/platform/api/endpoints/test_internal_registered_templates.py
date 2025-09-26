@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.notifications.platform.api.endpoints.internal_registered_templates import (
     serialize_slack_preview,
     serialize_template,
@@ -64,40 +66,44 @@ class SerializeTemplateTest(TestCase):
         assert isinstance(slack_preview["blocks"], list)
 
 
-def find_block_by_type(blocks: list[dict], block_type: str) -> dict | None:
+def find_block_by_type(blocks: list[dict[str, Any]], block_type: str) -> dict[str, Any] | None:
     """Find the first block with the specified type."""
     return next((block for block in blocks if block["type"] == block_type), None)
 
 
-def assert_header_block(block: dict, expected_text: str) -> None:
+def assert_header_block(block: dict[str, Any], expected_text: str) -> None:
     """Assert that a block is a valid header block with expected text."""
     assert block["type"] == "header"
     assert block["text"]["type"] == "plain_text"
     assert block["text"]["text"] == expected_text
 
 
-def assert_section_block(block: dict, expected_text: str, text_type: str = "mrkdwn") -> None:
+def assert_section_block(
+    block: dict[str, Any], expected_text: str, text_type: str = "mrkdwn"
+) -> None:
     """Assert that a block is a valid section block with expected text."""
     assert block["type"] == "section"
     assert block["text"]["type"] == text_type
     assert block["text"]["text"] == expected_text
 
 
-def assert_button_element(element: dict, expected_text: str, expected_url: str) -> None:
+def assert_button_element(element: dict[str, Any], expected_text: str, expected_url: str) -> None:
     """Assert that an element is a valid button with expected text and URL."""
     assert element["type"] == "button"
     assert element["text"]["text"] == expected_text
     assert element["url"] == expected_url
 
 
-def assert_image_block(block: dict, expected_url: str, expected_alt_text: str) -> None:
+def assert_image_block(block: dict[str, Any], expected_url: str, expected_alt_text: str) -> None:
     """Assert that a block is a valid image block with expected URL and alt text."""
     assert block["type"] == "image"
     assert block["image_url"] == expected_url
     assert block["alt_text"] == expected_alt_text
 
 
-def find_section_block_by_text(blocks: list[dict], text_content: str) -> dict | None:
+def find_section_block_by_text(
+    blocks: list[dict[str, Any]], text_content: str
+) -> dict[str, Any] | None:
     """Find a section block that contains specific text content."""
     return next(
         (
