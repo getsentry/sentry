@@ -86,13 +86,14 @@ function MonitorTypeField() {
       {options.map(({id, name, description, visualization, infoBanner}) => {
         const checked = selectedDetectorType === id;
         return (
-          <OptionLabel key={id} role="radio" aria-checked={checked}>
+          <OptionLabel key={id} aria-checked={checked}>
             <OptionBody>
               <Flex direction="column" gap="sm">
                 <Radio
                   name="detectorType"
                   checked={checked}
                   onChange={() => handleChange(id)}
+                  aria-label={name}
                 />
                 <Text bold>{name}</Text>
                 {description && <Text size="sm">{description}</Text>}
