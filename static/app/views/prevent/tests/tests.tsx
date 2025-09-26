@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -12,6 +12,7 @@ import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSele
 import {RepoSelector} from 'sentry/components/prevent/repoSelector/repoSelector';
 import {TestSuiteDropdown} from 'sentry/components/prevent/testSuiteDropdown/testSuiteDropdown';
 import {getPreventParamsString} from 'sentry/components/prevent/utils';
+import Redirect from 'sentry/components/redirect';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {decodeSorts} from 'sentry/utils/queryString';
@@ -20,6 +21,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import TestsPreOnboardingPage from 'sentry/views/prevent/tests/preOnboarding';
+import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
 import {
   useInfiniteTestResults,
   type UseInfiniteTestResultsResult,
@@ -57,9 +59,9 @@ export default function TestsPage() {
   const organization = useOrganization();
   const shouldDisplayContent = integratedOrgId && repository && preventPeriod;
 
+  const {data: integrations = []} = useGetActiveIntegratedOrgs({organization});
   const regionData = getRegionDataFromOrganization(organization);
   const isUSStorage = regionData?.name === 'us';
-
   if (!isUSStorage) {
     return (
       <LayoutGap>
@@ -79,7 +81,17 @@ export default function TestsPage() {
         </PageFilterBar>
         {shouldDisplayTestSuiteDropdown && <TestSuiteDropdown />}
       </ControlsContainer>
-      {shouldDisplayContent ? <Content response={response} /> : <EmptySelectorsMessage />}
+      {integrations.length ? (
+        shouldDisplayContent ? (
+          <Content response={response} />
+        ) : (
+          <EmptySelectorsMessage />
+        )
+      ) : (
+        <LayoutGap>
+          <TestsPreOnboardingPage />
+        </LayoutGap>
+      )}
     </LayoutGap>
   );
 }
@@ -97,16 +109,7 @@ function Content({response}: TestResultsContentData) {
   const location = useLocation();
   const navigate = useNavigate();
   const {branch: selectedBranch} = usePreventContext();
-  const {data: repoData, isSuccess} = useRepo();
-
-  useEffect(() => {
-    if (!repoData?.testAnalyticsEnabled && isSuccess) {
-      const queryString = getPreventParamsString(location);
-      navigate(`/prevent/tests/new${queryString ? `?${queryString}` : ''}`, {
-        replace: true,
-      });
-    }
-  }, [repoData?.testAnalyticsEnabled, navigate, isSuccess, location]);
+  const {data: repoData, isPending: isRepoPending} = useRepo();
 
   const sorts: [ValidSort] = [
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
@@ -143,6 +146,11 @@ function Content({response}: TestResultsContentData) {
     },
     [navigate, response, location.query]
   );
+
+  if (!repoData?.testAnalyticsEnabled && !isRepoPending) {
+    const queryString = getPreventParamsString(location);
+    return <Redirect to={`/prevent/tests/new${queryString ? `?${queryString}` : ''}`} />;
+  }
 
   return (
     <Fragment>

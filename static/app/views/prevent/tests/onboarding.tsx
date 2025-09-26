@@ -1,5 +1,5 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
-import {useNavigate, useSearchParams} from 'react-router-dom';
+import {Fragment, useCallback, useState} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 
 import testAnalyticsTestPerfDark from 'sentry-images/features/test-analytics-test-perf-dark.svg';
@@ -15,6 +15,7 @@ import {usePreventContext} from 'sentry/components/prevent/context/preventContex
 import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSelector/integratedOrgSelector';
 import {RepoSelector} from 'sentry/components/prevent/repoSelector/repoSelector';
 import {getPreventParamsString} from 'sentry/components/prevent/utils';
+import Redirect from 'sentry/components/redirect';
 import {t, tct} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -33,7 +34,6 @@ import {OutputCoverageFileStep} from 'sentry/views/prevent/tests/onboardingSteps
 import {RunTestSuiteStep} from 'sentry/views/prevent/tests/onboardingSteps/runTestSuiteStep';
 import {UploadFileCLIStep} from 'sentry/views/prevent/tests/onboardingSteps/uploadFileCLIStep';
 import {ViewResultsInsightsStep} from 'sentry/views/prevent/tests/onboardingSteps/viewResultsInsightsStep';
-import TestPreOnboardingPage from 'sentry/views/prevent/tests/preOnboarding';
 import {useRepo} from 'sentry/views/prevent/tests/queries/useRepo';
 import {EmptySelectorsMessage} from 'sentry/views/prevent/tests/tests';
 
@@ -45,10 +45,9 @@ enum SetupOption {
 export default function TestsOnboardingPage() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const organization = useOrganization();
   const {integratedOrgId, repository} = usePreventContext();
-  const {data: repoData, isSuccess} = useRepo();
+  const {data: repoData, isSuccess: isRepoSuccess} = useRepo();
   const opt = searchParams.get('opt');
 
   const theme = useTheme();
@@ -61,14 +60,9 @@ export default function TestsOnboardingPage() {
   const [selectedUploadPermission, setSelectedUploadPermission] =
     useState<UploadPermission>(UploadPermission.OIDC);
 
-  useEffect(() => {
-    if (repoData?.testAnalyticsEnabled && isSuccess) {
-      const queryString = getPreventParamsString(location);
-      navigate(`/prevent/tests${queryString ? `?${queryString}` : ''}`, {replace: true});
-    }
-  }, [repoData?.testAnalyticsEnabled, navigate, isSuccess, location]);
-
-  const {data: integrations = [], isPending} = useApiQuery<OrganizationIntegration[]>(
+  const {data: integrations = [], isPending: isIntegrationsPending} = useApiQuery<
+    OrganizationIntegration[]
+  >(
     [
       `/organizations/${organization.slug}/integrations/`,
       {query: {includeConfig: 0, provider_key: 'github'}},
@@ -79,26 +73,21 @@ export default function TestsOnboardingPage() {
   const regionData = getRegionDataFromOrganization(organization);
   const isUSStorage = regionData?.name === 'us';
 
-  if (!isUSStorage) {
-    return (
-      <Grid gap="xl">
-        <TestPreOnboardingPage />
-      </Grid>
-    );
+  // We want to navigate to show TA if this repo should have data to show, if we need to show
+  // preOnboarding when they have no integrations, or if this org is not in the US region
+  if (
+    (repoData?.testAnalyticsEnabled && isRepoSuccess) ||
+    (!integrations.length && !isIntegrationsPending) ||
+    !isUSStorage
+  ) {
+    const queryString = getPreventParamsString(location);
+    return <Redirect to={`/prevent/tests${queryString ? `?${queryString}` : ''}`} />;
   }
 
-  if (isPending) {
+  if (isIntegrationsPending) {
     return (
       <Grid gap="xl">
         <LoadingIndicator />
-      </Grid>
-    );
-  }
-
-  if (!integrations.length) {
-    return (
-      <Grid gap="xl">
-        <TestPreOnboardingPage />
       </Grid>
     );
   }
