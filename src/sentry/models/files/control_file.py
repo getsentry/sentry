@@ -37,8 +37,14 @@ class ControlFile(AbstractFile[ControlFileBlobIndex, ControlFileBlob]):
     def _create_blob_from_file(self, contents: ContentFile, logger: Any) -> ControlFileBlob:
         return ControlFileBlob.from_file(contents, logger)
 
+    def _create_blob_from_file_optimized(self, contents: ContentFile, checksum: str, logger: Any) -> ControlFileBlob:
+        return ControlFileBlob.from_file_optimized(contents, checksum, logger)
+
     def _get_blobs_by_id(self, blob_ids: Sequence[int]) -> models.QuerySet[ControlFileBlob]:
         return ControlFileBlob.objects.filter(id__in=blob_ids).all()
 
     def _delete_unreferenced_blob_task(self) -> SentryTask:
         return delete_unreferenced_blobs_control
+
+    def _get_blob_model_class(self) -> type[ControlFileBlob]:
+        return ControlFileBlob
