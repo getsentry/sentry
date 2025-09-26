@@ -239,7 +239,9 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
     def _create_blob_from_file(self, contents: ContentFile, logger: Any) -> BlobType: ...
 
     @abc.abstractmethod
-    def _create_blob_from_file_optimized(self, contents: ContentFile, checksum: str, logger: Any) -> BlobType: ...
+    def _create_blob_from_file_optimized(
+        self, contents: ContentFile, checksum: str, logger: Any
+    ) -> BlobType: ...
 
     @abc.abstractmethod
     def _get_blobs_by_id(self, blob_ids: Sequence[int]) -> models.QuerySet[BlobType]: ...
@@ -330,16 +332,18 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
 
             # Calculate chunk checksum
             chunk_checksum = sha1(contents).hexdigest()
-            chunks_data.append({
-                'contents': contents,
-                'checksum': chunk_checksum,
-                'offset': temp_offset,
-                'size': len(contents)
-            })
+            chunks_data.append(
+                {
+                    "contents": contents,
+                    "checksum": chunk_checksum,
+                    "offset": temp_offset,
+                    "size": len(contents),
+                }
+            )
             temp_offset += len(contents)
 
         # Batch query to check which blobs already exist
-        chunk_checksums = [chunk['checksum'] for chunk in chunks_data]
+        chunk_checksums = [chunk["checksum"] for chunk in chunks_data]
         existing_blobs = {}
         if chunk_checksums:
             # Get the concrete blob model class through the abstract method
@@ -349,29 +353,32 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
 
             # Update timestamps for existing blobs that are older than 12 hours (debounced)
             from sentry.models.files.utils import HALF_DAY
+
             now = timezone.now()
             threshold = now - HALF_DAY
             old_blobs = [blob for blob in existing_blobs.values() if blob.timestamp <= threshold]
             if old_blobs:
-                blob_model.objects.filter(
-                    id__in=[blob.id for blob in old_blobs]
-                ).update(timestamp=now)
+                blob_model.objects.filter(id__in=[blob.id for blob in old_blobs]).update(
+                    timestamp=now
+                )
 
         # Second pass: create blobs and indexes, reusing existing ones
         for chunk in chunks_data:
-            if chunk['checksum'] in existing_blobs:
+            if chunk["checksum"] in existing_blobs:
                 # Reuse existing blob
-                blob = existing_blobs[chunk['checksum']]
+                blob = existing_blobs[chunk["checksum"]]
             else:
                 # Create new blob using optimized method that bypasses individual existence check
-                blob_fileobj = ContentFile(chunk['contents'])
-                blob = self._create_blob_from_file_optimized(blob_fileobj, chunk['checksum'], logger=logger)
+                blob_fileobj = ContentFile(chunk["contents"])
+                blob = self._create_blob_from_file_optimized(
+                    blob_fileobj, chunk["checksum"], logger=logger
+                )
                 # Cache the newly created blob to avoid duplicates within this file
-                existing_blobs[chunk['checksum']] = blob
+                existing_blobs[chunk["checksum"]] = blob
 
-            results.append(self._create_blob_index(blob=blob, offset=chunk['offset']))
-            offset += chunk['size']
-            checksum.update(chunk['contents'])
+            results.append(self._create_blob_index(blob=blob, offset=chunk["offset"]))
+            offset += chunk["size"]
+            checksum.update(chunk["contents"])
 
         self.size = offset
         self.checksum = checksum.hexdigest()
