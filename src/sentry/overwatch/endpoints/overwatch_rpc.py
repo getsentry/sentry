@@ -51,16 +51,15 @@ def compare_signature(request: Request, signature: str) -> bool:
         raise AuthenticationFailed("Invalid Authorization format. Expected 'rpc0:<hex>'")
 
     message = _signature_input_from_request(request)
-    expected_digests: list[str] = []
     for secret in settings.OVERWATCH_RPC_SHARED_SECRET:
         computed = hmac.new(secret.encode(), message, hashlib.sha256).hexdigest()
-        expected_digests.append(computed)
         if hmac.compare_digest(computed, signature_data):
             return True
 
-    raise AuthenticationFailed(
-        f"Signature mismatch; expected any of {expected_digests}, got {signature_data}"
-    )
+    body_len = len(message)
+    sig_len = len(signature_data)
+
+    raise AuthenticationFailed(f"Signature mismatch. body_len={body_len} sig_len={sig_len}")
 
 
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
