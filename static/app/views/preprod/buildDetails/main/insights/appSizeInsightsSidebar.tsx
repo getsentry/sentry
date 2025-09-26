@@ -8,7 +8,6 @@ import {Heading} from 'sentry/components/core/text/heading';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {AppSizeInsightsSidebarRow} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebarRow';
 import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
@@ -133,7 +132,7 @@ const ResizeHandle = styled(Flex)`
   position: absolute;
   left: 0;
   top: 0;
-  width: ${space(2)};
+  width: ${p => p.theme.space.xl};
   height: 100%;
   align-items: center;
   justify-content: center;
