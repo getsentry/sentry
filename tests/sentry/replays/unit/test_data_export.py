@@ -173,7 +173,7 @@ def test_request_retry_transfer_job():
 
 def test_export_replay_blob_data():
     jobs = []
-    export_replay_blob_data(1, "1", "test", timedelta(days=1), lambda a: jobs.append(a))
+    export_replay_blob_data(1, "1", "test", timedelta(days=1), lambda job: jobs.append(job))
 
     # Assert a job is created for each retention-period.
     assert len(jobs) == 3
