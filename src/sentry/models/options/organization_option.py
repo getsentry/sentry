@@ -36,7 +36,7 @@ class OrganizationOptionManager(OptionManager["OrganizationOption"]):
 
     def get_value(
         self,
-        organization: Organization,
+        organization: Organization | int,
         key: str,
         default: Any | None = None,
         validate: Callable[[object], bool] | None = None,

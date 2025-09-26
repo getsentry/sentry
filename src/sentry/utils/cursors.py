@@ -79,6 +79,18 @@ class StringCursor(Cursor):
             raise ValueError
 
 
+class EAPPageTokenCursor(Cursor):
+    @classmethod
+    def from_string(cls, cursor_str: str) -> Cursor:
+        bits = cursor_str.split(":")
+        if len(bits) != 3:
+            raise ValueError
+        try:
+            return Cursor(bits[0], int(bits[1]), int(bits[2]))
+        except (TypeError, ValueError):
+            raise ValueError
+
+
 class CursorResult(Sequence[T]):
     def __init__(
         self,

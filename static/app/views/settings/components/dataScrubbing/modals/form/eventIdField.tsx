@@ -22,6 +22,7 @@ function EventIdField({disabled, eventId, onUpdateEventId}: Props) {
   const {saveToSourceGroupData} = useSourceGroupData();
 
   useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setEventData(eventId);
   }, [eventId]);
 

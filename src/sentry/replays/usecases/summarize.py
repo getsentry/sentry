@@ -458,6 +458,7 @@ def _parse_url(s: str, trunc_length: int) -> str:
     return s
 
 
+@sentry_sdk.trace
 def rpc_get_replay_summary_logs(
     project_id: int, replay_id: str, num_segments: int
 ) -> dict[str, Any]:

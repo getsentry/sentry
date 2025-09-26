@@ -3493,3 +3493,23 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Skip recording onboarding tasks if organization onboarding is already complete
+register(
+    "sentry:skip-record-onboarding-tasks-if-complete",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Database field encryption method
+# Supported values:
+# - 'plaintext': No encryption (default)
+# - 'fernet': Fernet symmetric encryption
+# - 'keysets': (Future) Google Tink keysets for key rotation
+register(
+    "database.encryption.method",
+    type=String,
+    default="plaintext",
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)

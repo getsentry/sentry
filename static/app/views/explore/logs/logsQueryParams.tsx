@@ -87,6 +87,7 @@ export function getTargetWithReadableQueryParams(
   const target: Location = {...location, query: {...location.query}};
 
   updateNullableLocation(target, LOGS_MODE_KEY, writableQueryParams.mode);
+  updateNullableLocation(target, LOGS_QUERY_KEY, writableQueryParams.query);
 
   updateNullableLocation(target, LOGS_CURSOR_KEY, writableQueryParams.cursor);
   updateNullableLocation(target, LOGS_FIELDS_KEY, writableQueryParams.fields);

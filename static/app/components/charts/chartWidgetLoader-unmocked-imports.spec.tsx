@@ -96,48 +96,6 @@ jest.mock('sentry/views/insights/common/queries/useTopNDiscoverSeries', () => ({
     error: null,
   })),
 }));
-jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
-  useSpanSeries: jest.fn(() => ({
-    data: {
-      'epm()': {},
-      'count(span.duration)': mockDiscoverSeries('count(span.duration)'),
-      'avg(span.duration)': mockDiscoverSeries('avg(span.duration)'),
-      'p95(span.duration)': mockDiscoverSeries('p95(span.duration)'),
-      'trace_status_rate(internal_error)': mockDiscoverSeries(
-        'trace_status_rate(internal_error)'
-      ),
-      'cache_miss_rate()': {},
-      'http_response_rate(3)': {},
-      'http_response_rate(4)': {},
-      'http_response_rate(5)': {},
-      'avg(span.self_time)': {},
-      'avg(http.response_content_length)': {},
-      'avg(http.response_transfer_size)': {},
-      'avg(http.decoded_response_content_length)': {},
-      'avg(messaging.message.receive.latency)': {},
-      'performance_score(measurements.score.lcp)': {
-        data: [],
-      },
-      'performance_score(measurements.score.fcp)': {
-        data: [],
-      },
-      'performance_score(measurements.score.cls)': {
-        data: [],
-      },
-      'performance_score(measurements.score.inp)': {
-        data: [],
-      },
-      'performance_score(measurements.score.ttfb)': {
-        data: [],
-      },
-      'count()': {
-        data: [],
-      },
-    },
-    isPending: false,
-    error: null,
-  })),
-}));
 jest.mock('sentry/utils/timeSeries/useFetchEventsTimeSeries', () => ({
   useFetchSpanTimeSeries: jest.fn(({groupBy}: {groupBy?: string[]}) => ({
     data: {

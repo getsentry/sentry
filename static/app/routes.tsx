@@ -211,23 +211,19 @@ function buildRoutes(): RouteObject[] {
       path: '/unsubscribe/project/:id/',
       component: make(() => import('sentry/views/unsubscribe/project')),
       customerDomainOnlyRoute: true,
-      deprecatedRouteProps: true,
     },
     {
       path: '/unsubscribe/:orgId/project/:id/',
       component: make(() => import('sentry/views/unsubscribe/project')),
-      deprecatedRouteProps: true,
     },
     {
       path: '/unsubscribe/issue/:id/',
       component: make(() => import('sentry/views/unsubscribe/issue')),
       customerDomainOnlyRoute: true,
-      deprecatedRouteProps: true,
     },
     {
       path: '/unsubscribe/:orgId/issue/:id/',
       component: make(() => import('sentry/views/unsubscribe/issue')),
-      deprecatedRouteProps: true,
     },
     {
       path: '/organizations/new/',
