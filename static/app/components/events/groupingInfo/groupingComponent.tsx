@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {EventGroupComponent} from 'sentry/types/event';
 
 import GroupingComponentChildren from './groupingComponentChildren';
@@ -58,7 +59,7 @@ function GroupingComponent({component, showNonContributing}: Props) {
   );
 }
 
-const CHEVRON_COL = '12px'; // narrower chevron column
+const CHEVRON_COL = space(1.5);
 
 const CollapseButtonWrapper = styled('div')`
   display: grid;
