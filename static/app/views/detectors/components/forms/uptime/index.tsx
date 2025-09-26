@@ -11,11 +11,15 @@ import {
   uptimeFormDataToEndpointPayload,
   uptimeSavedDetectorToFormData,
 } from 'sentry/views/detectors/components/forms/uptime/fields';
+import {UptimeRegionWarning} from 'sentry/views/detectors/components/forms/uptime/regionWarning';
+import {UptimeDetectorResolveSection} from 'sentry/views/detectors/components/forms/uptime/resolve';
 
 function UptimeDetectorForm() {
   return (
     <FormStack>
+      <UptimeRegionWarning />
       <UptimeDetectorFormDetectSection />
+      <UptimeDetectorResolveSection />
       <AssignSection />
       <AutomateSection />
     </FormStack>
@@ -27,7 +31,7 @@ export function NewUptimeDetectorForm() {
     <NewDetectorLayout
       detectorType="uptime_domain_failure"
       formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
-      initialFormData={{}}
+      initialFormData={{name: 'New Monitor'}}
     >
       <UptimeDetectorForm />
     </NewDetectorLayout>
