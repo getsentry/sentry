@@ -311,15 +311,19 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
             return self._putfile_optimized(fileobj, blob_size, commit, logger)
         except Exception as e:
             # Fallback to original implementation if optimized version fails
-            logger.warning("Optimized putfile failed, falling back to original implementation",
-                         extra={'error': str(e)})
+            logger.warning(
+                "Optimized putfile failed, falling back to original implementation",
+                extra={"error": str(e)},
+            )
             metrics.incr("filestore.putfile_fallback", sample_rate=1.0)
             # Reset file position
             fileobj.seek(0)
             return self._putfile_original(fileobj, blob_size, commit, logger)
 
     @sentry_sdk.tracing.trace
-    def _putfile_original(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True, logger=nooplogger):
+    def _putfile_original(
+        self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True, logger=nooplogger
+    ):
         """
         Original implementation of putfile - kept as fallback.
         """
@@ -345,14 +349,17 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
         return results
 
     @sentry_sdk.tracing.trace
-    def _putfile_optimized(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True, logger=nooplogger):
+    def _putfile_optimized(
+        self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True, logger=nooplogger
+    ):
         """
         Optimized version of putfile that batches database operations to avoid N+1 queries.
         """
         from django.core.files.base import ContentFile
-        from django.db import transaction, router, IntegrityError
+        from django.db import IntegrityError, router, transaction
         from django.utils import timezone
-        from sentry.models.files.utils import get_storage, HALF_DAY
+
+        from sentry.models.files.utils import HALF_DAY, get_storage
 
         # First pass: collect all chunks and their checksums
         chunks_data = []
@@ -369,12 +376,14 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
             chunk_checksum = sha1(contents).hexdigest()
             chunk_size = len(contents)
 
-            chunks_data.append({
-                'contents': contents,
-                'checksum': chunk_checksum,
-                'size': chunk_size,
-                'offset': offset
-            })
+            chunks_data.append(
+                {
+                    "contents": contents,
+                    "checksum": chunk_checksum,
+                    "size": chunk_size,
+                    "offset": offset,
+                }
+            )
             offset += chunk_size
 
         if not chunks_data:
@@ -385,16 +394,16 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
             return []
 
         # Batch check for existing blobs by checksum
-        checksums = [chunk['checksum'] for chunk in chunks_data]
+        checksums = [chunk["checksum"] for chunk in chunks_data]
 
         # Get blob model class from concrete subclass
         # Use the first chunk to determine the blob model class
         if chunks_data:
-            temp_content = ContentFile(chunks_data[0]['contents'])
+            temp_content = ContentFile(chunks_data[0]["contents"])
             temp_blob = self._create_blob_from_file(temp_content, logger)
             blob_model_class = temp_blob.__class__
             # We'll reuse this blob if it matches our first chunk's checksum
-            if temp_blob.checksum == chunks_data[0]['checksum']:
+            if temp_blob.checksum == chunks_data[0]["checksum"]:
                 initial_blobs = {temp_blob.checksum: temp_blob}
             else:
                 initial_blobs = {}
@@ -408,10 +417,12 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
 
         # Batch query for existing blobs and merge with any temp blob we created
         existing_blobs = initial_blobs.copy()
-        existing_blobs.update({
-            blob.checksum: blob
-            for blob in blob_model_class.objects.filter(checksum__in=checksums)
-        })
+        existing_blobs.update(
+            {
+                blob.checksum: blob
+                for blob in blob_model_class.objects.filter(checksum__in=checksums)
+            }
+        )
 
         # Prepare blobs to create and blob indexes to create
         blobs_to_create = []
@@ -426,7 +437,7 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
 
             # Process each chunk
             for chunk_data in chunks_data:
-                chunk_checksum = chunk_data['checksum']
+                chunk_checksum = chunk_data["checksum"]
 
                 if chunk_checksum in existing_blobs:
                     # Blob already exists, reuse it
@@ -434,27 +445,21 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
                     # Update timestamp if needed (debounced)
                     if blob.timestamp <= threshold:
                         blob.timestamp = now
-                        blob.save(update_fields=['timestamp'])
+                        blob.save(update_fields=["timestamp"])
                 else:
                     # Create new blob
-                    blob = blob_model_class(
-                        size=chunk_data['size'],
-                        checksum=chunk_checksum
-                    )
+                    blob = blob_model_class(size=chunk_data["size"], checksum=chunk_checksum)
                     blob.path = blob_model_class.generate_unique_path()
 
                     # Save blob content to storage
-                    blob_fileobj = ContentFile(chunk_data['contents'])
+                    blob_fileobj = ContentFile(chunk_data["contents"])
                     storage.save(blob.path, blob_fileobj)
 
                     blobs_to_create.append(blob)
                     existing_blobs[chunk_checksum] = blob  # Add to cache for subsequent chunks
 
                 # Prepare blob index for batch creation
-                blob_indexes_to_create.append({
-                    'blob': blob,
-                    'offset': chunk_data['offset']
-                })
+                blob_indexes_to_create.append({"blob": blob, "offset": chunk_data["offset"]})
 
             # Batch create all new blobs
             if blobs_to_create:
@@ -462,8 +467,10 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
                     blob_model_class.objects.bulk_create(blobs_to_create)
                 except IntegrityError as e:
                     # Handle potential race conditions where blobs were created concurrently
-                    logger.warning("Blob bulk_create failed, falling back to individual creates",
-                                 extra={'error': str(e)})
+                    logger.warning(
+                        "Blob bulk_create failed, falling back to individual creates",
+                        extra={"error": str(e)},
+                    )
                     for blob in blobs_to_create:
                         try:
                             blob.save()
@@ -473,8 +480,8 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
                             existing_blob = blob_model_class.objects.get(checksum=blob.checksum)
                             # Update our reference
                             for idx_data in blob_indexes_to_create:
-                                if idx_data['blob'] is blob:
-                                    idx_data['blob'] = existing_blob
+                                if idx_data["blob"] is blob:
+                                    idx_data["blob"] = existing_blob
                             # Clean up storage for the blob we didn't need
                             try:
                                 storage.delete(blob.path)
@@ -484,11 +491,16 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
             # Create all blob indexes (still individual INSERTs but within transaction)
             for idx_data in blob_indexes_to_create:
                 try:
-                    index_obj = self._create_blob_index(blob=idx_data['blob'], offset=idx_data['offset'])
+                    index_obj = self._create_blob_index(
+                        blob=idx_data["blob"], offset=idx_data["offset"]
+                    )
                     results.append(index_obj)
                 except IntegrityError:
                     # This shouldn't happen but handle gracefully
-                    logger.warning("FileBlobIndex creation failed", extra={'blob_id': idx_data['blob'].id, 'offset': idx_data['offset']})
+                    logger.warning(
+                        "FileBlobIndex creation failed",
+                        extra={"blob_id": idx_data["blob"].id, "offset": idx_data["offset"]},
+                    )
                     raise
 
         self.size = offset
