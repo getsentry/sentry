@@ -5,7 +5,6 @@ import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
-import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {t} from 'sentry/locale';
 
