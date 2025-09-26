@@ -407,7 +407,6 @@ function SpanTabContentSection({
   const [tab, setTab] = useTab();
 
   const query = useExploreQuery();
-
   const queryType: 'aggregate' | 'samples' | 'traces' =
     tab === Mode.AGGREGATE ? 'aggregate' : tab === Tab.TRACE ? 'traces' : 'samples';
 

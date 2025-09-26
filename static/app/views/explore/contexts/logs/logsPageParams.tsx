@@ -306,26 +306,6 @@ export function usePersistedLogsPageParams() {
   );
 }
 
-export function useLogsId() {
-  const {id} = useLogsPageParams();
-  return id;
-}
-
-export function useLogsTitle() {
-  const {title} = useLogsPageParams();
-  return title;
-}
-
-export function useSetLogsSavedQueryInfo() {
-  const setPageParams = useSetLogsPageParams();
-  return useCallback(
-    (id: string, title: string) => {
-      setPageParams({id, title});
-    },
-    [setPageParams]
-  );
-}
-
 export function useLogsAnalyticsPageSource() {
   const {analyticsPageSource} = useLogsPageParams();
   return analyticsPageSource;
