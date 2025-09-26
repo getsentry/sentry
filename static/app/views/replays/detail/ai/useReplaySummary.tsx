@@ -150,11 +150,7 @@ export function useReplaySummary(
     startPollingTimeout();
   }, [options?.enabled, startSummaryRequestMutate, startPollingTimeout]);
 
-  const {
-    data: summaryData,
-    isPending,
-    dataUpdatedAt,
-  } = useApiQuery<SummaryResponse>(
+  const {data: summaryData, dataUpdatedAt: lastFetchTime} = useApiQuery<SummaryResponse>(
     createAISummaryQueryKey(organization.slug, project?.slug, replayRecord?.id ?? ''),
     {
       staleTime: 0,
@@ -188,12 +184,12 @@ export function useReplaySummary(
   }, [segmentsIncreased, startSummaryRequest, summaryData?.status]);
 
   const isPendingRet =
-    dataUpdatedAt < startSummaryRequestTime.current ||
+    lastFetchTime < startSummaryRequestTime.current ||
     isStartSummaryRequestPending ||
-    isPending ||
-    summaryData === undefined ||
-    summaryData?.status === ReplaySummaryStatus.NOT_STARTED ||
-    summaryData?.status === ReplaySummaryStatus.PROCESSING;
+    !summaryData ||
+    ![ReplaySummaryStatus.COMPLETED, ReplaySummaryStatus.ERROR].includes(
+      summaryData.status
+    );
 
   // Clears the polling timeout when we get valid summary results.
   useEffect(() => {
