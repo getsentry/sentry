@@ -115,18 +115,6 @@ export function SizeCompareSelectionContent({
         headBuildDetails={headBuildDetails}
         baseBuildDetails={selectedBaseBuild}
         onClearBaseBuild={() => setSelectedBaseBuild(undefined)}
-        onHeadBuildClick={() => {
-          navigate(
-            `/organizations/${organization.slug}/preprod/${headBuildDetails.project_id}/${headBuildDetails.id}/`
-          );
-        }}
-        onBaseBuildClick={() => {
-          if (selectedBaseBuild) {
-            navigate(
-              `/organizations/${organization.slug}/preprod/${selectedBaseBuild.project_id}/${selectedBaseBuild.id}/`
-            );
-          }
-        }}
         onTriggerComparison={() => {
           if (!selectedBaseBuild) {
             addErrorMessage(t('Please select a base build to compare.'));

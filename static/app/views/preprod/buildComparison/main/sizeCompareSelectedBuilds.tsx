@@ -1,27 +1,33 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Text} from 'sentry/components/core/text';
 import {IconClose, IconCommit, IconFocus, IconLock, IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 interface BuildButtonProps {
   buildDetails: BuildDetailsApiResponse;
   icon: React.ReactNode;
   label: string;
-  onClick?: () => void;
   onRemove?: () => void;
 }
 
-function BuildButton({buildDetails, icon, label, onClick, onRemove}: BuildButtonProps) {
+function BuildButton({buildDetails, icon, label, onRemove}: BuildButtonProps) {
+  const organization = useOrganization();
+  const {projectId} = useParams<{projectId: string}>();
   const sha = buildDetails.vcs_info?.head_sha?.substring(0, 7);
   const branchName = buildDetails.vcs_info?.head_ref;
   const buildId = buildDetails.id;
 
+  const buildUrl = `/organizations/${organization.slug}/preprod/${projectId}/${buildId}/`;
+
   return (
-    <Button onClick={onClick}>
+    <LinkButton to={buildUrl}>
       <Flex align="center" gap="sm">
         {icon}
         <Text size="sm" variant="accent" bold>
@@ -48,6 +54,7 @@ function BuildButton({buildDetails, icon, label, onClick, onRemove}: BuildButton
         {onRemove && (
           <Button
             onClick={e => {
+              e.preventDefault();
               e.stopPropagation();
               onRemove();
             }}
@@ -59,7 +66,7 @@ function BuildButton({buildDetails, icon, label, onClick, onRemove}: BuildButton
           />
         )}
       </Flex>
-    </Button>
+    </LinkButton>
   );
 }
 
@@ -68,8 +75,6 @@ interface SizeCompareSelectedBuildsProps {
   isComparing: boolean;
   onClearBaseBuild: () => void;
   baseBuildDetails?: BuildDetailsApiResponse;
-  onBaseBuildClick?: () => void;
-  onHeadBuildClick?: () => void;
   onTriggerComparison?: () => void;
 }
 
@@ -77,9 +82,7 @@ export function SizeCompareSelectedBuilds({
   headBuildDetails,
   baseBuildDetails,
   isComparing,
-  onBaseBuildClick,
   onClearBaseBuild,
-  onHeadBuildClick,
   onTriggerComparison,
 }: SizeCompareSelectedBuildsProps) {
   return (
@@ -88,7 +91,6 @@ export function SizeCompareSelectedBuilds({
         buildDetails={headBuildDetails}
         icon={<IconLock size="xs" locked />}
         label={t('Head')}
-        onClick={onHeadBuildClick}
       />
 
       <Text>{t('vs')}</Text>
@@ -99,7 +101,6 @@ export function SizeCompareSelectedBuilds({
             buildDetails={baseBuildDetails}
             icon={<IconFocus size="xs" color="purple400" />}
             label={t('Base')}
-            onClick={onBaseBuildClick}
             onRemove={onClearBaseBuild}
           />
         ) : (
