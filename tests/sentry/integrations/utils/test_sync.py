@@ -10,6 +10,7 @@ from sentry.integrations.utils.sync import (
 )
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
 from sentry.users.models import User, UserEmail
@@ -225,12 +226,29 @@ class TestSyncAssigneeInbound(TestCase):
 
 @region_silo_test
 class TestSyncAssigneeInboundByExternalActor(TestCase):
+
+    @pytest.fixture(autouse=True)
+    def mock_where_should_sync(self):
+        with mock.patch(
+            "sentry.integrations.utils.sync.where_should_sync"
+        ) as mock_where_should_sync:
+            mock_where_should_sync.return_value = [self.organization]
+            yield mock_where_should_sync
+
     def setUp(self) -> None:
         self.example_integration = self.create_integration(
             organization=self.group.organization,
             external_id="123456",
             provider="github",
-            oi_params={"config": {"sync_reverse_assignment": True}},
+            oi_params={
+                "config": {
+                    "sync_comments": True,
+                    "sync_status_outbound": True,
+                    "sync_status_inbound": True,
+                    "sync_assignee_outbound": True,
+                    "sync_assignee_inbound": True,
+                }
+            },
         )
         self.test_user = self.create_user("test@example.com")
         self.create_member(organization=self.organization, user=self.test_user, teams=[self.team])
@@ -291,7 +309,10 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
         mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_assignment_with_external_actor(self, mock_record_event: mock.MagicMock) -> None:
+    def test_assignment_with_external_actor(
+        self,
+        mock_record_event: mock.MagicMock,
+    ) -> None:
         """Test assigning a group to a user via external actor."""
         assert self.group.get_assignee() is None
 
@@ -322,11 +343,15 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
         assert updated_assignee.email == "test@example.com"
         mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
 
+    @mock.patch("sentry.integrations.utils.sync.where_should_sync")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_assign_with_multiple_groups(self, mock_record_event: mock.MagicMock) -> None:
+    def test_assign_with_multiple_groups(
+        self, mock_record_event: mock.MagicMock, mock_where_should_sync: mock.MagicMock
+    ) -> None:
         """Test assigning multiple groups via external actor."""
         # Create a couple new test unassigned test groups
         groups_to_assign: list[Group] = []
+        orgs_to_assign: list[Organization] = []
         for _ in range(2):
             org = self.create_organization(owner=self.create_user())
             team = self.create_team(organization=org)
@@ -341,6 +366,9 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
             groups_to_assign.append(
                 self.create_group(project=project),
             )
+            orgs_to_assign.append(org)
+
+        mock_where_should_sync.return_value = orgs_to_assign
 
         external_issue_key = "JIRA-456"
         for group in groups_to_assign:
@@ -451,7 +479,9 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
     @mock.patch("sentry.models.groupassignee.GroupAssigneeManager.assign")
     def test_assignment_fails(
-        self, mock_group_assign: mock.MagicMock, mock_record_failure: mock.MagicMock
+        self,
+        mock_group_assign: mock.MagicMock,
+        mock_record_failure: mock.MagicMock,
     ) -> None:
         """Test handling when assignment operation fails."""
 
@@ -538,9 +568,10 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
         assert updated_assignee.id in [self.test_user.id, another_user.id]
         mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
 
+    @mock.patch("sentry.integrations.utils.sync.where_should_sync")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_same_external_name_different_users_across_orgs(
-        self, mock_record_event: mock.MagicMock
+        self, mock_record_event: mock.MagicMock, mock_where_should_sync: mock.MagicMock
     ) -> None:
         """Test when the same external_user_name maps to different users in different orgs.
 
@@ -550,6 +581,8 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
         # Create two different organizations
         # org1 is self.organization (already exists)
         org2 = self.create_organization(owner=self.create_user())
+
+        mock_where_should_sync.return_value = [self.organization, org2]
 
         # Create two different users
         user1 = self.test_user  # Already exists in org1
