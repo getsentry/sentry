@@ -1,10 +1,11 @@
-import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Radio} from 'sentry/components/core/radio';
-import {t} from 'sentry/locale';
+import {Text} from 'sentry/components/core/text';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -26,6 +27,14 @@ export function DetectorTypeForm() {
   );
 }
 
+interface DetectorTypeOption {
+  id: DetectorType;
+  name: string;
+  description: string;
+  visualization: React.ReactNode;
+  infoBanner?: React.ReactNode;
+}
+
 function MonitorTypeField() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -41,55 +50,56 @@ function MonitorTypeField() {
     });
   };
 
-  const options = [
-    [
-      'metric_issue',
-      getDetectorTypeLabel('metric_issue'),
-      <Description
-        key="description"
-        text={t('Monitor error counts, transaction duration, and more!')}
-        visualization={<MetricVisualization />}
-      />,
-      undefined,
-    ],
-    [
-      'monitor_check_in_failure',
-      getDetectorTypeLabel('monitor_check_in_failure'),
-      <Description
-        key="description"
-        text={t('Monitor the uptime and performance of any scheduled, recurring jobs.')}
-        visualization={<CronsVisualization />}
-      />,
-      <AttachedExampleAlert key="attached" />,
-    ],
-    [
-      'uptime_domain_failure',
-      getDetectorTypeLabel('uptime_domain_failure'),
-      <Description
-        key="description"
-        text={t('Monitor the uptime of specific endpoint in your applications.')}
-        visualization={<UptimeVisualization />}
-      />,
-      undefined,
-    ],
-  ] satisfies Array<[DetectorType, string, React.ReactNode, React.ReactNode | undefined]>;
+  const options: DetectorTypeOption[] = [
+    {
+      id: 'metric_issue',
+      name: getDetectorTypeLabel('metric_issue'),
+      description: t('Monitor error counts, transaction duration, and more!'),
+      visualization: <MetricVisualization />,
+    },
+    {
+      id: 'monitor_check_in_failure',
+      name: getDetectorTypeLabel('monitor_check_in_failure'),
+      description: t(
+        'Monitor the uptime and performance of any scheduled, recurring jobs.'
+      ),
+      visualization: <CronsVisualization />,
+    },
+    {
+      id: 'uptime_domain_failure',
+      name: getDetectorTypeLabel('uptime_domain_failure'),
+      description: t('Monitor the uptime of specific endpoint in your applications.'),
+      visualization: <UptimeVisualization />,
+      infoBanner: tct(
+        'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/organization/data-storage-location/#data-stored-in-us" />
+          ),
+        }
+      ),
+    },
+  ];
 
   return (
     <RadioOptions role="radiogroup" aria-label={t('Monitor type')}>
-      {options.map(([id, name, description, attached]) => {
+      {options.map(({id, name, description, visualization, infoBanner}) => {
         const checked = selectedDetectorType === id;
         return (
           <OptionLabel key={id} role="radio" aria-checked={checked}>
             <OptionBody>
-              <Radio
-                name="detectorType"
-                checked={checked}
-                onChange={() => handleChange(id)}
-              />
-              <OptionText>{name}</OptionText>
-              {description && <OptionDescription>{description}</OptionDescription>}
+              <Flex direction="column" gap="sm">
+                <Radio
+                  name="detectorType"
+                  checked={checked}
+                  onChange={() => handleChange(id)}
+                />
+                <Text bold>{name}</Text>
+                {description && <Text size="sm">{description}</Text>}
+              </Flex>
+              {visualization && <Visualization>{visualization}</Visualization>}
             </OptionBody>
-            {attached && checked && <AttachedArea>{attached}</AttachedArea>}
+            {infoBanner && checked && <OptionInfo>{infoBanner}</OptionInfo>}
           </OptionLabel>
         );
       })}
@@ -101,6 +111,7 @@ const FormContainer = styled('div')`
   display: flex;
   flex-direction: column;
   max-width: ${p => p.theme.breakpoints.xl};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const RadioOptions = styled('div')`
@@ -116,7 +127,9 @@ const OptionLabel = styled('label')`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
   background-color: ${p => p.theme.surface400};
+  font-weight: ${p => p.theme.fontWeight.normal};
   cursor: pointer;
+  overflow: hidden;
 
   input[type='radio'] {
     clip: rect(0 0 0 0);
@@ -135,40 +148,18 @@ const OptionLabel = styled('label')`
 `;
 
 const OptionBody = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: ${space(1)};
-  padding: ${space(3)} ${space(2)};
-`;
-
-const OptionText = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const OptionDescription = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
-  line-height: 1.4em;
   display: flex;
+  justify-content: space-between;
+  padding: ${p => p.theme.space.xl};
   align-items: center;
-  gap: ${space(2)};
-
-  > span:first-of-type {
-    flex: 1 1 50%;
-  }
 `;
 
-const AttachedArea = styled('div')`
-  grid-column: 1 / -1;
+const OptionInfo = styled('div')`
+  border-top: 1px solid ${p => p.theme.border};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+  background-color: ${p => p.theme.backgroundSecondary};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
-
-function AttachedExampleAlert() {
-  return (
-    <Alert type="info">
-      {t('Heads up! This monitor type requires check-ins to be sent on schedule.')}
-    </Alert>
-  );
-}
 
 const Header = styled('div')`
   display: flex;
@@ -185,21 +176,6 @@ const Header = styled('div')`
     margin: 0;
   }
 `;
-
-function Description({
-  text,
-  visualization,
-}: {
-  text: string;
-  visualization: React.ReactNode;
-}) {
-  return (
-    <Fragment>
-      <span>{text}</span>
-      <Visualization>{visualization}</Visualization>
-    </Fragment>
-  );
-}
 
 const Visualization = styled('div')`
   display: none;
