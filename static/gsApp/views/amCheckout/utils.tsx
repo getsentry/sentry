@@ -400,6 +400,7 @@ function recordAnalytics(
   isMigratingPartnerAccount: boolean
 ) {
   trackMarketingEvent('Upgrade', {plan: data.plan});
+  const isNewCheckout = hasNewCheckout(organization);
 
   const currentData: CheckoutData = {
     plan: data.plan,
@@ -445,12 +446,14 @@ function recordAnalytics(
     subscription,
     ...previousData,
     ...currentData,
+    isNewCheckout,
   });
 
   trackGetsentryAnalytics('checkout.product_select', {
     organization,
     subscription,
     ...selectableProductData,
+    isNewCheckout,
   });
 
   let {onDemandBudget} = data;
@@ -488,6 +491,7 @@ function recordAnalytics(
       applyNow: data.applyNow ?? false,
       daysLeft: moment(subscription.contractPeriodEnd).diff(moment(), 'days'),
       partner: subscription.partner?.partnership.id,
+      isNewCheckout,
     });
   }
 }
@@ -867,12 +871,12 @@ export function getToggleTier(checkoutTier: PlanTier | undefined) {
   return SUPPORTED_TIERS[tierIndex + 1];
 }
 
-export function getContentForPlan(plan: Plan): PlanContent {
+export function getContentForPlan(plan: Plan, isNewCheckout?: boolean): PlanContent {
   if (isBizPlanFamily(plan)) {
     return {
-      description: t(
-        'Everything in the Team plan + deeper insight into your application health.'
-      ),
+      description: isNewCheckout
+        ? t('For teams that need more powerful debugging')
+        : t('Everything in the Team plan + deeper insight into your application health.'),
       features: {
         discover: t('Advanced analytics with Discover'),
         enhanced_priority_alerts: t('Enhanced issue priority and alerting'),
@@ -889,7 +893,9 @@ export function getContentForPlan(plan: Plan): PlanContent {
 
   if (isTeamPlanFamily(plan)) {
     return {
-      description: t('Resolve errors and track application performance as a team.'),
+      description: isNewCheckout
+        ? t('Everything to monitor your application as it scales')
+        : t('Resolve errors and track application performance as a team.'),
       features: {
         unlimited_members: t('Unlimited members'),
         integrations: t('Third-party integrations'),

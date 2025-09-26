@@ -1,12 +1,12 @@
 ---
-created: '2025-04-25T21:21:47.907164+00:00'
+created: '2025-09-24T20:27:05.489841+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "228c649a3aa0901622c0a0e66ab0522c"
   contributing component: exception
-  component:
+  root_component:
     app*
       exception*
         stacktrace*
@@ -163,7 +163,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "SentryTest2.Controllers.ValuesController"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "valuescontroller.cs"
             function*
               "Get"
@@ -175,15 +175,15 @@ app:
 default:
   hash: null
   contributing component: null
-  component:
-    default (exception of app/system takes precedence)
-      message (exception of app/system takes precedence)
+  root_component:
+    default (ignored because app/system exception takes precedence)
+      message (ignored because app/system exception takes precedence)
         "An unhandled exception has occurred while executing the request."
 --------------------------------------------------------------------------
 system:
   hash: "4ccd0f1953483581ba360c7518f90332"
   contributing component: exception
-  component:
+  root_component:
     system*
       exception*
         stacktrace*
@@ -340,7 +340,7 @@ system:
           frame*
             module*
               "SentryTest2.Controllers.ValuesController"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "valuescontroller.cs"
             function*
               "Get"

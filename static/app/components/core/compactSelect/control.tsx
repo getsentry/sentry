@@ -645,6 +645,8 @@ const MenuTitle = styled('span')`
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
+  display: flex;
+  align-items: center;
   && {
     margin: 0;
   }

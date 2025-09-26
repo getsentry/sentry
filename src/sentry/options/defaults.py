@@ -3476,7 +3476,7 @@ register(
     "commit.dual-write-start-date",
     type=String,
     default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Killswitch for linking identities for demo users
@@ -3489,6 +3489,14 @@ register(
 
 register(
     "sentry.send_onboarding_task_metrics",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Skip recording onboarding tasks if organization onboarding is already complete
+register(
+    "sentry:skip-record-onboarding-tasks-if-complete",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
