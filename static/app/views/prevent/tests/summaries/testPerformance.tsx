@@ -95,7 +95,7 @@ function TestPerformanceBody({
       <SummaryCard
         label={t('Flaky Tests')}
         tooltip={<FlakyTestsTooltip />}
-        value={flakyTests}
+        value={flakyTests?.toLocaleString()}
         filterBy="flakyTests"
         extra={
           flakyTestsChange ? (
