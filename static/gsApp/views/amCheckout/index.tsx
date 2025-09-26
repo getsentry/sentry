@@ -235,10 +235,6 @@ class AMCheckout extends Component<Props, State> {
     }
   }
 
-  componentWillUnmount() {
-    Sentry.getReplay()?.stop();
-  }
-
   readonly initialStep: number;
 
   get referrer(): string | undefined {
