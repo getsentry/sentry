@@ -307,6 +307,22 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
 
         >>> indexes = file.putfile(fileobj)
         """
+        try:
+            return self._putfile_optimized(fileobj, blob_size, commit, logger)
+        except Exception as e:
+            # Fallback to original implementation if optimized version fails
+            logger.warning("Optimized putfile failed, falling back to original implementation",
+                         extra={'error': str(e)})
+            metrics.incr("filestore.putfile_fallback", sample_rate=1.0)
+            # Reset file position
+            fileobj.seek(0)
+            return self._putfile_original(fileobj, blob_size, commit, logger)
+
+    @sentry_sdk.tracing.trace
+    def _putfile_original(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True, logger=nooplogger):
+        """
+        Original implementation of putfile - kept as fallback.
+        """
         results = []
         offset = 0
         checksum = sha1(b"")
@@ -323,6 +339,160 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
             offset += blob.size
         self.size = offset
         self.checksum = checksum.hexdigest()
+        metrics.distribution("filestore.file-size", offset, unit="byte")
+        if commit:
+            self.save()
+        return results
+
+    @sentry_sdk.tracing.trace
+    def _putfile_optimized(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True, logger=nooplogger):
+        """
+        Optimized version of putfile that batches database operations to avoid N+1 queries.
+        """
+        from django.core.files.base import ContentFile
+        from django.db import transaction, router, IntegrityError
+        from django.utils import timezone
+        from sentry.models.files.utils import get_storage, HALF_DAY
+
+        # First pass: collect all chunks and their checksums
+        chunks_data = []
+        offset = 0
+        file_checksum = sha1(b"")
+
+        while True:
+            contents = fileobj.read(blob_size)
+            if not contents:
+                break
+            file_checksum.update(contents)
+
+            # Calculate chunk checksum and size
+            chunk_checksum = sha1(contents).hexdigest()
+            chunk_size = len(contents)
+
+            chunks_data.append({
+                'contents': contents,
+                'checksum': chunk_checksum,
+                'size': chunk_size,
+                'offset': offset
+            })
+            offset += chunk_size
+
+        if not chunks_data:
+            self.size = 0
+            self.checksum = file_checksum.hexdigest()
+            if commit:
+                self.save()
+            return []
+
+        # Batch check for existing blobs by checksum
+        checksums = [chunk['checksum'] for chunk in chunks_data]
+
+        # Get blob model class from concrete subclass
+        # Use the first chunk to determine the blob model class
+        if chunks_data:
+            temp_content = ContentFile(chunks_data[0]['contents'])
+            temp_blob = self._create_blob_from_file(temp_content, logger)
+            blob_model_class = temp_blob.__class__
+            # We'll reuse this blob if it matches our first chunk's checksum
+            if temp_blob.checksum == chunks_data[0]['checksum']:
+                initial_blobs = {temp_blob.checksum: temp_blob}
+            else:
+                initial_blobs = {}
+                # Delete the temp blob since we don't need it
+                try:
+                    temp_blob.delete()
+                except Exception:
+                    pass
+        else:
+            return []
+
+        # Batch query for existing blobs and merge with any temp blob we created
+        existing_blobs = initial_blobs.copy()
+        existing_blobs.update({
+            blob.checksum: blob
+            for blob in blob_model_class.objects.filter(checksum__in=checksums)
+        })
+
+        # Prepare blobs to create and blob indexes to create
+        blobs_to_create = []
+        blob_indexes_to_create = []
+        results = []
+
+        # Use atomic transaction for all database operations
+        with transaction.atomic(using=router.db_for_write(blob_model_class)):
+            storage = get_storage(blob_model_class._storage_config())
+            now = timezone.now()
+            threshold = now - HALF_DAY
+
+            # Process each chunk
+            for chunk_data in chunks_data:
+                chunk_checksum = chunk_data['checksum']
+
+                if chunk_checksum in existing_blobs:
+                    # Blob already exists, reuse it
+                    blob = existing_blobs[chunk_checksum]
+                    # Update timestamp if needed (debounced)
+                    if blob.timestamp <= threshold:
+                        blob.timestamp = now
+                        blob.save(update_fields=['timestamp'])
+                else:
+                    # Create new blob
+                    blob = blob_model_class(
+                        size=chunk_data['size'],
+                        checksum=chunk_checksum
+                    )
+                    blob.path = blob_model_class.generate_unique_path()
+
+                    # Save blob content to storage
+                    blob_fileobj = ContentFile(chunk_data['contents'])
+                    storage.save(blob.path, blob_fileobj)
+
+                    blobs_to_create.append(blob)
+                    existing_blobs[chunk_checksum] = blob  # Add to cache for subsequent chunks
+
+                # Prepare blob index for batch creation
+                blob_indexes_to_create.append({
+                    'blob': blob,
+                    'offset': chunk_data['offset']
+                })
+
+            # Batch create all new blobs
+            if blobs_to_create:
+                try:
+                    blob_model_class.objects.bulk_create(blobs_to_create)
+                except IntegrityError as e:
+                    # Handle potential race conditions where blobs were created concurrently
+                    logger.warning("Blob bulk_create failed, falling back to individual creates",
+                                 extra={'error': str(e)})
+                    for blob in blobs_to_create:
+                        try:
+                            blob.save()
+                        except IntegrityError:
+                            # Blob might have been created by another process, fetch it
+                            metrics.incr("filestore.upload_race", sample_rate=1.0)
+                            existing_blob = blob_model_class.objects.get(checksum=blob.checksum)
+                            # Update our reference
+                            for idx_data in blob_indexes_to_create:
+                                if idx_data['blob'] is blob:
+                                    idx_data['blob'] = existing_blob
+                            # Clean up storage for the blob we didn't need
+                            try:
+                                storage.delete(blob.path)
+                            except Exception:
+                                pass
+
+            # Create all blob indexes (still individual INSERTs but within transaction)
+            for idx_data in blob_indexes_to_create:
+                try:
+                    index_obj = self._create_blob_index(blob=idx_data['blob'], offset=idx_data['offset'])
+                    results.append(index_obj)
+                except IntegrityError:
+                    # This shouldn't happen but handle gracefully
+                    logger.warning("FileBlobIndex creation failed", extra={'blob_id': idx_data['blob'].id, 'offset': idx_data['offset']})
+                    raise
+
+        self.size = offset
+        self.checksum = file_checksum.hexdigest()
         metrics.distribution("filestore.file-size", offset, unit="byte")
         if commit:
             self.save()
