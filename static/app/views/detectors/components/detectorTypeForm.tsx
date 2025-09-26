@@ -28,9 +28,9 @@ export function DetectorTypeForm() {
 }
 
 interface DetectorTypeOption {
+  description: string;
   id: DetectorType;
   name: string;
-  description: string;
   visualization: React.ReactNode;
   infoBanner?: React.ReactNode;
 }
