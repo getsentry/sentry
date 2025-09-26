@@ -34,7 +34,8 @@ class BoundedPositiveIntegerField(models.PositiveIntegerField):
     def get_prep_value(self, value: int) -> int:
         if value:
             value = int(value)
-            assert value <= self.MAX_VALUE
+            # Cap the value to prevent PostgreSQL integer overflow
+            value = min(value, self.MAX_VALUE)
         return super().get_prep_value(value)
 
 

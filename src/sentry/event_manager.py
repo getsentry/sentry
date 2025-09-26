@@ -1604,7 +1604,14 @@ def _get_error_weighted_times_seen(event: BaseEvent) -> int:
     if event.get_event_type() in ("error", "default"):
         error_sample_rate = event.data.get("sample_rate")
         if error_sample_rate is not None and error_sample_rate > 0:
-            return int(1 / error_sample_rate)
+            from sentry.db.models.fields.bounded import I32_MAX
+            
+            # Cap the weighted times_seen to prevent integer overflow
+            # We use a conservative limit to ensure that even with multiple increments,
+            # we don't exceed the PostgreSQL integer limit
+            MAX_WEIGHTED_TIMES_SEEN = I32_MAX // 1000  # Conservative limit: ~2.1M
+            weighted_times_seen = int(1 / error_sample_rate)
+            return min(weighted_times_seen, MAX_WEIGHTED_TIMES_SEEN)
     return 1
 
 
