@@ -36,6 +36,7 @@ describe('ErrorNode', () => {
       expect(node.errors.size).toBe(1);
       expect(node.errors.has(value)).toBe(true);
       expect(node.isEAPEvent).toBe(false);
+      expect(node.searchPriority).toBe(3);
     });
 
     it('should initialize with basic properties for EAPError', () => {

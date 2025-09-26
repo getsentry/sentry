@@ -108,6 +108,7 @@ describe('BaseNode', () => {
       expect(node.profiles).toBeInstanceOf(Set);
       expect(node.isEAPEvent).toBe(false);
       expect(node.canShowDetails).toBe(true);
+      expect(node.searchPriority).toBe(0);
     });
 
     it('should set parent relationship correctly', () => {
@@ -185,6 +186,15 @@ describe('BaseNode', () => {
   });
 
   describe('getter methods', () => {
+    it('should return correct project id from value', () => {
+      const extra = createMockExtra();
+      const value = createMockValue({project_id: 123});
+
+      const node = new TestNode(null, value, extra);
+
+      expect(node.projectId).toBe(123);
+    });
+
     it('should return correct id from value', () => {
       const extra = createMockExtra();
       const value = createMockValue({event_id: 'test-event-id'});

@@ -20,6 +20,7 @@ describe('UptimeCheckNode', () => {
       const node = new UptimeCheckNode(null, uptimeValue, extra);
 
       expect(node.isEAPEvent).toBe(true);
+      expect(node.searchPriority).toBe(1);
     });
 
     it('should create timing nodes and add to parent', () => {

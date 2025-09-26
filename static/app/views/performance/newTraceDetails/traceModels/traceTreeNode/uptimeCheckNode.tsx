@@ -14,6 +14,7 @@ import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {UptimeCheckTimingNode} from './uptimeCheckTimingNode';
 
 export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
+  searchPriority = 1;
   constructor(
     parent: BaseNode | null,
     value: TraceTree.UptimeCheck,
