@@ -68,6 +68,83 @@ def test_replay_data_export(default_organization, default_project, replay_store)
 @django_db_all
 @pytest.mark.snuba
 @requires_snuba
+def test_replay_data_export_invalid_organization(default_project, replay_store):
+    replay_id = str(uuid.uuid4())
+    t0 = datetime.datetime.now()
+    replay_store.save(mock_replay(t0, default_project.id, replay_id, segment_id=0))
+
+    # Setting has_replays flag because the export will skip projects it assumes do not have
+    # replays.
+    default_project.flags.has_replays = True
+    default_project.update(flags=F("flags").bitor(getattr(Project.flags, "has_replays")))
+
+    with (
+        TaskRunner(),
+        patch("sentry.replays.data_export.request_create_transfer_job") as create_job,
+        patch("sentry.replays.data_export.save_to_storage") as store_rows,
+    ):
+        export_replay_data(
+            organization_id=1,
+            gcs_project_id="1",
+            destination_bucket="destination",
+            database_rows_per_page=1,
+        )
+        assert not create_job.called
+        assert not store_rows.called
+
+
+@django_db_all
+@pytest.mark.snuba
+@requires_snuba
+def test_replay_data_export_no_replay_projects(default_organization, default_project, replay_store):
+    replay_id = str(uuid.uuid4())
+    t0 = datetime.datetime.now()
+    replay_store.save(mock_replay(t0, default_project.id, replay_id, segment_id=0))
+
+    with (
+        TaskRunner(),
+        patch("sentry.replays.data_export.request_create_transfer_job") as create_job,
+        patch("sentry.replays.data_export.save_to_storage") as store_rows,
+    ):
+        export_replay_data(
+            organization_id=default_organization.id,
+            gcs_project_id="1",
+            destination_bucket="destination",
+            database_rows_per_page=1,
+        )
+        assert not create_job.called
+        assert not store_rows.called
+
+
+@django_db_all
+@pytest.mark.snuba
+@requires_snuba
+def test_replay_data_export_no_replay_data(default_organization, default_project, replay_store):
+    # Setting has_replays flag because the export will skip projects it assumes do not have
+    # replays.
+    default_project.flags.has_replays = True
+    default_project.update(flags=F("flags").bitor(getattr(Project.flags, "has_replays")))
+
+    with (
+        TaskRunner(),
+        patch("sentry.replays.data_export.request_create_transfer_job") as create_job,
+        patch("sentry.replays.data_export.save_to_storage") as store_rows,
+    ):
+        export_replay_data(
+            organization_id=default_organization.id,
+            gcs_project_id="1",
+            destination_bucket="destination",
+            database_rows_per_page=1,
+        )
+
+        # Blob data is scheduled for export but there no database rows found so we export nothing.
+        assert create_job.called
+        assert not store_rows.called
+
+
+@django_db_all
+@pytest.mark.snuba
+@requires_snuba
 def test_export_replay_row_set_async(replay_store):
     replay1_id = "030c5419-9e0f-46eb-ae18-bfe5fd0331b5"
     replay2_id = "0dbda2b3-9286-4ecc-a409-aa32b241563d"
