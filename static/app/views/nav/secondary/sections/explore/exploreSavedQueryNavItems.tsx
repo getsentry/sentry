@@ -30,6 +30,7 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
   // Any time the queries prop changes (e.g. when the user stars or unstars a query),
   // we need to reset the savedQueries state.
   useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setSavedQueries(queries);
   }, [queries]);
 

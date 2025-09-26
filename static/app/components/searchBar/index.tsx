@@ -37,6 +37,7 @@ function SearchBar({
   // a controlled component and its internal state should be in sync
   useEffect(() => {
     if (typeof queryProp === 'string') {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setQuery(queryProp);
     }
   }, [queryProp]);

@@ -48,9 +48,13 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setBranchInputValue(settings.branch);
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setInstructionsValue(settings.instructions);
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setBranchOverridesValue(settings.branch_overrides || []);
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setOriginalValues({
       branch: settings.branch,
       instructions: settings.instructions,

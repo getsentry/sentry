@@ -38,6 +38,7 @@ function GroupingComponent({component, showNonContributing}: Props) {
   useEffect(() => {
     if (component.id === 'stacktrace' && prevTabState.current !== showNonContributing) {
       const shouldCollapse = !showNonContributing;
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setIsCollapsed(shouldCollapse);
       prevTabState.current = showNonContributing;
     }
