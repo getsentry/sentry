@@ -67,21 +67,20 @@ describe('useReplaySummary', () => {
       expect(mockRequest).toHaveBeenCalledTimes(1);
     });
 
-    it('should retry GET errors and return isPending=true', async () => {
+    it('should handle GET errors gracefully', async () => {
       MockApiClient.addMockResponse({
         url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
         statusCode: 500,
         body: {detail: 'Internal server error'},
       });
-
       const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
         organization: mockOrganization,
       });
 
       await waitFor(() => {
-        expect(result.current.isPending).toBe(true);
+        expect(result.current.isError).toBe(true);
       });
-      expect(result.current.isError).toBe(false);
+      expect(result.current.isPending).toBe(false);
     });
   });
 
