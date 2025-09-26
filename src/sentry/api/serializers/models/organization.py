@@ -48,6 +48,7 @@ from sentry.constants import (
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     METRIC_ALERTS_THREAD_DEFAULT,
+    PREVENT_AI_CONFIG_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -563,6 +564,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     streamlineOnly: bool
     defaultAutofixAutomationTuning: str
     defaultSeerScannerAutomation: bool
+    preventAiConfig: dict[str, Any]
     enablePrReviewTestGeneration: bool
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
@@ -722,6 +724,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "defaultSeerScannerAutomation": obj.get_option(
                 "sentry:default_seer_scanner_automation",
                 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
+            ),
+            "preventAiConfig": obj.get_option(
+                "sentry:prevent_ai_config",
+                PREVENT_AI_CONFIG_DEFAULT,
             ),
             "enablePrReviewTestGeneration": bool(
                 obj.get_option(

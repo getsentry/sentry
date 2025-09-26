@@ -774,6 +774,7 @@ def create_console_platform_audit_log(
         "genAIConsent",
         "defaultAutofixAutomationTuning",
         "defaultSeerScannerAutomation",
+        "preventAiConfig",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
     ]
@@ -985,6 +986,8 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
         min_value=PROJECT_RATE_LIMIT_DEFAULT, required=False
     )
     apdexThreshold = serializers.IntegerField(required=False)
+
+    preventAiConfig = serializers.JSONField(required=False)
 
 
 # NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class
