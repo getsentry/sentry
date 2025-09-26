@@ -138,6 +138,7 @@ function useTrackAnalytics({
       page_source,
       interval,
       gave_seer_consent: gaveSeerConsent,
+      version: 2,
     });
 
     /* eslint-disable @typescript-eslint/no-base-to-string */
@@ -227,6 +228,7 @@ function useTrackAnalytics({
       page_source,
       interval,
       gave_seer_consent: gaveSeerConsent,
+      version: 2,
     });
 
     info(fmt`trace.explorer.metadata:
