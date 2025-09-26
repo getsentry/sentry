@@ -317,8 +317,8 @@ def query_replays_dataset(
             Column("ota_updates_update_id"),
             Column("sdk_name"),
             Column("sdk_version"),
-            Column("tags"),
-            Column("tags"),
+            Column("tags.key"),
+            Column("tags.value"),
             Column("click_node_id"),
             Column("click_tag"),
             Column("click_id"),
@@ -465,7 +465,7 @@ def export_replay_row_set_async(
 ):
     assert limit > 0, "Limit must be greater than 0."
     assert offset >= 0, "Offset must be greater than or equal to 0."
-    assert start < end, "End must be before start date."
+    assert start < end, "Start must be before end date."
     assert num_pages > 0, "num_pages must be greater than 0."
 
     next_offset = export_replay_row_set(
