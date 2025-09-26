@@ -78,7 +78,7 @@ export type OrganizationStatsProps = {
   selection: PageFilters;
 };
 
-class OrganizationStats extends Component<OrganizationStatsProps> {
+class OrganizationStatsInner extends Component<OrganizationStatsProps> {
   get dataCategoryInfo(): DataCategoryInfo {
     const dataCategoryPlural = this.props.location?.query?.dataCategory;
 
@@ -417,10 +417,10 @@ class OrganizationStats extends Component<OrganizationStatsProps> {
 
 const HookOrgStats = HookOrDefault({
   hookName: 'component:enhanced-org-stats',
-  defaultComponent: OrganizationStats,
+  defaultComponent: OrganizationStatsInner,
 });
 
-export default function OrganizationStatsHook() {
+export default function OrganizationStats() {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
