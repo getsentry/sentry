@@ -193,7 +193,7 @@ export default function TestsOnboardingPage() {
                 ],
               ]}
             />
-            <Flex direction="column" gap="2xl" maxWidth="1000px" padding="2xl 0 0 3xl">
+            <Flex direction="column" gap="2xl" maxWidth="1000px" paddingLeft="3xl">
               {opt === SetupOption.CLI ? cliSteps : githubActionSteps}
               <Text>
                 {tct('To learn more check out the [docsLink:Test Analytics docs].', {
