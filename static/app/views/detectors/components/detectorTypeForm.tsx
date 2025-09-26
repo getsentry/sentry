@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import RadioField from 'sentry/components/forms/fields/radioField';
+import {Alert} from 'sentry/components/core/alert';
+import {Radio} from 'sentry/components/core/radio';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
@@ -40,48 +41,59 @@ function MonitorTypeField() {
     });
   };
 
+  const options = [
+    [
+      'metric_issue',
+      getDetectorTypeLabel('metric_issue'),
+      <Description
+        key="description"
+        text={t('Monitor error counts, transaction duration, and more!')}
+        visualization={<MetricVisualization />}
+      />,
+      undefined,
+    ],
+    [
+      'monitor_check_in_failure',
+      getDetectorTypeLabel('monitor_check_in_failure'),
+      <Description
+        key="description"
+        text={t('Monitor the uptime and performance of any scheduled, recurring jobs.')}
+        visualization={<CronsVisualization />}
+      />,
+      <AttachedExampleAlert key="attached" />,
+    ],
+    [
+      'uptime_domain_failure',
+      getDetectorTypeLabel('uptime_domain_failure'),
+      <Description
+        key="description"
+        text={t('Monitor the uptime of specific endpoint in your applications.')}
+        visualization={<UptimeVisualization />}
+      />,
+      undefined,
+    ],
+  ] satisfies Array<[DetectorType, string, React.ReactNode, React.ReactNode | undefined]>;
+
   return (
-    <StyledRadioField
-      inline={false}
-      flexibleControlStateSize
-      name="detectorType"
-      value={selectedDetectorType}
-      onChange={handleChange}
-      choices={
-        [
-          [
-            'metric_issue',
-            getDetectorTypeLabel('metric_issue'),
-            <Description
-              key="description"
-              text={t('Monitor error counts, transaction duration, and more!')}
-              visualization={<MetricVisualization />}
-            />,
-          ],
-          [
-            'monitor_check_in_failure',
-            getDetectorTypeLabel('monitor_check_in_failure'),
-            <Description
-              key="description"
-              text={t(
-                'Monitor the uptime and performance of any scheduled, recurring jobs.'
-              )}
-              visualization={<CronsVisualization />}
-            />,
-          ],
-          [
-            'uptime_domain_failure',
-            getDetectorTypeLabel('uptime_domain_failure'),
-            <Description
-              key="description"
-              text={t('Monitor the uptime of specific endpoint in your applications.')}
-              visualization={<UptimeVisualization />}
-            />,
-          ],
-        ] satisfies Array<[DetectorType, string, React.ReactNode]>
-      }
-      required
-    />
+    <RadioOptions role="radiogroup" aria-label={t('Monitor type')}>
+      {options.map(([id, name, description, attached]) => {
+        const checked = selectedDetectorType === id;
+        return (
+          <OptionLabel key={id} role="radio" aria-checked={checked}>
+            <OptionBody>
+              <Radio
+                name="detectorType"
+                checked={checked}
+                onChange={() => handleChange(id)}
+              />
+              <OptionText>{name}</OptionText>
+              {description && <OptionDescription>{description}</OptionDescription>}
+            </OptionBody>
+            {attached && checked && <AttachedArea>{attached}</AttachedArea>}
+          </OptionLabel>
+        );
+      })}
+    </RadioOptions>
   );
 }
 
@@ -91,51 +103,72 @@ const FormContainer = styled('div')`
   max-width: ${p => p.theme.breakpoints.xl};
 `;
 
-const StyledRadioField = styled(RadioField)`
-  flex-grow: 1;
-  padding-left: 0;
-  border-bottom: none;
+const RadioOptions = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
 
-  label {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    padding: ${space(3)} ${space(2)};
-    border-radius: ${p => p.theme.borderRadius};
-    border: 1px solid ${p => p.theme.border};
-    background-color: ${p => p.theme.surface400};
+const OptionLabel = styled('label')`
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+  background-color: ${p => p.theme.surface400};
+  cursor: pointer;
 
-    &:empty {
-      display: none;
-    }
+  input[type='radio'] {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
 
-    div:empty {
-      display: none;
-    }
-
-    /* Markup for choice name and description is all divs :( */
-    div:nth-child(2) {
-      font-weight: ${p => p.theme.fontWeight.bold};
-    }
-
-    &[aria-checked='true'] {
-      border-color: ${p => p.theme.focusBorder};
-      outline: solid 1px ${p => p.theme.focusBorder};
-    }
-
-    input[type='radio'] {
-      clip: rect(0 0 0 0);
-      clip-path: inset(50%);
-      height: 1px;
-      overflow: hidden;
-      position: absolute;
-      white-space: nowrap;
-      width: 1px;
-    }
+  &[aria-checked='true'] {
+    border-color: ${p => p.theme.focusBorder};
+    outline: solid 1px ${p => p.theme.focusBorder};
   }
 `;
+
+const OptionBody = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: ${space(1)};
+  padding: ${space(3)} ${space(2)};
+`;
+
+const OptionText = styled('div')`
+  font-weight: ${p => p.theme.fontWeight.bold};
+`;
+
+const OptionDescription = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  line-height: 1.4em;
+  display: flex;
+  align-items: center;
+  gap: ${space(2)};
+
+  > span:first-of-type {
+    flex: 1 1 50%;
+  }
+`;
+
+const AttachedArea = styled('div')`
+  grid-column: 1 / -1;
+`;
+
+function AttachedExampleAlert() {
+  return (
+    <Alert type="info">
+      {t('Heads up! This monitor type requires check-ins to be sent on schedule.')}
+    </Alert>
+  );
+}
 
 const Header = styled('div')`
   display: flex;
@@ -170,13 +203,15 @@ function Description({
 
 const Visualization = styled('div')`
   display: none;
-  width: 480px;
   height: 56px;
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  right: ${space(2)};
-  margin-block: auto;
+  flex: 0 0 50%;
+  max-width: 50%;
+
+  > svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     display: block;
