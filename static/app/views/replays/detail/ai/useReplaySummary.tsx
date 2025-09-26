@@ -193,13 +193,14 @@ export function useReplaySummary(
     }
   }, [segmentsIncreased, startSummaryRequest, summaryData?.status]);
 
+  const isErrorState =
+    isStartSummaryRequestError || summaryData?.status === ReplaySummaryStatus.ERROR;
+
   const isFinishedState =
-    lastFetchTime >= startSummaryRequestTime.current &&
-    !isStartSummaryRequestPending &&
-    summaryData &&
-    [ReplaySummaryStatus.COMPLETED, ReplaySummaryStatus.ERROR].includes(
-      summaryData.status
-    );
+    isErrorState ||
+    (lastFetchTime >= startSummaryRequestTime.current &&
+      !isStartSummaryRequestPending &&
+      summaryData?.status === ReplaySummaryStatus.COMPLETED);
 
   // Clears the start timeout when status != NOT_STARTED.
   useEffect(() => {
@@ -222,8 +223,7 @@ export function useReplaySummary(
   return {
     summaryData,
     isPending: !isFinishedState,
-    isError:
-      isStartSummaryRequestError || summaryData?.status === ReplaySummaryStatus.ERROR,
+    isError: isErrorState,
     isTimedOut: didTimeout,
     startSummaryRequest,
     isStartSummaryRequestPending,
