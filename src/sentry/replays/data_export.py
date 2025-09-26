@@ -515,11 +515,14 @@ def export_replay_blob_data[T](
         )
 
 
+EXPORT_JOB_DURATION_DEFAULT = timedelta(days=5)
+
+
 def export_replay_data(
+    organization_id: int,
     gcs_project_id: str,
     destination_bucket: str,
-    organization_id: int,
-    job_duration: timedelta,
+    blob_export_job_duration: timedelta = EXPORT_JOB_DURATION_DEFAULT,
     database_rows_per_page: int = 1000,
     database_pages_per_task: int = 10,
     source_bucket: str = "sentry-replays",
@@ -540,10 +543,11 @@ def export_replay_data(
         )
     )
 
-    if projects:
-        logger.info(
-            "Found projects which have replays.", extra={"number_of_projects": len(projects)}
-        )
+    if not projects:
+        logger.info("No projects with replays found.")
+        return None
+
+    logger.info("Found projects with replays.", extra={"number_of_projects": len(projects)})
 
     for project in projects:
         logger.info(
@@ -555,7 +559,7 @@ def export_replay_data(
             destination_bucket=destination_bucket,
             pubsub_topic_name=pubsub_topic_name,
             source_bucket=source_bucket,
-            job_duration=job_duration,
+            job_duration=blob_export_job_duration,
             do_create_transfer_job=request_create_transfer_job,
         )
         logger.info("Successfully scheduled recording export job.")
