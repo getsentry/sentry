@@ -67,7 +67,7 @@ describe('useReplaySummary', () => {
       expect(mockRequest).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle API errors gracefully', async () => {
+    it('should retry GET errors and return isPending=true', async () => {
       MockApiClient.addMockResponse({
         url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
         statusCode: 500,
@@ -79,9 +79,9 @@ describe('useReplaySummary', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.isError).toBe(true);
+        expect(result.current.isPending).toBe(true);
       });
-      expect(result.current.isPending).toBe(false);
+      expect(result.current.isError).toBe(false);
     });
   });
 

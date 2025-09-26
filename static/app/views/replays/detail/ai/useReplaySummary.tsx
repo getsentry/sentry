@@ -178,6 +178,24 @@ export function useReplaySummary(
     startStartTimeout();
   }, [options?.enabled, startSummaryRequestMutate, startTotalTimeout, startStartTimeout]);
 
+  const {data: summaryData, dataUpdatedAt: lastFetchTime} = useApiQuery<SummaryResponse>(
+    createAISummaryQueryKey(organization.slug, project?.slug, replayRecord?.id ?? ''),
+    {
+      staleTime: 0,
+      retry: false,
+      refetchInterval: query => {
+        if (shouldPoll(query.state.data?.[0], isStartSummaryRequestError, didTimeout)) {
+          return query.state.status === 'error'
+            ? ERROR_POLL_INTERVAL_MS
+            : POLL_INTERVAL_MS;
+        }
+        return false;
+      },
+      refetchOnWindowFocus: 'always',
+      ...options,
+    }
+  );
+
   // Auto-start logic. Triggered at most once per page load.
   const segmentsIncreased =
     summaryData?.num_segments !== null &&
