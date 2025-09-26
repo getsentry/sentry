@@ -1,16 +1,16 @@
 ---
-created: '2024-12-17T22:47:12.604576+00:00'
+created: '2025-09-24T20:27:07.032008+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   contributing component: null
-  component:
-    app (stacktrace of system takes precedence)
+  root_component:
+    app (ignored because system stacktrace takes precedence)
       stacktrace (ignored because it contains no in-app frames)
         frame (non app frame)
-          filename (native code indicated by filename)
+          filename (ignored because filename suggests native code)
             "[native code]"
           function*
             "forEach"
@@ -18,11 +18,11 @@ app:
 system:
   hash: "30eb5001914d29dd8461898b5b8094fe"
   contributing component: stacktrace
-  component:
+  root_component:
     system*
       stacktrace*
         frame*
-          filename (native code indicated by filename)
+          filename (ignored because filename suggests native code)
             "[native code]"
           function*
             "forEach"

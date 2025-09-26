@@ -394,9 +394,7 @@ MERGED_PR_COMMENT_BODY_TEMPLATE = """\
 ## Issues attributed to commits in this pull request
 This pull request was merged and Sentry observed the following issues:
 
-{issue_list}
-
-<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+{issue_list}""".rstrip()
 
 
 class GitHubPRCommentWorkflow(PRCommentWorkflow):
@@ -458,10 +456,7 @@ OPEN_PR_COMMENT_BODY_TEMPLATE = """\
 ## 🔍 Existing Issues For Review
 Your pull request is modifying functions with the following pre-existing issues:
 
-{issue_tables}
----
-
-<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+{issue_tables}""".rstrip()
 
 OPEN_PR_ISSUE_TABLE_TEMPLATE = """\
 📄 File: **{filename}**

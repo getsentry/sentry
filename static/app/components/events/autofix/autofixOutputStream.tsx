@@ -7,9 +7,9 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {useUpdateInsightCard} from 'sentry/components/events/autofix/autofixInsightCards';
 import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {FlyingLinesEffect} from 'sentry/components/events/autofix/FlyingLinesEffect';
+import {useUpdateInsightCard} from 'sentry/components/events/autofix/hooks/useUpdateInsightCard';
 import type {AutofixData} from 'sentry/components/events/autofix/types';
 import {AutofixStepType} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
@@ -315,7 +315,7 @@ export function AutofixOutputStream({
                 onChange={e => setMessage(e.target.value)}
                 maxLength={4096}
                 placeholder={
-                  responseRequired ? 'Please answer to continue...' : 'Interrupt me...'
+                  responseRequired ? 'Please answer to continue...' : 'Add context...'
                 }
                 onKeyDown={e => {
                   if (e.key === 'Enter' && !e.shiftKey) {
@@ -385,6 +385,7 @@ const Container = styled(motion.div)<{required: boolean}>`
       transparent
     );
     background-size: 2000px 100%;
+    border-radius: ${p => p.theme.borderRadius};
     animation: ${shimmer} 2s infinite linear;
     pointer-events: none;
   }
@@ -421,8 +422,8 @@ const ActiveLog = styled('div')`
 const VerticalLine = styled('div')`
   width: 0;
   height: ${space(4)};
-  border-left: 1px dashed ${p => p.theme.subText};
-  margin-left: 16.5px;
+  border-left: 1px dashed ${p => p.theme.border};
+  margin-left: 33px;
   margin-bottom: -1px;
 `;
 
@@ -434,8 +435,6 @@ const InputWrapper = styled('form')`
 
 const StyledInput = styled(TextArea)`
   flex-grow: 1;
-  background: ${p => p.theme.background}
-    linear-gradient(to left, ${p => p.theme.background}, ${p => p.theme.pink400}20);
   border-color: ${p => p.theme.innerBorder};
   padding-right: ${space(4)};
   resize: none;

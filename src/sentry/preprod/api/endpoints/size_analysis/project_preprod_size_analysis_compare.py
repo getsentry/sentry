@@ -153,18 +153,6 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                     "preprod.size_analysis.compare.api.get.no_comparison_obj",
                     extra={"head_metric_id": head_metric.id, "base_metric_id": base_metric.id},
                 )
-                comparisons.append(
-                    SizeAnalysisComparison(
-                        head_size_metric_id=head_metric.id,
-                        base_size_metric_id=base_metric.id,
-                        metrics_artifact_type=head_metric.metrics_artifact_type,
-                        identifier=head_metric.identifier,
-                        state=PreprodArtifactSizeComparison.State.PENDING,
-                        comparison_id=None,
-                        error_code=None,
-                        error_message=None,
-                    )
-                )
                 continue
 
             logger.info(

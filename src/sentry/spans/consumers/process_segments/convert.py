@@ -37,6 +37,12 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
     client_sample_rate = 1.0
     server_sample_rate = 1.0
 
+    # This key is ambiguous. sentry-conventions and relay interpret it as "raw description",
+    # sentry interprets it as normalized_description.
+    # See https://github.com/getsentry/sentry/blob/7f2ccd1d03e8845a833fe1ee6784bce0c7f0b935/src/sentry/search/eap/spans/attributes.py#L596.
+    # Delete it and relay on top-level `description` for now.
+    (span.get("data") or {}).pop("sentry.description", None)
+
     for k, v in (span.get("data") or {}).items():
         if v is not None:
             try:

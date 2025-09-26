@@ -3,7 +3,6 @@ from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
-from celery import Task
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import router, transaction
 from django.utils import timezone
@@ -20,6 +19,7 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import deletion_control_tasks, deletion_tasks
 from sentry.taskworker.retry import LastAction, Retry
+from sentry.taskworker.task import Task
 from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger("sentry.deletions.api")
@@ -87,7 +87,9 @@ def run_scheduled_deletions() -> None:
     )
 
 
-def _run_scheduled_deletions(model_class: type[BaseScheduledDeletion], process_task: Task) -> None:
+def _run_scheduled_deletions(
+    model_class: type[BaseScheduledDeletion], process_task: Task[Any, Any]
+) -> None:
     queryset = model_class.objects.filter(in_progress=False, date_scheduled__lte=timezone.now())
     for item in queryset:
         with transaction.atomic(router.db_for_write(model_class)):
@@ -159,7 +161,7 @@ def _run_deletion(
     deletion_id: int,
     first_pass: bool,
     model_class: type[BaseScheduledDeletion],
-    process_task: Task,
+    process_task: Task[Any, Any],
 ) -> None:
     from sentry import deletions
 
