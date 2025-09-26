@@ -61,6 +61,7 @@ from sentry.constants import (
     JOIN_REQUESTS_DEFAULT,
     LEGACY_RATE_LIMIT_OPTIONS,
     METRIC_ALERTS_THREAD_DEFAULT,
+    PREVENT_AI_CONFIG_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -250,6 +251,12 @@ ORG_OPTIONS = (
         DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ),
     (
+        "preventAiConfig",
+        "sentry:prevent_ai_config",
+        dict,
+        PREVENT_AI_CONFIG_DEFAULT,
+    ),
+    (
         "enablePrReviewTestGeneration",
         "sentry:enable_pr_review_test_generation",
         bool,
@@ -360,6 +367,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     )
     enablePrReviewTestGeneration = serializers.BooleanField(required=False)
     enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
+    preventAiConfig = serializers.JSONField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
     ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
@@ -766,6 +774,7 @@ def create_console_platform_audit_log(
         "genAIConsent",
         "defaultAutofixAutomationTuning",
         "defaultSeerScannerAutomation",
+        "preventAiConfig",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
     ]
