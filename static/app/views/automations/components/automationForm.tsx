@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/core/layout';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import type FormModel from 'sentry/components/forms/model';
-import {DebugForm} from 'sentry/components/workflowEngine/form/debug';
 import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Card} from 'sentry/components/workflowEngine/ui/card';
@@ -71,7 +70,6 @@ export default function AutomationForm({model}: {model: FormModel}) {
           options={FREQUENCY_OPTIONS}
         />
       </Card>
-      <DebugForm />
     </Flex>
   );
 }

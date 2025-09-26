@@ -5,12 +5,13 @@ import {Flex} from 'sentry/components/core/layout';
 type SectionProps = {
   title: React.ReactNode;
   children?: React.ReactNode;
+  className?: string;
   description?: string;
 };
 
-export default function Section({children, title, description}: SectionProps) {
+export default function Section({children, className, title, description}: SectionProps) {
   return (
-    <SectionContainer direction="column" gap="md">
+    <SectionContainer direction="column" gap="md" className={className}>
       <SectionHeading>{title}</SectionHeading>
       {description && <SectionDescription>{description}</SectionDescription>}
       {children}
