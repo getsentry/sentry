@@ -9,9 +9,7 @@ export interface WritableQueryParams {
   cursor?: string | null;
   extrapolate?: boolean;
   fields?: string[] | null;
-  id?: string | null;
   mode?: Mode | null;
   query?: string | null;
   sortBys?: Sort[] | null;
-  title?: string | null;
 }
