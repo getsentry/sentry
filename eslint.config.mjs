@@ -510,7 +510,11 @@ export default typescript.config([
 
       '@typescript-eslint/naming-convention': [
         'error',
-        {selector: 'typeLike', format: ['PascalCase'], leadingUnderscore: 'allow'},
+        {
+          selector: 'typeLike',
+          format: ['PascalCase'],
+          leadingUnderscore: 'allow',
+        },
         {selector: 'enumMember', format: ['UPPER_CASE']},
       ],
 
@@ -546,7 +550,10 @@ export default typescript.config([
   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/strict.ts
   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/stylistic.ts
   ...typescript.configs.strict.map(c => ({...c, name: `plugin/${c.name}`})),
-  ...typescript.configs.stylistic.map(c => ({...c, name: `plugin/${c.name}`})),
+  ...typescript.configs.stylistic.map(c => ({
+    ...c,
+    name: `plugin/${c.name}`,
+  })),
   {
     name: 'plugin/typescript-eslint/overrides',
     // https://typescript-eslint.io/rules/
@@ -628,7 +635,6 @@ export default typescript.config([
       'unicorn/error-message': 'error',
       'unicorn/filename-case': ['off', {case: 'camelCase'}], // TODO(ryan953): Fix violations and enable this rule
       'unicorn/new-for-builtins': 'error',
-      'unicorn/no-abusive-eslint-disable': 'error',
       'unicorn/no-array-push-push': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-await-in-promise-methods': 'error',
       'unicorn/no-instanceof-array': 'error',
@@ -1023,6 +1029,10 @@ export default typescript.config([
         {
           type: 'scripts',
           pattern: 'scripts',
+        },
+        {
+          type: 'sentry',
+          pattern: 'sentry-conventions',
         },
       ],
     },

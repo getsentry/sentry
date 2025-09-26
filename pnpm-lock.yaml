@@ -192,6 +192,9 @@ importers:
       '@sentry-internal/rrweb-snapshot':
         specifier: 2.34.0
         version: 2.34.0
+      '@sentry/conventions':
+        specifier: file:sentry-conventions
+        version: file:sentry-conventions
       '@sentry/core':
         specifier: 10.13.0
         version: 10.13.0
@@ -3189,6 +3192,10 @@ packages:
     resolution: {integrity: sha512-m1L9shxutF3WHSyNld6Y1vMPoXfEyQhoRh1V3SYSdl+4AB40U+zr2sRzFa2OPm7XP4zYNaWuuuHLkY/iHITs8Q==}
     engines: {node: '>= 10'}
     hasBin: true
+
+  '@sentry/conventions@file:sentry-conventions':
+    resolution: {directory: sentry-conventions, type: directory}
+    engines: {node: '>=14'}
 
   '@sentry/core@10.13.0':
     resolution: {integrity: sha512-nS9kRE0KW3ZzkeNzv4vZ0aAmoyDbZD7tyqcwYPg4uaH1Q8ns4bIJAAHh0JOkUhzu/RjV2eAXnAEv2beWtL/GrQ==}
@@ -12137,6 +12144,8 @@ snapshots:
     transitivePeerDependencies:
       - encoding
       - supports-color
+
+  '@sentry/conventions@file:sentry-conventions': {}
 
   '@sentry/core@10.13.0': {}
 

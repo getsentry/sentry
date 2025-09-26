@@ -1,0 +1,47 @@
+{
+  "name": "@sentry/conventions",
+  "license": "MIT",
+  "version": "0.1.1",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./attributes": {
+      "import": "./dist/attributes.mjs",
+      "require": "./dist/attributes.cjs"
+    },
+    "./op": {
+      "import": "./dist/op.mjs",
+      "require": "./dist/op.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "unbuild",
+    "build:tarball": "yarn build && yarn pack"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "unbuild": "^3.5.0"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=14"
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getsentry/sentry-conventions.git"
+  },
+  "bugs": {
+    "url": "https://github.com/getsentry/sentry-conventions/issues"
+  },
+  "homepage": "https://github.com/getsentry/sentry-conventions#readme",
+  "publishConfig": {
+    "access": "public"
+  }
+}
