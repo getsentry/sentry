@@ -8,9 +8,11 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.permissions import SentryIsAuthenticated
+from sentry.notifications.platform.msteams.provider import MSTeamsRenderer
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
     NotificationData,
+    NotificationProviderKey,
     NotificationRenderedTemplate,
     NotificationTemplate,
 )
@@ -50,6 +52,15 @@ def serialize_rendered_example(rendered_template: NotificationRenderedTemplate) 
     return response
 
 
+def serialize_msteams_preview[T: NotificationData](
+    template: NotificationTemplate[T],
+) -> dict[str, Any]:
+    data = template.example_data
+    rendered_template = template.render_example()
+    card = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
+    return card
+
+
 def serialize_template[T: NotificationData](
     template: NotificationTemplate[T], source: str
 ) -> dict[str, Any]:
@@ -57,5 +68,8 @@ def serialize_template[T: NotificationData](
         "source": source,
         "category": template.category,
         "example": serialize_rendered_example(rendered_template=template.render_example()),
+        "previews": {
+            NotificationProviderKey.MSTEAMS: serialize_msteams_preview(template=template),
+        },
     }
     return response
