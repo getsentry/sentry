@@ -15,7 +15,6 @@ const ReplaySummaryContext = createContext<UseReplaySummaryResult>({
   isPending: false,
   isTimedOut: false,
   startSummaryRequest: () => {},
-  isStartSummaryRequestPending: false,
 });
 
 export function useReplaySummaryContext() {
