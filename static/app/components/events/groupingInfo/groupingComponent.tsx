@@ -91,7 +91,7 @@ const GroupingComponentList = styled('ul')<{hasFold: boolean; isInline: boolean}
   list-style: none;
   padding-left: 0;
   padding-right: 0;
-  margin-left: 0;
+  margin-left: -6px;
   margin-right: 0;
 
   &,
