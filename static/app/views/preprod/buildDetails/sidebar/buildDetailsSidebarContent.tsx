@@ -139,9 +139,9 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
   );
 }
 
-function SidebarLoadingSkeleton() {
+function SidebarLoadingSkeleton(props: {['data-testid']: string}) {
   return (
-    <Flex direction="column" gap="2xl">
+    <Flex direction="column" gap="2xl" {...props}>
       {/* App info skeleton - matches BuildDetailsSidebarAppInfo structure */}
       <Flex direction="column" gap="xl">
         {/* App icon and name */}

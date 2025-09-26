@@ -77,7 +77,7 @@ describe('BuildDetailsSidebarContent', () => {
       organization,
     });
 
-    expect(screen.getByTestId('sidebar-loading-skeleton')).toBeInTheDocument();
+    expect(screen.getAllByTestId('loading-placeholder').length).toBeGreaterThan(0);
   });
 
   it('renders app info section when artifact state is PROCESSED', async () => {
