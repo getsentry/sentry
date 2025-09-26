@@ -31,7 +31,6 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
-import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {
   DisplayType,
@@ -154,7 +153,6 @@ function WidgetCard(props: Props) {
     onWidgetSplitDecision,
     shouldResize,
     onLegendSelectChanged,
-    onSetTransactionsDataset,
     legendOptions,
     widgetLegendState,
     disableFullscreen,
@@ -188,7 +186,6 @@ function WidgetCard(props: Props) {
   const extractionStatus = useExtractionStatus({queryKey: widget});
   const indexedEventsWarning = useIndexedEventsWarning();
   const onDemandWarning = useOnDemandWarning({widget});
-  const discoverSplitAlert = useDiscoverSplitAlert({widget, onSetTransactionsDataset});
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
   const spanTimeRangeWarning = useTimeRangeWarning({widget});
 
@@ -257,12 +254,9 @@ function WidgetCard(props: Props) {
 
   const badges = [indexedDataBadge, onDemandExtractionBadge].filter(n => n !== undefined);
 
-  const warnings = [
-    onDemandWarning,
-    discoverSplitAlert,
-    sessionDurationWarning,
-    spanTimeRangeWarning,
-  ].filter(Boolean) as string[];
+  const warnings = [onDemandWarning, sessionDurationWarning, spanTimeRangeWarning].filter(
+    Boolean
+  ) as string[];
 
   const actionsDisabled = Boolean(props.isPreview);
   const actionsMessage = actionsDisabled
