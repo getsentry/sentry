@@ -71,6 +71,7 @@
 /config/hooks/                                           @getsentry/owners-sentry-dev
 /scripts/                                                @getsentry/owners-sentry-dev
 /tools/                                                  @getsentry/owners-sentry-dev
+/src/flagpole/                                           @getsentry/owners-sentry-dev @getsentry/dev-infra
 Makefile                                                 @getsentry/owners-sentry-dev @getsentry/dev-infra
 .envrc                                                   @getsentry/owners-sentry-dev @getsentry/dev-infra
 .pre-commit-config.yaml                                  @getsentry/owners-sentry-dev @getsentry/dev-infra
