@@ -96,7 +96,7 @@ function shouldSkipFrame(
     return true;
   }
 
-  if (!defined(frame.fingerprint) || !defined(frame.name) || !defined(frame.image)) {
+  if (!defined(frame.fingerprint) || !frame.name || !frame.image) {
     return true;
   }
 
