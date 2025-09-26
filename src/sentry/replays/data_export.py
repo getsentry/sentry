@@ -3,7 +3,7 @@ import csv
 import io
 import logging
 import uuid
-from collections.abc import Callable, Generator, Iterator
+from collections.abc import Callable, Generator
 from datetime import datetime, timedelta, timezone
 from typing import Any, Protocol
 
@@ -18,7 +18,7 @@ from google.cloud.storage_transfer_v1 import (
     TransferJob,
     TransferSpec,
 )
-from google.type import date_pb2
+from google.type import date_pb2  # type: ignore[import-untyped]
 from snuba_sdk import (
     Column,
     Condition,
@@ -61,7 +61,7 @@ class QueryFnProtocol(Protocol):
     def __call__(self, limit: int, offset: int) -> Request: ...
 
 
-def row_iterator_to_csv(rows: Iterator[dict[str, Any]]) -> str:
+def row_iterator_to_csv(rows: list[dict[str, Any]]) -> str:
     buf = io.StringIO()
     writer = csv.writer(buf)
 

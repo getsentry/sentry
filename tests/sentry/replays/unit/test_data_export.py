@@ -2,6 +2,7 @@ import base64
 from datetime import datetime, timedelta
 from unittest.mock import Mock
 
+from google.api_core.operation import Operation
 from google.cloud import storage_transfer_v1
 from google.cloud.storage_transfer_v1 import (
     CreateTransferJobRequest,
@@ -12,7 +13,7 @@ from google.cloud.storage_transfer_v1 import (
     TransferJob,
     TransferSpec,
 )
-from google.type import date_pb2
+from google.type import date_pb2  # type: ignore[import-untyped]
 
 from sentry.replays.data_export import (
     create_transfer_job,
@@ -22,7 +23,7 @@ from sentry.replays.data_export import (
 from sentry.utils import json
 
 
-def test_export_blob_data():
+def test_export_blob_data() -> None:
     # Function parameters which could be abstracted to test multiple variations of this behavior.
     gcs_project_id = "1"
     pubsub_topic = "PUBSUB_TOPIC"
@@ -74,7 +75,7 @@ def test_export_blob_data():
     )
 
 
-def test_request_schedule_transfer_job():
+def test_request_schedule_transfer_job() -> None:
     """
     Test "request_schedule_transfer_job" by proxy.
 
@@ -90,7 +91,7 @@ def test_request_schedule_transfer_job():
     job_duration = timedelta(days=5)
     client = storage_transfer_v1.StorageTransferServiceClient()
 
-    def request_schedule_transfer_job(transfer_job):
+    def request_schedule_transfer_job(transfer_job: CreateTransferJobRequest) -> TransferJob:
         return client.create_transfer_job(transfer_job)
 
     mock_rpc = Mock()
@@ -114,7 +115,7 @@ def test_request_schedule_transfer_job():
     mock_rpc.reset_mock()
 
 
-def test_retry_export_blob_data():
+def test_retry_export_blob_data() -> None:
     job_name = "job-name"
     job_project_id = "project-name"
 
@@ -134,7 +135,7 @@ def test_retry_export_blob_data():
     assert result == RunTransferJobRequest(job_name=job_name, project_id=job_project_id)
 
 
-def test_request_retry_transfer_job():
+def test_request_retry_transfer_job() -> None:
     """
     Test "request_retry_transfer_job" by proxy.
 
@@ -146,7 +147,7 @@ def test_request_retry_transfer_job():
     job_project_id = "project-name"
     client = storage_transfer_v1.StorageTransferServiceClient()
 
-    def request_retry_transfer_job(transfer_job):
+    def request_retry_transfer_job(transfer_job: RunTransferJobRequest) -> Operation:
         return client.run_transfer_job(transfer_job)
 
     mock_rpc = Mock()
@@ -171,7 +172,7 @@ def test_request_retry_transfer_job():
     mock_rpc.reset_mock()
 
 
-def test_export_replay_blob_data():
+def test_export_replay_blob_data() -> None:
     jobs = []
     export_replay_blob_data(1, "1", "test", timedelta(days=1), lambda job: jobs.append(job))
 

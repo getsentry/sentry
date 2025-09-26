@@ -3,8 +3,6 @@ import datetime
 import uuid
 
 import pytest
-import requests
-from django.conf import settings
 
 from sentry.replays.data_export import (
     export_clickhouse_rows,
@@ -16,23 +14,9 @@ from sentry.replays.testutils import mock_replay
 from sentry.testutils.skips import requires_snuba
 
 
-class ReplayStore:
-
-    def save(self, data):
-        request_url = settings.SENTRY_SNUBA + "/tests/entities/replays/insert"
-        response = requests.post(request_url, json=[data])
-        assert response.status_code == 200
-
-
-@pytest.fixture
-def replay_store():
-    assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
-    return ReplayStore()
-
-
 @pytest.mark.snuba
 @requires_snuba
-def test_export_clickhouse_rows(replay_store):
+def test_export_clickhouse_rows(replay_store) -> None:  # type: ignore[no-untyped-def]
     """
     Assert searches can find a replay if the search range does not cover segment-0.
     """
@@ -60,7 +44,7 @@ def test_export_clickhouse_rows(replay_store):
 
 @pytest.mark.snuba
 @requires_snuba
-def test_export_replay_row_set(replay_store):
+def test_export_replay_row_set(replay_store) -> None:  # type: ignore[no-untyped-def]
     replay1_id = "030c5419-9e0f-46eb-ae18-bfe5fd0331b5"
     replay2_id = "0dbda2b3-9286-4ecc-a409-aa32b241563d"
     replay3_id = "ff08c103-a9a4-47c0-9c29-73b932c2da34"
@@ -73,9 +57,9 @@ def test_export_replay_row_set(replay_store):
     replay_store.save(mock_replay(t2, 1, replay3_id, segment_id=0))
 
     class Sink:
-        def __init__(self):
-            self.filename = None
-            self.contents = None
+        def __init__(self) -> None:
+            self.filename: str | None = None
+            self.contents: str | None = None
 
         def __call__(self, filename: str, contents: str) -> None:
             self.filename = filename
@@ -96,7 +80,7 @@ def test_export_replay_row_set(replay_store):
 
 @pytest.mark.snuba
 @requires_snuba
-def test_get_replay_date_query_ranges(replay_store):
+def test_get_replay_date_query_ranges(replay_store) -> None:  # type: ignore[no-untyped-def]
     replay1_id = str(uuid.uuid4())
     replay2_id = str(uuid.uuid4())
     replay3_id = str(uuid.uuid4())

@@ -3,8 +3,6 @@ import uuid
 from unittest.mock import patch
 
 import pytest
-import requests
-from django.conf import settings
 from django.db.models import F
 
 from sentry.models.project import Project
@@ -19,24 +17,10 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 
 
-class ReplayStore:
-
-    def save(self, data):
-        request_url = settings.SENTRY_SNUBA + "/tests/entities/replays/insert"
-        response = requests.post(request_url, json=[data])
-        assert response.status_code == 200
-
-
-@pytest.fixture
-def replay_store():
-    assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
-    return ReplayStore()
-
-
 @django_db_all
 @pytest.mark.snuba
 @requires_snuba
-def test_replay_data_export(default_organization, default_project, replay_store):
+def test_replay_data_export(default_organization, default_project, replay_store) -> None:  # type: ignore[no-untyped-def]
     replay_id = str(uuid.uuid4())
     t0 = datetime.datetime.now()
     replay_store.save(mock_replay(t0, default_project.id, replay_id, segment_id=0))
@@ -68,7 +52,7 @@ def test_replay_data_export(default_organization, default_project, replay_store)
 @django_db_all
 @pytest.mark.snuba
 @requires_snuba
-def test_replay_data_export_invalid_organization(default_project, replay_store):
+def test_replay_data_export_invalid_organization(default_project, replay_store) -> None:  # type: ignore[no-untyped-def]
     replay_id = str(uuid.uuid4())
     t0 = datetime.datetime.now()
     replay_store.save(mock_replay(t0, default_project.id, replay_id, segment_id=0))
@@ -96,7 +80,9 @@ def test_replay_data_export_invalid_organization(default_project, replay_store):
 @django_db_all
 @pytest.mark.snuba
 @requires_snuba
-def test_replay_data_export_no_replay_projects(default_organization, default_project, replay_store):
+def test_replay_data_export_no_replay_projects(  # type: ignore[no-untyped-def]
+    default_organization, default_project, replay_store
+) -> None:
     replay_id = str(uuid.uuid4())
     t0 = datetime.datetime.now()
     replay_store.save(mock_replay(t0, default_project.id, replay_id, segment_id=0))
@@ -119,7 +105,9 @@ def test_replay_data_export_no_replay_projects(default_organization, default_pro
 @django_db_all
 @pytest.mark.snuba
 @requires_snuba
-def test_replay_data_export_no_replay_data(default_organization, default_project, replay_store):
+def test_replay_data_export_no_replay_data(  # type: ignore[no-untyped-def]
+    default_organization, default_project
+) -> None:
     # Setting has_replays flag because the export will skip projects it assumes do not have
     # replays.
     default_project.flags.has_replays = True
@@ -145,7 +133,7 @@ def test_replay_data_export_no_replay_data(default_organization, default_project
 @django_db_all
 @pytest.mark.snuba
 @requires_snuba
-def test_export_replay_row_set_async(replay_store):
+def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-untyped-def]
     replay1_id = "030c5419-9e0f-46eb-ae18-bfe5fd0331b5"
     replay2_id = "0dbda2b3-9286-4ecc-a409-aa32b241563d"
     replay3_id = "ff08c103-a9a4-47c0-9c29-73b932c2da34"
@@ -224,7 +212,7 @@ def test_export_replay_row_set_async(replay_store):
 @django_db_all
 @pytest.mark.snuba
 @requires_snuba
-def test_export_replay_project_async(replay_store):
+def test_export_replay_project_async(replay_store) -> None:  # type: ignore[no-untyped-def]
     replay1_id = str(uuid.uuid4())
     replay2_id = str(uuid.uuid4())
     replay3_id = str(uuid.uuid4())
