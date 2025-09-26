@@ -145,6 +145,18 @@ class IPlugin2(local, PluginConfigMixin):
 
         set_option(self._get_option_key(key), value, project, user)
 
+    def unset_option(self, key, project=None, user=None) -> None:
+        """
+        Removes an option in your plugins keyspace.
+
+        If ``project`` is passed, it will limit the scope to that project's keyspace.
+
+        >>> plugin.unset_option('my_option')
+        """
+        from sentry.plugins.helpers import unset_option
+
+        unset_option(self._get_option_key(key), project, user)
+
     def enable(self, project=None, user=None):
         """Enable the plugin."""
         self.set_option("enabled", True, project, user)
