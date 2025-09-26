@@ -17,14 +17,14 @@ type Frameworks = 'jest' | 'vitest' | 'pytest' | 'phpunit';
 const INSTALL_REQUIREMENTS_SNIPPETS: Record<Frameworks, string> = {
   jest: 'npm install --save-dev jest',
   vitest: 'npm install --save-dev vitest @vitest/coverage-v8',
-  pytest: 'pip install pytest pytest-cov',
+  pytest: 'pip install pytest',
   phpunit: 'composer require --dev phpunit/phpunit',
 };
 
 const GENERATE_FILE_SNIPPETS: Record<Frameworks, string> = {
   jest: `JEST_JUNIT_CLASSNAME="{filepath}" jest --reporters=jest-junit`,
   vitest: 'vitest --reporter=junit --outputFile=test-report.junit.xml',
-  pytest: 'pytest --cov --junitxml=junit.xml -o junit_family=legacy',
+  pytest: 'pytest --junitxml=junit.xml -o junit_family=legacy',
   phpunit: './vendor/bin/phpunit --log-junit junit.xml',
 };
 

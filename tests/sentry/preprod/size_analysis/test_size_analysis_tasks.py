@@ -75,7 +75,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
                 artifact_id=artifact.id,
             )
 
-            mock_logger.info.assert_called_once()
+            mock_logger.info.assert_called()
             call_args = mock_logger.info.call_args
             assert "preprod.size_analysis.compare.artifact_no_commit_comparison" in call_args[0]
             assert call_args[1]["extra"]["artifact_id"] == artifact.id

@@ -459,6 +459,15 @@ Prefix with `-` to sort in descending order.
         many=True,
     )
 
+    TYPE = OpenApiParameter(
+        name="type",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        description="Filter by detector type(s). Can be specified multiple times.",
+    )
+
 
 class WorkflowParams:
     WORKFLOW_ID = OpenApiParameter(

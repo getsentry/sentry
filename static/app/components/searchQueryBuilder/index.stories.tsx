@@ -2,8 +2,8 @@ import {Fragment, useState} from 'react';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
-import {ItemType} from 'sentry/components/deprecatedSmartSearchBar/types';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
+import {ItemType} from 'sentry/components/searchBar/types';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {
   SearchQueryBuilderProvider,

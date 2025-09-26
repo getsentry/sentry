@@ -15,7 +15,6 @@ resources:
 import {Alert} from 'sentry/components/core/alert';
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {Badge} from 'sentry/components/core/badge';
-import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {IconAdd, IconDelete, IconEdit, IconMail} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
@@ -169,7 +168,7 @@ You can control the initial expansion state of alerts with the `defaultExpanded`
 
 ### Trailing Items
 
-Add interactive elements like buttons, links or badges to the right side of alerts using the `trailingItems` prop.
+Add interactive elements like buttons, links or badges to the right side of alerts using the `trailingItems` prop. Note that for buttons, the standardized `<Alert.Button>` component should be used because it handles sizing correctly.
 
 <Storybook.Demo>
   <Alert.Container>
@@ -180,12 +179,12 @@ Add interactive elements like buttons, links or badges to the right side of aler
       type="error"
       trailingItems={
         <Flex gap="sm">
-          <Button size="zero" priority="danger" icon={<IconDelete />}>
+          <Alert.Button priority="danger" icon={<IconDelete />}>
             Delete
-          </Button>
-          <Button size="zero" priority="muted" icon={<IconEdit />}>
+          </Alert.Button>
+          <Alert.Button priority="muted" icon={<IconEdit />}>
             Edit
-          </Button>
+          </Alert.Button>
         </Flex>
       }
     >
@@ -197,11 +196,7 @@ Add interactive elements like buttons, links or badges to the right side of aler
 <Alert.Container>
   <Alert
     type="info"
-    trailingItems={
-      <Button size="zero" priority="primary">
-        Take Action
-      </Button>
-    }
+    trailingItems={<Alert.Button priority="primary">Take Action</Alert.Button>}
   >
     This alert has a trailing badge
   </Alert>
@@ -209,12 +204,12 @@ Add interactive elements like buttons, links or badges to the right side of aler
     type="error"
     trailingItems={
       <Flex gap="sm">
-        <Button size="zero" priority="danger" icon={<IconDelete />}>
+        <Alert.Button priority="danger" icon={<IconDelete />}>
           Delete
-        </Button>
-        <Button size="zero" priority="muted" icon={<IconEdit />}>
+        </Alert.Button>
+        <Alert.Button priority="muted" icon={<IconEdit />}>
           Edit
-        </Button>
+        </Alert.Button>
       </Flex>
     }
   >

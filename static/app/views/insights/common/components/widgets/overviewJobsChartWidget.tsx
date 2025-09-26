@@ -3,7 +3,9 @@ import {useTheme} from '@emotion/react';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -12,8 +14,6 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
@@ -45,37 +45,54 @@ export default function OverviewJobsChartWidget(props: LoadableChartWidgetProps)
 
   const fullQuery = `span.op:queue.process ${query}`.trim();
 
-  const {data, isLoading, error} = useSpanSeries(
+  const {data, isLoading, error} = useFetchSpanTimeSeries(
     {
       ...pageFilterChartParams,
-      search: fullQuery,
+      query: fullQuery,
       yAxis: ['trace_status_rate(internal_error)', 'count(span.duration)'],
-      referrer: Referrer.JOBS_CHART,
+      pageFilters: props.pageFilters,
     },
-    Referrer.JOBS_CHART,
-    props.pageFilters
+    Referrer.JOBS_CHART
   );
 
-  const plottables = useMemo(() => {
-    return [
-      new Bars(convertSeriesToTimeseries(data['count(span.duration)']), {
+  const countPlottable = useMemo(() => {
+    const timeSeries = data?.timeSeries || [];
+    const countSeries = timeSeries.find(ts => ts.yAxis === 'count(span.duration)');
+
+    return (
+      countSeries &&
+      new Bars(countSeries, {
         alias: ALIASES['count(span.duration)'],
         color: theme.chart.neutral,
-      }),
-      new Line(convertSeriesToTimeseries(data['trace_status_rate(internal_error)']), {
+      })
+    );
+  }, [data, theme.chart.neutral]);
+
+  const errorRatePlottable = useMemo(() => {
+    const timeSeries = data?.timeSeries || [];
+
+    const errorRateSeries = timeSeries.find(
+      ts => ts.yAxis === 'trace_status_rate(internal_error)'
+    );
+
+    return (
+      errorRateSeries &&
+      new Line(errorRateSeries, {
         alias: ALIASES['trace_status_rate(internal_error)'],
         color: theme.error,
-      }),
-    ];
-  }, [data, theme.error, theme.chart.neutral]);
+      })
+    );
+  }, [data, theme.error]);
 
   const isEmpty = useMemo(
     () =>
-      plottables.every(
-        plottable =>
-          plottable.isEmpty || plottable.timeSeries.values.every(point => !point.value)
-      ),
-    [plottables]
+      [countPlottable, errorRatePlottable]
+        .filter(defined)
+        .every(
+          plottable =>
+            plottable.isEmpty || plottable.timeSeries.values.every(point => !point.value)
+        ),
+    [countPlottable, errorRatePlottable]
   );
 
   const visualization = (
@@ -88,7 +105,7 @@ export default function OverviewJobsChartWidget(props: LoadableChartWidgetProps)
       visualizationProps={{
         id: 'overviewJobsChartWidget',
         showLegend: 'never',
-        plottables,
+        plottables: [countPlottable, errorRatePlottable].filter(defined),
         ...props,
         ...releaseBubbleProps,
       }}
@@ -96,18 +113,24 @@ export default function OverviewJobsChartWidget(props: LoadableChartWidgetProps)
   );
 
   const {totalJobs, overallErrorRate} = useMemo(() => {
-    const errorSeries = plottables[1]!.timeSeries;
-    const jobCounts = plottables[0]!.timeSeries.values;
+    const errorCounts = errorRatePlottable?.timeSeries.values;
+    const jobCounts = countPlottable?.timeSeries.values;
+
+    if (!errorCounts || !jobCounts) {
+      return {totalJobs: 0, overallErrorRate: 0};
+    }
+
     let jobsCount = 0;
     let errorCount = 0;
-    errorSeries.values.forEach((point, i) => {
+
+    errorCounts?.forEach((item, i) => {
       const count = jobCounts[i]?.value!;
       jobsCount += count;
-      errorCount += point.value! * count;
+      errorCount += item.value! * count;
     });
 
     return {totalJobs: jobsCount, overallErrorRate: errorCount / jobsCount};
-  }, [plottables]);
+  }, [countPlottable, errorRatePlottable]);
 
   const footer = !isEmpty && (
     <WidgetFooterTable>
