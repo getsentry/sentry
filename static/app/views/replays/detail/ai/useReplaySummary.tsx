@@ -193,7 +193,7 @@ export function useReplaySummary(
     }
   }, [segmentsIncreased, startSummaryRequest, summaryData?.status]);
 
-  const hasValidResults =
+  const isFinishedState =
     lastFetchTime >= startSummaryRequestTime.current &&
     !isStartSummaryRequestPending &&
     summaryData &&
@@ -212,16 +212,16 @@ export function useReplaySummary(
     }
   }, [summaryData?.status, summaryData?.created_at, cancelStartTimeout]);
 
-  // Clears total timeout when we get valid summary results.
+  // Clears total timeout when we get a finished state.
   useEffect(() => {
-    if (hasValidResults) {
+    if (isFinishedState) {
       cancelTotalTimeout();
     }
-  }, [hasValidResults, cancelTotalTimeout]);
+  }, [isFinishedState, cancelTotalTimeout]);
 
   return {
     summaryData,
-    isPending: !hasValidResults,
+    isPending: !isFinishedState,
     isError:
       isStartSummaryRequestError || summaryData?.status === ReplaySummaryStatus.ERROR,
     isTimedOut: didTimeout,
