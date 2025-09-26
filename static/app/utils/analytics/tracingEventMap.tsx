@@ -49,6 +49,7 @@ export type TracingEventParameters = {
     title: string;
     user_queries: string;
     user_queries_count: number;
+    version: 2;
     visualizes: BaseVisualize[];
     visualizes_count: number;
   };
