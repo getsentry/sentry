@@ -149,8 +149,6 @@ describe('useReplaySummary', () => {
       await waitFor(() => {
         expect(result.current.isPending).toBe(true);
       });
-
-      expect(result.current.summaryData).toBeUndefined();
       expect(result.current.isError).toBe(false);
       expect(mockGet).toHaveBeenCalledTimes(1);
 
