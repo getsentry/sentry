@@ -1,18 +1,24 @@
-# $$  __$$\ $$ |      \_$$  _|$$  __$$\ $$ | $$  |$$ |  $$ |$$  __$$\ $$ |  $$ |$$  __$$\ $$  _____|
-#  $$$$$$\  $$\       $$$$$$\  $$$$$$\  $$\   $$\ $$\   $$\  $$$$$$\  $$\   $$\  $$$$$$\  $$$$$$$$\
-# $$ /  \__|$$ |        $$ |  $$ /  \__|$$ |$$  / $$ |  $$ |$$ /  $$ |$$ |  $$ |$$ /  \__|$$ |
-# $$ |      $$ |        $$ |  $$ |      $$$$$  /  $$$$$$$$ |$$ |  $$ |$$ |  $$ |\$$$$$$\  $$$$$\
-# $$ |      $$ |        $$ |  $$ |      $$  $$<   $$  __$$ |$$ |  $$ |$$ |  $$ | \____$$\ $$  __|
-# $$ |  $$\ $$ |        $$ |  $$ |  $$\ $$ |\$$\  $$ |  $$ |$$ |  $$ |$$ |  $$ |$$\   $$ |$$ |
-# \$$$$$$  |$$$$$$$$\ $$$$$$\ \$$$$$$  |$$ | \$$\ $$ |  $$ | $$$$$$  |\$$$$$$  |\$$$$$$  |$$$$$$$$\
-#  \______/ \________|\______| \______/ \__|  \__|\__|  \__| \______/  \______/  \______/ \________|
-
+import base64
 import csv
 import io
+import logging
+import uuid
 from collections.abc import Callable, Generator, Iterator
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any, Protocol
 
+from django.db.models import F
+from google.cloud import storage_transfer_v1
+from google.cloud.storage_transfer_v1 import (
+    CreateTransferJobRequest,
+    GcsData,
+    NotificationConfig,
+    RunTransferJobRequest,
+    Schedule,
+    TransferJob,
+    TransferSpec,
+)
+from google.type import date_pb2
 from snuba_sdk import (
     Column,
     Condition,
@@ -28,7 +34,27 @@ from snuba_sdk import (
 )
 
 from sentry.models.files.utils import get_storage
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import replays_tasks
+from sentry.taskworker.retry import Retry
+from sentry.utils import json
 from sentry.utils.snuba import raw_snql_query
+
+logger = logging.getLogger()
+
+EXPORT_JOB_DURATION_DEFAULT = timedelta(days=5)
+
+# $$  __$$\ $$ |      \_$$  _|$$  __$$\ $$ | $$  |$$ |  $$ |$$  __$$\ $$ |  $$ |$$  __$$\ $$  _____|
+#  $$$$$$\  $$\       $$$$$$\  $$$$$$\  $$\   $$\ $$\   $$\  $$$$$$\  $$\   $$\  $$$$$$\  $$$$$$$$\
+# $$ /  \__|$$ |        $$ |  $$ /  \__|$$ |$$  / $$ |  $$ |$$ /  $$ |$$ |  $$ |$$ /  \__|$$ |
+# $$ |      $$ |        $$ |  $$ |      $$$$$  /  $$$$$$$$ |$$ |  $$ |$$ |  $$ |\$$$$$$\  $$$$$\
+# $$ |      $$ |        $$ |  $$ |      $$  $$<   $$  __$$ |$$ |  $$ |$$ |  $$ | \____$$\ $$  __|
+# $$ |  $$\ $$ |        $$ |  $$ |  $$\ $$ |\$$\  $$ |  $$ |$$ |  $$ |$$ |  $$ |$$\   $$ |$$ |
+# \$$$$$$  |$$$$$$$$\ $$$$$$\ \$$$$$$  |$$ | \$$\ $$ |  $$ | $$$$$$  |\$$$$$$  |\$$$$$$  |$$$$$$$$\
+#  \______/ \________|\______| \______/ \__|  \__|\__|  \__| \______/  \______/  \______/ \________|
 
 
 class QueryFnProtocol(Protocol):
@@ -96,24 +122,6 @@ def export_clickhouse_rows(
 # $$ |  $$ |$$ |  $$\ $$\   $$ |
 # \$$$$$$  |\$$$$$$  |\$$$$$$  |
 #  \______/  \______/  \______/
-
-
-import base64
-from datetime import timedelta, timezone
-
-from google.cloud import storage_transfer_v1
-from google.cloud.storage_transfer_v1 import (
-    CreateTransferJobRequest,
-    GcsData,
-    NotificationConfig,
-    RunTransferJobRequest,
-    Schedule,
-    TransferJob,
-    TransferSpec,
-)
-from google.type import date_pb2
-
-from sentry.utils import json
 
 
 def request_create_transfer_job(request: CreateTransferJobRequest) -> None:
@@ -238,20 +246,6 @@ def retry_transfer_job_run[T](
 # $$ |  $$ |$$ |      $$ |      $$ |      $$ |  $$ |   $$ |
 # $$ |  $$ |$$$$$$$$\ $$ |      $$$$$$$$\ $$ |  $$ |   $$ |
 # \__|  \__|\________|\__|      \________|\__|  \__|   \__|
-
-import logging
-import uuid
-
-from django.db.models import F
-
-from sentry.models.organization import Organization
-from sentry.models.project import Project
-from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.namespaces import replays_tasks
-from sentry.taskworker.retry import Retry
-
-logger = logging.getLogger()
 
 
 def query_replays_dataset(
@@ -441,7 +435,7 @@ def export_replay_row_set(
         return None
 
 
-def save_to_gcs(destination_bucket: str, filename: str, contents: str) -> None:
+def save_to_storage(destination_bucket: str, filename: str, contents: str) -> None:
     storage = get_storage(None)
     storage.bucket_name = destination_bucket
     storage.save(filename, io.BytesIO(contents.encode()))
@@ -480,12 +474,13 @@ def export_replay_row_set_async(
         end,
         limit,
         offset,
-        lambda filename, contents: save_to_gcs(destination_bucket, filename, contents),
+        lambda filename, contents: save_to_storage(destination_bucket, filename, contents),
         num_pages,
     )
 
-    # If more rows need to be queried we do it in another task so any one task does not take too
-    # long.
+    # Tasks can run for a defined length of time. The export can take an unbounded length of time
+    # to complete. For this reason we cap the amount of work we'll perform within a single task's
+    # lifetime and schedule the remainder of the work to take place on another task.
     if next_offset:
         assert next_offset > offset, "Next offset was not greater than previous offset."
         export_replay_row_set_async.delay(
@@ -509,6 +504,7 @@ def export_replay_project_async(
     destination_bucket: str,
     num_pages: int = 10,
 ):
+    # Each populated day bucket is scheduled for export.
     for start, end in get_replay_date_query_ranges(project_id):
         export_replay_row_set_async.delay(
             project_id=project_id,
@@ -533,10 +529,9 @@ def export_replay_blob_data[T](
     # In the future we could set a non-unique transfer-job name. This would prevent duplicate runs
     # from doing the same work over and over again. However, we'd need to catch the exception,
     # look-up any active runs, and, if no active runs, schedule a new run. This is a bit much for
-    # me considering I don't know if this works yet and I don't have a good mechanism for testing
-    # this locally.
+    # now.
     #
-    # transfer_job_name = f"{source_bucket}/{project_id}"
+    # transfer_job_name = f"{source_bucket}/{project_id}/{start_date_rounded_to_day}"
 
     for retention_days in (30, 60, 90):
         create_transfer_job(
@@ -549,9 +544,6 @@ def export_replay_blob_data[T](
             job_duration=job_duration,
             do_create_transfer_job=do_create_transfer_job,
         )
-
-
-EXPORT_JOB_DURATION_DEFAULT = timedelta(days=5)
 
 
 def export_replay_data(
