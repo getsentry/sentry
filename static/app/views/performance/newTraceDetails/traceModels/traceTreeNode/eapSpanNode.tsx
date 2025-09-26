@@ -19,6 +19,7 @@ import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {traceChronologicalSort} from './utils';
 
 export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
+  reparentedEAPTransactions = new Set<EapSpanNode>();
   /**
    * The breakdown of the node's children's operations by count.
    */
@@ -141,34 +142,6 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     return visibleChildren;
   }
 
-  private _reparentEAPTransactions(
-    findEAPTransactions: (n: EapSpanNode) => EapSpanNode[],
-    findNewParent: (t: EapSpanNode) => BaseNode | null
-  ) {
-    // Find all embedded eap-transactions, excluding the node itself
-    const eapTransactions = findEAPTransactions(this);
-
-    for (const txn of eapTransactions) {
-      const newParent = findNewParent(txn);
-
-      // If the transaction already has the correct parent, we can continue
-      if (newParent === txn.parent) {
-        continue;
-      }
-
-      // If we have found a new parent to reparent the transaction under,
-      // remove it from its current parent's children and add it to the new parent
-      if (newParent) {
-        if (txn.parent) {
-          txn.parent.children = txn.parent.children.filter(c => c !== txn);
-        }
-        newParent.children.push(txn);
-        txn.parent = newParent;
-        txn.parent.children.sort(traceChronologicalSort);
-      }
-    }
-  }
-
   private _reparentSSRUnderBrowserRequestSpan(node: BaseNode) {
     const serverRequestHandler = node.parent?.children.find(n => n.op === 'http.server');
 
@@ -200,16 +173,37 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       // the eap-spans (by their parent_span_id) that were previously hidden. Note that this only impacts the
       // direct eap-transaction children of the targetted eap-transaction node.
       if (this.value.is_transaction) {
-        this._reparentEAPTransactions(
-          root => root.children.filter(c => isEAPTransaction(c.value)) as EapSpanNode[],
-          root =>
-            this.findChild(n => {
-              if (isEAPSpan(n.value)) {
-                return n.value.event_id === root.value.parent_span_id;
-              }
-              return false;
-            })
-        );
+        const eapTransactions = this.children.filter(c =>
+          isEAPTransaction(c.value)
+        ) as EapSpanNode[];
+
+        for (const txn of eapTransactions) {
+          // Find the eap-span that is the parent of the transaction
+          const newParent = this.findChild(n => {
+            if (isEAPSpan(n.value)) {
+              return n.value.event_id === txn.value.parent_span_id;
+            }
+            return false;
+          });
+
+          // If the transaction already has the correct parent, we can continue
+          if (newParent === txn.parent) {
+            continue;
+          }
+
+          this.reparentedEAPTransactions.add(txn);
+
+          // If we have found a new parent to reparent the transaction under,
+          // remove it from its current parent's children and add it to the new parent
+          if (newParent) {
+            if (txn.parent) {
+              txn.parent.children = txn.parent.children.filter(c => c !== txn);
+            }
+            newParent.children.push(txn);
+            txn.parent = newParent;
+            txn.parent.children.sort(traceChronologicalSort);
+          }
+        }
 
         const browserRequestSpan = this.children.find(c => isBrowserRequestNode(c));
         if (browserRequestSpan) {
@@ -228,16 +222,25 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       // Reparent the transactions from under the eap-spans in the expanded state, to under the closest eap-transaction
       // in the collapsed state. This only targets the embedded transactions that are to be direct children of the node upon collapse.
       if (this.value.is_transaction) {
-        this._reparentEAPTransactions(
-          root =>
-            root.findAllChildren(
-              n =>
-                isEAPTransaction(n.value) &&
-                n !== root && // Ensure that the transaction is not the root
-                n.findParent(p => isEAPTransaction(p.value)) === root // Ensure that root is the closest eap-transaction. Room for improvement here, O(n^2)
-            ) as EapSpanNode[],
-          root => root.findParent(p => isEAPTransaction(p.value))
-        );
+        for (const txn of this.reparentedEAPTransactions) {
+          const newParent = this;
+
+          // If the transaction already has the correct parent, we can continue
+          if (newParent === txn.parent) {
+            continue;
+          }
+
+          // If we have found a new parent to reparent the transaction under,
+          // remove it from its current parent's children and add it to the new parent
+          if (newParent) {
+            if (txn.parent) {
+              txn.parent.children = txn.parent.children.filter(c => c !== txn);
+            }
+            newParent.children.push(txn);
+            txn.parent = newParent;
+            txn.parent.children.sort(traceChronologicalSort);
+          }
+        }
       }
 
       // When transaction nodes are collapsed, they still render child transactions
