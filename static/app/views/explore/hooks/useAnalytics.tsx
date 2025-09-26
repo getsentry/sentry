@@ -138,12 +138,14 @@ function useTrackAnalytics({
       page_source,
       interval,
       gave_seer_consent: gaveSeerConsent,
+      version: 2,
     });
 
     /* eslint-disable @typescript-eslint/no-base-to-string */
     info(
       fmt`trace.explorer.metadata:
       organization: ${organization.slug}
+      dataScanned: ${dataScanned}
       dataset: ${dataset}
       query: [omitted]
       visualizes: ${visualizes.map(v => v.chartType).join(', ')}
@@ -226,10 +228,12 @@ function useTrackAnalytics({
       page_source,
       interval,
       gave_seer_consent: gaveSeerConsent,
+      version: 2,
     });
 
     info(fmt`trace.explorer.metadata:
       organization: ${organization.slug}
+      dataScanned: ${dataScanned}
       dataset: ${dataset}
       query: ${query}
       visualizes: ${visualizes.map(v => v.chartType).join(', ')}
@@ -322,6 +326,7 @@ function useTrackAnalytics({
       page_source,
       interval,
       gave_seer_consent: gaveSeerConsent,
+      version: 2,
     });
   }, [
     dataset,
@@ -542,6 +547,7 @@ export function useLogAnalytics({
     info(
       fmt`log.explorer.metadata:
       organization: ${organization.slug}
+      dataScanned: ${dataScanned}
       dataset: ${dataset}
       query: ${query}
       fields: ${fieldsBox.current}
@@ -616,6 +622,7 @@ export function useLogAnalytics({
     info(
       fmt`log.explorer.metadata:
       organization: ${organization.slug}
+      dataScanned: ${dataScanned}
       dataset: ${dataset}
       query: ${query}
       fields: ${fieldsBox.current}
