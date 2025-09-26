@@ -144,6 +144,7 @@ function useTrackAnalytics({
     info(
       fmt`trace.explorer.metadata:
       organization: ${organization.slug}
+      dataScanned: ${dataScanned}
       dataset: ${dataset}
       query: [omitted]
       visualizes: ${visualizes.map(v => v.chartType).join(', ')}
@@ -230,6 +231,7 @@ function useTrackAnalytics({
 
     info(fmt`trace.explorer.metadata:
       organization: ${organization.slug}
+      dataScanned: ${dataScanned}
       dataset: ${dataset}
       query: ${query}
       visualizes: ${visualizes.map(v => v.chartType).join(', ')}
@@ -542,6 +544,7 @@ export function useLogAnalytics({
     info(
       fmt`log.explorer.metadata:
       organization: ${organization.slug}
+      dataScanned: ${dataScanned}
       dataset: ${dataset}
       query: ${query}
       fields: ${fieldsBox.current}
@@ -616,6 +619,7 @@ export function useLogAnalytics({
     info(
       fmt`log.explorer.metadata:
       organization: ${organization.slug}
+      dataScanned: ${dataScanned}
       dataset: ${dataset}
       query: ${query}
       fields: ${fieldsBox.current}
