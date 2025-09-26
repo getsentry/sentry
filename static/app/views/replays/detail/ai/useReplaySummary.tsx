@@ -15,7 +15,8 @@ import {
 
 const POLL_INTERVAL_MS = 500; // Time between polls if the fetch request succeeds.
 const ERROR_POLL_INTERVAL_MS = 5000; // Time between polls if the fetch request failed.
-const POLL_TIMEOUT_MS = 100 * 1000; // Task timeout in Seer (90s) + 10s buffer.
+const START_TIMEOUT_MS = 15e3; // Max time to wait for status to not be NOT_STARTED.
+const TOTAL_TIMEOUT_MS = 100e3; // Max time to wait on a terminal status. Task timeout in Seer (90s) + 10s buffer.
 
 export interface UseReplaySummaryResult {
   /**
@@ -97,8 +98,34 @@ export function useReplaySummary(
   const hasMadeStartRequest = useRef<boolean>(false);
 
   const [didTimeout, setDidTimeout] = useState(false);
-  const {start: startPollingTimeout, cancel: cancelPollingTimeout} = useTimeout({
-    timeMs: POLL_TIMEOUT_MS,
+
+  const {data: summaryData, dataUpdatedAt: lastFetchTime} = useApiQuery<SummaryResponse>(
+    createAISummaryQueryKey(organization.slug, project?.slug, replayRecord?.id ?? ''),
+    {
+      staleTime: 0,
+      retry: false,
+      refetchInterval: query => {
+        if (shouldPoll(query.state.data?.[0], isStartSummaryRequestError, didTimeout)) {
+          return query.state.status === 'error'
+            ? ERROR_POLL_INTERVAL_MS
+            : POLL_INTERVAL_MS;
+        }
+        return false;
+      },
+      refetchOnWindowFocus: 'always',
+      ...options,
+    }
+  );
+
+  const {start: startTotalTimeout, cancel: cancelTotalTimeout} = useTimeout({
+    timeMs: TOTAL_TIMEOUT_MS,
+    onTimeout: () => {
+      setDidTimeout(true);
+    },
+  });
+
+  const {start: startStartTimeout, cancel: cancelStartTimeout} = useTimeout({
+    timeMs: START_TIMEOUT_MS,
     onTimeout: () => {
       setDidTimeout(true);
     },
@@ -145,32 +172,11 @@ export function useReplaySummary(
     startSummaryRequestMutate();
     hasMadeStartRequest.current = true;
 
-    // Start a new timeout.
+    // Start new timeouts.
     setDidTimeout(false);
-    startPollingTimeout();
-  }, [options?.enabled, startSummaryRequestMutate, startPollingTimeout]);
-
-  const {
-    data: summaryData,
-    isPending,
-    dataUpdatedAt,
-  } = useApiQuery<SummaryResponse>(
-    createAISummaryQueryKey(organization.slug, project?.slug, replayRecord?.id ?? ''),
-    {
-      staleTime: 0,
-      retry: false,
-      refetchInterval: query => {
-        if (shouldPoll(query.state.data?.[0], isStartSummaryRequestError, didTimeout)) {
-          return query.state.status === 'error'
-            ? ERROR_POLL_INTERVAL_MS
-            : POLL_INTERVAL_MS;
-        }
-        return false;
-      },
-      refetchOnWindowFocus: 'always',
-      ...options,
-    }
-  );
+    startTotalTimeout();
+    startStartTimeout();
+  }, [options?.enabled, startSummaryRequestMutate, startTotalTimeout, startStartTimeout]);
 
   // Auto-start logic. Triggered at most once per page load.
   const segmentsIncreased =
@@ -188,19 +194,31 @@ export function useReplaySummary(
   }, [segmentsIncreased, startSummaryRequest, summaryData?.status]);
 
   const isPendingRet =
-    dataUpdatedAt < startSummaryRequestTime.current ||
+    lastFetchTime < startSummaryRequestTime.current ||
     isStartSummaryRequestPending ||
-    isPending ||
-    summaryData === undefined ||
-    summaryData?.status === ReplaySummaryStatus.NOT_STARTED ||
-    summaryData?.status === ReplaySummaryStatus.PROCESSING;
+    !summaryData ||
+    ![ReplaySummaryStatus.COMPLETED, ReplaySummaryStatus.ERROR].includes(
+      summaryData.status
+    );
 
-  // Clears the polling timeout when we get valid summary results.
+  // Clears the start timeout when status != NOT_STARTED.
+  useEffect(() => {
+    if (
+      summaryData?.status !== ReplaySummaryStatus.NOT_STARTED &&
+      summaryData?.created_at &&
+      new Date(summaryData.created_at).getTime() > startSummaryRequestTime.current
+    ) {
+      cancelStartTimeout();
+    }
+  }, [summaryData?.status, summaryData?.created_at, cancelStartTimeout]);
+
+  // Clears all timeouts when we get valid summary results.
   useEffect(() => {
     if (!isPendingRet) {
-      cancelPollingTimeout();
+      cancelTotalTimeout();
+      cancelStartTimeout();
     }
-  }, [isPendingRet, cancelPollingTimeout]);
+  }, [isPendingRet, cancelTotalTimeout, cancelStartTimeout]);
 
   return {
     summaryData,
