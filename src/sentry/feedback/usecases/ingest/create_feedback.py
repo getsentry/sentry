@@ -272,9 +272,9 @@ def create_feedback_issue(
 
     # Spam detection.
     is_message_spam = None
-    if spam_detection_enabled(project):
-        is_spam_enabled = True
-        if features.has("organizations:seer-feedback-spam-detection", project.organization):
+    is_spam_enabled = spam_detection_enabled(project)
+    if is_spam_enabled:
+        if features.has("organizations:user-feedback-seer-spam-detection", project.organization):
             # Will be None if the request fails
             is_message_spam = is_spam_seer(feedback_message, project.organization_id)
             # Add "seer-" to the metric name to differentiate it from the LLM metric
@@ -297,8 +297,6 @@ def create_feedback_issue(
                 "referrer": source.value,
             },
         )
-    else:
-        is_spam_enabled = False
 
     should_query_seer = not is_message_spam and has_seer_access(project.organization)
 
