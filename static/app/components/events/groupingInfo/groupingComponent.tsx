@@ -25,7 +25,7 @@ function GroupingComponent({component, showNonContributing}: Props) {
       : GroupingComponentChildren;
 
   const [folded, setFolded] = useState(false);
-  const canFold = component.values.length > 1;
+  const canFold = !shouldInlineValue;
 
   return (
     <CollapseButtonWrapper>
