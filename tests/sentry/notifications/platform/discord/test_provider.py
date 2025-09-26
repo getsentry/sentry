@@ -13,7 +13,7 @@ from sentry.notifications.platform.discord.provider import (
     DiscordNotificationProvider,
     DiscordRenderable,
 )
-from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.target import IntegrationNotificationTarget, prepare_targets
 
 
 def is_action_row(component: DiscordMessageComponentDict) -> TypeGuard[DiscordActionRowDict]:
@@ -273,20 +273,23 @@ class DiscordNotificationProviderSendTest(TestCase):
         builder = DiscordMessageBuilder(embeds=[embed])
         return builder.build()
 
-    @patch("sentry.notifications.platform.discord.provider.DiscordClient")
+    @patch("sentry.integrations.discord.integration.DiscordClient")
     def test_send_success(self, mock_discord_client: Mock) -> None:
         """Test successful message sending"""
         mock_client_instance = mock_discord_client.return_value
         mock_client_instance.send_message.return_value = {"id": "1234567890123456789"}
 
         target = self._create_target()
+        prepare_targets([target])
         renderable = self._create_renderable()
 
         DiscordNotificationProvider.send(target=target, renderable=renderable)
 
-        mock_client_instance.send_message.assert_called_once_with("987654321", renderable)
+        mock_client_instance.send_message.assert_called_once_with(
+            channel_id="987654321", message=renderable
+        )
 
-    @patch("sentry.notifications.platform.discord.provider.DiscordClient")
+    @patch("sentry.integrations.discord.integration.DiscordClient")
     def test_send_to_direct_message(self, mock_discord_client: Mock) -> None:
         """Test sending message to direct message (user)"""
         mock_client_instance = mock_discord_client.return_value
@@ -299,8 +302,11 @@ class DiscordNotificationProviderSendTest(TestCase):
             integration_id=self.integration.id,
             organization_id=self.organization.id,
         )
+        prepare_targets([target])
         renderable = self._create_renderable()
 
         DiscordNotificationProvider.send(target=target, renderable=renderable)
 
-        mock_client_instance.send_message.assert_called_once_with("123456789012345678", renderable)
+        mock_client_instance.send_message.assert_called_once_with(
+            channel_id="123456789012345678", message=renderable
+        )
