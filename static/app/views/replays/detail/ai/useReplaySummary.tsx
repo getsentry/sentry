@@ -224,9 +224,10 @@ export function useReplaySummary(
   // Cancel the start timeout when status passes NOT_STARTED.
   useEffect(() => {
     if (
-      summaryData?.created_at &&
+      summaryData &&
       summaryData.status !== ReplaySummaryStatus.NOT_STARTED &&
-      new Date(summaryData.created_at).getTime() > startSummaryRequestTime.current
+      (!summaryData.created_at || // note created_at should exist for started statuses
+        new Date(summaryData.created_at).getTime() > startSummaryRequestTime.current)
     ) {
       cancelStartTimeout();
     }
