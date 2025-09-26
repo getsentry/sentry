@@ -17,7 +17,6 @@ import type {
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
 
 import EventContext from './eventContext';
 
@@ -38,14 +37,12 @@ const dataRow: EventData = {
 const renderEventContext = (location?: Location, eventView?: EventView) => {
   const organization = OrganizationFixture();
   render(
-    <QueryClientProvider client={makeTestQueryClient()}>
-      <EventContext
-        dataRow={dataRow}
-        organization={organization}
-        location={location}
-        eventView={eventView}
-      />
-    </QueryClientProvider>,
+    <EventContext
+      dataRow={dataRow}
+      organization={organization}
+      location={location}
+      eventView={eventView}
+    />,
     {organization}
   );
 };
