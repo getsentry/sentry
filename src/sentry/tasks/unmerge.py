@@ -34,7 +34,7 @@ from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.unmerge import InitialUnmergeArgs, SuccessiveUnmergeArgs, UnmergeArgs, UnmergeArgsBase
 from sentry.utils.eventuser import EventUser
-from sentry.utils.query import celery_run_batch_query
+from sentry.utils.query import task_run_batch_query
 
 logger = logging.getLogger(__name__)
 
@@ -519,7 +519,7 @@ def unmerge(*posargs, **kwargs):
         last_event = args.last_event
         locked_primary_hashes = args.locked_primary_hashes
 
-    last_event, events = celery_run_batch_query(
+    last_event, events = task_run_batch_query(
         filter=eventstore.Filter(project_ids=[args.project_id], group_ids=[source.id]),
         batch_size=args.batch_size,
         state=last_event,
