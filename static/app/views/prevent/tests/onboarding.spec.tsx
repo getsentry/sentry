@@ -699,14 +699,24 @@ describe('TestsOnboardingPage', () => {
   });
 
   describe('when the organization is not in the US region', () => {
-    it('renders the pre-onboarding page with alert and header text', () => {
+    it('navigates to the TA page with preonboarding alert and header text', async () => {
       mockGetRegionData.mockReturnValue({
         name: 'eu',
         displayName: 'European Union (EU)',
         url: 'https://eu.sentry.io',
       });
 
-      render(
+      // Mock API calls to prevent infinite navigation loop
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/repos/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/integrations/`,
+        body: [],
+      });
+
+      const {router} = render(
         <PreventContext.Provider value={mockPreventContext}>
           <TestsOnboardingPage />
         </PreventContext.Provider>,
@@ -720,14 +730,9 @@ describe('TestsOnboardingPage', () => {
         }
       );
 
-      expect(
-        screen.getByText(
-          'Test Analytics data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
-        )
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText('Keep Test Problems From Slowing You Down')
-      ).toBeInTheDocument();
+      await waitFor(() => {
+        expect(router.location.pathname).toBe('/prevent/tests');
+      });
     });
   });
 });
