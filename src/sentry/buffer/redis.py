@@ -264,7 +264,7 @@ class RedisBuffer(Buffer):
         self, client: RedisCluster[T] | rb.RoutingClient, key: str, ex: int
     ) -> None | str:
         lock_key = self._make_lock_key(key)
-        # prevent a stampede due to celerybeat + periodic task
+        # prevent a stampede due to scheduled tasks + periodic task
         if not client.set(lock_key, "1", nx=True, ex=ex):
             return None
         return lock_key
@@ -555,28 +555,6 @@ class RedisBuffer(Buffer):
             incr_batch_size=self.incr_batch_size
         )
 
-        def _generate_process_incr_kwargs(model_key: str | None) -> dict[str, Any]:
-            # The queue to be used for the process_incr task is determined in the following order of precedence:
-            # 1. The queue argument passed to process_incr.apply_async()
-            # 2. The queue defined on the process_incr task
-            # 3. Any defined routes in CELERY_ROUTES
-            #
-            # See: https://docs.celeryq.dev/en/latest/userguide/routing.html#specifying-task-destination
-            #
-            # Hence, we override the default queue of the process_incr task by passing in the assigned queue for the
-            # model associated with the model_key.
-            process_incr_kwargs: dict[str, Any] = dict()
-            if model_key is None:
-                metrics.incr("buffer.process-incr.model-key-missing")
-                return process_incr_kwargs
-            queue = pending_buffers_router.queue(model_key=model_key)
-            if queue is not None:
-                process_incr_kwargs["queue"] = queue
-                metrics.incr("buffer.process-incr-queue", tags={"queue": queue})
-            else:
-                metrics.incr("buffer.process-incr-default-queue")
-            return process_incr_kwargs
-
         try:
             keycount = 0
             if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
@@ -588,11 +566,9 @@ class RedisBuffer(Buffer):
                     pending_buffer = pending_buffers_router.get_pending_buffer(model_key=model_key)
                     pending_buffer.append(item=key)
                     if pending_buffer.full():
-                        process_incr_kwargs = _generate_process_incr_kwargs(model_key=model_key)
                         process_incr.apply_async(
                             kwargs={"batch_keys": pending_buffer.flush()},
                             headers={"sentry-propagate-traces": False},
-                            **process_incr_kwargs,
                         )
 
                 self.cluster.zrem(self.pending_key, *keys)
@@ -613,13 +589,9 @@ class RedisBuffer(Buffer):
                             )
                             pending_buffer.append(item=key)
                             if pending_buffer.full():
-                                process_incr_kwargs = _generate_process_incr_kwargs(
-                                    model_key=model_key
-                                )
                                 process_incr.apply_async(
                                     kwargs={"batch_keys": pending_buffer.flush()},
                                     headers={"sentry-propagate-traces": False},
-                                    **process_incr_kwargs,
                                 )
                         conn.target([host_id]).zrem(self.pending_key, *keysb)
             else:
@@ -631,11 +603,9 @@ class RedisBuffer(Buffer):
                 model_key = pending_buffer_value.model_key
 
                 if not pending_buffer.empty():
-                    process_incr_kwargs = _generate_process_incr_kwargs(model_key=model_key)
                     process_incr.apply_async(
                         kwargs={"batch_keys": pending_buffer.flush()},
                         headers={"sentry-propagate-traces": False},
-                        **process_incr_kwargs,
                     )
 
             metrics.distribution("buffer.pending-size", keycount)

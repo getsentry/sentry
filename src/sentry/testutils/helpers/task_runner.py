@@ -87,7 +87,7 @@ class _BurstState:
 
 def BurstTaskRunner() -> ContextManager[_BurstState]:
     """
-    A fixture for queueing up Celery tasks and working them off in bursts.
+    A fixture for queueing up tasks and working them off in bursts.
 
     The main interesting property is that one can run tasks at a later point in
     the future, testing "concurrency" without actually spawning any kind of

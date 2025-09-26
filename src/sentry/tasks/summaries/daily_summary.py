@@ -114,7 +114,7 @@ def schedule_organizations(timestamp: float | None = None, duration: int | None 
                         users_to_send_to.append(user)
 
             if any(users_to_send_to):
-                # Create a celery task per timezone
+                # Create a task per timezone
                 prepare_summary_data.delay(timestamp, duration, organization.id, users_to_send_to)
 
 

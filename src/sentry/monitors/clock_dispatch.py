@@ -55,7 +55,7 @@ def _dispatch_tick(ts: datetime):
     task that produces a clock pulse message into the topic that can be
     used to trigger these tasks when there is a low volume of check-ins. It is
     however, preferred to have a high volume of check-ins, so we do not need to
-    rely on celery beat, which in some cases may fail to trigger (such as in
+    rely on scheduled tasks, which in some cases may fail to trigger (such as in
     sentry.io, when we deploy we restart the task-scheduler and it will
     skip any tasks it missed)
     """

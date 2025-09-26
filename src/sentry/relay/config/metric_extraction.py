@@ -7,7 +7,6 @@ from datetime import timedelta
 from typing import Any, Literal, NotRequired, TypedDict
 
 import sentry_sdk
-from celery.exceptions import SoftTimeLimitExceeded
 from django.utils import timezone
 from sentry_relay.processing import validate_sampling_condition
 
@@ -50,6 +49,7 @@ from sentry.snuba.metrics.extraction import (
 )
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
+from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 
@@ -716,7 +716,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
         try:
             results = query_builder.run_query(Referrer.METRIC_EXTRACTION_CARDINALITY_CHECK.value)
             processed_results = query_builder.process_results(results)
-        except SoftTimeLimitExceeded as error:
+        except ProcessingDeadlineExceeded as error:
             scope.set_tag("widget_soft_deadline", True)
             sentry_sdk.capture_exception(error)
             # We're setting a much shorter cache timeout here since this is essentially a permissive 'unknown' state

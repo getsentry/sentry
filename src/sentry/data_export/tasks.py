@@ -7,7 +7,6 @@ from io import BufferedRandom
 from typing import Any
 
 import sentry_sdk
-from celery.exceptions import MaxRetriesExceededError
 from django.core.files.base import ContentFile
 from django.db import IntegrityError, router
 from django.utils import timezone
@@ -174,7 +173,7 @@ def assemble_download(
 
             try:
                 retry_task()
-            except (MaxRetriesExceededError, NoRetriesRemainingError):
+            except NoRetriesRemainingError:
                 metrics.incr(
                     "dataexport.end",
                     tags={"success": False, "error": str(error)},

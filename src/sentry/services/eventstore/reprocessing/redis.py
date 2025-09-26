@@ -128,7 +128,7 @@ class RedisReprocessingStore(ReprocessingStore):
         key = _get_remaining_key(project_id, old_group_id)
         new_key = f"{key}:{uuid.uuid4().hex}"
         try:
-            # Rename `key` to a new temp key that is passed to celery task. We
+            # Rename `key` to a new temp key that is passed to a task. We
             # use `renamenx` instead of `rename` only to detect UUID collisions.
             assert self.redis.renamenx(key, new_key), "UUID collision for new_key?"
 
