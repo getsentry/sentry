@@ -16,7 +16,9 @@ export function DebugNotificationsPreview({
         <Heading as="h2">{title}</Heading>
         <Flex>{actions}</Flex>
       </Flex>
-      {children}
+      <Flex direction="column" gap="sm">
+        {children}
+      </Flex>
     </Container>
   );
 }

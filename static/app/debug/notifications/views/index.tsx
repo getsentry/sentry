@@ -54,14 +54,8 @@ export default function DebugNotificationsIndex() {
                     <Tag type="success">{selectedRegistration.category}</Tag>
                   </Flex>
                 </Heading>
-                <Flex justify="between" wrap="nowrap" position="relative" gap="2xl">
-                  <Flex
-                    direction="column"
-                    gap="2xl"
-                    position="relative"
-                    flex="1"
-                    minWidth="0"
-                  >
+                <Grid columns="1fr 375px" gap="2xl" position="relative">
+                  <Flex direction="column" gap="2xl" position="relative" minWidth="0">
                     <EmailPreview registration={selectedRegistration} />
                     <SlackPreview />
                     <DiscordPreview />
@@ -70,7 +64,7 @@ export default function DebugNotificationsIndex() {
                   <ExampleContainer>
                     <DebugNotificationsExample registration={selectedRegistration} />
                   </ExampleContainer>
-                </Flex>
+                </Grid>
               </Flex>
             ) : (
               <DebugNotificationsLanding />

@@ -37,20 +37,15 @@ export function TeamsPreview({
         {showJson ? 'Hide JSON' : 'Show JSON'}
       </ToggleButton>
       {showJson && (
-        <StyledCodeSnippet language="json">
-          {JSON.stringify(card, null, 2)}
-        </StyledCodeSnippet>
+        <CodeSnippet language="json">
+          {card ? JSON.stringify(card, null, 2) : ''}
+        </CodeSnippet>
       )}
     </DebugNotificationsPreview>
   );
 }
 
 const ToggleButton = styled(Button)`
-  margin-top: ${p => p.theme.space.sm};
-  margin-bottom: ${p => p.theme.space.sm};
-`;
-
-const StyledCodeSnippet = styled(CodeSnippet)`
-  margin-top: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.md};
+  align-self: flex-start;
+  width: fit-content;
 `;
