@@ -97,6 +97,16 @@ const settingsRoutes = (): SentryRouteObject => ({
             },
           ],
         },
+        {
+          path: 'on-demand/',
+          name: 'On-Demand',
+          component: make(() => import('../views/spendLimits')),
+        },
+        {
+          path: 'pay-as-you-go/',
+          name: 'Pay-as-you-go',
+          component: make(() => import('../views/spendLimits')),
+        },
       ],
     },
     {
