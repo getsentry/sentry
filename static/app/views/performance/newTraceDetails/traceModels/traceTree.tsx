@@ -514,10 +514,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
         tree.indicators = tree.indicators.concat(
           collectTraceMeasurements(
             tree,
-            c, // TODO: Fix this
+            c,
             c.space[0],
             c.value.measurements,
-            tree.vitals, // TODO: Fix this
+            tree.vitals,
             tree.vital_types
           )
         );
@@ -527,7 +527,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         c.parent &&
         c.op === 'pageload' &&
         c.parent.op === 'http.server' &&
-        c.parent.visibleChildren.filter(child => child.op === 'pageload').length === 1
+        c.parent.directChildren.filter(child => child.op === 'pageload').length === 1
       ) {
         //   // The swap can occur at a later point when new transactions are fetched,
         //   // which means we need to invalidate the tree and re-render the UI.
@@ -638,7 +638,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
       // If the parent span does not exist in the span tree, the transaction will remain under the current node
       if (!parent) {
         if (transaction.parent?.children.indexOf(transaction) === -1) {
-          // TODO: Fix this
           transaction.parent.children.push(transaction);
         }
         continue;
@@ -655,7 +654,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         continue;
       }
 
-      parent.children.push(transaction); // TODO: Fix this
+      parent.children.push(transaction);
       transaction.parent = parent;
     }
 
@@ -748,7 +747,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         tree.indicators = tree.indicators.concat(
           collectTraceMeasurements(
             tree,
-            node, // TODO: Fix this
+            node,
             baseTraceNode.space[0],
             node.value.measurements,
             this.vitals,
