@@ -90,19 +90,3 @@ export function updateLocationWithLogSortBys(
     delete location.query[LOGS_SORT_BYS_KEY];
   }
 }
-
-export function updateLocationWithAggregateSortBys(
-  location: Location,
-  sortBys: Sort[] | null | undefined
-) {
-  if (defined(sortBys)) {
-    location.query[LOGS_AGGREGATE_SORT_BYS_KEY] = sortBys.map(sortBy =>
-      sortBy.kind === 'desc' ? `-${sortBy.field}` : sortBy.field
-    );
-
-    // make sure to clear the cursor every time the query is updated
-    delete location.query[LOGS_AGGREGATE_CURSOR_KEY];
-  } else if (sortBys === null) {
-    delete location.query[LOGS_AGGREGATE_SORT_BYS_KEY];
-  }
-}
