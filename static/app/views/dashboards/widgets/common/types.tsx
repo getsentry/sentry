@@ -27,13 +27,13 @@ export type TimeSeriesMeta = {
    */
   interval: number;
   valueType: TimeSeriesValueType;
-  valueUnit: TimeSeriesValueUnit;
   dataScanned?: 'partial' | 'full';
   isOther?: boolean;
   /**
    * For a top N request, the order is the position of this `TimeSeries` within the respective yAxis.
    */
   order?: number;
+  valueUnit?: TimeSeriesValueUnit;
 };
 
 export type TimeSeriesItem = {
