@@ -59,6 +59,7 @@ import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
 import SubscribeAction from 'sentry/views/issueDetails/actions/subscribeAction';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import useProjectReleaseVersionIsSemver from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
 import {
   useEnvironmentsFromUrl,
   useHasStreamlinedUI,
@@ -95,9 +96,17 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
   const hasRelease = !!project.features?.includes('releases');
 
-  const hasSemverRelease = event?.release?.versionInfo.version
-    ? isVersionInfoSemver(event.release.versionInfo.version)
-    : false;
+  const eventReleaseVersion = event?.release?.versionInfo.version;
+
+  const projHasSemverRelease = useProjectReleaseVersionIsSemver({
+    version: project.latestRelease?.version,
+    enabled: !eventReleaseVersion,
+  });
+
+  const hasSemverRelease = eventReleaseVersion
+    ? isVersionInfoSemver(eventReleaseVersion)
+    : projHasSemverRelease;
+
   const hasSemverReleaseFeature =
     organization.features?.includes('resolve-in-semver-release') && hasSemverRelease;
 
