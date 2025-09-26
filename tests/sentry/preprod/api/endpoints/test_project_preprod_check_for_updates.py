@@ -82,7 +82,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         url = self._get_url()
         response = self.client.get(
             url
-            + "?app_id=com.example.app&platform=android&version=1.0.0&main_binary_identifier=nonexistent",
+            + "?app_id=com.example.app&platform=android&build_version=1.0.0&main_binary_identifier=nonexistent",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -100,7 +100,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         url = self._get_url()
         response = self.client.get(
             url
-            + "?app_id=com.example.app&platform=ios&version=1.0.0&main_binary_identifier=test-identifier",
+            + "?app_id=com.example.app&platform=ios&build_version=1.0.0&main_binary_identifier=test-identifier",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -134,7 +134,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         url = self._get_url()
         response = self.client.get(
             url
-            + "?app_id=com.example.app&platform=android&version=1.0.0&main_binary_identifier=test-identifier",
+            + "?app_id=com.example.app&platform=android&build_version=1.0.0&main_binary_identifier=test-identifier",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -171,7 +171,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         url = self._get_url()
         response = self.client.get(
             url
-            + "?app_id=com.example.app&platform=ios&version=1.0.0&main_binary_identifier=test-identifier",
+            + "?app_id=com.example.app&platform=ios&build_version=1.0.0&main_binary_identifier=test-identifier",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -205,7 +205,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         url = self._get_url()
         response = self.client.get(
             url
-            + "?app_id=com.example.app&platform=android&version=1.0.0&main_binary_identifier=test-identifier",
+            + "?app_id=com.example.app&platform=android&build_version=1.0.0&main_binary_identifier=test-identifier",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -241,7 +241,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         url = self._get_url()
         response = self.client.get(
             url
-            + "?app_id=com.example.app&platform=android&version=1.0.0&main_binary_identifier=test-identifier",
+            + "?app_id=com.example.app&platform=android&build_version=1.0.0&main_binary_identifier=test-identifier",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -279,7 +279,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         url = self._get_url()
         response = self.client.get(
             url
-            + "?app_id=com.example.app&platform=android&version=1.0.0&main_binary_identifier=test-identifier",
+            + "?app_id=com.example.app&platform=android&build_version=1.0.0&main_binary_identifier=test-identifier",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -304,7 +304,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         url = self._get_url()
         response = self.client.get(
             url
-            + "?app_id=com.example.app&platform=android&version=1.0.0&main_binary_identifier=test-identifier",
+            + "?app_id=com.example.app&platform=android&build_version=1.0.0&main_binary_identifier=test-identifier",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -343,7 +343,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         url = self._get_url()
         response = self.client.get(
             url
-            + "?app_id=com.example.app&platform=android&version=1.0.0&main_binary_identifier=test-identifier&build_configuration=debug",
+            + "?app_id=com.example.app&platform=android&build_version=1.0.0&main_binary_identifier=test-identifier&build_configuration=debug",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -354,3 +354,45 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         # Should find the artifact with matching build configuration
         assert data["current"] is not None
         assert data["current"]["id"] == str(debug_artifact.id)
+
+    def test_build_number_filtering(self):
+        """Test that build_number parameter filters correctly"""
+        # Create artifacts with same version but different build numbers
+        self._create_android_artifact(
+            main_binary_identifier="test-identifier",
+            build_version="1.0.0",
+            build_number=42,
+        )
+
+        self._create_android_artifact(
+            main_binary_identifier="test-identifier-2",
+            build_version="1.0.0",
+            build_number=50,
+        )
+
+        url = self._get_url()
+        response = self.client.get(
+            url
+            + "?app_id=com.example.app&platform=android&build_version=1.0.0&build_number=42&main_binary_identifier=test-identifier",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Should find the artifact with matching build number
+        assert data["current"] is not None
+        assert data["current"]["build_number"] == 42
+
+    def test_invalid_build_number_format(self):
+        """Test that invalid build_number format returns 400"""
+        url = self._get_url()
+        response = self.client.get(
+            url
+            + "?app_id=com.example.app&platform=android&build_version=1.0.0&build_number=invalid&main_binary_identifier=test-identifier",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 400
+        assert "Invalid build_number format" in response.json()["error"]
