@@ -125,8 +125,8 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
     };
   }
 
-  pathToNode(): TraceTree.NodePath[] {
-    return [`uptimeCheck-${this.id}`];
+  get nodePath(): TraceTree.NodePath {
+    return `uptimeCheck-${this.id}`;
   }
 
   matchByPath(path: TraceTree.NodePath): boolean {

@@ -53,17 +53,8 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
     };
   }
 
-  pathToNode(): TraceTree.NodePath[] {
-    const path: TraceTree.NodePath[] = [];
-    const closestFetchableParent = this.findParent(p => p.canFetchChildren);
-
-    path.push(`ms-${this.id}`);
-
-    if (closestFetchableParent) {
-      path.push(...closestFetchableParent.pathToNode());
-    }
-
-    return path;
+  get nodePath(): TraceTree.NodePath {
+    return `ms-${this.id}`;
   }
 
   matchByPath(path: TraceTree.NodePath): boolean {
