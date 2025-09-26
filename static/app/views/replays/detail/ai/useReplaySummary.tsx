@@ -104,6 +104,7 @@ export function useReplaySummary(
     timeMs: START_TIMEOUT_MS,
     onTimeout: () => {
       setDidTimeout(true);
+      cancelTotalTimeout();
     },
   });
 
@@ -218,13 +219,13 @@ export function useReplaySummary(
   // Cancel the start timeout when status passes NOT_STARTED.
   useEffect(() => {
     if (
-      summaryData?.created_at &&
+      summaryData &&
       summaryData.status !== ReplaySummaryStatus.NOT_STARTED &&
-      new Date(summaryData.created_at).getTime() > startSummaryRequestTime.current
+      new Date(summaryData.created_at!).getTime() > startSummaryRequestTime.current
     ) {
       cancelStartTimeout();
     }
-  }, [cancelStartTimeout, summaryData?.created_at, summaryData?.status]);
+  }, [cancelStartTimeout, summaryData]);
 
   return {
     summaryData,
