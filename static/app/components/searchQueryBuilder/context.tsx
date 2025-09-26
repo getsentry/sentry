@@ -59,8 +59,10 @@ interface SearchQueryBuilderContextData {
   setDisplayAskSeerFeedback: (enabled: boolean) => void;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement | null>;
+  caseInsensitive?: boolean;
   filterKeyAliases?: TagCollection;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
+  onCaseInsensitiveClick?: (caseInsensitive: boolean) => void;
   placeholder?: string;
   /**
    * The element to render the combobox popovers into.
@@ -108,6 +110,8 @@ export function SearchQueryBuilderProvider({
   replaceRawSearchKeys,
   matchKeySuggestions,
   filterKeyAliases,
+  caseInsensitive,
+  onCaseInsensitiveClick,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
@@ -218,9 +222,12 @@ export function SearchQueryBuilderProvider({
       setDisplayAskSeerFeedback,
       askSeerNLQueryRef,
       askSeerSuggestedQueryRef,
+      caseInsensitive,
+      onCaseInsensitiveClick,
     };
   }, [
     autoSubmitSeer,
+    caseInsensitive,
     disabled,
     disallowFreeText,
     disallowWildcard,
@@ -234,6 +241,7 @@ export function SearchQueryBuilderProvider({
     getTagValues,
     handleSearch,
     matchKeySuggestions,
+    onCaseInsensitiveClick,
     parseQuery,
     parsedQuery,
     placeholder,

@@ -4136,6 +4136,23 @@ describe('SearchQueryBuilder', () => {
     });
   });
 
+  describe('case sensitivity', () => {
+    it('renders the case sensitivity toggle when the feature is enabled', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          caseInsensitive
+          onCaseInsensitiveClick={() => {}}
+        />,
+        {organization: {features: ['search-query-builder-case-insensitivity']}}
+      );
+
+      expect(
+        await screen.findByRole('button', {name: 'Toggle case sensitivity'})
+      ).toBeInTheDocument();
+    });
+  });
+
   describe('replaceRawSearchKeys', () => {
     it('should replace raw search keys with defined key:value', async () => {
       render(

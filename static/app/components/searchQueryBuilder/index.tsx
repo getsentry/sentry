@@ -1,4 +1,5 @@
 import {useContext, useLayoutEffect} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -19,12 +20,13 @@ import {
 } from 'sentry/components/searchQueryBuilder/types';
 import {queryIsValid} from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
-import {IconClose, IconSearch} from 'sentry/icons';
+import {IconCase, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export interface SearchQueryBuilderProps {
   /**
@@ -40,6 +42,12 @@ export interface SearchQueryBuilderProps {
    */
   searchSource: string;
   autoFocus?: boolean;
+  /**
+   * Controls the state of the case sensitivity toggle.
+   * - `true` = case insensitive
+   * - `false` = case sensitive
+   */
+  caseInsensitive?: boolean;
   className?: string;
   disabled?: boolean;
   /**
@@ -118,6 +126,11 @@ export interface SearchQueryBuilderProps {
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   onBlur?: (query: string, state: CallbackSearchState) => void;
   /**
+   * When passed, this will display the case sensitivity toggle, and will be called when
+   * the user clicks on the case sensitivity button.
+   */
+  onCaseInsensitiveClick?: (caseInsensitive: boolean) => void;
+  /**
    * Called when the query value changes
    */
   onChange?: (query: string, state: CallbackSearchState) => void;
@@ -163,8 +176,19 @@ function ActionButtons({
   ref?: React.Ref<HTMLDivElement>;
   trailingItems?: React.ReactNode;
 }) {
-  const {dispatch, handleSearch, disabled, query, setDisplayAskSeerFeedback} =
-    useSearchQueryBuilder();
+  const {
+    dispatch,
+    handleSearch,
+    disabled,
+    query,
+    setDisplayAskSeerFeedback,
+    caseInsensitive,
+    onCaseInsensitiveClick,
+  } = useSearchQueryBuilder();
+
+  const hasCaseSensitiveSearch = useOrganization().features.includes(
+    'search-query-builder-case-insensitivity'
+  );
 
   if (disabled) {
     return null;
@@ -173,6 +197,19 @@ function ActionButtons({
   return (
     <ButtonsWrapper ref={ref}>
       {trailingItems}
+      {defined(onCaseInsensitiveClick) && hasCaseSensitiveSearch ? (
+        <ActionButton
+          aria-label={t('Toggle case sensitivity')}
+          aria-pressed={caseInsensitive === true}
+          size="zero"
+          icon={<IconCase color={caseInsensitive ? 'active' : 'subText'} />}
+          borderless
+          active={caseInsensitive === true}
+          onClick={() => {
+            onCaseInsensitiveClick?.(!caseInsensitive);
+          }}
+        />
+      ) : null}
       {query === '' ? null : (
         <ActionButton
           aria-label={t('Clear search query')}
@@ -272,17 +309,22 @@ const ButtonsWrapper = styled('div')`
   transform: translateY(-50%);
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
-const ActionButton = styled(Button)`
+const ActionButton = styled(Button)<{active?: boolean}>`
   color: ${p => p.theme.subText};
+  ${p =>
+    p.active &&
+    css`
+      background-color: ${p.theme.purple200};
+    `}
 `;
 
 const PositionedSearchIconContainer = styled('div')`
   position: absolute;
-  left: ${space(1.5)};
-  top: ${p => (p.theme.isChonk ? space(0.75) : space(1))};
+  left: ${p => p.theme.space.lg};
+  top: ${p => (p.theme.isChonk ? p.theme.space.sm : p.theme.space.md)};
 `;
 
 const SearchIcon = styled(IconSearch)`
