@@ -55,13 +55,7 @@ export class UptimeCheckTimingNode extends BaseNode<TraceTree.UptimeCheckTiming>
   renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
-    return (
-      <UptimeTimingDetails
-        {...props}
-        // Won't need this cast once we use BaseNode type for props.node
-        node={this as unknown as TraceTreeNode<TraceTree.UptimeCheckTiming>}
-      />
-    );
+    return <UptimeTimingDetails {...props} node={this} />;
   }
 
   matchWithFreeText(query: string): boolean {

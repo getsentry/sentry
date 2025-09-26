@@ -17,7 +17,7 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
   event: EventTransaction | null = null;
   canAutogroup = true;
   allowNoInstrumentationNodes = true;
-  searchPriority = 1;
+  searchPriority = 2;
 
   constructor(
     parent: BaseNode | null,
@@ -86,7 +86,7 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
 
   pathToNode(): TraceTree.NodePath[] {
     const path: TraceTree.NodePath[] = [];
-    const closestTransaction = this.findParent(p => isTransactionNode(p as any));
+    const closestTransaction = this.findParent(p => isTransactionNode(p));
 
     path.push(`span-${this.id}`);
 
@@ -115,13 +115,7 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<T>
   ): React.ReactNode {
-    // Won't need this cast once we use BaseNode type for props.node
-    return (
-      <TraceSpanRow
-        {...props}
-        node={props.node as unknown as TraceTreeNode<TraceTree.Span>}
-      />
-    );
+    return <TraceSpanRow {...props} node={props.node} />;
   }
 
   renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(

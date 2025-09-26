@@ -81,17 +81,7 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
-    return (
-      <TraceErrorRow
-        {...props}
-        // Won't need this cast once we use BaseNode type for props.node
-        node={
-          props.node as unknown as
-            | TraceTreeNode<TraceTree.TraceError>
-            | TraceTreeNode<TraceTree.EAPError>
-        }
-      />
-    );
+    return <TraceErrorRow {...props} node={props.node} />;
   }
 
   renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(
