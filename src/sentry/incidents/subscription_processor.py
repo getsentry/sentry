@@ -635,6 +635,28 @@ class SubscriptionProcessor:
         self.update_alert_rule_stats()
         return fired_incident_triggers
 
+    def has_downgraded(self, dataset: str, organization: Organization) -> bool:
+        """
+        Check if the organization has downgraded since the subscription was created, return early if True
+        """
+        if dataset == "events" and not features.has("organizations:incidents", organization):
+            metrics.incr("incidents.alert_rules.ignore_update_missing_incidents")
+            return True
+
+        elif dataset == "transactions" and not features.has(
+            "organizations:performance-view", organization
+        ):
+            metrics.incr("incidents.alert_rules.ignore_update_missing_incidents_performance")
+            return True
+
+        elif dataset == "generic_metrics" and not features.has(
+            "organizations:on-demand-metrics-extraction", organization
+        ):
+            metrics.incr("incidents.alert_rules.ignore_update_missing_on_demand")
+            return True
+
+        return False
+
     def process_update(self, subscription_update: QuerySubscriptionUpdate) -> None:
         """
         This is the core processing method utilized when Query Subscription Consumer fetches updates from kafka
@@ -652,15 +674,7 @@ class SubscriptionProcessor:
 
         organization = self.subscription.project.organization
 
-        if dataset == "events" and not features.has("organizations:incidents", organization):
-            # They have downgraded since these subscriptions have been created. So we just ignore updates for now.
-            metrics.incr("incidents.alert_rules.ignore_update_missing_incidents")
-            return
-        elif dataset == "transactions" and not features.has(
-            "organizations:performance-view", organization
-        ):
-            # They have downgraded since these subscriptions have been created. So we just ignore updates for now.
-            metrics.incr("incidents.alert_rules.ignore_update_missing_incidents_performance")
+        if self.has_downgraded(dataset, organization):
             return
 
         if not hasattr(self, "alert_rule"):
