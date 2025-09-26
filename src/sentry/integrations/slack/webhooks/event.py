@@ -249,11 +249,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
             if "text" in link_info:
                 del link_info["text"]
 
-        payload = {
-            "channel": data["channel"],
-            "ts": data["message_ts"],
-            "unfurls": orjson.dumps(results).decode(),
-        }
+        payload = {"channel": data["channel"], "ts": data["message_ts"], "unfurls": results}
 
         with MessagingInteractionEvent(
             interaction_type=MessagingInteractionType.UNFURL_LINK,
