@@ -490,6 +490,7 @@ from sentry.rules.history.endpoints.project_rule_group_history import (
     ProjectRuleGroupHistoryIndexEndpoint,
 )
 from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIndexEndpoint
+from sentry.seer.endpoints.github_enterprise_config import GitHubEnterpriseConfigEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
@@ -3405,6 +3406,11 @@ INTERNAL_URLS = [
         r"^seer-rpc/(?P<method_name>\w+)/$",
         SeerRpcServiceEndpoint.as_view(),
         name="sentry-api-0-seer-rpc-service",
+    ),
+    re_path(
+        r"^github-enterprise-config/$",
+        GitHubEnterpriseConfigEndpoint.as_view(),
+        name="sentry-api-0-github-enterprise-config",
     ),
     # Prevent AI (Overwatch) endpoints
     re_path(
