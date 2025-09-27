@@ -23,6 +23,7 @@ export type InviteMembersContextValue = {
   error?: string;
 };
 
+/** @internal used in tests */
 export const defaultInviteProps: InviteMembersContextValue = {
   complete: false,
   inviteStatus: {},

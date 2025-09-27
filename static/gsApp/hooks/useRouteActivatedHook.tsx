@@ -13,10 +13,6 @@ import {
 } from 'getsentry/utils/routeAnalytics';
 import trackMetric from 'getsentry/utils/trackMetric';
 
-/**
- * @internal exported for tests only
- * give up to 7s for things to load
- */
 export const DELAY_TIME_MS = 7000;
 
 type Props = Parameters<Hooks['react-hook:route-activated']>[0];

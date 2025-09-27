@@ -482,7 +482,6 @@ export type PromotionData = {
   completedPromotions: PromotionClaimed[];
 };
 
-/** @internal exported for tests only */
 export type Feature = {
   description: string;
   name: string;
@@ -810,7 +809,6 @@ export enum CohortId {
   TEST_ONE = 111,
 }
 
-/** @internal exported for tests only */
 export type Cohort = {
   cohortId: CohortId;
   nextPlan: NextPlanInfo | null;
