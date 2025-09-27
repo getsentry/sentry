@@ -759,6 +759,7 @@ export enum CreditType {
   DISCOUNT = 'discount',
   PERCENT = 'percent',
   LOG_BYTE = 'log_byte',
+  PREVENT_USER = 'prevent_user',
 }
 
 type BaseRecurringCredit = {
@@ -789,7 +790,8 @@ interface RecurringEventCredit extends BaseRecurringCredit {
     | CreditType.PROFILE_DURATION_UI
     | CreditType.ATTACHMENT
     | CreditType.REPLAY
-    | CreditType.LOG_BYTE;
+    | CreditType.LOG_BYTE
+    | CreditType.PREVENT_USER;
 }
 
 export type RecurringCredit =
