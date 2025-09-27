@@ -106,7 +106,7 @@ class WorkflowEngineDataConditionSerializer(Serializer):
                 else AlertRuleThresholdType.BELOW.value
             )
             resolve_threshold = translate_data_condition_type(
-                detector.config.get("comparison_delta"),
+                detector.config["comparison_delta"],
                 obj.type,
                 get_resolve_threshold(obj.condition_group),
             )
@@ -119,7 +119,7 @@ class WorkflowEngineDataConditionSerializer(Serializer):
             ),
             "thresholdType": threshold_type,
             "alertThreshold": translate_data_condition_type(
-                detector.config.get("comparison_delta"),
+                detector.config["comparison_delta"],
                 obj.type,
                 (
                     0 if obj.type == Condition.ANOMALY_DETECTION else obj.comparison

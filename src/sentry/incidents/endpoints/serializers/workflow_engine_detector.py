@@ -51,7 +51,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
         sentry_app_installations_by_sentry_app_id: Mapping[str, RpcSentryAppComponentContext] = {}
         if self.prepare_component_fields:
             sentry_app_ids = [
-                int(action.config.get("target_identifier"))
+                int(action.config["target_identifier"])
                 for action in actions
                 if action.config.get("sentry_app_identifier") is not None
             ]
@@ -342,7 +342,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "aggregate": attrs.get("aggregate"),
             "timeWindow": attrs.get("timeWindow"),
             "resolution": attrs.get("resolution"),
-            "thresholdPeriod": obj.config.get("thresholdPeriod"),
+            "thresholdPeriod": obj.config["thresholdPeriod"],
             "triggers": triggers,
             "projects": sorted(attrs.get("projects", [])),
             "owner": attrs.get("owner", None),

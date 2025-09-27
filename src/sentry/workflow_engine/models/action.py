@@ -3,7 +3,7 @@ from __future__ import annotations
 import builtins
 import logging
 from enum import StrEnum
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import models
 from django.db.models.signals import pre_save
@@ -18,7 +18,6 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.utils import metrics
-from sentry.workflow_engine.models.json_config import JSONConfigBase
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
 
@@ -39,7 +38,7 @@ class ActionManager(BaseManager["Action"]):
 
 
 @region_silo_model
-class Action(DefaultFieldsModel, JSONConfigBase):
+class Action(DefaultFieldsModel):
     """
     Actions are actions that can be taken if the conditions of a DataConditionGroup are satisfied.
     Examples include: detectors emitting events, sending notifications, creating an issue in the Issue Platform, etc.
@@ -89,6 +88,16 @@ class Action(DefaultFieldsModel, JSONConfigBase):
     # The type field is used to denote the type of action we want to trigger
     type = models.TextField(choices=[(t.value, t.value) for t in Type])
     data = models.JSONField(default=dict)
+
+    config: models.JSONField[dict[str, Any], dict[str, Any]] = models.JSONField(db_default={})
+
+    def validate_config(self, schema: dict[str, Any]) -> None:
+        from jsonschema import ValidationError, validate
+
+        try:
+            validate(self.config, schema)
+        except ValidationError as e:
+            raise ValidationError(f"Invalid config: {e.message}")
 
     # LEGACY: The integration_id is used to map the integration_id found in the AlertRuleTriggerAction
     # This allows us to map the way we're saving the notification channels to the action.
