@@ -12,6 +12,7 @@ from sentry.api.endpoints.oauth_userinfo import OAuthUserInfoEndpoint
 from sentry.api.endpoints.warmup import WarmupEndpoint
 from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2MetadataView, SAML2SLSView
 from sentry.charts.endpoints import serve_chartcuterie_config
+from sentry.feedback.endpoints.error_page_embed import ErrorPageEmbedView
 from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
 from sentry.integrations.web.organization_integration_setup import OrganizationIntegrationSetupView
 from sentry.sentry_apps.web.sentryapp_avatar import SentryAppAvatarPhotoView
@@ -32,7 +33,6 @@ from sentry.web.frontend.cli import get_cli, get_cli_download_url
 from sentry.web.frontend.disabled_member_view import DisabledMemberView
 from sentry.web.frontend.error_404 import Error404View
 from sentry.web.frontend.error_500 import Error500View
-from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
 from sentry.web.frontend.group_tag_export import GroupTagExportView

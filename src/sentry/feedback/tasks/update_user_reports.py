@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.tasks.update_user_reports",
+    name="sentry.feedback.tasks.update_user_reports",
     queue="update",
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
@@ -35,6 +35,10 @@ def update_user_reports(
     max_events: int | None = None,
     event_lookback_days: int | None = None,
 ) -> None:
+    """
+    Scheduled task to update user report -> event links that were missed during ingestion.
+    """
+
     now = timezone.now()
     start = now - timedelta(days=1)
     # +5 minutes just to catch clock skew
