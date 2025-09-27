@@ -1,0 +1,1190 @@
+---
+alwaysApply: true
+---
+
+# Sentry Monorepo - Monitoring & Observability
+
+## 🎯 Overview
+
+Sentry monitors itself using its own platform (dogfooding) while also employing additional monitoring tools for infrastructure and system health. This approach provides comprehensive observability for a high-scale, mission-critical error tracking platform.
+
+## 📊 Self-Monitoring (Dogfooding)
+
+### Sentry SDK Integration
+```python
+# src/sentry/conf/settings.py
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.celery import CeleryIntegration
+from sentry_sdk.integrations.redis import RedisIntegration
+
+sentry_sdk.init(
+    dsn=SENTRY_DSN,
+    integrations=[
+        DjangoIntegration(
+            transaction_style='url',
+            middleware_spans=True,
+            signals_spans=True,
+        ),
+        CeleryIntegration(
+            monitor_beat_tasks=True,
+            propagate_traces=True,
+        ),
+        RedisIntegration(),
+    ],
+    traces_sample_rate=0.1,
+    profiles_sample_rate=0.1,
+    environment=ENVIRONMENT,
+    release=RELEASE,
+    attach_stacktrace=True,
+    send_default_pii=False,
+)
+```
+
+### Django Middleware for Request Monitoring
+```python
+# src/sentry/middleware/monitoring.py
+class SentryMonitoringMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_tag('request.method', request.method)
+            scope.set_tag('request.path', request.path)
+            if hasattr(request, 'user') and request.user.is_authenticated:
+                scope.set_user({'id': request.user.id})
+
+        response = self.get_response(request)
+        return response
+```
+
+### Frontend Error Tracking
+```typescript
+// static/app/bootstrap.tsx
+import * as Sentry from '@sentry/react';
+
+Sentry.init({
+  dsn: window.__SENTRY_DSN,
+  environment: window.__SENTRY_ENVIRONMENT,
+  release: window.__SENTRY_RELEASE,
+
+  tracesSampleRate: 0.1,
+
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.replayIntegration({
+      maskAllText: false,
+      blockAllMedia: false,
+    }),
+  ],
+
+  beforeSend(event, hint) {
+    // Filter out expected errors
+    if (event.exception?.values?.[0]?.type === 'AbortError') {
+      return null;
+    }
+    return event;
+  },
+});
+```
+
+## 🔍 Performance Monitoring
+
+### Database Query Monitoring
+```python
+# src/sentry/db/monitoring.py
+import time
+import sentry_sdk
+from django.db import connection
+
+class DatabaseMonitoringMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        queries_before = len(connection.queries)
+        start_time = time.time()
+
+        response = self.get_response(request)
+
+        queries_after = len(connection.queries)
+        duration = time.time() - start_time
+
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_tag('db.query_count', queries_after - queries_before)
+            scope.set_tag('db.duration', duration)
+
+        return response
+```
+
+### Celery Task Monitoring
+```python
+# src/sentry/tasks/monitoring.py
+from celery import Task
+from celery.signals import task_prerun, task_postrun
+import sentry_sdk
+
+class MonitoredTask(Task):
+    def on_failure(self, exc, task_id, args, kwargs, einfo):
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_tag('task_id', task_id)
+            scope.set_tag('task_name', self.name)
+            scope.set_context('task_args', {'args': args, 'kwargs': kwargs})
+            sentry_sdk.capture_exception(exc)
+
+@task_prerun.connect
+def task_prerun_handler(task_id, task, *args, **kwargs):
+    with sentry_sdk.configure_scope() as scope:
+        scope.set_tag('task_id', task_id)
+        scope.set_tag('task_name', task.name)
+
+@task_postrun.connect
+def task_postrun_handler(task_id, task, *args, **kwargs):
+    # Log task completion metrics
+    pass
+```
+
+## 🚨 Alert Rules & Monitoring
+
+### Critical System Alerts
+```python
+# src/sentry/monitoring/alerts.py
+CRITICAL_ALERTS = {
+    'high_error_rate': {
+        'condition': 'error_rate > 0.05',
+        'window': '5m',
+        'severity': 'critical',
+        'channels': ['pagerduty', 'slack'],
+    },
+    'database_latency': {
+        'condition': 'avg(database_query_duration) > 1000ms',
+        'window': '5m',
+        'severity': 'warning',
+        'channels': ['slack'],
+    },
+    'event_ingestion_lag': {
+        'condition': 'event_processing_lag > 30s',
+        'window': '2m',
+        'severity': 'critical',
+        'channels': ['pagerduty'],
+    },
+}
+```
+
+### Custom Metrics Collection
+```python
+# src/sentry/metrics/custom.py
+import sentry_sdk
+from django.db.models.signals import post_save
+from sentry.models import Group, Event
+
+@post_save.connect(sender=Event)
+def track_event_metrics(sender, instance, created, **kwargs):
+    if created:
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_tag('project_id', instance.project_id)
+            scope.set_tag('platform', instance.platform)
+
+        # Track custom metrics
+        sentry_sdk.add_breadcrumb(
+            message='Event processed',
+            category='event',
+            level='info',
+            data={
+                'event_id': str(instance.id),
+                'project_id': instance.project_id,
+                'platform': instance.platform,
+            }
+        )
+```
+
+## 📈 Infrastructure Monitoring
+
+### Prometheus Integration
+```python
+# src/sentry/monitoring/prometheus.py
+from django_prometheus.middleware import PrometheusBeforeMiddleware, PrometheusAfterMiddleware
+from prometheus_client import Counter, Histogram, Gauge
+
+# Custom metrics
+REQUEST_COUNT = Counter('sentry_requests_total', 'Total requests', ['method', 'endpoint'])
+REQUEST_DURATION = Histogram('sentry_request_duration_seconds', 'Request duration')
+ACTIVE_USERS = Gauge('sentry_active_users', 'Active users')
+
+class PrometheusMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        REQUEST_COUNT.labels(method=request.method, endpoint=request.path).inc()
+
+        with REQUEST_DURATION.time():
+            response = self.get_response(request)
+
+        return response
+```
+
+### Health Checks
+```python
+# src/sentry/monitoring/health.py
+from django.http import JsonResponse
+from django.db import connection
+import redis
+
+def health_check(request):
+    """Comprehensive health check endpoint"""
+    status = {'status': 'healthy', 'checks': {}}
+
+    # Database check
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            status['checks']['database'] = 'healthy'
+    except Exception as e:
+        status['checks']['database'] = f'unhealthy: {str(e)}'
+        status['status'] = 'unhealthy'
+
+    # Redis check
+    try:
+        r = redis.Redis()
+        r.ping()
+        status['checks']['redis'] = 'healthy'
+    except Exception as e:
+        status['checks']['redis'] = f'unhealthy: {str(e)}'
+        status['status'] = 'unhealthy'
+
+    # Event processing check
+    try:
+        from sentry.models import Event
+        recent_events = Event.objects.filter(
+            datetime__gte=timezone.now() - timedelta(minutes=5)
+        ).count()
+        status['checks']['event_processing'] = {
+            'status': 'healthy',
+            'recent_events': recent_events
+        }
+    except Exception as e:
+        status['checks']['event_processing'] = f'unhealthy: {str(e)}'
+        status['status'] = 'unhealthy'
+
+    return JsonResponse(status)
+```
+
+## 🔄 Event Processing Monitoring
+
+### Event Pipeline Observability
+```python
+# src/sentry/event_processing/monitoring.py
+import sentry_sdk
+from sentry.signals import event_received, event_processed
+
+@event_received.connect
+def track_event_received(sender, event, **kwargs):
+    with sentry_sdk.configure_scope() as scope:
+        scope.set_tag('event_type', event.get('type', 'error'))
+        scope.set_tag('platform', event.get('platform'))
+
+    sentry_sdk.add_breadcrumb(
+        message='Event received',
+        category='event_processing',
+        level='info',
+        data={
+            'event_id': event.get('event_id'),
+            'project_id': event.get('project'),
+        }
+    )
+
+@event_processed.connect
+def track_event_processed(sender, event, **kwargs):
+    processing_duration = kwargs.get('processing_duration', 0)
+
+    with sentry_sdk.configure_scope() as scope:
+        scope.set_tag('processing_duration', processing_duration)
+
+    if processing_duration > 5.0:  # Alert on slow processing
+        sentry_sdk.capture_message(
+            'Slow event processing detected',
+            level='warning',
+            extra={
+                'event_id': event.get('event_id'),
+                'processing_duration': processing_duration,
+            }
+        )
+```
+
+## 📊 Business Metrics & Analytics
+
+### Organization & Project Metrics
+```python
+# src/sentry/analytics/monitoring.py
+from sentry.analytics import Analytics
+import sentry_sdk
+
+class SentryAnalytics(Analytics):
+    def record_event(self, event_name, **kwargs):
+        # Track business metrics in Sentry
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_tag('analytics_event', event_name)
+
+        sentry_sdk.add_breadcrumb(
+            message=f'Analytics event: {event_name}',
+            category='analytics',
+            level='info',
+            data=kwargs
+        )
+
+        super().record_event(event_name, **kwargs)
+
+# Usage examples
+analytics = SentryAnalytics()
+
+# Track user actions
+analytics.record_event('issue_resolved', {
+    'user_id': user.id,
+    'organization_id': org.id,
+    'issue_id': issue.id,
+    'resolution_time': resolution_time,
+})
+
+# Track feature usage
+analytics.record_event('feature_used', {
+    'feature_name': 'seer_autofix',
+    'user_id': user.id,
+    'organization_id': org.id,
+})
+```
+
+## 🔐 Security Monitoring
+
+### Security Event Tracking
+```python
+# src/sentry/security/monitoring.py
+from django.contrib.auth.signals import user_login_failed
+from django.dispatch import receiver
+import sentry_sdk
+
+@receiver(user_login_failed)
+def track_failed_login(sender, credentials, request, **kwargs):
+    with sentry_sdk.configure_scope() as scope:
+        scope.set_tag('security_event', 'login_failed')
+        scope.set_tag('username', credentials.get('username'))
+        scope.set_tag('ip_address', request.META.get('REMOTE_ADDR'))
+
+    sentry_sdk.capture_message(
+        'Login failed',
+        level='warning',
+        extra={
+            'username': credentials.get('username'),
+            'ip_address': request.META.get('REMOTE_ADDR'),
+            'user_agent': request.META.get('HTTP_USER_AGENT'),
+        }
+    )
+
+# API rate limiting monitoring
+class RateLimitMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Track API usage patterns
+        if request.path.startswith('/api/'):
+            with sentry_sdk.configure_scope() as scope:
+                scope.set_tag('api_endpoint', request.path)
+                scope.set_tag('api_method', request.method)
+
+        return self.get_response(request)
+```
+
+## 📱 Frontend Performance Monitoring
+
+### React Performance Tracking
+```typescript
+// static/app/utils/performance.tsx
+import * as Sentry from '@sentry/react';
+
+// Performance monitoring for React components
+export const withPerformanceMonitoring = <P extends {}>(
+  Component: React.ComponentType<P>,
+  displayName?: string
+) => {
+  const WrappedComponent = Sentry.withProfiler(Component, {
+    name: displayName || Component.displayName || Component.name,
+    includeRender: true,
+    includeUpdates: true,
+  });
+
+  return WrappedComponent;
+};
+
+// Usage
+const MonitoredIssueList = withPerformanceMonitoring(IssueList, 'IssueList');
+```
+
+### User Experience Monitoring
+```typescript
+// static/app/utils/userExperience.tsx
+import * as Sentry from '@sentry/react';
+
+// Track user interactions
+export const trackUserAction = (action: string, data?: any) => {
+  Sentry.addBreadcrumb({
+    message: `User action: ${action}`,
+    category: 'user',
+    level: 'info',
+    data,
+  });
+};
+
+// Track page load performance
+export const trackPageLoad = (pageName: string) => {
+  const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+
+  Sentry.addBreadcrumb({
+    message: `Page loaded: ${pageName}`,
+    category: 'navigation',
+    level: 'info',
+    data: {
+      loadTime: navigation.loadEventEnd - navigation.loadEventStart,
+      domContentLoaded: navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
+    },
+  });
+};
+```
+
+## 🛠️ Development & Debugging
+
+### Local Development Monitoring
+```python
+# src/sentry/conf/dev.py
+if DEBUG:
+    # Enable debug toolbar for development
+    MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
+    INSTALLED_APPS += ['debug_toolbar']
+
+    # Disable Sentry in development to avoid noise
+    SENTRY_DSN = None
+
+    # Enable SQL query logging
+    LOGGING['loggers']['django.db.backends'] = {
+        'level': 'DEBUG',
+        'handlers': ['console'],
+        'propagate': False,
+    }
+```
+
+### Testing Monitoring
+```python
+# tests/monitoring/test_monitoring.py
+import pytest
+from unittest.mock import patch
+import sentry_sdk
+
+@pytest.fixture
+def mock_sentry():
+    with patch('sentry_sdk.capture_exception') as mock_capture:
+        yield mock_capture
+
+def test_error_tracking(mock_sentry, client):
+    """Test that errors are properly tracked"""
+    response = client.get('/api/projects/1/events/')
+
+    # Verify error was captured
+    assert mock_sentry.called
+
+def test_performance_monitoring(client):
+    """Test performance monitoring integration"""
+    with sentry_sdk.start_transaction(name="test_transaction"):
+        response = client.get('/api/organizations/')
+
+    assert response.status_code == 200
+```
+
+## 📋 Monitoring Best Practices
+
+### Error Context
+```python
+# Always provide rich context for errors
+try:
+    process_event(event)
+except Exception as e:
+    with sentry_sdk.configure_scope() as scope:
+        scope.set_tag('component', 'event_processor')
+        scope.set_tag('event_type', event.get('type'))
+        scope.set_context('event_data', {
+            'event_id': event.get('event_id'),
+            'project_id': event.get('project'),
+            'platform': event.get('platform'),
+        })
+        sentry_sdk.capture_exception(e)
+```
+
+### Performance Optimization
+```python
+# Monitor expensive operations
+@sentry_sdk.trace
+def expensive_operation(data):
+    with sentry_sdk.start_span(op="database", description="complex_query"):
+        result = complex_database_query(data)
+
+    with sentry_sdk.start_span(op="processing", description="data_transformation"):
+        transformed = transform_data(result)
+
+    return transformed
+```
+
+### Custom Metrics
+```python
+# Track business-specific metrics
+def track_issue_resolution(issue, resolution_time):
+    with sentry_sdk.configure_scope() as scope:
+        scope.set_tag('issue_type', issue.type)
+        scope.set_tag('resolution_time_bucket',
+                     get_time_bucket(resolution_time))
+
+    sentry_sdk.capture_message(
+        'Issue resolved',
+        level='info',
+        extra={
+            'issue_id': issue.id,
+            'resolution_time': resolution_time,
+            'assignee': issue.assignee_id,
+        }
+    )
+```
+
+## 🎯 Monitoring Checklist
+
+### For New Features
+- [ ] Add appropriate error tracking with context
+- [ ] Implement performance monitoring for critical paths
+- [ ] Add custom metrics for feature usage
+- [ ] Create appropriate alerts for feature health
+- [ ] Include monitoring in tests
+
+### For API Endpoints
+- [ ] Track request/response metrics
+- [ ] Monitor error rates and response times
+- [ ] Add authentication and authorization monitoring
+- [ ] Implement rate limiting monitoring
+- [ ] Track usage patterns and anomalies
+
+### For Background Tasks
+- [ ] Monitor task execution time and success rate
+- [ ] Track queue lengths and processing lag
+- [ ] Add retry logic with exponential backoff
+- [ ] Monitor resource usage (memory, CPU)
+- [ ] Alert on task failures and delays
+
+### For Database Operations
+- [ ] Monitor query performance and execution time
+- [ ] Track connection pool usage
+- [ ] Add indexes for frequently queried fields
+- [ ] Monitor slow queries and N+1 problems
+- [ ] Track data growth and storage usage
+
+---
+
+## 💡 Key Takeaways
+
+1. **Dogfooding**: Sentry uses its own platform extensively for monitoring
+2. **Comprehensive Coverage**: Monitor everything from infrastructure to user experience
+3. **Rich Context**: Always provide meaningful context for errors and events
+4. **Performance Focus**: Track performance metrics for optimization
+5. **Proactive Alerting**: Set up alerts for critical system health indicators
+6. **Business Metrics**: Track feature usage and business-relevant metrics
+7. **Security Monitoring**: Monitor for security events and anomalies
+8. **Development Support**: Use monitoring to aid debugging and development
+# Sentry Monorepo - Monitoring & Observability
+
+## 🎯 Overview
+
+Sentry monitors itself using its own platform (dogfooding) while also employing additional monitoring tools for infrastructure and system health. This approach provides comprehensive observability for a high-scale, mission-critical error tracking platform.
+
+## 📊 Self-Monitoring (Dogfooding)
+
+### Sentry SDK Integration
+```python
+# src/sentry/conf/settings.py
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.celery import CeleryIntegration
+from sentry_sdk.integrations.redis import RedisIntegration
+
+sentry_sdk.init(
+    dsn=SENTRY_DSN,
+    integrations=[
+        DjangoIntegration(
+            transaction_style='url',
+            middleware_spans=True,
+            signals_spans=True,
+        ),
+        CeleryIntegration(
+            monitor_beat_tasks=True,
+            propagate_traces=True,
+        ),
+        RedisIntegration(),
+    ],
+    traces_sample_rate=0.1,
+    profiles_sample_rate=0.1,
+    environment=ENVIRONMENT,
+    release=RELEASE,
+    attach_stacktrace=True,
+    send_default_pii=False,
+)
+```
+
+### Django Middleware for Request Monitoring
+```python
+# src/sentry/middleware/monitoring.py
+class SentryMonitoringMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_tag('request.method', request.method)
+            scope.set_tag('request.path', request.path)
+            if hasattr(request, 'user') and request.user.is_authenticated:
+                scope.set_user({'id': request.user.id})
+
+        response = self.get_response(request)
+        return response
+```
+
+### Frontend Error Tracking
+```typescript
+// static/app/bootstrap.tsx
+import * as Sentry from '@sentry/react';
+
+Sentry.init({
+  dsn: window.__SENTRY_DSN,
+  environment: window.__SENTRY_ENVIRONMENT,
+  release: window.__SENTRY_RELEASE,
+
+  tracesSampleRate: 0.1,
+
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.replayIntegration({
+      maskAllText: false,
+      blockAllMedia: false,
+    }),
+  ],
+
+  beforeSend(event, hint) {
+    // Filter out expected errors
+    if (event.exception?.values?.[0]?.type === 'AbortError') {
+      return null;
+    }
+    return event;
+  },
+});
+```
+
+## 🔍 Performance Monitoring
+
+### Database Query Monitoring
+```python
+# src/sentry/db/monitoring.py
+import time
+import sentry_sdk
+from django.db import connection
+
+class DatabaseMonitoringMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        queries_before = len(connection.queries)
+        start_time = time.time()
+
+        response = self.get_response(request)
+
+        queries_after = len(connection.queries)
+        duration = time.time() - start_time
+
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_tag('db.query_count', queries_after - queries_before)
+            scope.set_tag('db.duration', duration)
+
+        return response
+```
+
+### Celery Task Monitoring
+```python
+# src/sentry/tasks/monitoring.py
+from celery import Task
+from celery.signals import task_prerun, task_postrun
+import sentry_sdk
+
+class MonitoredTask(Task):
+    def on_failure(self, exc, task_id, args, kwargs, einfo):
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_tag('task_id', task_id)
+            scope.set_tag('task_name', self.name)
+            scope.set_context('task_args', {'args': args, 'kwargs': kwargs})
+            sentry_sdk.capture_exception(exc)
+
+@task_prerun.connect
+def task_prerun_handler(task_id, task, *args, **kwargs):
+    with sentry_sdk.configure_scope() as scope:
+        scope.set_tag('task_id', task_id)
+        scope.set_tag('task_name', task.name)
+
+@task_postrun.connect
+def task_postrun_handler(task_id, task, *args, **kwargs):
+    # Log task completion metrics
+    pass
+```
+
+## 🚨 Alert Rules & Monitoring
+
+### Critical System Alerts
+```python
+# src/sentry/monitoring/alerts.py
+CRITICAL_ALERTS = {
+    'high_error_rate': {
+        'condition': 'error_rate > 0.05',
+        'window': '5m',
+        'severity': 'critical',
+        'channels': ['pagerduty', 'slack'],
+    },
+    'database_latency': {
+        'condition': 'avg(database_query_duration) > 1000ms',
+        'window': '5m',
+        'severity': 'warning',
+        'channels': ['slack'],
+    },
+    'event_ingestion_lag': {
+        'condition': 'event_processing_lag > 30s',
+        'window': '2m',
+        'severity': 'critical',
+        'channels': ['pagerduty'],
+    },
+}
+```
+
+### Custom Metrics Collection
+```python
+# src/sentry/metrics/custom.py
+import sentry_sdk
+from django.db.models.signals import post_save
+from sentry.models import Group, Event
+
+@post_save.connect(sender=Event)
+def track_event_metrics(sender, instance, created, **kwargs):
+    if created:
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_tag('project_id', instance.project_id)
+            scope.set_tag('platform', instance.platform)
+
+        # Track custom metrics
+        sentry_sdk.add_breadcrumb(
+            message='Event processed',
+            category='event',
+            level='info',
+            data={
+                'event_id': str(instance.id),
+                'project_id': instance.project_id,
+                'platform': instance.platform,
+            }
+        )
+```
+
+## 📈 Infrastructure Monitoring
+
+### Prometheus Integration
+```python
+# src/sentry/monitoring/prometheus.py
+from django_prometheus.middleware import PrometheusBeforeMiddleware, PrometheusAfterMiddleware
+from prometheus_client import Counter, Histogram, Gauge
+
+# Custom metrics
+REQUEST_COUNT = Counter('sentry_requests_total', 'Total requests', ['method', 'endpoint'])
+REQUEST_DURATION = Histogram('sentry_request_duration_seconds', 'Request duration')
+ACTIVE_USERS = Gauge('sentry_active_users', 'Active users')
+
+class PrometheusMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        REQUEST_COUNT.labels(method=request.method, endpoint=request.path).inc()
+
+        with REQUEST_DURATION.time():
+            response = self.get_response(request)
+
+        return response
+```
+
+### Health Checks
+```python
+# src/sentry/monitoring/health.py
+from django.http import JsonResponse
+from django.db import connection
+import redis
+
+def health_check(request):
+    """Comprehensive health check endpoint"""
+    status = {'status': 'healthy', 'checks': {}}
+
+    # Database check
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            status['checks']['database'] = 'healthy'
+    except Exception as e:
+        status['checks']['database'] = f'unhealthy: {str(e)}'
+        status['status'] = 'unhealthy'
+
+    # Redis check
+    try:
+        r = redis.Redis()
+        r.ping()
+        status['checks']['redis'] = 'healthy'
+    except Exception as e:
+        status['checks']['redis'] = f'unhealthy: {str(e)}'
+        status['status'] = 'unhealthy'
+
+    # Event processing check
+    try:
+        from sentry.models import Event
+        recent_events = Event.objects.filter(
+            datetime__gte=timezone.now() - timedelta(minutes=5)
+        ).count()
+        status['checks']['event_processing'] = {
+            'status': 'healthy',
+            'recent_events': recent_events
+        }
+    except Exception as e:
+        status['checks']['event_processing'] = f'unhealthy: {str(e)}'
+        status['status'] = 'unhealthy'
+
+    return JsonResponse(status)
+```
+
+## 🔄 Event Processing Monitoring
+
+### Event Pipeline Observability
+```python
+# src/sentry/event_processing/monitoring.py
+import sentry_sdk
+from sentry.signals import event_received, event_processed
+
+@event_received.connect
+def track_event_received(sender, event, **kwargs):
+    with sentry_sdk.configure_scope() as scope:
+        scope.set_tag('event_type', event.get('type', 'error'))
+        scope.set_tag('platform', event.get('platform'))
+
+    sentry_sdk.add_breadcrumb(
+        message='Event received',
+        category='event_processing',
+        level='info',
+        data={
+            'event_id': event.get('event_id'),
+            'project_id': event.get('project'),
+        }
+    )
+
+@event_processed.connect
+def track_event_processed(sender, event, **kwargs):
+    processing_duration = kwargs.get('processing_duration', 0)
+
+    with sentry_sdk.configure_scope() as scope:
+        scope.set_tag('processing_duration', processing_duration)
+
+    if processing_duration > 5.0:  # Alert on slow processing
+        sentry_sdk.capture_message(
+            'Slow event processing detected',
+            level='warning',
+            extra={
+                'event_id': event.get('event_id'),
+                'processing_duration': processing_duration,
+            }
+        )
+```
+
+## 📊 Business Metrics & Analytics
+
+### Organization & Project Metrics
+```python
+# src/sentry/analytics/monitoring.py
+from sentry.analytics import Analytics
+import sentry_sdk
+
+class SentryAnalytics(Analytics):
+    def record_event(self, event_name, **kwargs):
+        # Track business metrics in Sentry
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_tag('analytics_event', event_name)
+
+        sentry_sdk.add_breadcrumb(
+            message=f'Analytics event: {event_name}',
+            category='analytics',
+            level='info',
+            data=kwargs
+        )
+
+        super().record_event(event_name, **kwargs)
+
+# Usage examples
+analytics = SentryAnalytics()
+
+# Track user actions
+analytics.record_event('issue_resolved', {
+    'user_id': user.id,
+    'organization_id': org.id,
+    'issue_id': issue.id,
+    'resolution_time': resolution_time,
+})
+
+# Track feature usage
+analytics.record_event('feature_used', {
+    'feature_name': 'seer_autofix',
+    'user_id': user.id,
+    'organization_id': org.id,
+})
+```
+
+## 🔐 Security Monitoring
+
+### Security Event Tracking
+```python
+# src/sentry/security/monitoring.py
+from django.contrib.auth.signals import user_login_failed
+from django.dispatch import receiver
+import sentry_sdk
+
+@receiver(user_login_failed)
+def track_failed_login(sender, credentials, request, **kwargs):
+    with sentry_sdk.configure_scope() as scope:
+        scope.set_tag('security_event', 'login_failed')
+        scope.set_tag('username', credentials.get('username'))
+        scope.set_tag('ip_address', request.META.get('REMOTE_ADDR'))
+
+    sentry_sdk.capture_message(
+        'Login failed',
+        level='warning',
+        extra={
+            'username': credentials.get('username'),
+            'ip_address': request.META.get('REMOTE_ADDR'),
+            'user_agent': request.META.get('HTTP_USER_AGENT'),
+        }
+    )
+
+# API rate limiting monitoring
+class RateLimitMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Track API usage patterns
+        if request.path.startswith('/api/'):
+            with sentry_sdk.configure_scope() as scope:
+                scope.set_tag('api_endpoint', request.path)
+                scope.set_tag('api_method', request.method)
+
+        return self.get_response(request)
+```
+
+## 📱 Frontend Performance Monitoring
+
+### React Performance Tracking
+```typescript
+// static/app/utils/performance.tsx
+import * as Sentry from '@sentry/react';
+
+// Performance monitoring for React components
+export const withPerformanceMonitoring = <P extends {}>(
+  Component: React.ComponentType<P>,
+  displayName?: string
+) => {
+  const WrappedComponent = Sentry.withProfiler(Component, {
+    name: displayName || Component.displayName || Component.name,
+    includeRender: true,
+    includeUpdates: true,
+  });
+
+  return WrappedComponent;
+};
+
+// Usage
+const MonitoredIssueList = withPerformanceMonitoring(IssueList, 'IssueList');
+```
+
+### User Experience Monitoring
+```typescript
+// static/app/utils/userExperience.tsx
+import * as Sentry from '@sentry/react';
+
+// Track user interactions
+export const trackUserAction = (action: string, data?: any) => {
+  Sentry.addBreadcrumb({
+    message: `User action: ${action}`,
+    category: 'user',
+    level: 'info',
+    data,
+  });
+};
+
+// Track page load performance
+export const trackPageLoad = (pageName: string) => {
+  const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+
+  Sentry.addBreadcrumb({
+    message: `Page loaded: ${pageName}`,
+    category: 'navigation',
+    level: 'info',
+    data: {
+      loadTime: navigation.loadEventEnd - navigation.loadEventStart,
+      domContentLoaded: navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
+    },
+  });
+};
+```
+
+## 🛠️ Development & Debugging
+
+### Local Development Monitoring
+```python
+# src/sentry/conf/dev.py
+if DEBUG:
+    # Enable debug toolbar for development
+    MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
+    INSTALLED_APPS += ['debug_toolbar']
+
+    # Disable Sentry in development to avoid noise
+    SENTRY_DSN = None
+
+    # Enable SQL query logging
+    LOGGING['loggers']['django.db.backends'] = {
+        'level': 'DEBUG',
+        'handlers': ['console'],
+        'propagate': False,
+    }
+```
+
+### Testing Monitoring
+```python
+# tests/monitoring/test_monitoring.py
+import pytest
+from unittest.mock import patch
+import sentry_sdk
+
+@pytest.fixture
+def mock_sentry():
+    with patch('sentry_sdk.capture_exception') as mock_capture:
+        yield mock_capture
+
+def test_error_tracking(mock_sentry, client):
+    """Test that errors are properly tracked"""
+    response = client.get('/api/projects/1/events/')
+
+    # Verify error was captured
+    assert mock_sentry.called
+
+def test_performance_monitoring(client):
+    """Test performance monitoring integration"""
+    with sentry_sdk.start_transaction(name="test_transaction"):
+        response = client.get('/api/organizations/')
+
+    assert response.status_code == 200
+```
+
+## 📋 Monitoring Best Practices
+
+### Error Context
+```python
+# Always provide rich context for errors
+try:
+    process_event(event)
+except Exception as e:
+    with sentry_sdk.configure_scope() as scope:
+        scope.set_tag('component', 'event_processor')
+        scope.set_tag('event_type', event.get('type'))
+        scope.set_context('event_data', {
+            'event_id': event.get('event_id'),
+            'project_id': event.get('project'),
+            'platform': event.get('platform'),
+        })
+        sentry_sdk.capture_exception(e)
+```
+
+### Performance Optimization
+```python
+# Monitor expensive operations
+@sentry_sdk.trace
+def expensive_operation(data):
+    with sentry_sdk.start_span(op="database", description="complex_query"):
+        result = complex_database_query(data)
+
+    with sentry_sdk.start_span(op="processing", description="data_transformation"):
+        transformed = transform_data(result)
+
+    return transformed
+```
+
+### Custom Metrics
+```python
+# Track business-specific metrics
+def track_issue_resolution(issue, resolution_time):
+    with sentry_sdk.configure_scope() as scope:
+        scope.set_tag('issue_type', issue.type)
+        scope.set_tag('resolution_time_bucket',
+                     get_time_bucket(resolution_time))
+
+    sentry_sdk.capture_message(
+        'Issue resolved',
+        level='info',
+        extra={
+            'issue_id': issue.id,
+            'resolution_time': resolution_time,
+            'assignee': issue.assignee_id,
+        }
+    )
+```
+
+## 🎯 Monitoring Checklist
+
+### For New Features
+- [ ] Add appropriate error tracking with context
+- [ ] Implement performance monitoring for critical paths
+- [ ] Add custom metrics for feature usage
+- [ ] Create appropriate alerts for feature health
+- [ ] Include monitoring in tests
+
+### For API Endpoints
+- [ ] Track request/response metrics
+- [ ] Monitor error rates and response times
+- [ ] Add authentication and authorization monitoring
+- [ ] Implement rate limiting monitoring
+- [ ] Track usage patterns and anomalies
+
+### For Background Tasks
+- [ ] Monitor task execution time and success rate
+- [ ] Track queue lengths and processing lag
+- [ ] Add retry logic with exponential backoff
+- [ ] Monitor resource usage (memory, CPU)
+- [ ] Alert on task failures and delays
+
+### For Database Operations
+- [ ] Monitor query performance and execution time
+- [ ] Track connection pool usage
+- [ ] Add indexes for frequently queried fields
+- [ ] Monitor slow queries and N+1 problems
+- [ ] Track data growth and storage usage
+
+---
+
+## 💡 Key Takeaways
+
+1. **Dogfooding**: Sentry uses its own platform extensively for monitoring
+2. **Comprehensive Coverage**: Monitor everything from infrastructure to user experience
+3. **Rich Context**: Always provide meaningful context for errors and events
+4. **Performance Focus**: Track performance metrics for optimization
+5. **Proactive Alerting**: Set up alerts for critical system health indicators
+6. **Business Metrics**: Track feature usage and business-relevant metrics
+7. **Security Monitoring**: Monitor for security events and anomalies
+8. **Development Support**: Use monitoring to aid debugging and development
