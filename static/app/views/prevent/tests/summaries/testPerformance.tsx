@@ -100,7 +100,7 @@ function TestPerformanceBody({
         extra={
           flakyTestsChange ? (
             <Tag type={flakyTestsChange > 0 ? 'error' : 'success'}>
-              {formatPercentRate(flakyTestsChange)}
+              {formatPercentRate(flakyTestsChange, {showSign: true, showLessThan: true})}
             </Tag>
           ) : undefined
         }
@@ -109,12 +109,17 @@ function TestPerformanceBody({
         label={t('Avg. Flake Rate')}
         tooltip={<AverageFlakeTooltip />}
         value={
-          averageFlakeRate === undefined ? undefined : `${averageFlakeRate?.toFixed(2)}%`
+          averageFlakeRate === undefined
+            ? undefined
+            : formatPercentRate(averageFlakeRate, {showLessThan: true})
         }
         extra={
           averageFlakeRateChange ? (
             <Tag type={averageFlakeRateChange > 0 ? 'error' : 'success'}>
-              {formatPercentRate(averageFlakeRateChange)}
+              {formatPercentRate(averageFlakeRateChange, {
+                showSign: true,
+                showLessThan: true,
+              })}
             </Tag>
           ) : undefined
         }
@@ -127,7 +132,10 @@ function TestPerformanceBody({
         extra={
           cumulativeFailuresChange ? (
             <Tag type={cumulativeFailuresChange > 0 ? 'error' : 'success'}>
-              {formatPercentRate(cumulativeFailuresChange)}
+              {formatPercentRate(cumulativeFailuresChange, {
+                showSign: true,
+                showLessThan: true,
+              })}
             </Tag>
           ) : undefined
         }
@@ -140,7 +148,10 @@ function TestPerformanceBody({
         extra={
           skippedTestsChange ? (
             <Tag type={skippedTestsChange > 0 ? 'error' : 'success'}>
-              {formatPercentRate(skippedTestsChange)}
+              {formatPercentRate(skippedTestsChange, {
+                showSign: true,
+                showLessThan: true,
+              })}
             </Tag>
           ) : undefined
         }

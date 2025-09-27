@@ -87,7 +87,10 @@ function CIEfficiencyBody({
         extra={
           totalTestsRunTimeChange ? (
             <Tag type={totalTestsRunTimeChange > 0 ? 'error' : 'success'}>
-              {formatPercentRate(totalTestsRunTimeChange)}
+              {formatPercentRate(totalTestsRunTimeChange, {
+                showSign: true,
+                showLessThan: true,
+              })}
             </Tag>
           ) : undefined
         }

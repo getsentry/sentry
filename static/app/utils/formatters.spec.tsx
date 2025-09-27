@@ -220,9 +220,9 @@ describe('formatSpanOperation', () => {
 
 describe('formatPercentRate', () => {
   it('formats positive numbers', () => {
-    expect(formatPercentRate(0.1)).toBe('+0.10%');
-    expect(formatPercentRate(1)).toBe('+1.00%');
-    expect(formatPercentRate(10)).toBe('+10.00%');
+    expect(formatPercentRate(0.1, {showSign: true})).toBe('+0.10%');
+    expect(formatPercentRate(1, {showSign: true})).toBe('+1.00%');
+    expect(formatPercentRate(10, {showSign: true})).toBe('+10.00%');
   });
 
   it('formats negative numbers', () => {
@@ -233,6 +233,38 @@ describe('formatPercentRate', () => {
 
   it('formats zero', () => {
     expect(formatPercentRate(0)).toBe('0.00%');
+  });
+
+  it('formats without sign by default', () => {
+    expect(formatPercentRate(0.1)).toBe('0.10%');
+    expect(formatPercentRate(-0.1)).toBe('-0.10%');
+    expect(formatPercentRate(1)).toBe('1.00%');
+  });
+
+  it('shows "< 0.01%" for very small values when showLessThan is true', () => {
+    expect(formatPercentRate(0.001, {showLessThan: true})).toBe('< 0.01%');
+    expect(formatPercentRate(-0.001, {showLessThan: true})).toBe('< 0.01%');
+    expect(formatPercentRate(0.009, {showLessThan: true})).toBe('< 0.01%');
+    expect(formatPercentRate(-0.009, {showLessThan: true})).toBe('< 0.01%');
+  });
+
+  it('shows "< +0.01%" with sign when showSign is true and showLessThan is true', () => {
+    expect(formatPercentRate(0.001, {showSign: true, showLessThan: true})).toBe(
+      '< +0.01%'
+    );
+    expect(formatPercentRate(-0.001, {showSign: true, showLessThan: true})).toBe(
+      '< -0.01%'
+    );
+  });
+
+  it('does not show "< 0.01%" for values >= 0.01', () => {
+    expect(formatPercentRate(0.01, {showLessThan: true})).toBe('0.01%');
+    expect(formatPercentRate(-0.01, {showLessThan: true})).toBe('-0.01%');
+    expect(formatPercentRate(0.1, {showLessThan: true})).toBe('0.10%');
+  });
+
+  it('handles edge case of exactly zero with showLessThan', () => {
+    expect(formatPercentRate(0, {showLessThan: true})).toBe('0.00%');
   });
 });
 
