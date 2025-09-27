@@ -312,7 +312,7 @@ def create_dif_from_id(
             type="project.dif",
             headers={"Content-Type": DIF_MIMETYPES[meta.file_format]},
         )
-        file.putfile(fileobj)
+        file.putfile_bulk(fileobj)
     else:
         file.type = "project.dif"
         file.headers["Content-Type"] = DIF_MIMETYPES[meta.file_format]
