@@ -497,6 +497,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "org.slf4j.helpers.Util$ClassContextSecurityManager " "in getExtraClassContext"
         )
 
+    @pytest.mark.skip(reason="flaky: #97930")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_value_only_class_names_are_deobfuscated(self) -> None:
