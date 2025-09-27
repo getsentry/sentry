@@ -268,8 +268,14 @@ export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
 
 export const FilterBarContainer = styled('div')`
   display: flex;
+  flex-direction: column;
   gap: ${space(1)};
   margin-bottom: ${space(1)};
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    flex-direction: row;
+    align-items: center;
+  }
 `;
 
 export const TableActionsContainer = styled('div')`
@@ -298,7 +304,11 @@ export const LogsGraphContainer = styled(LogsItemContainer)`
 `;
 
 export const StyledPageFilterBar = styled(PageFilterBar)`
-  width: auto;
+  width: 100%;
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    width: auto;
+  }
 `;
 
 export const AutoRefreshLabel = styled('label')`
