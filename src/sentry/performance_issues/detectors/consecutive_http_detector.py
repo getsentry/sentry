@@ -162,7 +162,21 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         ):  # Just using all methods to see if anything interesting pops up
             return False
 
-        if any([x in description for x in ["_next/static/", "_next/data/", "googleapis.com"]]):
+        if any(
+            [
+                x in description
+                for x in [
+                    "_next/static/",
+                    "_next/data/",
+                    "googleapis.com",
+                    "amazonaws.com",
+                    "core.windows.net",
+                    "azure.com",
+                    "azure.net",
+                    "microsoftonline.com",
+                ]
+            ]
+        ):
             return False
 
         url = get_url_from_span(span)
