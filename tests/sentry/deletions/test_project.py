@@ -15,7 +15,7 @@ from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupopenperiod import GroupOpenPeriod
-from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
+from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.project import Project
@@ -72,9 +72,12 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             type=ActivityType.SET_RESOLVED.value,
             user_id=self.user.id,
         )
-        open_period = GroupOpenPeriod.objects.get(
+        open_period = GroupOpenPeriod.objects.create(
             group=group,
             project=project,
+        )
+        GroupOpenPeriodActivity.objects.create(
+            group_open_period=open_period, type=OpenPeriodActivityType.OPENED, value=75
         )
         open_period.update(
             date_started=before_now(minutes=1),

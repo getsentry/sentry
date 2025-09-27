@@ -320,7 +320,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
         )
 
         # Create a new open period
-        latest_open_period = get_latest_open_period(self.group)
+        latest_open_period = get_latest_open_period(group)
 
         parent_notification_2_message = NotificationMessage.objects.create(
             id=124,
