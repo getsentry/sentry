@@ -2907,6 +2907,7 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
 
 export enum FeedbackFieldKey {
   BROWSER_NAME = 'browser.name',
+  HAS_LINKED_ERROR = 'has_linked_error',
   LOCALE_LANG = 'locale.lang',
   LOCALE_TIMEZONE = 'locale.timezone',
   MESSAGE = 'message',
@@ -2928,6 +2929,7 @@ export const FEEDBACK_FIELDS = [
   FieldKey.GEO_REGION,
   FieldKey.GEO_SUBDIVISION,
   FieldKey.HAS,
+  FeedbackFieldKey.HAS_LINKED_ERROR,
   FieldKey.ID,
   FieldKey.IS,
   FieldKey.LEVEL,
@@ -2953,6 +2955,13 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     desc: t('Name of the browser'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.HAS_LINKED_ERROR]: {
+    desc: t(
+      'Whether the feedback is explicitly linked to a Sentry error (has associated_event_id).'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
   },
   [FeedbackFieldKey.LOCALE_LANG]: {
     desc: t('Language preference of the user'),
