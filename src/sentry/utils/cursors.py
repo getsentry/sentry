@@ -7,7 +7,7 @@ T = TypeVar("T")
 CursorValue = Union[float, int, str]
 
 
-class KeyCallable(Protocol):
+class KeyCallable[T](Protocol):
     def __call__(self, value: T, for_prev: bool = ...) -> CursorValue: ...
 
 
@@ -120,7 +120,7 @@ class CursorResult(Sequence[T]):
 
 
 def _build_next_values(
-    cursor: Cursor, results: Sequence[T], key: KeyCallable, limit: int, is_desc: bool
+    cursor: Cursor, results: Sequence[T], key: KeyCallable[T], limit: int, is_desc: bool
 ) -> tuple[CursorValue, int, bool]:
     value = cursor.value
     offset = cursor.offset
@@ -253,7 +253,7 @@ def _build_prev_values(
 
 def build_cursor(
     results: Sequence[T],
-    key: KeyCallable,
+    key: KeyCallable[T],
     limit: int = 100,
     is_desc: bool = False,
     cursor: Cursor | None = None,
