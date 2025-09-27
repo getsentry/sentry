@@ -1,3 +1,4 @@
+from sentry.incidents.grouptype import MetricIssue
 from sentry.models.group import GroupStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.types.group import PriorityLevel
@@ -16,6 +17,9 @@ class TestIssuePriorityGreaterOrEqualCondition(ConditionTestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        self.group, self.event, self.group_event = self.create_group_event(
+            group_type_id=MetricIssue.type_id
+        )
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group_event.group)
         self.metric_alert = self.create_alert_rule()
         self.alert_rule_trigger_warning = self.create_alert_rule_trigger(

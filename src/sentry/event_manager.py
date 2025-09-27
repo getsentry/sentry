@@ -79,6 +79,7 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
 from sentry.insights import FilterSpan
 from sentry.insights import modules as insights_modules
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
+from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
@@ -1595,7 +1596,8 @@ def _create_group(
             logger.exception("Error after unsticking project counter")
             raise
 
-    create_open_period(group=group, start_time=group.first_seen)
+    if get_group_type_by_type_id(group.type).track_open_periods:
+        create_open_period(group=group, start_time=group.first_seen)
 
     return group
 
@@ -1807,7 +1809,8 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
-        create_open_period(group, activity.datetime)
+        if get_group_type_by_type_id(group.type).track_open_periods:
+            create_open_period(group, activity.datetime)
 
     return is_regression
 
