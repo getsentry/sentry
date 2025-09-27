@@ -6,6 +6,7 @@ from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import compare_version as compare_version_relay
 from sentry_relay.processing import parse_release
 
+from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -30,6 +31,7 @@ class GroupResolution(Model):
     class Type:
         in_release = 0
         in_next_release = 1
+        in_future_release = 2
 
     class Status:
         pending = 0
@@ -46,7 +48,11 @@ class GroupResolution(Model):
     # user chooses "resolve in future release"
     future_release_version = models.CharField(max_length=DB_VERSION_LENGTH, null=True, blank=True)
     type = BoundedPositiveIntegerField(
-        choices=((Type.in_next_release, "in_next_release"), (Type.in_release, "in_release")),
+        choices=(
+            (Type.in_next_release, "in_next_release"),
+            (Type.in_release, "in_release"),
+            (Type.in_future_release, "in_future_release"),
+        ),
         null=True,
     )
     actor_id = BoundedPositiveIntegerField(null=True)
@@ -90,6 +96,7 @@ class GroupResolution(Model):
                 res_release_version,
                 res_release_datetime,
                 current_release_version,
+                future_release_version,
             ) = (
                 cls.objects.filter(group=group)
                 .select_related("release")
@@ -99,6 +106,7 @@ class GroupResolution(Model):
                     "release__version",
                     "release__date_added",
                     "current_release_version",
+                    "future_release_version",
                 )[0]
             )
         except IndexError:
@@ -148,6 +156,33 @@ class GroupResolution(Model):
                     )
                 except Release.DoesNotExist:
                     ...
+        # if future_release_version was set, the group is resolved in a future, possibly nonexistent release
+        elif future_release_version and features.has(
+            "organizations:resolve-in-future-release", group.organization
+        ):
+            if follows_semver:
+                # we have a regression if future_release_version <= given_release.version
+                # if future_release_version == given_release.version => 0 # regression
+                # if future_release_version < given_release.version => -1 # regression
+                # if future_release_version > given_release.version => 1
+                future_release_raw = parse_release(
+                    future_release_version, json_loads=orjson.loads
+                ).get("version_raw")
+                release_raw = parse_release(release.version, json_loads=orjson.loads).get(
+                    "version_raw"
+                )
+                return compare_version_relay(future_release_raw, release_raw) > 0
+            else:
+                try:
+                    future_release = Release.objects.get(
+                        organization_id=group.organization.id, version=future_release_version
+                    )
+                    # we're good if given release happened before future release
+                    return release.date_added < future_release.date_added
+                except Release.DoesNotExist:
+                    # future release doesn't exist yet, if versions are the same then regression
+                    # but this would never happen because if they're the same then future release exists?
+                    return future_release_version != release.version
 
         # We still fallback to the older model if either current_release_version was not set (
         # i.e. In all resolved cases except for Resolved in Next Release) or if for whatever
@@ -183,5 +218,9 @@ class GroupResolution(Model):
 
             # Fallback to older model if semver comparison fails due to whatever reason
             return res_release_datetime >= release.date_added
+        elif res_type == cls.Type.in_future_release:
+            # we should never get here unless the feature flag is disabled; future_release_version should always be set for this type
+            metrics.incr("groupresolution.has_resolution.in_future_release", sample_rate=1.0)
+            raise NotImplementedError
         else:
             raise NotImplementedError
