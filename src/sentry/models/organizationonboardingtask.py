@@ -100,7 +100,7 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
             )
 
             # Store marker to prevent running all the time
-            cache.set(cache_key, 1, 3600)
+            cache.set(cache_key, 1, 60 * 60 * 24 * 7)  # 1 week
             return created
         return False
 
