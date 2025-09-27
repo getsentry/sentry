@@ -25,21 +25,33 @@ class PreprodArtifactEndpoint(ProjectEndpoint):
         *args: Any,
         **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        args, kwargs = super().convert_args(request, *args, **kwargs)
-
         head_artifact_id = kwargs.get("head_artifact_id")
         if head_artifact_id is None:
-            return args, kwargs
+            # If no head_artifact_id, call super() with original kwargs
+            return super().convert_args(request, *args, **kwargs)
 
+        # Retrieve the artifact to get organization and project information
+        try:
+            head_artifact = PreprodArtifact.objects.select_related(
+                "project", "project__organization"
+            ).get(id=head_artifact_id)
+        except PreprodArtifact.DoesNotExist:
+            raise HeadPreprodArtifactResourceDoesNotExist
+
+        # Add the organization and project information to kwargs so ProjectEndpoint can process them
+        kwargs["organization_slug"] = head_artifact.project.organization.slug
+        kwargs["project_slug"] = head_artifact.project.slug
+
+        # Now call super().convert_args() with the updated kwargs
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+
+        # Get the project from the result of super().convert_args()
         project = kwargs.get("project")
         if project is None:
             return args, kwargs
 
-        try:
-            head_artifact = PreprodArtifact.objects.get(id=head_artifact_id)
-            if head_artifact.project_id != project.id:
-                raise HeadPreprodArtifactResourceDoesNotExist
-        except PreprodArtifact.DoesNotExist:
+        # Verify the artifact belongs to the resolved project
+        if head_artifact.project_id != project.id:
             raise HeadPreprodArtifactResourceDoesNotExist
 
         kwargs["head_artifact"] = head_artifact
