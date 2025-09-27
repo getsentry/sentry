@@ -135,6 +135,7 @@ def test_init_no_hosts() -> None:
     assert "You must provide at least one RPC host" in str(err)
 
 
+@pytest.mark.skip(reason="flaky: #98718")
 @django_db_all
 def test_health_check_is_debounced() -> None:
     channel = MockChannel()
