@@ -1,0 +1,271 @@
+import datetime
+import uuid
+from unittest.mock import patch
+
+import pytest
+from django.db.models import F
+
+from sentry.models.project import Project
+from sentry.replays.data_export import (
+    export_replay_data,
+    export_replay_project_async,
+    export_replay_row_set_async,
+)
+from sentry.replays.testutils import mock_replay
+from sentry.testutils.helpers import TaskRunner
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.skips import requires_snuba
+
+
+@django_db_all
+@pytest.mark.snuba
+@requires_snuba
+def test_replay_data_export(default_organization, default_project, replay_store) -> None:  # type: ignore[no-untyped-def]
+    replay_id = str(uuid.uuid4())
+    t0 = datetime.datetime.now()
+    replay_store.save(mock_replay(t0, default_project.id, replay_id, segment_id=0))
+
+    # Setting has_replays flag because the export will skip projects it assumes do not have
+    # replays.
+    default_project.flags.has_replays = True
+    default_project.update(flags=F("flags").bitor(getattr(Project.flags, "has_replays")))
+
+    with (
+        TaskRunner(),
+        patch("sentry.replays.data_export.request_create_transfer_job") as create_job,
+        patch("sentry.replays.data_export.save_to_storage") as store_rows,
+    ):
+        export_replay_data(
+            organization_id=default_organization.id,
+            gcs_project_id="1",
+            destination_bucket="destination",
+            database_rows_per_page=1,
+        )
+        assert create_job.called
+        assert store_rows.called
+        assert store_rows.call_count == 1
+        assert store_rows.call_args[0][0] == "destination"
+        assert store_rows.call_args[0][1].startswith("replay-row-data/")
+        assert replay_id in store_rows.call_args[0][2]
+
+
+@django_db_all
+@pytest.mark.snuba
+@requires_snuba
+def test_replay_data_export_invalid_organization(default_project, replay_store) -> None:  # type: ignore[no-untyped-def]
+    replay_id = str(uuid.uuid4())
+    t0 = datetime.datetime.now()
+    replay_store.save(mock_replay(t0, default_project.id, replay_id, segment_id=0))
+
+    # Setting has_replays flag because the export will skip projects it assumes do not have
+    # replays.
+    default_project.flags.has_replays = True
+    default_project.update(flags=F("flags").bitor(getattr(Project.flags, "has_replays")))
+
+    with (
+        TaskRunner(),
+        patch("sentry.replays.data_export.request_create_transfer_job") as create_job,
+        patch("sentry.replays.data_export.save_to_storage") as store_rows,
+    ):
+        export_replay_data(
+            organization_id=1,
+            gcs_project_id="1",
+            destination_bucket="destination",
+            database_rows_per_page=1,
+        )
+        assert not create_job.called
+        assert not store_rows.called
+
+
+@django_db_all
+@pytest.mark.snuba
+@requires_snuba
+def test_replay_data_export_no_replay_projects(  # type: ignore[no-untyped-def]
+    default_organization, default_project, replay_store
+) -> None:
+    replay_id = str(uuid.uuid4())
+    t0 = datetime.datetime.now()
+    replay_store.save(mock_replay(t0, default_project.id, replay_id, segment_id=0))
+
+    with (
+        TaskRunner(),
+        patch("sentry.replays.data_export.request_create_transfer_job") as create_job,
+        patch("sentry.replays.data_export.save_to_storage") as store_rows,
+    ):
+        export_replay_data(
+            organization_id=default_organization.id,
+            gcs_project_id="1",
+            destination_bucket="destination",
+            database_rows_per_page=1,
+        )
+        assert not create_job.called
+        assert not store_rows.called
+
+
+@django_db_all
+@pytest.mark.snuba
+@requires_snuba
+def test_replay_data_export_no_replay_data(  # type: ignore[no-untyped-def]
+    default_organization, default_project
+) -> None:
+    # Setting has_replays flag because the export will skip projects it assumes do not have
+    # replays.
+    default_project.flags.has_replays = True
+    default_project.update(flags=F("flags").bitor(getattr(Project.flags, "has_replays")))
+
+    with (
+        TaskRunner(),
+        patch("sentry.replays.data_export.request_create_transfer_job") as create_job,
+        patch("sentry.replays.data_export.save_to_storage") as store_rows,
+    ):
+        export_replay_data(
+            organization_id=default_organization.id,
+            gcs_project_id="1",
+            destination_bucket="destination",
+            database_rows_per_page=1,
+        )
+
+        # Blob data is scheduled for export but there no database rows found so we export nothing.
+        assert create_job.called
+        assert not store_rows.called
+
+
+@django_db_all
+@pytest.mark.snuba
+@requires_snuba
+def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-untyped-def]
+    replay1_id = "030c5419-9e0f-46eb-ae18-bfe5fd0331b5"
+    replay2_id = "0dbda2b3-9286-4ecc-a409-aa32b241563d"
+    replay3_id = "ff08c103-a9a4-47c0-9c29-73b932c2da34"
+
+    t0 = datetime.datetime.now()
+    t1 = t0 + datetime.timedelta(days=1)
+    t2 = t0 + datetime.timedelta(days=2)
+    t3 = t0 + datetime.timedelta(days=3)
+
+    replay_store.save(mock_replay(t0, 1, replay1_id, segment_id=0))
+    replay_store.save(mock_replay(t1, 1, replay2_id, segment_id=0))
+    replay_store.save(mock_replay(t2, 1, replay3_id, segment_id=0))
+
+    with TaskRunner():
+        # Assert we need three runs to export the row set.
+        with patch("sentry.replays.data_export.save_to_storage") as store_rows:
+            export_replay_row_set_async.delay(
+                project_id=1,
+                start=t0,
+                end=t3,
+                destination_bucket="test",
+                limit=1,
+                num_pages=1,
+            )
+            assert store_rows.call_count == 3
+
+        # Assert we need one run to export the row set.
+        with patch("sentry.replays.data_export.save_to_storage") as store_rows:
+            export_replay_row_set_async.delay(
+                project_id=1,
+                start=t0,
+                end=t3,
+                destination_bucket="test",
+                limit=1,
+                num_pages=3,
+            )
+            assert store_rows.call_count == 1
+
+        # Assert we need one run to export the row set.
+        with patch("sentry.replays.data_export.save_to_storage") as store_rows:
+            export_replay_row_set_async.delay(
+                project_id=1,
+                start=t0,
+                end=t3,
+                destination_bucket="test",
+                limit=3,
+                num_pages=1,
+            )
+            assert store_rows.call_count == 1
+
+        # Assert we need two runs to export the row set.
+        with patch("sentry.replays.data_export.save_to_storage") as store_rows:
+            export_replay_row_set_async.delay(
+                project_id=1,
+                start=t0,
+                end=t3,
+                destination_bucket="test",
+                limit=2,
+                num_pages=1,
+            )
+            assert store_rows.call_count == 2
+
+        # Assert we need one run to export the row set.
+        with patch("sentry.replays.data_export.save_to_storage") as store_rows:
+            export_replay_row_set_async.delay(
+                project_id=1,
+                start=t0,
+                end=t3,
+                destination_bucket="test",
+                limit=2,
+                num_pages=2,
+            )
+            assert store_rows.call_count == 1
+
+
+@django_db_all
+@pytest.mark.snuba
+@requires_snuba
+def test_export_replay_project_async(replay_store) -> None:  # type: ignore[no-untyped-def]
+    replay1_id = str(uuid.uuid4())
+    replay2_id = str(uuid.uuid4())
+    replay3_id = str(uuid.uuid4())
+    replay4_id = str(uuid.uuid4())
+    replay5_id = str(uuid.uuid4())
+
+    t0 = datetime.datetime.now()
+    t1 = t0 + datetime.timedelta(days=1)
+    t2 = t0 + datetime.timedelta(days=2)
+
+    replay_store.save(mock_replay(t0, 1, replay1_id, segment_id=0))
+    replay_store.save(mock_replay(t0, 1, replay2_id, segment_id=0))
+    replay_store.save(mock_replay(t1, 1, replay3_id, segment_id=0))
+    replay_store.save(mock_replay(t1, 1, replay4_id, segment_id=0))
+    replay_store.save(mock_replay(t2, 1, replay5_id, segment_id=0))
+
+    with TaskRunner():
+        # Assert we need five runs to export the row set.
+        with patch("sentry.replays.data_export.save_to_storage") as store_rows:
+            export_replay_project_async.delay(
+                project_id=1,
+                destination_bucket="test",
+                limit=1,
+                num_pages=1,
+            )
+            assert store_rows.call_count == 5
+
+        # Assert we can reduce the run count by modifying the limit.
+        with patch("sentry.replays.data_export.save_to_storage") as store_rows:
+            export_replay_project_async.delay(
+                project_id=1,
+                destination_bucket="test",
+                limit=2,
+                num_pages=1,
+            )
+            assert store_rows.call_count == 3
+
+        # Assert we can reduce the run count by modifying the number of pages per run.
+        with patch("sentry.replays.data_export.save_to_storage") as store_rows:
+            export_replay_project_async.delay(
+                project_id=1,
+                destination_bucket="test",
+                limit=1,
+                num_pages=2,
+            )
+            assert store_rows.call_count == 3
+
+        # Assert we need three runs because date bucketing is the limiting factor.
+        with patch("sentry.replays.data_export.save_to_storage") as store_rows:
+            export_replay_project_async.delay(
+                project_id=1,
+                destination_bucket="test",
+                limit=1000,
+                num_pages=1000,
+            )
+            assert store_rows.call_count == 3
