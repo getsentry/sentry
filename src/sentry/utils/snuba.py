@@ -959,7 +959,8 @@ def raw_query(
         **kwargs,
     )
 
-    return bulk_raw_query([snuba_params], referrer=referrer, use_cache=use_cache)[0]
+    requests = convert_snuba_params_to_requests([snuba_params], referrer=referrer)
+    return bulk_snuba_queries(requests, referrer=referrer, use_cache=use_cache)[0]
 
 
 Translator = Callable[[Any], Any]
@@ -1011,6 +1012,19 @@ def raw_snql_query(
         use_cache=use_cache,
         query_source=query_source,
     )[0]
+
+
+def convert_snuba_params_to_requests(
+    snuba_param_list: Sequence[SnubaQueryParams],
+    referrer: str | None = None,
+) -> list[Request]:
+    """
+    Helper function to convert legacy SnubaQueryParams to Request objects.
+    This is used when migrating from bulk_raw_query to bulk_snuba_queries.
+    """
+    params = [_prepare_query_params(param, referrer) for param in snuba_param_list]
+    requests = [json_to_snql(query, query["dataset"]) for query, forward, reverse in params]
+    return requests
 
 
 def bulk_snuba_queries(
