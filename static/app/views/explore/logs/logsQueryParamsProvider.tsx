@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
+import {LogsAutoRefreshProvider} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   LogsFrozenContextProvider,
   type LogsFrozenContextProviderProps,
@@ -46,11 +47,15 @@ export function LogsQueryParamsProvider({
     throw new Error(`Unknown source for LogsQueryParamsProvider: ${source}`);
   }
 
+  const isTableFrozen = source === 'state';
+
   return (
     <LogsAnalyticsPageSourceContext value={analyticsPageSource}>
       <LogsFrozenContextProvider {...freeze}>
         <LogsQueryParamsProviderComponent frozenParams={frozenParams}>
-          {children}
+          <LogsAutoRefreshProvider isTableFrozen={isTableFrozen}>
+            {children}
+          </LogsAutoRefreshProvider>
         </LogsQueryParamsProviderComponent>
       </LogsFrozenContextProvider>
     </LogsAnalyticsPageSourceContext>

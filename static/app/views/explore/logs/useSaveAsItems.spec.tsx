@@ -52,17 +52,6 @@ describe('useSaveAsItems', () => {
             >
               <LogsPageParamsProvider
                 analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-                _testContext={{
-                  fields: ['timestamp', 'message', 'user.email'],
-                  search: new MutableSearch('message:"test error"'),
-                  sortBys: [{field: 'timestamp', kind: 'desc'}],
-                  groupBy: 'message.template',
-                  aggregateFn: 'count',
-                  aggregateParam: undefined,
-                  mode: Mode.AGGREGATE,
-                  id: undefined,
-                  title: undefined,
-                }}
               >
                 {children}
               </LogsPageParamsProvider>
