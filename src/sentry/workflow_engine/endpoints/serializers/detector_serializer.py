@@ -2,14 +2,15 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
-from django.db.models import Count
+from django.db.models import Count, F, Window
+from django.db.models.functions import RowNumber
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.group import SimpleGroupSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.options.project_option import ProjectOption
 from sentry.types.actor import Actor
 from sentry.workflow_engine.models import (
@@ -79,6 +80,7 @@ class DetectorSerializer(Serializer):
             .order_by("detector_id", "-date_added")
             .distinct("detector_id")
         )
+        simple_group_serializer = SimpleGroupSerializer()
         latest_groups_map = {
             dg.detector_id: (
                 None
@@ -86,20 +88,96 @@ class DetectorSerializer(Serializer):
                 else serialize(
                     dg.group,
                     user=user,
-                    serializer=SimpleGroupSerializer(),
+                    serializer=simple_group_serializer,
                 )
             )
             for dg in latest_detector_groups
         }
 
-        filtered_item_list = [item for item in item_list if item.type == ErrorGroupType.slug]
-        project_ids = [item.project_id for item in filtered_item_list]
+        error_detectors = [item for item in item_list if item.type == ErrorGroupType.slug]
+        if error_detectors:
+            error_detectors_by_project_id = {item.project_id: item for item in error_detectors}
+            project_ids = list(error_detectors_by_project_id.keys())
+            if len(project_ids) < 3:
+                # The window query is expensive, so we use multiple queries
+                # when N is small.
+                groups = []
+                for project_id in project_ids:
+                    group = (
+                        Group.objects.filter(
+                            project_id=project_id,
+                            type=ErrorGroupType.type_id,
+                        )
+                        .order_by("-last_seen")
+                        .first()
+                    )
+                    if group:
+                        groups.append(group)
+            else:
+                groups = list(
+                    Group.objects.filter(
+                        project_id__in=project_ids,
+                        type=ErrorGroupType.type_id,
+                    )
+                    .annotate(
+                        row_number=Window(
+                            expression=RowNumber(),
+                            partition_by=[F("project_id")],
+                            order_by=F("last_seen").desc(),
+                        )
+                    )
+                    .filter(row_number=1)
+                )
+            project_to_latest_group: dict[int, Group] = {
+                group.project_id: group for group in groups
+            }
 
-        project_options_list = list(
-            ProjectOption.objects.filter(
-                key__in=Detector.error_detector_project_options.values(), project__in=project_ids
+            # Then get the actual Group objects with the max last_seen for each project
+            detector_to_latest_group = {
+                error_detectors_by_project_id[project_id]: group
+                for project_id, group in project_to_latest_group.items()
+            }
+            latest_groups_map.update(
+                {
+                    detector.id: (
+                        None
+                        if detector not in detector_to_latest_group
+                        else serialize(
+                            detector_to_latest_group[detector],
+                            user=user,
+                            serializer=simple_group_serializer,
+                        )
+                    )
+                    for detector in error_detectors
+                }
             )
-        )
+
+            # Get project options for error detectors
+            project_options_list = list(
+                ProjectOption.objects.filter(
+                    key__in=Detector.error_detector_project_options.values(),
+                    project__in=project_ids,
+                )
+            )
+
+            # Get error counts for error detectors
+            error_counts = dict(
+                Group.objects.filter(
+                    project_id__in=project_ids,
+                    status=GroupStatus.UNRESOLVED,
+                    type=ErrorGroupType.type_id,
+                )
+                .values("project_id")
+                .annotate(open_issues_count=Count("id"))
+                .values_list("project_id", "open_issues_count")
+            )
+            error_counts_by_detector_id = {
+                error_detector.id: error_counts.get(project_id, 0)
+                for project_id, error_detector in error_detectors_by_project_id.items()
+            }
+        else:
+            project_options_list = []
+            error_counts_by_detector_id = {}
 
         configs: dict[int, dict[str, Any]] = defaultdict(
             dict
@@ -114,6 +192,9 @@ class DetectorSerializer(Serializer):
             .annotate(open_issues_count=Count("group"))
             .values_list("detector_id", "open_issues_count")
         )
+
+        # Add error detector counts to the main counts dict
+        open_issues_counts.update(error_counts_by_detector_id)
 
         # Serialize owners
         owners = [item.owner for item in item_list if item.owner]
