@@ -1327,7 +1327,6 @@ class DeleteConfirmationArgs(TypedDict):
 
 
 def send_delete_confirmation(delete_confirmation_args: DeleteConfirmationArgs):
-    from sentry import options
     from sentry.utils.email import MessageBuilder
 
     organization = delete_confirmation_args["organization"]
@@ -1350,7 +1349,7 @@ def send_delete_confirmation(delete_confirmation_args: DeleteConfirmationArgs):
     }
 
     message = MessageBuilder(
-        subject="{}Organization Queued for Deletion".format(options.get("mail.subject-prefix")),
+        subject="Organization Queued for Deletion",
         template="sentry/emails/org_delete_confirm.txt",
         html_template="sentry/emails/org_delete_confirm.html",
         type="org.confirm_delete",

@@ -53,7 +53,6 @@ class UserMergeVerificationCode(DefaultFieldsModel):
         return timezone.now() < self.expires_at
 
     def send_email(self) -> None:
-        from sentry import options
         from sentry.http import get_server_hostname
         from sentry.utils.email import MessageBuilder
 
@@ -65,12 +64,10 @@ class UserMergeVerificationCode(DefaultFieldsModel):
             "datetime": timezone.now(),
         }
 
-        subject = "Your Verification Code"
-        template = "verification-code"
         msg = MessageBuilder(
-            subject="{} {}".format(options.get("mail.subject-prefix"), subject),
-            template=f"sentry/emails/{template}.txt",
-            html_template=f"sentry/emails/{template}.html",
+            subject="Your Verification Code",
+            template="sentry/emails/verification-code.txt",
+            html_template="sentry/emails/verification-code.html",
             context=context,
         )
         msg.send_async([self.user.email])

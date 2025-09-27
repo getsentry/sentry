@@ -7,7 +7,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, options, roles
+from sentry import audit_log, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
@@ -126,7 +126,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
             "requester": request.user,
         }
         MessageBuilder(
-            subject="{}Request for Project Transfer".format(options.get("mail.subject-prefix")),
+            subject="Request for Project Transfer",
             template="sentry/emails/transfer_project.txt",
             html_template="sentry/emails/transfer_project.html",
             type="org.confirm_project_transfer_request",
