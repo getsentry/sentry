@@ -2,6 +2,8 @@ import datetime
 import hashlib
 import hmac
 import logging
+import time
+import uuid
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, TypedDict
@@ -11,6 +13,7 @@ from cryptography.fernet import Fernet
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
+from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
 from rest_framework.exceptions import (
     AuthenticationFailed,
@@ -26,6 +29,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeValuesRequest,
 )
+from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     AttributeDistributionsRequest,
     StatsType,
@@ -42,6 +46,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.organization_trace_item_attributes import as_attribute_key
+from sentry.api.endpoints.project_trace_item_details import (
+    convert_rpc_attribute_to_json,
+    serialize_links,
+    serialize_meta,
+)
 from sentry.constants import (
     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
@@ -579,6 +588,62 @@ def get_attributes_and_values(
     return {"attributes_and_values": attributes_and_values}
 
 
+def get_attributes_for_span(
+    *,
+    org_id: int,
+    project_id: int,
+    trace_id: str,
+    span_id: str,
+) -> dict[str, Any]:
+    """
+    Fetch all attributes for a given span.
+    """
+    timestamp_now = int(time.time())
+
+    start_timestamp_proto = ProtobufTimestamp()
+    start_timestamp_proto.FromSeconds(0)
+
+    end_timestamp_proto = ProtobufTimestamp()
+    end_timestamp_proto.FromSeconds(timestamp_now + 60 * 60 * 24 * 7)
+
+    trace_item_type = TraceItemType.TRACE_ITEM_TYPE_SPAN
+
+    request_meta = RequestMeta(
+        organization_id=org_id,
+        cogs_category="events_analytics_platform",
+        referrer=Referrer.SEER_RPC.value,
+        project_ids=[project_id],
+        start_timestamp=start_timestamp_proto,
+        end_timestamp=end_timestamp_proto,
+        trace_item_type=trace_item_type,
+        request_id=str(uuid.uuid4()),
+    )
+
+    request = TraceItemDetailsRequest(
+        item_id=span_id,
+        trace_id=trace_id,
+        meta=request_meta,
+    )
+
+    response = snuba_rpc.trace_item_details_rpc(request)
+    response_dict = MessageToDict(response)
+
+    attributes = convert_rpc_attribute_to_json(
+        response_dict.get("attributes", []),
+        SupportedTraceItemType.SPANS,
+        use_sentry_conventions=False,
+        include_internal=False,
+    )
+
+    return {
+        "itemId": response_dict.get("itemId", span_id[-16:]),
+        "timestamp": response_dict.get("timestamp"),
+        "attributes": attributes,
+        "meta": serialize_meta(response_dict.get("attributes", []), SupportedTraceItemType.SPANS),
+        "links": serialize_links(response_dict.get("attributes", [])),
+    }
+
+
 def _parse_spans_response(
     response, columns: list[ColumnDict], resolver: SearchResolver
 ) -> list[dict[str, Any]]:
@@ -916,6 +981,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_error_event_details": get_error_event_details,
     "get_profile_details": get_profile_details,
     "send_seer_webhook": send_seer_webhook,
+    "get_attributes_for_span": get_attributes_for_span,
     #
     # Bug prediction
     "get_sentry_organization_ids": get_sentry_organization_ids,

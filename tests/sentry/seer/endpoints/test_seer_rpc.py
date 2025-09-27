@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import patch
 
@@ -8,12 +9,14 @@ import responses
 from cryptography.fernet import Fernet
 from django.test import override_settings
 from django.urls import reverse
+from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsResponse
 
 from sentry.constants import ObjectStatus
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.repository import Repository
 from sentry.seer.endpoints.seer_rpc import (
     generate_request_signature,
+    get_attributes_for_span,
     get_github_enterprise_integration_config,
     get_organization_seer_consent_by_org_name,
     get_sentry_organization_ids,
@@ -283,6 +286,39 @@ class TestSeerRpcMethods(APITestCase):
             "consent": False,
             "consent_url": self.organization.absolute_url("/settings/organization/"),
         }
+
+    def test_get_attributes_for_span(self) -> None:
+        project = self.create_project(organization=self.organization)
+
+        response = TraceItemDetailsResponse()
+        response.item_id = "deadbeefdeadbeef"
+        response.timestamp.FromDatetime(datetime(2024, 1, 1, tzinfo=timezone.utc))
+        attribute = response.attributes.add()
+        attribute.name = "span.description"
+        attribute.value.val_str = "example"
+
+        with patch(
+            "sentry.seer.endpoints.seer_rpc.snuba_rpc.trace_item_details_rpc",
+            return_value=response,
+        ) as mock_rpc:
+            result = get_attributes_for_span(
+                org_id=self.organization.id,
+                project_id=project.id,
+                trace_id="5fa0d282b446407cb279202490ee2e8a",
+                span_id="deadbeefdeadbeef",
+            )
+
+        assert result["itemId"] == "deadbeefdeadbeef"
+        assert result["timestamp"] == "2024-01-01T00:00:00Z"
+        assert result["meta"] == {}
+        assert result["links"] is None
+
+        assert len(result["attributes"]) == 1
+        attribute = result["attributes"][0]
+        assert attribute["type"] == "str"
+        assert attribute["value"] == "example"
+        assert attribute["name"] in {"span.description", "tags[span.description,string]"}
+        mock_rpc.assert_called_once()
 
     @responses.activate
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
