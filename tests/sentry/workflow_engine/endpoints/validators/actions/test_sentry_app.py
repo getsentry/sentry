@@ -2,7 +2,6 @@ from unittest import mock
 
 from rest_framework.serializers import ErrorDetail
 
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult
 from sentry.sentry_apps.utils.errors import SentryAppErrorType
 from sentry.testutils.cases import TestCase
@@ -18,7 +17,7 @@ class TestSentryAppActionValidator(TestCase):
             "type": Action.Type.SENTRY_APP,
             "config": {
                 "sentry_app_identifier": "sentry_app_installation_uuid",
-                "targetType": ActionTarget.SENTRY_APP.value,
+                "targetType": "sentry_app",
                 "target_identifier": "123",
             },
             "data": {"settings": []},

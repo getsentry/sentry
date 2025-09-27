@@ -6,7 +6,6 @@ from sentry.integrations.jira.integration import JiraIntegration
 from sentry.integrations.pagerduty.client import PagerDutyClient
 from sentry.integrations.pagerduty.utils import PagerDutyServiceDict, add_service
 from sentry.models.project import Project
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.group_type_notification_registry import (
     IssueAlertRegistryHandler,
 )
@@ -81,7 +80,7 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
                 },
                 "config": {
                     "target_identifier": str(service_info["id"]),
-                    "target_type": ActionTarget.SPECIFIC.value,
+                    "target_type": "specific",
                 },
             }
         ]
@@ -144,15 +143,15 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
                         }
                     ],
                 },
-                "config": {"target_type": ActionTarget.SPECIFIC.value},
+                "config": {"target_type": "specific"},
             }
         ]
 
         response = self.get_error_response(self.organization.slug, actions=action_data)
 
         assert response.status_code == 400
-        assert mock_create_issue.call_count == 1
         assert response.data == {"actions": [str(form_errors)]}
+        assert mock_create_issue.call_count == 1
 
     @mock.patch.object(JiraIntegration, "create_issue")
     @mock.patch.object(sentry_sdk, "capture_exception")
@@ -181,7 +180,7 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
                     ],
                 },
                 "config": {
-                    "target_type": ActionTarget.SPECIFIC.value,
+                    "target_type": "specific",
                 },
             }
         ]

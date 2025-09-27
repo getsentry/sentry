@@ -8,7 +8,8 @@ from sentry.notifications.notification_action.action_handler_registry.common imp
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
+from sentry.workflow_engine.transformers import TargetTypeConfigTransformer
+from sentry.workflow_engine.types import ActionHandler, ConfigTransformer, WorkflowEventData
 
 
 @action_handler_registry.register(Action.Type.MSTEAMS)
@@ -25,6 +26,10 @@ class MSTeamsActionHandler(IntegrationActionHandler):
         "properties": {},
         "additionalProperties": False,
     }
+
+    @staticmethod
+    def get_config_transformer() -> ConfigTransformer | None:
+        return TargetTypeConfigTransformer.from_config_schema(MSTeamsActionHandler.config_schema)
 
     @staticmethod
     def execute(

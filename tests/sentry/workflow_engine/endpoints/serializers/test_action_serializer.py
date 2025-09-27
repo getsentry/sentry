@@ -62,7 +62,7 @@ class TestActionSerializer(TestCase):
             integration_id=self.integration.id,
             config={
                 "target_identifier": "123",
-                "target_type": ActionTarget.SPECIFIC.value,
+                "target_type": ActionTarget.SPECIFIC,
             },
         )
 
@@ -73,7 +73,7 @@ class TestActionSerializer(TestCase):
             "type": "opsgenie",
             "data": {"priority": "P1"},
             "integrationId": str(self.integration.id),
-            "config": {"targetType": 0, "targetIdentifier": "123"},
+            "config": {"targetType": "specific", "targetIdentifier": "123"},
             "status": "active",
         }
 
@@ -97,7 +97,7 @@ class TestActionSerializer(TestCase):
             "data": {"tags": "bar"},
             "integrationId": str(self.integration.id),
             "config": {
-                "targetType": 0,
+                "targetType": "specific",
                 "targetDisplay": "freddy frog",
                 "targetIdentifier": "123-id",
             },

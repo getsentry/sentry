@@ -2,7 +2,6 @@ from unittest import mock
 
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
@@ -17,7 +16,7 @@ class TestMSTeamsActionValidator(TestCase):
 
         self.valid_data = {
             "type": Action.Type.MSTEAMS,
-            "config": {"targetDisplay": "cathy-sentry", "targetType": ActionTarget.SPECIFIC.value},
+            "config": {"targetDisplay": "cathy-sentry", "targetType": "specific"},
             "data": {},
             "integrationId": self.integration.id,
         }
@@ -43,7 +42,7 @@ class TestMSTeamsActionValidator(TestCase):
             data={
                 **self.valid_data,
                 "config": {
-                    "targetType": ActionTarget.SPECIFIC.value,
+                    "targetType": "specific",
                     "targetIdentifier": "C1234567890",
                     "targetDisplay": "asdf",
                 },
