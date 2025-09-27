@@ -246,6 +246,55 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 400, response.content
         assert response.data["error"] == "Unsupported provider"
 
+    def test_assemble_individual_vcs_parameter_valid_head_sha(self) -> None:
+        """Test that providing only valid head_sha succeeds (individual validation)."""
+        response = self.client.post(
+            self.url,
+            data={"checksum": "a" * 40, "chunks": [], "head_sha": "b" * 40},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        # Should pass individual parameter validation
+        assert response.status_code == 200, response.content
+        assert response.data["state"] == ChunkFileState.NOT_FOUND
+
+    def test_assemble_individual_vcs_parameter_invalid_head_sha(self) -> None:
+        """Test that providing invalid head_sha format fails validation."""
+        response = self.client.post(
+            self.url,
+            data={"checksum": "a" * 40, "chunks": [], "head_sha": "invalid"},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        # Should fail JSON schema validation
+        assert response.status_code == 400, response.content
+        assert "head_sha" in response.data["error"]
+
+    def test_assemble_individual_vcs_parameter_invalid_provider(self) -> None:
+        """Test that providing invalid provider fails validation."""
+        response = self.client.post(
+            self.url,
+            data={"checksum": "a" * 40, "chunks": [], "provider": "invalid-provider"},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        # Should fail provider validation
+        assert response.status_code == 400, response.content
+        assert "Unsupported provider" in response.data["error"]
+
+    def test_assemble_mixed_valid_and_invalid_vcs_parameters(self) -> None:
+        """Test that valid parameters work alongside invalid ones being rejected."""
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": "a" * 40,
+                "chunks": [],
+                "head_sha": "b" * 40,  # Valid
+                "provider": "invalid-provider",  # Invalid
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        # Should fail on the invalid provider
+        assert response.status_code == 400, response.content
+        assert "Unsupported provider" in response.data["error"]
+
     def test_assemble_json_schema_missing_checksum(self) -> None:
         """Test that missing checksum field is rejected."""
         response = self.client.post(
