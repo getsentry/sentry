@@ -1159,6 +1159,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:toolbar_allowed_origins": "\n".join(
                 self.get_value_with_default(attrs, "sentry:toolbar_allowed_origins") or []
             ),
+            "ourlogs.relay-extract-json-attributes.enable": self.get_value_with_default(
+                attrs, "ourlogs.relay-extract-json-attributes.enable"
+            ),
+            "ourlogs.relay-extract-json-attributes.count": self.get_value_with_default(
+                attrs, "ourlogs.relay-extract-json-attributes.count"
+            ),
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
         }
 

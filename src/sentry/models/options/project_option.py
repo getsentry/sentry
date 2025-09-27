@@ -77,6 +77,8 @@ OPTION_KEYS = frozenset(
         "filters:react-hydration-errors",
         "filters:chunk-load-error",
         "relay.cardinality-limiter.limits",
+        "ourlogs.relay-extract-json-attributes.enable",
+        "ourlogs.relay-extract-json-attributes.count",
     ]
 )
 

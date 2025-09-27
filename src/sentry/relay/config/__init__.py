@@ -364,6 +364,18 @@ def get_transaction_names_config(
     return [_get_tx_name_rule(p, s) for p, s in cluster_rules]
 
 
+def get_ourlogs_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
+    with sentry_sdk.start_span(op="get_ourlogs_config"):
+        if not project.get_option("ourlogs.relay-extract-json-attributes.enable", True):
+            return None
+
+        return {
+            "extractJsonAttributes": {
+                "count": project.get_option("ourlogs.relay-extract-json-attributes.count")
+            }
+        }
+
+
 def _get_tx_name_rule(pattern: str, seen_last: int) -> TransactionNameRule:
     rule_ttl = seen_last + TRANSACTION_NAME_RULE_TTL_SECS
     expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat().replace("+00:00", "Z")
@@ -1101,6 +1113,9 @@ def _get_project_config(
     config["breakdownsV2"] = project.get_option("sentry:breakdowns")
 
     add_experimental_config(config, "metrics", get_metrics_config, project)
+
+    if features.has("organizations:ourlogs-relay-extract-nested-attributes", project.organization):
+        add_experimental_config(config, "ourlogs", get_ourlogs_config, project)
 
     if _should_extract_transaction_metrics(project):
         add_experimental_config(
