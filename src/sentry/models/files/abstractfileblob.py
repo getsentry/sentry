@@ -215,6 +215,39 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
         return blob
 
     @classmethod
+    @sentry_sdk.tracing.trace
+    def from_file_optimized(cls, fileobj, checksum: str, logger=nooplogger) -> Self:
+        """
+        Create a FileBlob instance for the given file, bypassing existence check.
+        This method assumes the caller has already checked that the blob doesn't exist.
+        """
+        logger.debug("FileBlob.from_file_optimized.start", extra={"checksum": checksum})
+
+        size, calculated_checksum = get_size_and_checksum(fileobj)
+
+        # Verify the provided checksum matches the calculated one
+        if checksum != calculated_checksum:
+            raise ValueError(f"Checksum mismatch: expected {checksum}, got {calculated_checksum}")
+
+        blob = cls(size=size, checksum=checksum)
+        blob.path = cls.generate_unique_path()
+        storage = get_storage(cls._storage_config())
+        storage.save(blob.path, fileobj)
+        try:
+            blob.save()
+        except IntegrityError:
+            # If there's a race condition and the blob was created by another process,
+            # clean up our storage and return the existing blob
+            metrics.incr("filestore.upload_race", sample_rate=1.0)
+            saved_path = blob.path
+            blob = cls.objects.get(checksum=checksum)
+            storage.delete(saved_path)
+
+        metrics.distribution("filestore.blob-size", size, unit="byte")
+        logger.debug("FileBlob.from_file_optimized.end", extra={"checksum": checksum})
+        return blob
+
+    @classmethod
     def generate_unique_path(cls):
         # We intentionally do not use checksums as path names to avoid concurrency issues
         # when we attempt concurrent uploads for any reason.
