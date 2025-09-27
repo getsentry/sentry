@@ -37,7 +37,6 @@ import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {
   DataTitles,
   getDurationChartTitle,
@@ -204,12 +203,12 @@ export function HTTPSamplesPanel() {
     isFetching: isResponseCodeDataLoading,
     data: responseCodeData,
     error: responseCodeError,
-  } = useTopNSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
-      search,
-      fields: [SpanFields.SPAN_STATUS_CODE, 'count()'],
+      query: search,
+      groupBy: [SpanFields.SPAN_STATUS_CODE],
       yAxis: ['count()'],
-      topN: 5,
+      topEvents: 5,
       sort: {
         kind: 'desc',
         field: 'count()',
@@ -218,6 +217,8 @@ export function HTTPSamplesPanel() {
     },
     Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART
   );
+
+  const responseCodeTimeSeries = responseCodeData?.timeSeries || [];
 
   const durationAxisMax = computeAxisMax([
     durationSeries
@@ -446,7 +447,7 @@ export function HTTPSamplesPanel() {
                     search={search}
                     referrer={Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART}
                     groupBy={[SpanFields.SPAN_STATUS_CODE]}
-                    series={Object.values(responseCodeData).filter(Boolean)}
+                    series={responseCodeTimeSeries}
                     isLoading={isResponseCodeDataLoading}
                     error={responseCodeError}
                   />

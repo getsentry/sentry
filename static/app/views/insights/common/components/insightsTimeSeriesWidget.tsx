@@ -15,6 +15,8 @@ import type {
   LegendSelection,
   TimeSeries,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
+import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesName';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -56,6 +58,10 @@ export interface InsightsTimeSeriesWidgetProps
   description?: React.ReactNode;
   extraActions?: React.ReactNode[];
   extraPlottables?: Plottable[];
+  /**
+   * If true, each series will be assigned a unique color rather than relying on the default colors per yAxis
+   */
+  generateUniqueSeriesColors?: boolean;
   height?: string | number;
   interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
@@ -93,6 +99,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   const {releases: releasesWithDate} = useReleaseStats(pageFiltersSelection, {
     enabled: props.showReleaseAs !== 'none',
   });
+  const colors = theme.chart.getColorPalette(props.timeSeries?.length ?? 0);
   const releases =
     releasesWithDate?.map(({date, version}) => ({
       timestamp: date,
@@ -128,16 +135,27 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
         alias: aliases?.[delayedTimeSeries.yAxis],
       });
     }),
-    ...(props.timeSeries?.filter(Boolean) ?? []).map(timeSeries => {
+    ...(props.timeSeries?.filter(Boolean) ?? []).map((timeSeries, idx) => {
       // TODO: After merge of ENG-5375 we don't need to run `markDelayedData` on output of `/events-timeseries/`
       const delayedTimeSeries = markDelayedData(timeSeries, INGESTION_DELAY);
 
       yAxes.add(timeSeries.yAxis);
 
+      let alias = aliases?.[delayedTimeSeries.yAxis];
+      const plottableName = formatTimeSeriesName(delayedTimeSeries);
+      if (aliases?.[plottableName]) {
+        alias = aliases?.[plottableName];
+      }
+      if (!alias && delayedTimeSeries.meta.isOther) {
+        alias = 'Other';
+      }
+
       return new PlottableDataConstructor(delayedTimeSeries, {
-        color: COMMON_COLORS(theme)[delayedTimeSeries.yAxis],
+        color: props.generateUniqueSeriesColors
+          ? colors[idx + 1]
+          : COMMON_COLORS(theme)[delayedTimeSeries.yAxis],
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
-        alias: aliases?.[delayedTimeSeries.yAxis],
+        alias,
       });
     }),
     ...(props.extraPlottables ?? []),
