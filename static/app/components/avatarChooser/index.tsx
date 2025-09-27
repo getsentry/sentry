@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -88,39 +88,42 @@ function AvatarChooser({
 
   const isSentryApp = ['sentryAppColor', 'sentryAppSimple'].includes(type);
 
-  const replaceAvatar = (avatar: Avatar) => {
-    if (['user', 'organization', 'docIntegration'].includes(type)) {
-      setModel(prevModel => ({...prevModel, avatar}));
-      return;
-    }
+  const replaceAvatar = useCallback(
+    (avatar: Avatar) => {
+      if (['user', 'organization', 'docIntegration'].includes(type)) {
+        setModel(prevModel => ({...prevModel, avatar}));
+        return;
+      }
 
-    if (isSentryApp) {
-      setModel(prevModel => {
-        const sentryApp = prevModel as SentryApp;
-        const color = type === 'sentryAppColor';
-        const avatarIndex = sentryApp.avatars?.findIndex(
-          appAvatar => appAvatar.color === color
-        );
-        const avatars = [...(sentryApp.avatars ?? [])];
+      if (isSentryApp) {
+        setModel(prevModel => {
+          const sentryApp = prevModel as SentryApp;
+          const color = type === 'sentryAppColor';
+          const avatarIndex = sentryApp.avatars?.findIndex(
+            appAvatar => appAvatar.color === color
+          );
+          const avatars = [...(sentryApp.avatars ?? [])];
 
-        const replacmentAvatar: SentryAppAvatarType = {
-          ...avatar,
-          color,
-          photoType: color ? 'logo' : 'icon',
-        };
+          const replacmentAvatar: SentryAppAvatarType = {
+            ...avatar,
+            color,
+            photoType: color ? 'logo' : 'icon',
+          };
 
-        if (avatarIndex === undefined || avatarIndex === -1) {
-          avatars.push(replacmentAvatar);
-        } else {
-          avatars[avatarIndex] = replacmentAvatar;
-        }
-        return {...sentryApp, avatars} as SimpleAvatar;
-      });
-      return;
-    }
+          if (avatarIndex === undefined || avatarIndex === -1) {
+            avatars.push(replacmentAvatar);
+          } else {
+            avatars[avatarIndex] = replacmentAvatar;
+          }
+          return {...sentryApp, avatars} as SimpleAvatar;
+        });
+        return;
+      }
 
-    throw new Error('Invalid avatar chooser type');
-  };
+      throw new Error('Invalid avatar chooser type');
+    },
+    [type, isSentryApp]
+  );
 
   const getAvatar = (targetModel: SimpleAvatar | SentryApp) => {
     if ('avatar' in targetModel) {
@@ -212,6 +215,19 @@ function AvatarChooser({
   ];
   const choices = options.filter(([key]) => supportedTypes.includes(key));
 
+  const updateDataUrlState = useCallback(
+    (dataUrl: string) => {
+      const avatar: Avatar = {
+        avatarType: 'upload',
+        avatarUuid: '',
+        avatarUrl: dataUrl,
+      };
+      replaceAvatar(avatar);
+      setCroppedAvatar(dataUrl ?? null);
+    },
+    [replaceAvatar]
+  );
+
   const uploadActions = (
     <AvatarActions>
       <Button
@@ -283,15 +299,7 @@ function AvatarChooser({
         minDimension={MIN_DIMENSION}
         maxDimension={MAX_DIMENSION}
         dataUrl={objectUrl ?? undefined}
-        updateDataUrlState={dataUrl => {
-          const avatar: Avatar = {
-            avatarType: 'upload',
-            avatarUuid: '',
-            avatarUrl: dataUrl,
-          };
-          replaceAvatar(avatar);
-          setCroppedAvatar(dataUrl ?? null);
-        }}
+        updateDataUrlState={updateDataUrlState}
       />
       <CropperActions>
         <Button
