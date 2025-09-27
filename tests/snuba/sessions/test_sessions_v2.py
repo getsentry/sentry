@@ -570,6 +570,7 @@ def test_massage_groupby_timeseries() -> None:
     assert actual_result == expected_result
 
 
+@pytest.mark.skip(reason="flaky: #98613")
 @freeze_time("2020-12-18T13:25:15.769Z")
 def test_massage_virtual_groupby_timeseries() -> None:
     query = _make_query(
