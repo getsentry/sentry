@@ -15,11 +15,13 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
+import {isSampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -36,8 +38,10 @@ import {
 } from 'sentry/views/explore/components/table';
 import {getProfileTargetId} from 'sentry/views/profiling/utils';
 
+const MAX_EXAMPLES_PER_FRAME = 5;
+
 function sortFunctions(a: Profiling.FunctionMetric, b: Profiling.FunctionMetric) {
-  return b.sum - a.sum;
+  return b.sumSelfTime - a.sumSelfTime;
 }
 
 type Column = {
@@ -76,6 +80,29 @@ const COLUMNS: Column[] = [
   },
 ];
 
+function shouldSkipFrame(
+  frame: Omit<Profiling.Frame, 'key'> | undefined,
+  frameInfo: Profiling.FrameInfo | undefined
+): boolean {
+  if (!frame || !frameInfo) {
+    return true;
+  }
+
+  if (!frameInfo.sumSelfTime) {
+    return true;
+  }
+
+  if (!frame.is_application) {
+    return true;
+  }
+
+  if (!defined(frame.fingerprint) || !frame.name || !frame.image) {
+    return true;
+  }
+
+  return false;
+}
+
 interface SuspectFunctionsTableProps {
   analyticsPageSource: 'performance_transaction' | 'profiling_transaction';
   eventView: EventView;
@@ -102,9 +129,82 @@ export function SuspectFunctionsTable({
   });
 
   const sortedMetrics = useMemo(() => {
-    const metrics = flamegraphQuery.data?.metrics || [];
+    const frames = flamegraphQuery.data?.shared?.frames ?? [];
+    const frameInfos = flamegraphQuery.data?.shared?.frame_infos ?? [];
+    const profileExamples = flamegraphQuery.data?.shared?.profiles ?? [];
+
+    const examples: Array<Array<Exclude<Profiling.ProfileReference, string>>> = new Array(
+      frames.length
+    );
+
+    for (const profile of flamegraphQuery.data?.profiles ?? []) {
+      if (isSampledProfile(profile)) {
+        for (let i = 0; i < profile.samples.length; i++) {
+          const sample = profile.samples[i]!;
+          const sampleExamples = profile.samples_examples?.[i];
+          if (!defined(sampleExamples)) {
+            continue;
+          }
+          for (const frameIndex of sample) {
+            const frame = frames[frameIndex];
+            const frameInfo = frameInfos[frameIndex];
+            if (shouldSkipFrame(frame, frameInfo)) {
+              continue;
+            }
+
+            const examplesForFrame = examples[frameIndex] || [];
+            for (const sampleExampleIndex of sampleExamples) {
+              if (examplesForFrame.length >= MAX_EXAMPLES_PER_FRAME) {
+                break;
+              }
+              const sampleExample = profileExamples[sampleExampleIndex];
+              if (defined(sampleExample) && typeof sampleExample !== 'string') {
+                examplesForFrame.push(sampleExample);
+              }
+            }
+            examples[frameIndex] = examplesForFrame;
+          }
+        }
+      }
+    }
+
+    const metrics: Profiling.FunctionMetric[] = [];
+
+    for (let i = 0; i < frames.length && i < frameInfos.length; i++) {
+      const frame = frames[i]!;
+      const frameInfo = frameInfos[i];
+      if (!frameInfo) {
+        continue;
+      }
+      if (shouldSkipFrame(frame, frameInfo)) {
+        continue;
+      }
+
+      const frameExamples:
+        | Array<Exclude<Profiling.ProfileReference, string>>
+        | undefined = examples[i];
+      if (!frameExamples?.length) {
+        continue;
+      }
+
+      metrics.push({
+        fingerprint: frame.fingerprint || 0,
+        in_app: frame.is_application || false,
+        name: frame.name,
+        package: frame.image || '',
+        avg: frameInfo.sumDuration / frameInfo.count,
+        count: frameInfo.count,
+        sum: frameInfo.sumDuration,
+        sumSelfTime: frameInfo.sumSelfTime,
+        p75: frameInfo.p75Duration,
+        p95: frameInfo.p95Duration,
+        p99: frameInfo.p99Duration,
+        examples: frameExamples,
+      });
+    }
+
     return metrics.sort(sortFunctions);
-  }, [flamegraphQuery.data?.metrics]);
+  }, [flamegraphQuery.data]);
 
   const pagination = useMemoryPagination(sortedMetrics, 5);
 

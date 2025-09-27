@@ -25,7 +25,7 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 
 export const DATASET_PARAM = 'queryDataset';
 
-export const DATASET_LABEL_MAP = {
+const DATASET_LABEL_MAP = {
   [SavedQueryDatasets.ERRORS]: t('Errors'),
   [SavedQueryDatasets.TRANSACTIONS]: t('Transactions'),
   [SavedQueryDatasets.DISCOVER]: t('Unknown'),

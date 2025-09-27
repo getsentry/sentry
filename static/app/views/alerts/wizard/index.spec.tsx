@@ -11,12 +11,7 @@ describe('AlertWizard', () => {
   it('sets crash free dataset to metrics', async () => {
     const {organization, project, routerProps, router} = initializeOrg({
       organization: {
-        features: [
-          'alert-crash-free-metrics',
-          'incidents',
-          'performance-view',
-          'crash-rate-alerts',
-        ],
+        features: ['incidents', 'performance-view', 'crash-rate-alerts'],
         access: ['org:write', 'alerts:write'],
       },
     });
@@ -51,7 +46,6 @@ describe('AlertWizard', () => {
     const {organization, project, routerProps, router} = initializeOrg({
       organization: {
         features: [
-          'alert-crash-free-metrics',
           'incidents',
           'performance-view',
           'crash-rate-alerts',
@@ -89,12 +83,7 @@ describe('AlertWizard', () => {
     ConfigStore.set('isSelfHostedErrorsOnly', true);
     const {organization, project, routerProps, router} = initializeOrg({
       organization: {
-        features: [
-          'alert-crash-free-metrics',
-          'incidents',
-          'performance-view',
-          'crash-rate-alerts',
-        ],
+        features: ['incidents', 'performance-view', 'crash-rate-alerts'],
         access: ['org:write', 'alerts:write'],
       },
     });
@@ -120,13 +109,7 @@ describe('AlertWizard', () => {
   it('shows uptime alert according to feature flag', () => {
     const {organization, project, routerProps, router} = initializeOrg({
       organization: {
-        features: [
-          'alert-crash-free-metrics',
-          'incidents',
-          'performance-view',
-          'crash-rate-alerts',
-          'uptime',
-        ],
+        features: ['incidents', 'performance-view', 'crash-rate-alerts', 'uptime'],
         access: ['org:write', 'alerts:write'],
       },
     });
@@ -151,7 +134,6 @@ describe('AlertWizard', () => {
     const {organization, project, routerProps, router} = initializeOrg({
       organization: {
         features: [
-          'alert-crash-free-metrics',
           'incidents',
           'performance-view',
           'crash-rate-alerts',
@@ -185,7 +167,6 @@ describe('AlertWizard', () => {
     const {organization, project, routerProps, router} = initializeOrg({
       organization: {
         features: [
-          'alert-crash-free-metrics',
           'incidents',
           'performance-view',
           'crash-rate-alerts',
@@ -216,7 +197,6 @@ describe('AlertWizard', () => {
     const {organization, project, routerProps, router} = initializeOrg({
       organization: {
         features: [
-          'alert-crash-free-metrics',
           'incidents',
           'performance-view',
           'visibility-explore-view',
@@ -246,7 +226,6 @@ describe('AlertWizard', () => {
     const {organization, project, routerProps, router} = initializeOrg({
       organization: {
         features: [
-          'alert-crash-free-metrics',
           'incidents',
           'performance-view',
           'crash-rate-alerts',

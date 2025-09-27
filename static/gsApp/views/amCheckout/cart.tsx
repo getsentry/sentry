@@ -8,6 +8,7 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron, IconLightning, IconLock, IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -175,6 +176,10 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                 cents: price,
               });
               const formattedReserved = formatReservedWithUnits(reserved, category);
+              const hasPaygForCategory =
+                formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.PER_CATEGORY
+                  ? (formData.onDemandBudget?.budgets?.[category] ?? 0) > 0
+                  : (formData.onDemandBudget?.sharedMaxBudget ?? 0) > 0;
 
               return (
                 <ItemFlex key={category}>
@@ -197,13 +202,23 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                       {formattedPrice}/{shortInterval}
                     </div>
                   ) : (
-                    isPaygOnly && (
-                      <Tag>
-                        {tct('Available with [budgetTerm]', {
-                          budgetTerm: activePlan.budgetTerm,
-                        })}
-                      </Tag>
-                    )
+                    isPaygOnly &&
+                    (hasPaygForCategory ? (
+                      <Tag>{t('Available')}</Tag>
+                    ) : (
+                      <Tooltip
+                        title={t('This product is only available with a PAYG budget.')}
+                      >
+                        <Tag icon={<IconLock locked size="xs" />}>
+                          {tct('Unlock with [budgetTerm]', {
+                            budgetTerm:
+                              activePlan.budgetTerm === 'pay-as-you-go'
+                                ? 'PAYG'
+                                : activePlan.budgetTerm,
+                          })}
+                        </Tag>
+                      </Tooltip>
+                    ))
                   )}
                 </ItemFlex>
               );
@@ -290,6 +305,29 @@ function SubtotalSummary({
   return (
     <Container borderTop="primary">
       <Flex direction="column" padding="2xl xl" gap="md">
+        <Item data-test-id="summary-item-plan-total">
+          <ItemFlex>
+            <strong>{t('Plan Total')}</strong>
+            {previewDataLoading ? (
+              <Placeholder height="16px" width={PRICE_PLACEHOLDER_WIDTH} />
+            ) : (
+              <span>
+                {utils.displayPrice({cents: recurringSubtotal})}/{shortInterval}
+              </span>
+            )}
+          </ItemFlex>
+          {previewDataLoading ? (
+            <Placeholder height="14px" width="200px" />
+          ) : (
+            renewalDate && (
+              <RenewalDate>
+                {tct('Renews [date]', {
+                  date: moment(renewalDate).format('MMM D, YYYY'),
+                })}
+              </RenewalDate>
+            )
+          )}
+        </Item>
         {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.SHARED &&
           !!formData.onDemandMaxSpend && (
             <Item data-test-id="summary-item-spend-limit">
@@ -359,29 +397,6 @@ function SubtotalSummary({
                 </Item>
               );
             })}
-        <Item data-test-id="summary-item-plan-total">
-          <ItemFlex>
-            <strong>{t('Plan Total')}</strong>
-            {previewDataLoading ? (
-              <Placeholder height="16px" width={PRICE_PLACEHOLDER_WIDTH} />
-            ) : (
-              <span>
-                {utils.displayPrice({cents: recurringSubtotal})}/{shortInterval}
-              </span>
-            )}
-          </ItemFlex>
-          {previewDataLoading ? (
-            <Placeholder height="14px" width="200px" />
-          ) : (
-            renewalDate && (
-              <RenewalDate>
-                {tct('Renews [date]', {
-                  date: moment(renewalDate).format('MMM D, YYYY'),
-                })}
-              </RenewalDate>
-            )
-          )}
-        </Item>
       </Flex>
     </Container>
   );
@@ -452,7 +467,7 @@ function TotalSummary({
     }
 
     let subtext = null;
-    if (isDeveloperPlan(activePlan)) {
+    if (isDeveloperPlan(activePlan) || !totalOnDemandBudget) {
       subtext = tct(
         '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate].',
         {
@@ -461,29 +476,16 @@ function TotalSummary({
           renewalDate: moment(renewalDate).format('MMM D, YYYY'),
         }
       );
-    } else if (longInterval === 'yearly') {
-      subtext = tct(
-        '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate]. Any additional usage will continue to be billed monthly.',
-        {
-          effectiveDateSubtext,
-          longInterval,
-          renewalDate: moment(renewalDate).format('MMM D, YYYY'),
-        }
-      );
     } else {
       subtext = tct(
-        '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate], plus any additional usage[onDemandLimit].',
+        '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate], plus any additional PAYG usage billed monthly (up to [onDemandMaxSpend]/mo).',
         {
           effectiveDateSubtext,
           longInterval,
           renewalDate: moment(renewalDate).format('MMM D, YYYY'),
-          onDemandLimit: totalOnDemandBudget
-            ? tct(' (up to [onDemandMaxSpend]/month)', {
-                onDemandMaxSpend: utils.displayPrice({
-                  cents: totalOnDemandBudget,
-                }),
-              })
-            : '',
+          onDemandMaxSpend: utils.displayPrice({
+            cents: totalOnDemandBudget,
+          }),
         }
       );
     }
@@ -497,12 +499,18 @@ function TotalSummary({
     invoiceItems: previewData?.invoiceItems ?? [],
   });
 
+  const buttonText = isMigratingPartner
+    ? t('Schedule changes')
+    : isDueToday
+      ? t('Confirm and pay')
+      : t('Confirm');
+
   return (
     <Flex direction="column">
       <Flex direction="column" padding="2xl xl 0" gap="md" borderTop="primary">
         {isOpen && (
           <Fragment>
-            {!previewDataLoading && isDueToday && (
+            {!previewDataLoading && (
               <Fragment>
                 {fees.map(item => {
                   const formattedPrice = utils.displayPrice({cents: item.amount});
@@ -540,25 +548,41 @@ function TotalSummary({
         )}
         <Item data-test-id="summary-item-due-today">
           <ItemFlex>
-            <DueToday>{t('Due today')}</DueToday>
+            <Text bold size="lg">
+              {isDueToday
+                ? t('Due today')
+                : tct('Due on [date]', {
+                    date: moment(effectiveDate).format('MMM D, YYYY'),
+                  })}
+            </Text>
             {previewDataLoading ? (
               <Placeholder height="24px" width={PRICE_PLACEHOLDER_WIDTH} />
             ) : (
-              <DueTodayPrice>
-                {originalBilledTotal > billedTotal && (
-                  <DueTodayAmountBeforeDiscount>
+              <Container>
+                {isDueToday ? (
+                  <Fragment>
+                    {originalBilledTotal > billedTotal && (
+                      <Text strikethrough variant="muted" size="2xl" bold>
+                        {utils.displayPrice({
+                          cents: originalBilledTotal,
+                        })}{' '}
+                      </Text>
+                    )}
+                    <Text size="2xl" bold>
+                      {utils.displayPrice({
+                        cents: billedTotal,
+                      })}
+                    </Text>
+                  </Fragment>
+                ) : (
+                  <Text size="2xl" bold>
                     {utils.displayPrice({
-                      cents: originalBilledTotal,
-                    })}{' '}
-                  </DueTodayAmountBeforeDiscount>
+                      cents: billedTotal,
+                    })}
+                  </Text>
                 )}
-                <DueTodayAmount>
-                  {utils.displayPrice({
-                    cents: billedTotal,
-                  })}
-                </DueTodayAmount>
-                <span> USD</span>
-              </DueTodayPrice>
+                <Text size="md"> USD</Text>
+              </Container>
             )}
           </ItemFlex>
         </Item>
@@ -577,17 +601,20 @@ function TotalSummary({
             </StyledButton>
           )}
           <StyledButton
-            aria-label={isMigratingPartner ? t('Schedule changes') : t('Confirm and pay')}
+            aria-label={buttonText}
             priority="primary"
             onClick={() => onSubmit()}
             disabled={buttonDisabled || previewDataLoading}
+            title={
+              buttonDisabled
+                ? t(
+                    'Please provide your billing information, including your business address and payment method'
+                  )
+                : null
+            }
             icon={<IconLock locked />}
           >
-            {isSubmitting
-              ? t('Checking out...')
-              : isMigratingPartner
-                ? t('Schedule changes')
-                : t('Confirm and pay')}
+            {isSubmitting ? t('Checking out...') : buttonText}
           </StyledButton>
         </Flex>
         {previewDataLoading ? (
@@ -617,11 +644,20 @@ function Cart({
   const [changesIsOpen, setChangesIsOpen] = useState(true);
   const api = useApi();
   const {data: billingDetails} = useBillingDetails();
-  const hasCompleteBillingInfo = utils.hasBillingInfo(billingDetails, subscription, true);
+  const hasCompleteBillingInfo = useMemo(
+    () => utils.hasBillingInfo(billingDetails, subscription, true),
+    [billingDetails, subscription]
+  );
 
   const resetPreviewState = () => setPreviewState(NULL_PREVIEW_STATE);
 
   const fetchPreview = useCallback(async () => {
+    if (!hasCompleteBillingInfo) {
+      // NOTE: this should never be necessary because you cannot clear
+      // existing billing info, BUT YA NEVER KNOW
+      resetPreviewState();
+      return;
+    }
     await utils.fetchPreviewData(
       organization,
       api,
@@ -649,23 +685,15 @@ function Cart({
             .add(1, 'day')
             .toDate();
 
-          if (atPeriodEnd) {
-            setPreviewState(prev => ({
-              ...prev,
-              originalBilledTotal: 0,
-              billedTotal: 0,
-              effectiveDate: moment(effectiveAt).add(1, 'day').toDate(),
-              renewalDate,
-            }));
-          } else {
-            setPreviewState(prev => ({
-              ...prev,
-              originalBilledTotal: proratedAmount,
-              billedTotal: billedAmount,
-              effectiveDate: null,
-              renewalDate,
-            }));
-          }
+          setPreviewState(prev => ({
+            ...prev,
+            originalBilledTotal: proratedAmount,
+            billedTotal: billedAmount,
+            effectiveDate: atPeriodEnd
+              ? moment(effectiveAt).add(1, 'day').toDate()
+              : null,
+            renewalDate,
+          }));
         } else {
           resetPreviewState();
         }
@@ -675,7 +703,13 @@ function Cart({
         resetPreviewState();
       }
     );
-  }, [api, formDataForPreview, organization, subscription.contractPeriodEnd]);
+  }, [
+    api,
+    formDataForPreview,
+    organization,
+    subscription.contractPeriodEnd,
+    hasCompleteBillingInfo,
+  ]);
 
   useEffect(() => {
     fetchPreview();
@@ -840,33 +874,15 @@ const RenewalDate = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const DueToday = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
-`;
-
-const DueTodayPrice = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-`;
-
-const DueTodayAmount = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize['2xl']};
-`;
-
-const DueTodayAmountBeforeDiscount = styled(DueTodayAmount)`
-  text-decoration: line-through;
-  color: ${p => p.theme.subText};
-`;
-
 const Credit = styled('div')`
   color: ${p => p.theme.successText};
 `;
 
 const StyledButton = styled(Button)`
   display: flex;
-  gap: ${p => p.theme.space.xl};
   flex-grow: 1;
+  align-items: center;
+  justify-content: center;
 `;
 
 const Subtext = styled('div')`

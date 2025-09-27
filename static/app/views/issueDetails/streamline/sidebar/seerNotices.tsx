@@ -171,7 +171,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
               <IconSeer variant="waiting" size="xl" />
               Debug Faster with Seer
             </StepsHeader>
-            <GuidedSteps>
+            <StyledGuidedSteps>
               {/* Step 1: GitHub Integration */}
               <GuidedSteps.Step
                 key="github-setup"
@@ -359,7 +359,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   </CustomStepButtons>
                 </GuidedSteps.Step>
               )}
-            </GuidedSteps>
+            </StyledGuidedSteps>
             <StepsDivider />
           </motion.div>
         </AnimatePresence>
@@ -413,6 +413,10 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     </NoticesContainer>
   );
 }
+
+const StyledGuidedSteps = styled(GuidedSteps)`
+  background: transparent;
+`;
 
 const StyledAlert = styled(Alert)`
   margin-bottom: ${space(2)};
