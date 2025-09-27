@@ -15,6 +15,23 @@ import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/tr
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
+function isJson(value: string) {
+  try {
+    JSON.parse(value);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function renderAIResponse(text: string) {
+  return isJson(text) ? (
+    <TraceDrawerComponents.MultilineJSON value={text} maxDefaultDepth={2} />
+  ) : (
+    <TraceDrawerComponents.MultilineText>{text}</TraceDrawerComponents.MultilineText>
+  );
+}
+
 export function AIOutputSection({
   node,
   attributes,
@@ -64,9 +81,7 @@ export function AIOutputSection({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Response')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <TraceDrawerComponents.MultilineText>
-            {responseText.toString().trim()}
-          </TraceDrawerComponents.MultilineText>
+          {renderAIResponse(responseText.toString())}
         </Fragment>
       )}
       {responseObject && (
@@ -74,10 +89,7 @@ export function AIOutputSection({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Response Object')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <TraceDrawerComponents.MultilineJSON
-            value={responseObject}
-            maxDefaultDepth={2}
-          />
+          {renderAIResponse(responseObject.toString())}
         </Fragment>
       )}
       {toolCalls && (
