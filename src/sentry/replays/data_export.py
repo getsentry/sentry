@@ -43,7 +43,7 @@ from sentry.taskworker.retry import Retry
 from sentry.utils import json
 from sentry.utils.snuba import raw_snql_query
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 EXPORT_JOB_DURATION_DEFAULT = timedelta(days=5)
 
