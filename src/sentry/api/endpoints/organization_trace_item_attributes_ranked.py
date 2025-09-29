@@ -48,8 +48,12 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
         except NoProjects:
             return Response({"rankedAttributes": []})
 
+        resolver_config = SearchResolverConfig(
+            disable_aggregate_extrapolation="disableAggregateExtrapolation" in request.GET
+        )
+
         resolver = SearchResolver(
-            params=snuba_params, config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
+            params=snuba_params, config=resolver_config, definitions=SPAN_DEFINITIONS
         )
 
         meta = resolver.resolve_meta(
@@ -91,7 +95,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 query_string=query_1,
                 selected_columns=[f"{function_name}({function_parameter})"],
                 orderby=None,
-                config=SearchResolverConfig(),
+                config=resolver_config,
                 offset=0,
                 limit=1,
                 sampling_mode=snuba_params.sampling_mode,
@@ -152,7 +156,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 query_string=query_1,
                 selected_columns=["count(span.duration)"],
                 orderby=None,
-                config=SearchResolverConfig(),
+                config=resolver_config,
                 offset=0,
                 limit=1,
                 sampling_mode=snuba_params.sampling_mode,
@@ -170,7 +174,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 query_string=query_2,
                 selected_columns=["count(span.duration)"],
                 orderby=None,
-                config=SearchResolverConfig(),
+                config=resolver_config,
                 offset=0,
                 limit=1,
                 sampling_mode=snuba_params.sampling_mode,
