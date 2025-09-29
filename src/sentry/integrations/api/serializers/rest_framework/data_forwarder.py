@@ -1,14 +1,39 @@
 import re
 from collections.abc import MutableMapping
-from typing import Any
+from typing import Any, TypedDict
 
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
-from sentry.models.organization import Organization
 from sentry.models.project import Project
+
+
+class SQSConfig(TypedDict, total=False):
+    """Configuration for Amazon SQS data forwarder."""
+
+    queue_url: str
+    region: str
+    access_key: str
+    secret_key: str
+    message_group_id: str | None
+    s3_bucket: str | None
+
+
+class SegmentConfig(TypedDict):
+    """Configuration for Segment data forwarder."""
+
+    write_key: str
+
+
+class SplunkConfig(TypedDict):
+    """Configuration for Splunk data forwarder."""
+
+    instance_URL: str
+    index: str
+    source: str
+    token: str
 
 
 class DataForwarderSerializer(Serializer):
@@ -24,127 +49,109 @@ class DataForwarderSerializer(Serializer):
     )
     config = serializers.JSONField(default=dict)
 
-    def validate_organization_id(self, value: int) -> int:
-        try:
-            Organization.objects.get(id=value)
-        except Organization.DoesNotExist:
-            raise ValidationError("Organization with this ID does not exist")
-        return value
-
-    def validate_config(self, value: dict) -> dict:
-        provider = self.initial_data.get("provider") or getattr(self.instance, "provider", None)
+    def validate_config(self, config: dict) -> dict:
+        """Validate config based on provider."""
+        provider = self.initial_data.get("provider")
 
         if provider == "sqs":
-            return self._validate_sqs_config(value)
+            return self._validate_sqs_config(config)
         elif provider == "segment":
-            return self._validate_segment_config(value)
+            return self._validate_segment_config(config)
         elif provider == "splunk":
-            return self._validate_splunk_config(value)
+            return self._validate_splunk_config(config)
 
-        return value
+        return config
 
-    def _validate_sqs_config(self, config: dict) -> dict:
-        """Validate Amazon SQS specific configuration."""
-        required_fields = ["queue_url", "region", "access_key", "secret_key"]
-        # optional_fields = ["message_group_id", "s3_bucket"]
-
+    def _validate_all_fields_present(
+        self, config: dict, required_fields: list[str], provider_name: str = ""
+    ) -> None:
         missing_fields = [field for field in required_fields if field not in config]
         if missing_fields:
-            raise ValidationError(f"Missing required SQS fields: {', '.join(missing_fields)}")
+            if provider_name:
+                raise ValidationError(
+                    f"Missing required {provider_name} fields: {', '.join(missing_fields)}"
+                )
+            else:
+                raise ValidationError(f"Missing required fields: {', '.join(missing_fields)}")
 
-        errors = []
-
-        # SQS URL format: https://sqs.region.amazonaws.com/account/queue-name
+    def _validate_sqs_queue_url(self, config: dict, errors: list[str]) -> None:
         queue_url = config.get("queue_url")
         sqs_url_pattern = (
             r"^https://sqs\.[a-z0-9\-]+\.amazonaws\.com/\d+/[a-zA-Z0-9\-_/]+(?:\.fifo)?$"
         )
-        if not isinstance(queue_url, str) or not re.match(sqs_url_pattern, queue_url):
+        if not queue_url or not re.match(sqs_url_pattern, queue_url):
             errors.append(
                 "queue_url must be a valid SQS URL format: "
                 "https://sqs.region.amazonaws.com/account/queue-name"
             )
 
+    def _validate_sqs_region(self, config: dict, errors: list[str]) -> None:
         aws_region_pattern = r"^[a-z0-9\-]+$"
         region = config.get("region")
-        if not isinstance(region, str) or not re.match(aws_region_pattern, region):
+        if not region or not re.match(aws_region_pattern, region):
             errors.append("region must be a valid AWS region format")
 
+    def _validate_sqs_credentials(self, config: dict, errors: list[str]) -> None:
         access_key = config.get("access_key")
         secret_key = config.get("secret_key")
 
-        if not isinstance(access_key, str) or access_key.strip() == "":
+        if not access_key or access_key.strip() == "":
             errors.append("access_key must be a non-empty string")
 
-        if not isinstance(secret_key, str) or secret_key.strip() == "":
+        if not secret_key or secret_key.strip() == "":
             errors.append("secret_key must be a non-empty string")
 
+    def _validate_sqs_message_group_id(self, config: dict, errors: list[str]) -> None:
         message_group_id = config.get("message_group_id")
-        if message_group_id is not None and not isinstance(message_group_id, str):
-            errors.append("message_group_id must be a string or null")
+        queue_url = config.get("queue_url")
+
+        if message_group_id is not None and message_group_id.strip() == "":
+            errors.append("message_group_id must be a non-empty string or null")
 
         if isinstance(queue_url, str) and queue_url.endswith(".fifo") and not message_group_id:
             errors.append("message_group_id is required for FIFO queues")
 
+    def _validate_sqs_s3_bucket(self, config: dict, errors: list[str]) -> None:
         s3_bucket = config.get("s3_bucket")
         if s3_bucket is not None:
-            if not isinstance(s3_bucket, str) or s3_bucket.strip() == "":
+            if not s3_bucket or s3_bucket.strip() == "":
                 errors.append("s3_bucket must be a non-empty string")
             else:
                 s3_bucket_pattern = r"^[a-z0-9\-\.]+$"
                 if not re.match(s3_bucket_pattern, s3_bucket):
                     errors.append("s3_bucket must be a valid S3 bucket name")
 
-        if errors:
-            raise ValidationError(errors)
-
-        return config
-
-    def _validate_segment_config(self, config: dict) -> dict:
-        if "write_key" not in config:
-            raise ValidationError("Missing required Segment fields: write_key")
-
+    def _validate_segment_write_key(self, config: dict) -> None:
         segment_write_key_pattern = r"^[a-zA-Z0-9_\-]+$"
         write_key = config.get("write_key")
-        if not isinstance(write_key, str) or not re.match(segment_write_key_pattern, write_key):
+        if not write_key or not re.match(segment_write_key_pattern, write_key):
             raise ValidationError("write_key must be a valid Segment write key format")
 
-        return config
-
-    def _validate_splunk_config(self, config: dict) -> dict:
-        required_fields = ["instance_URL", "index", "source", "token"]
-
-        missing_fields = [field for field in required_fields if field not in config]
-        if missing_fields:
-            raise ValidationError(f"Missing required Splunk fields: {', '.join(missing_fields)}")
-
-        errors = []
-
+    def _validate_splunk_instance_url(self, config: dict, errors: list[str]) -> None:
         splunk_url_pattern = r"^https?://[a-zA-Z0-9\-\.]+(?::\d+)?(?:/.*)?$"
         instance_url = config.get("instance_URL")
-        if not isinstance(instance_url, str) or not re.match(splunk_url_pattern, instance_url):
+        if not instance_url or not re.match(splunk_url_pattern, instance_url):
             errors.append("instance_URL must be a valid URL starting with http:// or https://")
 
+    def _validate_splunk_required_strings(self, config: dict, errors: list[str]) -> None:
         index = config.get("index")
-        if not isinstance(index, str) or index.strip() == "":
+        if not index or index.strip() == "":
             errors.append("index must be a non-empty string")
 
         source = config.get("source")
-        if not isinstance(source, str) or source.strip() == "":
+        if not source or source.strip() == "":
             errors.append("source must be a non-empty string")
 
         token = config.get("token")
-        if not isinstance(token, str) or token.strip() == "":
+        if not token or token.strip() == "":
             errors.append("token must be a non-empty string")
-        else:
+
+    def _validate_splunk_token_format(self, config: dict, errors: list[str]) -> None:
+        token = config.get("token")
+        if token and token.strip():  # Only validate if token exists and is not empty
             splunk_token_pattern = r"^[a-zA-Z0-9\-]+$"
             if not re.match(splunk_token_pattern, token):
                 errors.append("token must be a valid Splunk HEC token format")
-
-        if errors:
-            raise ValidationError(errors)
-
-        return config
 
     def validate(self, attrs: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         organization_id = attrs.get("organization_id")
@@ -165,6 +172,43 @@ class DataForwarderSerializer(Serializer):
 
         return attrs
 
+    def _validate_sqs_config(self, config: dict) -> SQSConfig:
+        self._validate_all_fields_present(
+            config, ["queue_url", "region", "access_key", "secret_key"], "SQS"
+        )
+
+        errors = []
+        self._validate_sqs_queue_url(config, errors)
+        self._validate_sqs_region(config, errors)
+        self._validate_sqs_credentials(config, errors)
+        self._validate_sqs_message_group_id(config, errors)
+        self._validate_sqs_s3_bucket(config, errors)
+
+        if errors:
+            raise ValidationError(errors)
+
+        return config
+
+    def _validate_segment_config(self, config: dict) -> SegmentConfig:
+        self._validate_all_fields_present(config, ["write_key"], "Segment")
+        self._validate_segment_write_key(config)
+        return config
+
+    def _validate_splunk_config(self, config: dict) -> SplunkConfig:
+        self._validate_all_fields_present(
+            config, ["instance_URL", "index", "source", "token"], "Splunk"
+        )
+
+        errors = []
+        self._validate_splunk_instance_url(config, errors)
+        self._validate_splunk_required_strings(config, errors)
+        self._validate_splunk_token_format(config, errors)
+
+        if errors:
+            raise ValidationError(errors)
+
+        return config
+
 
 class DataForwarderProjectSerializer(Serializer):
     data_forwarder_id = serializers.IntegerField()
@@ -172,16 +216,25 @@ class DataForwarderProjectSerializer(Serializer):
     overrides = serializers.JSONField(default=dict)
     is_enabled = serializers.BooleanField(default=True)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._validated_data_forwarder = None
+        self._validated_project = None
+
     def validate_data_forwarder_id(self, value: int) -> int:
         try:
-            DataForwarder.objects.get(id=value)
+            data_forwarder = DataForwarder.objects.get(id=value)
+            # Store the data_forwarder for later validation
+            self._validated_data_forwarder = data_forwarder
         except DataForwarder.DoesNotExist:
             raise ValidationError("DataForwarder with this ID does not exist")
         return value
 
     def validate_project_id(self, value: int) -> int:
         try:
-            Project.objects.get(id=value)
+            project = Project.objects.get(id=value)
+            # Store the project for later validation
+            self._validated_project = project
         except Project.DoesNotExist:
             raise ValidationError("Project with this ID does not exist")
         return value
@@ -191,6 +244,16 @@ class DataForwarderProjectSerializer(Serializer):
         project_id = attrs.get("project_id")
 
         if data_forwarder_id and project_id:
+            # Check that DataForwarder and Project belong to the same organization
+            if hasattr(self, "_validated_data_forwarder") and hasattr(self, "_validated_project"):
+                data_forwarder = self._validated_data_forwarder
+                project = self._validated_project
+
+                if data_forwarder.organization_id != project.organization_id:
+                    raise ValidationError(
+                        "DataForwarder and Project must belong to the same organization."
+                    )
+
             existing = DataForwarderProject.objects.filter(
                 data_forwarder_id=data_forwarder_id, project_id=project_id
             )

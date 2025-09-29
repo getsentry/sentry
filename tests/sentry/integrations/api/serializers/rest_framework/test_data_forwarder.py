@@ -98,25 +98,6 @@ class DataForwarderSerializerTest(TestCase):
         assert not serializer.is_valid()
         assert "provider" in serializer.errors
 
-    def test_organization_id_validation_valid(self) -> None:
-        serializer = DataForwarderSerializer(
-            data={
-                "organization_id": self.organization.id,
-                "provider": "segment",
-                "config": {"write_key": "test_key"},
-            }
-        )
-        assert serializer.is_valid()
-        assert serializer.validated_data["organization_id"] == self.organization.id
-
-    def test_organization_id_validation_invalid(self) -> None:
-        serializer = DataForwarderSerializer(data={"organization_id": 99999, "provider": "segment"})
-        assert not serializer.is_valid()
-        assert "organization_id" in serializer.errors
-        assert "Organization with this ID does not exist" in str(
-            serializer.errors["organization_id"]
-        )
-
     def test_sqs_config_validation_valid(self) -> None:
         valid_config: dict[str, str] = {
             "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue",
