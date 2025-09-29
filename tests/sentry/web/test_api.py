@@ -752,3 +752,131 @@ class McpJsonTest(TestCase):
         assert response.status_code == 200
         assert "max-age=3600" in response["Cache-Control"]
         assert "public" in response["Cache-Control"]
+
+
+class AppleAppSiteAssociationTest(TestCase):
+    @cached_property
+    def path(self) -> str:
+        return reverse("sentry-apple-app-site-association")
+
+    def test_aasa_endpoint_accessible(self) -> None:
+        response = self.client.get("/.well-known/apple-app-site-association")
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/json"
+
+    def test_aasa_content_structure(self) -> None:
+        response = self.client.get("/.well-known/apple-app-site-association")
+
+        assert response.status_code == 200
+        data = json.loads(response.content)
+
+        # Verify top-level structure
+        assert "applinks" in data
+        assert "apps" in data["applinks"]
+        assert "details" in data["applinks"]
+
+        # Verify apps array is empty as per AASA spec
+        assert data["applinks"]["apps"] == []
+
+        # Verify details array has our app configuration
+        details = data["applinks"]["details"]
+        assert len(details) == 1
+
+        app_config = details[0]
+        assert "appID" in app_config
+        assert "components" in app_config
+
+    def test_aasa_app_configuration(self) -> None:
+        response = self.client.get("/.well-known/apple-app-site-association")
+
+        assert response.status_code == 200
+        data = json.loads(response.content)
+
+        app_config = data["applinks"]["details"][0]
+
+        # Verify our specific app ID (team ID + bundle ID)
+        assert app_config["appID"] == "97JCY7859U.io.sentry.SentryMobileAgent"
+
+        # Verify components configuration
+        components = app_config["components"]
+        assert len(components) == 1
+
+        component = components[0]
+        assert "/" in component
+        assert "?" in component
+
+        # Verify path pattern matches OAuth login flow
+        assert component["/"] == "/auth/login/*"
+
+        # Verify query parameters for OAuth flow
+        query_params = component["?"]
+        assert "code" in query_params
+        assert "state" in query_params
+        assert query_params["code"] == "*"
+        assert query_params["state"] == "*"
+
+    def test_aasa_cache_control(self) -> None:
+        response = self.client.get("/.well-known/apple-app-site-association")
+
+        assert response.status_code == 200
+        assert "max-age=3600" in response["Cache-Control"]
+        assert "public" in response["Cache-Control"]
+
+    def test_aasa_reverse_url(self) -> None:
+        # Test that the named URL works correctly
+        response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/json"
+
+        # Should return the same content as direct path
+        direct_response = self.client.get("/.well-known/apple-app-site-association")
+        assert response.content == direct_response.content
+
+    def test_aasa_json_validity(self) -> None:
+        response = self.client.get("/.well-known/apple-app-site-association")
+
+        assert response.status_code == 200
+
+        # Ensure the JSON is valid and can be parsed
+        try:
+            data = json.loads(response.content)
+        except json.JSONDecodeError:
+            assert False, "AASA endpoint returned invalid JSON"
+
+        # Verify it contains the required structure for iOS to parse
+        assert isinstance(data, dict)
+        assert isinstance(data["applinks"], dict)
+        assert isinstance(data["applinks"]["apps"], list)
+        assert isinstance(data["applinks"]["details"], list)
+        assert len(data["applinks"]["details"]) > 0
+
+        # Verify each app detail has required fields
+        for app_detail in data["applinks"]["details"]:
+            assert isinstance(app_detail, dict)
+            assert "appID" in app_detail
+            assert "components" in app_detail
+            assert isinstance(app_detail["components"], list)
+
+    def test_aasa_oauth_compatibility(self) -> None:
+        """Test that AASA configuration matches expected OAuth redirect patterns"""
+        response = self.client.get("/.well-known/apple-app-site-association")
+
+        assert response.status_code == 200
+        data = json.loads(response.content)
+
+        app_config = data["applinks"]["details"][0]
+        component = app_config["components"][0]
+
+        # OAuth authorization flow should redirect to /auth/login/* with code and state
+        # This test ensures our AASA config will match those redirects
+        assert component["/"] == "/auth/login/*"
+
+        query_params = component["?"]
+        assert "code" in query_params  # OAuth authorization code
+        assert "state" in query_params  # OAuth state parameter for CSRF protection
+
+        # Verify wildcard matching for parameter values
+        assert query_params["code"] == "*"
+        assert query_params["state"] == "*"
