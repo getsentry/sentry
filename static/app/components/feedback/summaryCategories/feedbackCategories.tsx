@@ -83,7 +83,11 @@ export default function FeedbackCategories() {
     return null;
   }
 
-  if (!categories || categories.length === 0) {
+  if (
+    !categories ||
+    categories.length === 0 ||
+    !setupAcknowledgement.orgHasAcknowledged
+  ) {
     return null;
   }
 
