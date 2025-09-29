@@ -45,7 +45,7 @@ class File(AbstractFile[FileBlobIndex, FileBlob]):
 
     def _delete_unreferenced_blob_task(self) -> Task[Any, Any]:
         return delete_unreferenced_blobs_region
-    
+
     def _get_blob_model(self):
         """Return the FileBlob model class for this file type."""
         return FileBlob

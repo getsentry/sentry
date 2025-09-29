@@ -42,7 +42,7 @@ class ControlFile(AbstractFile[ControlFileBlobIndex, ControlFileBlob]):
 
     def _delete_unreferenced_blob_task(self) -> Task[Any, Any]:
         return delete_unreferenced_blobs_control
-    
+
     def _get_blob_model(self):
         """Return the ControlFileBlob model class for this file type."""
         return ControlFileBlob
