@@ -349,9 +349,8 @@ def devserver(
                 kafka_consumers.add("ingest-occurrences")
 
         # Check if Kafka is available and create all topics if it is running
-        valid_kafka_container_names = ["kafka-kafka-1", "sentry_kafka"]
         kafka_container_name = "kafka-kafka-1"
-        kafka_is_running = any(name in containers for name in valid_kafka_container_names)
+        kafka_is_running = kafka_container_name in containers
 
         if kafka_is_running:
             from sentry_kafka_schemas import list_topics
