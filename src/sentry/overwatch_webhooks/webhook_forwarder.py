@@ -1,16 +1,18 @@
+import logging
 from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.overwatch_webhooks.models import OrganizationSummary, WebhookDetails
-from sentry.overwatch_webhooks.overwatch_consent.service import overwatch_consent_service
 from sentry.overwatch_webhooks.webhook_publisher import OverwatchWebhookPublisher
 from sentry.types.region import get_region_by_name
+from sentry.utils import metrics
 
 # TODO: Double check that this includes all of the events you care about.
 GITHUB_EVENTS_TO_FORWARD_OVERWATCH = {
@@ -26,6 +28,9 @@ GITHUB_EVENTS_TO_FORWARD_OVERWATCH = {
 class OverwatchOrganizationContext:
     organization_integration: OrganizationIntegration
     organization_mapping: OrganizationMapping
+
+
+logger = logging.getLogger("sentry.overwatch_webhook_forwarder")
 
 
 class OverwatchGithubWebhookForwarder:
@@ -64,54 +69,49 @@ class OverwatchGithubWebhookForwarder:
 
         return org_contexts_by_region
 
-    def _get_org_ids(self, org_contexts: list[OrganizationSummary]) -> list[int]:
-        return [org_context.id for org_context in org_contexts]
-
-    def get_organizations_with_consent(
-        self, integration: Integration
-    ) -> dict[str, list[OrganizationSummary]]:
-        """
-        Collect all organizations related to the given organization integrations
-        that have granted consent for AI features.
-        """
-        org_summaries_by_region = self._get_org_summaries_by_region_for_integration(integration)
-        # Group organizations by region for efficient RPC calls
-        # Get consent status for all organizations, one request per region
-        consent_statuses_by_org_id: dict[int, bool] = {}
-        org_summaries_with_consent_by_region: dict[str, list[OrganizationSummary]] = defaultdict(
-            list
-        )
-
-        for region_name, org_summaries in org_summaries_by_region.items():
-            org_ids = self._get_org_ids(org_summaries)
-            region_consent_statuses = overwatch_consent_service.get_organization_consent_status(
-                organization_ids=org_ids,
-                region_name=region_name,
-            )
-            for org_id, consent_status in region_consent_statuses.items():
-                consent_statuses_by_org_id[org_id] = consent_status.has_consent
-
-            for org_summary in org_summaries:
-                if consent_statuses_by_org_id[org_summary.id]:
-                    org_summaries_with_consent_by_region[region_name].append(org_summary)
-
-        return org_summaries_with_consent_by_region
-
     def forward_if_applicable(self, event: Mapping[str, Any]):
-        orgs_by_region = self.get_organizations_with_consent(integration=self.integration)
-        if not orgs_by_region or not self.should_forward_to_overwatch(event):
-            return
+        try:
+            enabled_regions = options.get("overwatch.enabled-regions")
+            if not enabled_regions:
+                # feature isn't enabled, no work to do
+                return
 
-        for region_name, org_summaries in orgs_by_region.items():
-            webhook_detail = WebhookDetails(
-                organizations=org_summaries,
-                webhook_body=dict(event),
-                integration_provider=self.integration.provider,
-                region=region_name,
+            orgs_by_region = self._get_org_summaries_by_region_for_integration(
+                integration=self.integration
             )
 
-            publisher = OverwatchWebhookPublisher(
-                integration_provider=self.integration.provider,
-                region=get_region_by_name(region_name),
+            if not orgs_by_region or not self.should_forward_to_overwatch(event):
+                return
+
+            # Only forwards to US region for now. Once EU overwatch is configured,
+            # we can forward to EU region.
+            for region_name, org_summaries in orgs_by_region.items():
+                if region_name not in enabled_regions:
+                    continue
+
+                webhook_detail = WebhookDetails(
+                    organizations=org_summaries,
+                    webhook_body=dict(event),
+                    integration_provider=self.integration.provider,
+                    region=region_name,
+                )
+
+                publisher = OverwatchWebhookPublisher(
+                    integration_provider=self.integration.provider,
+                    region=get_region_by_name(region_name),
+                )
+                publisher.enqueue_webhook(webhook_detail)
+                metrics.incr(
+                    "overwatch.forward-webhooks.success",
+                    sample_rate=1.0,
+                    tags={"forward_region": region_name},
+                )
+        except Exception:
+            metrics.incr(
+                "overwatch.forward-webhooks.forward-error",
+                sample_rate=1.0,
+                tags={"forward_region": region_name},
             )
-            publisher.enqueue_webhook(webhook_detail)
+            logger.exception(
+                "overwatch.forward-webhooks.forward-error", extra={"forward_region": region_name}
+            )

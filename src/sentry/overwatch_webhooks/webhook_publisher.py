@@ -23,7 +23,9 @@ class OverwatchWebhookPublisher:
         self._region = region
         try:
             # TODO: Validate that the publisher client version is correct.
-            # TODO: Validate that the default credentials we're using for GCP work for in this context as well.
+
+            # TODO: Enable per-region publisher client initialization. Ideally,
+            # we should have a publisher client for each region for data isolation.
             self._publisher_client = PublisherClient()
         except GoogleAuthError:
             logger.warning("webhook_dispatcher.publisher_client.missing_auth")
