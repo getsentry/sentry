@@ -37,19 +37,34 @@ function fetchCustomMeasurements(
   });
 }
 
+type CustomMeasurementsConfig = {
+  organization: Organization;
+  selection?: PageFilters;
+};
+
 type CustomMeasurementsProviderProps = {
   children:
     | React.ReactNode
     | ((props: CustomMeasurementsContextValue) => React.ReactNode);
-  organization: Organization;
-  selection?: PageFilters;
-};
+} & CustomMeasurementsConfig;
 
 export function CustomMeasurementsProvider({
   children,
   organization,
   selection,
 }: CustomMeasurementsProviderProps) {
+  const state = useCustomMeasurementsConfig({organization, selection});
+  return (
+    <CustomMeasurementsContext value={state}>
+      {typeof children === 'function' ? children(state) : children}
+    </CustomMeasurementsContext>
+  );
+}
+
+export function useCustomMeasurementsConfig({
+  organization,
+  selection,
+}: CustomMeasurementsConfig) {
   const api = useApi();
   const [state, setState] = useState({customMeasurements: {}});
 
@@ -91,9 +106,5 @@ export function CustomMeasurementsProvider({
     };
   }, [selection, api, organization]);
 
-  return (
-    <CustomMeasurementsContext value={state}>
-      {typeof children === 'function' ? children(state) : children}
-    </CustomMeasurementsContext>
-  );
+  return state;
 }
