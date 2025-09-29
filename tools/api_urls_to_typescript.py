@@ -163,7 +163,7 @@ if __name__ == "__main__":
 
     from sentry.api.urls import urlpatterns
 
-    route_patterns = sorted(urls_to_routes("/", urlpatterns))
+    route_patterns = set(sorted(urls_to_routes("/", urlpatterns)))
 
     command = len(sys.argv) > 1 and sys.argv[1]
     if command == "list":
