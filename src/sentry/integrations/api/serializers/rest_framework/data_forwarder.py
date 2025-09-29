@@ -43,7 +43,7 @@ class DataForwarderSerializer(Serializer):
     )
     config = serializers.JSONField(default=dict)
 
-    def validate_config(self, config: dict) -> SQSConfig | SegmentConfig | SplunkConfig:
+    def validate_config(self, config) -> SQSConfig | SegmentConfig | SplunkConfig:
         """Validate config based on provider."""
         provider = self.initial_data.get("provider")
 
@@ -166,7 +166,7 @@ class DataForwarderSerializer(Serializer):
 
         return attrs
 
-    def _validate_sqs_config(self, config: dict) -> SQSConfig:
+    def _validate_sqs_config(self, config) -> SQSConfig:
         self._validate_all_fields_present(
             config, ["queue_url", "region", "access_key", "secret_key"], "SQS"
         )
@@ -183,12 +183,12 @@ class DataForwarderSerializer(Serializer):
 
         return config
 
-    def _validate_segment_config(self, config: dict) -> SegmentConfig:
+    def _validate_segment_config(self, config) -> SegmentConfig:
         self._validate_all_fields_present(config, ["write_key"], "Segment")
         self._validate_segment_write_key(config)
         return config
 
-    def _validate_splunk_config(self, config: dict) -> SplunkConfig:
+    def _validate_splunk_config(self, config) -> SplunkConfig:
         self._validate_all_fields_present(
             config, ["instance_URL", "index", "source", "token"], "Splunk"
         )
@@ -236,7 +236,7 @@ class DataForwarderProjectSerializer(Serializer):
         project_id = attrs.get("project_id")
 
         if data_forwarder_id and project_id:
-            if hasattr(self, "_validated_data_forwarder") and hasattr(self, "_validated_project"):
+            if self._validated_data_forwarder and self._validated_project:
                 data_forwarder = self._validated_data_forwarder
                 project = self._validated_project
 
