@@ -326,7 +326,8 @@ def _get_blames_from_all_integrations(
                     )
                 else:
                     if e.code == 429:
-                        logger.exception(
+                        # Rate limit errors are expected - log but don't capture exception
+                        logger.warning(
                             "process_commit_context_all_frames.get_commit_context_all_frames.rate_limit",
                             extra={**log_info, "error_message": e.text},
                         )

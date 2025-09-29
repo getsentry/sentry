@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import random
 import sys
 import traceback
 from collections.abc import Generator, Mapping
@@ -390,7 +391,9 @@ def handle_query_errors() -> Generator[None]:
         arg = error.args[0] if len(error.args) > 0 else None
         if isinstance(error, RateLimitExceeded):
             sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
-            sentry_sdk.capture_exception(error)
+            # Rate limit errors are expected - only capture 1% for monitoring
+            if random.randint(1, 100) <= 1:
+                sentry_sdk.capture_exception(error)
             raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
         if isinstance(
             error,
@@ -404,6 +407,9 @@ def handle_query_errors() -> Generator[None]:
             ReadTimeoutError,
         ):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
+            # Timeout errors are common - only capture 5% for monitoring
+            if random.randint(1, 100) <= 5:
+                sentry_sdk.capture_exception(error)
             raise TimeoutException(detail=TIMEOUT_ERROR_MESSAGE)
         elif isinstance(error, (UnqualifiedQueryError)):
             sentry_sdk.set_tag("query.error_reason", str(error))
