@@ -1,3 +1,4 @@
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -20,6 +21,27 @@ interface Props {
 export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const replayRecord = readerResult.replayRecord;
   const replay = readerResult.replay;
+
+  const tickerRef = useRef<number | undefined>(undefined);
+
+  const computeIsLive = useCallback(() => {
+    return replay?.getIsLive();
+  }, [replay]);
+
+  const [isLive, setIsLive] = useState(computeIsLive);
+
+  useEffect(() => {
+    // Immediately update if props change
+    setIsLive(computeIsLive());
+
+    const ONE_MINUTE_INTERVAL = 1000;
+    tickerRef.current = window.setInterval(() => {
+      setIsLive(computeIsLive());
+    }, ONE_MINUTE_INTERVAL);
+
+    return () => window.clearInterval(tickerRef.current);
+  }, [computeIsLive]);
+
   const badge = replayRecord ? (
     <UserBadge
       avatarSize={24}
@@ -36,7 +58,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                 isTooltipHoverable
                 unitStyle="regular"
               />
-              {replay?.getIsLive() ? <Live /> : null}
+              {isLive ? <Live /> : null}
             </TimeContainer>
           ) : null}
         </DisplayHeader>
