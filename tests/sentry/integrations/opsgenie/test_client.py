@@ -417,7 +417,7 @@ class OpsgenieClientTest(APITestCase):
                 "URL": "http://example.com/alert/1",
             },
         }
-        
+
         # Test 502 Bad Gateway
         responses.add(
             responses.POST,
@@ -431,9 +431,11 @@ class OpsgenieClientTest(APITestCase):
             responses.POST,
             url="https://api.opsgenie.com/v2/alerts",
             status=503,
-            json={"message": "upstream connect error or disconnect/reset before headers. reset reason: overflow"},
+            json={
+                "message": "upstream connect error or disconnect/reset before headers. reset reason: overflow"
+            },
         )
-        
+
         # Test 504 Gateway Timeout
         responses.add(
             responses.POST,
