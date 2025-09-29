@@ -12,6 +12,7 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {BuildDetailsSidebarAppInfo} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarAppInfo';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   getBranchUrl,
   getPrUrl,
@@ -122,13 +123,15 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
 
   return (
     <Flex direction="column" gap="2xl">
-      {/* App info */}
-      <BuildDetailsSidebarAppInfo
-        appInfo={buildDetailsData.app_info}
-        sizeInfo={buildDetailsData.size_info}
-        projectId={props.projectId}
-        artifactId={props.artifactId}
-      />
+      {/* App info - only show when artifact is processed */}
+      {buildDetailsData.state === BuildDetailsState.PROCESSED && (
+        <BuildDetailsSidebarAppInfo
+          appInfo={buildDetailsData.app_info}
+          sizeInfo={buildDetailsData.size_info}
+          projectId={props.projectId}
+          artifactId={props.artifactId}
+        />
+      )}
 
       {/* VCS info */}
       <KeyValueData.Card title="Git details" contentItems={vcsInfoContentItems} />
@@ -136,9 +139,9 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
   );
 }
 
-function SidebarLoadingSkeleton() {
+function SidebarLoadingSkeleton(props: {['data-testid']: string}) {
   return (
-    <Flex direction="column" gap="2xl">
+    <Flex direction="column" gap="2xl" {...props}>
       {/* App info skeleton - matches BuildDetailsSidebarAppInfo structure */}
       <Flex direction="column" gap="xl">
         {/* App icon and name */}
