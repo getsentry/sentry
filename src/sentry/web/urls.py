@@ -1243,6 +1243,11 @@ urlpatterns += [
         api.mcp_json,
         name="sentry-mcp-json",
     ),
+    re_path(
+        r"^\.well-known/apple-app-site-association$",
+        api.apple_app_site_association,
+        name="sentry-apple-app-site-association",
+    ),
     # Force a 404 of favicon.ico.
     # This url is commonly requested by browsers, and without
     # blocking this, it was treated as a 200 OK for a react page view.

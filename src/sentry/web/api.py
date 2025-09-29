@@ -66,6 +66,18 @@ MCP_CONFIG = {
     "endpoint": "https://mcp.sentry.dev/mcp",
 }
 
+AASA_CONFIG = {
+    "applinks": {
+        "apps": [],
+        "details": [
+            {
+                "appID": "97JCY7859U.io.sentry.SentryMobileAgent",
+                "components": [{"/": "/auth/login/*", "?": {"code": "*", "state": "*"}}],
+            }
+        ],
+    }
+}
+
 
 class ClientConfigView(BaseView):
     def get(self, request: Request) -> HttpResponse:
@@ -94,6 +106,11 @@ def mcp_json(request):
         return HttpResponse(status=404)
 
     return HttpResponse(json.dumps(MCP_CONFIG), content_type="application/json")
+
+
+@cache_control(max_age=3600, public=True)
+def apple_app_site_association(request):
+    return HttpResponse(json.dumps(AASA_CONFIG), content_type="application/json")
 
 
 @cache_control(max_age=60)
