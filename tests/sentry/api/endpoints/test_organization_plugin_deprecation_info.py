@@ -30,7 +30,7 @@ class OrganizationPluginDeprecationInfoEndpointTest(APITestCase):
             self.endpoint,
             kwargs={
                 "organization_id_or_slug": organization_slug or self.organization.slug,
-                "plugin_slug": self.plugin_name,
+                "plugin_slug": "Test-Plugin",
             },
         )
 
