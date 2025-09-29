@@ -26,7 +26,10 @@ import {
   getDerivedMetrics,
   mapDerivedMetricsToFields,
 } from 'sentry/views/dashboards/utils/transformSessionsResponseToTable';
-import {ReleaseSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
+import {
+  ReleaseSearchBar,
+  useReleasesSearchBarDataProvider,
+} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
 import {
   DerivedStatusFields,
   DISABLED_SORT,
@@ -105,6 +108,7 @@ export const ReleasesConfig: DatasetConfig<SessionApiResponse, SessionApiRespons
   filterYAxisOptions,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
   SearchBar: ReleaseSearchBar,
+  useSearchBarDataProvider: useReleasesSearchBarDataProvider,
   getTableFieldOptions: getReleasesTableFieldOptions,
   getGroupByFieldOptions: (_organization: Organization) =>
     generateReleaseWidgetFieldOptions([] as SessionsMeta[], SESSIONS_TAGS),
@@ -268,6 +272,7 @@ function getReleasesTableFieldOptions(_organization: Organization) {
   return generateReleaseWidgetFieldOptions(Object.values(SESSIONS_FIELDS), SESSIONS_TAGS);
 }
 
+/** @internal exported for tests **/
 export function transformSessionsResponseToTable(
   data: SessionApiResponse,
   widgetQuery: WidgetQuery

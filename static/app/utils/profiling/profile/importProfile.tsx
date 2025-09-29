@@ -234,7 +234,7 @@ function importSchema(
       return {
         ...frame,
         count: frameInfo?.count,
-        weight: frameInfo?.weight,
+        weight: frameInfo?.sumDuration,
       };
     })
   );
@@ -658,62 +658,4 @@ function importSingleProfile(
     );
   }
   throw new Error('Unrecognized trace format');
-}
-
-const tryParseInputString: JSONParser = input => {
-  try {
-    return [JSON.parse(input), null];
-  } catch (e: any) {
-    return [null, e];
-  }
-};
-
-type JSONParser = (input: string) => [any, null] | [null, Error];
-
-// @ts-expect-error TS(7051): Parameter has a name but no type. Did you mean 'ar... Remove this comment to see the full error message
-const TRACE_JSON_PARSERS: Array<(string) => ReturnType<JSONParser>> = [
-  (input: string) => tryParseInputString(input),
-  (input: string) => tryParseInputString(input + ']'),
-];
-
-function readFileAsString(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.addEventListener('load', (e: ProgressEvent<FileReader>) => {
-      if (typeof e.target?.result === 'string') {
-        resolve(e.target.result);
-        return;
-      }
-
-      reject('Failed to read string contents of input file');
-    });
-
-    reader.addEventListener('error', () => {
-      reject('Failed to read string contents of input file');
-    });
-
-    reader.readAsText(file);
-  });
-}
-
-export async function parseDroppedProfile(
-  file: File,
-  parsers: JSONParser[] = TRACE_JSON_PARSERS
-): Promise<Profiling.ProfileInput> {
-  const fileContents = await readFileAsString(file);
-
-  for (const parser of parsers) {
-    const [json] = parser(fileContents);
-
-    if (json) {
-      if (typeof json !== 'object' || json === null) {
-        throw new TypeError('Input JSON is not an object');
-      }
-
-      return json;
-    }
-  }
-
-  throw new Error('Failed to parse input JSON');
 }

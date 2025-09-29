@@ -11,22 +11,52 @@ import {
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
-function ensureAttributeObject(
-  attributes: Record<string, string> | TraceItemResponseAttribute[]
+// TODO(aknaus): Remove the special handling for tags once the endpoint returns the correct type
+function getAttributeValue(
+  attribute: TraceItemResponseAttribute
+): string | number | boolean {
+  if (!attribute.name.startsWith('tags[')) {
+    return attribute.value;
+  }
+  if (attribute.type === 'int') {
+    return Number(attribute.value);
+  }
+  if (attribute.type === 'float') {
+    return Number(attribute.value);
+  }
+  if (attribute.type === 'bool') {
+    /* @ts-expect-error - tags are always returned as strings */
+    return attribute.value === 'true';
+  }
+  return attribute.value;
+}
+
+export function ensureAttributeObject(
+  node: TraceTreeNode<TraceTree.NodeValue>,
+  event?: EventTransaction,
+  attributes?: TraceItemResponseAttribute[]
 ) {
-  if (Array.isArray(attributes)) {
+  if (isEAPSpanNode(node) && attributes) {
     return attributes.reduce(
       (acc, attribute) => {
         // Some attribute keys include prefixes and metadata (e.g. "tags[ai.prompt_tokens.used,number]")
         // prettifyAttributeName normalizes those
-        acc[prettifyAttributeName(attribute.name)] = attribute.value;
+        acc[prettifyAttributeName(attribute.name)] = getAttributeValue(attribute);
         return acc;
       },
       {} as Record<string, string | number | boolean>
     );
   }
 
-  return attributes;
+  if (isTransactionNode(node) && event) {
+    return event.contexts.trace?.data;
+  }
+
+  if (isSpanNode(node)) {
+    return node.value.data;
+  }
+
+  return undefined;
 }
 
 export function getTraceNodeAttribute(
@@ -34,25 +64,9 @@ export function getTraceNodeAttribute(
   node: TraceTreeNode<TraceTree.NodeValue>,
   event?: EventTransaction,
   attributes?: TraceItemResponseAttribute[]
-) {
-  if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
-    return undefined;
-  }
-
-  if (isEAPSpanNode(node) && attributes) {
-    const attributeObject = ensureAttributeObject(attributes);
-    return attributeObject[name];
-  }
-
-  if (isTransactionNode(node) && event) {
-    return event.contexts.trace?.data?.[name];
-  }
-
-  if (isSpanNode(node)) {
-    return node.value.data?.[name];
-  }
-
-  return undefined;
+): string | number | boolean | undefined {
+  const attributeObject = ensureAttributeObject(node, event, attributes);
+  return attributeObject?.[name];
 }
 
 function createGetIsAiNode(predicate: ({op}: {op?: string}) => boolean) {

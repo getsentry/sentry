@@ -26,7 +26,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import {hasNewBillingUI} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 import SubscriptionHeader from './subscriptionHeader';
@@ -159,10 +158,9 @@ function UsageLog({location, subscription}: Props) {
       value: type,
     })) ?? [];
   const selectedEventName = decodeScalar(location.query.event);
-  const isNewBillingUI = hasNewBillingUI(organization);
 
   return (
-    <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
+    <Container>
       <SubscriptionHeader subscription={subscription} organization={organization} />
       <UsageLogContainer>
         <CompactSelect
@@ -219,7 +217,6 @@ function UsageLog({location, subscription}: Props) {
 }
 
 export default withSubscription(UsageLog);
-/** @internal exported for tests only */
 export {UsageLog};
 
 const SentryAvatar = styled(ActivityAvatar)`

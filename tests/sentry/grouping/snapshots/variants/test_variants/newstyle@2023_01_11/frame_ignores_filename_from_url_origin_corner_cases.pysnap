@@ -1,13 +1,13 @@
 ---
-created: '2025-09-11T18:38:50.541271+00:00'
+created: '2025-09-24T20:27:06.767792+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   contributing component: null
-  component:
-    app (stacktrace of system takes precedence)
+  root_component:
+    app (ignored because system stacktrace takes precedence)
       stacktrace (ignored because it contains no in-app frames)
         frame (non app frame)
           filename (ignored because frame points to a URL)
@@ -26,13 +26,13 @@ app:
         frame (non app frame)
           filename (ignored because frame points to a URL)
             "foo.js"
-          context_line (discarded because from URL origin and no function)
+          context_line (ignored because file path is a URL and function name is missing)
             "hello world"
 --------------------------------------------------------------------------
 system:
   hash: "e04dce7550635e05dbd7f656102cf304"
   contributing component: stacktrace
-  component:
+  root_component:
     system*
       stacktrace*
         frame*
@@ -52,5 +52,5 @@ system:
         frame
           filename (ignored because frame points to a URL)
             "foo.js"
-          context_line (discarded because from URL origin and no function)
+          context_line (ignored because file path is a URL and function name is missing)
             "hello world"

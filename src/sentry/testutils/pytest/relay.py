@@ -36,14 +36,16 @@ def _remove_container_if_exists(docker_client, container_name):
     except Exception:
         pass  # container not found
     else:
-        try:
-            container.kill()
-        except Exception:
-            pass  # maybe the container is already stopped
-        try:
-            container.remove()
-        except Exception:
-            pass  # could not remove the container nothing to do about it
+        actions = [
+            lambda: container.stop(timeout=1),
+            lambda: container.kill(),
+            lambda: container.remove(),
+        ]
+        for action in actions:
+            try:
+                action()
+            except Exception:
+                pass
 
 
 @pytest.fixture(scope="module")
@@ -152,10 +154,7 @@ def relay_server(relay_server_setup, settings):
     else:
         raise ValueError("relay did not start in time")
 
-    try:
-        yield {"url": relay_server_setup["url"]}
-    finally:
-        container.stop(timeout=10)
+    yield {"url": relay_server_setup["url"]}
 
 
 def adjust_settings_for_relay_tests(settings):

@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Literal, NotRequired, TypedDict
 
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Reliability
 
 from sentry.search.events.types import EventsResponse
@@ -63,3 +64,4 @@ class TraceItemAttribute(TypedDict):
 
 class EAPResponse(EventsResponse):
     confidence: ConfidenceData
+    page_token: NotRequired[PageToken]

@@ -13,7 +13,7 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportApiIntroduction,
-  getCrashReportGenericInstallStep,
+  getCrashReportGenericInstallSteps,
   getCrashReportInstallDescription,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
@@ -142,7 +142,6 @@ const onboarding: OnboardingConfig = {
       }),
       configurations: [
         {
-          partialLoading: params.sourcePackageRegistries.isLoading,
           code: [
             {
               language: 'shell',
@@ -356,7 +355,7 @@ SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The Use
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportGenericInstallStep(params),
+  install: (params: Params) => getCrashReportGenericInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,

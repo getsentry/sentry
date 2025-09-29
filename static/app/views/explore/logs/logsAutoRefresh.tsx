@@ -16,7 +16,7 @@ import {
   type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {useLogsAnalyticsPageSource} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {useLogsAnalyticsPageSource} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {AutoRefreshLabel} from 'sentry/views/explore/logs/styles';
 import {useLogsAutoRefreshInterval} from 'sentry/views/explore/logs/useLogsAutoRefreshInterval';
 import {checkSortIsTimeBasedDescending} from 'sentry/views/explore/logs/utils';
@@ -80,6 +80,15 @@ export function AutorefreshToggle({averageLogsPerSecond = 0}: AutorefreshToggleP
       setAutorefresh('idle');
     }
   }, [selectionString, previousSelection, setAutorefresh]);
+
+  const sortBysAreTimeBasedDescending = checkSortIsTimeBasedDescending(sortBys);
+
+  // Changing the sort should also disable autorefresh as there is only one sort (and direction) currently allowed.
+  useEffect(() => {
+    if (!sortBysAreTimeBasedDescending && autoRefresh !== 'idle') {
+      setAutorefresh('idle');
+    }
+  }, [setAutorefresh, sortBysAreTimeBasedDescending, autoRefresh]);
 
   const hasAbsoluteDates = Boolean(selection.datetime.start && selection.datetime.end);
 
