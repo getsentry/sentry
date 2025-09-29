@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import moment from 'moment-timezone';
@@ -154,6 +155,9 @@ function ItemWithPrice({
 }
 
 function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
+  const theme = useTheme();
+  const isChonk = theme.isChonk;
+
   // TODO(checkout v3): This will need to be updated for non-budget products
   const additionalProductCategories = useMemo(
     () =>
@@ -229,12 +233,21 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                         title={t('This product is only available with a PAYG budget.')}
                       >
                         <Tag icon={<IconLock locked size="xs" />}>
-                          {tct('Unlock with [budgetTerm]', {
-                            budgetTerm:
-                              activePlan.budgetTerm === 'pay-as-you-go'
-                                ? 'PAYG'
-                                : activePlan.budgetTerm,
-                          })}
+                          {isChonk || activePlan.budgetTerm === 'pay-as-you-go' ? (
+                            tct('Unlock with [budgetTerm]', {
+                              budgetTerm:
+                                activePlan.budgetTerm === 'pay-as-you-go'
+                                  ? 'PAYG'
+                                  : activePlan.budgetTerm,
+                            })
+                          ) : (
+                            // "Unlock with on-demand" gets cut off in non-chonk theme
+                            <Text size="xs">
+                              {tct('Unlock with [budgetTerm]', {
+                                budgetTerm: activePlan.budgetTerm,
+                              })}
+                            </Text>
+                          )}
                         </Tag>
                       </Tooltip>
                     ))
