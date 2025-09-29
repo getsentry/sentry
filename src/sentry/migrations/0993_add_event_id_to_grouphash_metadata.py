@@ -28,6 +28,6 @@ class Migration(CheckedMigration):
         migrations.AddField(
             model_name="grouphashmetadata",
             name="event_id",
-            field=models.CharField(null=True),
+            field=models.CharField(max_length=32, null=True),
         ),
     ]
