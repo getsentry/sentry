@@ -17,7 +17,7 @@ def record_lifecycle_termination_level(lifecycle: EventLifecycle, error: ApiErro
         lifecycle.record_halt(halt_reason=error)
     elif error.code in (502, 503, 504):
         # Infrastructure-level errors (Bad Gateway, Service Unavailable, Gateway Timeout)
-        # should be treated as halts, not failures, to avoid creating noise for temporary 
+        # should be treated as halts, not failures, to avoid creating noise for temporary
         # service availability issues outside our control
         lifecycle.record_halt(halt_reason=error)
     elif error.json:
