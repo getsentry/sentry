@@ -20,7 +20,5 @@ class DetectorGroup(DefaultFieldsModel):
         app_label = "workflow_engine"
         unique_together = (("detector", "group"),)
         indexes = [
-            models.Index(
-                fields=["detector", "group", "-date_added"], name="detectorgroup_det_grp_date_idx"
-            ),
+            models.Index(fields=["detector", "-date_added"], name="detectorgroup_det_date_idx"),
         ]
