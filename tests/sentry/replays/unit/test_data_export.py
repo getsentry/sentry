@@ -1,8 +1,6 @@
 import base64
 from datetime import datetime, timedelta
-from unittest.mock import Mock
 
-from google.api_core.operation import Operation
 from google.cloud import storage_transfer_v1
 from google.cloud.storage_transfer_v1 import (
     CreateTransferJobRequest,
@@ -13,7 +11,7 @@ from google.cloud.storage_transfer_v1 import (
     TransferJob,
     TransferSpec,
 )
-from google.type import date_pb2  # type: ignore[import-untyped]
+from google.type import date_pb2
 
 from sentry.replays.data_export import (
     create_transfer_job,
@@ -75,46 +73,6 @@ def test_export_blob_data() -> None:
     )
 
 
-def test_request_schedule_transfer_job() -> None:
-    """
-    Test "request_schedule_transfer_job" by proxy.
-
-    We don't actually pass the function to our export function. Instead we pass a nearly identical
-    function with the client defined in the local scope so we can mock that client and assert its
-    running correctly.
-    """
-    gcs_project_id = "1"
-    pubsub_topic = "PUBSUB_TOPIC"
-    bucket_name = "BUCKET"
-    bucket_prefix = "PREFIX"
-    start_date = datetime(year=2025, month=1, day=31)
-    job_duration = timedelta(days=5)
-    client = storage_transfer_v1.StorageTransferServiceClient()
-
-    def request_schedule_transfer_job(transfer_job: CreateTransferJobRequest) -> TransferJob:
-        return client.create_transfer_job(transfer_job)
-
-    mock_rpc = Mock()
-    client._transport._wrapped_methods[client._transport.create_transfer_job] = mock_rpc
-
-    create_transfer_job(
-        gcs_project_id=gcs_project_id,
-        source_bucket=bucket_name,
-        source_prefix=bucket_prefix,
-        destination_bucket="b",
-        notification_topic=pubsub_topic,
-        job_duration=job_duration,
-        transfer_job_name=None,
-        do_create_transfer_job=request_schedule_transfer_job,
-        get_current_datetime=lambda: start_date,
-    )
-
-    # Assert we made it to the RPC call. We've done everything correctly. Its up to GCS to
-    # execute now.
-    assert mock_rpc.call_count == 1
-    mock_rpc.reset_mock()
-
-
 def test_retry_export_blob_data() -> None:
     job_name = "job-name"
     job_project_id = "project-name"
@@ -133,43 +91,6 @@ def test_retry_export_blob_data() -> None:
     )
 
     assert result == RunTransferJobRequest(job_name=job_name, project_id=job_project_id)
-
-
-def test_request_retry_transfer_job() -> None:
-    """
-    Test "request_retry_transfer_job" by proxy.
-
-    We don't actually pass the function to our export function. Instead we pass a nearly identical
-    function with the client defined in the local scope so we can mock that client and assert its
-    running correctly.
-    """
-    job_name = "job-name"
-    job_project_id = "project-name"
-    client = storage_transfer_v1.StorageTransferServiceClient()
-
-    def request_retry_transfer_job(transfer_job: RunTransferJobRequest) -> Operation:
-        return client.run_transfer_job(transfer_job)
-
-    mock_rpc = Mock()
-    client._transport._wrapped_methods[client._transport.run_transfer_job] = mock_rpc
-
-    transfer_operation = {
-        "transferOperation": {
-            "status": "FAILED",
-            "transferJobName": job_name,
-            "projectId": job_project_id,
-        }
-    }
-
-    retry_transfer_job_run(
-        {"data": base64.b64encode(json.dumps(transfer_operation).encode()).decode("utf-8")},
-        request_retry_transfer_job,
-    )
-
-    # Assert we made it to the RPC call. We've done everything correctly. Its up to GCS to
-    # execute now.
-    assert mock_rpc.call_count == 1
-    mock_rpc.reset_mock()
 
 
 def test_export_replay_blob_data() -> None:

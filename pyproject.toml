@@ -288,6 +288,7 @@ module = [
     "google.cloud.*",
     "google.resumable_media.common.*",
     "google.rpc.status_pb2.*",
+    "google.type.*",
     "kombu.*",
     "mistune.*",
     "onelogin.saml2.auth.*",
