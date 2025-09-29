@@ -99,12 +99,11 @@ export function Am1MobileOverviewPage() {
     location,
     projects,
     generateGenericPerformanceEventView(location, withStaticFilters, organization),
-    withStaticFilters,
-    organization
+    withStaticFilters
   );
   const searchBarEventView = eventView.clone();
 
-  let columnTitles = checkIsReactNative(eventView)
+  const columnTitles = checkIsReactNative(eventView)
     ? REACT_NATIVE_COLUMN_TITLES
     : MOBILE_COLUMN_TITLES;
 
@@ -149,19 +148,6 @@ export function Am1MobileOverviewPage() {
     mepSetting
   );
 
-  if (organization.features.includes('mobile-vitals')) {
-    columnTitles = [
-      ...columnTitles.slice(0, 5),
-      {title: 'ttid'},
-      ...columnTitles.slice(5),
-    ];
-    tripleChartRowCharts.push(
-      ...[
-        PerformanceWidgetSetting.TIME_TO_INITIAL_DISPLAY,
-        PerformanceWidgetSetting.TIME_TO_FULL_DISPLAY,
-      ]
-    );
-  }
   if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts[0] = PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID;
   }
