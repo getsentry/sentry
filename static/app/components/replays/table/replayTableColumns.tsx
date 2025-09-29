@@ -16,6 +16,7 @@ import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButt
 import NumericDropdownFilter from 'sentry/components/replays/table/filters/numericDropdownFilter';
 import OSBrowserDropdownFilter from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
 import ScoreBar from 'sentry/components/scoreBar';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconNot} from 'sentry/icons';
 import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
 import {IconFire} from 'sentry/icons/iconFire';
@@ -598,38 +599,19 @@ const TabularNumber = styled('div')`
 `;
 
 const CellLink = styled(Link)`
-  margin: -${p => p.theme.space.xl};
-  padding: ${p => p.theme.space.xl};
-  flex-grow: 1;
+  ${SimpleTable.rowLinkStyle}
 
-  &:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: -1;
-  }
+  flex-grow: 1;
 `;
 
 const PlayPauseButtonContainer = styled(Flex)`
+  ${SimpleTable.rowLinkStyle}
+
   z-index: 1; /* Raise above any ReplaySessionColumn in the row */
-  display: flex;
   flex-direction: column;
   justify-content: center;
 
-  margin: 0 -${space(2)} 0 -${space(1)};
-
-  cursor: pointer;
-  &:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-  }
+  margin: 0 -${p => p.theme.space.xl} 0 -${p => p.theme.space.md};
 `;
 
 const CheckboxHeaderContainer = styled(Flex)`
