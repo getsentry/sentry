@@ -122,7 +122,6 @@ const RadioOptions = styled('div')`
 `;
 
 const OptionLabel = styled('label')`
-  position: relative;
   display: grid;
   grid-template-columns: 1fr;
   border-radius: ${p => p.theme.borderRadius};
