@@ -110,6 +110,9 @@ def mcp_json(request):
 
 @cache_control(max_age=3600, public=True)
 def apple_app_site_association(request):
+    if settings.SENTRY_MODE == SentryMode.SELF_HOSTED:
+        return HttpResponse(status=404)
+
     return HttpResponse(json.dumps(AASA_CONFIG), content_type="application/json")
 
 

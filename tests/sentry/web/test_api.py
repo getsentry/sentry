@@ -759,14 +759,22 @@ class AppleAppSiteAssociationTest(TestCase):
     def path(self) -> str:
         return reverse("sentry-apple-app-site-association")
 
-    def test_aasa_endpoint_accessible(self) -> None:
-        response = self.client.get("/.well-known/apple-app-site-association")
+    def test_aasa_saas_mode(self) -> None:
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get("/.well-known/apple-app-site-association")
 
         assert response.status_code == 200
         assert response["Content-Type"] == "application/json"
 
+    def test_aasa_self_hosted_mode(self) -> None:
+        with override_settings(SENTRY_MODE="self_hosted"):
+            response = self.client.get("/.well-known/apple-app-site-association")
+
+        assert response.status_code == 404
+
     def test_aasa_content_structure(self) -> None:
-        response = self.client.get("/.well-known/apple-app-site-association")
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get("/.well-known/apple-app-site-association")
 
         assert response.status_code == 200
         data = json.loads(response.content)
@@ -788,7 +796,8 @@ class AppleAppSiteAssociationTest(TestCase):
         assert "components" in app_config
 
     def test_aasa_app_configuration(self) -> None:
-        response = self.client.get("/.well-known/apple-app-site-association")
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get("/.well-known/apple-app-site-association")
 
         assert response.status_code == 200
         data = json.loads(response.content)
@@ -817,7 +826,8 @@ class AppleAppSiteAssociationTest(TestCase):
         assert query_params["state"] == "*"
 
     def test_aasa_cache_control(self) -> None:
-        response = self.client.get("/.well-known/apple-app-site-association")
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get("/.well-known/apple-app-site-association")
 
         assert response.status_code == 200
         assert "max-age=3600" in response["Cache-Control"]
@@ -825,17 +835,20 @@ class AppleAppSiteAssociationTest(TestCase):
 
     def test_aasa_reverse_url(self) -> None:
         # Test that the named URL works correctly
-        response = self.client.get(self.path)
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get(self.path)
 
         assert response.status_code == 200
         assert response["Content-Type"] == "application/json"
 
         # Should return the same content as direct path
-        direct_response = self.client.get("/.well-known/apple-app-site-association")
+        with override_settings(SENTRY_MODE="saas"):
+            direct_response = self.client.get("/.well-known/apple-app-site-association")
         assert response.content == direct_response.content
 
     def test_aasa_json_validity(self) -> None:
-        response = self.client.get("/.well-known/apple-app-site-association")
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get("/.well-known/apple-app-site-association")
 
         assert response.status_code == 200
 
@@ -861,7 +874,8 @@ class AppleAppSiteAssociationTest(TestCase):
 
     def test_aasa_oauth_compatibility(self) -> None:
         """Test that AASA configuration matches expected OAuth redirect patterns"""
-        response = self.client.get("/.well-known/apple-app-site-association")
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get("/.well-known/apple-app-site-association")
 
         assert response.status_code == 200
         data = json.loads(response.content)
