@@ -13,7 +13,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.api.models.launchpad import PutSize
-from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
+from sentry.preprod.authentication import (
+    LaunchpadRpcPermission,
+    LaunchpadRpcSignatureAuthentication,
+)
 from sentry.preprod.models import PreprodArtifactSizeMetrics
 
 logger = logging.getLogger(__name__)
@@ -43,7 +46,7 @@ class ProjectPreprodSizeWithIdentifierEndpoint(PreprodArtifactEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (LaunchpadRpcSignatureAuthentication,)
-    permission_classes = ()
+    permission_classes = (LaunchpadRpcPermission,)
 
     def put(
         self, request: Request, project, head_artifact_id, identifier, head_artifact
@@ -58,7 +61,7 @@ class ProjectPreprodSizeEndpoint(PreprodArtifactEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (LaunchpadRpcSignatureAuthentication,)
-    permission_classes = ()
+    permission_classes = (LaunchpadRpcPermission,)
 
     def put(self, request: Request, project, head_artifact_id, head_artifact) -> Response:
         identifier = None
