@@ -238,7 +238,6 @@ function ProductSelect({
                                 plan: activePlan,
                                 category: category as DataCategory,
                                 hadCustomDynamicSampling: false,
-                                title: true,
                               })}
                               {':'}
                             </FeatureItemCategory>

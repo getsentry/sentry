@@ -161,7 +161,6 @@ function ReservedDiff({
                   {getPlanCategoryName({
                     category: key,
                     plan: newValue === null ? currentPlan : newPlan,
-                    title: true,
                   })}
                 </ChangedCategory>
               }
@@ -244,7 +243,6 @@ function OnDemandDiff({
                       {getPlanCategoryName({
                         category: key,
                         plan: newValue === null ? currentPlan : newPlan,
-                        title: true,
                       })}
                     </ChangedCategory>
                   }
@@ -455,10 +453,18 @@ function CartDiff({
     ) {
       changes.push({
         key: 'sharedMaxBudget',
-        currentValue: currentOnDemandBudget.sharedMaxBudget,
+        currentValue:
+          // only show $0 PAYG changes if the budget is being changed to $0
+          currentOnDemandBudget.sharedMaxBudget === 0
+            ? null
+            : currentOnDemandBudget.sharedMaxBudget,
         newValue: newOnDemandBudget.sharedMaxBudget,
       });
-    } else if (currentBudgetMode === OnDemandBudgetMode.SHARED) {
+    } else if (
+      currentBudgetMode === OnDemandBudgetMode.SHARED &&
+      // only show $0 PAYG changes if the budget is being changed to $0
+      currentOnDemandBudget.sharedMaxBudget !== 0
+    ) {
       changes.push({
         key: 'sharedMaxBudget',
         currentValue: currentOnDemandBudget.sharedMaxBudget,
