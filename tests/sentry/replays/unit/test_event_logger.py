@@ -10,12 +10,18 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry.conf.types.kafka_definition import Topic
 from sentry.replays.usecases.ingest.event_logger import (
     emit_click_events,
+    emit_tap_events,
     emit_trace_items_to_eap,
     gen_rage_clicks,
     log_multiclick_events,
     log_rage_click_events,
 )
-from sentry.replays.usecases.ingest.event_parser import ClickEvent, MultiClickEvent, ParsedEventMeta
+from sentry.replays.usecases.ingest.event_parser import (
+    ClickEvent,
+    MultiClickEvent,
+    ParsedEventMeta,
+    TapEvent,
+)
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 
 
@@ -71,6 +77,32 @@ def test_emit_click_events_environment_handling() -> None:
     with mock.patch("arroyo.backends.kafka.consumer.KafkaProducer.produce") as producer:
         emit_click_events(
             click_events=click_events,
+            project_id=1,
+            replay_id=uuid.uuid4().hex,
+            retention_days=30,
+            start_time=1,
+            environment="prod",
+        )
+        assert producer.called
+        assert producer.call_args is not None
+        assert producer.call_args.args[0].name == "ingest-replay-events"
+        assert producer.call_args.args[1].value is not None
+
+
+@thread_leak_allowlist(reason="replays", issue=97033)
+def test_emit_tap_events_environment_handling() -> None:
+    tap_events = [
+        TapEvent(
+            timestamp=1,
+            message="add_attachment",
+            view_class="androidx.appcompat.widget.AppCompatButton",
+            view_id="add_attachment",
+        )
+    ]
+
+    with mock.patch("arroyo.backends.kafka.consumer.KafkaProducer.produce") as producer:
+        emit_tap_events(
+            tap_events=tap_events,
             project_id=1,
             replay_id=uuid.uuid4().hex,
             retention_days=30,
