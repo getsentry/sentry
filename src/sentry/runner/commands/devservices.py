@@ -47,7 +47,8 @@ def get_docker_client() -> Generator[docker.DockerClient]:
         yield client
 
 
+# compatibility stub
 @click.command()
-def devservices() -> None:
-    click.echo("Use `devservices` instead!")
+@click.argument("args", nargs=-1)
+def devservices(args) -> None:
     return
