@@ -422,11 +422,11 @@ class AMCheckout extends Component<Props, State> {
     const {subscription, checkoutTier} = this.props;
     const {planList, defaultPlan} = billingConfig;
     const initialPlan = planList.find(({id}) => id === subscription.plan);
+    const businessPlan = this.getBusinessPlan(billingConfig);
 
     if (this.shouldDefaultToBusiness()) {
-      const plan = this.getBusinessPlan(billingConfig);
-      if (plan) {
-        return plan;
+      if (businessPlan) {
+        return businessPlan;
       }
     }
 
@@ -456,7 +456,10 @@ class AMCheckout extends Component<Props, State> {
           contractInterval === subscription?.planDetails?.contractInterval
       );
 
-    return legacyInitialPlan || planList.find(({id}) => id === defaultPlan);
+    // if no legacy initial plan found, we fallback to the business plan, then the default plan (usually team)
+    return (
+      legacyInitialPlan || businessPlan || planList.find(({id}) => id === defaultPlan)
+    );
   }
 
   canComparePrices(initialPlan: Plan) {
