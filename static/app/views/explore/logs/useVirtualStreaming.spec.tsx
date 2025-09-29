@@ -9,7 +9,10 @@ import type {ApiResult} from 'sentry/api';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {QueryClientProvider, type InfiniteData} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import {type AutoRefreshState} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {
+  LOGS_AUTO_REFRESH_KEY,
+  type AutoRefreshState,
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {
@@ -37,7 +40,6 @@ describe('useVirtualStreaming', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    mockUseLocation.mockReturnValue(LocationFixture());
 
     requestAnimationFrameSpy = jest
       .spyOn(window, 'requestAnimationFrame')
@@ -53,8 +55,12 @@ describe('useVirtualStreaming', () => {
   });
 
   const createWrapper = ({autoRefresh = 'idle'}: {autoRefresh?: AutoRefreshState}) => {
-    const testContext = {autoRefresh};
     return function ({children}: {children: React.ReactNode}) {
+      mockUseLocation.mockReturnValue(
+        LocationFixture({
+          query: {[LOGS_AUTO_REFRESH_KEY]: autoRefresh},
+        })
+      );
       return (
         <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
           <QueryClientProvider client={makeTestQueryClient()}>
@@ -65,7 +71,6 @@ describe('useVirtualStreaming', () => {
               >
                 <LogsPageParamsProvider
                   analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-                  _testContext={testContext}
                 >
                   {children}
                 </LogsPageParamsProvider>
