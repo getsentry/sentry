@@ -1,5 +1,5 @@
 ---
-description: Guidelines for writing python tests
+description: Guidelines for Python development
 globs: src/**/*.py,tests/**/*.py,**/test_*.py
 alwaysApply: false
 ---
