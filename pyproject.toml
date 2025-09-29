@@ -95,6 +95,7 @@ dependencies = [
     "structlog>=22.1.0",
     "symbolic>=12.14.1",
     "tiktoken>=0.8.0",
+    "transformers>=4.21.0",
     "tldextract>=5.1.2",
     "toronado>=0.1.0",
     "typing-extensions>=4.12.0",

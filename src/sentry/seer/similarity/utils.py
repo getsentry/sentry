@@ -4,7 +4,7 @@ from enum import StrEnum
 from typing import Any, TypedDict, TypeVar
 
 import sentry_sdk
-import tiktoken
+from transformers import AutoTokenizer
 
 from sentry import options
 from sentry.grouping.api import get_contributing_variant_and_component
@@ -49,7 +49,7 @@ BASE64_ENCODED_PREFIXES = [
 ]
 
 IGNORED_FILENAMES = ["<compiler-generated>"]
-TIKTOKEN_ENCODING = tiktoken.get_encoding("cl100k_base")
+TOKENIZER = AutoTokenizer.from_pretrained("jinaai/jina-embeddings-v2-base-en")
 
 
 class ReferrerOptions(StrEnum):
@@ -524,7 +524,7 @@ def get_token_count(
 
             if stacktrace_text:
                 timer_tags["has_content"] = True
-                return len(TIKTOKEN_ENCODING.encode(stacktrace_text))
+                return len(TOKENIZER.encode(stacktrace_text))
 
             timer_tags["source"] = "no_stacktrace_string"
             return 0

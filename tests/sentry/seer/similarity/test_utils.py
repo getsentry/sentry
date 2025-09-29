@@ -1100,8 +1100,8 @@ class GetTokenCountTest(TestCase):
             token_count = get_token_count(self.event, variants, "python")
             mock_get_stacktrace_string.assert_not_called()
 
-            # Exact token count for this specific string
-            assert token_count == 21
+            # Exact token count for this specific string using jina tokenizer
+            assert token_count == 30
 
             # Verify the cached string is still there (not consumed)
             assert self.event.data.get("stacktrace_string") == cached_stacktrace
@@ -1138,9 +1138,9 @@ class GetTokenCountTest(TestCase):
         simple_count = get_token_count(simple_event, simple_variants, "python")
         complex_count = get_token_count(complex_event, complex_variants, "python")
 
-        # Exact token counts for these specific strings
+        # Exact token counts for these specific strings using jina tokenizer
         assert simple_count == 18
-        assert complex_count == 116
+        assert complex_count == 159
 
     def test_returns_zero_for_empty_stacktrace(self) -> None:
         """Test that get_token_count returns 0 for events with no meaningful stacktrace."""
@@ -1171,9 +1171,9 @@ class GetTokenCountTest(TestCase):
             },
         )
 
-        # Mock tiktoken encoding to raise an exception
-        with patch("sentry.seer.similarity.utils.TIKTOKEN_ENCODING.encode") as mock_encode:
-            mock_encode.side_effect = ValueError("Tiktoken encoding failed")
+        # Mock tokenizer encoding to raise an exception
+        with patch("sentry.seer.similarity.utils.TOKENIZER.encode") as mock_encode:
+            mock_encode.side_effect = ValueError("Tokenizer encoding failed")
 
             with patch("sentry.seer.similarity.utils.logger.exception") as mock_logger_exception:
                 # Use empty variants for this error test case
