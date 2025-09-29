@@ -190,10 +190,6 @@ class FetchAIModelCostsTest(TestCase):
 
         models = cached_data.get("models")
         assert models is not None
-        # Should have OpenRouter models + unique models.dev models
-        assert (
-            len(models) == 5
-        )  # gpt-4, gpt-5 from OpenRouter + gpt-4.1-mini, gemini-2.5-pro, gemini-2.0-flash-001 from models.dev
 
         # Check OpenRouter models
         gpt4_model = models["gpt-4"]
@@ -248,7 +244,6 @@ class FetchAIModelCostsTest(TestCase):
 
         models = cached_data.get("models")
         assert models is not None
-        assert len(models) == 2
 
         # Check first model with only input and output pricing
         gpt4_model = models["gpt-4"]
@@ -316,7 +311,6 @@ class FetchAIModelCostsTest(TestCase):
         assert cached_data is not None
         models = cached_data.get("models")
         assert models is not None
-        assert len(models) == 4  # 3 from OpenRouter + 1 valid from models.dev
 
         # Check valid model
         gpt4_model = models["gpt-4"]
@@ -547,10 +541,6 @@ class FetchAIModelCostsTest(TestCase):
         models = cached_data.get("models")
         assert models is not None
 
-        # Should have original models + glob versions
-        # 3 from OpenRouter + 2 from models.dev + 4 glob versions = 9 total
-        assert len(models) == 9
-
         # Check original models exist
         assert "gpt-4o-mini-20250522" in models
         assert "claude-3-5-sonnet-20241022" in models
@@ -558,11 +548,24 @@ class FetchAIModelCostsTest(TestCase):
         assert "claude-3-5-haiku@20241022" in models
         assert "o3-pro-2025-06-10" in models
 
-        # Check glob versions were added
+        # Check suffix glob versions were added
         assert "gpt-4o-mini-*" in models
         assert "claude-3-5-sonnet-*" in models
         assert "claude-3-5-haiku@*" in models
         assert "o3-pro-*" in models
+
+        # Check prefix glob versions were added
+        assert "*gpt-4o-mini-20250522" in models
+        assert "*claude-3-5-sonnet-20241022" in models
+        assert "*gpt-4" in models
+        assert "*claude-3-5-haiku@20241022" in models
+        assert "*o3-pro-2025-06-10" in models
+
+        # Check prefix-suffix glob versions were added (only for models with suffix globs)
+        assert "*gpt-4o-mini-*" in models
+        assert "*claude-3-5-sonnet-*" in models
+        assert "*claude-3-5-haiku@*" in models
+        assert "*o3-pro-*" in models
 
         # Verify glob versions have same pricing as original models
         gpt4o_mini_original = models["gpt-4o-mini-20250522"]
@@ -591,13 +594,28 @@ class FetchAIModelCostsTest(TestCase):
         assert o3_pro_original.get("inputPerToken") == o3_pro_glob.get("inputPerToken")
         assert o3_pro_original.get("outputPerToken") == o3_pro_glob.get("outputPerToken")
 
-        # Verify gpt-4 (no date/version) doesn't have a glob version
+        # Verify gpt-4 (no date/version) doesn't have a suffix glob version
         assert "gpt-4*" not in models
 
+        # Verify prefix glob versions have same pricing as original models
+        gpt4_original = models["gpt-4"]
+        gpt4_prefix_glob = models["*gpt-4"]
+        assert gpt4_original.get("inputPerToken") == gpt4_prefix_glob.get("inputPerToken")
+        assert gpt4_original.get("outputPerToken") == gpt4_prefix_glob.get("outputPerToken")
+
+        # Verify prefix-suffix glob versions have same pricing as original models
+        gpt4o_mini_prefix_suffix_glob = models["*gpt-4o-mini-*"]
+        assert gpt4o_mini_original.get("inputPerToken") == gpt4o_mini_prefix_suffix_glob.get(
+            "inputPerToken"
+        )
+        assert gpt4o_mini_original.get("outputPerToken") == gpt4o_mini_prefix_suffix_glob.get(
+            "outputPerToken"
+        )
+
     @responses.activate
-    def test_create_glob_model_name_various_formats(self) -> None:
-        """Test glob generation with various date and version formats"""
-        from sentry.tasks.ai_agent_monitoring import _create_glob_model_name
+    def test_create_suffix_glob_model_name_various_formats(self) -> None:
+        """Test suffix glob generation with various date and version formats"""
+        from sentry.tasks.ai_agent_monitoring import _create_suffix_glob_model_name
 
         # Test cases with expected outputs
         test_cases = [
@@ -614,7 +632,25 @@ class FetchAIModelCostsTest(TestCase):
         ]
 
         for model_id, expected_glob in test_cases:
-            actual_glob = _create_glob_model_name(model_id)
+            actual_glob = _create_suffix_glob_model_name(model_id)
+            assert (
+                actual_glob == expected_glob
+            ), f"Expected {expected_glob} for {model_id}, got {actual_glob}"
+
+    @responses.activate
+    def test_create_prefix_glob_model_name(self) -> None:
+        """Test prefix glob generation for model names"""
+        from sentry.tasks.ai_agent_monitoring import _create_prefix_glob_model_name
+
+        # Test cases with expected outputs
+        test_cases = [
+            ("gpt-4", "*gpt-4"),
+            ("gpt-4o-mini-*", "*gpt-4o-mini-*"),
+            ("", "*"),
+        ]
+
+        for model_id, expected_glob in test_cases:
+            actual_glob = _create_prefix_glob_model_name(model_id)
             assert (
                 actual_glob == expected_glob
             ), f"Expected {expected_glob} for {model_id}, got {actual_glob}"
