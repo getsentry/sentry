@@ -16,6 +16,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
+import {PAYG_BUSINESS_DEFAULT} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {InvoiceItemType, OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
@@ -370,6 +371,7 @@ describe('Cart', () => {
         budgetMode: OnDemandBudgetMode.SHARED,
         sharedMaxBudget: 10_00,
       },
+      onDemandMaxSpend: 10_00,
     };
 
     render(
@@ -485,6 +487,7 @@ describe('Cart', () => {
         attachments: 25,
         spans: 20_000_000,
       },
+      onDemandMaxSpend: 1_00,
       onDemandBudget: {
         budgetMode: OnDemandBudgetMode.SHARED,
         sharedMaxBudget: 1_00,
@@ -517,6 +520,39 @@ describe('Cart', () => {
 
     const sharedSpendCapChanges = within(changes).getByTestId('shared-spend-limit-diff');
     expect(sharedSpendCapChanges).toHaveTextContent('PAYG spend limit');
+  });
+
+  it('does not show default PAYG tag for returning customers', async () => {
+    const paidSub = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      isFree: false,
+    });
+    SubscriptionStore.set(organization.slug, paidSub);
+
+    const formData: CheckoutFormData = {
+      ...defaultFormData,
+      onDemandBudget: {
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: PAYG_BUSINESS_DEFAULT,
+      },
+      onDemandMaxSpend: PAYG_BUSINESS_DEFAULT,
+    };
+
+    render(
+      <Cart
+        activePlan={teamPlanAnnual}
+        formData={formData}
+        formDataForPreview={getFormDataForPreview(formData)}
+        organization={organization}
+        subscription={paidSub}
+        onSuccess={jest.fn()}
+      />
+    );
+
+    const spendCapItem = await screen.findByTestId('summary-item-spend-limit');
+    expect(spendCapItem).toHaveTextContent('up to $300/mo');
+    expect(screen.queryByText('Default Amount')).not.toBeInTheDocument();
   });
 
   it('can toggle changes and plan summary', async () => {
