@@ -15,6 +15,11 @@ OPSGENIE_HALT_ERRORS = (40301,)
 def record_lifecycle_termination_level(lifecycle: EventLifecycle, error: ApiError) -> None:
     if isinstance(error, (ApiUnauthorized, ApiRateLimitedError)):
         lifecycle.record_halt(halt_reason=error)
+    elif error.code in (502, 503, 504):
+        # Infrastructure-level errors (Bad Gateway, Service Unavailable, Gateway Timeout)
+        # should be treated as halts, not failures, to avoid creating noise for temporary 
+        # service availability issues outside our control
+        lifecycle.record_halt(halt_reason=error)
     elif error.json:
         if error.json.get("code") in OPSGENIE_HALT_ERRORS:
             lifecycle.record_halt(error)
