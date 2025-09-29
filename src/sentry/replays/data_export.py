@@ -94,7 +94,7 @@ def export_clickhouse_rows(
     :param max_retries: The maximum number of queries we'll make to the database before quitting.
     :param retry_after_seconds: The number of seconds to wait after each query failure.
     """
-    assert limit > 0, "limit must be a positive integer greater than zero."
+    assert limit > 0, "limit mus`t be a positive integer greater than zero."
     assert num_pages > 0, "num_pages must be a positive integer greater than zero."
     assert offset >= 0, "offset must be a positive integer greater than or equal to zero."
 
@@ -375,8 +375,8 @@ def get_replay_date_query_ranges(project_id: int) -> Generator[tuple[datetime, d
     # Snuba requires a start and end range but we don't know the start and end yet! We specify an
     # arbitrarily large range to accommodate. If you're debugging a failed export in the year 3000
     # I am very sorry for the inconvenience this has caused you.
-    min = datetime(year=1970, month=1, day=1)
-    max = datetime(year=3000, month=1, day=1)
+    min_date = datetime(year=1970, month=1, day=1)
+    max_date = datetime(year=3000, month=1, day=1)
 
     query = Query(
         match=Entity("replays"),
@@ -385,8 +385,8 @@ def get_replay_date_query_ranges(project_id: int) -> Generator[tuple[datetime, d
         ],
         where=[
             Condition(Column("project_id"), Op.EQ, project_id),
-            Condition(Column("timestamp"), Op.GTE, min),
-            Condition(Column("timestamp"), Op.LT, max),
+            Condition(Column("timestamp"), Op.GTE, min_date),
+            Condition(Column("timestamp"), Op.LT, max_date),
         ],
         orderby=[OrderBy(to_start_of_day_timestamp, Direction.ASC)],
         groupby=[to_start_of_day_timestamp],
