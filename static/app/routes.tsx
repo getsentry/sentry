@@ -402,14 +402,12 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper'
               )
           ),
-          deprecatedRouteProps: true,
           children: [
             {
               index: true,
               component: make(
                 () => import('sentry/views/settings/account/accountSecurity')
               ),
-              deprecatedRouteProps: true,
             },
             {
               path: 'session-history/',
@@ -418,7 +416,6 @@ function buildRoutes(): RouteObject[] {
                 () =>
                   import('sentry/views/settings/account/accountSecurity/sessionHistory')
               ),
-              deprecatedRouteProps: true,
             },
             {
               path: 'mfa/:authId/',
@@ -429,7 +426,6 @@ function buildRoutes(): RouteObject[] {
                     'sentry/views/settings/account/accountSecurity/accountSecurityDetails'
                   )
               ),
-              deprecatedRouteProps: true,
             },
           ],
         },
