@@ -28,7 +28,7 @@ export type MetricsResponseItem = {
   [TraceMetricKnownFieldKey.TRACE_ID]: string | null;
   [TraceMetricKnownFieldKey.SPAN_ID]: string | null;
   [TraceMetricKnownFieldKey.METRIC_NAME]: string;
-  [TraceMetricKnownFieldKey.METRIC_TYPE]: 'count' | 'gauge' | 'distribution' | 'set';
+  [TraceMetricKnownFieldKey.METRIC_TYPE]: 'counter' | 'gauge' | 'distribution' | 'set';
   [TraceMetricKnownFieldKey.METRIC_VALUE]: number;
   [TraceMetricKnownFieldKey.METRIC_UNIT]: string | null;
   [TraceMetricKnownFieldKey.ENVIRONMENT]: string | null;

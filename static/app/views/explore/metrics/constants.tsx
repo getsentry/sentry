@@ -15,6 +15,7 @@ export const AlwaysHiddenMetricFields = [
   TraceMetricKnownFieldKey.ID,
   TraceMetricKnownFieldKey.PROJECT_ID,
   TraceMetricKnownFieldKey.ORGANIZATION_ID,
+  TraceMetricKnownFieldKey.METRIC_UNIT,
 ];
 
 export const QUERY_PAGE_LIMIT = 100;
@@ -22,7 +23,7 @@ export const QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH = 25;
 export const MAX_METRIC_INGEST_DELAY = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 export const METRIC_TYPES = [
-  {value: 'count', label: 'Count'},
+  {value: 'counter', label: 'Counter'},
   {value: 'gauge', label: 'Gauge'},
   {value: 'distribution', label: 'Distribution'},
   {value: 'set', label: 'Set'},

@@ -248,7 +248,9 @@ export function MetricsTabContent({
   const visualizes = useQueryParamsVisualizes();
 
   const [metricName, setMetricName] = useState('');
-  const [metricType, setMetricType] = useState<string>('count');
+  const [metricType, setMetricType] = useState<
+    'counter' | 'gauge' | 'distribution' | 'set'
+  >('counter');
   const [sidebarOpen, setSidebarOpen] = useState(mode === Mode.AGGREGATE);
 
   const columnEditorButtonRef = useRef<HTMLButtonElement>(null);

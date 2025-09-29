@@ -25,7 +25,7 @@ describe('MetricsContent', () => {
             'project.id': project.id,
             'organization.id': organization.id,
             'metric.name': 'custom.counter',
-            'sentry.metric_type': 'count',
+            'sentry.metric_type': 'counter',
             'metric.value': 100,
             timestamp: '2025-04-10T19:21:12+00:00',
             'trace.id': '7b91699fd385d9fd52e0c4bc',
