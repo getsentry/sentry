@@ -407,17 +407,18 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
         case EventType.MULTI_CLICK:
             return None
         case EventType.TAP:
-            payload = event["data"]["payload"]
+            payload = event.get("data", {}).get("payload", {})
             tap_attributes: dict[str, Value] = {
                 "category": "ui.tap",
-                "message": as_string_strict(payload["message"]),
-                "view_id": as_string_strict(payload["view.id"]),
-                "view_class": as_string_strict(payload["view.class"]),
+                "message": as_string_strict(payload.get("message", "")),
+                "view_id": as_string_strict(payload.get("view.id", "")),
+                "view_class": as_string_strict(payload.get("view.class", "")),
             }
+            timestamp = payload.get("timestamp")
             return {
                 "attributes": tap_attributes,
                 "event_hash": uuid.uuid4().bytes,
-                "timestamp": float(payload["timestamp"]),
+                "timestamp": float(timestamp) if timestamp is not None else 0.0,
             }
         case EventType.NAVIGATION:
             payload = event["data"]["payload"]
