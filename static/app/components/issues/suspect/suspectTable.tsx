@@ -57,6 +57,7 @@ const GradientBox = styled('div')`
   height: max-content;
   display: flex;
   flex-direction: column;
+  gap: ${space(1)};
 `;
 
 const ScrolledBox = styled('div')`
