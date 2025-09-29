@@ -117,7 +117,7 @@ export function BranchSelector() {
 
   function getEmptyMessage() {
     if (isFetching) {
-      return t('Loading branches...');
+      return t('Getting branches...');
     }
 
     if (searchValue && !displayedBranches.length) {
