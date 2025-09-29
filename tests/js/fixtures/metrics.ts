@@ -73,8 +73,8 @@ export function MetricFixtureMeta(
 interface MetricsTestInitOptions {
   organization?: Partial<Organization>;
   project?: Partial<Project>;
-  tracemetrics?: boolean;
   routerQuery?: Record<string, any>;
+  tracemetrics?: boolean;
 }
 
 type LocationConfig = {

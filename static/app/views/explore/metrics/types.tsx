@@ -36,32 +36,26 @@ export type MetricsResponseItem = {
   [TraceMetricKnownFieldKey.SDK_NAME]: string | null;
   [TraceMetricKnownFieldKey.SDK_VERSION]: string | null;
   [TraceMetricKnownFieldKey.TAGS]: Record<string, string> | null;
-} & {
-  [key: string]: any;
-};
+} & Record<string, any>;
 
 export type MetricsAggregatesResult = {
-  data: Array<{
-    [key: string]: any;
-  }>;
+  data: Array<Record<string, any>>;
   meta: {
-    fields: {
-      [key: string]: 'string' | 'number' | 'integer' | 'duration' | 'date' | 'boolean';
-    };
-    units?: {
-      [key: string]: string | null;
-    };
+    fields: Record<
+      string,
+      'string' | 'number' | 'integer' | 'duration' | 'date' | 'boolean'
+    >;
+    units?: Record<string, string | null>;
   };
 };
 
 export type EventsMetricsResult = {
   data: MetricsResponseItem[];
   meta: {
-    fields: {
-      [key: string]: 'string' | 'number' | 'integer' | 'duration' | 'date' | 'boolean';
-    };
-    units?: {
-      [key: string]: string | null;
-    };
+    fields: Record<
+      string,
+      'string' | 'number' | 'integer' | 'duration' | 'date' | 'boolean'
+    >;
+    units?: Record<string, string | null>;
   };
 };

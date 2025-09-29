@@ -4,15 +4,14 @@ import styled from '@emotion/styled';
 import {GridEditable, GridEditableColumn} from 'sentry/components/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-
-import {useTraceMetricsAggregatesQuery} from '../useTraceMetricsQuery';
+import {useTraceMetricsAggregatesQuery} from 'sentry/views/explore/metrics/useTraceMetricsQuery';
 
 export function MetricsAggregateTable() {
   const {data, isLoading, error} = useTraceMetricsAggregatesQuery({
     referrer: 'api.explore.metrics.aggregate-table',
   });
 
-  const columns = useMemo<GridEditableColumn<any>[]>(() => {
+  const columns = useMemo<Array<GridEditableColumn<any>>>(() => {
     if (!data?.meta?.fields) {
       return [];
     }

@@ -3,9 +3,8 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-
-import {TraceMetricKnownFieldKey} from '../types';
-import {useInfiniteTraceMetricsQuery} from '../useTraceMetricsQuery';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
+import {useInfiniteTraceMetricsQuery} from 'sentry/views/explore/metrics/useTraceMetricsQuery';
 
 export function MetricsInfiniteTable() {
   const {data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage} =
