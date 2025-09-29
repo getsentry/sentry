@@ -422,7 +422,7 @@ def collect_tsdb_data(
     )
 
     frequencies: dict[datetime, dict[TSDBModel, dict[str, dict[str, int | float]]]] = defaultdict(
-        lambda: defaultdict(lambda: defaultdict(dict))
+        lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
     )
 
     for event in events:
@@ -485,7 +485,6 @@ def repair_tsdb_data(
             tsdb.backend.record_frequency_multi(
                 frequency_requests,
                 timestamp,
-                environment_id=environment_id,
             )
 
 
