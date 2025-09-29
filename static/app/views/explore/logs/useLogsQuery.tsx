@@ -337,10 +337,8 @@ function getPageParam(
       const links = parseLinkHeader(pageLinkHeader);
       // the flex time sampling strategy has no previous page cursor and only
       // a next page cursor because it only works in timestamp desc order
-      cursor = {
-        next: links.next?.results ? (links.next?.cursor ?? null) : null,
-        previous: links.previous?.results ? (links.previous?.cursor ?? null) : null,
-      };
+      const link = isGetPreviousPage ? links.previous : links.next;
+      cursor = link?.results ? (link.cursor ?? undefined) : undefined;
     }
 
     const pageParamResult: LogPageParam = {
@@ -410,10 +408,10 @@ function getParamBasedQuery(
     return query;
   }
 
-  if (pageParam.cursor?.next) {
+  if (pageParam.cursor) {
     return {
       ...query,
-      cursor: pageParam.cursor?.next,
+      cursor: pageParam.cursor,
     };
   }
 
@@ -451,10 +449,7 @@ interface PageParam {
   // The original sort direction of the query.
   sortByDirection: Sort['kind'];
   timestampPrecise: bigint | null;
-  cursor?: {
-    next: string | null;
-    previous: string | null;
-  };
+  cursor?: string;
   // When scrolling is happening towards current time, or during auto refresh, we flip the sort direction passed to the query to get X more rows in the future starting from the last seen row.
   querySortDirection?: Sort;
 }
