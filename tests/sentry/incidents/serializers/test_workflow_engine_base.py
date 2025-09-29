@@ -4,6 +4,7 @@ import orjson
 from django.utils import timezone
 from urllib3.response import HTTPResponse
 
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
@@ -153,8 +154,7 @@ class TestWorkflowEngineSerializer(TestCase):
             status=TriggerStatus.ACTIVE.value,
         )
 
-        self.group.priority = PriorityLevel.HIGH
-        self.group.save()
+        self.group = self.create_group(type=MetricIssue.type_id, priority=PriorityLevel.HIGH)
         workflow = self.create_workflow()
         WorkflowActionGroupStatus.objects.create(
             action=self.critical_action, group=self.group, workflow=workflow

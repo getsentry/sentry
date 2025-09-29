@@ -148,6 +148,10 @@ def get_open_periods_for_group(
 
 
 def create_open_period(group: Group, start_time: datetime) -> None:
+    # no-op if the group does not create open periods
+    if not get_group_type_by_type_id(group.type).track_open_periods:
+        return
+
     latest_open_period = get_latest_open_period(group)
     if latest_open_period and latest_open_period.date_ended is None:
         logger.warning("Latest open period is not closed", extra={"group_id": group.id})
