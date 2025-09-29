@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
+from sentry.feedback.tasks.update_user_reports import update_user_reports
 from sentry.models.userreport import UserReport
-from sentry.tasks.update_user_reports import update_user_reports
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.dates import epoch
