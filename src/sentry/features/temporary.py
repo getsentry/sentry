@@ -566,6 +566,16 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:service-hooks-outbox", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable UI for log high fidelity queries
     manager.add("organizations:ourlogs-high-fidelity", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable trace metrics product (known internally as tracemetrics) in UI and backend
+    manager.add("organizations:tracemetrics-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True, default=True)
+    # Enable trace metrics product to be ingested via Relay
+    manager.add("organizations:tracemetrics-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True, default=True)
+    # Enable trace metrics in replays UI
+    manager.add("organizations:tracemetrics-replay-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True, default=False)
+    # Enable trace metrics save-as-query functionality
+    manager.add("organizations:tracemetrics-save-as-query", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True, default=False)
+    # Enable trace metrics in dashboards
+    manager.add("organizations:tracemetrics-dashboards", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True, default=False)
 
     # Enable using paginated projects endpoint for Jira integration
     manager.add("organizations:jira-paginated-projects", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)

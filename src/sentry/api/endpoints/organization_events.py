@@ -42,6 +42,7 @@ from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.tracemetrics import tracemetrics
 from sentry.snuba.types import DatasetQuery
 from sentry.snuba.utils import RPC_DATASETS, dataset_split_decision_inferred_from_query, get_dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -514,6 +515,12 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     # ourlogs doesn't have use aggregate conditions
                     return SearchResolverConfig(
                         use_aggregate_conditions=False,
+                    )
+                elif scoped_dataset == tracemetrics:
+                    # tracemetrics uses aggregate conditions
+                    return SearchResolverConfig(
+                        use_aggregate_conditions=use_aggregate_conditions,
+                        auto_fields=True,
                     )
                 elif scoped_dataset == uptime_results.UptimeResults:
                     return SearchResolverConfig(
