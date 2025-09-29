@@ -587,7 +587,7 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
         return
 
     source_events = []
-    destination_events: dict[str, Sequence[GroupEvent]] = {}
+    destination_events: dict[str, list[GroupEvent]] = {}
 
     for event in events:
         key = args.replacement.get_unmerge_key(event, locked_primary_hashes)
