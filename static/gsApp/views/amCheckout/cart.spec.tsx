@@ -249,6 +249,7 @@ describe('Cart', () => {
 
     expect(await screen.findByRole('button', {name: 'Confirm and pay'})).toBeDisabled();
     expect(mockResponse).not.toHaveBeenCalled();
+    expect(screen.getByText('Plan renews monthly.')).toBeInTheDocument(); // no renewal date specified
   });
 
   it('renders preview data', async () => {

@@ -493,27 +493,33 @@ function TotalSummary({
     }
 
     let subtext = null;
-    if (isDeveloperPlan(activePlan) || !totalOnDemandBudget) {
-      subtext = tct(
-        '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate].',
-        {
-          effectiveDateSubtext,
-          longInterval,
-          renewalDate: moment(renewalDate).format('MMM D, YYYY'),
-        }
-      );
+    if (renewalDate) {
+      if (isDeveloperPlan(activePlan) || !totalOnDemandBudget) {
+        subtext = tct(
+          '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate].',
+          {
+            effectiveDateSubtext,
+            longInterval,
+            renewalDate: moment(renewalDate).format('MMM D, YYYY'),
+          }
+        );
+      } else {
+        subtext = tct(
+          '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate], plus any additional PAYG usage billed monthly (up to [onDemandMaxSpend]/mo).',
+          {
+            effectiveDateSubtext,
+            longInterval,
+            renewalDate: moment(renewalDate).format('MMM D, YYYY'),
+            onDemandMaxSpend: utils.displayPrice({
+              cents: totalOnDemandBudget,
+            }),
+          }
+        );
+      }
     } else {
-      subtext = tct(
-        '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate], plus any additional PAYG usage billed monthly (up to [onDemandMaxSpend]/mo).',
-        {
-          effectiveDateSubtext,
-          longInterval,
-          renewalDate: moment(renewalDate).format('MMM D, YYYY'),
-          onDemandMaxSpend: utils.displayPrice({
-            cents: totalOnDemandBudget,
-          }),
-        }
-      );
+      subtext = tct('Plan renews [longInterval].', {
+        longInterval,
+      });
     }
     return subtext;
   };
