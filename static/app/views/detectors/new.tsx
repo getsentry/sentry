@@ -54,7 +54,7 @@ export default function DetectorNew() {
       navigate({
         pathname: `${makeMonitorBasePathname(organization.slug)}new/settings/`,
         query: {
-          detectorType: data.detectorType,
+          detectorType: location.query.detectorType as DetectorType,
           project: data.project,
         },
       });
