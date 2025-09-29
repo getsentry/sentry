@@ -48,9 +48,9 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
         except NoProjects:
             return Response({"rankedAttributes": []})
 
-        disable_aggregate_extrapolation = request.GET.get("disableAggregateExtrapolation") == "1"
+        aggregate_extrapolation = request.GET.get("aggregateExtrapolation") == "1"
         resolver_config = SearchResolverConfig(
-            disable_aggregate_extrapolation=disable_aggregate_extrapolation
+            disable_aggregate_extrapolation=not aggregate_extrapolation
         )
 
         resolver = SearchResolver(
