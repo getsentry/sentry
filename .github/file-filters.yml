@@ -6,7 +6,7 @@ sentry_frontend_workflow_file: &sentry_frontend_workflow_file
 # Provides list of changed files to test (jest)
 # getsentry/sentry does not use the list directly, instead we shard tests inside jest.config.js
 testable_modified: &testable_modified
-  - added|modified: '!**/*.generated.ts'
+  - '!**/*.generated.ts'
   - added|modified: 'package.json'
   - added|modified: 'static/**/*.{ts,tsx,js,jsx,mjs}'
   - added|modified: 'tests/js/**/*'
@@ -30,7 +30,7 @@ typecheckable_rules_changed: &typecheckable_rules_changed
 # Trigger to apply the 'Scope: Frontend' label to PRs
 frontend_all: &frontend_all
   - *sentry_frontend_workflow_file
-  - added|modified: '!**/*.generated.ts'
+  - '!**/*.generated.ts'
   - added|modified: '**/*.{ts,tsx,js,jsx,mjs}'
   - added|modified: 'static/**/*.{less,json,yml,md,mdx}'
   - added|modified: '{.volta,vercel,tsconfig,biome,package}.json'
