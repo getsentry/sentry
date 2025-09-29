@@ -533,7 +533,7 @@ function TotalSummary({
 
   const buttonText = isMigratingPartner
     ? t('Schedule changes')
-    : isDueToday
+    : isDueToday && billedTotal > 0
       ? t('Confirm and pay')
       : t('Confirm');
 

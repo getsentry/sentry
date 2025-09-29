@@ -565,19 +565,19 @@ function CartDiff({
               cycleChanges={cycleChanges}
             />
           )}
-          {reservedChanges.length > 0 && (
-            <ReservedDiff
-              currentPlan={currentPlan}
-              newPlan={activePlan}
-              reservedChanges={reservedChanges}
-            />
-          )}
           {sharedOnDemandChanges.length + perCategoryOnDemandChanges.length > 0 && (
             <OnDemandDiff
               currentPlan={currentPlan}
               newPlan={activePlan}
               perCategoryOnDemandChanges={perCategoryOnDemandChanges}
               sharedOnDemandChanges={sharedOnDemandChanges}
+            />
+          )}
+          {reservedChanges.length > 0 && (
+            <ReservedDiff
+              currentPlan={currentPlan}
+              newPlan={activePlan}
+              reservedChanges={reservedChanges}
             />
           )}
         </ChangesContainer>
