@@ -70,6 +70,25 @@ function BuildButton({buildDetails, icon, label, onRemove}: BuildButtonProps) {
   );
 }
 
+const ComparisonContainer = styled(Flex)`
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: ${p => p.theme.space.lg};
+  width: 100%;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    flex-direction: column;
+    gap: ${p => p.theme.space.md};
+    padding-bottom: ${p => p.theme.space.lg};
+
+    > * {
+      min-width: 0;
+      max-width: 100%;
+    }
+  }
+`;
+
 interface SizeCompareSelectedBuildsProps {
   headBuildDetails: BuildDetailsApiResponse;
   isComparing: boolean;
@@ -125,25 +144,6 @@ export function SizeCompareSelectedBuilds({
     </ComparisonContainer>
   );
 }
-
-const ComparisonContainer = styled(Flex)`
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: ${p => p.theme.space.lg};
-  width: 100%;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex-direction: column;
-    gap: ${p => p.theme.space.md};
-    padding-bottom: ${p => p.theme.space.lg};
-
-    > * {
-      min-width: 0;
-      max-width: 100%;
-    }
-  }
-`;
 
 const BuildBranch = styled('span')`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
