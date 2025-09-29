@@ -450,11 +450,11 @@ def save_to_storage(destination_bucket: str, filename: str, contents: str) -> No
 
 @instrumented_task(
     name="sentry.replays.tasks.export_replay_row_set_async",
-    default_retry_delay=5,
-    max_retries=120,
+    default_retry_delay=5,  # Five seconds because we want to give rate-limits some time to reset.
+    max_retries=120,  # Retry a lot because if it fails we have to start over from the beginning.
     taskworker_config=TaskworkerConfig(
         namespace=replays_tasks,
-        processing_deadline_duration=15 * 60 + 5,
+        processing_deadline_duration=15 * 60,
         retry=Retry(
             times=120,
             delay=5,
