@@ -14,7 +14,10 @@ from slack_sdk.models.blocks import (
 from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
-from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.target import (
+    IntegrationNotificationTarget,
+    PreparedIntegrationNotificationTarget,
+)
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -84,7 +87,9 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
                 f"Target '{target.__class__.__name__}' is not a valid dataclass for {cls.__name__}"
             )
 
+        slack_target = PreparedIntegrationNotificationTarget(target=target)
         installation = SlackIntegration(
-            model=target.integration, organization_id=target.organization_id
+            model=slack_target.integration,
+            organization_id=slack_target.organization_integration.organization_id,
         )
         installation.send_notification(target=target, payload=renderable)

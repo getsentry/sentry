@@ -1,11 +1,9 @@
 from sentry.notifications.platform.target import (
-    GenericNotificationTarget,
     IntegrationNotificationTarget,
-    prepare_targets,
+    PreparedIntegrationNotificationTarget,
 )
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
-    NotificationTarget,
     NotificationTargetResourceType,
 )
 from sentry.testutils.cases import TestCase
@@ -18,11 +16,6 @@ class NotificationTargetTest(TestCase):
             organization=self.organization, provider="slack", external_id="ext-123"
         )
 
-        generic_target = GenericNotificationTarget(
-            provider_key=NotificationProviderKey.EMAIL,
-            resource_type=NotificationTargetResourceType.EMAIL,
-            resource_id="test@example.com",
-        )
         integration_target = IntegrationNotificationTarget(
             provider_key=NotificationProviderKey.SLACK,
             resource_type=NotificationTargetResourceType.CHANNEL,
@@ -31,12 +24,14 @@ class NotificationTargetTest(TestCase):
             organization_id=self.organization.id,
         )
 
-        targets: list[NotificationTarget] = [generic_target, integration_target]
+        prepared_integration_target = PreparedIntegrationNotificationTarget(
+            target=integration_target
+        )
 
-        for target in targets:
-            assert not target.is_prepared
-
-        prepare_targets(targets)
-
-        for target in targets:
-            assert target.is_prepared
+        assert prepared_integration_target.integration is not None
+        assert prepared_integration_target.organization_integration is not None
+        assert prepared_integration_target.integration.id == integration.id
+        assert (
+            prepared_integration_target.organization_integration.organization_id
+            == self.organization.id
+        )

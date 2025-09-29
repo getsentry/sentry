@@ -8,7 +8,6 @@ from sentry.notifications.platform.slack.provider import SlackNotificationProvid
 from sentry.notifications.platform.target import (
     GenericNotificationTarget,
     IntegrationNotificationTarget,
-    prepare_targets,
 )
 from sentry.notifications.platform.types import (
     NotificationCategory,
@@ -97,8 +96,6 @@ class SlackNotificationProviderSendTest(TestCase):
             integration_id=self.integration.id,
             organization_id=self.organization.id,
         )
-        # Use prepare_targets to populate integration and organization_integration fields
-        prepare_targets([target])
         return target
 
     def _create_renderable(self) -> SlackRenderable:
@@ -158,8 +155,6 @@ class SlackNotificationProviderSendTest(TestCase):
             integration_id=self.integration.id,
             organization_id=self.organization.id,
         )
-        # Use prepare_targets to populate integration and organization_integration fields
-        prepare_targets([target])
         renderable = self._create_renderable()
 
         SlackNotificationProvider.send(target=target, renderable=renderable)
