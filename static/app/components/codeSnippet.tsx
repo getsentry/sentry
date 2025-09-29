@@ -152,7 +152,7 @@ export function CodeSnippet({
   const snippet = (
     <Wrapper
       isRounded={isRounded}
-      className={`${dark ? 'prism-dark ' : ''}${className ?? ''}`}
+      className={className ?? ''}
       data-render-inline={dataRenderInline}
     >
       <Header isFloating={hasFloatingHeader}>
