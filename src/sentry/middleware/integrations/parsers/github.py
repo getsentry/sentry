@@ -53,18 +53,6 @@ class GithubRequestParser(BaseRequestParser):
         except Exception:
             metrics.incr("codecov.forward-webhooks.forward-error", sample_rate=1.0)
 
-    def try_forward_to_overwatch(self, integration: Integration, event: Mapping[str, Any]) -> None:
-        try:
-            OverwatchGithubWebhookForwarder(integration=integration).forward_if_applicable(
-                event=event
-            )
-
-            # TODO: Let's talk observability. We can add SLO decorators here,
-            # similar to what we use for our integration code.
-            metrics.incr("overwatch.forward-webhooks.success", sample_rate=1.0)
-        except Exception:
-            metrics.incr("overwatch.forward-webhooks.forward-error", sample_rate=1.0)
-
     def get_response(self) -> HttpResponseBase:
         if self.view_class != self.webhook_endpoint:
             return self.get_response_from_control_silo()
@@ -103,8 +91,8 @@ class GithubRequestParser(BaseRequestParser):
             if codecov_regions:
                 self.try_forward_to_codecov(event=event)
 
-        if options.get("overwatch.github.forward-webhooks"):
-            self.try_forward_to_overwatch(integration=integration, event=event)
+        # The overwatch forwarder implements its own region-based checks
+        OverwatchGithubWebhookForwarder(integration=integration).forward_if_applicable(event=event)
 
         return self.get_response_from_webhookpayload(
             regions=regions, identifier=integration.id, integration_id=integration.id
