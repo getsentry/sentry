@@ -65,7 +65,7 @@ export type TimeSeriesItem = {
  */
 type IncompleteReason = 'INCOMPLETE_BUCKET';
 
-type TimeSeriesGroupBy = {
+export type TimeSeriesGroupBy = {
   key: string;
   /**
    * The `value` of a `groupBy` can sometimes surprisingly be an array, because some datasets support array values. e.g., in the error dataset, the error type could be an array that looks like `["Exception", null, "TypeError"]`
