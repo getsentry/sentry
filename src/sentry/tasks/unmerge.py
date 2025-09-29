@@ -555,13 +555,15 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
         last_event = args.last_event
         locked_primary_hashes = list(args.locked_primary_hashes)
 
-    last_event, events = task_run_batch_query(
+    last_event, raw_events = task_run_batch_query(
         filter=eventstore.Filter(project_ids=[args.project_id], group_ids=[source.id]),
         batch_size=args.batch_size,
         state=last_event,
         referrer="unmerge",
         tenant_ids={"organization_id": source.project.organization_id},
     )
+    # Convert Event objects to GroupEvent objects
+    events: list[GroupEvent] = [event.for_group(source) for event in raw_events]
     # Log info related to this unmerge
     logger.info(
         "unmerge.check",
@@ -585,7 +587,7 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
         return
 
     source_events = []
-    destination_events: dict[str, list[GroupEvent]] = {}
+    destination_events: dict[str, Sequence[GroupEvent]] = {}
 
     for event in events:
         key = args.replacement.get_unmerge_key(event, locked_primary_hashes)
