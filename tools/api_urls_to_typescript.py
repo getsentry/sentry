@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # flake8: noqa: S002
 
 import re
@@ -218,7 +217,7 @@ if __name__ == "__main__":
                 [
                     "/**\n",
                     " * GENERATED FILE. Do not edit manually.\n",
-                    " * To update it run `./bin/api-urls-to-typescript.py`\n",
+                    " * To update it run `python3 -m tools.api_urls_to_typescript`\n",
                     " */\n",
                     "\n",
                     "type KnownApiUrls = [\n",

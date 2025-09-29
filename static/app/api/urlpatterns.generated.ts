@@ -1,6 +1,6 @@
 /**
  * GENERATED FILE. Do not edit manually.
- * To update it run `./bin/api-urls-to-typescript.py`
+ * To update it run `python3 -m tools.api_urls_to_typescript`
  */
 
 type KnownApiUrls = [
