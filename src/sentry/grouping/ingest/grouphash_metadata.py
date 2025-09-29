@@ -8,7 +8,7 @@ the `GroupHash` model file, so that existing records will get updated with the n
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, TypeIs, cast
 
 from sentry.grouping.api import get_contributing_variant_and_component
@@ -40,6 +40,7 @@ from sentry.models.grouphashmetadata import (
     HashBasis,
 )
 from sentry.models.project import Project
+from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.types.grouphash_metadata import (
     ChecksumHashingMetadata,
@@ -205,6 +206,11 @@ def create_or_update_grouphash_metadata_if_needed(
                     "new_version": GROUPHASH_METADATA_SCHEMA_VERSION,
                 }
             )
+
+        # Check if the event ID is older than 90 days, if so update it
+        event = eventstore.backend.get_event_by_id(project.id, event.event_id)
+        if not event or event.datetime < datetime.now() - timedelta(days=90):
+            updated_data["event_id"] = event.event_id
 
         # Only hit the DB if there's something to change
         if updated_data:
