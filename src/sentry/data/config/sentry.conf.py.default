@@ -49,16 +49,6 @@ DEBUG = %(debug_flag)s
 # A primary cache is required for things such as processing events
 SENTRY_CACHE = 'sentry.cache.redis.RedisCache'
 
-#########
-# Queue #
-#########
-
-# See https://develop.sentry.dev/services/queue/ for more information on
-# configuring your queue broker and workers. Sentry relies on a Python
-# framework called Celery to manage queues.
-
-BROKER_URL = 'redis://localhost:6379'
-
 ###############
 # Rate Limits #
 ###############
