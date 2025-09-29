@@ -433,44 +433,6 @@ class TemplateGroupingComponent(
     id: str = "template"
 
 
-# Wrapper components used to link component trees to variants
-
-
-class DefaultGroupingComponent(
-    BaseGroupingComponent[
-        CSPGroupingComponent
-        | ExpectCTGroupingComponent
-        | ExpectStapleGroupingComponent
-        | HPKPGroupingComponent
-        | MessageGroupingComponent
-        | TemplateGroupingComponent
-    ]
-):
-    id: str = "default"
-
-
-class AppGroupingComponent(
-    BaseGroupingComponent[
-        ChainedExceptionGroupingComponent
-        | ExceptionGroupingComponent
-        | StacktraceGroupingComponent
-        | ThreadsGroupingComponent
-    ]
-):
-    id: str = "app"
-
-
-class SystemGroupingComponent(
-    BaseGroupingComponent[
-        ChainedExceptionGroupingComponent
-        | ExceptionGroupingComponent
-        | StacktraceGroupingComponent
-        | ThreadsGroupingComponent
-    ]
-):
-    id: str = "system"
-
-
 ContributingComponent = (
     ChainedExceptionGroupingComponent
     | ExceptionGroupingComponent
