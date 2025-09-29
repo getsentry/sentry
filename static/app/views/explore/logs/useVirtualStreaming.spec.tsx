@@ -13,7 +13,6 @@ import {
   LOGS_AUTO_REFRESH_KEY,
   type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {
   EventsLogsResult,
@@ -69,11 +68,7 @@ describe('useVirtualStreaming', () => {
                 analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
                 source="location"
               >
-                <LogsPageParamsProvider
-                  analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-                >
-                  {children}
-                </LogsPageParamsProvider>
+                {children}
               </LogsQueryParamsProvider>
             </OrganizationContext.Provider>
           </QueryClientProvider>

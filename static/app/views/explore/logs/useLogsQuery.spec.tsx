@@ -18,7 +18,6 @@ import {
   LOGS_REFRESH_INTERVAL_KEY,
   type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {
@@ -60,13 +59,9 @@ describe('useInfiniteLogsQuery', () => {
             analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
             source="location"
           >
-            <LogsPageParamsProvider
-              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-            >
-              <OrganizationContext.Provider value={organization}>
-                {children}
-              </OrganizationContext.Provider>
-            </LogsPageParamsProvider>
+            <OrganizationContext.Provider value={organization}>
+              {children}
+            </OrganizationContext.Provider>
           </LogsQueryParamsProvider>
         </QueryClientProvider>
       );
@@ -447,13 +442,9 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
             analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
             source="location"
           >
-            <LogsPageParamsProvider
-              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-            >
-              <OrganizationContext.Provider value={organization}>
-                {children}
-              </OrganizationContext.Provider>
-            </LogsPageParamsProvider>
+            <OrganizationContext.Provider value={organization}>
+              {children}
+            </OrganizationContext.Provider>
           </LogsQueryParamsProvider>
         </QueryClientProvider>
       );
