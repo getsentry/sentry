@@ -1,15 +1,15 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import {useMetricsPageDataQueryResult} from 'sentry/views/explore/contexts/metrics/metricsPageData';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
 
 import {MetricsAggregateTable} from './tables/metricsAggregateTable';
 import {MetricsInfiniteTable} from './tables/metricsInfiniteTable';
 
 export function MetricsTab() {
-  const queryResult = useMetricsPageDataQueryResult();
-  const isAggregatesView = true; // TODO: Get from state/params
+  const mode = useQueryParamsMode();
+  const isAggregatesView = mode === Mode.AGGREGATE;
 
   return (
     <TabContent>

@@ -44,6 +44,7 @@ class SupportedTraceItemType(str, Enum):
     LOGS = "logs"
     SPANS = "spans"
     UPTIME_RESULTS = "uptime_results"
+    TRACEMETRICS = "tracemetrics"
 
 
 class AttributeSourceType(str, Enum):
