@@ -78,6 +78,10 @@ class UserReportForm(forms.ModelForm):
 
 @region_silo_view
 class ErrorPageEmbedView(View):
+    """
+    View for the crash report modal.
+    """
+
     def _get_project_key(self, request: HttpRequest):
         try:
             dsn = request.GET["dsn"]
