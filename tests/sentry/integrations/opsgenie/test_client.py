@@ -400,3 +400,67 @@ class OpsgenieClientTest(APITestCase):
         )
 
         assert_halt_metric(mock_record=mock_record, error_msg=ApiError("something"))
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_send_metric_alert_notification_infrastructure_errors(
+        self, mock_record: MagicMock
+    ) -> None:
+        """Test that infrastructure-level errors (502, 503, 504) are treated as halts, not failures."""
+        payload = {
+            "message": "Test Alert",
+            "alias": "incident_123_456",
+            "description": "This is a test alert",
+            "source": "Sentry",
+            "priority": "P1",
+            "details": {
+                "URL": "http://example.com/alert/1",
+            },
+        }
+        
+        # Test 502 Bad Gateway
+        responses.add(
+            responses.POST,
+            url="https://api.opsgenie.com/v2/alerts",
+            status=502,
+            json={"message": "Bad Gateway"},
+        )
+
+        # Test 503 Service Unavailable (like the original issue)
+        responses.add(
+            responses.POST,
+            url="https://api.opsgenie.com/v2/alerts",
+            status=503,
+            json={"message": "upstream connect error or disconnect/reset before headers. reset reason: overflow"},
+        )
+        
+        # Test 504 Gateway Timeout
+        responses.add(
+            responses.POST,
+            url="https://api.opsgenie.com/v2/alerts",
+            status=504,
+            json={"message": "Gateway Timeout"},
+        )
+
+        client: OpsgenieClient = self.installation.get_keyring_client("team-123")
+
+        # All three error types should raise ApiError but be treated as halts
+        with pytest.raises(ApiError):
+            client.send_metric_alert_notification(payload)
+
+        with pytest.raises(ApiError):
+            client.send_metric_alert_notification(payload)
+
+        with pytest.raises(ApiError):
+            client.send_metric_alert_notification(payload)
+
+        # Should have 3 starts and 3 halts (no failures)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=3
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=0
+        )
