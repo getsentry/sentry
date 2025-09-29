@@ -50,5 +50,5 @@ def get_docker_client() -> Generator[docker.DockerClient]:
 # compatibility stub
 @click.command()
 @click.argument("args", nargs=-1)
-def devservices(args) -> None:
+def devservices(args: tuple[str, ...]) -> None:
     return
