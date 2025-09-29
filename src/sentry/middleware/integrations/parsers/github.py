@@ -51,7 +51,7 @@ class GithubRequestParser(BaseRequestParser):
         try:
             self.forward_to_codecov(external_id=self._get_external_id(event=event))
         except Exception:
-            metrics.incr("codecov.forward-webhooks.forward-error", sample_rate=1.0)
+            metrics.incr("codecov.forward-webhooks.forward-error", sample_rate=0.01)
 
     def get_response(self) -> HttpResponseBase:
         if self.view_class != self.webhook_endpoint:
