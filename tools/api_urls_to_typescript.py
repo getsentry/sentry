@@ -187,5 +187,3 @@ if __name__ == "__main__":
                     "export type MaybeApiPath = KnownApiUrls[number] | (string & {});\n",
                 ]
             )
-            # for route_pattern in route_patterns:
-            #     f.write(f"  '{route_pattern}',\n")
