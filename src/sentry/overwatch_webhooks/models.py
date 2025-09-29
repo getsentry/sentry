@@ -18,7 +18,7 @@ class OrganizationSummary:
     organization_integration_id: int
 
     @classmethod
-    def from_organization_mapping(
+    def from_organization_mapping_and_integration(
         cls, organization_mapping: OrganizationMapping, org_integration: OrganizationIntegration
     ) -> OrganizationSummary:
         return cls(
@@ -36,6 +36,7 @@ class WebhookDetails:
     organizations: list[OrganizationSummary]
     webhook_body: dict[str, Any]
     integration_provider: str
+    region: str
 
     def to_json(self) -> str:
         return json.dumps(asdict(self))
