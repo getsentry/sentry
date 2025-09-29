@@ -1,4 +1,5 @@
-import {Component} from 'react';
+import {useCallback, useState} from 'react';
+import type {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -7,89 +8,79 @@ import Form from 'sentry/components/forms/form';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useParams} from 'sentry/utils/useParams';
 
-type Props = RouteComponentProps<{orgId: string}>;
+export default function OrganizationJoinRequest() {
+  const {orgId} = useParams<{orgId: string}>();
+  const location = useLocation();
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
-type State = {
-  submitSuccess: boolean | null;
-};
-
-class OrganizationJoinRequest extends Component<Props, State> {
-  state: State = {
-    submitSuccess: null,
-  };
-
-  handleSubmitSuccess = () => {
-    const {params, location} = this.props;
-    this.setState({submitSuccess: true});
+  const handleSubmitSuccess = useCallback(() => {
+    setSubmitSuccess(true);
     trackAnalytics('join_request.created', {
-      organization: params.orgId,
-      referrer: location.query.referrer,
+      organization: orgId,
+      referrer: decodeScalar(location.query.referrer, ''),
     });
-  };
+  }, [orgId, location.query.referrer]);
 
-  handleSubmitError() {
+  const handleSubmitError = useCallback(() => {
     addErrorMessage(t('Request to join failed'));
-  }
+  }, []);
 
-  handleCancel = (e: any) => {
-    e.preventDefault();
-    const {params} = this.props;
+  const handleCancel = useCallback(
+    (e: MouseEvent) => {
+      e.preventDefault();
+      testableWindowLocation.assign(`/auth/login/${orgId}/`);
+    },
+    [orgId]
+  );
 
-    testableWindowLocation.assign(`/auth/login/${params.orgId}/`);
-  };
-
-  render() {
-    const {params} = this.props;
-    const {submitSuccess} = this.state;
-
-    if (submitSuccess) {
-      return (
-        <NarrowLayout maxWidth="550px">
-          <SuccessModal>
-            <StyledIconMegaphone size="2xl" />
-            <StyledHeader>{t('Request Sent')}</StyledHeader>
-            <StyledText>{t('Your request to join has been sent.')}</StyledText>
-            <ReceiveEmailMessage>
-              {t('You will receive an email when your request is approved.')}
-            </ReceiveEmailMessage>
-          </SuccessModal>
-        </NarrowLayout>
-      );
-    }
-
+  if (submitSuccess) {
     return (
-      <NarrowLayout maxWidth="650px">
-        <StyledIconMegaphone size="2xl" />
-        <StyledHeader data-test-id="join-request">{t('Request to Join')}</StyledHeader>
-        <StyledText>
-          {tct('Ask the admins if you can join the [orgId] organization.', {
-            orgId: params.orgId,
-          })}
-        </StyledText>
-        <Form
-          requireChanges
-          apiEndpoint={`/organizations/${params.orgId}/join-request/`}
-          apiMethod="POST"
-          submitLabel={t('Request to Join')}
-          onSubmitSuccess={this.handleSubmitSuccess}
-          onSubmitError={this.handleSubmitError}
-          onCancel={this.handleCancel}
-        >
-          <StyledEmailField
-            name="email"
-            inline={false}
-            label={t('Email Address')}
-            placeholder="name@example.com"
-          />
-        </Form>
+      <NarrowLayout maxWidth="550px">
+        <SuccessModal>
+          <StyledIconMegaphone size="2xl" />
+          <StyledHeader>{t('Request Sent')}</StyledHeader>
+          <StyledText>{t('Your request to join has been sent.')}</StyledText>
+          <ReceiveEmailMessage>
+            {t('You will receive an email when your request is approved.')}
+          </ReceiveEmailMessage>
+        </SuccessModal>
       </NarrowLayout>
     );
   }
+
+  return (
+    <NarrowLayout maxWidth="650px">
+      <StyledIconMegaphone size="2xl" />
+      <StyledHeader data-test-id="join-request">{t('Request to Join')}</StyledHeader>
+      <StyledText>
+        {tct('Ask the admins if you can join the [orgId] organization.', {
+          orgId,
+        })}
+      </StyledText>
+      <Form
+        requireChanges
+        apiEndpoint={`/organizations/${orgId}/join-request/`}
+        apiMethod="POST"
+        submitLabel={t('Request to Join')}
+        onSubmitSuccess={handleSubmitSuccess}
+        onSubmitError={handleSubmitError}
+        onCancel={handleCancel}
+      >
+        <StyledEmailField
+          name="email"
+          inline={false}
+          label={t('Email Address')}
+          placeholder="name@example.com"
+        />
+      </Form>
+    </NarrowLayout>
+  );
 }
 
 const SuccessModal = styled('div')`
@@ -97,15 +88,15 @@ const SuccessModal = styled('div')`
   justify-items: center;
   text-align: center;
   padding-top: 10px;
-  padding-bottom: ${space(4)};
+  padding-bottom: ${p => p.theme.space['3xl']};
 `;
 
 const StyledIconMegaphone = styled(IconMegaphone)`
-  padding-bottom: ${space(3)};
+  padding-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const StyledHeader = styled('h3')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StyledText = styled('p')`
@@ -117,8 +108,6 @@ const ReceiveEmailMessage = styled(StyledText)`
 `;
 
 const StyledEmailField = styled(EmailField)`
-  padding-top: ${space(2)};
+  padding-top: ${p => p.theme.space.xl};
   padding-left: 0;
 `;
-
-export default OrganizationJoinRequest;
