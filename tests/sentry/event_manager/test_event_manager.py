@@ -387,7 +387,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert send_robust.called
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
-    def test_unresolves_group(self, send_robust: mock.MagicMock) -> None:
+    @mock.patch("sentry.models.groupopenperiod.get_group_type_by_type_id")
+    def test_unresolves_group(
+        self, mock_get_group_type: mock.MagicMock, send_robust: mock.MagicMock
+    ) -> None:
+        mock_get_group_type.return_value = MetricIssue
         ts = before_now(minutes=5).isoformat()
 
         # N.B. EventManager won't unresolve the group unless the event2 has a
@@ -400,22 +404,20 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
         group.substatus = None
-        group.type = MetricIssue.type_id
         group.save()
         assert group.is_resolved()
 
         resolved_at = before_now(minutes=4)
-        Activity.objects.create(
+        activity = Activity.objects.create(
             group=group,
             project=group.project,
             type=ActivityType.SET_RESOLVED.value,
             datetime=resolved_at,
         )
-        GroupOpenPeriod.objects.create(
-            group=group,
-            date_started=group.first_seen,
-            date_ended=resolved_at,
-            project_id=self.project.id,
+
+        GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True).close_open_period(
+            resolution_time=resolved_at,
+            resolution_activity=activity,
         )
 
         manager = EventManager(
