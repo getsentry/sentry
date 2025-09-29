@@ -243,6 +243,7 @@ function buildRoutes(): RouteObject[] {
           path: '/disabled-member/',
           component: make(() => import('sentry/views/disabledMember')),
           withOrgPath: true,
+          deprecatedRouteProps: true,
         },
       ],
     },
@@ -401,14 +402,12 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper'
               )
           ),
-          deprecatedRouteProps: true,
           children: [
             {
               index: true,
               component: make(
                 () => import('sentry/views/settings/account/accountSecurity')
               ),
-              deprecatedRouteProps: true,
             },
             {
               path: 'session-history/',
@@ -417,7 +416,6 @@ function buildRoutes(): RouteObject[] {
                 () =>
                   import('sentry/views/settings/account/accountSecurity/sessionHistory')
               ),
-              deprecatedRouteProps: true,
             },
             {
               path: 'mfa/:authId/',
@@ -428,7 +426,6 @@ function buildRoutes(): RouteObject[] {
                     'sentry/views/settings/account/accountSecurity/accountSecurityDetails'
                   )
               ),
-              deprecatedRouteProps: true,
             },
           ],
         },
@@ -845,11 +842,9 @@ function buildRoutes(): RouteObject[] {
     {
       index: true,
       component: make(() => import('sentry/views/organizationStats')),
-      deprecatedRouteProps: true,
     },
     {
       component: make(() => import('sentry/views/organizationStats/teamInsights')),
-      deprecatedRouteProps: true,
       children: [
         {
           path: 'issues/',
@@ -862,7 +857,6 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/organizationStats/teamInsights/health')
           ),
-          deprecatedRouteProps: true,
         },
       ],
     },
@@ -874,7 +868,6 @@ function buildRoutes(): RouteObject[] {
         withOrgPath: true,
         component: OrganizationStatsWrapper,
         children: statsChildren,
-        deprecatedRouteProps: true,
       },
       {
         path: '/organizations/:orgId/stats/team/',
@@ -2342,7 +2335,7 @@ function buildRoutes(): RouteObject[] {
   const codecovChildren: SentryRouteObject[] = [
     {
       index: true,
-      redirectTo: 'prevent-ai/new/',
+      redirectTo: 'ai-code-review/new/',
     },
     {
       path: 'coverage/',
@@ -2395,7 +2388,7 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: 'prevent-ai/',
+      path: 'ai-code-review/',
       children: [
         {
           component: make(() => import('sentry/views/prevent/preventAI/wrapper')),

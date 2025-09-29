@@ -21,7 +21,10 @@ import {formatReservedWithUnits, isNewPayingCustomer} from 'getsentry/utils/bill
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
-import {parseOnDemandBudgetsFromSubscription} from 'getsentry/views/onDemandBudgets/utils';
+import {
+  getTotalBudget,
+  parseOnDemandBudgetsFromSubscription,
+} from 'getsentry/views/onDemandBudgets/utils';
 
 const DEFAULT_PAYG_BUDGET: SharedOnDemandBudget = {
   budgetMode: OnDemandBudgetMode.SHARED,
@@ -349,9 +352,11 @@ function CartDiff({
   const getCategoryChanges = ({
     currentValues,
     newValues,
+    shouldIncludeZero = true,
   }: {
     currentValues: Partial<Record<DataCategory, number>>;
     newValues: Partial<Record<DataCategory, number>>;
+    shouldIncludeZero?: boolean;
   }): ReservedChange[] | PerCategoryOnDemandChange[] => {
     const nodes: ReservedChange[] | PerCategoryOnDemandChange[] = [];
 
@@ -360,7 +365,10 @@ function CartDiff({
       if (category in currentValues) {
         currentValue = currentValues[category as DataCategory] ?? null;
       }
-      if (newValue !== currentValue) {
+      if (!shouldIncludeZero && currentValue === 0) {
+        currentValue = null;
+      }
+      if (newValue !== currentValue && (shouldIncludeZero || newValue !== 0)) {
         nodes.push({
           key: category as DataCategory,
           currentValue,
@@ -371,7 +379,7 @@ function CartDiff({
 
     // in case there are categories in the current plan that are not in the new plan
     Object.entries(currentValues).forEach(([category, currentValue]) => {
-      if (!(category in newValues)) {
+      if (!(category in newValues) && (shouldIncludeZero || currentValue !== 0)) {
         nodes.push({
           key: category as DataCategory,
           currentValue,
@@ -434,7 +442,9 @@ function CartDiff({
     if (
       isEqual(currentOnDemandBudget, newOnDemandBudget) ||
       (currentBudgetMode !== OnDemandBudgetMode.SHARED &&
-        newBudgetMode !== OnDemandBudgetMode.SHARED)
+        newBudgetMode !== OnDemandBudgetMode.SHARED) ||
+      (getTotalBudget(currentOnDemandBudget) === 0 &&
+        getTotalBudget(newOnDemandBudget) === 0)
     ) {
       return [];
     }
@@ -480,6 +490,7 @@ function CartDiff({
     return getCategoryChanges({
       currentValues: parsedCurrentOnDemandBudget,
       newValues: parsedNewOnDemandBudget,
+      shouldIncludeZero: currentBudgetMode === newBudgetMode,
     });
   }, [currentOnDemandBudget, newOnDemandBudget, currentBudgetMode, newBudgetMode]);
 

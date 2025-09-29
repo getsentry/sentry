@@ -385,6 +385,7 @@ def _assemble_preprod_artifact_size_analysis(
                     "max_install_size": size_analysis_results.install_size,
                     "min_download_size": None,  # No min value at this time
                     "max_download_size": size_analysis_results.download_size,
+                    "processing_version": size_analysis_results.analysis_version,
                     "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
                 },
             )

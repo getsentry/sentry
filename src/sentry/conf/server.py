@@ -2841,6 +2841,8 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-buffer-dlq": "default",
     "taskworker-control": "default",
     "taskworker-control-dlq": "default",
+    "taskworker-control-limited": "default",
+    "taskworker-control-limited-dlq": "default",
     "taskworker-cutover": "default",
     "taskworker-email": "default",
     "taskworker-email-dlq": "default",
