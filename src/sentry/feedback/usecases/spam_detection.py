@@ -61,7 +61,11 @@ def is_spam_seer(message: str, organization_id: int) -> bool | None:
         )
         return None
 
-    if "is_spam" not in response_data or not isinstance(response_data["is_spam"], bool):
+    if (
+        not isinstance(response_data, dict)
+        or "is_spam" not in response_data
+        or not isinstance(response_data["is_spam"], bool)
+    ):
         logger.error(
             "Seer returned an invalid spam detection response",
             extra={"response_data": response.data},
