@@ -40,7 +40,7 @@ init-config() {
 }
 
 run-dependent-services() {
-    sentry devservices up
+    devservices up
 }
 
 create-db() {
