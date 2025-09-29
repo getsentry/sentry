@@ -113,16 +113,22 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         project_ids = [str(project_id) for project_id in numeric_project_ids]
         hashed_project_ids = hash_from_values(project_ids)
 
+        has_cache = features.has(
+            "organizations:user-feedback-ai-summaries-cache", organization, actor=request.user
+        )
         summary_cache_key = f"feedback_summary:{organization.id}:{start.strftime('%Y-%m-%d-%H')}:{end.strftime('%Y-%m-%d-%H')}:{hashed_project_ids}"
-        summary_cache = cache.get(summary_cache_key)
-        if summary_cache:
-            return Response(
-                {
-                    "summary": summary_cache["summary"],
-                    "success": True,
-                    "numFeedbacksUsed": summary_cache["numFeedbacksUsed"],
-                }
-            )
+
+        if has_cache:
+            # Hour granularity date range.
+            summary_cache = cache.get(summary_cache_key)
+            if summary_cache:
+                return Response(
+                    {
+                        "summary": summary_cache["summary"],
+                        "success": True,
+                        "numFeedbacksUsed": summary_cache["numFeedbacksUsed"],
+                    }
+                )
 
         filters = {
             "type": FeedbackGroup.type_id,
@@ -166,11 +172,12 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
                 {"detail": "Failed to generate a summary for a list of feedbacks"}, status=500
             )
 
-        cache.set(
-            summary_cache_key,
-            {"summary": summary, "numFeedbacksUsed": len(feedback_msgs)},
-            timeout=SUMMARY_CACHE_TIMEOUT,
-        )
+        if has_cache:
+            cache.set(
+                summary_cache_key,
+                {"summary": summary, "numFeedbacksUsed": len(feedback_msgs)},
+                timeout=SUMMARY_CACHE_TIMEOUT,
+            )
 
         return Response(
             {
