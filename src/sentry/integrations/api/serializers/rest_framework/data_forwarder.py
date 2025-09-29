@@ -44,7 +44,6 @@ class DataForwarderSerializer(Serializer):
     config = serializers.JSONField(default=dict)
 
     def validate_config(self, config) -> SQSConfig | SegmentConfig | SplunkConfig:
-        """Validate config based on provider."""
         provider = self.initial_data.get("provider")
 
         if provider == "sqs":
@@ -54,7 +53,7 @@ class DataForwarderSerializer(Serializer):
         elif provider == "splunk":
             return self._validate_splunk_config(config)
 
-        return config
+        raise ValidationError(f"Invalid provider: {provider}")
 
     def _validate_all_fields_present(
         self, config: dict, required_fields: list[str], provider_name: str = ""
@@ -240,7 +239,11 @@ class DataForwarderProjectSerializer(Serializer):
                 data_forwarder = self._validated_data_forwarder
                 project = self._validated_project
 
-                if data_forwarder.organization_id != project.organization_id:
+                if (
+                    data_forwarder
+                    and project
+                    and data_forwarder.organization_id != project.organization_id
+                ):
                     raise ValidationError(
                         "DataForwarder and Project must belong to the same organization."
                     )
