@@ -19,7 +19,9 @@ export type TraceItemSearchQueryBuilderProps = {
   numberSecondaryAliases: TagCollection;
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
+  caseInsensitive?: boolean;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
+  onCaseInsensitiveClick?: (caseInsensitive: boolean) => void;
   replaceRawSearchKeys?: string[];
 } & Omit<EAPSpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
@@ -70,6 +72,8 @@ export function useSearchQueryBuilderProps({
   supportedAggregates = [],
   replaceRawSearchKeys,
   matchKeySuggestions,
+  caseInsensitive,
+  onCaseInsensitiveClick,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
   const functionTags = useFunctionTags(itemType, supportedAggregates);
@@ -107,6 +111,8 @@ export function useSearchQueryBuilderProps({
     replaceRawSearchKeys,
     matchKeySuggestions,
     filterKeyAliases: {...numberSecondaryAliases, ...stringSecondaryAliases},
+    caseInsensitive,
+    onCaseInsensitiveClick,
   };
 }
 
