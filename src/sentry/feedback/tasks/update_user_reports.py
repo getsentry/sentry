@@ -11,6 +11,7 @@ from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.services import eventstore
 from sentry.silo.base import SiloMode
+from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
@@ -93,7 +94,7 @@ def update_user_reports(
             )
             try:
                 events_chunk = eventstore.backend.get_events(
-                    filter=snuba_filter, referrer="tasks.update_user_reports"
+                    filter=snuba_filter, referrer=Referrer.TASKS_UPDATE_USER_REPORTS.value
                 )
                 events.extend(events_chunk)
             except Exception:
