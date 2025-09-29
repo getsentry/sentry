@@ -325,11 +325,12 @@ export function PreprodOnboarding({
 
             <Flex direction="column" gap="md">
               <Heading as="h3" size="lg">
-                Integrating into CI
+                {t('Integrating into CI')}
               </Heading>
               <Text as="p" size="md">
-                Integrating the GitHub App is required for PR annotations and workflow
-                automation
+                {t(
+                  'Integrating the GitHub App is required for PR annotations and workflow automation'
+                )}
               </Text>
 
               <Flex gap="xl" wrap="wrap">
@@ -338,7 +339,7 @@ export function PreprodOnboarding({
                   href="/settings/integrations/github"
                   size="md"
                 >
-                  Install GitHub App
+                  {t('Install GitHub App')}
                 </LinkButton>
                 <LinkButton
                   href="https://docs.sentry.io/product/builds/"
@@ -346,7 +347,7 @@ export function PreprodOnboarding({
                   disabled
                   size="md"
                 >
-                  View Documentation
+                  {t('View Documentation')}
                 </LinkButton>
               </Flex>
             </Flex>

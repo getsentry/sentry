@@ -97,8 +97,8 @@ export default function PreprodBuilds() {
   const builds = buildsData?.builds || [];
   const pageLinks = getResponseHeader?.('Link') || null;
 
-  const shouldShowSearchBar = builds.length > 0 || !!urlSearchQuery?.trim();
   const hasSearchQuery = !!urlSearchQuery?.trim();
+  const shouldShowSearchBar = builds.length > 0 || hasSearchQuery;
   const showOnboarding = builds.length === 0 && !hasSearchQuery && !isLoadingBuilds;
 
   return (
