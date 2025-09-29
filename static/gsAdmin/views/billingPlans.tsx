@@ -13,7 +13,6 @@ import ResultTable from 'admin/components/resultTable';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {displayUnitPrice} from 'getsentry/views/amCheckout/utils';
 
-/** @internal exported for tests only */
 export interface BillingPlansResponse {
   data: Plans;
   not_live: string[];

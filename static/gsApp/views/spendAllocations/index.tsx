@@ -51,7 +51,6 @@ type Props = {
   subscription: Subscription;
 };
 
-/** @internal exported for tests only */
 export function SpendAllocationsRoot({organization, subscription}: Props) {
   const [errors, setErrors] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);

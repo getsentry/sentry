@@ -15,7 +15,6 @@ import {
   isContinuousProfiling,
 } from 'getsentry/utils/dataCategory';
 
-/** @internal exported for tests only */
 export function getFreeEventsKey(dataCategory: DataCategory) {
   return `addFree${toTitleCase(dataCategory, {allowInnerUpperCase: true})}`;
 }

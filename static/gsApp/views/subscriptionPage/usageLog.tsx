@@ -217,7 +217,6 @@ function UsageLog({location, subscription}: Props) {
 }
 
 export default withSubscription(UsageLog);
-/** @internal exported for tests only */
 export {UsageLog};
 
 const SentryAvatar = styled(ActivityAvatar)`

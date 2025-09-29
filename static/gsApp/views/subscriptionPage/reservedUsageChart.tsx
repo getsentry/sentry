@@ -70,7 +70,6 @@ const USAGE_CHART_OPTIONS_DATACATEGORY = [
   },
 ];
 
-/** @internal exported for tests only */
 export function getCategoryOptions({
   plan,
   hadCustomDynamicSampling,
@@ -203,7 +202,6 @@ function defaultChartData(): ChartStats {
   };
 }
 
-/** @internal exported for tests only */
 export function mapStatsToChart({
   stats = [],
   transform,
@@ -268,7 +266,6 @@ export function mapStatsToChart({
   return chartData;
 }
 
-/** @internal exported for tests only */
 export function mapCostStatsToChart({
   stats = [],
   transform,
@@ -332,7 +329,6 @@ export function mapCostStatsToChart({
   return chartData;
 }
 
-/** @internal exported for tests only */
 export function mapReservedBudgetStatsToChart({
   statsByDateAndCategory = {},
   transform,
