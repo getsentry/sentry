@@ -97,7 +97,7 @@ def export_clickhouse_rows(
     :param max_retries: The maximum number of queries we'll make to the database before quitting.
     :param retry_after_seconds: The number of seconds to wait after each query failure.
     """
-    assert limit > 0, "limit mus`t be a positive integer greater than zero."
+    assert limit > 0, "limit must be a positive integer greater than zero."
     assert num_pages > 0, "num_pages must be a positive integer greater than zero."
     assert offset >= 0, "offset must be a positive integer greater than or equal to zero."
 
