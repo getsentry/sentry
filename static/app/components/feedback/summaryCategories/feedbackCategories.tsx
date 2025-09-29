@@ -1,14 +1,16 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import useFeedbackCategories from 'sentry/components/feedback/list/useFeedbackCategories';
 import Placeholder from 'sentry/components/placeholder';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 
 function getSearchTermForLabel(label: string) {
   /**
@@ -46,6 +48,41 @@ export default function FeedbackCategories() {
 
   const location = useLocation();
   const navigate = useNavigate();
+  const organization = useOrganization();
+
+  useEffect(() => {
+    trackAnalytics('feedback.summary.categories-loaded', {
+      organization,
+      num_categories: categories ? categories.length : 0,
+    });
+  }, [organization, categories]);
+
+  useEffect(() => {
+    // Analytics for the rendered state. Should match the conditions below.
+    if (isError) {
+      trackAnalytics('feedback.summary.categories-error', {
+        organization,
+      });
+    } else if (tooFewFeedbacks) {
+      trackAnalytics('feedback.summary.categories-too-few-feedbacks', {
+        organization,
+      });
+    } else if (
+      categories &&
+      categories.length > 0 &&
+      setupAcknowledgement.orgHasAcknowledged
+    ) {
+      trackAnalytics('feedback.summary.categories-rendered', {
+        organization,
+      });
+    }
+  }, [
+    organization,
+    isError,
+    tooFewFeedbacks,
+    categories,
+    setupAcknowledgement.orgHasAcknowledged,
+  ]);
 
   const currentQuery = useMemo(
     () => decodeScalar(location.query.query, ''),
@@ -57,9 +94,8 @@ export default function FeedbackCategories() {
     return <LoadingPlaceholder />;
   }
 
-  // The assumption is that if categories are enabled, then summaries are definitely enabled,
-  // so we won't just be showing nothing in the parent component if this is null.
-  // Seer CTA is handled by the FeedbackSummary component.
+  // The assumption is that if categories are enabled, then summaries are definitely enabled.
+  // Both are wrapped in a parent component. Summary has its own states for these cases, so we can just return null.
   if (
     isError ||
     tooFewFeedbacks ||
@@ -93,6 +129,11 @@ export default function FeedbackCategories() {
         exactSearchTerm,
         false
       );
+
+      trackAnalytics('feedback.summary.category-selected', {
+        organization,
+        category: category.primaryLabel,
+      });
     }
 
     navigate({
