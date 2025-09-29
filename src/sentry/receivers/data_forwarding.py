@@ -1,4 +1,4 @@
-from django.db import IntegrityError
+from django.db import router, transaction
 
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
@@ -12,18 +12,11 @@ def enroll_project_in_data_forwarding(project: Project, **kwargs):
         organization_id=project.organization_id, is_enabled=True, enroll_new_projects=True
     )
 
-    enrolled_count = 0
-    for data_forwarder in data_forwarders:
-        if not DataForwarderProject.objects.filter(
-            data_forwarder=data_forwarder, project=project
-        ).exists():
-            try:
-                DataForwarderProject.objects.create(
-                    data_forwarder=data_forwarder,
-                    project=project,
-                    is_enabled=True,
-                    overrides={},
-                )
-                enrolled_count += 1
-            except IntegrityError:
-                pass
+    with transaction.atomic(router.db_for_write(DataForwarderProject)):
+        for data_forwarder in data_forwarders:
+            DataForwarderProject.objects.get_or_create(
+                data_forwarder=data_forwarder,
+                project=project,
+                is_enabled=True,
+                overrides={},
+            )
