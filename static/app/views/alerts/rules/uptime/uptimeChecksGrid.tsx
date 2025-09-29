@@ -41,6 +41,9 @@ export function UptimeChecksGrid({traceSampling, uptimeChecks}: Props) {
       enabled: traceIds.length > 0,
       search: new MutableSearch('').addDisjunctionFilterValues('trace', traceIds),
       fields: ['trace', 'count()'],
+      // Ignore the cursor parameter, since we use that on this page to
+      // paginate the checks table.
+      noPagination: true,
     },
     'api.uptime-checks-grid'
   );
