@@ -255,7 +255,9 @@ class GetSendToTeamTest(_ParticipantsTest):
 
 
 class GetSendToOwnersTest(_ParticipantsTest):
-    def get_send_to_owners(self, event: Event | GroupEvent) -> Mapping[ExternalProviders, set[Actor]]:
+    def get_send_to_owners(
+        self, event: Event | GroupEvent
+    ) -> Mapping[ExternalProviders, set[Actor]]:
         return get_send_to(
             self.project,
             target_type=ActionTargetType.ISSUE_OWNERS,

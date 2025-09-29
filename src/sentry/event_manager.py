@@ -297,7 +297,9 @@ def get_stored_crashreports(cache_key: str | None, event: Event, max_crashreport
     return query[:max_crashreports].count()
 
 
-def increment_group_tombstone_hit_counter(tombstone_id: int | None, event: Event | GroupEvent) -> None:
+def increment_group_tombstone_hit_counter(
+    tombstone_id: int | None, event: Event | GroupEvent
+) -> None:
     if tombstone_id is None:
         return
     try:
