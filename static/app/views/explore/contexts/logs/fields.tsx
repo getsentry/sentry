@@ -10,11 +10,3 @@ import {OurLogKnownFieldKey, type OurLogFieldKey} from 'sentry/views/explore/log
 export function defaultLogFields(): OurLogKnownFieldKey[] {
   return [OurLogKnownFieldKey.TIMESTAMP, OurLogKnownFieldKey.MESSAGE];
 }
-
-export function getLogFieldsFromLocation(location: Location): OurLogFieldKey[] {
-  const fields = decodeList(location.query[LOGS_FIELDS_KEY]);
-  if (fields.length) {
-    return fields;
-  }
-  return defaultLogFields();
-}
