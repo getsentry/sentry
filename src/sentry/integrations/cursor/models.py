@@ -42,5 +42,5 @@ class CursorAgentLaunchResponse(BaseModel):
     status: str
     source: CursorAgentSource
     target: CursorAgentResponseTarget
-    name: str
+    name: str | None = None
     createdAt: datetime
