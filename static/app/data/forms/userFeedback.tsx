@@ -1,19 +1,15 @@
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
 
-// Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/user-feedback/';
 
 const formGroups: JsonFormObject[] = [
   {
-    // Form "section"/"panel"
     title: 'Settings',
     fields: [
       {
         name: 'feedback:branding',
         type: 'boolean',
-
-        // additional data/props that is related to rendering of form field rather than data
         label: t('Show Sentry Branding in Crash Report Modal'),
         placeholder: 'e.g. secondary@example.com',
         help: t(
@@ -46,12 +42,11 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'sentry:feedback_ai_spam_detection',
         type: 'boolean',
-
-        // additional data/props that is related to rendering of form field rather than data
-        label: 'Enable Spam Detection',
-        help: 'Toggles whether or not to enable auto spam detection in User Feedback.',
+        label: t('Enable Spam Detection'),
+        help: t('Toggles whether or not to enable auto spam detection in User Feedback.'),
         getData: data => ({options: data}),
-        visible: ({features}) => features.has('user-feedback-spam-ingest'),
+        visible: ({features, hasAiEnabled}) =>
+          features.has('user-feedback-spam-ingest') && hasAiEnabled,
       },
     ],
   },

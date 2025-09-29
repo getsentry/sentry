@@ -5,7 +5,6 @@ import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/build
 type AttributeValueType =
   | 'number'
   | 'integer'
-  | 'small_integer'
   | 'date'
   | 'boolean'
   | 'duration'
@@ -15,7 +14,7 @@ type AttributeValueType =
   | 'size'
   | 'rate'
   | 'score'
-  | null;
+  | 'currency';
 
 type AttributeValueUnit = DataUnit | null;
 
@@ -23,12 +22,21 @@ type TimeSeriesValueType = AttributeValueType;
 export type TimeSeriesValueUnit = AttributeValueUnit;
 export type TimeSeriesMeta = {
   /**
-   * Difference between the timestamps of the datapoints, in milliseconds
+   * Difference between the timestamps of the datapoints, in milliseconds.
    */
   interval: number;
+  /**
+   * The type of the values (e.g., "duration")
+   */
   valueType: TimeSeriesValueType;
+  /**
+   * The unit of the values, if available. The value unit is null if the value type is unitless (e.g., "number"), or the unit could not be determined (this is usually an error case).
+   */
   valueUnit: TimeSeriesValueUnit;
   dataScanned?: 'partial' | 'full';
+  /**
+   * `isOther` is true if this `TimeSeries` is the result of a `groupBy` query, and this is the "other" group.
+   */
   isOther?: boolean;
   /**
    * For a top N request, the order is the position of this `TimeSeries` within the respective yAxis.
@@ -72,10 +80,16 @@ export type TimeSeries = {
   meta: TimeSeriesMeta;
   values: TimeSeriesItem[];
   yAxis: string;
+  /**
+   * Represents the grouping information for the time series, if applicable.
+   * e.g., if the initial request supplied a `groupBy` query param of `"span.op"`, the
+   * `groupBy` of the `TimeSeries` could be `[{key: 'span.op': value: 'db' }]`
+   * If the `excludeOther` query param is `true`, an "other" time series will be part of the response. `TimeSeries.meta.isOther` specifies the "other" time series.
+   */
   groupBy?: TimeSeriesGroupBy[];
 };
 
-export type TabularValueType = AttributeValueType;
+export type TabularValueType = AttributeValueType | null;
 export type TabularValueUnit = AttributeValueUnit;
 export type TabularMeta<TFields extends string = string> = {
   fields: Record<TFields, TabularValueType>;
@@ -95,7 +109,7 @@ export type TabularData<TFields extends string = string> = {
 export type TabularColumn<TFields extends string = string> = {
   key: TFields;
   sortable?: boolean;
-  type?: AttributeValueType;
+  type?: TabularValueType;
   width?: number;
 };
 

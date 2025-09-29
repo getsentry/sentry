@@ -593,6 +593,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rollout rate for the Spans V2 format in Kafka.
+register(
+    "relay.kafka.span-v2.sample-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -3109,6 +3117,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "workflow_engine.scheduler.use_conditional_delete",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "celery_split_queue_task_rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3118,12 +3132,6 @@ register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
     type=Bool,
     default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "grouping.grouphash_metadata.backfill_sample_rate",
-    type=Float,
-    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3154,7 +3162,7 @@ register(
 register(
     "workflow_engine.use_new_scheduling_task",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3189,20 +3197,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# When in active monitoring mode, overrides how many failures in a row we need to see to mark the monitor as down
-register(
-    "uptime.active-failure-threshold",
-    type=Int,
-    default=3,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When in active monitoring mode, how many successes in a row do we need to mark it as up
-register(
-    "uptime.active-recovery-threshold",
-    type=Int,
-    default=1,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "uptime.date_cutoff_epoch_seconds",
@@ -3496,5 +3490,40 @@ register(
     "commit.dual-write-start-date",
     type=String,
     default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch for linking identities for demo users
+register(
+    "identity.prevent-link-identity-for-demo-users.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry.send_onboarding_task_metrics",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Skip recording onboarding tasks if organization onboarding is already complete
+register(
+    "sentry:skip-record-onboarding-tasks-if-complete",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Database field encryption method
+# Supported values:
+# - 'plaintext': No encryption (default)
+# - 'fernet': Fernet symmetric encryption
+# - 'keysets': (Future) Google Tink keysets for key rotation
+register(
+    "database.encryption.method",
+    type=String,
+    default="plaintext",
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

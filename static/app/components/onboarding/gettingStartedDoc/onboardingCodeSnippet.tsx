@@ -90,17 +90,12 @@ interface TabbedCodeSnippetProps {
    * A callback to be invoked when the configuration is selected and copied to the clipboard
    */
   onSelectAndCopy?: () => void;
-  /**
-   * Whether or not the configuration or parts of it are currently being loaded
-   */
-  partialLoading?: boolean;
 }
 
 export function TabbedCodeSnippet({
   tabs,
   onCopy,
   onSelectAndCopy,
-  partialLoading,
 }: TabbedCodeSnippetProps) {
   const [selectedTabValue, setSelectedTabValue] = useState(tabs[0]!.value);
   const selectedTab = tabs.find(tab => tab.value === selectedTabValue) ?? tabs[0]!;
@@ -111,8 +106,6 @@ export function TabbedCodeSnippet({
       language={language}
       onCopy={onCopy}
       onSelectAndCopy={onSelectAndCopy}
-      hideCopyButton={partialLoading}
-      disableUserSelection={partialLoading}
       tabs={tabs}
       selectedTab={selectedTabValue}
       onTabClick={value => setSelectedTabValue(value)}
