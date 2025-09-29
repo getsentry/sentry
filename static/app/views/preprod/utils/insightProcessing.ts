@@ -39,7 +39,7 @@ const INSIGHT_CONFIGS: InsightConfig[] = [
     key: 'image_optimization',
     name: 'Optimize images',
     description:
-      'We determine how much size could be saved if images were optimized. In some cases you can convert to HEIC or WebP for better compression.',
+      'We determine how much size could be saved if images were optimized. In some cases you can convert to HEIC for better compression.',
   },
   {
     key: 'duplicate_files',
