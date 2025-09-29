@@ -103,6 +103,10 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     return `txn-${this.id}`;
   }
 
+  pathToNode(): TraceTree.NodePath[] {
+    return [this.nodePath];
+  }
+
   matchById(id: string): boolean {
     const hasMatchingErrors = Array.from(this.errors).some(
       error => error.event_id === id
