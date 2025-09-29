@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Flex} from 'sentry/components/core/layout';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -47,9 +48,11 @@ function AddBillingInformation({
         }
         isNewCheckout
       />
-      {isOpen && (
-        <Fragment>
-          {!billingDetailsLoading && (
+      {isOpen &&
+        (billingDetailsLoading ? (
+          <LoadingIndicator />
+        ) : (
+          <Fragment>
             <BillingDetailsPanel
               organization={organization}
               subscription={subscription}
@@ -57,19 +60,18 @@ function AddBillingInformation({
               analyticsEvent="checkout.updated_billing_details"
               shouldExpandInitially={!hasSomeBillingDetails(billingDetails)}
             />
-          )}
-          <CreditCardPanel
-            organization={organization}
-            subscription={subscription}
-            isNewBillingUI
-            location={location}
-            ftcLocation={FTCConsentLocation.CHECKOUT}
-            budgetTerm={activePlan.budgetTerm}
-            analyticsEvent="checkout.updated_cc"
-            shouldExpandInitially={subscription.paymentSource === null}
-          />
-        </Fragment>
-      )}
+            <CreditCardPanel
+              organization={organization}
+              subscription={subscription}
+              isNewBillingUI
+              location={location}
+              ftcLocation={FTCConsentLocation.CHECKOUT}
+              budgetTerm={activePlan.budgetTerm}
+              analyticsEvent="checkout.updated_cc"
+              shouldExpandInitially={subscription.paymentSource === null}
+            />
+          </Fragment>
+        ))}
     </Flex>
   );
 }
