@@ -25,7 +25,7 @@ describe('TestPerformance', () => {
   it('renders average flake rate', () => {
     render(<TestPerformance {...testPerformanceData} isLoading={false} />);
 
-    const averageFlakeRate = screen.getByText(/0.10%/);
+    const averageFlakeRate = screen.getByText(/0.1%/);
     expect(averageFlakeRate).toBeInTheDocument();
   });
 
