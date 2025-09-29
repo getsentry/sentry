@@ -18,7 +18,7 @@ from google.cloud.storage_transfer_v1 import (
     TransferJob,
     TransferSpec,
 )
-from google.type import date_pb2  # type: ignore[import-untyped]
+from google.type import date_pb2
 from snuba_sdk import (
     Column,
     Condition,
