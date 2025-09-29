@@ -1,6 +1,5 @@
 import Feature from 'sentry/components/acl/feature';
 import {NoAccess} from 'sentry/components/noAccess';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -16,7 +15,7 @@ export default function PreventPage({children}: Props) {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
+      {children}
     </Feature>
   );
 }
