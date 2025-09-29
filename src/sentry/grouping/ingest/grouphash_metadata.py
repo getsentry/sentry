@@ -208,8 +208,8 @@ def create_or_update_grouphash_metadata_if_needed(
             )
 
         # Check if the event ID is older than 90 days, if so update it
-        event = eventstore.backend.get_event_by_id(project.id, event.event_id)
-        if not event or event.datetime < datetime.now() - timedelta(days=90):
+        event_old = eventstore.backend.get_event_by_id(project.id, event.event_id)
+        if not event_old or event_old.datetime < datetime.now() - timedelta(days=90):
             updated_data["event_id"] = event.event_id
 
         # Only hit the DB if there's something to change
