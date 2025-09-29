@@ -89,6 +89,8 @@ export function AppSizeInsightsSidebarRow({
             display="flex"
             css={() => ({
               flexDirection: 'column',
+              width: '100%',
+              overflow: 'hidden',
               '& > :nth-child(odd)': {
                 backgroundColor: theme.backgroundSecondary,
               },
@@ -156,6 +158,8 @@ const FlexAlternatingRow = styled('div')`
   justify-content: space-between;
   border-radius: ${({theme}) => theme.borderRadius};
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   gap: ${({theme}) => theme.space.lg};
   padding: ${({theme}) => theme.space.xs} ${({theme}) => theme.space.sm};
 `;

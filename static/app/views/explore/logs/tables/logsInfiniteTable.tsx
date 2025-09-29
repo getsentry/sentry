@@ -28,7 +28,6 @@ import {
 } from 'sentry/views/explore/components/table';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {useLogsSearch} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   LOGS_INSTRUCTIONS_URL,
   MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
@@ -59,6 +58,7 @@ import {
 import type {ReplayEmbeddedTableOptions} from 'sentry/views/explore/logs/utils/logsReplayUtils';
 import {
   useQueryParamsFields,
+  useQueryParamsSearch,
   useQueryParamsSortBys,
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
@@ -100,7 +100,7 @@ export function LogsInfiniteTable({
 }: LogsTableProps) {
   const theme = useTheme();
   const fields = useQueryParamsFields();
-  const search = useLogsSearch();
+  const search = useQueryParamsSearch();
   const autoRefresh = useLogsAutoRefreshEnabled();
   const {infiniteLogsQueryResult} = useLogsPageData();
   const lastFetchTime = useRef<number | null>(null);

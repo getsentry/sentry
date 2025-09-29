@@ -1,13 +1,13 @@
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ExploreExport} from 'sentry/views/explore/components/exploreExport';
-import {useLogsSearch} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {QUERY_PAGE_LIMIT} from 'sentry/views/explore/logs/constants';
 import {isLogsExportEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {downloadLogsAsCsv} from 'sentry/views/explore/logs/logsExportCsv';
 import type {OurLogFieldKey, OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {
   useQueryParamsFields,
+  useQueryParamsSearch,
   useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -33,7 +33,7 @@ interface LogsQueryInfo {
 export function LogsExportButton(props: LogsExportButtonProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const logsSearch = useLogsSearch();
+  const logsSearch = useQueryParamsSearch();
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
   const isEnabled = isLogsExportEnabled(organization);

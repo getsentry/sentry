@@ -51,12 +51,12 @@ def _dispatch_tick(ts: datetime):
     allows the monitor tasks to be synchronized to any backlog of check-ins
     that are being processed.
 
-    To ensure these tasks are always triggered there is an additional celery
-    beat task that produces a clock pulse message into the topic that can be
+    To ensure these tasks are always triggered there is an additional scheduled
+    task that produces a clock pulse message into the topic that can be
     used to trigger these tasks when there is a low volume of check-ins. It is
     however, preferred to have a high volume of check-ins, so we do not need to
-    rely on celery beat, which in some cases may fail to trigger (such as in
-    sentry.io, when we deploy we restart the celery beat worker and it will
+    rely on scheduled tasks, which in some cases may fail to trigger (such as in
+    sentry.io, when we deploy we restart the task-scheduler and it will
     skip any tasks it missed)
     """
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
@@ -141,7 +141,7 @@ def try_monitor_clock_tick(ts: datetime, partition: int):
     # slowed down too much and is missing a minutes worth of check-ins
     if last_ts is not None and slowest_part_ts > last_ts + 60:
         # We only want to do backfills when we're using the clock tick
-        # consumer, otherwise the celery tasks may process out of order
+        # consumer, otherwise tasks may process out of order
         backfill_tick = datetime.fromtimestamp(last_ts + 60, tz=timezone.utc)
         while backfill_tick < tick:
             extra = {"reference_datetime": str(backfill_tick)}
