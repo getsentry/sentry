@@ -3,10 +3,8 @@ import styled from '@emotion/styled';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Alert} from 'sentry/components/core/alert';
 import {Stack} from 'sentry/components/core/layout';
-// Removed unused Flex import
 import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
-// Removed unused Panel imports
 import {t, tct} from 'sentry/locale';
 import type {PlatformIntegration, ProjectKey} from 'sentry/types/project';
 
