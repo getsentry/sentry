@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Python
 
-Whenever you attempt to run a Python command (e.g. `python -c`) or Python package (e.g. `pytest`, `mypy`), enable the virtualenv by activating it with `source venv/bin/activate`.
+Whenever you attempt to run a Python command (e.g. `python -c`) or Python package (e.g. `pytest`, `mypy`), enable the virtualenv by activating it with `source .venv/bin/activate`.
 
 # Python typing
 
