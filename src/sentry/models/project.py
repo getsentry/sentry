@@ -640,7 +640,7 @@ class Project(Model):
 
         # Manually move over code mappings to the new project
         RepositoryProjectPathConfig.objects.filter(project_id=self.id).update(
-            project_id=self.id, organization_id=organization.id
+            organization_id=organization.id
         )
 
         for external_issues in chunked(
