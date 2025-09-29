@@ -69,7 +69,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     relay_port = ephemeral_port_reserve.reserve(ip="127.0.0.1", port=33331)
 
     redis_db = TEST_REDIS_DB
-    use_old_devservices = environ.get("USE_OLD_DEVSERVICES", "0") == "1"
+
     from sentry.relay import projectconfig_cache
     from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 
@@ -81,8 +81,8 @@ def relay_server_setup(live_server, tmpdir_factory):
     template_vars = {
         "SENTRY_HOST": f"http://host.docker.internal:{port}/",
         "RELAY_PORT": relay_port,
-        "KAFKA_HOST": "sentry_kafka" if use_old_devservices else "kafka",
-        "REDIS_HOST": "sentry_redis" if use_old_devservices else "redis",
+        "KAFKA_HOST": "kafka",
+        "REDIS_HOST": "redis",
         "REDIS_DB": redis_db,
     }
 
@@ -107,7 +107,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     options = {
         "image": RELAY_TEST_IMAGE,
         "ports": {"%s/tcp" % relay_port: relay_port},
-        "network": "sentry" if use_old_devservices else "devservices",
+        "network": "devservices",
         "detach": True,
         "name": container_name,
         "volumes": {config_path: {"bind": "/etc/relay"}},

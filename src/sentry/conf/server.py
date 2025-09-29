@@ -2274,11 +2274,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "image": "ghcr.io/getsentry/taskbroker:latest",
             "ports": {"50051/tcp": 50051},
             "environment": {
-                "TASKBROKER_KAFKA_CLUSTER": (
-                    "sentry_kafka"
-                    if os.environ.get("USE_OLD_DEVSERVICES") == "1"
-                    else "kafka-kafka-1"
-                ),
+                "TASKBROKER_KAFKA_CLUSTER": "kafka-kafka-1",
             },
             "only_if": settings.SENTRY_USE_TASKBROKER,
             "platform": "linux/amd64",

@@ -47,7 +47,7 @@ def get_docker_client() -> Generator[docker.DockerClient]:
         yield client
 
 
-@click.group()
+@click.command()
 def devservices() -> None:
     click.echo("Use `devservices` instead!")
     return
