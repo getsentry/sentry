@@ -225,7 +225,7 @@ export default function Ai() {
           {segmentCount > 100 && (
             <Subtext>
               {t(
-                `Note: this replay is too long, so we're currently only summarizing part of it.`
+                `Note: this replay is very long, so we might not be summarizing all of it.`
               )}
             </Subtext>
           )}

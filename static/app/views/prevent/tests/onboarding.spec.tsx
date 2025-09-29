@@ -297,7 +297,9 @@ describe('TestsOnboardingPage', () => {
           await screen.findByLabelText('Use OpenID Connect (OIDC)')
         ).not.toBeChecked();
         expect(await screen.findByText('Step 2b: Add token as')).toBeInTheDocument();
-        expect(await screen.findByText(/^Step 3: Add the script/)).toBeInTheDocument();
+        expect(
+          await screen.findByText(/^Step 3: Add the workflow action/)
+        ).toBeInTheDocument();
         expect(
           await screen.findByText('Step 4: Run your test suite')
         ).toBeInTheDocument();
@@ -356,7 +358,9 @@ describe('TestsOnboardingPage', () => {
           screen.queryByText('Step 3: Edit your GitHub Actions workflow')
         ).not.toBeInTheDocument();
         expect(await screen.findByText('Step 2b: Add token as')).toBeInTheDocument();
-        expect(await screen.findByText(/Step 3: Add the script/)).toBeInTheDocument();
+        expect(
+          await screen.findByText(/Step 3: Add the workflow action/)
+        ).toBeInTheDocument();
 
         // Switch back to OIDC
         const oidcRadio = await screen.findByLabelText('Use OpenID Connect (OIDC)');

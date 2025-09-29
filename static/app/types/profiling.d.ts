@@ -196,6 +196,7 @@ declare namespace Profiling {
     colno?: number;
     column?: number;
     file?: string;
+    fingerprint?: number;
     image?: string;
     inline?: boolean;
     instructionAddr?: string;
@@ -229,7 +230,11 @@ declare namespace Profiling {
 
   type FrameInfo = {
     count: number;
-    weight: number;
+    sumDuration: number;
+    sumSelfTime: number;
+    p75Duration: number;
+    p95Duration: number;
+    p99Duration: number;
   };
 
   type FunctionMetric = {
@@ -244,6 +249,7 @@ declare namespace Profiling {
     p99: number;
     package: string;
     sum: number;
+    sumSelfTime: number;
   };
 
   type ProfileInput =
@@ -327,6 +333,5 @@ declare namespace Profiling {
       profiles?: ReadonlyArray<ProfileReference>;
     };
     activeProfileIndex?: number;
-    metrics?: FunctionMetric[];
   }
 }

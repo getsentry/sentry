@@ -92,7 +92,7 @@ export function FeatureOverview() {
           'Sentry Error Prediction works better with Sentry Issue Context. [link:Learn more] on how to set this up to get the most accurate error prediction we can offer.',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/sentry-prevent-ai/" />
+              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/" />
             ),
           }
         )}
@@ -188,7 +188,12 @@ export default function PreventAIOnboarding() {
                     </Text>
                   ),
                   organizationSettingsLink: (
-                    <Link to={`/settings/${organization.slug}/#hideAiFeatures`} />
+                    <Link
+                      to={{
+                        pathname: `/settings/${organization.slug}/`,
+                        hash: 'hideAiFeatures',
+                      }}
+                    />
                   ),
                 }
               )}

@@ -18,12 +18,12 @@ from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.celery import SentryTask
 from sentry.db.models import Model, WrappingU32IntegerField
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.models.files.abstractfileblob import AbstractFileBlob
 from sentry.models.files.abstractfileblobindex import AbstractFileBlobIndex
 from sentry.models.files.utils import DEFAULT_BLOB_SIZE, AssembleChecksumMismatch, nooplogger
+from sentry.taskworker.task import Task
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -242,7 +242,7 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
     def _get_blobs_by_id(self, blob_ids: Sequence[int]) -> models.QuerySet[BlobType]: ...
 
     @abc.abstractmethod
-    def _delete_unreferenced_blob_task(self) -> SentryTask: ...
+    def _delete_unreferenced_blob_task(self) -> Task[Any, Any]: ...
 
     def _get_chunked_blob(self, mode=None, prefetch=False, prefetch_to=None, delete=True):
         return ChunkedFileBlobIndexWrapper(

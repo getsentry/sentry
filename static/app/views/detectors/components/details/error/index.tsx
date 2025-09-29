@@ -93,7 +93,7 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
           <Section title={t('Assign')}>
             <Text as="p">
               {tct(
-                'Sentry will attempt to autotmatically assign new issues based on [link:Ownership Rules].',
+                'Sentry will attempt to automatically assign new issues based on [link:Ownership Rules].',
                 {
                   link: (
                     <Link

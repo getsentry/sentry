@@ -28,7 +28,6 @@ import {
   LOGS_FIELDS_KEY,
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
-  setLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -42,7 +41,10 @@ import {
   LogAttributesHumanLabel,
   LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
 } from 'sentry/views/explore/logs/constants';
-import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
+import {
+  getTargetWithReadableQueryParams,
+  LOGS_AGGREGATE_FIELD_KEY,
+} from 'sentry/views/explore/logs/logsQueryParams';
 import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
@@ -549,10 +551,10 @@ export function viewLogsSamplesTarget({
     yAxes: visualizes.map(visualize => visualize.yAxis),
   });
 
-  return setLogsPageParams(location, {
+  return getTargetWithReadableQueryParams(location, {
     mode: Mode.SAMPLES,
     fields: newFields,
-    search: newSearch,
+    query: newSearch.formatString(),
     sortBys: newSortBys,
   });
 }
