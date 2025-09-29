@@ -10,9 +10,7 @@ from sentry.integrations.models.data_forwarder_project import DataForwarderProje
 from sentry.models.project import Project
 
 
-class SQSConfig(TypedDict, total=False):
-    """Configuration for Amazon SQS data forwarder."""
-
+class SQSConfig(TypedDict):
     queue_url: str
     region: str
     access_key: str
@@ -22,14 +20,10 @@ class SQSConfig(TypedDict, total=False):
 
 
 class SegmentConfig(TypedDict):
-    """Configuration for Segment data forwarder."""
-
     write_key: str
 
 
 class SplunkConfig(TypedDict):
-    """Configuration for Splunk data forwarder."""
-
     instance_URL: str
     index: str
     source: str
@@ -49,7 +43,7 @@ class DataForwarderSerializer(Serializer):
     )
     config = serializers.JSONField(default=dict)
 
-    def validate_config(self, config: dict) -> dict:
+    def validate_config(self, config: dict) -> SQSConfig | SegmentConfig | SplunkConfig | dict:
         """Validate config based on provider."""
         provider = self.initial_data.get("provider")
 
@@ -177,7 +171,7 @@ class DataForwarderSerializer(Serializer):
             config, ["queue_url", "region", "access_key", "secret_key"], "SQS"
         )
 
-        errors = []
+        errors: list[str] = []
         self._validate_sqs_queue_url(config, errors)
         self._validate_sqs_region(config, errors)
         self._validate_sqs_credentials(config, errors)
@@ -199,7 +193,7 @@ class DataForwarderSerializer(Serializer):
             config, ["instance_URL", "index", "source", "token"], "Splunk"
         )
 
-        errors = []
+        errors: list[str] = []
         self._validate_splunk_instance_url(config, errors)
         self._validate_splunk_required_strings(config, errors)
         self._validate_splunk_token_format(config, errors)
@@ -224,7 +218,6 @@ class DataForwarderProjectSerializer(Serializer):
     def validate_data_forwarder_id(self, value: int) -> int:
         try:
             data_forwarder = DataForwarder.objects.get(id=value)
-            # Store the data_forwarder for later validation
             self._validated_data_forwarder = data_forwarder
         except DataForwarder.DoesNotExist:
             raise ValidationError("DataForwarder with this ID does not exist")
@@ -233,7 +226,6 @@ class DataForwarderProjectSerializer(Serializer):
     def validate_project_id(self, value: int) -> int:
         try:
             project = Project.objects.get(id=value)
-            # Store the project for later validation
             self._validated_project = project
         except Project.DoesNotExist:
             raise ValidationError("Project with this ID does not exist")
@@ -244,7 +236,6 @@ class DataForwarderProjectSerializer(Serializer):
         project_id = attrs.get("project_id")
 
         if data_forwarder_id and project_id:
-            # Check that DataForwarder and Project belong to the same organization
             if hasattr(self, "_validated_data_forwarder") and hasattr(self, "_validated_project"):
                 data_forwarder = self._validated_data_forwarder
                 project = self._validated_project
