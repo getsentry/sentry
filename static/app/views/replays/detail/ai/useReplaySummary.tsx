@@ -114,11 +114,16 @@ export function useReplaySummary(
   });
 
   // Start initial timeouts in case auto-start request is not made.
+  // The callbacks are stable so this should only run on mount.
   useEffect(() => {
     startStartTimeout();
     startTotalTimeout();
-    // These callbacks are stable - this useEffect should only run on mount.
-  }, [startStartTimeout, startTotalTimeout]);
+
+    return () => {
+      cancelTotalTimeout();
+      cancelStartTimeout();
+    };
+  }, [startStartTimeout, startTotalTimeout, cancelStartTimeout, cancelTotalTimeout]);
 
   const {
     mutate: startSummaryRequestMutate,
