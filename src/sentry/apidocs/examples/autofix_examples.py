@@ -1,36 +1,9 @@
 from drf_spectacular.utils import OpenApiExample
 
-AUTOFIX_POST_REQUEST = [
-    OpenApiExample(
-        name="Basic Autofix Request",
-        value={"event_id": "1c2b3d4e5f6a7b8c9d0e1f2a3b4c5d6e"},
-        request_only=True,
-    ),
-    OpenApiExample(
-        name="Autofix with Custom Instruction",
-        value={
-            "event_id": "1c2b3d4e5f6a7b8c9d0e1f2a3b4c5d6e",
-            "instruction": "Focus on fixing the None pointer exception in the user authentication flow",
-            "stopping_point": "code_changes",
-        },
-        request_only=True,
-    ),
-    OpenApiExample(
-        name="Autofix with PR Comment",
-        value={
-            "event_id": "1c2b3d4e5f6a7b8c9d0e1f2a3b4c5d6e",
-            "pr_to_comment_on_url": "https://github.com/myorg/myrepo/pull/123",
-            "instruction": "Analyze this issue and comment on the PR with findings",
-            "stopping_point": "solution",
-        },
-        request_only=True,
-    ),
-]
-
 AUTOFIX_POST_RESPONSE = [
     OpenApiExample(
         name="Successful Autofix Creation",
-        value={"run_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479"},
+        value={"run_id": 12345},
         response_only=True,
         status_codes=["202"],
     ),
@@ -41,7 +14,7 @@ AUTOFIX_GET_RESPONSE = [
         name="Autofix in Progress",
         value={
             "autofix": {
-                "run_id": 1372459,
+                "run_id": 12345,
                 "request": {
                     "organization_id": 1,
                     "project_id": 2,
@@ -200,6 +173,5 @@ AUTOFIX_GET_RESPONSE = [
 
 
 class AutofixExamples:
-    AUTOFIX_POST_REQUEST = AUTOFIX_POST_REQUEST
     AUTOFIX_POST_RESPONSE = AUTOFIX_POST_RESPONSE
     AUTOFIX_GET_RESPONSE = AUTOFIX_GET_RESPONSE

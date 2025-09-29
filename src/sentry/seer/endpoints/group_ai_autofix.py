@@ -106,7 +106,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=AutofixExamples.AUTOFIX_POST_REQUEST + AutofixExamples.AUTOFIX_POST_RESPONSE,
+        examples=AutofixExamples.AUTOFIX_POST_RESPONSE,
     )
     def post(self, request: Request, group: Group) -> Response:
         """
