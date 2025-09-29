@@ -259,35 +259,49 @@ def before_send(event: Event, hint: Hint) -> Event | None:
     exc_info = hint.get("exc_info", [None, None, None])
     exc_type = exc_info[0]
     exc_value = exc_info[1]
-    
+
     if exc_type == OperationalError:
         event["level"] = "warning"
-        
+
     # Filter out high-volume, low-value errors
     if exc_type and exc_value:
         exc_str = str(exc_value).lower()
-        
+
         # Skip common timeout/connection errors that are already handled
-        if any(pattern in exc_str for pattern in [
-            "timeout", "connection reset", "connection refused", 
-            "read timeout", "write timeout", "connection broken",
-            "max retries exceeded", "connection aborted"
-        ]):
+        if any(
+            pattern in exc_str
+            for pattern in [
+                "timeout",
+                "connection reset",
+                "connection refused",
+                "read timeout",
+                "write timeout",
+                "connection broken",
+                "max retries exceeded",
+                "connection aborted",
+            ]
+        ):
             # Only capture 1% of these errors for monitoring
             if not in_random_rollout("sentry.capture_connection_errors", 0.01):
                 return None
-                
+
         # Skip rate limit errors - these are expected and handled
-        if any(pattern in exc_str for pattern in [
-            "rate limit", "too many requests", "quota exceeded"
-        ]):
+        if any(
+            pattern in exc_str for pattern in ["rate limit", "too many requests", "quota exceeded"]
+        ):
             return None
-            
+
         # Skip common integration auth errors that are handled
-        if any(pattern in exc_str for pattern in [
-            "unauthorized", "forbidden", "invalid credentials",
-            "bad credentials", "authentication failed"
-        ]):
+        if any(
+            pattern in exc_str
+            for pattern in [
+                "unauthorized",
+                "forbidden",
+                "invalid credentials",
+                "bad credentials",
+                "authentication failed",
+            ]
+        ):
             # Only capture 5% for monitoring
             if not in_random_rollout("sentry.capture_auth_errors", 0.05):
                 return None
@@ -295,9 +309,10 @@ def before_send(event: Event, hint: Hint) -> Event | None:
     # Filter events from noisy endpoints
     if event.get("transaction"):
         transaction = event["transaction"]
-        if any(pattern in transaction for pattern in [
-            "/_warmup/", "/api/0/auth/validate/", "/_health/"
-        ]):
+        if any(
+            pattern in transaction
+            for pattern in ["/_warmup/", "/api/0/auth/validate/", "/_health/"]
+        ):
             return None
 
     return event

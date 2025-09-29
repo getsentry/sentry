@@ -2052,13 +2052,13 @@ SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS: list[str] | None = None
 SENTRY_FRONTEND_APM_SAMPLING = 1 if DEBUG else 0.001  # 0.1% in production
 
 # sample rate for transactions in the backend
-SENTRY_BACKEND_APM_SAMPLING = 1 if DEBUG else 0.01   # 1% in production
+SENTRY_BACKEND_APM_SAMPLING = 1 if DEBUG else 0.01  # 1% in production
 
 # Sample rate for symbolicate_event task transactions
 SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING = 1 if DEBUG else 0.001  # 0.1% in production
 
 # Sample rate for the process_event task transactions
-SENTRY_PROCESS_EVENT_APM_SAMPLING = 1 if DEBUG else 0.001     # 0.1% in production
+SENTRY_PROCESS_EVENT_APM_SAMPLING = 1 if DEBUG else 0.001  # 0.1% in production
 
 # sample rate for relay's cache invalidation task
 SENTRY_RELAY_TASK_APM_SAMPLING = 1 if DEBUG else 0
