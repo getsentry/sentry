@@ -61,17 +61,13 @@ def is_spam_seer(message: str, organization_id: int) -> bool | None:
         )
         return None
 
-    try:
-        result = response_data["is_spam"]
-        if not isinstance(result, bool):
-            logger.error(
-                "Seer returned an invalid spam detection response",
-                extra={"response_data": response.data},
-            )
-            return None
-        return result
-    except Exception:
+    if "is_spam" not in response_data or not isinstance(response_data["is_spam"], bool):
+        logger.error(
+            "Seer returned an invalid spam detection response",
+            extra={"response_data": response.data},
+        )
         return None
+    return response_data["is_spam"]
 
 
 def make_input_prompt(message: str):
