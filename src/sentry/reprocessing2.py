@@ -247,11 +247,11 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
     )
 
 
-def get_original_group_id(event: Event) -> int:
+def get_original_group_id(event: Event | GroupEvent) -> int:
     return event.data["contexts"]["reprocessing"]["original_issue_id"]
 
 
-def get_original_primary_hash(event: Event) -> str | None:
+def get_original_primary_hash(event: Event | GroupEvent) -> str | None:
     return get_path(event.data, "contexts", "reprocessing", "original_primary_hash")
 
 

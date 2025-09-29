@@ -31,7 +31,7 @@ from sentry.notifications.utils.participants import (
     get_owners,
     get_send_to,
 )
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -255,7 +255,7 @@ class GetSendToTeamTest(_ParticipantsTest):
 
 
 class GetSendToOwnersTest(_ParticipantsTest):
-    def get_send_to_owners(self, event: Event) -> Mapping[ExternalProviders, set[Actor]]:
+    def get_send_to_owners(self, event: Event | GroupEvent) -> Mapping[ExternalProviders, set[Actor]]:
         return get_send_to(
             self.project,
             target_type=ActionTargetType.ISSUE_OWNERS,

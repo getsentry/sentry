@@ -5,7 +5,7 @@ from typing import Any
 from sentry import ratelimits, tsdb
 from sentry.api.serializers import serialize
 from sentry.plugins.base import Plugin
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tsdb.base import TSDBModel
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ class DataForwardingPlugin(Plugin):
         """
         return (50, 1)
 
-    def forward_event(self, event: Event, payload: MutableMapping[str, Any]) -> bool:
+    def forward_event(self, event: Event | GroupEvent, payload: MutableMapping[str, Any]) -> bool:
         """Forward the event and return a boolean if it was successful."""
         raise NotImplementedError
 

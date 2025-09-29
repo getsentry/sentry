@@ -147,7 +147,7 @@ from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 from .utils.event_tracker import TransactionStageStatus, track_sampled_event
 
 if TYPE_CHECKING:
-    from sentry.services.eventstore.models import BaseEvent, Event
+    from sentry.services.eventstore.models import BaseEvent, Event, GroupEvent
 
 logger = logging.getLogger("sentry.events")
 
@@ -297,7 +297,7 @@ def get_stored_crashreports(cache_key: str | None, event: Event, max_crashreport
     return query[:max_crashreports].count()
 
 
-def increment_group_tombstone_hit_counter(tombstone_id: int | None, event: Event) -> None:
+def increment_group_tombstone_hit_counter(tombstone_id: int | None, event: Event | GroupEvent) -> None:
     if tombstone_id is None:
         return
     try:
