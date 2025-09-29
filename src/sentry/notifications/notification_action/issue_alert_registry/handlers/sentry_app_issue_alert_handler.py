@@ -1,3 +1,4 @@
+import logging
 from dataclasses import asdict
 from typing import Any
 
@@ -12,6 +13,8 @@ from sentry.workflow_engine.typings.notification_action import (
     SentryAppFormConfigDataBlob,
     SentryAppIdentifier,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @issue_alert_handler_registry.register(Action.Type.SENTRY_APP)
@@ -51,7 +54,35 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
                     filter=dict(app_ids=[target_identifier], organization_id=organization_id)
                 )
 
-            if sentry_app_installations is None or len(sentry_app_installations) != 1:
+            if sentry_app_installations is None or len(sentry_app_installations) == 0:
+                # Handle case where sentry app installation was deleted
+                # This is a common scenario where installations are removed but actions remain
+                logger.warning(
+                    "Sentry app installation not found for action - likely deleted",
+                    extra={
+                        "action_id": action.id,
+                        "action_type": action.type,
+                        "target_identifier": target_identifier,
+                        "organization_id": organization_id,
+                        "sentry_app_identifier": action.config.get("sentry_app_identifier"),
+                    },
+                )
+                # Skip this action silently instead of crashing the workflow
+                # Return None to indicate action should be skipped
+                return {}
+            
+            if len(sentry_app_installations) != 1:
+                # Multiple installations found - this is unexpected
+                logger.error(
+                    "Multiple sentry app installations found for action",
+                    extra={
+                        "action_id": action.id,
+                        "action_type": action.type,
+                        "target_identifier": target_identifier,
+                        "organization_id": organization_id,
+                        "installations_count": len(sentry_app_installations),
+                    },
+                )
                 raise ValueError(
                     f"Expected 1 sentry app installation for action type: {action.type}, target_identifier: {target_identifier}, but got {len(sentry_app_installations)}"
                 )

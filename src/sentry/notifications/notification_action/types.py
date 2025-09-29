@@ -113,7 +113,20 @@ class BaseIssueAlertHandler(ABC):
         }
 
         blob.update(cls.get_integration_id(action, mapping))
-        blob.update(cls.get_target_identifier(action, mapping, organization_id))
+        target_identifier_result = cls.get_target_identifier(action, mapping, organization_id)
+        # Check if the target identifier could not be resolved (e.g., sentry app installation deleted)
+        if not target_identifier_result:
+            logger.warning(
+                "Action skipped due to missing target identifier",
+                extra={
+                    "action_id": action.id,
+                    "action_type": action.type,
+                    "organization_id": organization_id,
+                },
+            )
+            # Return an empty blob to skip this action
+            return {}
+        blob.update(target_identifier_result)
         blob.update(cls.get_target_display(action, mapping))
         blob.update(cls.get_additional_fields(action, mapping))
         return blob
@@ -134,9 +147,22 @@ class BaseIssueAlertHandler(ABC):
         """
         environment_id = event_data.workflow_env.id if event_data.workflow_env else None
 
-        data: RuleData = {
-            "actions": [cls.build_rule_action_blob(action, detector.project.organization.id)],
-        }
+        action_blob = cls.build_rule_action_blob(action, detector.project.organization.id)
+        # If action blob is empty, it means the action should be skipped (e.g., sentry app installation deleted)
+        if not action_blob:
+            logger.info(
+                "Skipping action due to missing dependencies",
+                extra={
+                    "action_id": action.id,
+                    "action_type": action.type,
+                    "detector_id": detector.id,
+                    "organization_id": detector.project.organization.id,
+                },
+            )
+            # Return a rule with no actions to effectively skip the action
+            data: RuleData = {"actions": []}
+        else:
+            data: RuleData = {"actions": [action_blob]}
 
         workflow_id = getattr(action, "workflow_id", None)
 
