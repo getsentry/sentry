@@ -163,6 +163,16 @@ const styles = (theme: Theme, isDark: boolean) => css`
     color: ${theme.textColor};
   }
 
+  :not(pre) > code {
+    display: inline-block;
+    color: ${theme.pink400};
+    font-size: 0.85em;
+    border-radius: 2px;
+    line-height: 0.8;
+    padding: 0.05em 0.2em 0.15em 0.15em;
+    background: ${theme.pink100};
+  }
+
   pre {
     background-color: ${theme.backgroundSecondary};
     white-space: pre-wrap;
