@@ -46,7 +46,10 @@ describe('useSaveAsItems', () => {
       return (
         <OrganizationContext.Provider value={organization}>
           <QueryClientProvider client={queryClient}>
-            <LogsQueryParamsProvider source="location">
+            <LogsQueryParamsProvider
+              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+              source="location"
+            >
               <LogsPageParamsProvider
                 analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
                 _testContext={{
