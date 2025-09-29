@@ -36,6 +36,7 @@ from snuba_sdk import (
 from sentry.models.files.utils import get_storage
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import replays_tasks
@@ -79,7 +80,7 @@ def row_iterator_to_csv(rows: list[dict[str, Any]]) -> str:
 
 def export_clickhouse_rows(
     query_fn: QueryFnProtocol,
-    referrer: str = "sentry.internal.eu-compliance-data-export",
+    referrer: str = Referrer.EU_DATA_EXPORT.value,
     num_pages: int = EXPORT_QUERY_PAGES_PER_TASK,
     limit: int = EXPORT_QUERY_ROWS_PER_PAGE,
     offset: int = 0,
@@ -364,7 +365,10 @@ def query_replays_dataset(
     )
 
 
-def get_replay_date_query_ranges(project_id: int) -> Generator[tuple[datetime, datetime]]:
+def get_replay_date_query_ranges(
+    project_id: int,
+    referrer: str = Referrer.EU_DATA_EXPORT.value,
+) -> Generator[tuple[datetime, datetime]]:
     """
     SQL:
         SELECT formatDateTime(toStartOfDay(timestamp), '%F')
@@ -402,7 +406,7 @@ def get_replay_date_query_ranges(project_id: int) -> Generator[tuple[datetime, d
         tenant_ids={},
     )
 
-    results = raw_snql_query(request, "sentry.internal.eu-compliance-data-export.dates")["data"]
+    results = raw_snql_query(request, referrer)["data"]
     for result in results:
         start = datetime.fromisoformat(result["day"])
         end = start + timedelta(days=1)
