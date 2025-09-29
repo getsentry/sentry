@@ -274,7 +274,7 @@ describe('ChangePlanAction', () => {
     expect(putMock).toHaveBeenCalled();
     const requestData = putMock.mock.calls[0][1].data;
     expect(requestData).toHaveProperty('plan', 'am3_business');
-    expect(requestData).toHaveProperty('seer', true);
+    expect(requestData).toHaveProperty('addOnSeer', true);
   });
 
   it('updates plan list when switching between tiers', async () => {
@@ -550,7 +550,7 @@ describe('ChangePlanAction', () => {
       // Verify the PUT API was called with seer parameter
       expect(putMock).toHaveBeenCalled();
       const requestData = putMock.mock.calls[0][1].data;
-      expect(requestData).toHaveProperty('seer', true);
+      expect(requestData).toHaveProperty('addOnSeer', true);
     });
 
     it('does not include seer parameter in form submission when checkbox is unchecked', async () => {
@@ -602,7 +602,7 @@ describe('ChangePlanAction', () => {
       // Verify the PUT API was called with seer parameter set to false
       expect(putMock).toHaveBeenCalled();
       const requestData = putMock.mock.calls[0][1].data;
-      expect(requestData).toHaveProperty('seer', false);
+      expect(requestData).toHaveProperty('addOnSeer', false);
     });
   });
 });
