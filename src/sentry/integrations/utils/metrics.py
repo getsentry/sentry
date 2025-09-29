@@ -9,6 +9,7 @@ from typing import Any, Self
 
 import sentry_sdk
 
+from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.utils import metrics
@@ -91,6 +92,11 @@ class IntegrationEventLifecycleMetric(EventLifecycleMetric, ABC):
             "integration_name": self.get_integration_name(),
             "interaction_type": self.get_interaction_type(),
         }
+
+    def capture(
+        self, assume_success: bool = True, sample_log_rate: float = 1.0
+    ) -> "IntegrationEventLifecycle":
+        return IntegrationEventLifecycle(self, assume_success, sample_log_rate)
 
 
 class EventLifecycle:
@@ -313,7 +319,6 @@ class EventLifecycle:
             # The context called record_success or record_failure being closing,
             # so we can just exit quietly.
             return
-
         if exc_value is not None:
             # We were forced to exit the context by a raised exception.
             # Default to creating a Sentry issue for unhandled exceptions
@@ -327,6 +332,25 @@ class EventLifecycle:
                 if self.assume_success
                 else EventLifecycleOutcome.HALTED
             )
+
+
+class IntegrationEventLifecycle(EventLifecycle):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType,
+    ) -> None:
+        if self._state != EventLifecycleOutcome.STARTED:
+            # The context called record_success or record_failure being closing,
+            # so we can just exit quietly.
+            return
+
+        if exc_value is not None and isinstance(exc_value.__cause__, RestrictedIPAddress):
+            # ApiHostError is raised from RestrictedIPAddress
+            self.record_halt(exc_value)
+            return
+        super().__exit__(exc_type, exc_value, traceback)
 
 
 class IntegrationPipelineViewType(StrEnum):

@@ -19,7 +19,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {useLogsSearch} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   AlwaysPresentLogFields,
@@ -49,6 +48,7 @@ import {
   useQueryParamsCursor,
   useQueryParamsFields,
   useQueryParamsGroupBys,
+  useQueryParamsSearch,
   useQueryParamsSortBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
@@ -81,7 +81,7 @@ function useLogsAggregatesQueryKey({
   limit?: number;
 }) {
   const organization = useOrganization();
-  const _search = useLogsSearch();
+  const _search = useQueryParamsSearch();
   const baseSearch = useLogsFrozenSearch();
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
@@ -162,7 +162,7 @@ export function useLogsAggregatesQuery({
 
 function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) {
   const organization = useOrganization();
-  const _search = useLogsSearch();
+  const _search = useQueryParamsSearch();
   const baseSearch = useLogsFrozenSearch();
   const cursor = useQueryParamsCursor();
   const _fields = useQueryParamsFields();

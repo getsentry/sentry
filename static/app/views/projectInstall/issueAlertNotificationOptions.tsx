@@ -142,6 +142,7 @@ export function useCreateNotificationAction({
     setActions(newActions);
 
     if (firstAction.channel) {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setChannel(firstAction.channel);
     }
   }, [defaultActions, providersToIntegrations]);

@@ -73,6 +73,7 @@ class TableQuery:
     resolver: SearchResolver
     equations: list[str] | None = None
     name: str | None = None
+    page_token: PageToken | None = None
 
 
 @dataclass
@@ -207,6 +208,10 @@ class RPCBase:
         else:
             group_by = []
 
+        page_token = (
+            PageToken(offset=query.offset) if query.page_token is None else query.page_token
+        )
+
         return TableRequest(
             TraceItemTableRequest(
                 meta=meta,
@@ -216,7 +221,7 @@ class RPCBase:
                 group_by=group_by,
                 order_by=resolved_orderby,
                 limit=query.limit,
-                page_token=PageToken(offset=query.offset),
+                page_token=page_token,
                 virtual_column_contexts=[context for context in contexts if context is not None],
             ),
             all_columns,
@@ -254,6 +259,7 @@ class RPCBase:
         sampling_mode: SAMPLING_MODES | None = None,
         equations: list[str] | None = None,
         search_resolver: SearchResolver | None = None,
+        page_token: PageToken | None = None,
     ) -> EAPResponse:
         raise NotImplementedError()
 
@@ -333,7 +339,21 @@ class RPCBase:
         if debug:
             set_debug_meta(final_meta, rpc_response.meta, table_request.rpc_request)
 
-        return {"data": final_data, "meta": final_meta, "confidence": final_confidence}
+        response: EAPResponse = {
+            "data": final_data,
+            "meta": final_meta,
+            "confidence": final_confidence,
+        }
+
+        # when using `MODE_HIGHEST_ACCURACY_FLEXTIME`, we need to pass back the page token
+        # so it can be used to fetch the next page of results
+        if (
+            table_request.rpc_request.meta.downsampled_storage_config.mode
+            == DownsampledStorageConfig.MODE_HIGHEST_ACCURACY_FLEXTIME
+        ):
+            response["page_token"] = rpc_response.page_token
+
+        return response
 
     """ Timeseries Methods """
 

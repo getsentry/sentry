@@ -54,6 +54,7 @@ export default function OurLogs() {
 
   return (
     <LogsQueryParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.REPLAY_DETAILS}
       source="state"
       freeze={{replayId, replayStartedAt, replayEndedAt}}
       frozenParams={{
@@ -62,7 +63,7 @@ export default function OurLogs() {
       }}
     >
       <LogsPageParamsProvider
-        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        analyticsPageSource={LogsAnalyticsPageSource.REPLAY_DETAILS}
         isTableFrozen
       >
         <LogsPageDataProvider>

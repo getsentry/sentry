@@ -40,7 +40,7 @@ class GetStacktraceStringTest(TestCase):
                         "values": [
                             {
                                 "id": "stacktrace",
-                                "name": "stack-trace",
+                                "name": "stacktrace",
                                 "contributes": True,
                                 "hint": None,
                                 "values": [
@@ -128,7 +128,7 @@ class GetStacktraceStringTest(TestCase):
                                 "values": [
                                     {
                                         "id": "stacktrace",
-                                        "name": "stack-trace",
+                                        "name": "stacktrace",
                                         "contributes": True,
                                         "hint": None,
                                         "values": [
@@ -194,7 +194,7 @@ class GetStacktraceStringTest(TestCase):
                                 "values": [
                                     {
                                         "id": "stacktrace",
-                                        "name": "stack-trace",
+                                        "name": "stacktrace",
                                         "contributes": True,
                                         "hint": None,
                                         "values": [
@@ -300,7 +300,7 @@ class GetStacktraceStringTest(TestCase):
     MOBILE_THREAD_DATA: dict[str, Any] = {
         "app": {
             "type": "component",
-            "description": "in-app thread stack-trace",
+            "description": "in-app thread stacktrace",
             "hash": "hash",
             "component": {
                 "id": "app",
@@ -316,7 +316,7 @@ class GetStacktraceStringTest(TestCase):
                         "values": [
                             {
                                 "id": "stacktrace",
-                                "name": "stack-trace",
+                                "name": "stacktrace",
                                 "contributes": True,
                                 "hint": None,
                                 "values": [
@@ -407,7 +407,7 @@ class GetStacktraceStringTest(TestCase):
             "values": [
                 {
                     "id": "stacktrace",
-                    "name": "stack-trace",
+                    "name": "stacktrace",
                     "contributes": True,
                     "hint": None,
                     "values": frames,

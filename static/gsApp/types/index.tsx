@@ -482,7 +482,6 @@ export type PromotionData = {
   completedPromotions: PromotionClaimed[];
 };
 
-/** @internal exported for tests only */
 export type Feature = {
   description: string;
   name: string;
@@ -810,7 +809,6 @@ export enum CohortId {
   TEST_ONE = 111,
 }
 
-/** @internal exported for tests only */
 export type Cohort = {
   cohortId: CohortId;
   nextPlan: NextPlanInfo | null;
@@ -1017,6 +1015,10 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   canProductTrial: boolean;
   /**
+   * The tooltip text for the checkout page
+   */
+  checkoutTooltip: string | null;
+  /**
    * The feature flag that enables the category
    */
   feature: string | null;
@@ -1037,16 +1039,11 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   maxAdminGift: number;
   /**
-   * The multiplier to use on the category to display
-   * its PAYG pricing
-   */
-  paygPriceMultiplier: number;
-  /**
-   * The tooltip text for the checkout page
-   */
-  reservedVolumeTooltip: string | null;
-  /**
    * How usage is tallied for the category
    */
   tallyType: 'usage' | 'seat';
+  /**
+   * The shortened form of the singular unit name (ie. 'error', 'hour', 'monitor').
+   */
+  shortenedUnitName?: string;
 }

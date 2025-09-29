@@ -32,7 +32,10 @@ describe('LogsExportButton', () => {
 
   function ProviderWrapper({children}: {children: React.ReactNode}) {
     return (
-      <LogsQueryParamsProvider source="location">
+      <LogsQueryParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        source="location"
+      >
         <LogsPageParamsProvider
           analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         >
