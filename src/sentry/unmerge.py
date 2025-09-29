@@ -7,7 +7,7 @@ from typing import Any, Union
 from sentry import eventstream
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
-from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.services.eventstore.models import GroupEvent
 from sentry.utils.datastructures import BidirectionalMapping
 
 _DEFAULT_UNMERGE_KEY = "default"

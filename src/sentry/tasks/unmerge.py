@@ -25,7 +25,7 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
-from sentry.services.eventstore.models import BaseEvent, GroupEvent
+from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
@@ -165,7 +165,7 @@ def get_group_backfill_attributes(
     }
 
 
-def get_fingerprint(event: BaseEvent) -> str | None:
+def get_fingerprint(event: GroupEvent) -> str | None:
     # TODO: This *might* need to be protected from an IndexError?
     return event.get_primary_hash()
 
