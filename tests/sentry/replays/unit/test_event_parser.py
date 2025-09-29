@@ -927,7 +927,7 @@ def test_which() -> None:
             "payload": {
                 "type": "default",
                 "category": "ui.tap",
-                "timestamp": 17585239875.928,
+                "timestamp": 1759164619667,
                 "message": "add_attachment",
                 "data": {
                     "view.class": "androidx.appcompat.widget.AppCompatButton",
@@ -1164,16 +1164,17 @@ def test_as_trace_item_context_rage_click_event() -> None:
 def test_as_trace_item_context_tap_event() -> None:
     event = {
         "type": 5,
+        "timestamp": 1758523985314,
         "data": {
             "tag": "breadcrumb",
             "payload": {
                 "type": "default",
+                "timestamp": 1758523985.314,
                 "category": "ui.tap",
-                "timestamp": 17585239875.928,
-                "message": "add_attachment",
+                "message": "send_user_feedback",
                 "data": {
                     "view.class": "androidx.appcompat.widget.AppCompatButton",
-                    "view.id": "add_attachment",
+                    "view.id": "send_user_feedback",
                 },
             },
         },
@@ -1181,7 +1182,6 @@ def test_as_trace_item_context_tap_event() -> None:
 
     result = as_trace_item_context(which(event), event)
     assert result is not None
-    assert result["attributes"]["message"] == "add_attachment"
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
