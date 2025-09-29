@@ -2,7 +2,7 @@ import logging
 import math
 import uuid
 from datetime import datetime, timezone
-from itertools import islice
+from itertools import chain, islice
 
 from sentry import options
 from sentry.utils import metrics
@@ -107,6 +107,17 @@ def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
         for project_id in project_ids:
             process_in_batches(buffer_client.for_project(project_id))
 
+        mark_projects_processed(buffer_client, all_project_ids_and_timestamps)
+
+
+def mark_projects_processed(
+    buffer_client: DelayedWorkflowClient,
+    all_project_ids_and_timestamps: dict[int, list[float]],
+) -> None:
+    if not all_project_ids_and_timestamps:
+        return
+    with metrics.timer("workflow_engine.scheduler.mark_projects_processed"):
+        max_project_timestamp = max(chain(*all_project_ids_and_timestamps.values()))
         if options.get("workflow_engine.scheduler.use_conditional_delete"):
             member_maxes = [
                 (project_id, max(timestamps))
@@ -114,23 +125,19 @@ def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
             ]
             try:
                 deleted_project_ids = set[int]()
-                with metrics.timer(
-                    "workflow_engine.conditional_delete_from_sorted_sets.total_duration"
-                ):
-                    # The conditional delete can be slow, so we break it into chunks that probably
-                    # aren't big enough to hold onto the main redis thread for too long.
-                    for chunk in chunked(member_maxes, 500):
-                        with metrics.timer(
-                            "workflow_engine.conditional_delete_from_sorted_sets.chunk_duration"
-                        ):
-                            deleted = buffer_client.mark_project_ids_as_processed(dict(chunk))
-                            deleted_project_ids.update(deleted)
+                # The conditional delete can be slow, so we break it into chunks that probably
+                # aren't big enough to hold onto the main redis thread for too long.
+                for chunk in chunked(member_maxes, 500):
+                    with metrics.timer(
+                        "workflow_engine.conditional_delete_from_sorted_sets.chunk_duration"
+                    ):
+                        deleted = buffer_client.mark_project_ids_as_processed(dict(chunk))
+                        deleted_project_ids.update(deleted)
 
                 logger.info(
                     "process_buffered_workflows.project_ids_deleted",
                     extra={
                         "deleted_project_ids": sorted(deleted_project_ids),
-                        "processed_project_ids": sorted(project_ids),
                     },
                 )
             except Exception:
@@ -140,10 +147,10 @@ def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
                 # Fallback.
                 buffer_client.clear_project_ids(
                     min=0,
-                    max=fetch_time,
+                    max=max_project_timestamp,
                 )
         else:
             buffer_client.clear_project_ids(
                 min=0,
-                max=fetch_time,
+                max=max_project_timestamp,
             )
