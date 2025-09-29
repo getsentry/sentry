@@ -172,11 +172,8 @@ function IncidentMarkerSeries({
         trigger: 'item',
         position: 'bottom',
         formatter: markLineTooltip
-          ? (args: TooltipComponentFormatterCallbackParams) => {
-              const p = (Array.isArray(args) ? args[0]?.data : args.data) as
-                | IncidentPeriod
-                | undefined;
-              return p ? markLineTooltip({theme, period: p}) : '';
+          ? () => {
+              return markLineTooltip({theme, period});
             }
           : undefined,
       },
