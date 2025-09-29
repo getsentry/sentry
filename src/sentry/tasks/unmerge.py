@@ -467,18 +467,18 @@ def repair_tsdb_data(
             for (key, environment_id), value in keys.items():
                 tsdb.backend.incr(model, key, timestamp, value, environment_id=environment_id)
 
-    for timestamp, sets_data in sets.items():
-        for model, model_keys in sets_data.items():
-            for (key, environment_id), value_set in model_keys.items():
+    for timestamp, data in sets.items():
+        for model, keys in data.items():
+            for (key, environment_id), values in keys.items():
                 # TODO: This should use `record_multi` rather than `record`.
                 tsdb.backend.record(
-                    model, key, list(value_set), timestamp, environment_id=environment_id
+                    model, key, list(values), timestamp, environment_id=environment_id
                 )
 
-    for timestamp, frequency_data in frequencies.items():
+    for timestamp, data in frequencies.items():
         # Convert the frequency data to the format expected by record_frequency_multi
         frequency_requests: list[tuple[TSDBModel, Mapping[str, Mapping[str, int | float]]]] = [
-            (model, model_data) for model, model_data in frequency_data.items()
+            (model, model_data) for model, model_data in data.items()
         ]
         if frequency_requests:
             tsdb.backend.record_frequency_multi(
