@@ -25,6 +25,7 @@ interface PreprodBuildsTableProps {
   organizationSlug: string;
   projectSlug: string;
   error?: boolean;
+  hasSearchQuery?: boolean;
   pageLinks?: string | null;
 }
 
@@ -35,6 +36,7 @@ export function PreprodBuildsTable({
   pageLinks,
   organizationSlug,
   projectSlug,
+  hasSearchQuery,
 }: PreprodBuildsTableProps) {
   const header = (
     <SimpleTable.Header>
@@ -140,7 +142,9 @@ export function PreprodBuildsTable({
     tableContent = (
       <SimpleTable.Empty>
         <Text as="p">
-          {t('There are no preprod builds associated with this project.')}
+          {hasSearchQuery
+            ? t('No builds found for your search')
+            : t('There are no preprod builds associated with this project.')}
         </Text>
       </SimpleTable.Empty>
     );

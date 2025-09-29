@@ -20,11 +20,13 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 import {ReleaseContext} from 'sentry/views/releases/detail';
 
+import {PreprodOnboarding} from './preprodOnboarding';
+
 export default function PreprodBuilds() {
   const organization = useOrganization();
   const releaseContext = useContext(ReleaseContext);
   const projectSlug = releaseContext.project.slug;
-
+  const projectPlatform = releaseContext.project.platform;
   const params = useParams<{release: string}>();
   const location = useLocation();
 
@@ -95,6 +97,10 @@ export default function PreprodBuilds() {
   const builds = buildsData?.builds || [];
   const pageLinks = getResponseHeader?.('Link') || null;
 
+  const hasSearchQuery = !!urlSearchQuery?.trim();
+  const shouldShowSearchBar = builds.length > 0 || hasSearchQuery;
+  const showOnboarding = builds.length === 0 && !hasSearchQuery && !isLoadingBuilds;
+
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
@@ -104,21 +110,32 @@ export default function PreprodBuilds() {
           projectSlug={projectSlug}
         />
         {buildsError && <LoadingError onRetry={refetch} />}
-        <Container paddingBottom="md">
-          <SearchBar
-            placeholder={t('Search by build, SHA, branch name, or pull request')}
-            onChange={handleSearch}
-            query={localSearchQuery}
+        {shouldShowSearchBar && (
+          <Container paddingBottom="md">
+            <SearchBar
+              placeholder={t('Search by build, SHA, branch name, or pull request')}
+              onChange={handleSearch}
+              query={localSearchQuery}
+            />
+          </Container>
+        )}
+        {showOnboarding ? (
+          <PreprodOnboarding
+            organizationSlug={organization.slug}
+            projectPlatform={projectPlatform || null}
+            projectSlug={projectSlug}
           />
-        </Container>
-        <PreprodBuildsTable
-          builds={builds}
-          isLoading={isLoadingBuilds}
-          error={!!buildsError}
-          pageLinks={pageLinks}
-          organizationSlug={organization.slug}
-          projectSlug={projectSlug}
-        />
+        ) : (
+          <PreprodBuildsTable
+            builds={builds}
+            isLoading={isLoadingBuilds}
+            error={!!buildsError}
+            pageLinks={pageLinks}
+            organizationSlug={organization.slug}
+            projectSlug={projectSlug}
+            hasSearchQuery
+          />
+        )}
       </Layout.Main>
     </Layout.Body>
   );
