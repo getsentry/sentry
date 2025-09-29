@@ -239,7 +239,7 @@ describe('ChangePlanAction', () => {
   });
 
   it('completes form with seer', async () => {
-    mockOrg.features = ['seer-billing'];
+    mockOrg.features = ['seer-billing', 'prevent-billing'];
     const putMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/subscription/`,
       method: 'PUT',
@@ -267,6 +267,7 @@ describe('ChangePlanAction', () => {
 
     expect(screen.getByText('Available Products')).toBeInTheDocument();
     await userEvent.click(screen.getByText('Seer'));
+    await userEvent.click(screen.getByText('Prevent'));
 
     expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
     await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
@@ -275,6 +276,7 @@ describe('ChangePlanAction', () => {
     const requestData = putMock.mock.calls[0][1].data;
     expect(requestData).toHaveProperty('plan', 'am3_business');
     expect(requestData).toHaveProperty('addOnSeer', true);
+    expect(requestData).toHaveProperty('addOnPrevent', true);
   });
 
   it('updates plan list when switching between tiers', async () => {
