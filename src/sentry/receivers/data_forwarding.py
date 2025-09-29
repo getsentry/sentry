@@ -17,6 +17,8 @@ def enroll_project_in_data_forwarding(project: Project, **kwargs):
             DataForwarderProject.objects.get_or_create(
                 data_forwarder=data_forwarder,
                 project=project,
-                is_enabled=True,
-                overrides={},
+                defaults={
+                    "is_enabled": True,
+                    "overrides": {},
+                },
             )
