@@ -56,6 +56,8 @@ def apply_default_project_settings(organization: Organization, project: Project)
     set_default_project_autofix_automation_tuning(organization, project)
     set_default_project_seer_scanner_automation(organization, project)
 
+    # SHAYNA_NOTE:maybe add set_default_project_metric_monitor() here?
+
 
 class ProjectPostSerializer(serializers.Serializer):
     name = serializers.CharField(
