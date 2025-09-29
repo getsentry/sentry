@@ -1,13 +1,13 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import {useNavigate, useSearchParams} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import testAnalyticsTestPerfDark from 'sentry-images/features/test-analytics-test-perf-dark.svg';
 import testAnalyticsTestPerf from 'sentry-images/features/test-analytics-test-perf.svg';
 
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
+import {Heading, Prose, Text} from 'sentry/components/core/text';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -18,6 +18,7 @@ import {getPreventParamsString} from 'sentry/components/prevent/utils';
 import {t, tct} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AddScriptToYamlStep} from 'sentry/views/prevent/tests/onboardingSteps/addScriptToYamlStep';
@@ -54,9 +55,7 @@ export default function TestsOnboardingPage() {
   const isDarkMode = theme.type === 'dark';
 
   const handleRadioChange = useCallback(
-    (newOption: SetupOption) => {
-      setSearchParams({opt: newOption});
-    },
+    (newOption: SetupOption) => setSearchParams({opt: newOption}),
     [setSearchParams]
   );
   const [selectedUploadPermission, setSelectedUploadPermission] =
@@ -77,19 +76,30 @@ export default function TestsOnboardingPage() {
     {staleTime: 0}
   );
 
+  const regionData = getRegionDataFromOrganization(organization);
+  const isUSStorage = regionData?.name === 'us';
+
+  if (!isUSStorage) {
+    return (
+      <Grid gap="xl">
+        <TestPreOnboardingPage />
+      </Grid>
+    );
+  }
+
   if (isPending) {
     return (
-      <LayoutGap>
+      <Grid gap="xl">
         <LoadingIndicator />
-      </LayoutGap>
+      </Grid>
     );
   }
 
   if (!integrations.length) {
     return (
-      <LayoutGap>
+      <Grid gap="xl">
         <TestPreOnboardingPage />
-      </LayoutGap>
+      </Grid>
     );
   }
 
@@ -136,33 +146,39 @@ export default function TestsOnboardingPage() {
   );
 
   return (
-    <LayoutGap>
+    <Grid gap="xl">
       <PageFilterBar condensed>
         <IntegratedOrgSelector />
         <RepoSelector />
       </PageFilterBar>
       {integratedOrgId && repository ? (
-        <OnboardingContainer>
-          <OnboardingContent>
-            <IntroContainer>
-              <Flex justify="between" gap="2xl">
-                <div>
-                  <GetStartedHeader>
-                    {t('Get Started with Test Analytics')}
-                  </GetStartedHeader>
-                  <TAValueText>
-                    {t(
-                      'Test Analytics offers data on test run times, failure rates, and identifies flaky tests to help decrease the risk of deployment failures and make it easier to ship new features quickly.'
-                    )}
-                  </TAValueText>
-                </div>
-                <PreviewImg
-                  src={isDarkMode ? testAnalyticsTestPerfDark : testAnalyticsTestPerf}
-                  alt={t('Test Analytics example')}
-                />
-              </Flex>
-            </IntroContainer>
-            <SelectOptionHeader>{t('Select a setup option')}</SelectOptionHeader>
+        <Container padding="3xl" border="primary" maxWidth="1100px" radius="md">
+          <Flex gap="2xl" direction="column">
+            <Flex
+              justify="between"
+              gap="2xl"
+              borderBottom="muted"
+              paddingBottom="xl"
+              align="center"
+            >
+              <Prose>
+                <Heading as="h2" size="2xl">
+                  {t('Get Started with Test Analytics')}
+                </Heading>
+                <Text size="lg">
+                  {t(
+                    'Test Analytics offers data on test run times, failure rates, and identifies flaky tests to help decrease the risk of deployment failures and make it easier to ship new features quickly.'
+                  )}
+                </Text>
+              </Prose>
+              <img
+                src={isDarkMode ? testAnalyticsTestPerfDark : testAnalyticsTestPerf}
+                alt={t('Test Analytics example')}
+              />
+            </Flex>
+            <Heading as="h5" size="xl">
+              {t('Select a setup option')}
+            </Heading>
             <RadioGroup
               label="Select a setup option"
               value={
@@ -177,67 +193,21 @@ export default function TestsOnboardingPage() {
                 ],
               ]}
             />
-            <Flex direction="column" gap="2xl" maxWidth="1000px" padding="2xl 0 0 3xl">
+            <Flex direction="column" gap="2xl" maxWidth="1000px" paddingLeft="3xl">
               {opt === SetupOption.CLI ? cliSteps : githubActionSteps}
-              <div>
-                {tct(
-                  'To learn more about Test Analytics, please visit [ourDocs:our docs].',
-                  {
-                    ourDocs: (
-                      <ExternalLink href="https://docs.sentry.io/product/test-analytics/" />
-                    ),
-                  }
-                )}
-              </div>
+              <Text>
+                {tct('To learn more check out the [docsLink:Test Analytics docs].', {
+                  docsLink: (
+                    <ExternalLink href="https://docs.sentry.io/product/test-analytics/" />
+                  ),
+                })}
+              </Text>
             </Flex>
-          </OnboardingContent>
-        </OnboardingContainer>
+          </Flex>
+        </Container>
       ) : (
         <EmptySelectorsMessage />
       )}
-    </LayoutGap>
+    </Grid>
   );
 }
-
-const LayoutGap = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.xl};
-`;
-
-const OnboardingContainer = styled(Container)`
-  padding: ${p => p.theme.space['3xl']};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  max-width: 1200px;
-`;
-
-const OnboardingContent = styled('div')`
-  max-width: 1000px;
-`;
-
-const IntroContainer = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding-bottom: ${p => p.theme.space['2xl']};
-`;
-
-const PreviewImg = styled('img')`
-  align-self: center;
-`;
-
-const GetStartedHeader = styled('h2')`
-  font-size: 1.625rem;
-  color: ${p => p.theme.tokens.content.primary};
-  line-height: 40px;
-`;
-
-const TAValueText = styled('p')`
-  font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.tokens.content.primary};
-  margin: 0;
-`;
-
-const SelectOptionHeader = styled('h5')`
-  font-size: ${p => p.theme.fontSize.xl};
-  color: ${p => p.theme.tokens.content.primary};
-  padding-top: ${p => p.theme.space['2xl']};
-`;

@@ -1433,14 +1433,14 @@ def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
             # should we loosen the constraints on the number and type of functions to be extracted.
             if options.get("profiling.track_functions_metrics_write_rate.eap.enabled"):
                 eap_functions = prof.extract_functions_metrics(
-                    min_depth=1, filter_system_frames=True, filter_non_leaf_functions=False
+                    min_depth=1, filter_system_frames=False, filter_non_leaf_functions=False
                 )
                 if eap_functions is not None and len(eap_functions) > 0:
                     tot = 0
                     for f in eap_functions:
                         tot += len(f.get_self_times_ns())
                     metrics.incr(
-                        "process_profile.eap_functions_metrics.count",
+                        "process_profile.eap_functions_metrics.all_frames.count",
                         tot,
                         tags={"type": "profile"},
                         sample_rate=1.0,
@@ -1497,14 +1497,14 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
             # should we loosen the constraints on the number and type of functions to be extracted.
             if options.get("profiling.track_functions_metrics_write_rate.eap.enabled"):
                 eap_functions = chunk.extract_functions_metrics(
-                    min_depth=1, filter_system_frames=True, filter_non_leaf_functions=False
+                    min_depth=1, filter_system_frames=False, filter_non_leaf_functions=False
                 )
                 if eap_functions is not None and len(eap_functions) > 0:
                     tot = 0
                     for f in eap_functions:
                         tot += len(f.get_self_times_ns())
                     metrics.incr(
-                        "process_profile.eap_functions_metrics.count",
+                        "process_profile.eap_functions_metrics.all_frames.count",
                         tot,
                         tags={"type": "chunk"},
                         sample_rate=1.0,

@@ -17,7 +17,7 @@ from sentry.utils.env import in_test_environment
 KNOWN_MAJOR_COMPONENT_NAMES = {
     "app": "in-app",
     "exception": "exception",
-    "stacktrace": "stack-trace",
+    "stacktrace": "stacktrace",
     "threads": "thread",
     "hostname": "hostname",
     "violation": "violation",
@@ -115,14 +115,30 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         return self.name or self.id
 
     def get_subcomponent(
-        self, id: str, only_contributing: bool = False
-    ) -> str | int | BaseGroupingComponent[Any] | None:
-        """Looks up a subcomponent by the id and returns the first or `None`."""
-        return next(self.iter_subcomponents(id=id, only_contributing=only_contributing), None)
+        self, id: str, recursive: bool = False, only_contributing: bool = False
+    ) -> BaseGroupingComponent[Any] | None:
+        """
+        Looks up a subcomponent by id and returns the first instance found, or `None` if no
+        instances are found.
+
+        Unless `recursive=True` is passed, only direct children (the components in `self.values`)
+        are checked.
+
+        By default, any matching result will be returned. To filter out non-contributing components,
+        pass `only_contributing=True`. (Note that if a component has `contributes = True` but has a
+        non-contributing ancestor, the component is not considered contributing for purposes of this
+        method.)
+        """
+        return next(
+            self.iter_subcomponents(
+                id=id, recursive=recursive, only_contributing=only_contributing
+            ),
+            None,
+        )
 
     def iter_subcomponents(
         self, id: str, recursive: bool = False, only_contributing: bool = False
-    ) -> Iterator[str | int | BaseGroupingComponent[Any] | None]:
+    ) -> Iterator[BaseGroupingComponent[Any] | None]:
         """Finds all subcomponents matching an id, optionally recursively."""
         for value in self.values:
             if isinstance(value, BaseGroupingComponent):
@@ -251,7 +267,7 @@ class NSErrorGroupingComponent(
     id: str = "ns_error"
 
 
-FrameGroupingComponentChildren = (
+FrameGroupingComponentChild = (
     ContextLineGroupingComponent
     | FilenameGroupingComponent
     | FunctionGroupingComponent
@@ -259,13 +275,13 @@ FrameGroupingComponentChildren = (
 )
 
 
-class FrameGroupingComponent(BaseGroupingComponent[FrameGroupingComponentChildren]):
+class FrameGroupingComponent(BaseGroupingComponent[FrameGroupingComponentChild]):
     id: str = "frame"
     in_app: bool
 
     def __init__(
         self,
-        values: Sequence[FrameGroupingComponentChildren],
+        values: Sequence[FrameGroupingComponentChild],
         in_app: bool,
         hint: str | None = None,
         contributes: bool | None = None,

@@ -3097,20 +3097,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "delayed_workflow.use_workflow_engine_pool",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "delayed_workflow.rollout",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "celery_split_queue_task_rollout",
-    default={},
+    "workflow_engine.scheduler.use_conditional_delete",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3132,23 +3127,6 @@ register(
     "workflow_engine.issue_alert.group.type_id.ga",
     type=Sequence,
     default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "workflow_engine.buffer.use_new_buffer",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Control whether delayed workflow engine evaluation is done
-# via the old process_pending_batch task with rules delayed processing, or
-# via the new schedule_delayed_workflows task.
-# NB: These tasks are allowed to run concurrently, so a naive switch here
-# may result in duplicate processing.
-register(
-    "workflow_engine.use_new_scheduling_task",
-    type=Bool,
-    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3223,12 +3201,6 @@ register(
     "releases.no_snuba_for_release_creation",
     type=Bool,
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "celery_split_queue_rollout",
-    default={"post_process_transactions": 1.0},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3476,7 +3448,7 @@ register(
     "commit.dual-write-start-date",
     type=String,
     default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Killswitch for linking identities for demo users
@@ -3485,4 +3457,31 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry.send_onboarding_task_metrics",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Skip recording onboarding tasks if organization onboarding is already complete
+register(
+    "sentry:skip-record-onboarding-tasks-if-complete",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Database field encryption method
+# Supported values:
+# - 'plaintext': No encryption (default)
+# - 'fernet': Fernet symmetric encryption
+# - 'keysets': (Future) Google Tink keysets for key rotation
+register(
+    "database.encryption.method",
+    type=String,
+    default="plaintext",
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

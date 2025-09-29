@@ -16,6 +16,7 @@ export default function SessionHealthCountChartWidget(props: LoadableChartWidget
   const aliases = {
     healthy_session_count: 'count_healthy(session)',
     crashed_session_count: 'count_crashed(session)',
+    unhandled_session_count: 'count_unhandled(session)',
     errored_session_count: 'count_errored(session)',
     abnormal_session_count: 'count_abnormal(session)',
   };

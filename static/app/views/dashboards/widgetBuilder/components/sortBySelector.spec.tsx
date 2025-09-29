@@ -25,7 +25,7 @@ describe('WidgetBuilderSortBySelector', () => {
   beforeEach(() => {
     const setupOrg = initializeOrg({
       organization: {
-        features: ['global-views', 'open-membership', 'visibility-explore-view'],
+        features: ['open-membership', 'visibility-explore-view'],
       },
       projects: [],
       router: {
@@ -249,7 +249,7 @@ describe('WidgetBuilderSortBySelector', () => {
 
     const setupOrg = initializeOrg({
       organization: {
-        features: ['global-views', 'open-membership', 'visibility-explore-view'],
+        features: ['open-membership', 'visibility-explore-view'],
       },
       projects: [],
       router: {
