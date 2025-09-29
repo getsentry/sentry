@@ -285,7 +285,9 @@ def _generate_summary(
             trace_tree = _get_trace_tree_for_event(event, group.project, timeout=3)
         except Exception:
             logger.warning(
-                "Failed to get trace for event in issue summary", extra={"group_id": group.id}, exc_info=True
+                "Failed to get trace for event in issue summary",
+                extra={"group_id": group.id},
+                exc_info=True,
             )
 
     issue_summary = _call_seer(
