@@ -37,7 +37,7 @@ export function UploadFileCLIStep({previousStep, step}: UploadFileCLIStepProps) 
           </CodeSnippet>
           <Text>
             {tct(
-              'Be sure to specify [code:--report-type] as [code:test_results] and include the file you created in Step [code:test_results]. This will not necessarily upload coverage reports to Sentry.',
+              'Be sure to specify [code:--report-type] as [code:test_results] and include the file you created in Step [previousStep]. This will not necessarily upload coverage reports to Sentry.',
               {
                 code: <code />,
                 previousStep,
