@@ -143,22 +143,21 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
         hashed_project_ids = hash_from_values(project_ids)
 
         if end - start < timedelta(days=2):
+            # Hour granularity.
             categorization_cache_key = f"feedback_categorization:{organization.id}:{start.strftime('%Y-%m-%d-%H')}:{end.strftime('%Y-%m-%d-%H')}:{hashed_project_ids}"
         else:
-            # Date range is long enough that the categories won't change much (as long as the same day is selected)
+            # Day granularity. Date range is long enough that the categories won't change much (as long as the same day is selected)
             categorization_cache_key = f"feedback_categorization:{organization.id}:{start.strftime('%Y-%m-%d')}:{end.strftime('%Y-%m-%d')}:{hashed_project_ids}"
 
         categories_cache = cache.get(categorization_cache_key)
         if categories_cache:
-            # TODO(vishnupsatish): the below was commented only to be able to iterate on the prompt fast. Uncomment when releasing to Sentry.
-            # return Response(
-            #     {
-            #         "categories": categories_cache["categories"],
-            #         "success": True,
-            #         "numFeedbacksContext": categories_cache["numFeedbacksContext"],
-            #     }
-            # )
-            pass
+            return Response(
+                {
+                    "categories": categories_cache["categories"],
+                    "success": True,
+                    "numFeedbacksContext": categories_cache["numFeedbacksContext"],
+                }
+            )
 
         recent_feedbacks = query_recent_feedbacks_with_ai_labels(
             organization_id=organization.id,
