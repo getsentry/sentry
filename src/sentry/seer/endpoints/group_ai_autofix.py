@@ -4,6 +4,9 @@ import logging
 from typing import Any
 
 import orjson
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework import serializers
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,6 +14,15 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.autofix_examples import AutofixExamples
+from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
@@ -27,11 +39,40 @@ from sentry.utils.cache import cache
 logger = logging.getLogger(__name__)
 
 
+class AutofixRequestSerializer(CamelSnakeSerializer):
+    event_id = serializers.CharField(
+        required=False,
+        help_text="Run issue fix on a specific event. If not provided, the recommended event for the issue will be used.",
+    )
+    instruction = serializers.CharField(
+        required=False, help_text="Optional custom instruction to guide the issue fix process."
+    )
+    pr_to_comment_on_url = serializers.URLField(
+        required=False, help_text="URL of a pull request where the issue fix should add comments."
+    )
+    stopping_point = serializers.ChoiceField(
+        required=False,
+        choices=["root_cause", "solution", "code_changes", "open_pr"],
+        help_text="Where the issue fix process should stop. If not provided, will run to root cause.",
+    )
+
+
+class AutofixResponseSerializer(serializers.Serializer):
+    run_id = serializers.CharField(help_text="The unique identifier for this issue fix run.")
+
+
+class AutofixStateSerializer(serializers.Serializer):
+    autofix = serializers.JSONField(
+        help_text="The current state of the issue fix process, including status, code changes, and repositories."
+    )
+
+
 @region_silo_endpoint
+@extend_schema(tags=["Seer"])
 class GroupAutofixEndpoint(GroupAiEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
@@ -50,7 +91,35 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         }
     )
 
+    @extend_schema(
+        operation_id="Start Seer Issue Fix",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            IssueParams.ISSUES_OR_GROUPS,
+            IssueParams.ISSUE_ID,
+        ],
+        request=AutofixRequestSerializer,
+        responses={
+            202: AutofixResponseSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=AutofixExamples.AUTOFIX_POST_REQUEST + AutofixExamples.AUTOFIX_POST_RESPONSE,
+    )
     def post(self, request: Request, group: Group) -> Response:
+        """
+        Trigger a Seer Issue Fix run for a specific issue.
+
+        The issue fix process can:
+        - Identify the root cause of the issue
+        - Propose a solution
+        - Generate code changes
+        - Create a pull request with the fix
+
+        The process runs asynchronously, and you can get the state using the GET endpoint.
+        """
         data = orjson.loads(request.body)
 
         stopping_point = data.get("stopping_point", None)
@@ -72,7 +141,40 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             stopping_point=stopping_point,
         )
 
+    @extend_schema(
+        operation_id="Retrieve Seer Issue Fix State",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            IssueParams.ISSUE_ID,
+            OpenApiParameter(
+                name="var",
+                location=OpenApiParameter.PATH,
+                required=False,
+                type=OpenApiTypes.STR,
+                description="Either 'issues' or 'groups' (for backwards compatibility)",
+            ),
+        ],
+        responses={
+            200: AutofixStateSerializer,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=AutofixExamples.AUTOFIX_GET_RESPONSE,
+    )
     def get(self, request: Request, group: Group) -> Response:
+        """
+        Retrieve the current detailed state of an issue fix process for a specific issue including:
+
+        - Current status
+        - Steps performed and their outcomes
+        - Repository information and permissions
+        - Root Cause Analysis
+        - Proposed Solution
+        - Generated code changes
+        """
+
         access_check_cache_key = f"autofix_access_check:{group.id}"
         access_check_cache_value = cache.get(access_check_cache_key)
 
