@@ -2,8 +2,6 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Link} from 'sentry/components/core/link';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
