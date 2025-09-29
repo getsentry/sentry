@@ -299,7 +299,7 @@ class AMCheckout extends Component<Props, State> {
             (plan.billingInterval === ANNUAL && plan.contractInterval === ANNUAL)))
     );
 
-    if (!plans) {
+    if (plans.length === 0) {
       throw new Error('Cannot get plan options');
     }
     return plans;

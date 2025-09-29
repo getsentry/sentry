@@ -74,7 +74,7 @@ function getPlanOptions({
 
   plans = plans.sort((a, b) => b.basePrice - a.basePrice);
 
-  if (!plans) {
+  if (plans.length === 0) {
     throw new Error('Cannot get plan options by interval');
   }
   return plans;
