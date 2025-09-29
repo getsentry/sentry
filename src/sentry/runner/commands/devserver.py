@@ -349,10 +349,8 @@ def devserver(
                 kafka_consumers.add("ingest-occurrences")
 
         # Check if Kafka is available and create all topics if it is running
-        use_old_devservices = os.environ.get("USE_OLD_DEVSERVICES") == "1"
-        valid_kafka_container_names = ["kafka-kafka-1", "sentry_kafka"]
-        kafka_container_name = "sentry_kafka" if use_old_devservices else "kafka-kafka-1"
-        kafka_is_running = any(name in containers for name in valid_kafka_container_names)
+        kafka_container_name = "kafka-kafka-1"
+        kafka_is_running = kafka_container_name in containers
 
         if kafka_is_running:
             from sentry_kafka_schemas import list_topics
@@ -366,15 +364,9 @@ def devserver(
 
         # Set up Kafka consumers if they are configured
         if kafka_consumers:
-            kafka_container_warning_message = (
-                f"""
-    Devserver is configured to work with `sentry devservices`. Looks like the `{kafka_container_name}` container is not running.
-    Please run `sentry devservices up kafka` to start it."""
-                if use_old_devservices
-                else f"""
-    Devserver is configured to work with the revamped devservices. Looks like the `{kafka_container_name}` container is not running.
+            kafka_container_warning_message = f"""
+    Devserver is configured to work with devservices. Looks like the `{kafka_container_name}` container is not running.
     Please run `devservices up` to start it."""
-            )
             if not kafka_is_running:
                 raise click.ClickException(
                     f"""
