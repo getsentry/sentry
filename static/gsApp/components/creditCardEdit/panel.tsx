@@ -29,6 +29,7 @@ interface CreditCardPanelProps {
   subscription: Subscription;
   analyticsEvent?: GetsentryEventKey;
   isNewBillingUI?: boolean;
+  shouldExpandInitially?: boolean;
 }
 
 function TextForField({children}: {children: React.ReactNode}) {
@@ -50,10 +51,11 @@ function CreditCardPanel({
   budgetTerm,
   ftcLocation,
   analyticsEvent,
+  shouldExpandInitially,
 }: CreditCardPanelProps) {
   const [cardLastFourDigits, setCardLastFourDigits] = useState<string | null>(null);
   const [cardZipCode, setCardZipCode] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(!!shouldExpandInitially);
   const [fromBillingFailure, setFromBillingFailure] = useState(false);
   const [referrer, setReferrer] = useState<string | undefined>(undefined);
 
