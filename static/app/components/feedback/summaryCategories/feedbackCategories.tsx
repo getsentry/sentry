@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import useFeedbackCategories from 'sentry/components/feedback/list/useFeedbackCategories';
 import Placeholder from 'sentry/components/placeholder';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -37,6 +38,11 @@ function getSearchTermForLabelList(labels: string[]) {
 
 export default function FeedbackCategories() {
   const {isError, isPending, categories, tooFewFeedbacks} = useFeedbackCategories();
+  // if we are showing this component, gen-ai-features must be true
+  // and org.hideAiFeatures must be false,
+  // but we still need to check that their seer acknowledgement exists
+  const {setupAcknowledgement, isPending: isOrgSeerSetupPending} =
+    useOrganizationSeerSetup();
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -47,12 +53,20 @@ export default function FeedbackCategories() {
   );
   const searchConditions = useMemo(() => new MutableSearch(currentQuery), [currentQuery]);
 
-  if (isPending) {
+  if (isPending || isOrgSeerSetupPending) {
     return <LoadingPlaceholder />;
   }
 
-  // The assumption is that if categories are enabled, then summaries are definitely enabled, so we won't just be showing nothing in the summary section if there is an error/too few feedbacks/etc.
-  if (isError || tooFewFeedbacks || !categories || categories.length === 0) {
+  // The assumption is that if categories are enabled, then summaries are definitely enabled,
+  // so we won't just be showing nothing in the parent component if this is null.
+  // Seer CTA is handled by the FeedbackSummary component.
+  if (
+    isError ||
+    tooFewFeedbacks ||
+    !categories ||
+    categories.length === 0 ||
+    !setupAcknowledgement.orgHasAcknowledged
+  ) {
     return null;
   }
 
