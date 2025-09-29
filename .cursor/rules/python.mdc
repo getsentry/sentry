@@ -1,12 +1,24 @@
 ---
 description: Guidelines for writing python tests
-globs: tests/**/*.py,**/test_*.py
+globs: src/**/*.py,tests/**/*.py,**/test_*.py
 alwaysApply: false
 ---
 
+# Python
+
+Whenever you attempt to run a Python command (e.g. `python -c`) or Python package (e.g. `pytest`, `mypy`), enable the virtualenv by activating it with `source venv/bin/activate`.
+
+# Python typing
+
+## Recommended practices
+
+For function signatures, preferred to use abstract types (e.g. `Sequence` over `list`) for input parameters and use specific return types (e.g. `list` over `Sequence`).
+
+Prefer to import a type from the module `collections` rather than `typing` if it exists there (e.g. `from collections.abc import Sequence` rather than `from typing import Sequence`).
+
 # Python tests
 
-## Do this when you want to run tests
+## Running tests
 
 Change the directory to the top of the source code and type `source .venv/bin/activate` before calling any Python commands.
 
