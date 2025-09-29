@@ -87,7 +87,7 @@ def process_in_batches(client: ProjectDelayedWorkflowClient) -> None:
 
 
 class ProjectChooser:
-    def __init__(self, buffer_client: DelayedWorkflowClient, num_cohorts):
+    def __init__(self, buffer_client: DelayedWorkflowClient, num_cohorts: int):
         self.client = buffer_client
         assert num_cohorts > 0 and num_cohorts <= 255
         self.num_cohorts = num_cohorts
