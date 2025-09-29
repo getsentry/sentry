@@ -23,24 +23,23 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const replay = readerResult.replay;
 
   const tickerRef = useRef<number | undefined>(undefined);
-
-  const computeIsLive = useCallback(() => {
-    return replay?.getIsLive();
-  }, [replay]);
-
-  const [isLive, setIsLive] = useState(computeIsLive);
+  const [isLive, setIsLive] = useState(replay?.getIsLive());
 
   useEffect(() => {
-    // Immediately update if props change
-    setIsLive(computeIsLive());
+    // If the replay is live, start the ticker
+    if (replay?.getIsLive()) {
+      const ONE_MINUTE_INTERVAL = 60 * 1000;
+      tickerRef.current = window.setInterval(() => {
+        setIsLive(replay?.getIsLive());
 
-    const ONE_MINUTE_INTERVAL = 60 * 1000;
-    tickerRef.current = window.setInterval(() => {
-      setIsLive(computeIsLive());
-    }, ONE_MINUTE_INTERVAL);
+        if (!replay?.getIsLive()) {
+          window.clearInterval(tickerRef.current);
+        }
+      }, ONE_MINUTE_INTERVAL);
+    }
 
     return () => window.clearInterval(tickerRef.current);
-  }, [computeIsLive]);
+  }, [replay]);
 
   const badge = replayRecord ? (
     <UserBadge
