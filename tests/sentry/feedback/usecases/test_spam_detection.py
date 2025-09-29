@@ -47,6 +47,7 @@ def test_is_spam_seer_http_error(mock_make_seer_request, status_code):
         pytest.param({"is_spam": "invalid"}, id="string_instead_of_bool"),
         pytest.param({"is_spam": 123}, id="int_instead_of_bool"),
         pytest.param({"is_spam": None}, id="none_instead_of_bool"),
+        pytest.param(None, id="none_instead_of_dict"),
     ],
 )
 @patch("sentry.feedback.usecases.spam_detection.make_signed_seer_api_request")
