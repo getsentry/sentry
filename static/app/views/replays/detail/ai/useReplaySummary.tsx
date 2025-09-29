@@ -117,8 +117,8 @@ export function useReplaySummary(
   useEffect(() => {
     startStartTimeout();
     startTotalTimeout();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    // These callbacks are stable - this useEffect should only run on mount.
+  }, [startStartTimeout, startTotalTimeout]);
 
   const {
     mutate: startSummaryRequestMutate,
