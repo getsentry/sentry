@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Link} from 'sentry/components/core/link';
@@ -18,15 +19,32 @@ export default function FeedbackSummary() {
     useOrganizationSeerSetup();
   const organization = useOrganization();
 
+  useEffect(() => {
+    // Analytics for the rendered state. Should match the conditions below.
+    if (!setupAcknowledgement.orgHasAcknowledged) {
+      trackAnalytics('feedback.summary.seer-cta-rendered', {
+        organization,
+      });
+    } else if (isError) {
+      trackAnalytics('feedback.summary.summary-error', {
+        organization,
+      });
+    } else if (tooFewFeedbacks) {
+      trackAnalytics('feedback.summary.summary-too-few-feedbacks', {
+        organization,
+      });
+    } else {
+      trackAnalytics('feedback.summary.summary-rendered', {
+        organization,
+      });
+    }
+  }, [organization, isError, tooFewFeedbacks, setupAcknowledgement.orgHasAcknowledged]);
+
   if (isPending || isOrgSeerSetupPending) {
     return <LoadingPlaceholder />;
   }
 
   if (!setupAcknowledgement.orgHasAcknowledged) {
-    trackAnalytics('feedback.summary.seer-cta-rendered', {
-      organization,
-    });
-
     return (
       <SummaryContent>
         {tct(
@@ -38,24 +56,14 @@ export default function FeedbackSummary() {
   }
 
   if (isError) {
-    trackAnalytics('feedback.summary.summary-error', {
-      organization,
-    });
     return <SummaryContent>{t('Error summarizing feedback.')}</SummaryContent>;
   }
 
   if (tooFewFeedbacks) {
-    trackAnalytics('feedback.summary.summary-too-few-feedbacks', {
-      organization,
-    });
     return (
       <SummaryContent>{t('Not enough feedback to generate AI summary.')}</SummaryContent>
     );
   }
-
-  trackAnalytics('feedback.summary.summary-rendered', {
-    organization,
-  });
 
   return <SummaryContent>{summary}</SummaryContent>;
 }

@@ -57,6 +57,33 @@ export default function FeedbackCategories() {
     });
   }, [organization, categories]);
 
+  useEffect(() => {
+    // Analytics for the rendered state. Should match the conditions below.
+    if (isError) {
+      trackAnalytics('feedback.summary.categories-error', {
+        organization,
+      });
+    } else if (tooFewFeedbacks) {
+      trackAnalytics('feedback.summary.categories-too-few-feedbacks', {
+        organization,
+      });
+    } else if (
+      categories &&
+      categories.length > 0 &&
+      setupAcknowledgement.orgHasAcknowledged
+    ) {
+      trackAnalytics('feedback.summary.categories-rendered', {
+        organization,
+      });
+    }
+  }, [
+    organization,
+    isError,
+    tooFewFeedbacks,
+    categories,
+    setupAcknowledgement.orgHasAcknowledged,
+  ]);
+
   const currentQuery = useMemo(
     () => decodeScalar(location.query.query, ''),
     [location.query.query]
@@ -67,23 +94,11 @@ export default function FeedbackCategories() {
     return <LoadingPlaceholder />;
   }
 
-  // The assumption is that if categories are enabled, then summaries are definitely enabled,
-  // so we won't just be showing nothing in the summary section if there is an error/too few feedbacks/etc.
-  if (isError) {
-    trackAnalytics('feedback.summary.categories-error', {
-      organization,
-    });
-    return null;
-  }
-
-  if (tooFewFeedbacks) {
-    trackAnalytics('feedback.summary.categories-too-few-feedbacks', {
-      organization,
-    });
-    return null;
-  }
-
+  // The assumption is that if categories are enabled, then summaries are definitely enabled.
+  // Both are wrapped in a parent component. Summary has its own states for these cases, so we can just return null.
   if (
+    isError ||
+    tooFewFeedbacks ||
     !categories ||
     categories.length === 0 ||
     !setupAcknowledgement.orgHasAcknowledged
@@ -143,10 +158,6 @@ export default function FeedbackCategories() {
     // Only show a tag as selected if it is the only filter, and the search term matches exactly
     return currentFilters.length === 1 && currentFilters[0] === exactSearchTerm;
   };
-
-  trackAnalytics('feedback.summary.categories-rendered', {
-    organization,
-  });
 
   // TODO: after all feedbacks have the .labels tag, uncomment the feedback count
   return (
