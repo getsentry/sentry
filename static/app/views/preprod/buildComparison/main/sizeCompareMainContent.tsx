@@ -286,7 +286,7 @@ export function SizeCompareMainContent() {
       />
 
       {/* Metrics Grid */}
-      <Grid columns="repeat(3, 1fr)" gap="lg">
+      <Flex gap="lg" wrap="wrap">
         {processedMetrics.map((metric, index) => {
           let variant: 'danger' | 'success' | 'muted' = 'muted';
           let icon: React.ReactNode | undefined;
@@ -305,6 +305,8 @@ export function SizeCompareMainContent() {
               padding="xl"
               border="primary"
               key={index}
+              flex="1"
+              style={{minWidth: '250px'}}
             >
               <Flex direction="column" gap="md">
                 <Flex gap="sm">
@@ -313,29 +315,31 @@ export function SizeCompareMainContent() {
                     {metric.title}
                   </Text>
                 </Flex>
-                <Flex align="end" gap="sm">
-                  <Heading as="h3">{formatBytesBase10(metric.head)}</Heading>
-                  <InlineText variant={variant} size="sm">
-                    {icon}
-                    <Text variant={variant} size="sm">
-                      {metric.diff > 0 ? '+' : metric.diff < 0 ? '-' : ''}
-                      {formatBytesBase10(Math.abs(metric.diff))}
-                    </Text>
-                    {metric.percentageChange && (
-                      <InlineText variant={variant} size="sm">
-                        {'('}
-                        <PercentChange
-                          value={metric.percentageChange}
-                          minimumValue={0.001}
-                          preferredPolarity="-"
-                          colorize
-                        />
-                        {')'}
-                      </InlineText>
-                    )}
-                  </InlineText>
+                <Flex direction="column" gap="xs">
+                  <Flex align="end" gap="sm" wrap="wrap">
+                    <Heading as="h3">{formatBytesBase10(metric.head)}</Heading>
+                    <Flex align="center" gap="xs">
+                      {icon}
+                      <DiffText variant={variant} size="sm">
+                        {metric.diff > 0 ? '+' : metric.diff < 0 ? '-' : ''}
+                        {formatBytesBase10(Math.abs(metric.diff))}
+                        {metric.percentageChange && (
+                          <span>
+                            {' ('}
+                            <PercentChange
+                              value={metric.percentageChange}
+                              minimumValue={0.001}
+                              preferredPolarity="-"
+                              colorize
+                            />
+                            {')'}
+                          </span>
+                        )}
+                      </DiffText>
+                    </Flex>
+                  </Flex>
                 </Flex>
-                <Flex gap="xs">
+                <Flex gap="xs" wrap="wrap">
                   <Text variant="muted" size="sm">
                     {t('Comparison:')}
                   </Text>
@@ -349,7 +353,7 @@ export function SizeCompareMainContent() {
             </Container>
           );
         })}
-      </Grid>
+      </Flex>
 
       {/* Items Changed Section */}
       <Container background="primary" radius="lg" padding="0" border="primary">
@@ -386,8 +390,9 @@ export function SizeCompareMainContent() {
                 paddingLeft="xl"
                 paddingRight="xl"
                 paddingBottom="xl"
+                wrap="wrap"
               >
-                <InputGroup style={{width: '100%'}}>
+                <InputGroup style={{width: '100%', minWidth: '200px'}}>
                   <InputGroup.LeadingItems>
                     <IconSearch />
                   </InputGroup.LeadingItems>
@@ -397,7 +402,7 @@ export function SizeCompareMainContent() {
                     onChange={e => setSearchQuery(e.target.value)}
                   />
                 </InputGroup>
-                <Flex align="center" gap="lg">
+                <Flex align="center" gap="lg" wrap="nowrap">
                   <Text wrap="nowrap">{t('Hide small changes (< 500B)')}</Text>
                   <Switch
                     checked={hideSmallChanges}
@@ -419,11 +424,15 @@ export function SizeCompareMainContent() {
   );
 }
 
-const InlineText = styled(Text)`
-  display: flex;
+const DiffText = styled(Text)`
+  display: inline-flex;
   align-items: center;
-  gap: ${p => p.theme.space.xs};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex-wrap: wrap;
+  gap: 0.25em;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+  }
 `;

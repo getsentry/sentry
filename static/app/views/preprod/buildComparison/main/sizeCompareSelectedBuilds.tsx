@@ -86,7 +86,14 @@ export function SizeCompareSelectedBuilds({
   onTriggerComparison,
 }: SizeCompareSelectedBuildsProps) {
   return (
-    <Flex align="center" gap="lg" width="100%" justify="center">
+    <Flex
+      align="center"
+      gap="lg"
+      width="100%"
+      justify="center"
+      direction={{xs: 'column', sm: 'row'}}
+      wrap="wrap"
+    >
       <BuildButton
         buildDetails={headBuildDetails}
         icon={<IconLock size="xs" locked />}
