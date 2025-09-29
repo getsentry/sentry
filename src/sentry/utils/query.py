@@ -17,7 +17,7 @@ from sentry.db.models.base import Model
 from sentry.services import eventstore
 
 if TYPE_CHECKING:
-    from sentry.services.eventstore.models import GroupEvent
+    from sentry.services.eventstore.models import Event
 
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 
@@ -38,7 +38,7 @@ def task_run_batch_query(
     state: TaskBulkQueryState | None = None,
     fetch_events: bool = True,
     tenant_ids: dict[str, int | str] | None = None,
-) -> tuple[TaskBulkQueryState | None, list[GroupEvent]]:
+) -> tuple[TaskBulkQueryState | None, list[Event]]:
     """
     A tool for batched queries similar in purpose to RangeQuerySetWrapper that
     is used for tasks in issue merge/unmerge/reprocessing.

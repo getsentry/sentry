@@ -25,7 +25,7 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
-from sentry.services.eventstore.models import GroupEvent
+from sentry.services.eventstore.models import BaseEvent, GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
@@ -60,7 +60,7 @@ def cache(function: Callable[..., Any]) -> Callable[..., Any]:
     return fetch
 
 
-def get_caches() -> Mapping[str, Any]:
+def get_caches() -> dict[str, Callable[..., Any]]:
     return {
         "Environment": cache(
             lambda organization_id, name: Environment.objects.get(
@@ -165,14 +165,14 @@ def get_group_backfill_attributes(
     }
 
 
-def get_fingerprint(event: GroupEvent) -> str | None:
+def get_fingerprint(event: BaseEvent) -> str | None:
     # TODO: This *might* need to be protected from an IndexError?
     return event.get_primary_hash()
 
 
 def migrate_events(
     source: Group,
-    caches: Mapping[str, Any],
+    caches: Mapping[str, Callable[..., Any]],
     project: Project,
     args: UnmergeArgs,
     events: Sequence[GroupEvent],
