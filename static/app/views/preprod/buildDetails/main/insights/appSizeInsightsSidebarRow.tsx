@@ -15,6 +15,17 @@ import type {
   ProcessedInsightFile,
 } from 'sentry/views/preprod/utils/insightProcessing';
 
+export function formatUpside(percentage: number): string {
+  // percentage is between 0 and 1.
+  if (percentage >= 0.001) {
+    // Can't use formatPercentage minimumValue here since it doesn't
+    // quite work with negative numbers.
+    return `-${formatPercentage(percentage, 1)}`;
+  }
+  // Format smaller than 0.001 (so 0.1%) as "(~0%)"
+  return `~0%`;
+}
+
 export function AppSizeInsightsSidebarRow({
   insight,
   isExpanded,
@@ -78,6 +89,8 @@ export function AppSizeInsightsSidebarRow({
             display="flex"
             css={() => ({
               flexDirection: 'column',
+              width: '100%',
+              overflow: 'hidden',
               '& > :nth-child(odd)': {
                 backgroundColor: theme.backgroundSecondary,
               },
@@ -100,15 +113,15 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
 
   return (
     <FlexAlternatingRow>
-      <Text variant="accent" size="sm" bold ellipsis style={{flex: 1}}>
+      <Text size="sm" ellipsis style={{flex: 1}}>
         {file.path}
       </Text>
       <Flex align="center" gap="sm">
-        <Text variant="primary" size="sm" tabular>
+        <Text variant="primary" bold size="sm" tabular>
           -{formatBytesBase10(file.savings)}
         </Text>
         <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
-          (-{formatPercentage(file.percentage / 100, 1)})
+          ({formatUpside(file.percentage / 100)})
         </Text>
       </Flex>
     </FlexAlternatingRow>
@@ -124,15 +137,15 @@ function OptimizableImageFileRow({
 }) {
   return (
     <FlexAlternatingRow>
-      <Text variant="accent" size="sm" bold ellipsis style={{flex: 1}}>
+      <Text size="sm" ellipsis style={{flex: 1}}>
         {file.path}
       </Text>
       <Flex align="center" gap="sm">
-        <Text variant="primary" size="sm" tabular>
+        <Text variant="primary" bold size="sm" tabular>
           -{formatBytesBase10(file.savings)}
         </Text>
         <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
-          (-{formatPercentage(file.percentage / 100, 1)})
+          ({formatUpside(file.percentage / 100)})
         </Text>
       </Flex>
     </FlexAlternatingRow>
@@ -145,6 +158,8 @@ const FlexAlternatingRow = styled('div')`
   justify-content: space-between;
   border-radius: ${({theme}) => theme.borderRadius};
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   gap: ${({theme}) => theme.space.lg};
   padding: ${({theme}) => theme.space.xs} ${({theme}) => theme.space.sm};
 `;

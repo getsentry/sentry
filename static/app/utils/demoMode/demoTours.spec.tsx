@@ -1,11 +1,12 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {act, render, renderHook, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderHookWithProviders,
+  screen,
+} from 'sentry-test/reactTestingLibrary';
 
 import {recordFinish} from 'sentry/actionCreators/guides';
 import type {TourState} from 'sentry/components/tours/tourContext';
-import type {Organization} from 'sentry/types/organization';
 import {
   DEMO_TOURS_STATE_KEY,
   DemoTour,
@@ -14,9 +15,7 @@ import {
   DemoTourStep,
   useDemoTour,
 } from 'sentry/utils/demoMode/demoTours';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/actionCreators/guides', () => ({
   recordFinish: jest.fn(),
@@ -35,22 +34,15 @@ interface MockToursState {
 
 const mockUseLocalStorageState = useLocalStorageState as jest.Mock;
 
-function createWrapper(organization: Organization) {
+function createWrapper() {
   return function ({children}: {children?: React.ReactNode}) {
-    return (
-      <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext value={organization}>
-          <DemoToursProvider>{children}</DemoToursProvider>
-        </OrganizationContext>
-      </QueryClientProvider>
-    );
+    return <DemoToursProvider>{children}</DemoToursProvider>;
   };
 }
 
 describe('DemoTours', () => {
   let mockState: MockToursState;
   let mockSetState: jest.Mock;
-  const organization = OrganizationFixture();
 
   beforeEach(() => {
     mockState = {
@@ -121,7 +113,7 @@ describe('DemoTours', () => {
     it('returns null when used outside provider', () => {
       jest.spyOn(console, 'error').mockImplementation(() => {});
 
-      const {result} = renderHook(() => useDemoTour(DemoTour.SIDEBAR));
+      const {result} = renderHookWithProviders(() => useDemoTour(DemoTour.SIDEBAR));
 
       expect(result.current).toBeNull();
 
@@ -129,8 +121,8 @@ describe('DemoTours', () => {
     });
 
     it('provides tour context when used inside provider', () => {
-      const {result} = renderHook(() => useDemoTour(DemoTour.SIDEBAR), {
-        wrapper: createWrapper(organization),
+      const {result} = renderHookWithProviders(() => useDemoTour(DemoTour.SIDEBAR), {
+        additionalWrapper: createWrapper(),
       });
 
       const tour = result.current;
@@ -144,8 +136,8 @@ describe('DemoTours', () => {
     });
 
     it('handles tour actions', () => {
-      const {result} = renderHook(() => useDemoTour(DemoTour.SIDEBAR), {
-        wrapper: createWrapper(organization),
+      const {result} = renderHookWithProviders(() => useDemoTour(DemoTour.SIDEBAR), {
+        additionalWrapper: createWrapper(),
       });
 
       const tour = result.current;
@@ -175,15 +167,21 @@ describe('DemoTours', () => {
     });
 
     it('maintains separate state for different tours', () => {
-      const {result: sideBarResult} = renderHook(() => useDemoTour(DemoTour.SIDEBAR), {
-        wrapper: createWrapper(organization),
-      });
+      const {result: sideBarResult} = renderHookWithProviders(
+        () => useDemoTour(DemoTour.SIDEBAR),
+        {
+          additionalWrapper: createWrapper(),
+        }
+      );
 
       const sidebarTour = sideBarResult.current;
 
-      const {result: issuesResult} = renderHook(() => useDemoTour(DemoTour.ISSUES), {
-        wrapper: createWrapper(organization),
-      });
+      const {result: issuesResult} = renderHookWithProviders(
+        () => useDemoTour(DemoTour.ISSUES),
+        {
+          additionalWrapper: createWrapper(),
+        }
+      );
 
       const issuesTour = issuesResult.current;
 
@@ -225,8 +223,8 @@ describe('DemoTours', () => {
     });
 
     it('correctly advances through tour steps', () => {
-      const {result} = renderHook(() => useDemoTour(DemoTour.SIDEBAR), {
-        wrapper: createWrapper(organization),
+      const {result} = renderHookWithProviders(() => useDemoTour(DemoTour.SIDEBAR), {
+        additionalWrapper: createWrapper(),
       });
 
       const sidebarTour = result.current;

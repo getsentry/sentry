@@ -7,6 +7,7 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import test_tasks
+from sentry.taskworker.retry import RetryError
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 
 
@@ -114,19 +115,12 @@ def test_exclude_exception_retry(capture_exception: MagicMock) -> None:
 
 
 @override_settings(SILO_MODE=SiloMode.CONTROL)
-@patch("sentry.taskworker.retry.current_task")
 @patch("sentry_sdk.capture_exception")
-def test_retry_on(capture_exception: MagicMock, current_task: MagicMock) -> None:
-    class ExpectedException(Exception):
-        pass
-
-    current_task.retry.side_effect = ExpectedException("some exception")
-
-    with pytest.raises(ExpectedException):
+def test_retry_on(capture_exception: MagicMock) -> None:
+    with pytest.raises(RetryError):
         retry_on_task("bruh")
 
     assert capture_exception.call_count == 1
-    assert current_task.retry.call_count == 1
 
 
 @pytest.mark.parametrize(
@@ -134,7 +128,7 @@ def test_retry_on(capture_exception: MagicMock, current_task: MagicMock) -> None
     ("apply_async", "delay"),
 )
 @override_settings(SILO_MODE=SiloMode.CONTROL)
-def test_task_silo_limit_celery_task_methods(method_name: str) -> None:
+def test_task_silo_limit_task_methods(method_name: str) -> None:
     method = getattr(region_task, method_name)
     with pytest.raises(SiloLimit.AvailabilityError):
         method("hi")
@@ -144,20 +138,16 @@ class ExpectedException(Exception):
     pass
 
 
-@patch("sentry.taskworker.retry.current_task")
 @patch("sentry_sdk.capture_exception")
-def test_retry_timeout_enabled_taskbroker(capture_exception, current_task) -> None:
-    current_task.retry.side_effect = ExpectedException("retry called")
-
+def test_retry_timeout_enabled_taskbroker(capture_exception) -> None:
     @retry(timeouts=True)
     def timeout_retry_task():
         raise ProcessingDeadlineExceeded()
 
-    with pytest.raises(ExpectedException):
+    with pytest.raises(RetryError):
         timeout_retry_task()
 
     assert capture_exception.call_count == 1
-    assert current_task.retry.call_count == 1
 
 
 @patch("sentry.taskworker.retry.current_task")
@@ -175,20 +165,16 @@ def test_retry_timeout_disabled_taskbroker(capture_exception, current_task) -> N
     assert current_task.retry.call_count == 0
 
 
-@patch("sentry.taskworker.retry.current_task")
 @patch("sentry_sdk.capture_exception")
-def test_retry_timeout_enabled(capture_exception, current_task) -> None:
-    current_task.retry.side_effect = ExpectedException("retry called")
-
+def test_retry_timeout_enabled(capture_exception) -> None:
     @retry(timeouts=True)
     def soft_timeout_retry_task():
         raise ProcessingDeadlineExceeded()
 
-    with pytest.raises(ExpectedException):
+    with pytest.raises(RetryError):
         soft_timeout_retry_task()
 
     assert capture_exception.call_count == 1
-    assert current_task.retry.call_count == 1
 
 
 @patch("sentry.taskworker.retry.current_task")

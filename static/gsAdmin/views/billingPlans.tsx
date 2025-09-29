@@ -1,20 +1,18 @@
-import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 
+import {apiOptions} from 'sentry/api/apiOptions';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import {IconDownload} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
-import useApi from 'sentry/utils/useApi';
 
 import ResultTable from 'admin/components/resultTable';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {displayUnitPrice} from 'getsentry/views/amCheckout/utils';
 
-/** @internal exported for tests only */
 export interface BillingPlansResponse {
   data: Plans;
   not_live: string[];
@@ -45,27 +43,18 @@ interface PriceTier {
 }
 
 function BillingPlans() {
-  const api = useApi();
-  const [billingPlansResponse, setBillingPlansResponse] = useState<BillingPlansResponse>({
-    not_live: [],
-    data: {},
-  });
+  const {
+    data: billingPlansResponse = {
+      not_live: [],
+      data: {},
+    },
+  } = useQuery(
+    apiOptions.as<BillingPlansResponse>()('/billing-plans/', {
+      staleTime: 0,
+    })
+  );
 
   const plans = billingPlansResponse.data;
-
-  useEffect(() => {
-    async function fetchPlans() {
-      try {
-        const response: BillingPlansResponse =
-          await api.requestPromise('/billing-plans/');
-        setBillingPlansResponse(response);
-      } catch (error) {
-        Sentry.captureException(error);
-      }
-    }
-
-    fetchPlans();
-  }, [api]);
 
   function handleDownloadCsv() {
     if (!plans) {

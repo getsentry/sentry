@@ -1,12 +1,12 @@
 ---
-created: '2025-02-26T00:34:15.546061+00:00'
+created: '2025-09-24T20:27:09.036587+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "eb87c1031dba55b67df86fb9fff59dc6"
   contributing component: exception
-  component:
+  root_component:
     app*
       exception*
         stacktrace*
@@ -39,7 +39,7 @@ app:
 system:
   hash: "0817e4e604fbe88c4534eff166df1db9"
   contributing component: exception
-  component:
+  root_component:
     system*
       exception*
         stacktrace*
