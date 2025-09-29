@@ -62,7 +62,7 @@ export function TraceItemAttributeProvider({
   );
 }
 
-export function useTraceItemAttributeConfig({
+function useTraceItemAttributeConfig({
   traceItemType,
   enabled,
   projects,
