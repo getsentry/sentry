@@ -556,7 +556,19 @@ def export_replay_data(
     source_bucket: str = "sentry-replays",
     pubsub_topic_name: str | None = None,
 ):
-    logger.info("Starting replay export...")
+    logger.info(
+        "Starting replay export...",
+        extra={
+            "organization_id": organization_id,
+            "gcs_project_id": gcs_project_id,
+            "destination_bucket": destination_bucket,
+            "blob_export_job_duration": str(blob_export_job_duration),
+            "database_rows_per_page": database_rows_per_page,
+            "database_pages_per_task": database_pages_per_task,
+            "source_bucket": source_bucket,
+            "pubsub_topic_name": pubsub_topic_name,
+        },
+    )
 
     try:
         organization = Organization.objects.filter(id=organization_id).get()
