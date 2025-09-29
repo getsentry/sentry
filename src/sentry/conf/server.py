@@ -843,6 +843,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.dynamic_sampling.tasks.custom_rule_notifications",
     "sentry.dynamic_sampling.tasks.recalibrate_orgs",
     "sentry.dynamic_sampling.tasks.sliding_window_org",
+    "sentry.feedback.tasks.update_user_reports",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
@@ -924,7 +925,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
-    "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tempest.tasks",
@@ -995,7 +995,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "schedule": task_crontab("*/1", "*", "*", "*", "*"),
     },
     "update-user-reports": {
-        "task": "issues:sentry.tasks.update_user_reports",
+        "task": "issues:sentry.feedback.tasks.update_user_reports",
         "schedule": task_crontab("*/15", "*", "*", "*", "*"),
     },
     "schedule-auto-resolution": {
