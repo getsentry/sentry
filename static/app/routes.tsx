@@ -2339,7 +2339,7 @@ function buildRoutes(): RouteObject[] {
   const codecovChildren: SentryRouteObject[] = [
     {
       index: true,
-      redirectTo: 'prevent-ai/new/',
+      redirectTo: 'ai-code-review/new/',
     },
     {
       path: 'coverage/',
@@ -2392,7 +2392,7 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: 'prevent-ai/',
+      path: 'ai-code-review/',
       children: [
         {
           component: make(() => import('sentry/views/prevent/preventAI/wrapper')),
