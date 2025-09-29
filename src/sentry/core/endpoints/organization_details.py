@@ -61,7 +61,7 @@ from sentry.constants import (
     JOIN_REQUESTS_DEFAULT,
     LEGACY_RATE_LIMIT_OPTIONS,
     METRIC_ALERTS_THREAD_DEFAULT,
-    PREVENT_AI_CONFIG_DEFAULT,
+    PREVENT_AI_CONFIG_GITHUB_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -254,7 +254,7 @@ ORG_OPTIONS = (
         "preventAiConfigGithub",
         "sentry:prevent_ai_config_github",
         dict,
-        PREVENT_AI_CONFIG_DEFAULT,
+        PREVENT_AI_CONFIG_GITHUB_DEFAULT,
     ),
     (
         "enablePrReviewTestGeneration",
