@@ -72,7 +72,7 @@ AASA_CONFIG = {
         "details": [
             {
                 "appID": "97JCY7859U.io.sentry.SentryMobileAgent",
-                "components": [{"/": "/auth/login/*", "?": {"code": "*", "state": "*"}}],
+                "components": [{"/": "/mobile/auth", "?": {"code": "*", "state": "*"}}],
             }
         ],
     }
