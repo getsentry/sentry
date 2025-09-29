@@ -21,6 +21,7 @@ GITHUB_EVENTS_TO_FORWARD_OVERWATCH = {
     "issue_comment",
     "pull_request",
     "pull_request_review_comment",
+    "pull_request_review",
 }
 
 
@@ -83,8 +84,8 @@ class OverwatchGithubWebhookForwarder:
             if not orgs_by_region or not self.should_forward_to_overwatch(event):
                 return
 
-            # Only forwards to US region for now. Once EU overwatch is configured,
-            # we can forward to EU region.
+            # We can conditionally opt into forwarding on a per-region basis,
+            # similar to codecov's current implementation.
             for region_name, org_summaries in orgs_by_region.items():
                 if region_name not in enabled_regions:
                     continue
