@@ -9,6 +9,8 @@ from uuid import uuid4
 from django.db import connections, router
 from django.utils import timezone
 
+from sentry.utils.query import RangeQuerySetWrapper
+
 
 class BulkDeleteQuery:
     def __init__(
@@ -79,81 +81,104 @@ class BulkDeleteQuery:
             cursor.execute(query)
             results = cursor.rowcount > 0
 
-    def iterator(self, chunk_size=100, batch_size=100000) -> Generator[tuple[int, ...]]:
+    def iterator(
+        self, chunk_size=100, batch_size=100000, use_range_wrapper=False
+    ) -> Generator[tuple[int, ...]]:
         assert self.days is not None
         assert self.dtfield is not None and self.dtfield == self.order_by
 
-        dbc = connections[self.using]
-        quote_name = dbc.ops.quote_name
+        if use_range_wrapper:
+            cutoff = timezone.now() - timedelta(days=self.days)
+            queryset = self.model.objects.filter(**{f"{self.dtfield}__lt": cutoff})
 
-        position: object | None = None
-        cutoff = timezone.now() - timedelta(days=self.days)
+            if self.project_id:
+                queryset = queryset.filter(project_id=self.project_id)
+            if self.organization_id:
+                queryset = queryset.filter(organization_id=self.organization_id)
 
-        with dbc.get_new_connection(dbc.get_connection_params()) as conn:
-            conn.autocommit = False
+            queryset = queryset.values_list("id", self.dtfield)
+            wrapper = RangeQuerySetWrapper(
+                queryset,
+                step=batch_size,
+                order_by=self.dtfield,
+                override_unique_safety_check=True,
+                result_value_getter=lambda item: item[1],
+            )
 
-            chunk = []
+            for batch in itertools.batched(wrapper, chunk_size):
+                yield tuple(item[0] for item in batch)
+        else:
+            dbc = connections[self.using]
+            quote_name = dbc.ops.quote_name
 
-            completed = False
-            while not completed:
-                # We explicitly use a named cursor here so that we can read a
-                # large quantity of rows from postgres incrementally, without
-                # having to pull all rows into memory at once.
-                with conn.cursor(uuid4().hex) as cursor:
-                    where: list[tuple[str, list[Any]]] = [
-                        (f"{quote_name(self.dtfield)} < %s", [cutoff])
-                    ]
+            position: object | None = None
+            cutoff = timezone.now() - timedelta(days=self.days)
 
-                    if self.project_id:
-                        where.append(("project_id = %s", [self.project_id]))
-                    if self.organization_id:
-                        where.append(("organization_id = %s", [self.organization_id]))
+            with dbc.get_new_connection(dbc.get_connection_params()) as conn:
+                conn.autocommit = False
 
-                    if self.order_by[0] == "-":
-                        direction = "desc"
-                        order_field = self.order_by[1:]
-                        if position is not None:
-                            where.append((f"{quote_name(order_field)} <= %s", [position]))
-                    else:
-                        direction = "asc"
-                        order_field = self.order_by
-                        if position is not None:
-                            where.append((f"{quote_name(order_field)} >= %s", [position]))
+                chunk = []
 
-                    conditions, parameters = zip(*where)
-                    parameters = list(itertools.chain.from_iterable(parameters))
+                completed = False
+                while not completed:
+                    # We explicitly use a named cursor here so that we can read a
+                    # large quantity of rows from postgres incrementally, without
+                    # having to pull all rows into memory at once.
+                    with conn.cursor(uuid4().hex) as cursor:
+                        where: list[tuple[str, list[Any]]] = [
+                            (f"{quote_name(self.dtfield)} < %s", [cutoff])
+                        ]
 
-                    query = """
-                        select id, {order_field}
-                        from {table}
-                        where {conditions}
-                        order by {order_field} {direction}
-                        limit {batch_size}
-                    """.format(
-                        table=self.model._meta.db_table,
-                        conditions=" and ".join(conditions),
-                        order_field=quote_name(order_field),
-                        direction=direction,
-                        batch_size=batch_size,
-                    )
+                        if self.project_id:
+                            where.append(("project_id = %s", [self.project_id]))
+                        if self.organization_id:
+                            where.append(("organization_id = %s", [self.organization_id]))
 
-                    cursor.execute(query, parameters)
+                        if self.order_by[0] == "-":
+                            direction = "desc"
+                            order_field = self.order_by[1:]
+                            if position is not None:
+                                where.append((f"{quote_name(order_field)} <= %s", [position]))
+                        else:
+                            direction = "asc"
+                            order_field = self.order_by
+                            if position is not None:
+                                where.append((f"{quote_name(order_field)} >= %s", [position]))
 
-                    i = 0
-                    for i, row in enumerate(cursor, 1):
-                        key, position = row
-                        chunk.append(key)
-                        if len(chunk) == chunk_size:
-                            yield tuple(chunk)
-                            chunk = []
+                        conditions, parameters = zip(*where)
+                        parameters = list(itertools.chain.from_iterable(parameters))
 
-                    # If we retrieved less rows than the batch size, there are
-                    # no more rows remaining to delete and we can exit the
-                    # loop.
-                    if i < batch_size:
-                        completed = True
+                        query = """
+                            select id, {order_field}
+                            from {table}
+                            where {conditions}
+                            order by {order_field} {direction}
+                            limit {batch_size}
+                        """.format(
+                            table=self.model._meta.db_table,
+                            conditions=" and ".join(conditions),
+                            order_field=quote_name(order_field),
+                            direction=direction,
+                            batch_size=batch_size,
+                        )
 
-                conn.commit()
+                        cursor.execute(query, parameters)
 
-            if chunk:
-                yield tuple(chunk)
+                        i = 0
+                        for i, row in enumerate(cursor, 1):
+                            key, position = row
+                            chunk.append(key)
+                            if len(chunk) == chunk_size:
+                                yield tuple(chunk)
+                                chunk = []
+
+                        # If we retrieved less rows than the batch size, there are
+                        # no more rows remaining to delete and we can exit the
+                        # loop.
+                        if i < batch_size:
+                            completed = True
+
+                    conn.commit()
+
+                if chunk:
+                    yield tuple(chunk)
