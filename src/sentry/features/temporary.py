@@ -456,6 +456,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:traces-schema-hints", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extraction metrics for transactions during ingestion.
     manager.add("organizations:transaction-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
+    # Enable feature to load explore link for transaction widgets
+    manager.add("organizations:transaction-widget-deprecation-explore-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
     # NOTE: This flag does not concern transactions rewritten by clusterer rules.
     # Those are always marked as "sanitized".
