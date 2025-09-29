@@ -97,12 +97,7 @@ export function BranchSelector() {
       return (
         <ResetButton
           onClick={() => {
-            changeContextValue({
-              integratedOrgId,
-              repository,
-              preventPeriod,
-              branch: null,
-            });
+            handleChange({value: ALL_BRANCHES});
             closeOverlay();
           }}
           size="zero"
@@ -112,7 +107,7 @@ export function BranchSelector() {
         </ResetButton>
       );
     },
-    [branch, integratedOrgId, preventPeriod, repository, changeContextValue]
+    [branch, handleChange]
   );
 
   function getEmptyMessage() {

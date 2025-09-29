@@ -2,10 +2,11 @@ import logging
 import math
 import uuid
 from datetime import datetime, timezone
-from itertools import islice
+from itertools import chain, islice
 
 from sentry import options
 from sentry.utils import metrics
+from sentry.utils.iterators import chunked
 from sentry.workflow_engine.buffer.batch_client import (
     DelayedWorkflowClient,
     ProjectDelayedWorkflowClient,
@@ -31,7 +32,7 @@ def process_in_batches(client: ProjectDelayedWorkflowClient) -> None:
     The batches are replicated into a new redis hash with a unique filter (a uuid) to identify the batch.
     We need to use a UUID because these batches can be created in multiple processes and we need to ensure
     uniqueness across all of them for the centralized redis buffer. The batches are stored in redis because
-    we shouldn't pass objects that need to be pickled and 10k items could be problematic in the celery tasks
+    we shouldn't pass objects that need to be pickled and 10k items could be problematic in the tasks
     as arguments could be problematic. Finally, we can't use a pagination system on the data because
     redis doesn't maintain the sort order of the hash keys.
     """
@@ -106,7 +107,50 @@ def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
         for project_id in project_ids:
             process_in_batches(buffer_client.for_project(project_id))
 
-        buffer_client.clear_project_ids(
-            min=0,
-            max=fetch_time,
-        )
+        mark_projects_processed(buffer_client, all_project_ids_and_timestamps)
+
+
+def mark_projects_processed(
+    buffer_client: DelayedWorkflowClient,
+    all_project_ids_and_timestamps: dict[int, list[float]],
+) -> None:
+    if not all_project_ids_and_timestamps:
+        return
+    with metrics.timer("workflow_engine.scheduler.mark_projects_processed"):
+        max_project_timestamp = max(chain(*all_project_ids_and_timestamps.values()))
+        if options.get("workflow_engine.scheduler.use_conditional_delete"):
+            member_maxes = [
+                (project_id, max(timestamps))
+                for project_id, timestamps in all_project_ids_and_timestamps.items()
+            ]
+            try:
+                deleted_project_ids = set[int]()
+                # The conditional delete can be slow, so we break it into chunks that probably
+                # aren't big enough to hold onto the main redis thread for too long.
+                for chunk in chunked(member_maxes, 500):
+                    with metrics.timer(
+                        "workflow_engine.conditional_delete_from_sorted_sets.chunk_duration"
+                    ):
+                        deleted = buffer_client.mark_project_ids_as_processed(dict(chunk))
+                        deleted_project_ids.update(deleted)
+
+                logger.info(
+                    "process_buffered_workflows.project_ids_deleted",
+                    extra={
+                        "deleted_project_ids": sorted(deleted_project_ids),
+                    },
+                )
+            except Exception:
+                logger.exception(
+                    "process_buffered_workflows.conditional_delete_from_sorted_sets_error"
+                )
+                # Fallback.
+                buffer_client.clear_project_ids(
+                    min=0,
+                    max=max_project_timestamp,
+                )
+        else:
+            buffer_client.clear_project_ids(
+                min=0,
+                max=max_project_timestamp,
+            )

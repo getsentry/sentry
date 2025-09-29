@@ -336,7 +336,7 @@ export function generateSourceCards(
       onClick: () => {
         if (sources?.event_trace_id) {
           window.open(
-            `/explore/traces/trace/${sources.event_trace_id}/?node=span-${id}&timestamp=${sources.event_trace_timestamp}`,
+            `/explore/traces/trace/${sources.event_trace_id}/?node=span-${id}&timestamp=${sources.event_trace_timestamp?.toString() ?? ''}`,
             '_blank'
           );
         }

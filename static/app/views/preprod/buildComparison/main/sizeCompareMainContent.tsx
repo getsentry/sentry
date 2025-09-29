@@ -211,23 +211,20 @@ export function SizeCompareMainContent() {
   if (!mainArtifactComparison) {
     return (
       <BuildError
-        title={t('Comparison data not found')}
-        message={t(
-          'Something went wrong and we weren’t able to find the correct comparison.'
-        )}
+        title={t('No comparison data available')}
+        message={t("We don't have any comparison data available yet for these builds.")}
       >
-        <Flex gap="sm">
-          <Button
-            priority="default"
-            onClick={() => {
-              navigate(
-                `/organizations/${organization.slug}/preprod/${projectId}/compare/${headArtifactId}/`
-              );
-            }}
-          >
-            {t('Back')}
-          </Button>
-        </Flex>
+        <Button
+          priority="primary"
+          onClick={() => {
+            triggerComparison({
+              baseArtifactId,
+              headArtifactId,
+            });
+          }}
+        >
+          {t('Trigger a comparison')}
+        </Button>
       </BuildError>
     );
   }

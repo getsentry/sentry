@@ -1,55 +1,51 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link/link';
+import {Flex, Grid} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {integratedOrgIdToName} from 'sentry/components/prevent/utils';
 import {IconAdd, IconBuilding, IconInfo} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
 
 const DEFAULT_ORG_LABEL = 'Select GitHub Org';
 
-function AddIntegratedOrgButton() {
-  return (
-    <LinkButton
-      href="https://github.com/apps/sentry-io/installations/select_target"
-      size="sm"
-      icon={<IconAdd size="sm" />}
-      priority="default"
-      external
-    >
-      {t('GitHub Organization')}
-    </LinkButton>
-  );
-}
-
 function OrgFooterMessage() {
   return (
-    <Fragment>
-      <AddIntegratedOrgButton />
-      <MenuFooterDivider />
-      <Flex justify="start" gap="md">
-        <IconInfo size="sm" style={{margin: '2px 0'}} />
-        <div>
-          <FooterInfoHeading>
-            Access{' '}
-            <ExternalLink href="https://github.com/apps/sentry-io">
-              GitHub Organization
-            </ExternalLink>
-          </FooterInfoHeading>
-          <FooterInfoSubheading>
-            Ensure admins approve the installation
-          </FooterInfoSubheading>
-        </div>
-      </Flex>
-    </Fragment>
+    <Flex gap="sm" direction="column" align="start">
+      <Grid columns="max-content 1fr" gap="sm">
+        {props => (
+          <Text variant="muted" size="sm" {...props}>
+            <IconInfo size="sm" />
+            <div>
+              {tct(
+                'Installing the [githubAppLink:GitHub Application] will require admin approval.',
+                {
+                  githubAppLink: (
+                    <ExternalLink openInNewTab href="https://github.com/apps/sentry-io" />
+                  ),
+                }
+              )}
+            </div>
+          </Text>
+        )}
+      </Grid>
+      <LinkButton
+        href="https://github.com/apps/sentry-io/installations/select_target"
+        size="xs"
+        icon={<IconAdd />}
+        external
+      >
+        {t('GitHub Organization')}
+      </LinkButton>
+    </Flex>
   );
 }
 
@@ -109,7 +105,7 @@ export function IntegratedOrgSelector() {
           </DropdownButton>
         );
       }}
-      menuWidth={'22em'}
+      menuWidth="280px"
       menuFooter={<OrgFooterMessage />}
     />
   );
@@ -132,32 +128,5 @@ const OptionLabel = styled('span')`
   remove SelectorItemLabel, we can delete this. */
   div {
     margin: 0;
-  }
-`;
-
-const FooterInfoHeading = styled('p')`
-  font-size: ${p => p.theme.fontSize.md};
-  line-height: 1.4;
-  margin: 0;
-`;
-
-const FooterInfoSubheading = styled('p')`
-  font-size: ${p => p.theme.fontSize.sm};
-  line-height: 1.2;
-  margin: 0;
-`;
-
-const MenuFooterDivider = styled('div')`
-  position: relative;
-  padding: ${p => p.theme.space.md} 0;
-  &:before {
-    display: block;
-    white-space: normal;
-    position: absolute;
-    content: '';
-    height: 1px;
-    left: 0;
-    right: 0;
-    background: ${p => p.theme.border};
   }
 `;
