@@ -418,7 +418,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             return {
                 "attributes": tap_attributes,
                 "event_hash": uuid.uuid4().bytes,
-                "timestamp": float(timestamp) if timestamp is not None else 0.0,
+                "timestamp": float(timestamp),
             }
         case EventType.NAVIGATION:
             payload = event["data"]["payload"]
