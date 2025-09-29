@@ -1,21 +1,25 @@
+import type {ReactNode} from 'react';
 import {useMemo} from 'react';
 
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {t} from 'sentry/locale';
+import type {PickableDays} from 'sentry/views/explore/utils';
 
-export function metricsPickableDays() {
-  const {selection} = usePageFilters();
-
+export function metricsPickableDays(): PickableDays {
   return useMemo(() => {
-    const maxPickableDays = 30;
+    const maxPickableDays = 30 as const;
+    const defaultPeriod = '7d' as const;
 
-    const defaultPeriod = '7d';
-    const relativeOptions = ({arbitraryOptions}) => ({
+    const relativeOptions = ({
+      arbitraryOptions,
+    }: {
+      arbitraryOptions: Record<string, ReactNode>;
+    }) => ({
       ...arbitraryOptions,
-      '1h': 'Last hour',
-      '24h': 'Last 24 hours',
-      '7d': 'Last 7 days',
-      '14d': 'Last 14 days',
-      '30d': 'Last 30 days',
+      '1h': t('Last hour'),
+      '24h': t('Last 24 hours'),
+      '7d': t('Last 7 days'),
+      '14d': t('Last 14 days'),
+      '30d': t('Last 30 days'),
     });
 
     return {

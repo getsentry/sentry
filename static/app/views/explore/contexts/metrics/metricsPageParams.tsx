@@ -1,5 +1,5 @@
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {createDefinedContext} from 'sentry/utils/context';
+import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 
 export const METRICS_QUERY_KEY = 'metricsQuery';
 export const METRICS_SORT_BYS_KEY = 'metricsSortBys';

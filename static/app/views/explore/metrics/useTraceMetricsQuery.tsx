@@ -1,11 +1,9 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import {logger} from '@sentry/react';
 
 import {type ApiResult} from 'sentry/api';
-import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {
   fetchDataQuery,
   useApiQuery,
@@ -13,20 +11,16 @@ import {
   useQueryClient,
   type ApiQueryKey,
   type InfiniteData,
-  type QueryKeyEndpointOptions,
 } from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
-  useQueryParamsAggregateCursor,
-  useQueryParamsAggregateSortBys,
   useQueryParamsCursor,
   useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsSearch,
   useQueryParamsSortBys,
-  useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 
@@ -36,6 +30,124 @@ import {
   type EventsMetricsResult,
   type MetricsAggregatesResult,
 } from './types';
+
+type MetricPageParam = {
+  timestampPrecise: bigint;
+  id: string;
+  sort: Sort;
+} | null;
+
+function getTimeBasedSortBy(sortBys: Sort[]): Sort | undefined {
+  return sortBys.find(
+    sort =>
+      sort.field === TraceMetricKnownFieldKey.TIMESTAMP_PRECISE ||
+      sort.field === TraceMetricKnownFieldKey.TIMESTAMP
+  );
+}
+
+function getPageParam(
+  pageDirection: 'previous' | 'next',
+  sortBys: Sort[],
+  _autoRefresh: boolean
+) {
+  const isGetPreviousPage = pageDirection === 'previous';
+  return (
+    [pageData]: ApiResult<EventsMetricsResult>,
+    _: unknown,
+    pageParam: MetricPageParam
+  ): MetricPageParam => {
+    const sortBy = getTimeBasedSortBy(sortBys);
+    if (!sortBy) {
+      // Only sort by timestamp precise is supported for infinite queries.
+      return null;
+    }
+    const firstRow = pageData.data?.[0];
+    const lastRow = pageData.data?.[pageData.data.length - 1];
+    if (!firstRow || !lastRow) {
+      // No data to paginate, this should not happen as empty pages are removed from the query client.
+      // If this does happen, it will stop the infinite query from fetching more pages as "hasNextPage" will be false.
+      return pageParam;
+    }
+
+    let firstTimestamp: bigint;
+    let lastTimestamp: bigint;
+    try {
+      firstTimestamp = BigInt(firstRow[TraceMetricKnownFieldKey.TIMESTAMP_PRECISE]);
+      lastTimestamp = BigInt(lastRow[TraceMetricKnownFieldKey.TIMESTAMP_PRECISE]);
+    } catch {
+      logger.warn(`No timestamp precise found for metric row, using timestamp instead`, {
+        metricId: firstRow[TraceMetricKnownFieldKey.ID],
+        timestamp: firstRow[TraceMetricKnownFieldKey.TIMESTAMP],
+        timestampPrecise: firstRow[TraceMetricKnownFieldKey.TIMESTAMP_PRECISE],
+      });
+      firstTimestamp =
+        BigInt(new Date(firstRow[TraceMetricKnownFieldKey.TIMESTAMP]).getTime()) *
+        1_000_000n;
+      lastTimestamp =
+        BigInt(new Date(lastRow[TraceMetricKnownFieldKey.TIMESTAMP]).getTime()) *
+        1_000_000n;
+    }
+
+    const metricId = isGetPreviousPage
+      ? firstRow[TraceMetricKnownFieldKey.ID]
+      : lastRow[TraceMetricKnownFieldKey.ID];
+    const isDescending = sortBy.kind === 'desc';
+    const timestampPrecise = isGetPreviousPage ? firstTimestamp : lastTimestamp;
+
+    if (isGetPreviousPage) {
+      // When getting the previous page, we want to get metrics that are newer than the first metric in the current page.
+      // If we're sorting descending, we want metrics with timestamp > firstTimestamp
+      // If we're sorting ascending, we want metrics with timestamp < firstTimestamp
+      return {
+        timestampPrecise,
+        id: metricId,
+        sort: {
+          field: sortBy.field,
+          kind: isDescending ? 'desc' : 'asc',
+        },
+      };
+    } else {
+      // When getting the next page, we want to get metrics that are older than the last metric in the current page.
+      // If we're sorting descending, we want metrics with timestamp < lastTimestamp
+      // If we're sorting ascending, we want metrics with timestamp > lastTimestamp
+      return {
+        timestampPrecise,
+        id: metricId,
+        sort: {
+          field: sortBy.field,
+          kind: isDescending ? 'desc' : 'asc',
+        },
+      };
+    }
+  };
+}
+
+function getInitialPageParam(_autoRefresh: boolean, _sortBys: Sort[]): MetricPageParam {
+  return null;
+}
+
+function getParamBasedQuery(
+  baseQuery: Record<string, any> | undefined,
+  pageParam: MetricPageParam
+): Record<string, any> {
+  if (!pageParam || !baseQuery) {
+    return baseQuery || {};
+  }
+
+  const {timestampPrecise, sort} = pageParam;
+  const isDescending = sort.kind === 'desc';
+  const operator = isDescending ? '<=' : '>=';
+
+  // Add timestamp-based pagination to the query
+  const timestampQuery = `${sort.field}:${operator}${timestampPrecise}`;
+  const existingQuery = baseQuery.query || '';
+  const newQuery = existingQuery ? `${existingQuery} ${timestampQuery}` : timestampQuery;
+
+  return {
+    ...baseQuery,
+    query: newQuery,
+  };
+}
 
 export function useTraceMetricsAggregatesQuery({
   disabled,
@@ -131,34 +243,79 @@ export function useInfiniteTraceMetricsQuery({
   referrer?: string;
 }) {
   const {other, queryKey} = useMetricsQueryKey({limit, referrer});
+  const sortBys = useQueryParamsSortBys();
+  const autoRefresh = false; // For now, keep autoRefresh disabled for metrics
+
+  const getPreviousPageParam = useCallback(
+    (data: ApiResult<EventsMetricsResult>, _: unknown, pageParam: MetricPageParam) =>
+      getPageParam('previous', sortBys.slice(), autoRefresh)(data, _, pageParam),
+    [sortBys, autoRefresh]
+  );
+  const getNextPageParam = useCallback(
+    (data: ApiResult<EventsMetricsResult>, _: unknown, pageParam: MetricPageParam) =>
+      getPageParam('next', sortBys.slice(), autoRefresh)(data, _, pageParam),
+    [sortBys, autoRefresh]
+  );
+
+  const initialPageParam = useMemo(
+    () => getInitialPageParam(autoRefresh, sortBys.slice()),
+    [autoRefresh, sortBys]
+  );
+
+  const queryKeyWithInfinite = useMemo(
+    () => ['infinite', ...queryKey] as const,
+    [queryKey]
+  );
 
   const result = useInfiniteQuery<
-    ApiResult<EventsMetricsResult['data'], EventsMetricsResult['meta']>
+    ApiResult<EventsMetricsResult>,
+    Error,
+    InfiniteData<ApiResult<EventsMetricsResult>>,
+    typeof queryKeyWithInfinite,
+    MetricPageParam
   >({
-    queryKey,
-    queryFn: fetchDataQuery,
-    getNextPageParam: (lastPage, _pages) => {
-      const links = parseLinkHeader(lastPage.getResponseHeader('Link') ?? null);
-      const cursor = links.next?.results ? links.next.cursor : undefined;
-      return cursor;
+    queryKey: queryKeyWithInfinite,
+    queryFn: async ({
+      pageParam,
+      queryKey: [, url, endpointOptions],
+      client,
+      signal,
+      meta,
+    }): Promise<ApiResult<EventsMetricsResult>> => {
+      const result = await fetchDataQuery({
+        queryKey: [
+          url,
+          {
+            ...endpointOptions,
+            query: getParamBasedQuery(endpointOptions?.query, pageParam),
+          },
+        ],
+        client,
+        signal,
+        meta,
+      });
+
+      return result as ApiResult<EventsMetricsResult>;
     },
+    getPreviousPageParam,
+    getNextPageParam,
+    initialPageParam,
     enabled: other.pageFiltersReady && !disabled,
     staleTime: 0,
     retry: false,
-    initialPageParam: undefined,
   });
 
   const data = useMemo(() => {
     return (
-      result.data?.pages.flatMap(page => {
-        return page.json?.data ?? [];
+      result.data?.pages.flatMap(([pageData]) => {
+        return pageData.data ?? [];
       }) ?? []
     );
   }, [result.data?.pages]);
 
   const meta = useMemo(() => {
     const lastPage = result.data?.pages[result.data?.pages.length - 1];
-    return lastPage?.json?.meta;
+    return lastPage?.[0]?.meta;
   }, [result.data?.pages]);
 
   return {

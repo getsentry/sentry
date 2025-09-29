@@ -1,9 +1,8 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {GridEditable, GridEditableColumn} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useTraceMetricsAggregatesQuery} from 'sentry/views/explore/metrics/useTraceMetricsQuery';
 
 export function MetricsAggregateTable() {
@@ -11,16 +10,8 @@ export function MetricsAggregateTable() {
     referrer: 'api.explore.metrics.aggregate-table',
   });
 
-  const columns = useMemo<Array<GridEditableColumn<any>>>(() => {
-    if (!data?.meta?.fields) {
-      return [];
-    }
-
-    return Object.keys(data.meta.fields).map(field => ({
-      key: field,
-      name: field,
-      width: 150,
-    }));
+  const allFields = useMemo(() => {
+    return Object.keys(data?.meta?.fields || {});
   }, [data?.meta?.fields]);
 
   const tableData = useMemo(() => {
@@ -38,11 +29,20 @@ export function MetricsAggregateTable() {
   return (
     <TableWrapper>
       <GridEditable
+        aria-label={t('Metrics Aggregates')}
+        isLoading={isLoading}
+        error={error}
         data={tableData}
-        columnOrder={columns.map(c => c.key)}
+        columnOrder={allFields.map(field => ({
+          key: field,
+          name: field,
+          width: COL_WIDTH_UNDEFINED,
+        }))}
         columnSortBy={[]}
         grid={{
-          renderHeadCell: column => column.name,
+          renderHeadCell: column => {
+            return column.name;
+          },
           renderBodyCell: (column, dataRow) => {
             const value = dataRow[column.key];
             if (value === null || value === undefined) {
@@ -51,7 +51,6 @@ export function MetricsAggregateTable() {
             return value;
           },
         }}
-        location={location}
       />
     </TableWrapper>
   );

@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {createDefinedContext} from 'sentry/utils/context';
+import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import {isMetricsEnabled} from 'sentry/views/explore/metrics/isMetricsEnabled';
 import {useInfiniteTraceMetricsQuery} from 'sentry/views/explore/metrics/useTraceMetricsQuery';
