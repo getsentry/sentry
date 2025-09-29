@@ -436,7 +436,11 @@ def build_actions(
         )
 
     def _assign_button() -> MessageAction:
-        assignee = group.get_assignee()
+        try:
+            assignee = group.get_assignee()
+        except Actor.InvalidActor:
+            assignee = None
+
         assign_button = MessageAction(
             name="assign",
             label="Select Assignee...",
