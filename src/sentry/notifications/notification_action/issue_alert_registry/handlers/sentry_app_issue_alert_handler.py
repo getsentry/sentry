@@ -70,7 +70,7 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
                 # Skip this action silently instead of crashing the workflow
                 # Return None to indicate action should be skipped
                 return {}
-            
+
             if len(sentry_app_installations) != 1:
                 # Multiple installations found - this is unexpected
                 logger.error(
