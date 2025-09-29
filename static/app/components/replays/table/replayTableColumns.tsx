@@ -173,6 +173,7 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
 export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
   Header: () => (
     <Tooltip
+      isHoverable
       title={tct(
         'A dead click is a user click that does not result in any page activity after 7 seconds. Requires SDK version >= [minSDK]. [link:Learn more.]',
         {
@@ -216,6 +217,7 @@ export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
 export const ReplayCountErrorsColumn: ReplayTableColumn = {
   Header: () => (
     <Tooltip
+      isHoverable
       title={tct(
         'The error count only reflects errors generated within the Replay SDK. [inboundFilters:Inbound Filters] may have prevented those errors from being saved. [perfIssue:Performance] and other [replayIssue:error] types may have been added afterwards.',
         {
@@ -266,6 +268,7 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
 export const ReplayCountRageClicksColumn: ReplayTableColumn = {
   Header: () => (
     <Tooltip
+      isHoverable
       title={tct(
         'A rage click is 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds. Requires SDK version >= [minSDK]. [link:Learn more.]',
         {

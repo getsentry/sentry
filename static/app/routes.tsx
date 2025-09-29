@@ -243,6 +243,7 @@ function buildRoutes(): RouteObject[] {
           path: '/disabled-member/',
           component: make(() => import('sentry/views/disabledMember')),
           withOrgPath: true,
+          deprecatedRouteProps: true,
         },
       ],
     },
@@ -845,11 +846,9 @@ function buildRoutes(): RouteObject[] {
     {
       index: true,
       component: make(() => import('sentry/views/organizationStats')),
-      deprecatedRouteProps: true,
     },
     {
       component: make(() => import('sentry/views/organizationStats/teamInsights')),
-      deprecatedRouteProps: true,
       children: [
         {
           path: 'issues/',
@@ -862,7 +861,6 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/organizationStats/teamInsights/health')
           ),
-          deprecatedRouteProps: true,
         },
       ],
     },
@@ -874,7 +872,6 @@ function buildRoutes(): RouteObject[] {
         withOrgPath: true,
         component: OrganizationStatsWrapper,
         children: statsChildren,
-        deprecatedRouteProps: true,
       },
       {
         path: '/organizations/:orgId/stats/team/',

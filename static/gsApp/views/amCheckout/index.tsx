@@ -235,10 +235,6 @@ class AMCheckout extends Component<Props, State> {
     }
   }
 
-  componentWillUnmount() {
-    Sentry.getReplay()?.stop();
-  }
-
   readonly initialStep: number;
 
   get referrer(): string | undefined {
@@ -312,6 +308,15 @@ class AMCheckout extends Component<Props, State> {
       : OnDemandSpend;
 
     if (isNewCheckout) {
+      // Do not include Payment Method and Billing Details sections for subscriptions billed through partners
+      if (subscription.isSelfServePartner) {
+        if (hasActiveVCFeature(organization)) {
+          // Don't allow VC customers to choose Annual plans
+          return [BuildYourPlan, SetSpendLimit];
+        }
+
+        return [BuildYourPlan, SetSpendLimit, ChooseYourBillingCycle];
+      }
       return [
         BuildYourPlan,
         SetSpendLimit,

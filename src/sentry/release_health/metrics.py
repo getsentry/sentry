@@ -1614,7 +1614,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         start: datetime | None,
         end: datetime | None,
         environment_ids: Sequence[int] | None = None,
-        rollup: int | None = None,  # rollup in seconds
     ) -> Sequence[ProjectWithCount]:
 
         projects, org_id = self._get_projects_and_org_id(project_ids)
@@ -1648,7 +1647,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             end=end,
             where=where,
             groupby=groupby,
-            granularity=Granularity(rollup),
+            granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
             include_series=False,
             include_totals=True,
         )

@@ -59,7 +59,10 @@ describe('useVirtualStreaming', () => {
         <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
           <QueryClientProvider client={makeTestQueryClient()}>
             <OrganizationContext.Provider value={organization}>
-              <LogsQueryParamsProvider source="location">
+              <LogsQueryParamsProvider
+                analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+                source="location"
+              >
                 <LogsPageParamsProvider
                   analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
                   _testContext={testContext}
