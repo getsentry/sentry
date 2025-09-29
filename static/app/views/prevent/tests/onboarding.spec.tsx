@@ -708,12 +708,17 @@ describe('TestsOnboardingPage', () => {
 
       // Mock API calls to prevent infinite navigation loop
       MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/repos/`,
-        body: [],
-      });
-      MockApiClient.addMockResponse({
         url: `/organizations/org-slug/integrations/`,
         body: [],
+        method: 'GET',
+        match: [MockApiClient.matchQuery({provider_key: 'github', includeConfig: 0})],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/prevent/owner/123/repository/test-repo/`,
+        body: {
+          testAnalyticsEnabled: false,
+          uploadToken: null,
+        },
       });
 
       const {router} = render(

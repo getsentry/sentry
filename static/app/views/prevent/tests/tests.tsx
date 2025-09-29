@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -148,12 +148,19 @@ function Content({response}: TestResultsContentData) {
 
   const cameFromOnboardingRoute = location.state?.from === '/prevent/tests/new';
 
+  useEffect(() => {
+    if (!cameFromOnboardingRoute && !repoData?.testAnalyticsEnabled && isRepoSuccess) {
+      const queryString = getPreventParamsString(location);
+      navigate(`/prevent/tests/new${queryString ? `?${queryString}` : ''}`, {
+        state: {from: '/prevent/tests'},
+        replace: true,
+      });
+    }
+    // No `location` dependency as it causes infinite loop of redirect
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameFromOnboardingRoute, repoData?.testAnalyticsEnabled, isRepoSuccess, navigate]);
+
   if (!cameFromOnboardingRoute && !repoData?.testAnalyticsEnabled && isRepoSuccess) {
-    const queryString = getPreventParamsString(location);
-    navigate(`/prevent/tests/new${queryString ? `?${queryString}` : ''}`, {
-      state: {from: '/prevent/tests'},
-      replace: true,
-    });
     return null;
   }
 

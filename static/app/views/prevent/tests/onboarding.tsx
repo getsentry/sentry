@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 
@@ -79,17 +79,37 @@ export default function TestsOnboardingPage() {
 
   // We want to navigate to show TA if this repo should have data to show, if we need to show
   // preOnboarding when they have no integrations, or if this org is not in the US region
+  useEffect(() => {
+    if (
+      !cameFromTestsRoute &&
+      ((repoData?.testAnalyticsEnabled && isRepoSuccess) ||
+        (!integrations.length && isIntegrationsSuccess) ||
+        !isUSStorage)
+    ) {
+      const queryString = getPreventParamsString(location);
+      navigate(`/prevent/tests${queryString ? `?${queryString}` : ''}`, {
+        state: {from: '/prevent/tests/new'},
+        replace: true,
+      });
+    }
+    // No `location` dependency as it causes infinite loop of redirect
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    cameFromTestsRoute,
+    repoData?.testAnalyticsEnabled,
+    isRepoSuccess,
+    integrations.length,
+    isIntegrationsSuccess,
+    isUSStorage,
+    navigate,
+  ]);
+
   if (
     !cameFromTestsRoute &&
     ((repoData?.testAnalyticsEnabled && isRepoSuccess) ||
       (!integrations.length && isIntegrationsSuccess) ||
       !isUSStorage)
   ) {
-    const queryString = getPreventParamsString(location);
-    navigate(`/prevent/tests${queryString ? `?${queryString}` : ''}`, {
-      state: {from: '/prevent/tests/new'},
-      replace: true,
-    });
     return null;
   }
 
