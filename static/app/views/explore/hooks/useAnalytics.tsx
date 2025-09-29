@@ -44,7 +44,7 @@ const {info, fmt} = Sentry.logger;
 interface UseTrackAnalyticsProps {
   aggregatesTableResult: AggregatesTableResult;
   dataset: DiscoverDatasets;
-  fields: string[];
+  fields: readonly string[];
   interval: string;
   isTopN: boolean;
   page_source: 'explore' | 'compare';

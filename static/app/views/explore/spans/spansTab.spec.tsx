@@ -166,7 +166,7 @@ describe('SpansTabContent', () => {
   });
 
   it('inserts group bys from aggregate mode as fields in samples mode', async () => {
-    let fields: string[] = [];
+    let fields: readonly string[] = [];
     let groupBys: readonly string[] = [];
     function Component() {
       fields = useQueryParamsFields();
