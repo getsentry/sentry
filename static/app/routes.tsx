@@ -261,14 +261,12 @@ function buildRoutes(): RouteObject[] {
         make(() => import('sentry/views/organizationJoinRequest'))
       ),
       customerDomainOnlyRoute: true,
-      deprecatedRouteProps: true,
     },
     {
       path: '/join-request/:orgId/',
       component: withDomainRedirect(
         make(() => import('sentry/views/organizationJoinRequest'))
       ),
-      deprecatedRouteProps: true,
     },
     {
       path: '/relocation/',
