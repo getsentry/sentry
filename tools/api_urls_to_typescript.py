@@ -4,10 +4,6 @@ import re
 
 from django.urls import URLPattern, URLResolver
 
-from sentry.runner import configure
-
-configure()
-
 
 def snake_to_camel_case(value):
     """
@@ -158,60 +154,22 @@ def _process_single_pattern(pattern: str) -> str:
     return route
 
 
-def test_regexp_to_route() -> None:
-    """Test the regexp_to_route function with various examples."""
-    test_cases = [
-        # Basic named group
-        (r"^(?P<issue_id>[^/]+)/plugins?/$", ["$issueId/plugins/"]),
-        # Multiple named groups
-        (r"^api/v1/(?P<org_slug>[^/]+)/(?P<project_id>[^/]+)/$", ["api/v1/$orgSlug/$projectId/"]),
-        # Alternates
-        (r"/(?:issues|groups)/", ["/issues/", "/groups/"]),
-        # Complex alternate with named groups
-        (
-            r"^api/(?P<version>[^/]+)/(?:issues|groups)/(?P<id>[^/]+)/$",
-            ["api/$version/issues/$id/", "api/$version/groups/$id/"],
-        ),
-        # Simple pattern without named groups
-        (r"^api/health/$", ["api/health/"]),
-        # Pattern with optional parts
-        (r"^api/v1/(?P<org_slug>[^/]+)/?$", ["api/v1/$orgSlug/"]),
-        # Complex pattern with nested groups and character classes
-        (
-            r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<event_id>(?:\d+|[A-Fa-f0-9]{32}))/$",
-            ["$organizationIdOrSlug/$projectIdOrSlug/events/:eventId/"],
-        ),
-    ]
-
-    print("Testing regexp_to_route function:")
-    print("=" * 50)
-
-    for i, (input_regexp, expected) in enumerate(test_cases, 1):
-        result = regexp_to_routes(input_regexp)
-        status = "✓" if result == expected else "✗"
-        print(f"{status} Test {i}:")
-        print(f"  Input:    {input_regexp}")
-        print(f"  Expected: {expected}")
-        print(f"  Got:      {result}")
-        print()
-
-
 if __name__ == "__main__":
     import sys
 
-    command = len(sys.argv) > 1 and sys.argv[1]
-    if command == "test":
-        test_regexp_to_route()
-    elif command == "list":
-        from sentry.api.urls import urlpatterns
+    from sentry.runner import configure
 
-        route_patterns = sorted(urls_to_routes("/", urlpatterns))
+    configure()
+
+    from sentry.api.urls import urlpatterns
+
+    route_patterns = sorted(urls_to_routes("/", urlpatterns))
+
+    command = len(sys.argv) > 1 and sys.argv[1]
+    if command == "list":
         for route_pattern in route_patterns:
             print(route_pattern)
     else:
-        from sentry.api.urls import urlpatterns
-
-        route_patterns = sorted(urls_to_routes("/", urlpatterns))
         with open("static/app/api/urlpatterns.generated.ts", "w") as f:
             f.writelines(
                 [
