@@ -177,7 +177,7 @@ function PlanList({
         <StyledFormSection>
           <h4>Available Products</h4>
           {availableProducts.map(productInfo => {
-            const addOnKey = `addOn${toTitleCase(productInfo.productName)}`;
+            const addOnKey = `addOn${toTitleCase(productInfo.apiName)}`;
             return (
               <CheckboxField
                 key={productInfo.productName}

@@ -238,7 +238,7 @@ describe('ChangePlanAction', () => {
     expect(requestData).toHaveProperty('plan', 'am3_business');
   });
 
-  it('completes form with seer', async () => {
+  it('completes form with addOns', async () => {
     mockOrg.features = ['seer-billing', 'prevent-billing'];
     const putMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/subscription/`,
