@@ -96,13 +96,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     pageFilters: PageFilters
   ) => TableData;
   /**
-   * Context provider component that wraps the search bar data provider.
-   * Required when the data provider hook needs specific context.
-   */
-  SearchBarDataProviderWrapper?: React.ComponentType<{
-    children: React.ReactNode;
-  }>;
-  /**
    * Configure enabling/disabling sort/direction options with an
    * optional message for why it is disabled.
    */
