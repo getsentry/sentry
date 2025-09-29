@@ -1405,6 +1405,174 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug)
         assert response.data["preventAiConfigGithub"] == expected_default
 
+    def test_prevent_ai_config_github_validation_missing_fields(self) -> None:
+        """Test that missing required fields are rejected"""
+        # Missing org_defaults
+        data = {"preventAiConfigGithub": {"repo_overrides": {}}}
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        # Verify we get a validation error for missing required field
+        assert "preventAiConfigGithub" in response.data
+        error_msg = str(response.data["preventAiConfigGithub"])
+        assert "Prevent AI config option is invalid" in error_msg
+
+    def test_prevent_ai_config_github_validation_invalid_structure(self) -> None:
+        """Test that invalid structures are rejected"""
+        # Not an object
+        data = {"preventAiConfigGithub": "invalid"}
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        # Check for validation error
+        error_msg = str(response.data["preventAiConfigGithub"])
+        assert "Prevent AI config option is invalid" in error_msg
+
+        # Missing trigger fields
+        data = {
+            "preventAiConfigGithub": {
+                "org_defaults": {
+                    "on_command_phrase": {"bug_prediction": True},  # Missing vanilla
+                    "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
+                },
+                "repo_overrides": {},
+            }
+        }
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        # Check for validation error
+        assert "preventAiConfigGithub" in response.data
+        error_msg = str(response.data["preventAiConfigGithub"])
+        assert "Prevent AI config option is invalid" in error_msg
+
+    def test_prevent_ai_config_github_validation_missing_repo_overrides(self) -> None:
+        """Test missing repo_overrides field"""
+        data = {
+            "preventAiConfigGithub": {
+                "org_defaults": {
+                    "on_command_phrase": {"bug_prediction": True, "vanilla": True},
+                    "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
+                }
+                # Missing repo_overrides
+            }
+        }
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert "preventAiConfigGithub" in response.data
+
+    def test_prevent_ai_config_github_validation_missing_trigger(self) -> None:
+        """Test missing trigger field"""
+        data = {
+            "preventAiConfigGithub": {
+                "org_defaults": {
+                    "on_command_phrase": {"bug_prediction": True, "vanilla": True},
+                    # Missing on_ready_for_review
+                },
+                "repo_overrides": {},
+            }
+        }
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert "preventAiConfigGithub" in response.data
+
+    def test_prevent_ai_config_github_validation_missing_setting_field(self) -> None:
+        """Test missing setting field"""
+        data = {
+            "preventAiConfigGithub": {
+                "org_defaults": {
+                    "on_command_phrase": {"vanilla": True},  # Missing bug_prediction
+                    "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
+                },
+                "repo_overrides": {},
+            }
+        }
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert "preventAiConfigGithub" in response.data
+
+    def test_prevent_ai_config_github_validation_wrong_data_types(self) -> None:
+        """Test wrong data types"""
+        data = {
+            "preventAiConfigGithub": {
+                "org_defaults": {
+                    "on_command_phrase": {
+                        "bug_prediction": "yes",
+                        "vanilla": True,
+                    },  # String instead of bool
+                    "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
+                },
+                "repo_overrides": {},
+            }
+        }
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        # Should get object-level validation error
+        assert "preventAiConfigGithub" in response.data
+        error_msg = str(response.data["preventAiConfigGithub"])
+        assert "Prevent AI config option is invalid" in error_msg
+
+    def test_prevent_ai_config_github_validation_repo_overrides(self) -> None:
+        """Test validation specifically for repo_overrides structure"""
+
+        # Invalid repo override - missing triggers
+        data = {
+            "preventAiConfigGithub": {
+                "org_defaults": {
+                    "on_command_phrase": {"bug_prediction": True, "vanilla": True},
+                    "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
+                },
+                "repo_overrides": {
+                    "my_repo": {
+                        "on_command_phrase": {"bug_prediction": True, "vanilla": True},
+                        # Missing on_ready_for_review
+                    }
+                },
+            }
+        }
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        # Should get object-level validation error
+        assert "preventAiConfigGithub" in response.data
+        error_msg = str(response.data["preventAiConfigGithub"])
+        error_msg = str(response.data["preventAiConfigGithub"])
+        assert "Prevent AI config option is invalid" in error_msg
+
+        # Invalid repo override - wrong field types
+        data = {
+            "preventAiConfigGithub": {
+                "org_defaults": {
+                    "on_command_phrase": {"bug_prediction": True, "vanilla": True},
+                    "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
+                },
+                "repo_overrides": {
+                    "my_repo": {
+                        "on_command_phrase": {
+                            "bug_prediction": 1,
+                            "vanilla": True,
+                        },  # Number instead of bool
+                        "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
+                    }
+                },
+            }
+        }
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert "preventAiConfigGithub" in response.data
+
+        # Valid repo overrides should work
+        data = {
+            "preventAiConfigGithub": {
+                "org_defaults": {
+                    "on_command_phrase": {"bug_prediction": True, "vanilla": True},
+                    "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
+                },
+                "repo_overrides": {
+                    "repo_1": {
+                        "on_command_phrase": {"bug_prediction": False, "vanilla": False},
+                        "on_ready_for_review": {"bug_prediction": True, "vanilla": True},
+                    },
+                    "repo_2": {
+                        "on_command_phrase": {"bug_prediction": True, "vanilla": False},
+                        "on_ready_for_review": {"bug_prediction": False, "vanilla": False},
+                    },
+                },
+            }
+        }
+        self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:prevent_ai_config_github")
+            == data["preventAiConfigGithub"]
+        )
+
     def test_enabled_console_platforms_present_in_response(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert "enabledConsolePlatforms" in response.data
