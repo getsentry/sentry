@@ -248,7 +248,7 @@ class ProjectTest(APITestCase, TestCase):
             integration_id=integration.id,
         )
 
-        config1 = RepositoryProjectPathConfig.objects.create(
+        RepositoryProjectPathConfig.objects.create(
             repository=repository,
             project=project,
             organization_integration_id=org_integration.id,
@@ -260,8 +260,6 @@ class ProjectTest(APITestCase, TestCase):
         )
 
         project.transfer_to(organization=to_org)
-
-        config1.refresh_from_db()
 
         assert RepositoryProjectPathConfig.objects.filter(organization_id=from_org.id).count() == 0
         assert RepositoryProjectPathConfig.objects.filter(organization_id=to_org.id).count() == 0
