@@ -20,6 +20,7 @@ import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
@@ -188,6 +189,7 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
   const fields = useQueryParamsFields();
   const query = useQueryParamsQuery();
   const setExplorePageParams = useSetExplorePageParams();
+  const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
 
   const organization = useOrganization();
   const areAiFeaturesAllowed =
@@ -252,8 +254,11 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
       ],
       numberSecondaryAliases,
       stringSecondaryAliases,
+      caseInsensitive,
+      onCaseInsensitiveClick: setCaseInsensitive,
     }),
     [
+      caseInsensitive,
       fields,
       hasRawSearchReplacement,
       mode,
@@ -261,6 +266,7 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
       numberTags,
       oldSearch,
       query,
+      setCaseInsensitive,
       setExplorePageParams,
       stringSecondaryAliases,
       stringTags,
@@ -365,6 +371,7 @@ function SpanTabContentSection({
   const setVisualizes = useSetQueryParamsVisualizes();
   const extrapolate = useQueryParamsExtrapolate();
   const [tab, setTab] = useTab();
+  const [caseInsensitive] = useCaseInsensitivity();
 
   const queryType: 'aggregate' | 'samples' | 'traces' =
     tab === Mode.AGGREGATE ? 'aggregate' : tab === Tab.TRACE ? 'traces' : 'samples';
@@ -380,22 +387,26 @@ function SpanTabContentSection({
     query,
     limit,
     enabled: isAllowedSelection && queryType === 'aggregate',
+    queryExtras: {caseInsensitive},
   });
   const spansTableResult = useExploreSpansTable({
     query,
     limit,
     enabled: isAllowedSelection && queryType === 'samples',
+    queryExtras: {caseInsensitive},
   });
   const tracesTableResult = useExploreTracesTable({
     query,
     limit,
     enabled: isAllowedSelection && queryType === 'traces',
+    queryExtras: {caseInsensitive},
   });
 
   const {result: timeseriesResult, samplingMode: timeseriesSamplingMode} =
     useExploreTimeseries({
       query,
       enabled: isAllowedSelection,
+      queryExtras: {caseInsensitive},
     });
 
   const confidences = useMemo(
