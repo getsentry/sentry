@@ -1,5 +1,4 @@
 import logging
-from typing import TypedDict
 
 from sentry import features
 from sentry.feedback.lib.seer_api import seer_summarization_connection_pool
@@ -16,19 +15,6 @@ SEER_TIMEOUT_S = 15
 SEER_RETRIES = 0
 
 
-class IsSpamRequest(TypedDict):
-    """Corresponds to IsSpamRequest in Seer."""
-
-    organization_id: int
-    feedback_message: str
-
-
-class IsSpamResponse(TypedDict):
-    """Corresponds to IsSpamResponse in Seer."""
-
-    is_spam: bool
-
-
 def is_spam_seer(message: str, organization_id: int) -> bool | None:
     """
     Check if a message is spam using Seer.
@@ -36,10 +22,10 @@ def is_spam_seer(message: str, organization_id: int) -> bool | None:
     Returns True if the message is spam, False otherwise.
     Returns None if the request fails.
     """
-    seer_request = IsSpamRequest(
-        organization_id=organization_id,
-        feedback_message=message,
-    )
+    seer_request = {
+        "organization_id": organization_id,
+        "feedback_message": message,
+    }
 
     try:
         response = make_signed_seer_api_request(

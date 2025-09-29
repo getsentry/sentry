@@ -642,16 +642,21 @@ def test_create_feedback_spam_detection_with_seer(
 
     # Check DD metrics
     if feature_flag_enabled:
-        expected_metric_value = f"seer-{str(is_spam_result).lower()}"
+        mock_metrics_incr.assert_any_call(
+            "feedback.create_feedback_issue.seer_spam_detection",
+            tags={
+                "is_spam": is_spam_result,
+                "referrer": FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE.value,
+            },
+        )
     else:
-        expected_metric_value = str(is_spam_result)
-    mock_metrics_incr.assert_any_call(
-        "feedback.create_feedback_issue.spam_detection",
-        tags={
-            "is_spam": expected_metric_value,
-            "referrer": FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE.value,
-        },
-    )
+        mock_metrics_incr.assert_any_call(
+            "feedback.create_feedback_issue.spam_detection",
+            tags={
+                "is_spam": is_spam_result,
+                "referrer": FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE.value,
+            },
+        )
 
     # Check group status
     if is_spam_result:
