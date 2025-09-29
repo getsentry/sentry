@@ -67,7 +67,7 @@ export default function FeedbackCategories() {
     return <LoadingPlaceholder />;
   }
 
-  // The assumption is that if categories are enabled, then summaries are definitely enabled, 
+  // The assumption is that if categories are enabled, then summaries are definitely enabled,
   // so we won't just be showing nothing in the summary section if there is an error/too few feedbacks/etc.
   if (isError) {
     trackAnalytics('feedback.summary.categories-error', {
