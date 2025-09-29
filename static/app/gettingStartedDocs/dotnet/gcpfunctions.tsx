@@ -97,7 +97,6 @@ const onboarding: OnboardingConfig = {
               strong: <strong />,
             }
           ),
-          partialLoading: params.sourcePackageRegistries.isLoading,
           code: [
             {
               language: 'shell',
@@ -115,7 +114,6 @@ const onboarding: OnboardingConfig = {
         },
         {
           language: 'xml',
-          partialLoading: params.sourcePackageRegistries?.isLoading,
           description: t('Or, manually add the Sentry dependency into your csproj file:'),
           code: getInstallSnippetManual(params),
         },

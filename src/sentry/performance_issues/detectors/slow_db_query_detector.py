@@ -9,9 +9,8 @@ from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
-from ..base import (
-    DetectorType,
-    PerformanceDetector,
+from ..base import DetectorType, PerformanceDetector
+from ..detectors.utils import (
     fingerprint_span,
     get_notification_attachment_body,
     get_span_evidence_value,
@@ -58,7 +57,9 @@ class SlowDBQueryDetector(PerformanceDetector):
 
         description = span["description"].strip()
 
-        if span_duration >= timedelta(milliseconds=duration_threshold):
+        if duration_threshold is not None and span_duration >= timedelta(
+            milliseconds=duration_threshold
+        ):
             spans_involved = [span_id]
 
             hash = span.get("hash", "")

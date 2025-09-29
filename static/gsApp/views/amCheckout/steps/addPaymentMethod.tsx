@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Container} from 'sentry/components/core/layout';
 import {Radio} from 'sentry/components/core/radio';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -49,6 +50,7 @@ function AddPaymentMethod({
         buttonText="Continue"
         location={FTCConsentLocation.CHECKOUT}
         budgetTerm={subscription.planDetails.budgetTerm}
+        analyticsEvent="checkout.updated_cc"
       />
     );
 
@@ -90,7 +92,7 @@ function AddPaymentMethod({
             <CardDetails>{t('Add new card')}</CardDetails>
           </Label>
         </CreditCardOption>
-        {!useExisting && cardComponent}
+        {!useExisting && <Container padding="xl">{cardComponent}</Container>}
       </PanelBody>
     );
   }
