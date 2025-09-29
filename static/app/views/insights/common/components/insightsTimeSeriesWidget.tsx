@@ -41,7 +41,7 @@ import {
   ModalChartContainer,
 } from 'sentry/views/insights/common/components/insightsChartContainer';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/types';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {BASE_FIELD_ALIASES, INGESTION_DELAY} from 'sentry/views/insights/settings';
 import type {SpanFields} from 'sentry/views/insights/types';
@@ -69,6 +69,7 @@ export interface InsightsTimeSeriesWidgetProps
     referrer: string;
     search: MutableSearch;
     groupBy?: SpanFields[];
+    interval?: string;
     yAxis?: string[];
   };
   samples?: Samples;
@@ -234,6 +235,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                 search={props.queryInfo?.search}
                 aliases={aliases}
                 referrer={props.queryInfo?.referrer ?? ''}
+                interval={props.queryInfo?.interval}
               />
             )}
             {props.loaderSource !== 'releases-drawer' && (
@@ -271,6 +273,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
 
 const COMMON_COLORS = (theme: Theme): Record<string, string> => {
   const colors = theme.chart.getColorPalette(2);
+  const vitalColors = theme.chart.getColorPalette(4);
   return {
     'epm()': THROUGHPUT_COLOR(theme),
     'count()': COUNT_COLOR(theme),
@@ -280,5 +283,10 @@ const COMMON_COLORS = (theme: Theme): Record<string, string> => {
     'http_response_rate(5)': HTTP_RESPONSE_5XX_COLOR,
     'avg(messaging.message.receive.latency)': colors[1],
     'avg(span.duration)': colors[2],
+    'performance_score(measurements.score.lcp)': vitalColors[0],
+    'performance_score(measurements.score.fcp)': vitalColors[1],
+    'performance_score(measurements.score.inp)': vitalColors[2],
+    'performance_score(measurements.score.cls)': vitalColors[3],
+    'performance_score(measurements.score.ttfb)': vitalColors[4],
   };
 };

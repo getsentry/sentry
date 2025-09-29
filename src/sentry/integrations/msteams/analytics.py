@@ -1,15 +1,10 @@
 from sentry import analytics
+from sentry.analytics.events.base_notification_sent import BaseNotificationSent
 
 
 @analytics.eventclass("integrations.msteams.notification_sent")
-class MSTeamsIntegrationNotificationSent(analytics.Event):
-    organization_id: int
-    project_id: int | None = None
-    category: str
-    actor_id: int | None = None
-    user_id: int | None = None
-    notification_uuid: str
-    alert_id: int | None = None
+class MSTeamsIntegrationNotificationSent(BaseNotificationSent):
+    pass
 
 
 analytics.register(MSTeamsIntegrationNotificationSent)

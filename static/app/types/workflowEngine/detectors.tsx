@@ -10,6 +10,7 @@ import type {
   Dataset,
   EventTypes,
 } from 'sentry/views/alerts/rules/metric/types';
+import type {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
 import type {Monitor, MonitorConfig} from 'sentry/views/insights/crons/types';
 
 /**
@@ -113,7 +114,10 @@ export type MetricDetectorConfig =
   | MetricDetectorConfigDynamic;
 
 interface UptimeDetectorConfig {
-  environment: string;
+  downtimeThreshold: number;
+  environment: string | null;
+  mode: UptimeMonitorMode;
+  recoveryThreshold: number;
 }
 
 type BaseDetector = Readonly<{
@@ -190,6 +194,7 @@ export interface BaseDetectorUpdatePayload {
 }
 
 export interface UptimeDetectorUpdatePayload extends BaseDetectorUpdatePayload {
+  config: UptimeDetectorConfig;
   dataSource: UpdateUptimeDataSourcePayload;
   type: 'uptime_domain_failure';
 }

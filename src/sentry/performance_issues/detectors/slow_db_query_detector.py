@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from datetime import timedelta
 
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
@@ -8,9 +9,8 @@ from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
-from ..base import (
-    DetectorType,
-    PerformanceDetector,
+from ..base import DetectorType, PerformanceDetector
+from ..detectors.utils import (
     fingerprint_span,
     get_notification_attachment_body,
     get_span_evidence_value,
@@ -48,11 +48,18 @@ class SlowDBQueryDetector(PerformanceDetector):
         if not self._is_span_eligible(span):
             return
 
+        if self.stored_problems.get(fingerprint):
+            logging.info(
+                "Multiple occurrences detected for fingerprint",
+                extra={"detector": self.settings_key},
+            )
+            return
+
         description = span["description"].strip()
 
-        if span_duration >= timedelta(
+        if duration_threshold is not None and span_duration >= timedelta(
             milliseconds=duration_threshold
-        ) and not self.stored_problems.get(fingerprint, False):
+        ):
             spans_involved = [span_id]
 
             hash = span.get("hash", "")

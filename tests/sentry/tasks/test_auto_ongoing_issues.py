@@ -15,8 +15,7 @@ from sentry.types.group import GroupSubStatus
 
 class ScheduleAutoNewOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
-    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_simple(self, mock_backend: mock.MagicMock) -> None:
+    def test_simple(self) -> None:
         now = datetime.now(tz=timezone.utc)
         organization = self.organization
         project = self.create_project(organization=organization)
@@ -25,8 +24,6 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         )
         group.first_seen = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
         group.save()
-
-        mock_backend.get_size.return_value = 0
 
         with self.tasks():
             schedule_auto_transition_to_ongoing()
@@ -45,8 +42,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.ONGOING).exists()
 
     @freeze_time("2023-07-12 18:40:00Z")
-    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_reprocessed(self, mock_backend: mock.MagicMock) -> None:
+    def test_reprocessed(self) -> None:
         now = datetime.now(tz=timezone.utc)
 
         project = self.create_project()
@@ -56,8 +52,6 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         )
         group.first_seen = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
         group.save()
-
-        mock_backend.get_size.return_value = 0
 
         with self.tasks():
             schedule_auto_transition_to_ongoing()
@@ -69,8 +63,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         assert not GroupInbox.objects.filter(group=group).exists()
 
     @freeze_time("2023-07-12 18:40:00Z")
-    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_multiple_old_new(self, mock_backend: mock.MagicMock) -> None:
+    def test_multiple_old_new(self) -> None:
         now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         new_groups = []
@@ -111,8 +104,6 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
             new_groups
         )
 
-        mock_backend.get_size.return_value = 0
-
         with self.tasks():
             schedule_auto_transition_to_ongoing()
 
@@ -141,8 +132,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
     @mock.patch("sentry.utils.metrics.incr")
     @mock.patch("sentry.tasks.auto_ongoing_issues.ITERATOR_CHUNK", new=2)
     @mock.patch("sentry.tasks.auto_ongoing_issues.CHILD_TASK_COUNT", new=50)
-    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_not_all_groups_get_updated(self, mock_backend, mock_metrics_incr) -> None:
+    def test_not_all_groups_get_updated(self, mock_metrics_incr) -> None:
         now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         groups_count = 110
@@ -161,8 +151,6 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
             ).count()
             == groups_count
         )
-
-        mock_backend.get_size.return_value = 0
 
         with self.tasks():
             schedule_auto_transition_to_ongoing()
@@ -205,9 +193,8 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         )
 
     @freeze_time("2023-07-12 18:40:00Z")
-    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
     @mock.patch("sentry.tasks.auto_ongoing_issues.logger")
-    def test_unordered_ids(self, mock_logger: mock.MagicMock, mock_backend: mock.MagicMock) -> None:
+    def test_unordered_ids(self, mock_logger: mock.MagicMock) -> None:
         """
         Group ids can be non-chronological with first_seen time (ex. as a result of merging).
         Test that in this case, only groups that are >= TRANSITION_AFTER_DAYS days old are
@@ -231,8 +218,6 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         )
         group_old.first_seen = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
         group_old.save()
-
-        mock_backend.get_size.return_value = 0
 
         with self.tasks():
             schedule_auto_transition_to_ongoing()
@@ -266,8 +251,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
 
 class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
-    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_simple(self, mock_backend: mock.MagicMock) -> None:
+    def test_simple(self) -> None:
         now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         group = self.create_group(
@@ -284,8 +268,6 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
         )
         group_history.date_added = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
         group_history.save(update_fields=["date_added"])
-
-        mock_backend.get_size.return_value = 0
 
         with self.tasks():
             schedule_auto_transition_to_ongoing()
@@ -305,8 +287,7 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
     @mock.patch("sentry.utils.metrics.incr")
     @mock.patch("sentry.tasks.auto_ongoing_issues.ITERATOR_CHUNK", new=2)
     @mock.patch("sentry.tasks.auto_ongoing_issues.CHILD_TASK_COUNT", new=50)
-    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_not_all_groups_get_updated(self, mock_backend, mock_metrics_incr) -> None:
+    def test_not_all_groups_get_updated(self, mock_metrics_incr) -> None:
         now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         groups_count = 110
@@ -325,8 +306,6 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
             )
             group_history.date_added = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
             group_history.save(update_fields=["date_added"])
-
-        mock_backend.get_size.return_value = 0
 
         with self.tasks():
             schedule_auto_transition_to_ongoing()
@@ -369,8 +348,7 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
 
 class ScheduleAutoEscalatingOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
-    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_simple(self, mock_backend: mock.MagicMock) -> None:
+    def test_simple(self) -> None:
         now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         group = self.create_group(
@@ -387,8 +365,6 @@ class ScheduleAutoEscalatingOngoingIssuesTest(TestCase):
         )
         group_history.date_added = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
         group_history.save(update_fields=["date_added"])
-
-        mock_backend.get_size.return_value = 0
 
         with self.tasks():
             schedule_auto_transition_to_ongoing()
@@ -408,8 +384,7 @@ class ScheduleAutoEscalatingOngoingIssuesTest(TestCase):
     @mock.patch("sentry.utils.metrics.incr")
     @mock.patch("sentry.tasks.auto_ongoing_issues.ITERATOR_CHUNK", new=2)
     @mock.patch("sentry.tasks.auto_ongoing_issues.CHILD_TASK_COUNT", new=50)
-    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_not_all_groups_get_updated(self, mock_backend, mock_metrics_incr) -> None:
+    def test_not_all_groups_get_updated(self, mock_metrics_incr) -> None:
         now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         groups_count = 110
@@ -429,8 +404,6 @@ class ScheduleAutoEscalatingOngoingIssuesTest(TestCase):
             )
             group_history.date_added = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
             group_history.save(update_fields=["date_added"])
-
-        mock_backend.get_size.return_value = 0
 
         with self.tasks():
             schedule_auto_transition_to_ongoing()

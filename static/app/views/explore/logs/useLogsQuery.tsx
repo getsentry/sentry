@@ -19,7 +19,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {useLogsSearch} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   AlwaysPresentLogFields,
@@ -29,6 +28,7 @@ import {
 } from 'sentry/views/explore/logs/constants';
 import {
   useLogsFrozenProjectIds,
+  useLogsFrozenReplayInfo,
   useLogsFrozenSearch,
   useLogsFrozenTraceIds,
 } from 'sentry/views/explore/logs/logsFrozenContext';
@@ -48,6 +48,7 @@ import {
   useQueryParamsCursor,
   useQueryParamsFields,
   useQueryParamsGroupBys,
+  useQueryParamsSearch,
   useQueryParamsSortBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
@@ -80,7 +81,7 @@ function useLogsAggregatesQueryKey({
   limit?: number;
 }) {
   const organization = useOrganization();
-  const _search = useLogsSearch();
+  const _search = useQueryParamsSearch();
   const baseSearch = useLogsFrozenSearch();
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
@@ -161,12 +162,13 @@ export function useLogsAggregatesQuery({
 
 function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) {
   const organization = useOrganization();
-  const _search = useLogsSearch();
+  const _search = useQueryParamsSearch();
   const baseSearch = useLogsFrozenSearch();
   const cursor = useQueryParamsCursor();
   const _fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
   const frozenTraceIds = useLogsFrozenTraceIds();
+  const frozenReplayInfo = useLogsFrozenReplayInfo();
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsFrozenProjectIds();
@@ -191,11 +193,22 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
     dataset,
     projectIds ?? pageFilters.projects
   );
+
+  const eventViewPayload = eventView.getEventsAPIPayload(location);
+
+  if (frozenReplayInfo.replayId) {
+    delete eventViewPayload.statsPeriod;
+    eventViewPayload.start = frozenReplayInfo.replayStartedAt?.toISOString();
+    eventViewPayload.end = frozenReplayInfo.replayEndedAt?.toISOString();
+  }
+
   const params = {
     query: {
-      ...eventView.getEventsAPIPayload(location),
+      ...eventViewPayload,
       ...(frozenTraceIds ? {traceId: frozenTraceIds} : {}),
+      ...(frozenReplayInfo.replayId ? {replayId: frozenReplayInfo.replayId} : {}),
       cursor,
+      orderby: eventViewPayload.sort,
       per_page: limit ? limit : undefined,
       referrer,
     },
@@ -203,8 +216,11 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
     eventView,
   };
 
+  const endpointSuffix =
+    frozenTraceIds || frozenReplayInfo.replayId ? 'trace-logs' : 'events';
+
   const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/${frozenTraceIds ? 'trace-logs' : 'events'}/`,
+    `/organizations/${organization.slug}/${endpointSuffix}/`,
     params,
   ];
 

@@ -69,6 +69,7 @@ class ListProjectKeysTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 200
         assert response.data[0]["dsn"]["otlp_logs"] == key.otlp_logs_endpoint
+        assert "integration/otlp/v1/logs" in response.data[0]["dsn"]["otlp_logs"]
 
     def test_use_case(self) -> None:
         """Regular user can access user DSNs but not internal DSNs"""

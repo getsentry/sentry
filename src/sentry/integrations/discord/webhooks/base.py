@@ -11,6 +11,10 @@ from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
+from sentry.integrations.discord.analytics import (
+    DiscordIntegrationCommandInteractionReceived,
+    DiscordIntegrationMessageInteractionReceived,
+)
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.discord.webhooks.command import DiscordCommandHandler
 from sentry.integrations.discord.webhooks.message_component import DiscordMessageComponentHandler
@@ -58,15 +62,17 @@ class DiscordInteractionsEndpoint(Endpoint):
 
             elif discord_request.is_command():
                 analytics.record(
-                    "integrations.discord.command_interaction",
-                    command_name=discord_request.get_command_name(),
+                    DiscordIntegrationCommandInteractionReceived(
+                        command_name=discord_request.get_command_name(),
+                    )
                 )
                 return DiscordCommandHandler(discord_request).handle()
 
             elif discord_request.is_message_component():
                 analytics.record(
-                    "integrations.discord.message_interaction",
-                    custom_id=discord_request.get_component_custom_id(),
+                    DiscordIntegrationMessageInteractionReceived(
+                        custom_id=discord_request.get_component_custom_id(),
+                    )
                 )
                 return DiscordMessageComponentHandler(discord_request).handle()
 

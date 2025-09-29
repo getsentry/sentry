@@ -173,6 +173,7 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
 export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
   Header: () => (
     <Tooltip
+      isHoverable
       title={tct(
         'A dead click is a user click that does not result in any page activity after 7 seconds. Requires SDK version >= [minSDK]. [link:Learn more.]',
         {
@@ -216,6 +217,7 @@ export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
 export const ReplayCountErrorsColumn: ReplayTableColumn = {
   Header: () => (
     <Tooltip
+      isHoverable
       title={tct(
         'The error count only reflects errors generated within the Replay SDK. [inboundFilters:Inbound Filters] may have prevented those errors from being saved. [perfIssue:Performance] and other [replayIssue:error] types may have been added afterwards.',
         {
@@ -266,6 +268,7 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
 export const ReplayCountRageClicksColumn: ReplayTableColumn = {
   Header: () => (
     <Tooltip
+      isHoverable
       title={tct(
         'A rage click is 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds. Requires SDK version >= [minSDK]. [link:Learn more.]',
         {
@@ -438,10 +441,6 @@ export const ReplaySelectColumn: ReplayTableColumn = {
     },
     replays,
   }) => {
-    const organization = useOrganization();
-    if (!organization.features.includes('replay-list-select')) {
-      return null;
-    }
     return (
       <CheckboxHeaderContainer>
         <Checkbox
@@ -469,7 +468,6 @@ export const ReplaySelectColumn: ReplayTableColumn = {
   interactive: true,
   sortKey: undefined,
   Component: ({replay}) => {
-    const organization = useOrganization();
     const {isSelected, toggleSelected} = useListItemCheckboxContext();
     if (replay.is_archived) {
       return null;
@@ -477,18 +475,16 @@ export const ReplaySelectColumn: ReplayTableColumn = {
     return (
       <CheckboxClickCapture onClick={e => e.stopPropagation()}>
         <CheckboxCellContainer>
-          {organization.features.includes('replay-list-select') ? (
-            <CheckboxClickTarget htmlFor={`replay-table-select-${replay.id}`}>
-              <Checkbox
-                id={`replay-table-select-${replay.id}`}
-                disabled={isSelected(replay.id) === 'all-selected'}
-                checked={isSelected(replay.id) !== false}
-                onChange={() => {
-                  toggleSelected(replay.id);
-                }}
-              />
-            </CheckboxClickTarget>
-          ) : null}
+          <CheckboxClickTarget htmlFor={`replay-table-select-${replay.id}`}>
+            <Checkbox
+              id={`replay-table-select-${replay.id}`}
+              disabled={isSelected(replay.id) === 'all-selected'}
+              checked={isSelected(replay.id) !== false}
+              onChange={() => {
+                toggleSelected(replay.id);
+              }}
+            />
+          </CheckboxClickTarget>
 
           <Tooltip title={t('Unread')} skipWrapper disabled={Boolean(replay.has_viewed)}>
             <UnreadIndicator data-has-viewed={replay.has_viewed} />

@@ -1,6 +1,5 @@
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Text} from 'sentry/components/core/text';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
 const GHA_WORKFLOW_SNIPPET = `
@@ -17,28 +16,26 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 2
-      - name: Set up Python 3.11
+
+      - name: Set up Python
         uses: actions/setup-python@v3
-        with:
-          python-version: 3.11
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Test with pytest
-        run: |
-          pytest --cov --junitxml=junit.xml
-      # Copy and paste the getsentry/prevent-action here
-      - name: Upload test results to Prevent
-        if: \${{ !cancelled() }}
-        uses: getsentry/prevent-action
 
-      - name: Upload coverage to Prevent
-        uses: getsentry/prevent-action
-`;
+      - name: Test with pytest
+        run: pytest --cov --junitxml=junit.xml
+
+      # Copy and paste the getsentry/prevent-action here
+      - name: Upload test results to Sentry Prevent
+        if: \${{ !cancelled() }}
+        uses: getsentry/prevent-action@v0
+`.trim();
 
 export function GHAWorkflowExpandable() {
   return (
@@ -46,15 +43,15 @@ export function GHAWorkflowExpandable() {
       triggerContent={
         <div>
           {tct(
-            'A GitHub Actions workflow for a repository using [pytest] might look something like this:',
+            'A GitHub Actions workflow for a repository using [code:pytest] might look something like this:',
             {
-              pytest: <Text variant="promotion">{t('pytest')}</Text>,
+              code: <code />,
             }
           )}
         </div>
       }
     >
-      <CodeSnippet dark language="yaml">
+      <CodeSnippet dark language="yaml" linesToHighlight={[8, 9, 10, 29, 30, 31, 32]}>
         {GHA_WORKFLOW_SNIPPET}
       </CodeSnippet>
     </OnboardingStep.ExpandableDropdown>

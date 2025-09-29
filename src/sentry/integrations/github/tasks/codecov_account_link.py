@@ -13,6 +13,8 @@ from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
 
+account_link_endpoint = "/sentry/internal/account/link/"
+
 
 @instrumented_task(
     name="sentry.integrations.github.tasks.codecov_account_link",
@@ -86,7 +88,7 @@ def codecov_account_link(
         }
 
         response = codecov_client.post(
-            endpoint="/internal/account/link/",
+            endpoint=account_link_endpoint,
             json=request_data,
         )
 

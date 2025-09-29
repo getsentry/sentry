@@ -192,12 +192,6 @@ def traces_sampler(sampling_context):
     if sampling_context["parent_sampled"] is not None:
         return sampling_context["parent_sampled"]
 
-    if "celery_job" in sampling_context:
-        task_name = sampling_context["celery_job"].get("task")
-
-        if task_name in SAMPLED_TASKS:
-            return SAMPLED_TASKS[task_name]
-
     if "taskworker" in sampling_context:
         task_name = sampling_context["taskworker"].get("task")
 

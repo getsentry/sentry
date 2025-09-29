@@ -117,7 +117,11 @@ function useExploreTimeseriesImpl({
     };
   }, [query, yAxes, interval, fields, orderby, topEvents, enabled, queryExtras]);
 
-  const timeseriesResult = useSortedTimeSeries(options, 'api.explorer.stats', dataset);
+  const timeseriesResult = useSortedTimeSeries(
+    options,
+    'api.explore.spans-stats',
+    dataset
+  );
 
   return {
     result: timeseriesResult,

@@ -4,8 +4,9 @@ import pytest
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.serializers import ValidationError
 
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
+from sentry.workflow_engine.endpoints.serializers.workflow_serializer import WorkflowSerializer
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import (
     Action,
@@ -637,8 +638,8 @@ class TestWorkflowValidatorUpdate(TestCase):
                 "id": action.id,
                 "type": Action.Type.EMAIL,
                 "config": {
-                    "targetIdentifier": "foo",
-                    "targetType": 0,
+                    "targetIdentifier": str(self.user.id),
+                    "targetType": ActionTarget.USER,
                 },
                 "data": {},
             }
@@ -668,8 +669,8 @@ class TestWorkflowValidatorUpdate(TestCase):
         new_action = Action.objects.create(
             type=Action.Type.EMAIL,
             config={
-                "target_identifier": "foo",
-                "target_type": 0,
+                "target_identifier": str(self.user.id),
+                "target_type": ActionTarget.USER,
             },
             data={},
             integration_id=1,

@@ -1,14 +1,16 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {AnimatePresence, motion} from 'framer-motion';
 import moment from 'moment-timezone';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import Panel from 'sentry/components/panels/panel';
+import {Container, Flex} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Placeholder from 'sentry/components/placeholder';
-import {IconChevron, IconLightning, IconLock} from 'sentry/icons';
+import {IconChevron, IconLightning, IconLock, IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -16,8 +18,11 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 
+import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
+import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 import {
+  AddOnCategory,
   InvoiceItemType,
   OnDemandBudgetMode,
   type Plan,
@@ -29,6 +34,7 @@ import {
   getPlanIcon,
   getProductIcon,
   hasPartnerMigrationFeature,
+  isBizPlanFamily,
   isDeveloperPlan,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
@@ -51,7 +57,6 @@ interface CartProps {
   activePlan: Plan;
   formData: CheckoutFormData;
   formDataForPreview: CheckoutFormData;
-  hasCompleteBillingDetails: boolean;
   onSuccess: ({
     invoice,
     nextQueryParams,
@@ -108,6 +113,7 @@ interface TotalSummaryProps extends BaseSummaryProps {
   billedTotal: number;
   buttonDisabled: boolean;
   effectiveDate: Date | null;
+  isOpen: boolean;
   isSubmitting: boolean;
   onSubmit: (applyNow?: boolean) => void;
   organization: Organization;
@@ -116,6 +122,14 @@ interface TotalSummaryProps extends BaseSummaryProps {
   previewDataLoading: boolean;
   renewalDate: Date | null;
   subscription: Subscription;
+}
+
+function ItemFlex({children}: {children: React.ReactNode}) {
+  return (
+    <StyledFlex justify="between" align="start" gap="3xl">
+      {children}
+    </StyledFlex>
+  );
 }
 
 function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
@@ -128,16 +142,16 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
   const shortInterval = utils.getShortInterval(activePlan.billingInterval);
 
   return (
-    <SummarySection>
+    <Flex direction="column" padding="0 xl" gap="2xl">
       <ItemWithIcon data-test-id="summary-item-plan">
         <IconContainer>{getPlanIcon(activePlan)}</IconContainer>
         <Flex direction="column" gap="xs">
           <ItemFlex>
-            <strong>{tct('[name] Plan', {name: activePlan.name})}</strong>
-            <div>
+            <Text bold>{tct('[name] Plan', {name: activePlan.name})}</Text>
+            <Text>
               {utils.displayPrice({cents: activePlan.totalPrice})}
               {`/${shortInterval}`}
-            </div>
+            </Text>
           </ItemFlex>
           {activePlan.categories
             .filter(
@@ -162,11 +176,15 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                 cents: price,
               });
               const formattedReserved = formatReservedWithUnits(reserved, category);
+              const hasPaygForCategory =
+                formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.PER_CATEGORY
+                  ? (formData.onDemandBudget?.budgets?.[category] ?? 0) > 0
+                  : (formData.onDemandBudget?.sharedMaxBudget ?? 0) > 0;
 
               return (
                 <ItemFlex key={category}>
                   <div>
-                    {isPaygOnly ? '' : `${formattedReserved} `}
+                    <Text>{isPaygOnly ? '' : `${formattedReserved} `}</Text>
                     {reserved === 1 && category !== DataCategory.ATTACHMENTS
                       ? getSingularCategoryName({
                           plan: activePlan,
@@ -184,13 +202,23 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                       {formattedPrice}/{shortInterval}
                     </div>
                   ) : (
-                    isPaygOnly && (
-                      <Tag>
-                        {tct('Available with [budgetTerm]', {
-                          budgetTerm: activePlan.budgetTerm,
-                        })}
-                      </Tag>
-                    )
+                    isPaygOnly &&
+                    (hasPaygForCategory ? (
+                      <Tag>{t('Available')}</Tag>
+                    ) : (
+                      <Tooltip
+                        title={t('This product is only available with a PAYG budget.')}
+                      >
+                        <Tag icon={<IconLock locked size="xs" />}>
+                          {tct('Unlock with [budgetTerm]', {
+                            budgetTerm:
+                              activePlan.budgetTerm === 'pay-as-you-go'
+                                ? 'PAYG'
+                                : activePlan.budgetTerm,
+                          })}
+                        </Tag>
+                      </Tooltip>
+                    ))
                   )}
                 </ItemFlex>
               );
@@ -209,6 +237,9 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
           const productIcon = getProductIcon(
             budgetTypeInfo.apiName as string as SelectableProduct
           );
+          const productName =
+            activePlan.addOnCategories[budgetTypeInfo.apiName as unknown as AddOnCategory]
+              ?.productName ?? budgetTypeInfo.productCheckoutName;
 
           return (
             <ItemWithIcon
@@ -219,7 +250,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
               <Flex direction="column" gap="xs">
                 <ItemFlex>
                   <strong>
-                    {toTitleCase(budgetTypeInfo.productCheckoutName, {
+                    {toTitleCase(productName, {
                       allowInnerUpperCase: true,
                     })}
                   </strong>
@@ -246,7 +277,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
             </ItemWithIcon>
           );
         })}
-    </SummarySection>
+    </Flex>
   );
 }
 
@@ -264,83 +295,115 @@ function SubtotalSummary({
       selectedProducts: formData.selectedProducts,
     });
   }, [activePlan, formData.reserved, formData.selectedProducts]);
+  const isDefaultPaygAmount = useMemo(() => {
+    const defaultAmount = isBizPlanFamily(activePlan)
+      ? PAYG_BUSINESS_DEFAULT
+      : PAYG_TEAM_DEFAULT;
+    return formData.onDemandMaxSpend === defaultAmount;
+  }, [activePlan, formData.onDemandMaxSpend]);
 
   return (
-    <SummarySection>
-      {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.SHARED &&
-        !!formData.onDemandMaxSpend && (
-          <Item data-test-id="summary-item-spend-cap">
-            <ItemFlex>
-              <div>
-                {tct('[budgetTerm] spend cap', {
-                  budgetTerm: capitalize(activePlan.budgetTerm),
-                })}
-              </div>
-              <div>
-                $0-
-                {utils.displayPrice({
-                  cents: formData.onDemandMaxSpend,
-                })}
-                /mo
-              </div>
-            </ItemFlex>
-          </Item>
-        )}
-      {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.PER_CATEGORY &&
-        Object.entries(formData.onDemandBudget?.budgets ?? {})
-          .filter(([_, budget]) => budget > 0)
-          .map(([category, budget]) => {
-            return (
-              <Item key={category} data-test-id={`summary-item-spend-cap-${category}`}>
-                <ItemFlex>
-                  <div>
-                    {tct('[categoryName] [budgetTerm] spend cap', {
-                      categoryName: getPlanCategoryName({
-                        plan: activePlan,
-                        category: category as DataCategory,
-                      }),
-                      budgetTerm: activePlan.budgetTerm,
-                    })}
-                  </div>
-                  <div>
-                    $0-
-                    {utils.displayPrice({
-                      cents: budget,
-                    })}
-                    /mo
-                  </div>
-                </ItemFlex>
-              </Item>
-            );
-          })}
-      <Item data-test-id="summary-item-plan-total">
-        <ItemFlex>
-          <strong>{t('Plan Total')}</strong>
+    <Container borderTop="primary">
+      <Flex direction="column" padding="2xl xl" gap="md">
+        <Item data-test-id="summary-item-plan-total">
+          <ItemFlex>
+            <strong>{t('Plan Total')}</strong>
+            {previewDataLoading ? (
+              <Placeholder height="16px" width={PRICE_PLACEHOLDER_WIDTH} />
+            ) : (
+              <span>
+                {utils.displayPrice({cents: recurringSubtotal})}/{shortInterval}
+              </span>
+            )}
+          </ItemFlex>
           {previewDataLoading ? (
-            <Placeholder height="16px" width={PRICE_PLACEHOLDER_WIDTH} />
+            <Placeholder height="14px" width="200px" />
           ) : (
-            <span>
-              {utils.displayPrice({cents: recurringSubtotal})}/{shortInterval}
-            </span>
+            renewalDate && (
+              <RenewalDate>
+                {tct('Renews [date]', {
+                  date: moment(renewalDate).format('MMM D, YYYY'),
+                })}
+              </RenewalDate>
+            )
           )}
-        </ItemFlex>
-        {previewDataLoading ? (
-          <Placeholder height="14px" width="200px" />
-        ) : (
-          renewalDate && (
-            <RenewalDate>
-              {tct('Renews [date]', {
-                date: moment(renewalDate).format('MMM D, YYYY'),
-              })}
-            </RenewalDate>
-          )
-        )}
-      </Item>
-    </SummarySection>
+        </Item>
+        {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.SHARED &&
+          !!formData.onDemandMaxSpend && (
+            <Item data-test-id="summary-item-spend-limit">
+              <ItemFlex>
+                <div>
+                  {tct('[budgetTerm] spend limit', {
+                    budgetTerm: capitalize(activePlan.budgetTerm),
+                  })}
+                </div>
+                <Flex direction="column" gap="sm" align="end">
+                  <Text>
+                    {tct('up to [pricePerMonth]', {
+                      pricePerMonth: `${utils.displayPrice({
+                        cents: formData.onDemandMaxSpend,
+                      })}/mo`,
+                    })}
+                  </Text>
+                  <AnimatePresence>
+                    {isDefaultPaygAmount && (
+                      <motion.div
+                        initial={{opacity: 0, y: -10}}
+                        animate={{opacity: 1, y: 0}}
+                        exit={{opacity: 0, y: -10}}
+                        transition={{
+                          type: 'spring',
+                          duration: 0.4,
+                          bounce: 0.1,
+                        }}
+                      >
+                        <Tag icon={<IconSentry size="xs" />} type="info">
+                          <Text size="xs">{t('Default Amount')}</Text>
+                        </Tag>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </Flex>
+              </ItemFlex>
+            </Item>
+          )}
+        {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.PER_CATEGORY &&
+          Object.entries(formData.onDemandBudget?.budgets ?? {})
+            .filter(([_, budget]) => budget > 0)
+            .map(([category, budget]) => {
+              return (
+                <Item
+                  key={category}
+                  data-test-id={`summary-item-spend-limit-${category}`}
+                >
+                  <ItemFlex>
+                    <div>
+                      {tct('[categoryName] [budgetTerm] spend limit', {
+                        categoryName: getPlanCategoryName({
+                          plan: activePlan,
+                          category: category as DataCategory,
+                        }),
+                        budgetTerm: activePlan.budgetTerm,
+                      })}
+                    </div>
+                    <Text>
+                      {tct('up to [pricePerMonth]', {
+                        pricePerMonth: `${utils.displayPrice({
+                          cents: budget,
+                        })}/mo`,
+                      })}
+                    </Text>
+                  </ItemFlex>
+                </Item>
+              );
+            })}
+      </Flex>
+    </Container>
   );
 }
 
 function TotalSummary({
+  isOpen,
   previewData,
   previewDataLoading,
   originalBilledTotal,
@@ -404,9 +467,9 @@ function TotalSummary({
     }
 
     let subtext = null;
-    if (longInterval === 'yearly') {
+    if (isDeveloperPlan(activePlan) || !totalOnDemandBudget) {
       subtext = tct(
-        '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate]. Any additional usage will continue to be billed monthly.',
+        '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate].',
         {
           effectiveDateSubtext,
           longInterval,
@@ -415,18 +478,14 @@ function TotalSummary({
       );
     } else {
       subtext = tct(
-        '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate], plus any additional usage[onDemandLimit].',
+        '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate], plus any additional PAYG usage billed monthly (up to [onDemandMaxSpend]/mo).',
         {
           effectiveDateSubtext,
           longInterval,
           renewalDate: moment(renewalDate).format('MMM D, YYYY'),
-          onDemandLimit: totalOnDemandBudget
-            ? tct(' (up to [onDemandMaxSpend]/month)', {
-                onDemandMaxSpend: utils.displayPrice({
-                  cents: totalOnDemandBudget,
-                }),
-              })
-            : '',
+          onDemandMaxSpend: utils.displayPrice({
+            cents: totalOnDemandBudget,
+          }),
         }
       );
     }
@@ -440,98 +499,131 @@ function TotalSummary({
     invoiceItems: previewData?.invoiceItems ?? [],
   });
 
+  const buttonText = isMigratingPartner
+    ? t('Schedule changes')
+    : isDueToday
+      ? t('Confirm and pay')
+      : t('Confirm');
+
   return (
-    <SummarySection>
-      {!previewDataLoading && isDueToday && (
-        <Fragment>
-          {fees.map(item => {
-            const formattedPrice = utils.displayPrice({cents: item.amount});
-            return (
-              <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
-                <ItemFlex>
-                  <div>{item.description}</div>
-                  <div>{formattedPrice}</div>
-                </ItemFlex>
-              </Item>
-            );
-          })}
-          {!!creditApplied && (
-            <Item data-test-id="summary-item-credit_applied">
-              <ItemFlex>
-                <div>{t('Credit applied')}</div>
-                <Credit>{utils.displayPrice({cents: -creditApplied})}</Credit>
-              </ItemFlex>
-            </Item>
-          )}
-          {credits.map(item => {
-            const formattedPrice = utils.displayPrice({cents: item.amount});
-            return (
-              <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
-                <ItemFlex>
-                  <div>{item.description}</div>
-                  <div>{formattedPrice}</div>
-                </ItemFlex>
-              </Item>
-            );
-          })}
-        </Fragment>
-      )}
-      <Item data-test-id="summary-item-due-today">
-        <ItemFlex>
-          <DueToday>{t('Due today')}</DueToday>
-          {previewDataLoading ? (
-            <Placeholder height="24px" width={PRICE_PLACEHOLDER_WIDTH} />
-          ) : (
-            <DueTodayPrice>
-              {originalBilledTotal > billedTotal && (
-                <DueTodayAmountBeforeDiscount>
-                  {utils.displayPrice({
-                    cents: originalBilledTotal,
-                  })}{' '}
-                </DueTodayAmountBeforeDiscount>
-              )}
-              <DueTodayAmount>
-                {utils.displayPrice({
-                  cents: billedTotal,
+    <Flex direction="column">
+      <Flex direction="column" padding="2xl xl 0" gap="md" borderTop="primary">
+        {isOpen && (
+          <Fragment>
+            {!previewDataLoading && (
+              <Fragment>
+                {fees.map(item => {
+                  const formattedPrice = utils.displayPrice({cents: item.amount});
+                  return (
+                    <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
+                      <ItemFlex>
+                        <div>{item.description}</div>
+                        <div>{formattedPrice}</div>
+                      </ItemFlex>
+                    </Item>
+                  );
                 })}
-              </DueTodayAmount>
-              <span> USD</span>
-            </DueTodayPrice>
-          )}
-        </ItemFlex>
-      </Item>
-      <ButtonContainer>
-        {isMigratingPartner && (
-          <StyledButton
-            aria-label={t('Migrate Now')}
-            priority="danger"
-            onClick={() => onSubmit(true)}
-            disabled={buttonDisabled || previewDataLoading}
-            icon={<IconLightning />}
-          >
-            {isSubmitting ? t('Checking out...') : t('Migrate Now')}
-          </StyledButton>
+                {!!creditApplied && (
+                  <Item data-test-id="summary-item-credit_applied">
+                    <ItemFlex>
+                      <div>{t('Credit applied')}</div>
+                      <Credit>{utils.displayPrice({cents: -creditApplied})}</Credit>
+                    </ItemFlex>
+                  </Item>
+                )}
+                {credits.map(item => {
+                  const formattedPrice = utils.displayPrice({cents: item.amount});
+                  return (
+                    <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
+                      <ItemFlex>
+                        <div>{item.description}</div>
+                        <div>{formattedPrice}</div>
+                      </ItemFlex>
+                    </Item>
+                  );
+                })}
+              </Fragment>
+            )}
+          </Fragment>
         )}
-        <StyledButton
-          aria-label={isMigratingPartner ? t('Schedule changes') : t('Confirm and pay')}
-          priority="primary"
-          onClick={() => onSubmit()}
-          disabled={buttonDisabled || previewDataLoading}
-          icon={<IconLock locked />}
-        >
-          {isSubmitting
-            ? t('Checking out...')
-            : isMigratingPartner
-              ? t('Schedule changes')
-              : t('Confirm and pay')}
-        </StyledButton>
-      </ButtonContainer>
-      {previewDataLoading ? (
-        <Placeholder height="40px" />
-      ) : (
-        <Subtext>{getSubtext()}</Subtext>
-      )}
-    </SummarySection>
+        <Item data-test-id="summary-item-due-today">
+          <ItemFlex>
+            <Text bold size="lg">
+              {isDueToday
+                ? t('Due today')
+                : tct('Due on [date]', {
+                    date: moment(effectiveDate).format('MMM D, YYYY'),
+                  })}
+            </Text>
+            {previewDataLoading ? (
+              <Placeholder height="24px" width={PRICE_PLACEHOLDER_WIDTH} />
+            ) : (
+              <Container>
+                {isDueToday ? (
+                  <Fragment>
+                    {originalBilledTotal > billedTotal && (
+                      <Text strikethrough variant="muted" size="2xl" bold>
+                        {utils.displayPrice({
+                          cents: originalBilledTotal,
+                        })}{' '}
+                      </Text>
+                    )}
+                    <Text size="2xl" bold>
+                      {utils.displayPrice({
+                        cents: billedTotal,
+                      })}
+                    </Text>
+                  </Fragment>
+                ) : (
+                  <Text size="2xl" bold>
+                    {utils.displayPrice({
+                      cents: billedTotal,
+                    })}
+                  </Text>
+                )}
+                <Text size="md"> USD</Text>
+              </Container>
+            )}
+          </ItemFlex>
+        </Item>
+      </Flex>
+      <Flex direction="column" padding="2xl xl" gap="md">
+        <Flex gap="sm" justify="between" align="center">
+          {isMigratingPartner && (
+            <StyledButton
+              aria-label={t('Migrate Now')}
+              priority="danger"
+              onClick={() => onSubmit(true)}
+              disabled={buttonDisabled || previewDataLoading}
+              icon={<IconLightning />}
+            >
+              {isSubmitting ? t('Checking out...') : t('Migrate Now')}
+            </StyledButton>
+          )}
+          <StyledButton
+            aria-label={buttonText}
+            priority="primary"
+            onClick={() => onSubmit()}
+            disabled={buttonDisabled || previewDataLoading}
+            title={
+              buttonDisabled
+                ? t(
+                    'Please provide your billing information, including your business address and payment method'
+                  )
+                : null
+            }
+            icon={<IconLock locked />}
+          >
+            {isSubmitting ? t('Checking out...') : buttonText}
+          </StyledButton>
+        </Flex>
+        {previewDataLoading ? (
+          <Placeholder height="40px" />
+        ) : (
+          <Subtext>{getSubtext()}</Subtext>
+        )}
+      </Flex>
+    </Flex>
   );
 }
 
@@ -542,7 +634,6 @@ function Cart({
   organization,
   referrer,
   formDataForPreview,
-  hasCompleteBillingDetails,
   onSuccess,
 }: CartProps) {
   const [previewState, setPreviewState] = useState<CartPreviewState>(NULL_PREVIEW_STATE);
@@ -552,10 +643,21 @@ function Cart({
   const [summaryIsOpen, setSummaryIsOpen] = useState(true);
   const [changesIsOpen, setChangesIsOpen] = useState(true);
   const api = useApi();
+  const {data: billingDetails} = useBillingDetails();
+  const hasCompleteBillingInfo = useMemo(
+    () => utils.hasBillingInfo(billingDetails, subscription, true),
+    [billingDetails, subscription]
+  );
 
   const resetPreviewState = () => setPreviewState(NULL_PREVIEW_STATE);
 
   const fetchPreview = useCallback(async () => {
+    if (!hasCompleteBillingInfo) {
+      // NOTE: this should never be necessary because you cannot clear
+      // existing billing info, BUT YA NEVER KNOW
+      resetPreviewState();
+      return;
+    }
     await utils.fetchPreviewData(
       organization,
       api,
@@ -583,23 +685,15 @@ function Cart({
             .add(1, 'day')
             .toDate();
 
-          if (atPeriodEnd) {
-            setPreviewState(prev => ({
-              ...prev,
-              originalBilledTotal: 0,
-              billedTotal: 0,
-              effectiveDate: moment(effectiveAt).add(1, 'day').toDate(),
-              renewalDate,
-            }));
-          } else {
-            setPreviewState(prev => ({
-              ...prev,
-              originalBilledTotal: proratedAmount,
-              billedTotal: billedAmount,
-              effectiveDate: null,
-              renewalDate,
-            }));
-          }
+          setPreviewState(prev => ({
+            ...prev,
+            originalBilledTotal: proratedAmount,
+            billedTotal: billedAmount,
+            effectiveDate: atPeriodEnd
+              ? moment(effectiveAt).add(1, 'day').toDate()
+              : null,
+            renewalDate,
+          }));
         } else {
           resetPreviewState();
         }
@@ -609,7 +703,13 @@ function Cart({
         resetPreviewState();
       }
     );
-  }, [api, formDataForPreview, organization, subscription.contractPeriodEnd]);
+  }, [
+    api,
+    formDataForPreview,
+    organization,
+    subscription.contractPeriodEnd,
+    hasCompleteBillingInfo,
+  ]);
 
   useEffect(() => {
     fetchPreview();
@@ -672,8 +772,7 @@ function Cart({
   };
 
   return (
-    <CartContainer data-test-id="cart">
-      {errorMessage && <Alert type="error">{errorMessage}</Alert>}
+    <Flex data-test-id="cart" direction="column" gap="xl" marginBottom="xl">
       <CartDiff
         activePlan={activePlan}
         formData={formData}
@@ -682,87 +781,56 @@ function Cart({
         onToggle={setChangesIsOpen}
         organization={organization}
       />
-      <PlanSummaryHeader isOpen={summaryIsOpen} shouldShadow={changesIsOpen}>
-        <Title>{t('Plan Summary')}</Title>
-        <Flex gap="xs" align="center">
-          <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
-          <Button
-            aria-label={`${summaryIsOpen ? 'Hide' : 'Show'} plan summary`}
-            onClick={() => setSummaryIsOpen(!summaryIsOpen)}
-            borderless
-            icon={<IconChevron direction={summaryIsOpen ? 'up' : 'down'} />}
-          />
+      <Flex direction="column" gap="sm" background="primary" radius="md" border="primary">
+        <Flex justify="between" align="center" gap="sm" padding="lg xl">
+          <Heading as="h2" textWrap="nowrap">
+            {t('Plan Summary')}
+          </Heading>
+          <Flex gap="xs" align="center">
+            <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
+            <Button
+              aria-label={summaryIsOpen ? t('Hide plan summary') : t('Show plan summary')}
+              onClick={() => setSummaryIsOpen(!summaryIsOpen)}
+              borderless
+              size="xs"
+              icon={<IconChevron direction={summaryIsOpen ? 'up' : 'down'} />}
+            />
+          </Flex>
         </Flex>
-      </PlanSummaryHeader>
-      {summaryIsOpen && (
-        <div data-test-id="plan-summary">
-          <ItemsSummary activePlan={activePlan} formData={formData} />
-          <SubtotalSummary
-            activePlan={activePlan}
-            formData={formData}
-            previewDataLoading={previewState.isLoading}
-            renewalDate={previewState.renewalDate}
-          />
-        </div>
-      )}
-      <TotalSummary
-        activePlan={activePlan}
-        billedTotal={previewState.billedTotal}
-        buttonDisabled={!hasCompleteBillingDetails}
-        formData={formData}
-        isSubmitting={isSubmitting}
-        originalBilledTotal={previewState.originalBilledTotal}
-        previewData={previewState.previewData}
-        previewDataLoading={previewState.isLoading}
-        renewalDate={previewState.renewalDate}
-        effectiveDate={previewState.effectiveDate}
-        onSubmit={handleConfirmAndPay}
-        organization={organization}
-        subscription={subscription}
-      />
-    </CartContainer>
+        {summaryIsOpen && (
+          <Flex direction="column" gap="lg" data-test-id="plan-summary">
+            {errorMessage && <Alert type="error">{errorMessage}</Alert>}
+            <ItemsSummary activePlan={activePlan} formData={formData} />
+            <SubtotalSummary
+              activePlan={activePlan}
+              formData={formData}
+              previewDataLoading={previewState.isLoading}
+              renewalDate={previewState.renewalDate}
+            />
+          </Flex>
+        )}
+        <TotalSummary
+          isOpen={summaryIsOpen}
+          activePlan={activePlan}
+          billedTotal={previewState.billedTotal}
+          buttonDisabled={!hasCompleteBillingInfo}
+          formData={formData}
+          isSubmitting={isSubmitting}
+          originalBilledTotal={previewState.originalBilledTotal}
+          previewData={previewState.previewData}
+          previewDataLoading={previewState.isLoading}
+          renewalDate={previewState.renewalDate}
+          effectiveDate={previewState.effectiveDate}
+          onSubmit={handleConfirmAndPay}
+          organization={organization}
+          subscription={subscription}
+        />
+      </Flex>
+    </Flex>
   );
 }
 
 export default Cart;
-
-const CartContainer = styled(Panel)`
-  display: flex;
-  flex-direction: column;
-`;
-
-const SummarySection = styled('div')`
-  display: flex;
-  flex-direction: column;
-  padding: 0 ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
-
-  & > *:not(:last-child) {
-    margin-bottom: ${p => p.theme.space.xl};
-  }
-
-  border-bottom: 1px solid ${p => p.theme.border};
-
-  &:not(:first-child) {
-    padding-top: ${p => p.theme.space['2xl']};
-  }
-`;
-
-const Title = styled('h1')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin: 0;
-  text-wrap: nowrap;
-`;
-
-const PlanSummaryHeader = styled('div')<{isOpen: boolean; shouldShadow: boolean}>`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: ${p => p.theme.space.xl};
-  border-bottom: ${p => (p.isOpen ? 'none' : `1px solid ${p.theme.border}`)};
-  box-shadow: ${p => (p.shouldShadow ? '0 -5px 5px #00000010' : 'none')};
-  gap: ${p => p.theme.space.sm};
-`;
 
 const OrgSlug = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
@@ -783,39 +851,26 @@ const ItemWithIcon = styled(Item)`
   gap: ${p => p.theme.space.xs};
 `;
 
-const ItemFlex = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${p => p.theme.space['3xl']};
+const StyledFlex = styled(Flex)`
+  line-height: 100%;
+
+  > * {
+    margin-bottom: ${p => p.theme.space.xs};
+  }
+
+  &:not(:first-child) {
+    color: ${p => p.theme.subText};
+  }
 `;
 
 const IconContainer = styled('div')`
   display: flex;
   align-items: center;
+  margin-top: 1px;
 `;
 
 const RenewalDate = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-`;
-
-const DueToday = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
-`;
-
-const DueTodayPrice = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
-`;
-
-const DueTodayAmount = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.xl};
-`;
-
-const DueTodayAmountBeforeDiscount = styled(DueTodayAmount)`
-  text-decoration: line-through;
   color: ${p => p.theme.subText};
 `;
 
@@ -825,19 +880,12 @@ const Credit = styled('div')`
 
 const StyledButton = styled(Button)`
   display: flex;
-  gap: ${p => p.theme.space.sm};
   flex-grow: 1;
-`;
-
-const ButtonContainer = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.sm};
-  justify-content: space-between;
   align-items: center;
+  justify-content: center;
 `;
 
 const Subtext = styled('div')`
-  margin-top: ${p => p.theme.space['2xl']};
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   text-align: center;
