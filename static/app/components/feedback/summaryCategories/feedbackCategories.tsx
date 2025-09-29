@@ -1,13 +1,15 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import useFeedbackCategories from 'sentry/components/feedback/list/useFeedbackCategories';
 import Placeholder from 'sentry/components/placeholder';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 
 function getSearchTermForLabel(label: string) {
   /**
@@ -40,6 +42,14 @@ export default function FeedbackCategories() {
 
   const location = useLocation();
   const navigate = useNavigate();
+  const organization = useOrganization();
+
+  useEffect(() => {
+    trackAnalytics('feedback.summary.categories-loaded', {
+      organization,
+      num_categories: categories ? categories.length : 0,
+    });
+  }, [organization, categories]);
 
   const currentQuery = useMemo(
     () => decodeScalar(location.query.query, ''),
@@ -52,7 +62,21 @@ export default function FeedbackCategories() {
   }
 
   // The assumption is that if categories are enabled, then summaries are definitely enabled, so we won't just be showing nothing in the summary section if there is an error/too few feedbacks/etc.
-  if (isError || tooFewFeedbacks || !categories || categories.length === 0) {
+  if (isError) {
+    trackAnalytics('feedback.summary.categories-error', {
+      organization,
+    });
+    return null;
+  }
+
+  if (tooFewFeedbacks) {
+    trackAnalytics('feedback.summary.categories-too-few-feedbacks', {
+      organization,
+    });
+    return null;
+  }
+
+  if (!categories || categories.length === 0) {
     return null;
   }
 
@@ -79,6 +103,11 @@ export default function FeedbackCategories() {
         exactSearchTerm,
         false
       );
+
+      trackAnalytics('feedback.summary.category-selected', {
+        organization,
+        category: category.primaryLabel,
+      });
     }
 
     navigate({
@@ -103,6 +132,10 @@ export default function FeedbackCategories() {
     // Only show a tag as selected if it is the only filter, and the search term matches exactly
     return currentFilters.length === 1 && currentFilters[0] === exactSearchTerm;
   };
+
+  trackAnalytics('feedback.summary.categories-rendered', {
+    organization,
+  });
 
   // TODO: after all feedbacks have the .labels tag, uncomment the feedback count
   return (

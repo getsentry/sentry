@@ -5,6 +5,7 @@ import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrga
 import useFeedbackSummary from 'sentry/components/feedback/list/useFeedbackSummary';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export default function FeedbackSummary() {
@@ -22,6 +23,10 @@ export default function FeedbackSummary() {
   }
 
   if (!setupAcknowledgement.orgHasAcknowledged) {
+    trackAnalytics('feedback.summary.seer-cta-rendered', {
+      organization,
+    });
+
     return (
       <SummaryContent>
         {tct(
@@ -33,14 +38,24 @@ export default function FeedbackSummary() {
   }
 
   if (isError) {
+    trackAnalytics('feedback.summary.summary-error', {
+      organization,
+    });
     return <SummaryContent>{t('Error summarizing feedback.')}</SummaryContent>;
   }
 
   if (tooFewFeedbacks) {
+    trackAnalytics('feedback.summary.summary-too-few-feedbacks', {
+      organization,
+    });
     return (
       <SummaryContent>{t('Not enough feedback to generate AI summary.')}</SummaryContent>
     );
   }
+
+  trackAnalytics('feedback.summary.summary-rendered', {
+    organization,
+  });
 
   return <SummaryContent>{summary}</SummaryContent>;
 }
