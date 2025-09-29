@@ -411,6 +411,8 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             tap_attributes: dict[str, Value] = {
                 "category": "ui.tap",
                 "message": payload["message"],
+                "view_id": as_string_strict(payload["view.id"]),
+                "view_class": as_string_strict(payload["view.class"]),
             }
             return {
                 "attributes": tap_attributes,
