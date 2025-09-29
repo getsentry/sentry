@@ -67,27 +67,31 @@ def assemble_download(
     export_retries: int = 3,
     **kwargs: Any,
 ) -> None:
+    # The API response to export the data contains the ID which you can use
+    # to filter the GCP logs
+    extra = {"data_export_id": data_export_id}
     with sentry_sdk.start_span(op="assemble"):
         first_page = offset == 0
 
         try:
             if first_page:
-                logger.info("dataexport.start", extra={"data_export_id": data_export_id})
+                logger.info("dataexport.start", extra=extra)
             data_export = ExportedData.objects.get(id=data_export_id)
             if first_page:
                 metrics.incr("dataexport.start", tags={"success": True}, sample_rate=1.0)
-            logger.info(
-                "dataexport.run", extra={"data_export_id": data_export_id, "offset": offset}
-            )
-        except ExportedData.DoesNotExist as error:
+        except ExportedData.DoesNotExist:
             if first_page:
                 metrics.incr("dataexport.start", tags={"success": False}, sample_rate=1.0)
-            logger.exception(str(error))
+            logger.exception("assemble_download: ExportedData.DoesNotExist", extra=extra)
             return
 
         _set_data_on_scope(data_export)
 
         base_bytes_written = bytes_written
+
+        extra.update(
+            {"query": str(data_export.payload), "organization_id": data_export.organization_id}
+        )
 
         try:
             # ensure that the export limit is set and capped at EXPORTED_ROWS_LIMIT
@@ -161,14 +165,11 @@ def assemble_download(
                     },
                 )
             else:
+                logger.exception("dataexport.ExportError", extra=extra)
                 return data_export.email_failure(message=str(error))
         except Exception as error:
             metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
-            logger.exception(
-                "dataexport.error: %s",
-                str(error),
-                extra={"query": data_export.payload, "org": data_export.organization_id},
-            )
+            logger.exception("dataexport.Exception", extra=extra)
             capture_exception(error)
 
             try:
@@ -332,14 +333,19 @@ def store_export_chunk_as_blob(
     ),
 )
 def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
+    extra = {"data_export_id": data_export_id}
     with sentry_sdk.start_span(op="merge"):
         try:
             data_export = ExportedData.objects.get(id=data_export_id)
-        except ExportedData.DoesNotExist as error:
-            logger.exception(str(error))
+        except ExportedData.DoesNotExist:
+            logger.exception("merge_export_blobs: ExportedData.DoesNotExist", extra=extra)
             return
 
         _set_data_on_scope(data_export)
+
+        extra.update(
+            {"query": str(data_export.payload), "organization_id": data_export.organization_id}
+        )
 
         # adapted from `putfile` in  `src/sentry/models/file.py`
         try:
@@ -388,7 +394,7 @@ def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
 
                 time_elapsed = (timezone.now() - data_export.date_added).total_seconds()
                 metrics.timing("dataexport.duration", time_elapsed, sample_rate=1.0)
-                logger.info("dataexport.end", extra={"data_export_id": data_export_id})
+                logger.info("dataexport.end", extra=extra)
                 metrics.incr("dataexport.end", tags={"success": True}, sample_rate=1.0)
         except Exception as error:
             metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
@@ -397,11 +403,7 @@ def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
                 tags={"success": False, "error": str(error)},
                 sample_rate=1.0,
             )
-            logger.exception(
-                "dataexport.error: %s",
-                str(error),
-                extra={"query": data_export.payload, "org": data_export.organization_id},
-            )
+            logger.exception("merge_export_blobs: Exception", extra=extra)
             capture_exception(error)
             if isinstance(error, IntegrityError):
                 message = "Failed to save the assembled file."
