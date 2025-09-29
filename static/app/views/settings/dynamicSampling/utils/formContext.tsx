@@ -95,7 +95,9 @@ const useFormState = <
 
   useEffect(() => {
     if (config.enableReInitialize) {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setInitialValues(config.initialValues);
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setValues(config.initialValues);
       setErrors({});
     }

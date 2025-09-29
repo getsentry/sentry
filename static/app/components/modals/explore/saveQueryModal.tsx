@@ -18,8 +18,8 @@ import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSetLogsSavedQueryInfo} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useSetExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
+import {useSetQueryParamsSavedQuery} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export type SaveQueryModalProps = {
@@ -49,17 +49,17 @@ function SaveQueryModal({
   const [starred, setStarred] = useState(true);
 
   const setExplorePageParams = useSetExplorePageParams();
-  const setLogsQuery = useSetLogsSavedQueryInfo();
+  const setQueryParamsSavedQuery = useSetQueryParamsSavedQuery();
 
   const updatePageIdAndTitle = useCallback(
     (id: string, title: string) => {
       if (traceItemDataset === TraceItemDataset.LOGS) {
-        setLogsQuery(id, title);
+        setQueryParamsSavedQuery(id, title);
       } else if (traceItemDataset === TraceItemDataset.SPANS) {
         setExplorePageParams({id, title});
       }
     },
-    [setExplorePageParams, setLogsQuery, traceItemDataset]
+    [setExplorePageParams, setQueryParamsSavedQuery, traceItemDataset]
   );
 
   const onSave = useCallback(async () => {

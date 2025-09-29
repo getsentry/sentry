@@ -50,14 +50,14 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
                 actions_block.elements.append(ButtonElement(text=action.label, url=action.link))
             blocks.append(actions_block)
 
-        if rendered_template.footer:
-            footer = SectionBlock(text=MarkdownTextObject(text=rendered_template.footer))
-            blocks.append(footer)
         if rendered_template.chart:
             chart = ImageBlock(
                 image_url=rendered_template.chart.url, alt_text=rendered_template.chart.alt_text
             )
             blocks.append(chart)
+        if rendered_template.footer:
+            footer = SectionBlock(text=MarkdownTextObject(text=rendered_template.footer))
+            blocks.append(footer)
 
         return SlackRenderable(blocks=blocks)
 

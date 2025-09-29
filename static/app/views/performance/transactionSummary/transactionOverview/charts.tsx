@@ -77,7 +77,6 @@ type Props = {
   location: Location;
   organization: Organization;
   totalValue: number | null;
-  withoutZerofill: boolean;
   project?: Project;
 };
 
@@ -87,7 +86,6 @@ function TransactionSummaryCharts({
   organization,
   location,
   currentFilter,
-  withoutZerofill,
   project,
 }: Props) {
   const navigate = useNavigate();
@@ -215,7 +213,6 @@ function TransactionSummaryCharts({
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
             currentFilter={currentFilter}
-            withoutZerofill={withoutZerofill}
             queryExtras={queryExtras}
           />
         )}
@@ -246,7 +243,6 @@ function TransactionSummaryCharts({
             start={eventView.start}
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
-            withoutZerofill={withoutZerofill}
             projects={project ? [project] : []}
             withBreakpoint={organization.features.includes('performance-new-trends')}
           />
@@ -261,7 +257,6 @@ function TransactionSummaryCharts({
             start={eventView.start}
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
-            withoutZerofill={withoutZerofill}
             queryExtras={queryExtras}
           />
         )}
@@ -275,7 +270,6 @@ function TransactionSummaryCharts({
             start={eventView.start}
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
-            withoutZerofill={withoutZerofill}
           />
         )}
       </ChartContainer>

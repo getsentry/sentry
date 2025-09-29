@@ -43,12 +43,12 @@ class SlackRendererTest(TestCase):
                 ],
                 "type": "actions",
             },
-            {"text": {"text": "This is a mock footer", "type": "mrkdwn"}, "type": "section"},
             {
                 "image_url": "https://raw.githubusercontent.com/knobiknows/all-the-bufo/main/all-the-bufo/bufo-pog.png",
                 "alt_text": "Bufo Pog",
                 "type": "image",
             },
+            {"text": {"text": "This is a mock footer", "type": "mrkdwn"}, "type": "section"},
         ]
 
 
