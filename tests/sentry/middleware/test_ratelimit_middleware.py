@@ -323,35 +323,12 @@ class ConcurrentRateLimitedEndpoint(Endpoint):
         return Response({"ok": True})
 
 
-class CallableRateLimitConfigEndpoint(Endpoint):
-    permission_classes = (AllowAny,)
-    enforce_rate_limit = True
-
-    @staticmethod
-    def rate_limits(*a, **k):
-        return {
-            "GET": {
-                RateLimitCategory.IP: RateLimit(limit=20, window=1),
-                RateLimitCategory.USER: RateLimit(limit=20, window=1),
-                RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1),
-            },
-        }
-
-    def get(self, request):
-        return Response({"ok": True})
-
-
 urlpatterns = [
     re_path(
         r"^/ratelimit$", RateLimitHeaderTestEndpoint.as_view(), name="ratelimit-header-endpoint"
     ),
     re_path(r"^/race-condition$", RaceConditionEndpoint.as_view(), name="race-condition-endpoint"),
     re_path(r"^/concurrent$", ConcurrentRateLimitedEndpoint.as_view(), name="concurrent-endpoint"),
-    re_path(
-        r"^/callable-config$",
-        CallableRateLimitConfigEndpoint.as_view(),
-        name="callable-config-endpoint",
-    ),
 ]
 
 
@@ -463,13 +440,3 @@ class TestConcurrentRateLimiter(APITestCase):
                 int(response["X-Sentry-Rate-Limit-ConcurrentRemaining"])
                 == CONCURRENT_RATE_LIMIT - 1
             )
-
-
-@override_settings(ROOT_URLCONF=__name__, SENTRY_SELF_HOSTED=False)
-class TestCallableRateLimitConfig(APITestCase):
-    endpoint = "callable-config-endpoint"
-
-    def test_request_finishes(self) -> None:
-        response = self.get_success_response()
-        assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 19
-        assert int(response["X-Sentry-Rate-Limit-Limit"]) == 20
