@@ -6,8 +6,10 @@ from django.test import override_settings
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import test_tasks
-from sentry.taskworker.retry import RetryError
+from sentry.taskworker.registry import TaskRegistry
+from sentry.taskworker.retry import Retry, RetryError
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 
 
@@ -191,3 +193,25 @@ def test_retry_timeout_disabled(capture_exception, current_task) -> None:
 
     assert capture_exception.call_count == 0
     assert current_task.retry.call_count == 0
+
+
+def test_instrumented_task_parameters() -> None:
+    registry = TaskRegistry()
+    namespace = registry.create_namespace("registertest")
+
+    @instrumented_task(
+        name="hello_task",
+        namespace=namespace,
+        retry=Retry(times=3, on=(RuntimeError,)),
+        processing_deadline_duration=60,
+        compression_type=CompressionType.ZSTD,
+    )
+    def hello_task():
+        pass
+
+    decorated = namespace.get("hello_task")
+    assert decorated
+    assert decorated.compression_type == CompressionType.ZSTD
+    assert decorated.retry
+    assert decorated.retry._times == 3
+    assert decorated.retry._allowed_exception_types == (RuntimeError,)
