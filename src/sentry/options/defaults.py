@@ -3097,12 +3097,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "delayed_workflow.use_workflow_engine_pool",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "delayed_workflow.rollout",
     type=Bool,
     default=False,
@@ -3138,23 +3132,6 @@ register(
     "workflow_engine.issue_alert.group.type_id.ga",
     type=Sequence,
     default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "workflow_engine.buffer.use_new_buffer",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Control whether delayed workflow engine evaluation is done
-# via the old process_pending_batch task with rules delayed processing, or
-# via the new schedule_delayed_workflows task.
-# NB: These tasks are allowed to run concurrently, so a naive switch here
-# may result in duplicate processing.
-register(
-    "workflow_engine.use_new_scheduling_task",
-    type=Bool,
-    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
