@@ -74,8 +74,8 @@ import type {PickableDays} from 'sentry/views/explore/utils';
 type MetricsTabContentProps = PickableDays;
 
 interface MetricNameInputProps {
-  value: string;
   onChange: (value: string) => void;
+  value: string;
   placeholder?: string;
 }
 
@@ -146,9 +146,9 @@ function MetricNameInput({value, onChange, placeholder}: MetricNameInputProps) {
 
 interface GroupByDropdownProps {
   groupBys: readonly string[];
+  numberAttributes: TagCollection;
   setGroupBys: (groupBys: string[]) => void;
   stringAttributes: TagCollection;
-  numberAttributes: TagCollection;
 }
 
 function GroupByDropdown({
