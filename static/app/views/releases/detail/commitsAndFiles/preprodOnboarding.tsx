@@ -1,7 +1,6 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {PlatformIcon} from 'platformicons';
 
 import emptyBuildImg from 'sentry-images/spot/releases-tour-commits.svg';
 
