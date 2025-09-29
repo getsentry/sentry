@@ -329,6 +329,111 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
         return results
 
     @sentry_sdk.tracing.trace
+    def putfile_batch_optimized(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True, logger=nooplogger):
+        """
+        Optimized version of putfile that batches blob existence checks and creation.
+        
+        This method reduces N+1 queries by:
+        1. First reading all chunks and calculating their checksums
+        2. Batch checking which blobs already exist
+        3. Batch creating missing blobs
+        4. Batch creating FileBlobIndex entries
+        
+        Returns a list of `FileBlobIndex` items.
+        """
+        from .utils import get_and_optionally_update_blobs_batch
+        
+        # Step 1: Read all chunks and calculate checksums
+        chunks_data = []
+        offset = 0
+        file_checksum = sha1(b"")
+        
+        while True:
+            contents = fileobj.read(blob_size)
+            if not contents:
+                break
+            
+            chunk_checksum = sha1(contents).hexdigest()
+            file_checksum.update(contents)
+            
+            chunks_data.append({
+                'contents': contents,
+                'checksum': chunk_checksum,
+                'size': len(contents),
+                'offset': offset
+            })
+            offset += len(contents)
+        
+        if not chunks_data:
+            # Empty file
+            self.size = 0
+            self.checksum = file_checksum.hexdigest()
+            if commit:
+                self.save()
+            return []
+        
+        # Step 2: Batch check which blobs already exist
+        checksums = [chunk['checksum'] for chunk in chunks_data]
+        existing_blobs = get_and_optionally_update_blobs_batch(
+            self._get_blob_model(), checksums
+        )
+        
+        # Step 3: Create missing blobs efficiently
+        missing_chunks = [chunk for chunk in chunks_data if chunk['checksum'] not in existing_blobs]
+        
+        if missing_chunks:
+            # Create blobs without going through the individual from_file method
+            blob_model = self._get_blob_model()
+            storage = self._get_storage()
+            
+            # Create blob instances for missing chunks
+            for chunk in missing_chunks:
+                blob = blob_model(size=chunk['size'], checksum=chunk['checksum'])
+                blob.path = blob_model.generate_unique_path()
+                
+                # Save blob content to storage
+                blob_fileobj = ContentFile(chunk['contents'])
+                storage.save(blob.path, blob_fileobj)
+                
+                # Save blob to database
+                try:
+                    blob.save()
+                except IntegrityError:
+                    # Handle race condition - blob was created by another process
+                    saved_path = blob.path
+                    blob = blob_model.objects.get(checksum=chunk['checksum'])
+                    storage.delete(saved_path)
+                
+                existing_blobs[chunk['checksum']] = blob
+        
+        # Step 4: Create FileBlobIndex entries
+        results = []
+        for chunk in chunks_data:
+            blob = existing_blobs[chunk['checksum']]
+            results.append(self._create_blob_index(blob=blob, offset=chunk['offset']))
+        
+        # Set file metadata
+        self.size = offset
+        self.checksum = file_checksum.hexdigest()
+        metrics.distribution("filestore.file-size", offset, unit="byte")
+        
+        if commit:
+            self.save()
+        
+        return results
+    
+    def _get_blob_model(self):
+        """Helper method to get the blob model class for this file type."""
+        # This will be implemented by concrete classes
+        raise NotImplementedError("Subclasses must implement _get_blob_model")
+    
+    def _get_storage(self):
+        """Helper method to get the storage instance for this file type."""
+        from .utils import get_storage
+        blob_model = self._get_blob_model()
+        return get_storage(blob_model._storage_config())
+
+    @sentry_sdk.tracing.trace
     def assemble_from_file_blob_ids(self, file_blob_ids, checksum):
         """
         This creates a file, from file blobs and returns a temp file with the

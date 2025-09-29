@@ -70,6 +70,33 @@ def get_and_optionally_update_blob(
     return existing
 
 
+def get_and_optionally_update_blobs_batch(
+    file_blob_model: type[FileModelT], checksums: list[str]
+) -> dict[str, FileModelT]:
+    """
+    Batch version of get_and_optionally_update_blob that processes multiple checksums at once.
+    Returns a dict mapping checksum -> FileBlob for existing blobs only.
+    
+    This avoids N+1 queries by fetching all existing blobs in a single query.
+    """
+    if not checksums:
+        return {}
+    
+    # Get all existing blobs with a single query
+    existing_blobs = list(file_blob_model.objects.filter(checksum__in=checksums))
+    
+    # Update timestamps for old blobs in batch
+    now = timezone.now()
+    threshold = now - HALF_DAY
+    old_blob_ids = [blob.id for blob in existing_blobs if blob.timestamp <= threshold]
+    
+    if old_blob_ids:
+        file_blob_model.objects.filter(id__in=old_blob_ids).update(timestamp=now)
+    
+    # Return mapping of checksum -> blob for found blobs
+    return {blob.checksum: blob for blob in existing_blobs}
+
+
 class AssembleChecksumMismatch(Exception):
     pass
 
