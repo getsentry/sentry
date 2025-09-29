@@ -58,7 +58,7 @@ class AutofixRequestSerializer(CamelSnakeSerializer):
 
 
 class AutofixResponseSerializer(serializers.Serializer):
-    run_id = serializers.CharField(help_text="The unique identifier for this issue fix run.")
+    run_id = serializers.IntegerField(help_text="The unique identifier for this issue fix run.")
 
 
 class AutofixStateSerializer(serializers.Serializer):
