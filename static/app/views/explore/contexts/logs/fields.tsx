@@ -1,7 +1,3 @@
-import type {Location} from 'history';
-
-import {decodeList} from 'sentry/utils/queryString';
-import {LOGS_FIELDS_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {OurLogKnownFieldKey, type OurLogFieldKey} from 'sentry/views/explore/logs/types';
 
 /**

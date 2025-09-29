@@ -2,7 +2,6 @@ import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {decodeSorts} from 'sentry/utils/queryString';
 import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
