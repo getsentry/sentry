@@ -165,7 +165,7 @@ export function SummaryCardGroup({
       >
         {isLoading
           ? Array.from({length: placeholderCount}, (_, index) => (
-              <Placeholder key={index} height="62px" />
+              <Placeholder key={index} height="66px" />
             ))
           : children}
       </SummaryListGrid>
