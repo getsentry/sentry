@@ -1,6 +1,5 @@
 import logging
 from typing import Any
-from uuid import uuid4
 
 import sentry_sdk
 from django.core.exceptions import ValidationError
@@ -269,9 +268,10 @@ class DataExportEndpoint(OrganizationEndpoint):
         Create a new asynchronous file export task, and
         email user upon completion,
         """
-        transaction_id = str(uuid4())
-        extra = {"transaction_id": transaction_id, "organization_id": organization.id}
-        logger.info("DataExport: POST Request started", extra=extra)
+        logger.info(
+            "DataExport: POST Request started",
+            extra={"organization_id": organization.id, "request": request.data},
+        )
 
         # The data export feature is only available alongside `discover-query`.
         # So to export issue tags, they must have have `discover-query`

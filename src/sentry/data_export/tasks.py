@@ -23,7 +23,6 @@ from sentry.taskworker.namespaces import export_tasks
 from sentry.taskworker.retry import NoRetriesRemainingError, Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
-from sentry.utils.sdk import capture_exception
 
 from .base import (
     EXPORTED_ROWS_LIMIT,
@@ -69,7 +68,7 @@ def assemble_download(
 ) -> None:
     # The API response to export the data contains the ID which you can use
     # to filter the GCP logs
-    extra = {"data_export_id": data_export_id}
+    extra: dict[str, Any] = {"data_export_id": data_export_id}
     with sentry_sdk.start_span(op="assemble"):
         first_page = offset == 0
 
@@ -89,9 +88,8 @@ def assemble_download(
 
         base_bytes_written = bytes_written
 
-        extra.update(
-            {"query": str(data_export.payload), "organization_id": data_export.organization_id}
-        )
+        extra["query"] = str(data_export.payload)
+        extra["organization_id"] = data_export.organization_id
 
         try:
             # ensure that the export limit is set and capped at EXPORTED_ROWS_LIMIT
@@ -165,12 +163,12 @@ def assemble_download(
                     },
                 )
             else:
-                logger.exception("dataexport.ExportError", extra=extra)
+                metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
+                logger.exception("assemble_download: ExportError", extra=extra)
                 return data_export.email_failure(message=str(error))
         except Exception as error:
             metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
-            logger.exception("dataexport.Exception", extra=extra)
-            capture_exception(error)
+            logger.exception("assemble_download: Exception", extra=extra)
 
             try:
                 retry_task()
@@ -235,8 +233,6 @@ def get_processor(
     except ExportError as error:
         error_str = str(error)
         metrics.incr("dataexport.error", tags={"error": error_str}, sample_rate=1.0)
-        logger.info("dataexport.error: %s", error_str)
-        capture_exception(error)
         raise
 
 
@@ -259,8 +255,6 @@ def process_rows(
     except ExportError as error:
         error_str = str(error)
         metrics.incr("dataexport.error", tags={"error": error_str}, sample_rate=1.0)
-        logger.info("dataexport.error: %s", error_str)
-        capture_exception(error)
         raise
 
 
@@ -333,7 +327,7 @@ def store_export_chunk_as_blob(
     ),
 )
 def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
-    extra = {"data_export_id": data_export_id}
+    extra: dict[str, Any] = {"data_export_id": data_export_id}
     with sentry_sdk.start_span(op="merge"):
         try:
             data_export = ExportedData.objects.get(id=data_export_id)
@@ -343,9 +337,8 @@ def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
 
         _set_data_on_scope(data_export)
 
-        extra.update(
-            {"query": str(data_export.payload), "organization_id": data_export.organization_id}
-        )
+        extra["query"] = str(data_export.payload)
+        extra["organization_id"] = data_export.organization_id
 
         # adapted from `putfile` in  `src/sentry/models/file.py`
         try:
@@ -404,7 +397,6 @@ def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
                 sample_rate=1.0,
             )
             logger.exception("merge_export_blobs: Exception", extra=extra)
-            capture_exception(error)
             if isinstance(error, IntegrityError):
                 message = "Failed to save the assembled file."
             else:
