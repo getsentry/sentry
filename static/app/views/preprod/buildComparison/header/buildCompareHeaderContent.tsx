@@ -1,4 +1,4 @@
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -47,7 +47,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
     <Flex direction="column" gap="lg" style={{padding: `0 0 ${theme.space.lg} 0`}}>
       <Breadcrumbs crumbs={breadcrumbs} />
       <Heading as="h1">Build comparison</Heading>
-      <Flex gap="lg">
+      <Flex gap="lg" align="center" wrap="wrap">
         <Flex gap="sm" align="center">
           <AppIcon>
             <AppIconPlaceholder>
