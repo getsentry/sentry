@@ -270,7 +270,7 @@ class DataExportEndpoint(OrganizationEndpoint):
         """
         logger.info(
             "DataExport: POST Request started",
-            extra={"organization_id": organization.id, "request": request.data},
+            extra={"organization_id": organization.id},
         )
 
         # The data export feature is only available alongside `discover-query`.

@@ -88,8 +88,9 @@ def assemble_download(
 
         base_bytes_written = bytes_written
 
-        extra["query"] = str(data_export.payload)
-        extra["organization_id"] = data_export.organization_id
+        extra.update(
+            {"query": str(data_export.payload), "organization_id": data_export.organization_id}
+        )
 
         try:
             # ensure that the export limit is set and capped at EXPORTED_ROWS_LIMIT
@@ -337,8 +338,9 @@ def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
 
         _set_data_on_scope(data_export)
 
-        extra["query"] = str(data_export.payload)
-        extra["organization_id"] = data_export.organization_id
+        extra.update(
+            {"query": str(data_export.payload), "organization_id": data_export.organization_id}
+        )
 
         # adapted from `putfile` in  `src/sentry/models/file.py`
         try:
