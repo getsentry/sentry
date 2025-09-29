@@ -2,7 +2,6 @@ import datetime
 import hashlib
 import hmac
 import logging
-import time
 import uuid
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -46,11 +45,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.organization_trace_item_attributes import as_attribute_key
-from sentry.api.endpoints.project_trace_item_details import (
-    convert_rpc_attribute_to_json,
-    serialize_links,
-    serialize_meta,
-)
+from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.constants import (
     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
@@ -598,13 +593,14 @@ def get_attributes_for_span(
     """
     Fetch all attributes for a given span.
     """
-    timestamp_now = int(time.time())
+    start_datetime = datetime.datetime.fromtimestamp(0, tz=datetime.UTC)
+    end_datetime = datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=7)
 
     start_timestamp_proto = ProtobufTimestamp()
-    start_timestamp_proto.FromSeconds(0)
+    start_timestamp_proto.FromDatetime(start_datetime)
 
     end_timestamp_proto = ProtobufTimestamp()
-    end_timestamp_proto.FromSeconds(timestamp_now + 60 * 60 * 24 * 7)
+    end_timestamp_proto.FromDatetime(end_datetime)
 
     trace_item_type = TraceItemType.TRACE_ITEM_TYPE_SPAN
 
@@ -636,11 +632,7 @@ def get_attributes_for_span(
     )
 
     return {
-        "itemId": response_dict.get("itemId", span_id[-16:]),
-        "timestamp": response_dict.get("timestamp"),
         "attributes": attributes,
-        "meta": serialize_meta(response_dict.get("attributes", []), SupportedTraceItemType.SPANS),
-        "links": serialize_links(response_dict.get("attributes", [])),
     }
 
 

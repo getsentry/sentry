@@ -308,11 +308,6 @@ class TestSeerRpcMethods(APITestCase):
                 span_id="deadbeefdeadbeef",
             )
 
-        assert result["itemId"] == "deadbeefdeadbeef"
-        assert result["timestamp"] == "2024-01-01T00:00:00Z"
-        assert result["meta"] == {}
-        assert result["links"] is None
-
         assert len(result["attributes"]) == 1
         attribute = result["attributes"][0]
         assert attribute["type"] == "str"
