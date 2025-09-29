@@ -34,7 +34,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
     // Immediately update if props change
     setIsLive(computeIsLive());
 
-    const ONE_MINUTE_INTERVAL = 1000;
+    const ONE_MINUTE_INTERVAL = 60 * 1000;
     tickerRef.current = window.setInterval(() => {
       setIsLive(computeIsLive());
     }, ONE_MINUTE_INTERVAL);
