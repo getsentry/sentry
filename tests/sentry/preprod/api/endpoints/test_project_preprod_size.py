@@ -161,3 +161,29 @@ class ProjectPreprodSizeEndpointTest(TestCase):
 
         metrics = PreprodArtifactSizeMetrics.objects.get(preprod_artifact=self.artifact)
         assert metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SERECT_FOR_TESTS])
+    def test_requires_launchpad_rpc_authentication(self) -> None:
+        self.login_as(self.user)
+
+        url = f"/api/0/internal/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/{self.artifact.id}/size/"
+        response = self.client.put(
+            url,
+            data=orjson.dumps({"state": 1}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 401
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SERECT_FOR_TESTS])
+    def test_requires_launchpad_rpc_authentication_with_identifier(self) -> None:
+        self.login_as(self.user)
+
+        url = f"/api/0/internal/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/{self.artifact.id}/size/some_feature/"
+        response = self.client.put(
+            url,
+            data=orjson.dumps({"state": 1}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 401
