@@ -130,25 +130,86 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
 
 function OptimizableImageFileRow({
   file,
-  originalFile: _originalFile,
+  originalFile,
 }: {
   file: ProcessedInsightFile;
   originalFile: OptimizableImageFile;
 }) {
+  const hasMinifySavings =
+    originalFile.minified_size !== null && originalFile.minify_savings > 0;
+  const hasHeicSavings =
+    originalFile.heic_size !== null && originalFile.conversion_savings > 0;
+  const currentSize = originalFile.current_size;
+
+  const maxSavings = Math.max(
+    originalFile.minify_savings || 0,
+    originalFile.conversion_savings || 0
+  );
+
   return (
-    <FlexAlternatingRow>
-      <Text size="sm" ellipsis style={{flex: 1}}>
-        {file.path}
-      </Text>
-      <Flex align="center" gap="sm">
-        <Text variant="primary" bold size="sm" tabular>
-          -{formatBytesBase10(file.savings)}
+    <Container>
+      <FlexAlternatingRow>
+        <Text size="sm" ellipsis style={{flex: 1}}>
+          {file.path}
         </Text>
-        <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
-          ({formatUpside(file.percentage / 100)})
-        </Text>
+        <Flex align="center" gap="sm">
+          <Text variant="primary" bold size="sm" tabular>
+            -{formatBytesBase10(maxSavings)}
+          </Text>
+          <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
+            ({formatUpside(maxSavings / currentSize)})
+          </Text>
+        </Flex>
+      </FlexAlternatingRow>
+      <Flex direction="column" gap="xs" padding="xs sm">
+        {hasMinifySavings && (
+          <Flex align="center" gap="sm">
+            <Text size="xs" variant="muted" style={{minWidth: '100px'}}>
+              {t('Optimize:')}
+            </Text>
+            <Text
+              size="xs"
+              variant="primary"
+              tabular
+              style={{minWidth: '80px', textAlign: 'right'}}
+            >
+              -{formatBytesBase10(originalFile.minify_savings)}
+            </Text>
+            <Text
+              size="xs"
+              variant="muted"
+              tabular
+              style={{minWidth: '64px', textAlign: 'right'}}
+            >
+              ({formatUpside(originalFile.minify_savings / currentSize)})
+            </Text>
+          </Flex>
+        )}
+        {hasHeicSavings && (
+          <Flex align="center" gap="sm">
+            <Text size="xs" variant="muted" style={{minWidth: '100px'}}>
+              {t('Convert to HEIC:')}
+            </Text>
+            <Text
+              size="xs"
+              variant="primary"
+              tabular
+              style={{minWidth: '80px', textAlign: 'right'}}
+            >
+              -{formatBytesBase10(originalFile.conversion_savings)}
+            </Text>
+            <Text
+              size="xs"
+              variant="muted"
+              tabular
+              style={{minWidth: '64px', textAlign: 'right'}}
+            >
+              ({formatUpside(originalFile.conversion_savings / currentSize)})
+            </Text>
+          </Flex>
+        )}
       </Flex>
-    </FlexAlternatingRow>
+    </Container>
   );
 }
 
