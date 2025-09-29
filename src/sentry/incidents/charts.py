@@ -147,6 +147,16 @@ def fetch_metric_issue_open_periods(
                 **time_period,
             },
         )
+        # TODO (mifu67): temporary log that I'm going to remove after debugging. Get the data for old and new
+        if organization.slug == "sentry" or organization.slug == "demo":
+            logger.info(
+                "fetching metric issue incidents",
+                extra={
+                    "organization_id": organization.id,
+                    "open_period_id": open_period_identifier,
+                    "response_data": resp.data,
+                },
+            )
         return resp.data
     except Exception as exc:
         logger.error(
