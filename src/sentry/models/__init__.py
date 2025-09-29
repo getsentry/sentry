@@ -42,7 +42,6 @@ from .groupbookmark import *  # NOQA
 from .groupcommitresolution import *  # NOQA
 from .groupemailthread import *  # NOQA
 from .groupenvironment import *  # NOQA
-from .groupfeedback import *  # NOQA
 from .grouphash import *  # NOQA
 from .grouphashmetadata import *  # NOQA
 from .grouphistory import *  # NOQA
@@ -52,6 +51,7 @@ from .groupmeta import *  # NOQA
 from .groupopenperiod import *  # NOQA
 from .groupopenperiodactivity import *  # NOQA
 from .groupowner import *  # NOQA
+from .groupreaction import *  # NOQA
 from .groupredirect import *  # NOQA
 from .grouprelease import *  # NOQA
 from .groupresolution import *  # NOQA
