@@ -43,7 +43,7 @@ class DataForwarderSerializer(Serializer):
     )
     config = serializers.JSONField(default=dict)
 
-    def validate_config(self, config: dict) -> SQSConfig | SegmentConfig | SplunkConfig | dict:
+    def validate_config(self, config: dict) -> SQSConfig | SegmentConfig | SplunkConfig:
         """Validate config based on provider."""
         provider = self.initial_data.get("provider")
 
