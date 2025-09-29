@@ -89,6 +89,7 @@ class DataForwardingReceiverTest(TestCase):
         )
         assert enrollments.count() == 1
         enrollment = enrollments.first()
+        assert enrollment is not None
         assert enrollment.overrides == {"custom_key": "custom_value"}
 
     def test_multiple_data_forwarders_enroll_same_project(self) -> None:
