@@ -24,6 +24,7 @@ class OrganizationPluginDeprecationInfoEndpoint(OrganizationEndpoint):
         Returns a list of objects that are affected by a plugin deprecation. Objects could be issues or alert rules or both
         pparam: organization, plugin_slug
         """
+        # Plugins in the db are stored in lowercase but there is not guarantee that's how the customer will call the API
         plugin = plugin_slug.lower()
         plugin_projects = Project.objects.filter(
             status=ObjectStatus.ACTIVE,
