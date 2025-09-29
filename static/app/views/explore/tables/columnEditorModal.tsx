@@ -25,7 +25,7 @@ import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface ColumnEditorModalProps extends ModalRenderProps {
-  columns: string[];
+  columns: readonly string[];
   numberTags: TagCollection;
   onColumnsChange: (columns: string[]) => void;
   stringTags: TagCollection;
