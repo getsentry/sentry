@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Container, Flex, Grid, Stack} from 'sentry/components/core/layout';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Switch} from 'sentry/components/core/switch';
 import {Heading, Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -324,7 +324,7 @@ export function SizeCompareMainContent() {
                         {metric.diff > 0 ? '+' : metric.diff < 0 ? '-' : ''}
                         {formatBytesBase10(Math.abs(metric.diff))}
                         {metric.percentageChange && (
-                          <span>
+                          <Text as="span">
                             {' ('}
                             <PercentChange
                               value={metric.percentageChange}
@@ -333,21 +333,21 @@ export function SizeCompareMainContent() {
                               colorize
                             />
                             {')'}
-                          </span>
+                          </Text>
                         )}
                       </DiffText>
                     </Flex>
                   </Flex>
-                </Flex>
-                <Flex gap="xs" wrap="wrap">
-                  <Text variant="muted" size="sm">
-                    {t('Comparison:')}
-                  </Text>
-                  <Text variant="muted" size="sm" bold>
-                    {metric.base === 0
-                      ? t('Not present')
-                      : formatBytesBase10(metric.base)}
-                  </Text>
+                  <Flex gap="xs" wrap="wrap">
+                    <Text variant="muted" size="sm">
+                      {t('Comparison:')}
+                    </Text>
+                    <Text variant="muted" size="sm" bold>
+                      {metric.base === 0
+                        ? t('Not present')
+                        : formatBytesBase10(metric.base)}
+                    </Text>
+                  </Flex>
                 </Flex>
               </Flex>
             </Container>
