@@ -481,7 +481,10 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable querying uptime data from EAP uptime_results instead of uptime_checks
     manager.add("organizations:uptime-eap-uptime-results-query", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable endpoint and frontend for AI-powered UF summaries
     manager.add("organizations:user-feedback-ai-summaries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable org-level caching for user feedback summaries and categorization
+    manager.add("organizations:user-feedback-ai-summaries-cache", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable label generation at ingest time for user feedbacks
     manager.add("organizations:user-feedback-ai-categorization", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the backend endpoint and frontend for categorizing user feedbacks
