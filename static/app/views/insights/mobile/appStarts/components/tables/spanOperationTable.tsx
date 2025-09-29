@@ -108,7 +108,7 @@ export function SpanOperationTable({
   // Only show comparison when we have two different releases selected
   const baseFields: SpanProperty[] = [PROJECT_ID, SPAN_OP, SPAN_GROUP, SPAN_DESCRIPTION];
   let spanFields: SpanProperty[] = [];
-  if (primaryRelease && secondaryRelease) {
+  if (defined(primaryRelease) && defined(secondaryRelease)) {
     spanFields = [
       `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
       `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
@@ -140,7 +140,7 @@ export function SpanOperationTable({
     {key: SPAN_OP, name: t('Operation'), width: COL_WIDTH_UNDEFINED},
     {key: SPAN_DESCRIPTION, name: t('Span Description'), width: COL_WIDTH_UNDEFINED},
   ];
-  if (primaryRelease && secondaryRelease) {
+  if (defined(primaryRelease) && defined(secondaryRelease)) {
     columns.push({
       key: `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
       name: t('Avg Duration (%s)', PRIMARY_RELEASE_ALIAS),

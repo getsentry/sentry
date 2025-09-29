@@ -11,6 +11,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -216,7 +217,7 @@ function ScreensLandingPage() {
   if (isProjectCrossPlatform) {
     query.addFilterValue('os.name', selectedPlatform);
   }
-  if (primaryRelease) {
+  if (defined(primaryRelease)) {
     query.addFilterValue('release', primaryRelease);
   }
 

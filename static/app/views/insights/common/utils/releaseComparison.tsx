@@ -1,3 +1,4 @@
+import {defined} from 'sentry/utils';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 export function appendReleaseFilters(
@@ -6,12 +7,16 @@ export function appendReleaseFilters(
   secondaryRelease?: string
 ) {
   let queryString: string = query.formatString();
-  if (primaryRelease && secondaryRelease && primaryRelease !== secondaryRelease) {
+  if (
+    defined(primaryRelease) &&
+    defined(secondaryRelease) &&
+    primaryRelease !== secondaryRelease
+  ) {
     queryString = query
       .copy()
       .addDisjunctionFilterValues('release', [primaryRelease, secondaryRelease])
       .formatString();
-  } else if (primaryRelease) {
+  } else if (defined(primaryRelease)) {
     queryString = query
       .copy()
       .addStringFilter(`release:${primaryRelease}`)

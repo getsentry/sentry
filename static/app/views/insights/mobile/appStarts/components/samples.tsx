@@ -5,6 +5,7 @@ import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
@@ -29,7 +30,7 @@ export function SamplesTables({transactionName}: any) {
 
   const content = useMemo(() => {
     if (sampleType === EVENT) {
-      if (primaryRelease && secondaryRelease) {
+      if (defined(primaryRelease) && defined(secondaryRelease)) {
         return (
           <EventSplitContainer>
             <ErrorBoundary mini>

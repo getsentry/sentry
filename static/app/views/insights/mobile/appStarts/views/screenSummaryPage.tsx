@@ -132,7 +132,7 @@ export function ScreenSummaryContentPage() {
       `count_if(release,equals,${primaryRelease})`,
       `count_if(release,equals,${secondaryRelease})`,
     ];
-  } else if (primaryRelease) {
+  } else if (defined(primaryRelease)) {
     fields = [
       `avg_if(span.duration,release,equals,${primaryRelease})`,
       `count_if(release,equals,${primaryRelease})`,

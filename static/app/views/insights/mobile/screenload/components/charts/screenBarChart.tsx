@@ -6,6 +6,7 @@ import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import {Button} from 'sentry/components/core/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {
   axisLabelFormatter,
   getDurationUnit,
@@ -48,7 +49,7 @@ export function ScreensBarChart({
   } = useReleaseSelection();
 
   const groupBy: SpanProperty[] = [SpanFields.DEVICE_CLASS];
-  if (primaryRelease || secondaryRelease) {
+  if (defined(primaryRelease) || defined(secondaryRelease)) {
     groupBy.push(SpanFields.RELEASE);
   }
   const breakdownMetric: SpanProperty =

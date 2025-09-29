@@ -87,7 +87,7 @@ function DeviceClassBreakdownBarChart({
       : 'avg(measurements.app_start_warm)';
 
   const groupBy: SpanProperty[] = [SpanFields.DEVICE_CLASS];
-  if (primaryRelease || secondaryRelease) {
+  if (defined(primaryRelease) || defined(secondaryRelease)) {
     groupBy.push(SpanFields.RELEASE);
   }
   groupBy.push(appStartMetric);
