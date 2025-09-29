@@ -38,9 +38,10 @@ const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   }, {} as TagCollection);
 };
 
-const typeMap: Record<TraceItemDataset, 'span' | 'log' | 'uptime'> = {
+const typeMap: Record<TraceItemDataset, 'span' | 'log' | 'uptime' | 'tracemetric'> = {
   [TraceItemDataset.SPANS]: 'span',
   [TraceItemDataset.LOGS]: 'log',
+  [TraceItemDataset.TRACEMETRICS]: 'tracemetric', // Use tracemetric type for tracemetrics as they have similar structure
   [TraceItemDataset.UPTIME_RESULTS]: 'uptime',
 };
 

@@ -1,0 +1,409 @@
+import {useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
+
+import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
+import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
+import {FieldKind, prettifyTagKey} from 'sentry/utils/fields';
+import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
+import {
+  ToolbarFooter,
+  ToolbarSection,
+} from 'sentry/views/explore/components/toolbar/styles';
+import {
+  ToolbarGroupByAddGroupBy,
+  ToolbarGroupByDropdown,
+  ToolbarGroupByHeader,
+} from 'sentry/views/explore/components/toolbar/toolbarGroupBy';
+import {
+  ToolbarVisualizeAddChart,
+  ToolbarVisualizeDropdown,
+  ToolbarVisualizeHeader,
+} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
+import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
+import {
+  useQueryParamsGroupBys,
+  useQueryParamsVisualizes,
+  useSetQueryParamsGroupBys,
+  useSetQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
+import {
+  isVisualizeFunction,
+  MAX_VISUALIZES,
+  VisualizeFunction,
+  type Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+
+export type MetricsAggregate =
+  | 'count'
+  | 'count_unique'
+  | 'sum'
+  | 'avg'
+  | 'p50'
+  | 'p75'
+  | 'p90'
+  | 'p95'
+  | 'p99'
+  | 'max'
+  | 'min';
+
+export const METRICS_AGGREGATES: Array<SelectOption<MetricsAggregate>> = [
+  {
+    label: t('count'),
+    value: 'count',
+  },
+  {
+    label: t('count unique'),
+    value: 'count_unique',
+  },
+  {
+    label: t('sum'),
+    value: 'sum',
+  },
+  {
+    label: t('avg'),
+    value: 'avg',
+  },
+  {
+    label: t('p50'),
+    value: 'p50',
+  },
+  {
+    label: t('p75'),
+    value: 'p75',
+  },
+  {
+    label: t('p90'),
+    value: 'p90',
+  },
+  {
+    label: t('p95'),
+    value: 'p95',
+  },
+  {
+    label: t('p99'),
+    value: 'p99',
+  },
+  {
+    label: t('max'),
+    value: 'max',
+  },
+  {
+    label: t('min'),
+    value: 'min',
+  },
+];
+
+interface MetricsToolbarProps {
+  numberTags: TagCollection;
+  stringTags: TagCollection;
+}
+
+export function MetricsToolbar({numberTags, stringTags}: MetricsToolbarProps) {
+  return (
+    <Container data-test-id="metrics-toolbar">
+      <ToolbarVisualize numberTags={numberTags} stringTags={stringTags} />
+      <ToolbarGroupBy numberTags={numberTags} stringTags={stringTags} />
+    </Container>
+  );
+}
+
+function ToolbarVisualize({numberTags, stringTags}: MetricsToolbarProps) {
+  const sortedNumberKeys: string[] = useMemo(() => {
+    const keys = Object.keys(numberTags);
+    keys.sort();
+    return keys;
+  }, [numberTags]);
+
+  const sortedStringKeys: string[] = useMemo(() => {
+    const keys = Object.keys(stringTags);
+    keys.sort();
+    return keys;
+  }, [stringTags]);
+
+  const visualizes = useQueryParamsVisualizes();
+  const setVisualizes = useSetQueryParamsVisualizes();
+
+  const addChart = useCallback(() => {
+    const newVisualizes = [
+      ...visualizes,
+      new VisualizeFunction('count(metric.value)'),
+    ].map(visualize => visualize.serialize());
+    setVisualizes(newVisualizes);
+  }, [setVisualizes, visualizes]);
+
+  const replaceOverlay = useCallback(
+    (group: number, newVisualize: Visualize) => {
+      const newVisualizes = visualizes.map((visualize, i) => {
+        if (i === group) {
+          return newVisualize.serialize();
+        }
+        return visualize.serialize();
+      });
+      setVisualizes(newVisualizes);
+    },
+    [setVisualizes, visualizes]
+  );
+
+  const onDelete = useCallback(
+    (group: number) => {
+      const newVisualizes = visualizes.toSpliced(group, 1).map(visualize => {
+        return visualize.serialize();
+      });
+      setVisualizes(newVisualizes);
+    },
+    [setVisualizes, visualizes]
+  );
+
+  const canDelete =
+    visualizes.filter(visualize => isVisualizeFunction(visualize)).length > 1;
+
+  return (
+    <ToolbarSection data-test-id="section-visualizes">
+      <ToolbarVisualizeHeader />
+      {visualizes.map((visualize, group) => {
+        if (isVisualizeFunction(visualize)) {
+          return (
+            <VisualizeDropdown
+              key={group}
+              canDelete={canDelete}
+              onDelete={() => onDelete(group)}
+              onReplace={newVisualize => replaceOverlay(group, newVisualize)}
+              visualize={visualize}
+              sortedNumberKeys={sortedNumberKeys}
+              sortedStringKeys={sortedStringKeys}
+            />
+          );
+        }
+        return null;
+      })}
+      <ToolbarFooter>
+        <ToolbarVisualizeAddChart
+          add={addChart}
+          disabled={visualizes.length >= MAX_VISUALIZES}
+        />
+      </ToolbarFooter>
+    </ToolbarSection>
+  );
+}
+
+interface VisualizeDropdownProps {
+  canDelete: boolean;
+  onDelete: () => void;
+  onReplace: (visualize: Visualize) => void;
+  sortedNumberKeys: string[];
+  sortedStringKeys: string[];
+  visualize: VisualizeFunction;
+}
+
+function VisualizeDropdown({
+  canDelete,
+  onDelete,
+  onReplace,
+  visualize,
+  sortedNumberKeys,
+  sortedStringKeys,
+}: VisualizeDropdownProps) {
+  const aggregateOptions: Array<SelectOption<MetricsAggregate>> = useMemo(() => {
+    return METRICS_AGGREGATES.map(aggregate => {
+      const defaultArgument = getDefaultArgument(
+        aggregate.value,
+        sortedNumberKeys[0] || null
+      );
+      return {...aggregate, disabled: !defined(defaultArgument)};
+    });
+  }, [sortedNumberKeys]);
+
+  const aggregateFunction = visualize.parsedFunction?.name ?? '';
+  const aggregateParam = visualize.parsedFunction?.arguments?.[0] ?? '';
+
+  const fieldOptions = useMemo(() => {
+    return aggregateFunction === 'count'
+      ? [{label: t('metric value'), value: TraceMetricKnownFieldKey.METRIC_VALUE}]
+      : aggregateFunction === 'count_unique'
+        ? sortedStringKeys.map(key => ({
+            label: prettifyTagKey(key),
+            value: key,
+          }))
+        : sortedNumberKeys.map(key => ({
+            label: prettifyTagKey(key),
+            value: key,
+          }));
+  }, [aggregateFunction, sortedStringKeys, sortedNumberKeys]);
+
+  const onChangeAggregate = useCallback(
+    (option: SelectOption<SelectKey>) => {
+      if (typeof option.value === 'string') {
+        const yAxis = updateVisualizeAggregate({
+          newAggregate: option.value,
+          oldAggregate: aggregateFunction,
+          oldArgument: aggregateParam,
+          firstNumberKey: sortedNumberKeys[0] || null,
+        });
+        onReplace(visualize.replace({yAxis}));
+      }
+    },
+    [onReplace, visualize, aggregateFunction, aggregateParam, sortedNumberKeys]
+  );
+
+  const onChangeArgument = useCallback(
+    (_index: number, option: SelectOption<SelectKey>) => {
+      if (typeof option.value === 'string') {
+        const yAxis = `${aggregateFunction}(${option.value})`;
+        onReplace(visualize.replace({yAxis}));
+      }
+    },
+    [onReplace, aggregateFunction, visualize]
+  );
+
+  return (
+    <ToolbarVisualizeDropdown
+      aggregateOptions={aggregateOptions}
+      fieldOptions={fieldOptions}
+      canDelete={canDelete}
+      onChangeAggregate={onChangeAggregate}
+      onChangeArgument={onChangeArgument}
+      onDelete={onDelete}
+      parsedFunction={visualize.parsedFunction}
+    />
+  );
+}
+
+function ToolbarGroupBy({numberTags, stringTags}: MetricsToolbarProps) {
+  const groupBys = useQueryParamsGroupBys();
+  const setGroupBys = useSetQueryParamsGroupBys();
+
+  const options = useMemo(
+    () =>
+      [
+        {
+          label: '\u2014',
+          value: '',
+          textValue: '\u2014',
+        },
+        ...Object.keys(numberTags ?? {}).map(key => ({
+          label: prettifyTagKey(key),
+          value: key,
+          textValue: key,
+          trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
+          showDetailsInOverlay: true,
+          details: (
+            <AttributeDetails
+              column={key}
+              kind={FieldKind.MEASUREMENT}
+              label={key}
+              traceItemType={TraceItemDataset.TRACEMETRICS}
+            />
+          ),
+        })),
+        ...Object.keys(stringTags ?? {}).map(key => ({
+          label: prettifyTagKey(key),
+          value: key,
+          textValue: key,
+          trailingItems: <TypeBadge kind={FieldKind.TAG} />,
+          showDetailsInOverlay: true,
+          details: (
+            <AttributeDetails
+              column={key}
+              kind={FieldKind.TAG}
+              label={key}
+              traceItemType={TraceItemDataset.TRACEMETRICS}
+            />
+          ),
+        })),
+      ].toSorted((a, b) => {
+        const aLabel = prettifyTagKey(a.value);
+        const bLabel = prettifyTagKey(b.value);
+        if (aLabel < bLabel) {
+          return -1;
+        }
+
+        if (aLabel > bLabel) {
+          return 1;
+        }
+
+        return 0;
+      }),
+    [numberTags, stringTags]
+  );
+
+  const setGroupBysWithOp = useCallback(
+    (columns: string[], op: 'insert' | 'update' | 'delete' | 'reorder') => {
+      // automatically switch to aggregates mode when a group by is inserted/updated
+      if (op === 'insert' || op === 'update') {
+        setGroupBys(columns); // TODO: auto switch to aggregates mode
+      } else {
+        setGroupBys(columns);
+      }
+    },
+    [setGroupBys]
+  );
+
+  return (
+    <DragNDropContext columns={groupBys.slice()} setColumns={setGroupBysWithOp}>
+      {({editableColumns, insertColumn, updateColumnAtIndex, deleteColumnAtIndex}) => (
+        <ToolbarSection data-test-id="section-group-by">
+          <ToolbarGroupByHeader />
+          {editableColumns.map((column, i) => (
+            <ToolbarGroupByDropdown
+              key={column.id}
+              canDelete={editableColumns.length > 1}
+              column={column}
+              onColumnChange={c => updateColumnAtIndex(i, c)}
+              onColumnDelete={() => deleteColumnAtIndex(i)}
+              options={options}
+            />
+          ))}
+          <ToolbarFooter>
+            <ToolbarGroupByAddGroupBy add={() => insertColumn('')} disabled={false} />
+          </ToolbarFooter>
+        </ToolbarSection>
+      )}
+    </DragNDropContext>
+  );
+}
+
+function updateVisualizeAggregate({
+  newAggregate,
+  oldAggregate,
+  oldArgument,
+  firstNumberKey,
+}: {
+  firstNumberKey: string | null;
+  newAggregate: string;
+  oldAggregate: string;
+  oldArgument: string;
+}): string {
+  if (newAggregate === 'count') {
+    return `count(${TraceMetricKnownFieldKey.METRIC_VALUE})`;
+  }
+
+  if (newAggregate === 'count_unique') {
+    return `count_unique(${TraceMetricKnownFieldKey.METRIC_VALUE})`;
+  }
+
+  if (oldAggregate === 'count' || oldAggregate === 'count_unique') {
+    return `${newAggregate}(${getDefaultArgument(newAggregate, firstNumberKey) || ''})`;
+  }
+
+  return `${newAggregate}(${oldArgument})`;
+}
+
+function getDefaultArgument(
+  aggregate: string,
+  firstNumberKey: string | null
+): string | null {
+  if (aggregate === 'count' || aggregate === 'count_unique') {
+    return TraceMetricKnownFieldKey.METRIC_VALUE;
+  }
+
+  return firstNumberKey;
+}
+
+const Container = styled('div')`
+  min-width: 300px;
+`;

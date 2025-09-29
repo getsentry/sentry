@@ -86,6 +86,9 @@ const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
 > = {
   [TraceItemDataset.LOGS]: getWidgetExploreUrlWithDataset(TraceItemDataset.LOGS),
   [TraceItemDataset.SPANS]: getWidgetExploreUrlWithDataset(TraceItemDataset.SPANS),
+  [TraceItemDataset.TRACEMETRICS]: getWidgetExploreUrlWithDataset(
+    TraceItemDataset.TRACEMETRICS
+  ),
   [TraceItemDataset.UPTIME_RESULTS]: undefined,
 };
 

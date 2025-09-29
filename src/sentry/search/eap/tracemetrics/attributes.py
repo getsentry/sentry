@@ -22,21 +22,6 @@ TRACEMETRICS_ATTRIBUTE_DEFINITIONS = {
             validator=is_event_id_or_list,
         ),
         ResolvedAttribute(
-            public_alias="severity_number",
-            internal_name="sentry.severity_number",
-            search_type="integer",
-        ),
-        ResolvedAttribute(
-            public_alias="severity",
-            internal_name="sentry.severity_text",
-            search_type="string",
-        ),
-        ResolvedAttribute(
-            public_alias="message",
-            internal_name="sentry.body",
-            search_type="string",
-        ),
-        ResolvedAttribute(
             public_alias=constants.TRACE_ALIAS,
             internal_name="sentry.trace_id",
             search_type="string",
@@ -54,9 +39,10 @@ TRACEMETRICS_ATTRIBUTE_DEFINITIONS = {
             search_type="number",
         ),
         ResolvedAttribute(
-            public_alias="payload_size",
-            internal_name="sentry.payload_size_bytes",
-            search_type="byte",
+            public_alias="value",
+            internal_name="sentry.value",
+            internal_type=constants.DOUBLE,
+            search_type="number",
         ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("browser.version"),
@@ -71,31 +57,7 @@ TRACEMETRICS_ATTRIBUTE_DEFINITIONS = {
         # Trace Metrics specific fields
         simple_sentry_field("metric_name"),
         simple_sentry_field("metric_type"),
-        # Deprecated log aliases (kept for compatibility)
-        ResolvedAttribute(
-            public_alias="log.body",
-            internal_name="sentry.body",
-            search_type="string",
-            secondary_alias=True,
-        ),
-        ResolvedAttribute(
-            public_alias="log.severity_number",
-            internal_name="sentry.severity_number",
-            search_type="integer",
-            secondary_alias=True,
-        ),
-        ResolvedAttribute(
-            public_alias="severity_text",
-            internal_name="sentry.severity_text",
-            search_type="string",
-            secondary_alias=True,
-        ),
-        ResolvedAttribute(
-            public_alias="log.severity_text",
-            internal_name="sentry.severity_text",
-            search_type="string",
-            secondary_alias=True,
-        ),
+        simple_sentry_field("metric_unit"),
     ]
 }
 

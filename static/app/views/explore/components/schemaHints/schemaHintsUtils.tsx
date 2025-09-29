@@ -54,6 +54,7 @@ const SCHEMA_HINTS_HIDDEN_KEYS: string[] = [
 export enum SchemaHintsSources {
   EXPLORE = 'explore',
   LOGS = 'logs',
+  METRICS = 'metrics',
 }
 
 export const getSchemaHintsListOrder = (source: SchemaHintsSources) => {

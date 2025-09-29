@@ -220,21 +220,26 @@ class RelayAuthentication(BasicAuthentication):
         sentry_sdk.get_isolation_scope().set_tag("relay_id", relay_id)
 
         if request is None:
+            print("missing request", request, relay_id, relay_sig)
             raise AuthenticationFailed("missing request")
 
         relay, static = relay_from_id(request, relay_id)
 
         if relay is None:
+            print("unknown relay", relay_id, relay_sig)
             raise AuthenticationFailed("Unknown relay")
 
         if not static:
+            print("not static", relay_id, relay_sig)
             relay.is_internal = is_internal_relay(request, relay.public_key)
 
         try:
             data = relay.public_key_object.unpack(request.body, relay_sig, max_age=60 * 5)
+            print("valid relay signature", relay_id, relay_sig, data)
             request.relay = relay
             request.relay_request_data = data
         except UnpackError:
+            print("invalid relay signature", relay_id, relay_sig)
             raise AuthenticationFailed("Invalid relay signature")
 
         # TODO(mitsuhiko): can we return the relay here?  would be nice if we

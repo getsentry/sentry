@@ -744,6 +744,7 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
 > = {
   [TraceItemDataset.LOGS]: getLogsUrlFromSavedQueryUrl,
   [TraceItemDataset.SPANS]: getExploreUrlFromSavedQueryUrl,
+  [TraceItemDataset.TRACEMETRICS]: undefined, // TODO: implement metrics URL function
   [TraceItemDataset.UPTIME_RESULTS]: undefined,
 };
 

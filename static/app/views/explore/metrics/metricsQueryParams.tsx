@@ -5,6 +5,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {getAggregateFieldsFromLocation} from 'sentry/views/explore/queryParams/aggregateField';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {getAggregateSortBysFromLocation} from 'sentry/views/explore/queryParams/aggregateSortBy';
@@ -44,7 +45,13 @@ const METRICS_ID_KEY = ID_KEY;
 const METRICS_TITLE_KEY = TITLE_KEY;
 
 function defaultMetricFields(): string[] {
-  return ['timestamp', 'metric.name', 'metric.value', 'metric.type'];
+  return [
+    'timestamp',
+    TraceMetricKnownFieldKey.METRIC_NAME,
+    TraceMetricKnownFieldKey.METRIC_TYPE,
+    TraceMetricKnownFieldKey.METRIC_VALUE,
+    TraceMetricKnownFieldKey.METRIC_UNIT,
+  ];
 }
 
 export function isDefaultFields(location: Location): boolean {
@@ -175,14 +182,20 @@ function defaultSortBys(fields: string[]) {
 }
 
 export function defaultVisualizes() {
-  return [new VisualizeFunction(`${AggregationKey.COUNT}(metric.value)`)];
+  return [
+    new VisualizeFunction(
+      `${AggregationKey.COUNT}(${TraceMetricKnownFieldKey.METRIC_VALUE})`
+    ),
+  ];
 }
 
 function getVisualizesFromLocation(location: Location): Visualize[] | null {
   const aggregateFn = decodeScalar(location.query?.[METRICS_AGGREGATE_FN_KEY]);
 
   if (aggregateFn === AggregationKey.COUNT) {
-    return [new VisualizeFunction(`${aggregateFn}(metric.value)`)];
+    return [
+      new VisualizeFunction(`${aggregateFn}(${TraceMetricKnownFieldKey.METRIC_VALUE})`),
+    ];
   }
 
   const aggregateParam = decodeScalar(location.query?.[METRICS_AGGREGATE_PARAM_KEY]);

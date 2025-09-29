@@ -115,6 +115,7 @@ export function parseTagKey(tagKey: string) {
 const FILTER_KEY_SECTIONS: Record<SchemaHintsSources, FilterKeySection[]> = {
   [SchemaHintsSources.EXPLORE]: SPANS_FILTER_KEY_SECTIONS,
   [SchemaHintsSources.LOGS]: LOGS_FILTER_KEY_SECTIONS,
+  [SchemaHintsSources.METRICS]: SPANS_FILTER_KEY_SECTIONS, // Use spans sections for metrics
 };
 
 function getFilterKeySections(source: SchemaHintsSources) {

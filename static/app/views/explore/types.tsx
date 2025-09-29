@@ -3,7 +3,7 @@ import type {Project} from 'sentry/types/project';
 export enum TraceItemDataset {
   LOGS = 'logs',
   SPANS = 'spans',
-  TRACEMETRICS = 'tracemetrics',
+  TRACEMETRICS = 'tracemetrics', // EAP backed trace metrics
   UPTIME_RESULTS = 'uptime_results',
 }
 

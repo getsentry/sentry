@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useRef} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
@@ -17,7 +17,7 @@ export function MetricsInfiniteTable() {
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
       const [target] = entries;
-      if (target.isIntersecting && hasNextPage && !isFetchingNextPage) {
+      if (target?.isIntersecting && hasNextPage && !isFetchingNextPage) {
         fetchNextPage();
       }
     },

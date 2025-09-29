@@ -2998,6 +2998,7 @@ export const getFieldDefinition = (
     | 'feedback'
     | 'span'
     | 'log'
+    | 'tracemetric'
     | 'uptime' = 'event',
   kind?: FieldKind
 ): FieldDefinition | null => {

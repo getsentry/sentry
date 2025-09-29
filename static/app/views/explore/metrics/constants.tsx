@@ -8,6 +8,13 @@ export const AlwaysPresentMetricFields = [
   TraceMetricKnownFieldKey.METRIC_NAME,
   TraceMetricKnownFieldKey.METRIC_TYPE,
   TraceMetricKnownFieldKey.METRIC_VALUE,
+  TraceMetricKnownFieldKey.METRIC_UNIT,
+];
+
+export const AlwaysHiddenMetricFields = [
+  TraceMetricKnownFieldKey.ID,
+  TraceMetricKnownFieldKey.PROJECT_ID,
+  TraceMetricKnownFieldKey.ORGANIZATION_ID,
 ];
 
 export const QUERY_PAGE_LIMIT = 100;

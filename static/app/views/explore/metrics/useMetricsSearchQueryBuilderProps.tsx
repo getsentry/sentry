@@ -51,12 +51,14 @@ export function useMetricsSearchQueryBuilderProps({
   );
 
   const tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps = {
-    itemType: TraceItemDataset.TRACEMETRICS,
+    itemType: TraceItemDataset.TRACEMETRICS, // Use LOGS for now since TRACEMETRICS might not exist
     numberAttributes,
     stringAttributes,
     numberSecondaryAliases,
     stringSecondaryAliases,
     onSearch,
+    initialQuery: metricsSearch.formatString(),
+    searchSource: 'tracemetrics',
   };
 
   const searchQueryBuilderProviderProps = useSearchQueryBuilderProps(

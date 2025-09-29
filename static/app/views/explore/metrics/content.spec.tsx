@@ -58,6 +58,17 @@ describe('MetricsContent', () => {
         },
       },
     });
+
+    // Mock for trace item attribute values (used by MetricNameInput)
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/metric_name/values/`,
+      method: 'GET',
+      body: [
+        {value: 'custom.counter'},
+        {value: 'custom.gauge'},
+        {value: 'custom.histogram'},
+      ],
+    });
   });
 
   it('renders the metrics page with header', async () => {

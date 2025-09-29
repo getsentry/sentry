@@ -29,11 +29,9 @@ class RelayIndexEndpoint(Endpoint):
 
         :auth: required
         """
-        queryset = Relay.objects.filter(public_key__in=settings.SENTRY_RELAY_WHITELIST_PK)
 
         return self.paginate(
             request=request,
-            queryset=queryset,
             order_by="relay_id",
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
