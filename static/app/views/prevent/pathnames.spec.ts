@@ -29,8 +29,8 @@ const testCases: TestCase[] = [
   },
   {
     organization: testOrg,
-    path: '/prevent-ai/',
-    expected: '/organizations/test-org-slug/prevent/prevent-ai/',
+    path: '/ai-code-review/',
+    expected: '/organizations/test-org-slug/prevent/ai-code-review/',
   },
 ];
 
