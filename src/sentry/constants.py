@@ -267,8 +267,8 @@ DEFAULT_SORT_OPTION = "date"
 # Default value for prevent AI config
 PREVENT_AI_CONFIG_DEFAULT = {
     "org_defaults": {
-        "on_command_phrase": {"bug_prediction": True, "pr_review": True},
-        "on_ready_for_review": {"bug_prediction": True, "pr_review": False},
+        "on_command_phrase": {"bug_prediction": True, "vanilla": True},
+        "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
     },
     "repo_overrides": {},
 }

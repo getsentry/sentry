@@ -251,8 +251,8 @@ ORG_OPTIONS = (
         DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ),
     (
-        "preventAiConfig",
-        "sentry:prevent_ai_config",
+        "preventAiConfigGithub",
+        "sentry:prevent_ai_config_github",
         dict,
         PREVENT_AI_CONFIG_DEFAULT,
     ),
@@ -367,7 +367,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     )
     enablePrReviewTestGeneration = serializers.BooleanField(required=False)
     enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
-    preventAiConfig = serializers.JSONField(required=False)
+    preventAiConfigGithub = serializers.JSONField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
     ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
@@ -774,7 +774,7 @@ def create_console_platform_audit_log(
         "genAIConsent",
         "defaultAutofixAutomationTuning",
         "defaultSeerScannerAutomation",
-        "preventAiConfig",
+        "preventAiConfigGithub",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
     ]

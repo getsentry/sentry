@@ -564,7 +564,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     streamlineOnly: bool
     defaultAutofixAutomationTuning: str
     defaultSeerScannerAutomation: bool
-    preventAiConfig: dict[str, Any]
+    preventAiConfigGithub: dict[str, Any]
     enablePrReviewTestGeneration: bool
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
@@ -725,8 +725,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "sentry:default_seer_scanner_automation",
                 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
             ),
-            "preventAiConfig": obj.get_option(
-                "sentry:prevent_ai_config",
+            "preventAiConfigGithub": obj.get_option(
+                "sentry:prevent_ai_config_github",
                 PREVENT_AI_CONFIG_DEFAULT,
             ),
             "enablePrReviewTestGeneration": bool(
@@ -809,7 +809,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "streamlineOnly",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
-        "preventAiConfig",
+        "preventAiConfigGithub",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(
