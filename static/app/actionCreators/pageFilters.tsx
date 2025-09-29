@@ -349,9 +349,11 @@ export function initializeUrlState({
     }
   }
 
-  const pinnedFilters = organization.features.includes('new-page-filter')
-    ? new Set<PinnedPageFilter>(['projects', 'environments', 'datetime'])
-    : (storedPageFilters?.pinnedFilters ?? new Set());
+  const pinnedFilters = new Set<PinnedPageFilter>([
+    'projects',
+    'environments',
+    'datetime',
+  ]);
 
   PageFiltersStore.onInitializeUrlState(pageFilters, pinnedFilters, shouldPersist);
   if (shouldUpdateLocalStorage) {
