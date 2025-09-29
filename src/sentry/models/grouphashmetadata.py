@@ -85,7 +85,7 @@ class GroupHashMetadata(Model):
     # platforms are all over the place.
     platform = models.CharField(null=True)
 
-    # The event ID of the event when generated the metadata.
+    # The event ID of the event which generated the metadata.
     event_id = models.CharField(max_length=32, null=True)
 
     # HASHING
