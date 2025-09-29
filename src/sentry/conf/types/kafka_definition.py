@@ -77,6 +77,8 @@ class Topic(Enum):
     TASKWORKER_BUFFER_DLQ = "taskworker-buffer-dlq"
     TASKWORKER_CONTROL = "taskworker-control"
     TASKWORKER_CONTROL_DLQ = "taskworker-control-dlq"
+    TASKWORKER_CONTROL_LIMITED = "taskworker-control-limited"
+    TASKWORKER_CONTROL_LIMITED_DLQ = "taskworker-control-limited-dlq"
     TASKWORKER_CUTOVER = "taskworker-cutover"
     TASKWORKER_EMAIL = "taskworker-email"
     TASKWORKER_EMAIL_DLQ = "taskworker-email-dlq"
