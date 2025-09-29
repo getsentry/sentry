@@ -24,7 +24,6 @@ import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -546,10 +545,10 @@ function checkIsAllowedSelection(
 const BodySearch = styled(Layout.Body)`
   flex-grow: 0;
   border-bottom: 1px solid ${p => p.theme.border};
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding-bottom: ${space(2)};
+    padding-bottom: ${p => p.theme.space.xl};
   }
 `;
 
@@ -570,7 +569,7 @@ const BodyContent = styled('div')`
 `;
 
 const ControlSection = styled('aside')<{expanded: boolean}>`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   border-bottom: 1px solid ${p => p.theme.border};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -579,7 +578,8 @@ const ControlSection = styled('aside')<{expanded: boolean}>`
       p.expanded
         ? css`
             width: 343px; /* 300px for the toolbar + padding */
-            padding: ${space(2)} ${space(1.5)} ${space(1)} ${space(4)};
+            padding: ${p.theme.space.xl} ${p.theme.space.lg} ${p.theme.space.md}
+              ${p.theme.space['3xl']};
             border-right: 1px solid ${p.theme.border};
           `
         : css`
@@ -596,23 +596,28 @@ const ContentSection = styled('section')<{expanded: boolean}>`
   flex: 1 1 auto;
   min-width: 0;
 
-  padding: ${space(1)} ${space(2)} ${space(3)} ${space(2)};
+  padding-top: ${p => p.theme.space.md};
+  padding-right: ${p => p.theme.space.xl};
+  padding-bottom: ${p => p.theme.space['2xl']};
+  padding-left: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     ${p =>
       p.expanded
         ? css`
-            padding: ${space(1)} ${space(4)} ${space(3)} ${space(1.5)};
+            padding: ${p.theme.space.md} ${p.theme.space['3xl']} ${p.theme.space['2xl']}
+              ${p.theme.space.lg};
           `
         : css`
-            padding: ${space(1)} ${space(4)} ${space(3)} ${space(4)};
+            padding: ${p.theme.space.md} ${p.theme.space['3xl']} ${p.theme.space['2xl']}
+              ${p.theme.space['3xl']};
           `}
   }
 `;
 
 const FilterSection = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: minmax(300px, auto) 1fr;
@@ -671,11 +676,11 @@ const ChevronButton = withChonk(
 );
 
 const StyledSchemaHintsSection = styled(SchemaHintsSection)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   margin-bottom: 0px;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space.md};
     margin-bottom: 0px;
   }
 `;
