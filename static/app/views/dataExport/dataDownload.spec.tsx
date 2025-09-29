@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -10,17 +11,14 @@ describe('DataDownload', () => {
   beforeEach(MockApiClient.clearMockResponses);
   const dateExpired = new Date();
   const organization = OrganizationFixture();
-  const dataExportId = '721';
-  const initialRouterConfig = {
-    location: {
-      pathname: `/organizations/${organization.slug}/data-export/${dataExportId}/`,
-    },
-    route: '/organizations/:orgId/data-export/:dataExportId/',
+  const mockRouteParams = {
+    orgId: organization.slug,
+    dataExportId: '721',
   };
 
   const getDataExportDetails = (body: any, statusCode = 200) =>
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/data-export/${dataExportId}/`,
+      url: `/organizations/${mockRouteParams.orgId}/data-export/${mockRouteParams.dataExportId}/`,
       body,
       statusCode,
     });
@@ -28,7 +26,7 @@ describe('DataDownload', () => {
   it('should send a request to the data export endpoint', () => {
     const getValid = getDataExportDetails(DownloadStatus.VALID);
 
-    render(<DataDownload />, {initialRouterConfig});
+    render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
     expect(getValid).toHaveBeenCalledTimes(1);
   });
 
@@ -44,7 +42,7 @@ describe('DataDownload', () => {
     };
     getDataExportDetails({errors}, 403);
 
-    render(<DataDownload />, {initialRouterConfig});
+    render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getByText('403 -')).toBeInTheDocument(); // Either the code or the mock is mistaken about the data return format
   });
@@ -53,7 +51,7 @@ describe('DataDownload', () => {
     const status = DownloadStatus.EARLY;
     getDataExportDetails({status});
 
-    render(<DataDownload />, {initialRouterConfig});
+    render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(
       screen.getByText(textWithMarkupMatcher('What are you doing here?'))
@@ -66,12 +64,12 @@ describe('DataDownload', () => {
     const response = {status, query: {type: ExportQueryType.ISSUES_BY_TAG}};
     getDataExportDetails(response);
 
-    render(<DataDownload />, {initialRouterConfig});
+    render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getByText('This is awkward.')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Start a New Download'})).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/issues/`
+      `/organizations/${mockRouteParams.orgId}/issues/`
     );
   });
 
@@ -79,12 +77,12 @@ describe('DataDownload', () => {
     const status = DownloadStatus.VALID;
     getDataExportDetails({dateExpired, status});
 
-    render(<DataDownload />, {initialRouterConfig});
+    render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getByText('All done.')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Download CSV'})).toHaveAttribute(
       'href',
-      `/api/0/organizations/${organization.slug}/data-export/${dataExportId}/?download=true`
+      `/api/0/organizations/${mockRouteParams.orgId}/data-export/${mockRouteParams.dataExportId}/?download=true`
     );
     expect(
       screen.getByText(
@@ -104,7 +102,7 @@ describe('DataDownload', () => {
       },
     });
 
-    render(<DataDownload />, {initialRouterConfig});
+    render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
   });
@@ -120,7 +118,7 @@ describe('DataDownload', () => {
       },
     });
 
-    render(<DataDownload />, {initialRouterConfig});
+    render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
     expect(
       screen.queryByRole('button', {name: 'Open in Discover'})
     ).not.toBeInTheDocument();
@@ -134,7 +132,7 @@ describe('DataDownload', () => {
       query: {type: ExportQueryType.EXPLORE, info: {}},
     });
 
-    render(<DataDownload />, {initialRouterConfig});
+    render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getByRole('button', {name: 'Open in Explore'})).toBeInTheDocument();
   });

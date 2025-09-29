@@ -233,6 +233,7 @@ function buildRoutes(): RouteObject[] {
       path: '/data-export/:dataExportId',
       component: make(() => import('sentry/views/dataExport/dataDownload')),
       withOrgPath: true,
+      deprecatedRouteProps: true,
     },
     {
       component: errorHandler(OrganizationContainer),
