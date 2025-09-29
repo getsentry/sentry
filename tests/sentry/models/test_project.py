@@ -231,7 +231,7 @@ class ProjectTest(APITestCase, TestCase):
         ).exists()
         assert not ReleaseProject.objects.filter(project=project, release=release).exists()
 
-    def test_transfer_repository_project_path_configs(self) -> None:
+    def test_delete_on_transfer_repository_project_path_configs(self) -> None:
         from_org = self.create_organization()
         to_org = self.create_organization()
         team = self.create_team(organization=from_org)
@@ -263,11 +263,10 @@ class ProjectTest(APITestCase, TestCase):
 
         config1.refresh_from_db()
 
-        assert config1.organization_id == to_org.id
         assert RepositoryProjectPathConfig.objects.filter(organization_id=from_org.id).count() == 0
-        assert RepositoryProjectPathConfig.objects.filter(organization_id=to_org.id).count() == 1
+        assert RepositoryProjectPathConfig.objects.filter(organization_id=to_org.id).count() == 0
 
-        assert RepositoryProjectPathConfig.objects.filter(project_id=project.id).count() == 1
+        assert RepositoryProjectPathConfig.objects.filter(project_id=project.id).count() == 0
 
     def test_transfer_to_organization_alert_rules(self) -> None:
         from_org = self.create_organization()

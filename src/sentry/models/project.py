@@ -638,10 +638,8 @@ class Project(Model):
             "linked_id", flat=True
         )
 
-        # Manually move over code mappings to the new project
-        RepositoryProjectPathConfig.objects.filter(project_id=self.id).update(
-            organization_id=organization.id
-        )
+        # Delete code mappings to prevent them from being stuck on the old org
+        RepositoryProjectPathConfig.objects.filter(project_id=self.id).delete()
 
         for external_issues in chunked(
             RangeQuerySetWrapper(
