@@ -48,7 +48,7 @@ from sentry.constants import (
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     METRIC_ALERTS_THREAD_DEFAULT,
-    PREVENT_AI_CONFIG_DEFAULT,
+    PREVENT_AI_CONFIG_GITHUB_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -727,7 +727,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             ),
             "preventAiConfigGithub": obj.get_option(
                 "sentry:prevent_ai_config_github",
-                PREVENT_AI_CONFIG_DEFAULT,
+                PREVENT_AI_CONFIG_GITHUB_DEFAULT,
             ),
             "enablePrReviewTestGeneration": bool(
                 obj.get_option(

@@ -265,7 +265,7 @@ DEFAULT_ALERT_GROUP_THRESHOLD = (1000, 25)  # 1000%, 25 events
 DEFAULT_SORT_OPTION = "date"
 
 # Default value for prevent AI config
-PREVENT_AI_CONFIG_DEFAULT = {
+PREVENT_AI_CONFIG_GITHUB_DEFAULT = {
     "org_defaults": {
         "on_command_phrase": {"bug_prediction": True, "vanilla": True},
         "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
