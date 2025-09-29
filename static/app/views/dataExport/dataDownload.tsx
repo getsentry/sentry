@@ -10,12 +10,11 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import Layout from 'sentry/views/auth/layout';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
@@ -26,6 +25,11 @@ export enum DownloadStatus {
   VALID = 'VALID',
   EXPIRED = 'EXPIRED',
 }
+
+type RouteParams = {
+  dataExportId: string;
+  orgId: string;
+};
 
 interface ExploreQueryInfo {
   dataset: TraceItemDataset;
@@ -70,17 +74,15 @@ type OtherDownload = BaseDownload & {
 
 type Download = ExploreDownload | OtherDownload;
 
-function DataDownload() {
-  const organization = useOrganization();
-  const {dataExportId} = useParams<{dataExportId: string}>();
+type Props = {} & RouteComponentProps<RouteParams>;
 
-  const orgSlug = organization.slug;
+function DataDownload({params: {orgId, dataExportId}}: Props) {
   const {
     data: download,
     isPending,
     isError,
     error,
-  } = useApiQuery<Download>([`/organizations/${orgSlug}/data-export/${dataExportId}/`], {
+  } = useApiQuery<Download>([`/organizations/${orgId}/data-export/${dataExportId}/`], {
     staleTime: 0,
   });
 
@@ -116,14 +118,14 @@ function DataDownload() {
   ): string => {
     switch (queryType) {
       case ExportQueryType.ISSUES_BY_TAG:
-        return `/organizations/${orgSlug}/issues/`;
+        return `/organizations/${orgId}/issues/`;
       case ExportQueryType.DISCOVER:
-        return `/organizations/${orgSlug}/discover/queries/`;
+        return `/organizations/${orgId}/discover/queries/`;
       case ExportQueryType.EXPLORE:
         if (traceItemDataset === TraceItemDataset.LOGS) {
-          return `/organizations/${orgSlug}/explore/logs/`;
+          return `/organizations/${orgId}/explore/logs/`;
         }
-        return `/organizations/${orgSlug}/explore/traces/`;
+        return `/organizations/${orgId}/explore/traces/`;
       default:
         return '/';
     }
@@ -203,7 +205,7 @@ function DataDownload() {
     } = download;
 
     const to = {
-      pathname: `/organizations/${orgSlug}/discover/results/`,
+      pathname: `/organizations/${orgId}/discover/results/`,
       query: info,
     };
 
@@ -222,7 +224,7 @@ function DataDownload() {
 
     if (traceItemDataset === TraceItemDataset.LOGS) {
       const url = getLogsUrl({
-        organization: orgSlug,
+        organization: orgId,
         selection: {
           datetime: {
             end: info.end ?? null,
@@ -272,7 +274,7 @@ function DataDownload() {
     };
 
     const to = {
-      pathname: `/organizations/${orgSlug}/explore/traces/`,
+      pathname: `/organizations/${orgId}/explore/traces/`,
       query: {...info, ...(mode === Mode.AGGREGATE ? aggregateInfo : samplesInfo)},
     };
 
@@ -318,7 +320,7 @@ function DataDownload() {
           <LinkButton
             priority="primary"
             icon={<IconDownload />}
-            href={`/api/0/organizations/${orgSlug}/data-export/${dataExportId}/?download=true`}
+            href={`/api/0/organizations/${orgId}/data-export/${dataExportId}/?download=true`}
           >
             {t('Download CSV')}
           </LinkButton>
