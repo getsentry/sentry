@@ -133,6 +133,7 @@ export default function PreprodBuilds() {
             pageLinks={pageLinks}
             organizationSlug={organization.slug}
             projectSlug={projectSlug}
+            hasSearchQuery
           />
         )}
       </Layout.Main>
