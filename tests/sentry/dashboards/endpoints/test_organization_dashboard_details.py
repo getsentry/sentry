@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from django.urls import reverse
@@ -455,6 +456,80 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("get", self.url(self.dashboard.id))
         assert response.status_code == 200
         assert response.data["isFavorited"] is True
+
+    def test_explore_url_for_transaction_widget(self) -> None:
+        with self.feature("organizations:transaction-widget-deprecation-explore-view"):
+
+            dashboard_deprecation = Dashboard.objects.create(
+                title="Dashboard With Transaction Widget",
+                created_by_id=self.user.id,
+                organization=self.organization,
+            )
+            widget_deprecation = DashboardWidget.objects.create(
+                dashboard=dashboard_deprecation,
+                title="transaction widget",
+                display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+                widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+                interval="1d",
+                detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            )
+
+            DashboardWidgetQuery.objects.create(
+                widget=widget_deprecation,
+                fields=["count()", "transaction"],
+                columns=["transaction"],
+                aggregates=["count()"],
+                conditions="count():>50",
+                orderby="-count",
+                order=0,
+            )
+
+            response = self.do_request("get", self.url(dashboard_deprecation.id))
+            assert response.status_code == 200
+            assert (
+                "http://testserver/explore/traces/" in response.data["widgets"][0]["exploreUrls"][0]
+            )
+            params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
+            assert params["mode"] == ["aggregate"]
+            assert params["aggregateField"] == [
+                "[{'groupBy': 'transaction'}, {'yAxes': ['count(span.duration)']}]"
+            ]
+            assert params["query"] == ["(count(span.duration):>50) AND is_transaction:1"]
+            assert params["orderby"] == ["-count(span.duration)"]
+
+    def test_explore_url_for_table_widget(self) -> None:
+        with self.feature("organizations:transaction-widget-deprecation-explore-view"):
+
+            dashboard_deprecation = Dashboard.objects.create(
+                title="Dashboard With Transaction table Widget",
+                created_by_id=self.user.id,
+                organization=self.organization,
+            )
+            widget_deprecation = DashboardWidget.objects.create(
+                dashboard=dashboard_deprecation,
+                title="transaction widget",
+                display_type=DashboardWidgetDisplayTypes.TABLE,
+                widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+                interval="1d",
+                detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            )
+
+            DashboardWidgetQuery.objects.create(
+                widget=widget_deprecation,
+                fields=["id", "transaction"],
+                columns=["id", "transaction"],
+                aggregates=[],
+                order=0,
+            )
+
+            response = self.do_request("get", self.url(dashboard_deprecation.id))
+            assert response.status_code == 200
+            assert (
+                "http://testserver/explore/traces/" in response.data["widgets"][0]["exploreUrls"][0]
+            )
+            params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
+            assert params["mode"] == ["samples"]
+            assert params["field"] == ["['id', 'transaction']"]
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):

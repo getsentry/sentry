@@ -3,11 +3,15 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
+from urllib.parse import urlencode
 
 from django.db.models import prefetch_related_objects
 
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.discover.arithmetic import is_equation
+from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_eap
+from sentry.explore.translation.translation_helpers import format_orderby_for_translation
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
@@ -18,6 +22,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
     DatasetSourcesTypes,
 )
+from sentry.search.events.fields import is_function
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
@@ -91,6 +96,91 @@ class DashboardWidgetSerializer(Serializer):
 
         return result
 
+    def get_explore_url(self, obj, attrs):
+        queries = attrs["queries"]
+        urls = []
+        for query in queries:
+            fields = query["fields"]
+            aggregates = query["aggregates"]
+            columns = query["columns"]
+            conditions = query["conditions"]
+            orderby = query["orderby"]
+            all_fields = fields + aggregates + columns
+            selected_columns = {field for field in all_fields if not is_equation(field)}
+            equations = {field for field in all_fields if is_equation(field)}
+            translated_query_parts, _ = translate_mep_to_eap(
+                QueryParts(
+                    selected_columns=list(selected_columns),
+                    query=conditions,
+                    equations=list(equations),
+                    orderby=format_orderby_for_translation(orderby, fields),
+                )
+            )
+
+            translated_selected_columns = translated_query_parts["selected_columns"]
+            translated_equations = translated_query_parts["equations"]
+            translated_orderby = translated_query_parts["orderby"]
+            translated_conditions = translated_query_parts["query"]
+            # need to check type of widget and display type
+            translated_fields = translated_selected_columns + translated_equations
+            translated_aggregates = [
+                column for column in translated_fields if is_function(column) or is_equation(column)
+            ]
+            translated_columns = [
+                column
+                for column in translated_fields
+                if not (is_function(column) or is_equation(column))
+            ]
+
+            display_type = obj.display_type
+
+            explore_query = {}
+            if (
+                display_type == DashboardWidgetDisplayTypes.TABLE
+                or display_type == DashboardWidgetDisplayTypes.BIG_NUMBER
+            ):
+                if len(translated_aggregates) > 0:
+                    explore_query["mode"] = "aggregate"
+                    explore_query["aggregateField"] = [
+                        {"groupBy": column} for column in translated_columns
+                    ] + [{"yAxes": [aggregate]} for aggregate in translated_aggregates]
+                else:
+                    explore_query["mode"] = "samples"
+                explore_query["field"] = translated_columns
+
+            else:
+                if len(translated_columns) > 0:
+                    explore_query["mode"] = "aggregate"
+                    explore_query["aggregateField"] = [
+                        {"groupBy": column} for column in translated_columns
+                    ] + [{"yAxes": [aggregate]} for aggregate in translated_aggregates]
+                else:
+                    explore_query["mode"] = "samples"
+                    explore_query["aggregateField"] = [
+                        {"yAxes": [aggregate]} for aggregate in translated_aggregates
+                    ]
+
+            explore_query["query"] = translated_conditions
+            explore_query["orderby"] = translated_orderby[0] if translated_orderby else ""
+
+            filters = obj.dashboard.filters
+
+            explore_query["interval"] = obj.interval
+            explore_query["projects"] = obj.dashboard.projects.all().values_list("id", flat=True)
+
+            if filters:
+                explore_query["environment"] = filters.get("environment", [])
+                explore_query["start"] = filters.get("start", None)
+                explore_query["end"] = filters.get("end", None)
+                explore_query["statsPeriod"] = filters.get("period", "14d")
+
+            explore_url = obj.dashboard.organization.absolute_url(
+                path="/explore/traces/", query=urlencode(explore_query)
+            )
+            urls.append(explore_url)
+
+        return urls
+
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardWidgetResponse:
         widget_type = (
             DashboardWidgetTypes.get_type_name(obj.widget_type)
@@ -102,6 +192,14 @@ class DashboardWidgetSerializer(Serializer):
             and obj.discover_widget_split is not None
         ):
             widget_type = DashboardWidgetTypes.get_type_name(obj.discover_widget_split)
+
+        explore_urls = None
+        if obj.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE and features.has(
+            "organizations:transaction-widget-deprecation-explore-view",
+            organization=obj.dashboard.organization,
+            actor=user,
+        ):
+            explore_urls = self.get_explore_url(obj, attrs)
 
         return {
             "id": str(obj.id),
@@ -119,6 +217,7 @@ class DashboardWidgetSerializer(Serializer):
             "widgetType": widget_type,
             "layout": obj.detail.get("layout") if obj.detail else None,
             "datasetSource": DATASET_SOURCES[obj.dataset_source],
+            "exploreUrls": explore_urls if explore_urls else None,
         }
 
 

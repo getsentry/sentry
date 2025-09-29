@@ -5,7 +5,7 @@ from django.db import router
 from sentry.api.serializers.base import serialize
 from sentry.discover.arithmetic import is_equation, is_equation_alias
 from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_eap
-from sentry.explore.translation.discover_translation import _format_orderby_for_translation
+from sentry.explore.translation.translation_helpers import format_orderby_for_translation
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetQuery,
@@ -57,7 +57,7 @@ def translate_dashboard_widget(widget: DashboardWidget) -> DashboardWidget:
                 query=conditions,
                 equations=equations,
                 orderby=(
-                    _format_orderby_for_translation(orderby, fields_with_orderby)
+                    format_orderby_for_translation(orderby, fields_with_orderby)
                     if orderby
                     else None
                 ),
