@@ -6,6 +6,7 @@ from itertools import islice
 
 from sentry import options
 from sentry.utils import metrics
+from sentry.utils.iterators import chunked
 from sentry.workflow_engine.buffer.batch_client import (
     DelayedWorkflowClient,
     ProjectDelayedWorkflowClient,
@@ -106,7 +107,43 @@ def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
         for project_id in project_ids:
             process_in_batches(buffer_client.for_project(project_id))
 
-        buffer_client.clear_project_ids(
-            min=0,
-            max=fetch_time,
-        )
+        if options.get("workflow_engine.scheduler.use_conditional_delete"):
+            member_maxes = [
+                (project_id, max(timestamps))
+                for project_id, timestamps in all_project_ids_and_timestamps.items()
+            ]
+            try:
+                deleted_project_ids = set[int]()
+                with metrics.timer(
+                    "workflow_engine.conditional_delete_from_sorted_sets.total_duration"
+                ):
+                    # The conditional delete can be slow, so we break it into chunks that probably
+                    # aren't big enough to hold onto the main redis thread for too long.
+                    for chunk in chunked(member_maxes, 500):
+                        with metrics.timer(
+                            "workflow_engine.conditional_delete_from_sorted_sets.chunk_duration"
+                        ):
+                            deleted = buffer_client.mark_project_ids_as_processed(dict(chunk))
+                            deleted_project_ids.update(deleted)
+
+                logger.info(
+                    "process_buffered_workflows.project_ids_deleted",
+                    extra={
+                        "deleted_project_ids": sorted(deleted_project_ids),
+                        "processed_project_ids": sorted(project_ids),
+                    },
+                )
+            except Exception:
+                logger.exception(
+                    "process_buffered_workflows.conditional_delete_from_sorted_sets_error"
+                )
+                # Fallback.
+                buffer_client.clear_project_ids(
+                    min=0,
+                    max=fetch_time,
+                )
+        else:
+            buffer_client.clear_project_ids(
+                min=0,
+                max=fetch_time,
+            )

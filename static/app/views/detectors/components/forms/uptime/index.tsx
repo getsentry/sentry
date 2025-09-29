@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
@@ -53,6 +52,7 @@ export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDete
 const FormStack = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(3)};
-  max-width: ${p => p.theme.breakpoints.xl};
+  gap: ${p => p.theme.space['2xl']};
+  max-width: ${p => p.theme.breakpoints.lg};
+  padding-bottom: 160px;
 `;
