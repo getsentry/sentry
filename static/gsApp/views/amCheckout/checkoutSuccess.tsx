@@ -509,7 +509,7 @@ function CheckoutSuccess({
   // are effective immediately but without an immediate charge
   const effectiveToday =
     isImmediateCharge ||
-    (effectiveDate && effectiveDate === moment().add(1, 'day').format('MMMM D, YYYY'));
+    (effectiveDate && moment(effectiveDate) <= moment().add(1, 'day'));
 
   const total = isImmediateCharge
     ? (invoice.amountBilled ?? invoice.amount)
