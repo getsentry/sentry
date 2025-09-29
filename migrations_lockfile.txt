@@ -37,4 +37,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0046_delete_project_uptime_subscription_table
 
-workflow_engine: 0089_update_cron_workflow_names
+workflow_engine: 0090_add_detectorgroup_detector_date_index
