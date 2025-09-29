@@ -22,7 +22,7 @@ const INSTRUCTIONS_TEXT = {
   mainCTALink: '/settings/integrations/github',
 } as const;
 
-export default function TestPreOnboardingPage() {
+export default function TestsPreOnboardingPage() {
   const organization = useOrganization();
   const regionData = getRegionDataFromOrganization(organization);
   const isUSStorage = regionData?.name === 'us';

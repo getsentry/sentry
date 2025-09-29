@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-import {useNavigate, useSearchParams} from 'react-router-dom';
+import {useSearchParams} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 
 import testAnalyticsTestPerfDark from 'sentry-images/features/test-analytics-test-perf-dark.svg';
@@ -20,6 +20,7 @@ import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AddScriptToYamlStep} from 'sentry/views/prevent/tests/onboardingSteps/addScriptToYamlStep';
 import {AddUploadTokenStep} from 'sentry/views/prevent/tests/onboardingSteps/addUploadTokenStep';
@@ -33,7 +34,6 @@ import {OutputCoverageFileStep} from 'sentry/views/prevent/tests/onboardingSteps
 import {RunTestSuiteStep} from 'sentry/views/prevent/tests/onboardingSteps/runTestSuiteStep';
 import {UploadFileCLIStep} from 'sentry/views/prevent/tests/onboardingSteps/uploadFileCLIStep';
 import {ViewResultsInsightsStep} from 'sentry/views/prevent/tests/onboardingSteps/viewResultsInsightsStep';
-import TestPreOnboardingPage from 'sentry/views/prevent/tests/preOnboarding';
 import {useRepo} from 'sentry/views/prevent/tests/queries/useRepo';
 import {EmptySelectorsMessage} from 'sentry/views/prevent/tests/tests';
 
@@ -45,10 +45,10 @@ enum SetupOption {
 export default function TestsOnboardingPage() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const organization = useOrganization();
   const {integratedOrgId, repository} = usePreventContext();
-  const {data: repoData, isSuccess} = useRepo();
+  const {data: repoData, isSuccess: isRepoSuccess} = useRepo();
+  const navigate = useNavigate();
   const opt = searchParams.get('opt');
 
   const theme = useTheme();
@@ -61,14 +61,11 @@ export default function TestsOnboardingPage() {
   const [selectedUploadPermission, setSelectedUploadPermission] =
     useState<UploadPermission>(UploadPermission.OIDC);
 
-  useEffect(() => {
-    if (repoData?.testAnalyticsEnabled && isSuccess) {
-      const queryString = getPreventParamsString(location);
-      navigate(`/prevent/tests${queryString ? `?${queryString}` : ''}`, {replace: true});
-    }
-  }, [repoData?.testAnalyticsEnabled, navigate, isSuccess, location]);
-
-  const {data: integrations = [], isPending} = useApiQuery<OrganizationIntegration[]>(
+  const {
+    data: integrations = [],
+    isPending: isIntegrationsPending,
+    isSuccess: isIntegrationsSuccess,
+  } = useApiQuery<OrganizationIntegration[]>(
     [
       `/organizations/${organization.slug}/integrations/`,
       {query: {includeConfig: 0, provider_key: 'github'}},
@@ -78,27 +75,48 @@ export default function TestsOnboardingPage() {
 
   const regionData = getRegionDataFromOrganization(organization);
   const isUSStorage = regionData?.name === 'us';
+  const cameFromTestsRoute = location.state?.from === '/prevent/tests';
 
-  if (!isUSStorage) {
-    return (
-      <Grid gap="xl">
-        <TestPreOnboardingPage />
-      </Grid>
-    );
+  // We want to navigate to show TA if this repo should have data to show, if we need to show
+  // preOnboarding when they have no integrations, or if this org is not in the US region
+  useEffect(() => {
+    if (
+      !cameFromTestsRoute &&
+      ((repoData?.testAnalyticsEnabled && isRepoSuccess) ||
+        (!integrations.length && isIntegrationsSuccess) ||
+        !isUSStorage)
+    ) {
+      const queryString = getPreventParamsString(location);
+      navigate(`/prevent/tests${queryString ? `?${queryString}` : ''}`, {
+        state: {from: '/prevent/tests/new'},
+        replace: true,
+      });
+    }
+    // No `location` dependency as it causes infinite loop of redirect
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    cameFromTestsRoute,
+    repoData?.testAnalyticsEnabled,
+    isRepoSuccess,
+    integrations.length,
+    isIntegrationsSuccess,
+    isUSStorage,
+    navigate,
+  ]);
+
+  if (
+    !cameFromTestsRoute &&
+    ((repoData?.testAnalyticsEnabled && isRepoSuccess) ||
+      (!integrations.length && isIntegrationsSuccess) ||
+      !isUSStorage)
+  ) {
+    return null;
   }
 
-  if (isPending) {
+  if (isIntegrationsPending) {
     return (
       <Grid gap="xl">
         <LoadingIndicator />
-      </Grid>
-    );
-  }
-
-  if (!integrations.length) {
-    return (
-      <Grid gap="xl">
-        <TestPreOnboardingPage />
       </Grid>
     );
   }

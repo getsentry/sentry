@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
-import TestPreOnboardingPage from 'sentry/views/prevent/tests/preOnboarding';
+import TestsPreOnboardingPage from 'sentry/views/prevent/tests/preOnboarding';
 
 jest.mock('sentry/utils/regions', () => ({
   getRegionDataFromOrganization: jest.fn(),
@@ -11,7 +11,7 @@ jest.mock('sentry/utils/regions', () => ({
 
 const mockGetRegionData = jest.mocked(getRegionDataFromOrganization);
 
-describe('TestPreOnboardingPage', () => {
+describe('TestsPreOnboardingPage', () => {
   const org = OrganizationFixture({
     features: ['codecov-integration'],
   });
@@ -24,7 +24,7 @@ describe('TestPreOnboardingPage', () => {
       url: 'https://eu.sentry.io',
     });
 
-    render(<TestPreOnboardingPage />, {organization: org});
+    render(<TestsPreOnboardingPage />, {organization: org});
 
     // Check that the alert is displayed
     expect(
@@ -42,7 +42,7 @@ describe('TestPreOnboardingPage', () => {
       url: 'https://sentry.io',
     });
 
-    render(<TestPreOnboardingPage />, {organization: org});
+    render(<TestsPreOnboardingPage />, {organization: org});
 
     expect(
       screen.queryByText(
@@ -55,7 +55,7 @@ describe('TestPreOnboardingPage', () => {
     // Mock undefined region data
     mockGetRegionData.mockReturnValue(undefined);
 
-    render(<TestPreOnboardingPage />, {organization: org});
+    render(<TestsPreOnboardingPage />, {organization: org});
 
     // Check that the alert is displayed
     expect(
@@ -72,7 +72,7 @@ describe('TestPreOnboardingPage', () => {
       url: 'https://eu.sentry.io',
     });
 
-    render(<TestPreOnboardingPage />, {organization: org});
+    render(<TestsPreOnboardingPage />, {organization: org});
 
     expect(
       screen.getByText('Keep Test Problems From Slowing You Down')
