@@ -85,7 +85,8 @@ class BulkDeleteQuery:
         self, chunk_size=100, batch_size=100000, use_range_wrapper=False
     ) -> Generator[tuple[int, ...]]:
         assert self.days is not None
-        assert self.dtfield is not None and self.dtfield == self.order_by
+        assert self.dtfield is not None
+        assert self.order_by in [self.dtfield, f"-{self.dtfield}"]
 
         if use_range_wrapper:
             cutoff = timezone.now() - timedelta(days=self.days)
@@ -97,10 +98,18 @@ class BulkDeleteQuery:
                 queryset = queryset.filter(organization_id=self.organization_id)
 
             queryset = queryset.values_list("id", self.dtfield)
+
+            if self.order_by[0] == "-":
+                step = -batch_size
+                order_field = self.order_by[1:]
+            else:
+                step = batch_size
+                order_field = self.order_by
+
             wrapper = RangeQuerySetWrapper(
                 queryset,
-                step=batch_size,
-                order_by=self.dtfield,
+                step=step,
+                order_by=order_field,
                 override_unique_safety_check=True,
                 result_value_getter=lambda item: item[1],
             )
