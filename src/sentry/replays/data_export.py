@@ -46,6 +46,9 @@ from sentry.utils.snuba import raw_snql_query
 logger = logging.getLogger(__name__)
 
 EXPORT_JOB_DURATION_DEFAULT = timedelta(days=5)
+EXPORT_JOB_SOURCE_BUCKET = "sentry-replays"
+EXPORT_QUERY_ROWS_PER_PAGE = 1000
+EXPORT_QUERY_PAGES_PER_TASK = 10
 
 # $$  __$$\ $$ |      \_$$  _|$$  __$$\ $$ | $$  |$$ |  $$ |$$  __$$\ $$ |  $$ |$$  __$$\ $$  _____|
 #  $$$$$$\  $$\       $$$$$$\  $$$$$$\  $$\   $$\ $$\   $$\  $$$$$$\  $$\   $$\  $$$$$$\  $$$$$$$$\
@@ -77,8 +80,8 @@ def row_iterator_to_csv(rows: list[dict[str, Any]]) -> str:
 def export_clickhouse_rows(
     query_fn: QueryFnProtocol,
     referrer: str = "sentry.internal.eu-compliance-data-export",
-    num_pages: int = 1,
-    limit: int = 1000,
+    num_pages: int = EXPORT_QUERY_PAGES_PER_TASK,
+    limit: int = EXPORT_QUERY_ROWS_PER_PAGE,
     offset: int = 0,
 ) -> Generator[dict[str, Any]]:
     """
@@ -413,7 +416,7 @@ def export_replay_row_set(
     limit: int,
     initial_offset: int,
     write_to_sink: Callable[[str, str], None],
-    num_pages: int = 10,
+    num_pages: int = EXPORT_QUERY_PAGES_PER_TASK,
 ) -> int | None:
     rows = list(
         export_clickhouse_rows(
@@ -459,9 +462,9 @@ def export_replay_row_set_async(
     start: datetime,
     end: datetime,
     destination_bucket: str,
-    limit: int = 1000,
+    limit: int = EXPORT_QUERY_ROWS_PER_PAGE,
     offset: int = 0,
-    num_pages: int = 10,
+    num_pages: int = EXPORT_QUERY_PAGES_PER_TASK,
 ):
     assert limit > 0, "Limit must be greater than 0."
     assert offset >= 0, "Offset must be greater than or equal to 0."
@@ -502,7 +505,7 @@ def export_replay_project_async(
     project_id: int,
     limit: int,
     destination_bucket: str,
-    num_pages: int = 10,
+    num_pages: int = EXPORT_QUERY_PAGES_PER_TASK,
 ):
     # Each populated day bucket is scheduled for export.
     for start, end in get_replay_date_query_ranges(project_id):
@@ -524,7 +527,7 @@ def export_replay_blob_data[T](
     job_duration: timedelta,
     do_create_transfer_job: Callable[[CreateTransferJobRequest], T],
     pubsub_topic_name: str | None = None,
-    source_bucket: str = "sentry-replays",
+    source_bucket: str = EXPORT_JOB_SOURCE_BUCKET,
 ):
     # In the future we could set a non-unique transfer-job name. This would prevent duplicate runs
     # from doing the same work over and over again. However, we'd need to catch the exception,
@@ -551,9 +554,9 @@ def export_replay_data(
     gcs_project_id: str,
     destination_bucket: str,
     blob_export_job_duration: timedelta = EXPORT_JOB_DURATION_DEFAULT,
-    database_rows_per_page: int = 1000,
-    database_pages_per_task: int = 10,
-    source_bucket: str = "sentry-replays",
+    database_rows_per_page: int = EXPORT_QUERY_ROWS_PER_PAGE,
+    database_pages_per_task: int = EXPORT_QUERY_PAGES_PER_TASK,
+    source_bucket: str = EXPORT_JOB_SOURCE_BUCKET,
     pubsub_topic_name: str | None = None,
 ):
     logger.info(
