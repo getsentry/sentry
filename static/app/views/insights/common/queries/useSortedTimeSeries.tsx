@@ -27,7 +27,6 @@ import {
 } from 'sentry/views/dashboards/utils/isEventsStats';
 import type {
   TimeSeries,
-  TimeSeriesGroupBy,
   TimeSeriesItem,
 } from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
