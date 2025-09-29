@@ -1408,7 +1408,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     def test_prevent_ai_config_github_validation_missing_fields(self) -> None:
         """Test that missing required fields are rejected"""
         # Missing org_defaults
-        data = {"preventAiConfigGithub": {"repo_overrides": {}}}
+        data: dict[str, dict[str, dict]] = {"preventAiConfigGithub": {"repo_overrides": {}}}
         response = self.get_error_response(self.organization.slug, status_code=400, **data)
         # Verify we get a validation error for missing required field
         assert "preventAiConfigGithub" in response.data
@@ -1418,14 +1418,14 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     def test_prevent_ai_config_github_validation_invalid_structure(self) -> None:
         """Test that invalid structures are rejected"""
         # Not an object
-        data = {"preventAiConfigGithub": "invalid"}
-        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        data_1 = {"preventAiConfigGithub": "invalid"}
+        response = self.get_error_response(self.organization.slug, status_code=400, **data_1)
         # Check for validation error
         error_msg = str(response.data["preventAiConfigGithub"])
         assert "Prevent AI config option is invalid" in error_msg
 
         # Missing trigger fields
-        data = {
+        data_2: dict[str, dict] = {
             "preventAiConfigGithub": {
                 "org_defaults": {
                     "on_command_phrase": {"bug_prediction": True},  # Missing vanilla
@@ -1434,7 +1434,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 "repo_overrides": {},
             }
         }
-        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        response = self.get_error_response(self.organization.slug, status_code=400, **data_2)
         # Check for validation error
         assert "preventAiConfigGithub" in response.data
         error_msg = str(response.data["preventAiConfigGithub"])
