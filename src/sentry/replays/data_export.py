@@ -94,9 +94,9 @@ def export_clickhouse_rows(
     :param max_retries: The maximum number of queries we'll make to the database before quitting.
     :param retry_after_seconds: The number of seconds to wait after each query failure.
     """
-    assert limit > 0, "limit mut be a positive integer greater than zero."
-    assert num_pages > 0, "num_pages mut be a positive integer greater than zero."
-    assert offset >= 0, "offset mut be a positive integer greater than or equal to zero."
+    assert limit > 0, "limit must be a positive integer greater than zero."
+    assert num_pages > 0, "num_pages must be a positive integer greater than zero."
+    assert offset >= 0, "offset must be a positive integer greater than or equal to zero."
 
     # Iteration is capped to a maximum number of pages. This ensures termination and encourages
     # appropriate bounding by the calling function. Ideally this export is ran in an asynchonrous
@@ -257,8 +257,8 @@ def query_replays_dataset(
 ) -> Request:
     assert start < end, "Start date must be less than the ending date."
     assert project_id > 0, "Project ID must be greater than zero."
-    assert limit > 0, "limit mut be a positive integer greater than zero."
-    assert offset >= 0, "offset mut be a positive integer greater than or equal to zero."
+    assert limit > 0, "limit must be a positive integer greater than zero."
+    assert offset >= 0, "offset must be a positive integer greater than or equal to zero."
 
     def hash_(value: Column | str) -> Function:
         return Function("cityHash64", parameters=[value])
