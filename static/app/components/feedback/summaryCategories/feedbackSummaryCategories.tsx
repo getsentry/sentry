@@ -14,14 +14,17 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 export default function FeedbackSummaryCategories() {
   const organization = useOrganization();
-  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
+
   const openForm = useFeedbackForm();
 
-  if (
-    !areAiFeaturesAllowed ||
-    (!organization.features.includes('user-feedback-ai-summaries') &&
-      !organization.features.includes('user-feedback-ai-categorization-features'))
-  ) {
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
+
+  const showSummaryCategories =
+    (organization.features.includes('user-feedback-ai-summaries') ||
+      organization.features.includes('user-feedback-ai-categorization-features')) &&
+    areAiFeaturesAllowed;
+
+  if (!showSummaryCategories) {
     return null;
   }
 
