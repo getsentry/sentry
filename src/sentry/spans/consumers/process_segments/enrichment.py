@@ -4,12 +4,7 @@ from typing import Any
 
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-from sentry.spans.consumers.process_segments.types import (
-    Attributes,
-    EnrichedSpan,
-    attribute_value,
-    get_span_op,
-)
+from sentry.spans.consumers.process_segments.types import Attributes, attribute_value, get_span_op
 
 # Keys of shared sentry attributes that are shared across all spans in a segment. This list
 # is taken from `extract_shared_tags` in Relay.
@@ -62,7 +57,7 @@ def _find_segment_span(spans: list[SpanEvent]) -> SpanEvent | None:
 
     # Iterate backwards since we usually expect the segment span to be at the end.
     for span in reversed(spans):
-        if span.get("is_segment"):
+        if attribute_value(span, "sentry.is_segment"):
             return span
 
     return None
@@ -116,6 +111,11 @@ class TreeEnricher:
                 if attributes.get(key) is None:
                     attributes[key] = value
 
+        attributes["sentry.exclusive_time_ms"] = {
+            "type": "double",
+            "value": self._exclusive_time(span),
+        }
+
         return attributes
 
     def _exclusive_time(self, span: SpanEvent) -> float:
@@ -146,17 +146,15 @@ class TreeEnricher:
 
         return exclusive_time_us / 1_000
 
-    def enrich_span(self, span: SpanEvent) -> EnrichedSpan:
-        exclusive_time = self._exclusive_time(span)
+    def enrich_span(self, span: SpanEvent) -> SpanEvent:
         attributes = self._attributes(span)
         return {
             **span,
             "attributes": attributes,
-            "exclusive_time_ms": exclusive_time,  # FIXME
         }
 
     @classmethod
-    def enrich_spans(cls, spans: list[SpanEvent]) -> tuple[int | None, list[EnrichedSpan]]:
+    def enrich_spans(cls, spans: list[SpanEvent]) -> tuple[int | None, list[SpanEvent]]:
         inst = cls(spans)
         ret = []
         segment_idx = None
@@ -192,7 +190,7 @@ def _timestamp_by_op(spans: list[SpanEvent], op: str) -> float | None:
     return None
 
 
-def _span_interval(span: SpanEvent | EnrichedSpan) -> tuple[int, int]:
+def _span_interval(span: SpanEvent) -> tuple[int, int]:
     """Get the start and end timestamps of a span in microseconds."""
     return _us(span["start_timestamp"]), _us(span["end_timestamp"])
 

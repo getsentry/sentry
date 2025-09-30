@@ -9,22 +9,22 @@ from copy import deepcopy
 from typing import Any, cast
 
 import sentry_sdk
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry.performance_issues.types import SentryTags as PerformanceIssuesSentryTags
 from sentry.spans.consumers.process_segments.types import (
     CompatibleSpan,
-    EnrichedSpan,
     attribute_value,
     get_span_op,
 )
 from sentry.utils.dates import to_datetime
 
 
-def make_compatible(span: EnrichedSpan) -> CompatibleSpan:
+def make_compatible(span: SpanEvent) -> CompatibleSpan:
     # Creates attributes for EAP spans that are required by logic shared with the
     # event pipeline.
     #
-    # Spans in the transaction event protocol had a slightly different schema
+    # Spans in the transaction event protocol had a different schema
     # compared to raw spans on the EAP topic. This function adds the missing
     # attributes to the spans to make them compatible with the event pipeline
     # logic.
@@ -32,9 +32,7 @@ def make_compatible(span: EnrichedSpan) -> CompatibleSpan:
         **span,
         "sentry_tags": _sentry_tags(span.get("attributes") or {}),
         "op": get_span_op(span),
-        # Note: Event protocol spans expect `exclusive_time` while EAP expects
-        # `exclusive_time_ms`. Both are the same value in milliseconds
-        "exclusive_time": span["exclusive_time_ms"],  # FIXME
+        "exclusive_time": attribute_value(span, "sentry.exclusive_time_ms"),
     }
 
     return ret

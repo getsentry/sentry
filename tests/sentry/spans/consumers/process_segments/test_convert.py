@@ -1,6 +1,7 @@
 from typing import cast
 
 from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue
 
@@ -11,11 +12,8 @@ from sentry.spans.consumers.process_segments.types import CompatibleSpan
 # Test ported from Snuba's `eap_items_span`. #
 ###############################################
 
-SPAN_KAFKA_MESSAGE = {
-    "description": "/api/0/relays/projectconfigs/",
-    "duration_ms": 152,
-    "exclusive_time_ms": 0.228,
-    "is_segment": True,
+SPAN_KAFKA_MESSAGE: SpanEvent = {
+    "is_remote": True,
     "attributes": {
         "http.status_code": {"value": "200", "type": "string"},
         "my.array.field": {"value": [1, 2, ["nested", "array"]], "type": "array"},
@@ -36,16 +34,21 @@ SPAN_KAFKA_MESSAGE = {
         "relay_use_post_or_schedule_rejected": {"value": "version", "type": "string"},
         "sentry.category": {"value": "http", "type": "string"},
         "sentry.client_sample_rate": {"value": 0.1, "type": "string"},
+        "sentry.description": {"value": "/api/0/relays/projectconfigs/", "type": "string"},
         "sentry.environment": {"value": "development", "type": "string"},
+        "sentry.is_segment": {"value": True, "type": "boolean"},
         "sentry.normalized_description": {"value": "normalized_description", "type": "string"},
         "sentry.op": {"value": "http.server", "type": "string"},
+        "sentry.origin": {"value": "auto.http.django", "type": "string"},
         "sentry.platform": {"value": "python", "type": "string"},
+        "sentry.profile_id": {"value": "56c7d1401ea14ad7b4ac86de46baebae", "type": "string"},
         "sentry.release": {
             "value": "backend@24.7.0.dev0+c45b49caed1e5fcbf70097ab3f434b487c359b6b",
             "type": "string",
         },
         "sentry.sdk.name": {"value": "sentry.python.django", "type": "string"},
         "sentry.sdk.version": {"value": "2.7.0", "type": "string"},
+        "sentry.segment.id": {"type": "string", "value": "8873a98879faf06d"},
         "sentry.segment.name": {"value": "/api/0/relays/projectconfigs/", "type": "string"},
         "sentry.server_sample_rate": {"value": 0.2, "type": "string"},
         "sentry.status": {"value": "ok", "type": "string"},
@@ -62,25 +65,21 @@ SPAN_KAFKA_MESSAGE = {
         "thread.id": {"value": "8522009600", "type": "string"},
         "thread.name": {"value": "uWSGIWorker1Core0", "type": "string"},
     },
-    "sentry_tags": {"ignored": "tags"},
-    "profile_id": "56c7d1401ea14ad7b4ac86de46baebae",
     "organization_id": 1,
-    "origin": "auto.http.django",
     "project_id": 1,
     "received": 1721319572.877828,
     "retention_days": 90,
-    "segment_id": "8873a98879faf06d",
     "span_id": "8873a98879faf06d",
     "trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b",
-    "start_timestamp_ms": 1721319572616,
     "start_timestamp": 1721319572.616648,
     "end_timestamp": 1721319572.768806,
+    "name": "endpoint",
+    "status": "ok",
 }
 
 
 def test_convert_span_to_item() -> None:
-    # Cast since the above payload does not conform to the strict schema
-    item = convert_span_to_item(cast(CompatibleSpan, SPAN_KAFKA_MESSAGE))
+    item = convert_span_to_item(SPAN_KAFKA_MESSAGE)
 
     assert item.organization_id == 1
     assert item.project_id == 1
@@ -119,7 +118,6 @@ def test_convert_span_to_item() -> None:
         "sentry.duration_ms": AnyValue(int_value=152),
         "sentry.end_timestamp": AnyValue(double_value=1721319572.768806),
         "sentry.environment": AnyValue(string_value="development"),
-        "sentry.exclusive_time_ms": AnyValue(double_value=0.228),
         "sentry.is_segment": AnyValue(bool_value=True),
         "sentry.normalized_description": AnyValue(string_value="normalized_description"),
         "sentry.op": AnyValue(string_value="http.server"),
@@ -154,7 +152,8 @@ def test_convert_span_to_item() -> None:
 
 
 def test_convert_falsy_fields() -> None:
-    message = {**SPAN_KAFKA_MESSAGE, "duration_ms": 0, "is_segment": False}
+    message: SpanEvent = {**SPAN_KAFKA_MESSAGE}
+    message["attributes"]["sentry.is_segment"] = {"type": "boolean", "value": False}
 
     item = convert_span_to_item(cast(CompatibleSpan, message))
 
@@ -163,7 +162,7 @@ def test_convert_falsy_fields() -> None:
 
 
 def test_convert_span_links_to_json() -> None:
-    message = {
+    message: SpanEvent = {
         **SPAN_KAFKA_MESSAGE,
         "links": [
             # A link with all properties
@@ -172,10 +171,10 @@ def test_convert_span_links_to_json() -> None:
                 "span_id": "8873a98879faf06d",
                 "sampled": True,
                 "attributes": {
-                    "sentry.link.type": "parent",
-                    "sentry.dropped_attributes_count": 2,
-                    "parent_depth": 17,
-                    "confidence": "high",
+                    "sentry.link.type": {"type": "string", "value": "parent"},
+                    "sentry.dropped_attributes_count": {"type": "integer", "value": 2},
+                    "parent_depth": {"type": "integer", "value": 17},
+                    "confidence": {"type": "string", "value": "high"},
                 },
             },
             # A link with missing optional properties

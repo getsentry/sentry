@@ -1,14 +1,15 @@
-from typing import cast
-
 from sentry.spans.consumers.process_segments.shim import make_compatible
-from sentry.spans.consumers.process_segments.types import EnrichedSpan
 from tests.sentry.spans.consumers.process_segments.test_convert import SPAN_KAFKA_MESSAGE
 
 
 def test_make_compatible():
-    message = cast(EnrichedSpan, {**SPAN_KAFKA_MESSAGE, "sentry_tags": {"ignored": "tags"}})
+    message = {**SPAN_KAFKA_MESSAGE}
+    message["attributes"] = {
+        "sentry.exclusive_time_ms": {"type": "float", "value": 100.0},
+        **message["attributes"],
+    }
     compatible = make_compatible(message)
-    assert compatible["exclusive_time"] == message["exclusive_time_ms"]
+    assert compatible["exclusive_time"] == 100.0
     assert compatible["op"] == message["attributes"]["sentry.op"]["value"]
 
     # Pre-existing tags got overwritten:

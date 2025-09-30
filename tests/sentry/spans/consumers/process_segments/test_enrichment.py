@@ -1,4 +1,10 @@
-from sentry.spans.consumers.process_segments.enrichment import TreeEnricher, compute_breakdowns
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
+
+from sentry.spans.consumers.process_segments.enrichment import (
+    TreeEnricher,
+    attribute_value,
+    compute_breakdowns,
+)
 from sentry.spans.consumers.process_segments.shim import make_compatible
 from tests.sentry.spans.consumers.process import build_mock_span
 
@@ -40,7 +46,9 @@ def test_childless_spans() -> None:
     _, spans = TreeEnricher.enrich_spans(spans)
     spans = [make_compatible(span) for span in spans]
 
-    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in spans}
+    exclusive_times = {
+        span["span_id"]: attribute_value(span, "sentry.exclusive_time_ms") for span in spans
+    }
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 1123.0,
         "bbbbbbbbbbbbbbbb": 3000.0,
@@ -83,7 +91,9 @@ def test_nested_spans() -> None:
 
     _, spans = TreeEnricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in spans}
+    exclusive_times = {
+        span["span_id"]: attribute_value(span, "sentry.exclusive_time_ms") for span in spans
+    }
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 400.0,
@@ -126,7 +136,9 @@ def test_overlapping_child_spans() -> None:
 
     _, spans = TreeEnricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in spans}
+    exclusive_times = {
+        span["span_id"]: attribute_value(span, "sentry.exclusive_time_ms") for span in spans
+    }
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 400.0,
@@ -169,7 +181,9 @@ def test_child_spans_dont_intersect_parent() -> None:
 
     _, spans = TreeEnricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in spans}
+    exclusive_times = {
+        span["span_id"]: attribute_value(span, "sentry.exclusive_time_ms") for span in spans
+    }
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 1000.0,
@@ -212,7 +226,9 @@ def test_child_spans_extend_beyond_parent() -> None:
 
     _, spans = TreeEnricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in spans}
+    exclusive_times = {
+        span["span_id"]: attribute_value(span, "sentry.exclusive_time_ms") for span in spans
+    }
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 200.0,
@@ -255,7 +271,9 @@ def test_child_spans_consumes_all_of_parent() -> None:
 
     _, spans = TreeEnricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in spans}
+    exclusive_times = {
+        span["span_id"]: attribute_value(span, "sentry.exclusive_time_ms") for span in spans
+    }
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 0.0,
@@ -298,7 +316,9 @@ def test_only_immediate_child_spans_affect_calculation() -> None:
 
     _, spans = TreeEnricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in spans}
+    exclusive_times = {
+        span["span_id"]: attribute_value(span, "sentry.exclusive_time_ms") for span in spans
+    }
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 600.0,
@@ -366,7 +386,7 @@ def test_emit_ops_breakdown() -> None:
     }
 
     # Compute breakdowns for the segment span
-    (_,) = TreeEnricher.enrich_spans(spans)
+    _, spans = TreeEnricher.enrich_spans(spans)
     updates = compute_breakdowns(spans, breakdowns_config)
 
     assert updates["span_ops.ops.http"]["value"] == 3600000.0
@@ -427,12 +447,9 @@ def test_write_tags_for_performance_issue_detection():
     }
 
 
-def _mock_performance_issue_span(is_segment, attributes, **fields):
+def _mock_performance_issue_span(is_segment, attributes, **fields) -> SpanEvent:
     return {
-        "description": "OrganizationNPlusOne",
         "duration_ms": 107,
-        "is_segment": is_segment,
-        "is_remote": is_segment,
         "parent_span_id": None,
         "profile_id": "dbae2b82559649a1a34a2878134a007b",
         "project_id": 1,
@@ -440,7 +457,11 @@ def _mock_performance_issue_span(is_segment, attributes, **fields):
         "received": 1707953019.044972,
         "retention_days": 90,
         "segment_id": "a49b42af9fb69da0",
-        "attributes": attributes,
+        "attributes": {
+            **attributes,
+            "sentry.is_segment": {"type": "boolean", "value": is_segment},
+            "sentry.description": {"type": "string", "value": "OrganizationNPlusOne"},
+        },
         "span_id": "a49b42af9fb69da0",
         "start_timestamp_ms": 1707953018865,
         "start_timestamp": 1707953018.865,

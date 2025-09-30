@@ -1,4 +1,3 @@
-from collections.abc import MutableMapping
 from typing import Any, cast
 
 import orjson
@@ -15,7 +14,6 @@ I64_MAX = 2**63 - 1
 FIELD_TO_ATTRIBUTE = {
     "end_timestamp": "sentry.end_timestamp_precise",
     "event_id": "sentry.event_id",
-    "exclusive_time_ms": "sentry.exclusive_time_ms",
     "hash": "sentry.hash",
     "is_remote": "sentry.is_remote",
     "is_segment": "sentry.is_segment",
@@ -28,13 +26,12 @@ FIELD_TO_ATTRIBUTE = {
 
 RENAME_ATTRIBUTES = {
     "sentry.description": "sentry.raw_description",
-    "sentry.duration": "sentry.duration_ms",
     "sentry.segment.id": "sentry.segment_id",
 }
 
 
 def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
-    attributes: MutableMapping[str, AnyValue] = {}  # TODO
+    attributes: dict[str, AnyValue] = {}
 
     client_sample_rate = 1.0
     server_sample_rate = 1.0
@@ -60,7 +57,7 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
                     pass
 
     for field_name, attribute_name in FIELD_TO_ATTRIBUTE.items():
-        field_value = span.get(field_name)
+        field_value = span.get(field_name)  # type:ignore[assignment]
         if field_value is not None:
             attributes[attribute_name] = _anyvalue(field_value)
 
@@ -69,6 +66,12 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
     for convention_name, eap_name in RENAME_ATTRIBUTES.items():
         if convention_name in attributes:
             attributes[eap_name] = attributes.pop(convention_name)
+
+    # TODO: Move this to Relay
+    span.setdefault("attributes", {})["sentry.duration_ms"] = {
+        "type": "double",
+        "value": 1000 * (span["end_timestamp"] - span["start_timestamp"]),
+    }
 
     if links := span.get("links"):
         try:

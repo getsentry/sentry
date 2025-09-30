@@ -154,7 +154,6 @@ def _create_models(segment: CompatibleSpan, project: Project) -> None:
     Creates the Environment and Release models, along with the necessary
     relationships between them and the Project model.
     """
-
     environment_name = attribute_value(segment, "sentry.environment")
     release_name = attribute_value(segment, "sentry.release")
     dist_name = attribute_value(segment, "sentry.dist")

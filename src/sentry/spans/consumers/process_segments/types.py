@@ -1,8 +1,9 @@
+from collections.abc import Mapping
 from typing import Any, NotRequired
 
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import (
-    _FullStopIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalue as AttributeValue,
+    _FileColonFullStopIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalue as AttributeValue,
 )
 
 Attributes = dict[str, AttributeValue]
@@ -18,16 +19,7 @@ def get_span_op(span: SpanEvent) -> str:
     return attribute_value(span, "sentry.op") or DEFAULT_SPAN_OP
 
 
-class EnrichedSpan(SpanEvent, total=True):
-    """
-    Enriched version of the incoming span payload that has additional attributes
-    extracted from its child spans and/or inherited from its parent span.
-    """
-
-    exclusive_time_ms: float
-
-
-class CompatibleSpan(EnrichedSpan, total=True):
+class CompatibleSpan(SpanEvent, total=True):
     """A span that has the same fields as a kafka span, plus shimming for logic shared with the event pipeline.
 
     This type will be removed eventually."""
@@ -40,6 +32,7 @@ class CompatibleSpan(EnrichedSpan, total=True):
     hash: NotRequired[str]
 
 
-def attribute_value(span: SpanEvent, key: str) -> Any:
-    attributes: Attributes = span.get("attributes") or {}
-    return (attributes.get(key) or {}).get("value")
+def attribute_value(span: Mapping[str, Any], key: str) -> Any:
+    attributes = span.get("attributes") or {}
+    attr: dict[str, Any] = attributes.get(key) or {}
+    return attr.get("value")
