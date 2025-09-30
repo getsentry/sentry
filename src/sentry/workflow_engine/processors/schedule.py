@@ -41,8 +41,10 @@ def process_in_batches(client: ProjectDelayedWorkflowClient) -> None:
     )  # TODO: Use workflow engine-specific option.
 
     event_count = client.get_hash_length()
-    metrics.incr("delayed_workflow.num_groups", tags={"num_groups": bucket_num_groups(event_count)})
-    metrics.distribution("delayed_workflow.event_count", event_count)
+    metrics.incr(
+        "workflow_engine.schedule.num_groups", tags={"num_groups": bucket_num_groups(event_count)}
+    )
+    metrics.distribution("workflow_engine.schedule.event_count", event_count)
 
     if event_count < batch_size:
         return process_delayed_workflows.apply_async(
@@ -58,7 +60,7 @@ def process_in_batches(client: ProjectDelayedWorkflowClient) -> None:
     # if the dictionary is large, get the items and chunk them.
     alertgroup_to_event_data = client.get_hash_data(batch_key=None)
 
-    with metrics.timer("delayed_workflow.process_batch.duration"):
+    with metrics.timer("workflow_engine.schedule.process_batch.duration"):
         items = iter(alertgroup_to_event_data.items())
 
         while batch := dict(islice(items, batch_size)):
@@ -83,12 +85,7 @@ def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
         logger.info("delayed_workflow.disabled", extra={"option": option_name})
         return
 
-    with metrics.timer("delayed_workflow.process_all_conditions.duration"):
-        # We need to use a very fresh timestamp here; project scores (timestamps) are
-        # updated with each relevant event, and some can be updated every few milliseconds.
-        # The staler this timestamp, the more likely it'll miss some recently updated projects,
-        # and the more likely we'll have frequently updated projects that are never actually
-        # retrieved and processed here.
+    with metrics.timer("workflow_engine.schedule.process_all_conditions.duration", sample_rate=1.0):
         fetch_time = datetime.now(tz=timezone.utc).timestamp()
         all_project_ids_and_timestamps = buffer_client.get_project_ids(
             min=0,
