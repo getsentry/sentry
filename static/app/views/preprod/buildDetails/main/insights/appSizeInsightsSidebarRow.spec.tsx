@@ -44,11 +44,13 @@ describe('AppSizeInsightsSidebarRow', () => {
 
     // Check file savings are displayed with negative values
     expect(screen.getByText(/-\s*512\s*KB/i)).toBeInTheDocument();
-    // Multiple files have similar savings
     expect(screen.getByText(/-\s*256\s*KB/i)).toBeInTheDocument();
+    // logo.png shows 128 KB in both main row and HEIC row
+    expect(screen.getAllByText(/-\s*128\s*KB/i)).toHaveLength(2);
     expect(screen.getByText('(-7.5%)')).toBeInTheDocument();
-    // Icon.js and logo.png both have (-4%) savings (Icon.js main, logo.png main and HEIC)
-    expect(screen.getAllByText('(-4%)')).toHaveLength(3);
+    expect(screen.getByText('(-4%)')).toBeInTheDocument();
+    // logo.png has (-2%) savings (main and HEIC)
+    expect(screen.getAllByText('(-2%)')).toHaveLength(2);
   });
 
   it('calls onToggleExpanded when clicking the toggle button', async () => {

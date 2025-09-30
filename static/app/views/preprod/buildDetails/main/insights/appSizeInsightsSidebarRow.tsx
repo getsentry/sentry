@@ -135,11 +135,14 @@ function OptimizableImageFileRow({
   file: ProcessedInsightFile;
   originalFile: OptimizableImageFile;
 }) {
+  if (file.data.fileType !== 'optimizable_image') {
+    return null;
+  }
+
   const hasMinifySavings =
     originalFile.minified_size !== null && originalFile.minify_savings > 0;
   const hasHeicSavings =
     originalFile.heic_size !== null && originalFile.conversion_savings > 0;
-  const currentSize = originalFile.current_size;
 
   const maxSavings = Math.max(
     originalFile.minify_savings || 0,
