@@ -1,4 +1,6 @@
 import logging
+import os
+import threading
 from collections.abc import Mapping, Sequence
 from enum import StrEnum
 from typing import Any, TypedDict, TypeVar
@@ -7,6 +9,7 @@ import sentry_sdk
 from tokenizers import Tokenizer
 
 from sentry import options
+from sentry.constants import DATA_ROOT
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.variants import BaseVariant, ComponentVariant
@@ -49,7 +52,48 @@ BASE64_ENCODED_PREFIXES = [
 ]
 
 IGNORED_FILENAMES = ["<compiler-generated>"]
-TOKENIZER = Tokenizer.from_pretrained("jinaai/jina-embeddings-v2-base-en")
+
+# Path to the local tokenizer model file
+TOKENIZER_MODEL_PATH = os.path.join(
+    DATA_ROOT, "models", "jina-embeddings-v2-base-en", "tokenizer.json"
+)
+
+
+class TokenizerWrapper:
+    """
+    Lazy-loaded singleton for the tokenizer to avoid expensive initialization at module load time.
+    """
+
+    def __init__(self):
+        self._tokenizer: Tokenizer | None = None
+        self._lock = threading.RLock()
+
+    def get_tokenizer(self) -> Tokenizer:
+        """Get the tokenizer instance, initializing it lazily if needed."""
+        if self._tokenizer is None:
+            with self._lock:
+                # Double-check pattern to avoid race conditions
+                if self._tokenizer is None:
+                    # Try to load from local model first, fallback to remote
+                    if os.path.exists(TOKENIZER_MODEL_PATH):
+                        logger.info("Loading tokenizer from local model: %s", TOKENIZER_MODEL_PATH)
+                        self._tokenizer = Tokenizer.from_file(TOKENIZER_MODEL_PATH)
+                    else:
+                        logger.info(
+                            "Loading tokenizer from remote: jinaai/jina-embeddings-v2-base-en"
+                        )
+                        self._tokenizer = Tokenizer.from_pretrained(
+                            "jinaai/jina-embeddings-v2-base-en"
+                        )
+
+        return self._tokenizer
+
+
+tokenizerWrapper = TokenizerWrapper()
+
+
+def get_tokenizer() -> Tokenizer:
+    return tokenizerWrapper.get_tokenizer()
 
 
 class ReferrerOptions(StrEnum):
@@ -524,7 +568,7 @@ def get_token_count(
 
             if stacktrace_text:
                 timer_tags["has_content"] = True
-                return len(TOKENIZER.encode(stacktrace_text))
+                return len(get_tokenizer().encode(stacktrace_text))
 
             timer_tags["source"] = "no_stacktrace_string"
             return 0
