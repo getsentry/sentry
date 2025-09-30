@@ -120,11 +120,11 @@ def raw_description_strategy(span: Span) -> Sequence[str]:
     strategy is only effective if the span description is a fixed string.
     Otherwise, this strategy will produce a large number of span groups.
     """
-    return [raw_description(span) or ""]
+    return [raw_description(span)]
 
 
 def raw_description(span: Span) -> str:
-    return span.get("description") or attribute_value(span, "sentry.description")
+    return span.get("description") or attribute_value(span, "sentry.description") or ""
 
 
 IN_CONDITION_PATTERN = re.compile(r" IN \(%s(\s*,\s*%s)*\)")

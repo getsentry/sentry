@@ -47,12 +47,12 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
         else:
             if k == "sentry.client_sample_rate":
                 try:
-                    client_sample_rate = float(value)
+                    client_sample_rate = float(value)  # type:ignore[arg-type]
                 except ValueError:
                     pass
             elif k == "sentry.server_sample_rate":
                 try:
-                    server_sample_rate = float(value)
+                    server_sample_rate = float(value)  # type:ignore[arg-type]
                 except ValueError:
                     pass
 
@@ -67,11 +67,13 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
         if convention_name in attributes:
             attributes[eap_name] = attributes.pop(convention_name)
 
-    # TODO: Move this to Relay
-    span.setdefault("attributes", {})["sentry.duration_ms"] = {
-        "type": "double",
-        "value": 1000 * (span["end_timestamp"] - span["start_timestamp"]),
-    }
+    try:
+        # TODO: Move this to Relay
+        attributes["sentry.duration_ms"] = AnyValue(
+            int_value=int(1000 * (span["end_timestamp"] - span["start_timestamp"]))
+        )
+    except Exception:
+        sentry_sdk.capture_exception()
 
     if links := span.get("links"):
         try:

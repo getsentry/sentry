@@ -76,9 +76,11 @@ def test_basic(kafka_slice_id: int | None) -> None:
             assert orjson.loads(msg.value) == {
                 "spans": [
                     {
-                        "is_segment": True,
+                        "attributes": {
+                            "sentry.is_segment": True,
+                            "sentry.segment.id": "aaaaaaaaaaaaaaaa",
+                        },
                         "project_id": 12,
-                        "segment_id": "aaaaaaaaaaaaaaaa",
                         "span_id": "aaaaaaaaaaaaaaaa",
                         "trace_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
                         "end_timestamp": 1700000000.0,
