@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from datetime import timedelta
 from typing import Any
@@ -77,6 +78,16 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
             encoded_body_size = int(encoded_body_size)
 
         if encoded_body_size > payload_size_threshold:
+            # Check if this is a file download that should be excluded - can be moved to `is_span_eligible` once the flag is removed
+            # Right now, this location allows for better tracking of impact
+            if features.has(
+                "organizations:large-http-payload-detector-improvements", self.organization
+            ) and self._is_file_download(span):
+                logging.info(
+                    "Excluding large payload detection for file download",
+                )
+                return
+
             self._store_performance_problem(span)
 
     def _store_performance_problem(self, span: Span) -> None:
@@ -131,14 +142,6 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         if get_span_duration(span) < timedelta(
             milliseconds=self.settings.get("minimum_span_duration")
         ):
-            return False
-
-        # Check if this is a file download based on HTTP headers
-        # This addresses the issue where file download endpoints using internal unique identifiers
-        # (without file extensions in URLs) were incorrectly flagged as performance issues.
-        if features.has(
-            "organizations:large-http-payload-detector-improvements", self.organization
-        ) and self._is_file_download(span):
             return False
 
         normalized_description = description.strip().upper()
