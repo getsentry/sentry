@@ -341,7 +341,7 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
       });
     },
     onSuccess: (_, params) => {
-      addSuccessMessage(`${params.agentName} agent launched successfully`);
+      addSuccessMessage(`${params.agentName} launched successfully`);
       queryClient.invalidateQueries({
         queryKey: makeAutofixQueryKey(organization.slug, groupId, false),
       });
@@ -350,7 +350,7 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
       });
     },
     onError: (_, params) => {
-      addErrorMessage(`Failed to launch ${params.agentName} agent`);
+      addErrorMessage(`Failed to launch ${params.agentName}`);
     },
   });
 }
