@@ -424,7 +424,6 @@ def export_replay_row_set(
     end: datetime,
     limit: int,
     initial_offset: int,
-    file_number: int,
     write_to_storage: Callable[[str, str], None],
     num_pages: int = EXPORT_QUERY_PAGES_PER_TASK,
 ) -> int | None:
@@ -438,7 +437,7 @@ def export_replay_row_set(
     )
 
     if len(rows) > 0:
-        filename = f"database/session-replay/{project_id}/{start.isoformat()}/{end.isoformat()}/{file_number}"
+        filename = f"clickhouse/session-replay/{project_id}/{start.isoformat()}/{end.isoformat()}/{limit * num_pages}/{initial_offset}"
         csv_data = rows_to_csv(rows)
         write_to_storage(filename, csv_data)
 
@@ -474,7 +473,6 @@ def export_replay_row_set_async(
     end: datetime,
     destination_bucket: str,
     max_rows_to_export: int,
-    file_number: int = 0,
     limit: int = EXPORT_QUERY_ROWS_PER_PAGE,
     offset: int = 0,
     num_pages: int = EXPORT_QUERY_PAGES_PER_TASK,
@@ -508,7 +506,6 @@ def export_replay_row_set_async(
         end,
         limit,
         offset,
-        file_number,
         lambda filename, contents: save_to_storage(destination_bucket, filename, contents),
         num_pages,
     )
@@ -537,7 +534,6 @@ def export_replay_row_set_async(
             destination_bucket=destination_bucket,
             max_rows_to_export=max_rows_to_export,
             num_pages=num_pages,
-            file_number=file_number + 1,
         )
 
 
