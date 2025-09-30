@@ -65,7 +65,6 @@ EXPOSABLE_FEATURES = [
     "organizations:session-replay",
     "organizations:standalone-span-ingestion",
     "projects:discard-transaction",
-    "projects:profiling-ingest-unsampled-profiles",
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-addons",
     "organizations:indexed-spans-extraction",
