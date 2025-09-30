@@ -69,8 +69,8 @@ describe('CultureContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'culture'}
-        alias={'culture'}
+        type="culture"
+        alias="culture"
         value={{...MOCK_CULTURE_CONTEXT, timezone: ''}}
       />
     );
