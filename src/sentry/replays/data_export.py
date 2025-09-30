@@ -2,7 +2,6 @@ import base64
 import csv
 import io
 import logging
-import uuid
 from collections.abc import Callable, Generator
 from datetime import datetime, timedelta, timezone
 from typing import Any, Protocol
@@ -425,6 +424,7 @@ def export_replay_row_set(
     end: datetime,
     limit: int,
     initial_offset: int,
+    file_number: int,
     write_to_storage: Callable[[str, str], None],
     num_pages: int = EXPORT_QUERY_PAGES_PER_TASK,
 ) -> int | None:
@@ -438,7 +438,7 @@ def export_replay_row_set(
     )
 
     if len(rows) > 0:
-        filename = f"replay-row-data/{uuid.uuid4().hex}"
+        filename = f"database/session-replay/{project_id}/{start.isoformat()}/{end.isoformat()}/{file_number}"
         csv_data = rows_to_csv(rows)
         write_to_storage(filename, csv_data)
 
@@ -474,10 +474,29 @@ def export_replay_row_set_async(
     end: datetime,
     destination_bucket: str,
     max_rows_to_export: int,
+    file_number: int = 0,
     limit: int = EXPORT_QUERY_ROWS_PER_PAGE,
     offset: int = 0,
     num_pages: int = EXPORT_QUERY_PAGES_PER_TASK,
 ):
+    """
+    Export all replay rows which belong to the project and exist within the range.
+
+    :param project_id: Sentry Project ID.
+    :param start: Inclusive, minimum date in the queried range.
+    :param end: Exclusive, maximum date in the queried range.
+    :param destination_bucket: Which bucket the resulting CSV will be uploaded for.
+    :param max_rows_to_export: The maximum number of rows which may be executed by this task
+        chain. The max_rows_to_export value should match the number of rows present in your range.
+        This value is specified to protect against malformed behavior in the code which might
+        produce infinite (or at least very long) task recursion.
+    :param file_number: The file's position in the export sequence. Incremented by one each time
+        the task is chained. This keeps filenames predictable and ordered.
+    :param limit: The maximum number of rows to query by for a given page.
+    :param offset: The offset within the query range to query for. Must constantly increment and
+        never overlap with previous runs.
+    :param num_pages: The maximum number of pages to query per task.
+    """
     assert limit > 0, "Limit must be greater than 0."
     assert offset >= 0, "Offset must be greater than or equal to 0."
     assert start < end, "Start must be before end date."
@@ -489,6 +508,7 @@ def export_replay_row_set_async(
         end,
         limit,
         offset,
+        file_number,
         lambda filename, contents: save_to_storage(destination_bucket, filename, contents),
         num_pages,
     )
@@ -517,6 +537,7 @@ def export_replay_row_set_async(
             destination_bucket=destination_bucket,
             max_rows_to_export=max_rows_to_export,
             num_pages=num_pages,
+            file_number=file_number + 1,
         )
 
 
@@ -530,6 +551,19 @@ def export_replay_project_async(
     destination_bucket: str,
     num_pages: int = EXPORT_QUERY_PAGES_PER_TASK,
 ):
+    """
+    Export every replay for a given Sentry Project ID.
+
+    A task will be spawned for each day and will export that day's rows. This means we have a
+    maximum parallelism of 90 simultaneous processes. This value may be lower given the demand on
+    the task broker itself. If more parallelism is desired you will need to tweak the granularity
+    of the `get_replay_date_query_ranges` query.
+
+    :param project_id: Sentry Project ID.
+    :param limit: The maximum number of rows to query for in any given replay.
+    :param destination_bucket:
+    :param num_pages: The maximum number of pages to query for within a single task execution.
+    """
     # Each populated day bucket is scheduled for export.
     for start, end, max_rows_to_export in get_replay_date_query_ranges(project_id):
         export_replay_row_set_async.delay(
