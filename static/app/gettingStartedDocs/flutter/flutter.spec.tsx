@@ -15,6 +15,14 @@ describe('flutter onboarding docs', () => {
     });
 
     expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          /Add Sentry automatically to your app with the Sentry wizard/
+        )
+      )
+    ).toBeInTheDocument();
+
+    expect(
       screen.getByRole('heading', {name: /automatic configuration/i})
     ).toBeInTheDocument();
 
@@ -23,14 +31,6 @@ describe('flutter onboarding docs', () => {
     ).toBeInTheDocument();
 
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-
-    expect(
-      await screen.findByText(
-        textWithMarkupMatcher(
-          /Add Sentry automatically to your app with the Sentry wizard/
-        )
-      )
-    ).toBeInTheDocument();
 
     expect(screen.getByRole('link', {name: 'Structured Logs'})).toBeInTheDocument();
   });
