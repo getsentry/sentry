@@ -66,7 +66,7 @@ class QueryFnProtocol(Protocol):
     def __call__(self, limit: int, offset: int) -> Request: ...
 
 
-def row_iterator_to_csv(rows: list[dict[str, Any]]) -> str:
+def rows_to_csv(rows: list[dict[str, Any]]) -> str:
     buf = io.StringIO()
     writer = csv.writer(buf)
 
@@ -435,7 +435,7 @@ def export_replay_row_set(
 
     if len(rows) > 0:
         filename = f"replay-row-data/{uuid.uuid4().hex}"
-        csv_data = row_iterator_to_csv(rows)
+        csv_data = rows_to_csv(rows)
         write_to_storage(filename, csv_data)
 
     if len(rows) == (limit * num_pages):
