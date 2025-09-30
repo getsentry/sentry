@@ -2484,7 +2484,7 @@ function buildRoutes(): RouteObject[] {
   ];
 
   const pullRequestRoutes: SentryRouteObject = {
-    path: '/:repoName/pr/',
+    path: '/:repoOrg/:repoName/pr/',
     component: make(() => import('sentry/views/pullRequest/index')),
     withOrgPath: true,
     children: pullRequestChildren,
