@@ -22,10 +22,9 @@ from sentry.event_manager import (
     save_grouphash_and_group,
 )
 from sentry.incidents.grouptype import MetricIssue
-from sentry.issues.grouptype import FeedbackGroup, should_create_group
+from sentry.issues.grouptype import FeedbackGroup, get_group_type_by_type_id, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.priority import PriorityChangeReason, update_priority
-from sentry.models.group import get_group_type_by_type_id
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupopenperiod import get_latest_open_period
