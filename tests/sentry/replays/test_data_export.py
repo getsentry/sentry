@@ -1,4 +1,6 @@
+import csv
 import datetime
+import io
 import uuid
 from unittest.mock import patch
 
@@ -147,8 +149,8 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
     replay_store.save(mock_replay(t1, 1, replay2_id, segment_id=0))
     replay_store.save(mock_replay(t2, 1, replay3_id, segment_id=0))
 
+    # Assert the number of runs required to export the database given a set of parameters.
     with TaskRunner():
-        # Assert we need three runs to export the row set.
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_row_set_async.delay(
                 project_id=1,
@@ -161,7 +163,6 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
             )
             assert store_rows.call_count == 3
 
-        # Assert we need one run to export the row set.
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_row_set_async.delay(
                 project_id=1,
@@ -174,7 +175,6 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
             )
             assert store_rows.call_count == 1
 
-        # Assert we need one run to export the row set.
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_row_set_async.delay(
                 project_id=1,
@@ -187,7 +187,6 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
             )
             assert store_rows.call_count == 1
 
-        # Assert we need two runs to export the row set.
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_row_set_async.delay(
                 project_id=1,
@@ -200,7 +199,6 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
             )
             assert store_rows.call_count == 2
 
-        # Assert we need one run to export the row set.
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_row_set_async.delay(
                 project_id=1,
@@ -212,6 +210,36 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
                 num_pages=2,
             )
             assert store_rows.call_count == 1
+
+    # Assert export has a maximum call depth.
+    with TaskRunner():
+        # We would have exported three but we hit the max call depth.
+        with patch("sentry.replays.data_export.save_to_storage") as store_rows:
+            export_replay_row_set_async.delay(
+                project_id=1,
+                start=t0,
+                end=t3,
+                destination_bucket="test",
+                max_rows_to_export=1,
+                limit=1,
+                num_pages=1,
+            )
+            reader = csv.reader(io.StringIO(store_rows.call_args[0][2]))
+            assert sum(1 for _ in reader) == 2  # Includes headers.
+
+        # We get more than the max call depth because it was within the bounds of the task.
+        with patch("sentry.replays.data_export.save_to_storage") as store_rows:
+            export_replay_row_set_async.delay(
+                project_id=1,
+                start=t0,
+                end=t3,
+                destination_bucket="test",
+                max_rows_to_export=1,
+                limit=3,
+                num_pages=1,
+            )
+            reader = csv.reader(io.StringIO(store_rows.call_args[0][2]))
+            assert sum(1 for _ in reader) == 4  # Includes headers.
 
 
 @django_db_all
