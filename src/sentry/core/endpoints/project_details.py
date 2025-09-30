@@ -440,8 +440,7 @@ E.g. `['release', 'environment']`""",
 
     def validate_tempestFetchScreenshots(self, value):
         organization = self.context["project"].organization
-        actor = self.context["request"].user
-        if not has_tempest_access(organization, actor=actor):
+        if not has_tempest_access(organization):
             raise serializers.ValidationError(
                 "Organization does not have the tempest feature enabled."
             )
@@ -449,8 +448,7 @@ E.g. `['release', 'environment']`""",
 
     def validate_tempestFetchDumps(self, value):
         organization = self.context["project"].organization
-        actor = self.context["request"].user
-        if not has_tempest_access(organization, actor=actor):
+        if not has_tempest_access(organization):
             raise serializers.ValidationError(
                 "Organization does not have the tempest feature enabled."
             )
