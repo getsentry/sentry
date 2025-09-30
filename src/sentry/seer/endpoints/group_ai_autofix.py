@@ -4,8 +4,7 @@ import logging
 from typing import Any
 
 import orjson
-from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
@@ -145,15 +144,8 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         operation_id="Retrieve Seer Issue Fix State",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
-            GlobalParams.PROJECT_ID_OR_SLUG,
+            IssueParams.ISSUES_OR_GROUPS,
             IssueParams.ISSUE_ID,
-            OpenApiParameter(
-                name="var",
-                location=OpenApiParameter.PATH,
-                required=False,
-                type=OpenApiTypes.STR,
-                description="Either 'issues' or 'groups' (for backwards compatibility)",
-            ),
         ],
         responses={
             200: AutofixStateSerializer,
