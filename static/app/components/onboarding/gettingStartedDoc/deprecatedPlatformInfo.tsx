@@ -19,7 +19,7 @@ export function DeprecatedPlatformInfo({platform, dsn}: DeprecatedPlatformInfoPr
       <Stack padding="xl" gap="xl">
         <Text>
           {tct(
-            '[platform] has been deprecated, but you can still use this project with the following DSN key:',
+            '[platform] has been deprecated, but you can still use this project with the following DSN:',
             {
               platform: <strong>{platform.name}</strong>,
             }
