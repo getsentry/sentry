@@ -132,7 +132,7 @@ export default function Ai() {
         <ErrorState
           organization={organization}
           startSummaryRequest={startSummaryRequest}
-          extraMessage={t('processing timed out.')}
+          extraMessage={t('timed out.')}
         />
       </AnalyticsArea>
     );

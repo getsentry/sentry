@@ -207,6 +207,7 @@ export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
   return (
     <Container>
       <CompactSelect
+        searchable
         options={exampleOptions}
         value={selectedGuide}
         onChange={({value}) => setSelectedGuide(value)}
