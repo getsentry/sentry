@@ -11,10 +11,13 @@ from slack_sdk.models.blocks import (
     SectionBlock,
 )
 
-from sentry.notifications.platform.provider import NotificationProvider
+from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
-from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.target import (
+    IntegrationNotificationTarget,
+    PreparedIntegrationNotificationTarget,
+)
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -72,8 +75,19 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
     @classmethod
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         # TODO(ecosystem): Check for the integration, maybe a feature as well
+        # I currently view this as akin to a rollout or feature flag for the registry
         return False
 
     @classmethod
     def send(cls, *, target: NotificationTarget, renderable: SlackRenderable) -> None:
-        pass
+        from sentry.integrations.slack.integration import SlackIntegration
+
+        if not isinstance(target, cls.target_class):
+            raise NotificationProviderError(
+                f"Target '{target.__class__.__name__}' is not a valid dataclass for {cls.__name__}"
+            )
+
+        slack_target = PreparedIntegrationNotificationTarget[SlackIntegration](
+            target=target, installation_cls=SlackIntegration
+        )
+        slack_target.integration_installation.send_notification(target=target, payload=renderable)
