@@ -11,10 +11,10 @@ from fixtures.gitlab import (
     GitLabTestCase,
 )
 from sentry.integrations.models.integration import Integration
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest
+from sentry.releases.models import Commit
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of

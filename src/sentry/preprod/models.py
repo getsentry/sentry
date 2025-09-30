@@ -118,7 +118,7 @@ class PreprodArtifact(DefaultFieldsModel):
 
     # DEPRECATED, soon to be removed
     commit = FlexibleForeignKey(
-        "sentry.Commit", null=True, on_delete=models.SET_NULL, db_constraint=False
+        "releases.Commit", null=True, on_delete=models.SET_NULL, db_constraint=False
     )
 
     # Installable file like IPA or APK

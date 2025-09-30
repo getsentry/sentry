@@ -76,9 +76,8 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.commit import Commit
+from sentry.models.commit import Commit as OldCommit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -127,6 +126,8 @@ from sentry.notifications.models.notificationsettingprovider import Notification
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.preprod.models import PreprodArtifactSizeMetrics
+from sentry.releases.commits import _dual_write_commit
+from sentry.releases.models import CommitFileChange
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -886,7 +887,7 @@ class Factories:
     def create_commit(
         repo, project=None, author=None, release=None, message=None, key=None, date_added=None
     ):
-        commit = Commit.objects.get_or_create(
+        old_commit = OldCommit.objects.get_or_create(
             organization_id=repo.organization_id,
             repository_id=repo.id,
             key=key or sha1(uuid4().hex.encode("utf-8")).hexdigest(),
@@ -897,6 +898,7 @@ class Factories:
                 "date_added": date_added or timezone.now(),
             },
         )[0]
+        commit = _dual_write_commit(old_commit)
 
         if release:
             assert project

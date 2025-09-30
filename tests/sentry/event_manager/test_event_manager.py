@@ -51,7 +51,6 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.activity import Activity
-from sentry.models.commit import Commit
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
@@ -66,6 +65,7 @@ from sentry.models.pullrequest import PullRequest, PullRequestCommit
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.releases.models import Commit
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.signals import (

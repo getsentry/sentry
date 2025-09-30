@@ -9,10 +9,10 @@ from django.utils import timezone
 from sentry import analytics
 from sentry.analytics.events.groupowner_assignment import GroupOwnerAssignment
 from sentry.locks import locks
-from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.project import Project
 from sentry.models.release import Release
+from sentry.releases.models import Commit
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig

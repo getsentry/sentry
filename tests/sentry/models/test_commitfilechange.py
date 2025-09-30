@@ -1,6 +1,5 @@
-from sentry.models.commit import Commit
-from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit, CommitFileChange
 from sentry.testutils.cases import TestCase
 
 

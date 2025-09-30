@@ -1,9 +1,9 @@
 from sentry.models.activity import Activity
-from sentry.models.commit import Commit
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
+from sentry.releases.models import Commit
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 

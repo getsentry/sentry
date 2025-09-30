@@ -23,7 +23,6 @@ from sentry.issues.grouptype import (
     PerformanceRenderBlockingAssetSpanGroupType,
 )
 from sentry.models.activity import Activity
-from sentry.models.commit import Commit
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -37,6 +36,7 @@ from sentry.models.rule import Rule
 from sentry.performance_issues.detectors.utils import get_url_from_span
 from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.performance_issues.types import Span
+from sentry.releases.models import Commit
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import region_silo_function
 from sentry.types.rules import NotificationRuleDetails

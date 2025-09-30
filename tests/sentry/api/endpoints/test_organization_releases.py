@@ -16,9 +16,7 @@ from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.environment import Environment
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.release import Release
@@ -28,6 +26,7 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, R
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
+from sentry.releases.models import Commit, CommitFileChange
 from sentry.search.events.constants import (
     RELEASE_ALIAS,
     RELEASE_STAGE_ALIAS,

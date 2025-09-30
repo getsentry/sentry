@@ -41,9 +41,9 @@ from sentry.issues.priority import (
     PriorityChangeReason,
     get_priority_for_ongoing_group,
 )
-from sentry.models.commit import Commit
 from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
 from sentry.models.organization import Organization
+from sentry.releases.models import Commit
 from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer

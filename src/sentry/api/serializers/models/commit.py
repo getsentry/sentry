@@ -7,10 +7,10 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.pullrequest import PullRequestSerializerResponse
 from sentry.api.serializers.models.release import Author, get_users_for_authors
 from sentry.api.serializers.models.repository import RepositorySerializerResponse
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit
 
 
 class CommitSerializerResponse(TypedDict):

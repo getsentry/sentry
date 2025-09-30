@@ -9,7 +9,6 @@ from django.db.models import Q
 
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.providers import get_provider_enum_from_string
-from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupsubscription import GroupSubscription
@@ -30,6 +29,7 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
+from sentry.releases.models import Commit
 from sentry.types.actor import Actor, ActorType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser

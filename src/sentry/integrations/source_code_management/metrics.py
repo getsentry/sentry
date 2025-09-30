@@ -6,9 +6,9 @@ from attr import dataclass
 
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.utils.metrics import IntegrationEventLifecycleMetric
-from sentry.models.commit import Commit
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.releases.models import Commit
 
 
 class SCMIntegrationInteractionType(StrEnum):
