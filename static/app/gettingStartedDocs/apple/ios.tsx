@@ -54,6 +54,37 @@ const onboarding: OnboardingConfig = {
             params,
           }),
         },
+        {
+          type: 'text',
+          text: t('The Sentry wizard will automatically patch your application:'),
+        },
+        {
+          type: 'list',
+          items: [
+            t('Install the Sentry SDK via Swift Package Manager or Cocoapods'),
+            tct(
+              'Update your [appDelegate: AppDelegate] or SwiftUI App Initializer with the default Sentry configuration and an example error',
+              {
+                appDelegate: <code />,
+              }
+            ),
+            tct(
+              'Add a new [code: Upload Debug Symbols] phase to your [code: xcodebuild] build script',
+              {
+                code: <code />,
+              }
+            ),
+            tct(
+              'Create [code: .sentryclirc] with an auth token to upload debug symbols (this file is automatically added to [code: .gitignore])',
+              {
+                code: <code />,
+              }
+            ),
+            t(
+              "When you're using Fastlane, it will add a Sentry lane for uploading debug symbols"
+            ),
+          ],
+        },
       ],
     },
   ],
@@ -80,19 +111,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: t(
-            'The Sentry wizard automatically adds a code snippet that captures a message to your project. Simply run your app and you should see this message in your Sentry project.'
-          ),
-        },
-      ],
-    },
-  ],
+  verify: () => [],
   nextSteps: () => [
     {
       id: 'cocoapods-carthage',

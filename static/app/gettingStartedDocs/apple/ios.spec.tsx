@@ -23,7 +23,5 @@ describe('apple-ios onboarding docs', () => {
     expect(
       screen.getByRole('heading', {name: /manual configuration/i})
     ).toBeInTheDocument();
-
-    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
   });
 });
