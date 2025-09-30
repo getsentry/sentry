@@ -604,7 +604,7 @@ if (
       '.docker.internal',
       // SEO: ngrok, hot reload, SENTRY_UI_HOT_RELOAD. Uncomment this to allow hot-reloading when using ngrok. This is disabled by default
       // since ngrok urls are public and can be accessed by anyone.
-      // '.ngrok.io',
+      '.ngrok.io',
     ],
     static: {
       directory: './src/sentry/static/sentry',
