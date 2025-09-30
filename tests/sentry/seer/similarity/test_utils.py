@@ -1,7 +1,7 @@
 import copy
 from collections.abc import Callable
 from typing import Any, Literal, cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.variants import BaseVariant, CustomFingerprintVariant
@@ -1172,8 +1172,10 @@ class GetTokenCountTest(TestCase):
         )
 
         # Mock tokenizer encoding to raise an exception
-        with patch("sentry.seer.similarity.utils.TOKENIZER.encode") as mock_encode:
-            mock_encode.side_effect = ValueError("Tokenizer encoding failed")
+        with patch("sentry.seer.similarity.utils.get_tokenizer") as mock_get_tokenizer:
+            mock_tokenizer = Mock()
+            mock_tokenizer.encode.side_effect = ValueError("Tokenizer encoding failed")
+            mock_get_tokenizer.return_value = mock_tokenizer
 
             with patch("sentry.seer.similarity.utils.logger.exception") as mock_logger_exception:
                 # Use empty variants for this error test case
@@ -1182,3 +1184,22 @@ class GetTokenCountTest(TestCase):
                 mock_logger_exception.assert_called()
 
                 assert token_count == 0
+
+    def test_handles_empty_variants_gracefully(self) -> None:
+        """Test that get_token_count handles empty variants without crashing."""
+
+        event = Event(
+            event_id="12312012041520130908201311212012",
+            project_id=self.project.id,
+            data={
+                "title": "Example event",
+                # No cached stacktrace_string, so it will try to generate one
+            },
+        )
+
+        # Use empty variants - this should not crash
+        variants: dict[str, BaseVariant] = {}
+        token_count = get_token_count(event, variants=variants, platform="python")
+
+        # Should return 0 for empty variants
+        assert token_count == 0
