@@ -43,7 +43,10 @@ interface EventSearchProps {
   queryBuilderProps?: Partial<SearchQueryBuilderProps>;
 }
 
-function taglessQueryFilter(
+/**
+ * Filters out tokens that are not valid for an event level query without using group tags.
+ */
+function eventLevelQueryFilter(
   token: NonNullable<ReturnType<typeof parseQueryBuilderValue>>[number]
 ): boolean {
   if (token.type !== Token.FILTER) {
@@ -92,7 +95,7 @@ export function useEventQuery({groupId}: {groupId: string}): string {
   const validQuery = isPending
     ? // While tags are loading, use our static list of issue properties to filter the query
       // This allows us to optimistically make the correct query. It might be possible in some cases to not use tags at all.
-      withoutFreeText.filter(taglessQueryFilter)
+      withoutFreeText.filter(eventLevelQueryFilter)
     : withoutFreeText.filter(token => {
         if (token.type === Token.FILTER) {
           let tagKey = token.key.text;
