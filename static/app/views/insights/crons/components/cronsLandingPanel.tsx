@@ -21,6 +21,7 @@ import {CRON_SDK_PLATFORMS, PlatformPickerPanel} from './platformPickerPanel';
 import type {QuickStartProps} from './quickStartEntries';
 import {
   CeleryBeatAutoDiscovery,
+  DotNetUpsertPlatformGuide,
   GoUpsertPlatformGuide,
   JavaUpsertPlatformGuide,
   LaravelUpsertPlatformGuide,
@@ -107,6 +108,13 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
       Guide: RubyRailsMixinPlatformGuide,
       title: 'Mixin',
       key: GuideKey.MIXIN,
+    },
+  ],
+  dotnet: [
+    {
+      Guide: DotNetUpsertPlatformGuide,
+      title: 'Upsert',
+      key: GuideKey.UPSERT,
     },
   ],
 };

@@ -140,11 +140,13 @@ class AMCheckout extends Component<Props, State> {
     ) {
       props.onToggleLegacy(props.subscription.planTier);
     }
-    // TODO(checkout v3): remove these checks once checkout v3 is GA'd
+    // TODO(checkout v3): remove these checks once checkout v3 is GA'd and we remove the legacy checkout route
     if (props.location?.pathname.includes('checkout-v3') && !props.isNewCheckout) {
-      props.navigate(`/settings/${props.organization.slug}/billing/checkout/`);
+      props.navigate(`/settings/${props.organization.slug}/billing/checkout/`, {
+        replace: true,
+      });
     } else if (!props.location?.pathname.includes('checkout-v3') && props.isNewCheckout) {
-      props.navigate(`/checkout-v3/`);
+      props.navigate(`/checkout-v3/`, {replace: true});
     }
     let step = 1;
     if (props.location?.hash) {
@@ -233,10 +235,6 @@ class AMCheckout extends Component<Props, State> {
     }
   }
 
-  componentWillUnmount() {
-    Sentry.getReplay()?.stop();
-  }
-
   readonly initialStep: number;
 
   get referrer(): string | undefined {
@@ -268,7 +266,7 @@ class AMCheckout extends Component<Props, State> {
         data: {tier: checkoutTier},
       });
 
-      const planList = this.getPaidPlans(config);
+      const planList = this.getPlans(config);
       const billingConfig = {...config, planList};
       const formData = this.getInitialData(billingConfig);
 
@@ -287,19 +285,20 @@ class AMCheckout extends Component<Props, State> {
     this.setState({loading: false});
   }
 
-  getPaidPlans(billingConfig: BillingConfig) {
-    const paidPlans = billingConfig.planList.filter(
+  getPlans(billingConfig: BillingConfig) {
+    const plans = billingConfig.planList.filter(
       plan =>
-        plan.basePrice &&
-        plan.userSelectable &&
-        ((plan.billingInterval === MONTHLY && plan.contractInterval === MONTHLY) ||
-          (plan.billingInterval === ANNUAL && plan.contractInterval === ANNUAL))
+        plan.id === billingConfig.freePlan ||
+        (plan.basePrice &&
+          plan.userSelectable &&
+          ((plan.billingInterval === MONTHLY && plan.contractInterval === MONTHLY) ||
+            (plan.billingInterval === ANNUAL && plan.contractInterval === ANNUAL)))
     );
 
-    if (!paidPlans) {
+    if (plans.length === 0) {
       throw new Error('Cannot get plan options');
     }
-    return paidPlans;
+    return plans;
   }
 
   get checkoutSteps() {
@@ -309,6 +308,15 @@ class AMCheckout extends Component<Props, State> {
       : OnDemandSpend;
 
     if (isNewCheckout) {
+      // Do not include Payment Method and Billing Details sections for subscriptions billed through partners
+      if (subscription.isSelfServePartner) {
+        if (hasActiveVCFeature(organization)) {
+          // Don't allow VC customers to choose Annual plans
+          return [BuildYourPlan, SetSpendLimit];
+        }
+
+        return [BuildYourPlan, SetSpendLimit, ChooseYourBillingCycle];
+      }
       return [
         BuildYourPlan,
         SetSpendLimit,
@@ -415,11 +423,11 @@ class AMCheckout extends Component<Props, State> {
     const {subscription, checkoutTier} = this.props;
     const {planList, defaultPlan} = billingConfig;
     const initialPlan = planList.find(({id}) => id === subscription.plan);
+    const businessPlan = this.getBusinessPlan(billingConfig);
 
     if (this.shouldDefaultToBusiness()) {
-      const plan = this.getBusinessPlan(billingConfig);
-      if (plan) {
-        return plan;
+      if (businessPlan) {
+        return businessPlan;
       }
     }
 
@@ -449,7 +457,10 @@ class AMCheckout extends Component<Props, State> {
           contractInterval === subscription?.planDetails?.contractInterval
       );
 
-    return legacyInitialPlan || planList.find(({id}) => id === defaultPlan);
+    // if no legacy initial plan found, we fallback to the business plan, then the default plan (usually team)
+    return (
+      legacyInitialPlan || businessPlan || planList.find(({id}) => id === defaultPlan)
+    );
   }
 
   canComparePrices(initialPlan: Plan) {
@@ -904,6 +915,12 @@ class AMCheckout extends Component<Props, State> {
             <BackButton
               aria-label={t('Back to Subscription Overview')}
               to={`/settings/${organization.slug}/billing/`}
+              onClick={() => {
+                trackGetsentryAnalytics('checkout.exit', {
+                  subscription,
+                  organization,
+                });
+              }}
             >
               <Flex gap="sm" align="center">
                 <IconArrow direction="left" />

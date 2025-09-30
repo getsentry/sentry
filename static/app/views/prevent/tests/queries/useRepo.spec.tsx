@@ -1,11 +1,8 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PreventContext} from 'sentry/components/prevent/context/preventContext';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {useRepo} from './useRepo';
 
@@ -34,17 +31,16 @@ describe('useRepo', () => {
       body: mockRepoData,
     });
 
-    const wrapper = ({children}: {children: React.ReactNode}) => (
-      <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext value={organization}>
-          <PreventContext.Provider value={mockPreventContext}>
-            {children}
-          </PreventContext.Provider>
-        </OrganizationContext>
-      </QueryClientProvider>
+    const additionalWrapper = ({children}: {children: React.ReactNode}) => (
+      <PreventContext.Provider value={mockPreventContext}>
+        {children}
+      </PreventContext.Provider>
     );
 
-    const {result} = renderHook(() => useRepo(), {wrapper});
+    const {result} = renderHookWithProviders(() => useRepo(), {
+      additionalWrapper,
+      organization,
+    });
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -64,17 +60,16 @@ describe('useRepo', () => {
       body: {detail: 'Repository not found'},
     });
 
-    const wrapper = ({children}: {children: React.ReactNode}) => (
-      <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext value={organization}>
-          <PreventContext.Provider value={mockPreventContext}>
-            {children}
-          </PreventContext.Provider>
-        </OrganizationContext>
-      </QueryClientProvider>
+    const additionalWrapper = ({children}: {children: React.ReactNode}) => (
+      <PreventContext.Provider value={mockPreventContext}>
+        {children}
+      </PreventContext.Provider>
     );
 
-    const {result} = renderHook(() => useRepo(), {wrapper});
+    const {result} = renderHookWithProviders(() => useRepo(), {
+      additionalWrapper,
+      organization,
+    });
 
     await waitFor(() => {
       expect(result.current.isError).toBe(true);

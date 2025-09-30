@@ -6,7 +6,6 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
 
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.queue.routers import SplitQueueRouter
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.services import Service
@@ -56,7 +55,7 @@ class EventStream(Service):
     )
 
     def __init__(self, **options: Any) -> None:
-        self.__celery_router = SplitQueueRouter()
+        pass
 
     def _dispatch_post_process_group_task(
         self,
@@ -67,7 +66,6 @@ class EventStream(Service):
         is_regression: bool,
         is_new_group_environment: bool,
         primary_hash: str | None,
-        queue: str,
         skip_consume: bool = False,
         group_states: GroupStates | None = None,
         occurrence_id: str | None = None,
@@ -90,19 +88,7 @@ class EventStream(Service):
                     "project_id": project_id,
                     "eventstream_type": eventstream_type,
                 },
-                queue=queue,
             )
-
-    def _get_queue_for_post_process(self, event: Event | GroupEvent) -> str:
-        event_type = self._get_event_type(event)
-        if event_type == EventStreamEventType.Transaction:
-            default_queue = "post_process_transactions"
-        elif event_type == EventStreamEventType.Generic:
-            default_queue = "post_process_issue_platform"
-        else:
-            default_queue = "post_process_errors"
-
-        return self.__celery_router.route_for_queue(default_queue)
 
     def _get_occurrence_data(self, event: Event | GroupEvent) -> MutableMapping[str, Any]:
         occurrence = cast(Optional[IssueOccurrence], getattr(event, "occurrence", None))
@@ -133,7 +119,6 @@ class EventStream(Service):
             is_regression,
             is_new_group_environment,
             primary_hash,
-            self._get_queue_for_post_process(event),
             skip_consume,
             group_states,
             occurrence_id=event.occurrence_id if isinstance(event, GroupEvent) else None,

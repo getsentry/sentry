@@ -22,6 +22,7 @@ import * as mdx from 'eslint-plugin-mdx';
 import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
+import reactYouMightNotNeedAnEffect from 'eslint-plugin-react-you-might-not-need-an-effect';
 // @ts-expect-error TS(7016): Could not find a declaration file
 import sentry from 'eslint-plugin-sentry';
 import testingLibrary from 'eslint-plugin-testing-library';
@@ -710,6 +711,22 @@ export default typescript.config([
       'import/newline-after-import': 'off',
       // prettier-plugin-sort-imports always combines imports
       'import/no-duplicates': 'off',
+    },
+  },
+  {
+    name: 'plugin/you-might-not-need-an-effect',
+    ...reactYouMightNotNeedAnEffect.configs.recommended,
+    rules: {
+      'react-you-might-not-need-an-effect/no-derived-state': 'error',
+      'react-you-might-not-need-an-effect/no-chain-state-updates': 'off',
+      'react-you-might-not-need-an-effect/no-event-handler': 'off',
+      'react-you-might-not-need-an-effect/no-adjust-state-on-prop-change': 'off',
+      'react-you-might-not-need-an-effect/no-reset-all-state-on-prop-change': 'off',
+      'react-you-might-not-need-an-effect/no-pass-live-state-to-parent': 'off',
+      'react-you-might-not-need-an-effect/no-pass-data-to-parent': 'off',
+      'react-you-might-not-need-an-effect/no-initialize-state': 'off',
+      'react-you-might-not-need-an-effect/no-manage-parent': 'off',
+      'react-you-might-not-need-an-effect/no-empty-effect': 'off',
     },
   },
   {

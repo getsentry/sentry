@@ -190,11 +190,14 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
         options={selectableValues}
         menuWidth={250}
         onChange={addRow}
-        triggerLabel={
-          <Flex gap="xs">
-            <IconAdd isCircled /> {addButtonText}
-          </Flex>
-        }
+        triggerProps={{
+          ...addDropdown.triggerProps,
+          children: (
+            <Flex gap="xs">
+              <IconAdd isCircled /> {addButtonText}
+            </Flex>
+          ),
+        }}
       />
     );
 
