@@ -52,6 +52,10 @@ describe('ProductSelect', () => {
       method: 'GET',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
   });
 
   it('renders', async () => {
@@ -104,9 +108,7 @@ describe('ProductSelect', () => {
     expect(screen.getAllByTestId(/product-option-feature/)).toHaveLength(3); // +1 for credits included
     expect(screen.getAllByTestId(/product-option/)).toHaveLength(4); // +1 for credits included
     expect(screen.queryByText('Add to plan')).not.toBeInTheDocument();
-    expect(
-      screen.getAllByRole('checkbox', {name: /Add seer AI agent to plan/})
-    ).toHaveLength(2); // role is on entire box + checkbox within box
+    expect(screen.getAllByRole('checkbox', {name: /Add Seer to plan/})).toHaveLength(2); // role is on entire box + checkbox within box
   });
 
   it('does not render products if flags are missing', async () => {

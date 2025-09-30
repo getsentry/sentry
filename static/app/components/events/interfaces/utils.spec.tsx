@@ -4,7 +4,6 @@ import {
   getCurlCommand,
   getCurrentThread,
   getThreadById,
-  objectToSortedTupleArray,
   stringifyQueryList,
   userContextToActor,
 } from 'sentry/components/events/interfaces/utils';
@@ -244,19 +243,6 @@ describe('components/interfaces/utils', () => {
 
       // This may need to change, but we should aim to keep this low
       expect(spy.mock.calls.length).toBeLessThan(200);
-    });
-  });
-
-  describe('objectToSortedTupleArray()', () => {
-    it('should convert a key/value object to a sorted array of key/value tuples', () => {
-      expect(
-        objectToSortedTupleArray({
-          foo: ['bar', 'baz'],
-        })
-      ).toEqual([
-        ['foo', 'bar'],
-        ['foo', 'baz'],
-      ]);
     });
   });
 

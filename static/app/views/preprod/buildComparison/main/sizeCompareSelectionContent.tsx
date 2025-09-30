@@ -3,24 +3,29 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Stack} from 'sentry/components/core/layout';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Radio} from 'sentry/components/core/radio';
 import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar, IconCode, IconCommit, IconDownload} from 'sentry/icons';
+import {IconCalendar, IconCode, IconCommit, IconDownload, IconSearch} from 'sentry/icons';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {useApiQuery, useMutation, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
   BuildDetailsState,
+  isSizeInfoCompleted,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
@@ -47,12 +52,21 @@ export function SizeCompareSelectionContent({
   const [selectedBaseBuild, setSelectedBaseBuild] = useState<
     BuildDetailsApiResponse | undefined
   >(baseBuildDetails);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const {cursor} = useLocationQuery({
+    fields: {
+      cursor: decodeScalar,
+    },
+  });
 
   const queryParams: Record<string, any> = {
     per_page: 25,
     state: BuildDetailsState.PROCESSED,
     app_id: headBuildDetails.app_info?.app_id,
     build_configuration: headBuildDetails.app_info?.build_configuration,
+    ...(cursor && {cursor}),
+    ...(searchQuery && {query: searchQuery}),
   };
 
   const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =
@@ -66,6 +80,8 @@ export function SizeCompareSelectionContent({
         enabled: !!projectId,
       }
     );
+
+  const pageLinks = buildsQuery.getResponseHeader?.('Link') || null;
 
   const {mutate: triggerComparison, isPending: isComparing} = useMutation<
     void,
@@ -112,6 +128,26 @@ export function SizeCompareSelectionContent({
         }}
       />
 
+      <InputGroup>
+        <InputGroup.LeadingItems disablePointerEvents>
+          <IconSearch />
+        </InputGroup.LeadingItems>
+        <InputGroup.Input
+          placeholder={t('Search builds')}
+          value={searchQuery}
+          onChange={e => {
+            setSearchQuery(e.target.value);
+            // Clear cursor when search query changes to avoid pagination issues
+            if (cursor) {
+              navigate(
+                `/organizations/${organization.slug}/preprod/${projectId}/compare/${headBuildDetails.id}/`,
+                {replace: true}
+              );
+            }
+          }}
+        />
+      </InputGroup>
+
       {buildsQuery.isLoading && <LoadingIndicator />}
       {buildsQuery.isError && <Alert type="error">{buildsQuery.error?.message}</Alert>}
       {buildsQuery.data && (
@@ -130,6 +166,8 @@ export function SizeCompareSelectionContent({
               />
             );
           })}
+
+          <Pagination pageLinks={pageLinks} />
         </Stack>
       )}
     </Stack>
@@ -147,8 +185,7 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
   const commitHash = build.vcs_info?.head_sha?.substring(0, 7);
   const branchName = build.vcs_info?.head_ref;
   const dateAdded = build.app_info?.date_added;
-  const downloadSize = build.size_info?.download_size_bytes;
-  const installSize = build.size_info?.install_size_bytes;
+  const sizeInfo = build.size_info;
 
   return (
     <BuildItemContainer
@@ -182,16 +219,16 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
               <TimeSince date={dateAdded} />
             </Flex>
           )}
-          {downloadSize && (
+          {isSizeInfoCompleted(sizeInfo) && (
             <Flex align="center" gap="sm">
               <IconDownload size="xs" color="gray300" />
-              <Text>{formatBytesBase10(downloadSize)}</Text>
+              <Text>{formatBytesBase10(sizeInfo.download_size_bytes)}</Text>
             </Flex>
           )}
-          {installSize && (
+          {isSizeInfoCompleted(sizeInfo) && (
             <Flex align="center" gap="sm">
               <IconCode size="xs" color="gray300" />
-              <Text>{formatBytesBase10(installSize)}</Text>
+              <Text>{formatBytesBase10(sizeInfo.install_size_bytes)}</Text>
             </Flex>
           )}
         </Flex>

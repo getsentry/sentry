@@ -19,10 +19,10 @@ const INSTRUCTIONS_TEXT = {
     "You need to install the Sentry App on your GitHub organization as an admin. If you're not an admin, you will need to make sure your GitHub organization admins approve the installation of the Sentry App on GitHub."
   ),
   mainCTA: t('Add installation'),
-  mainCTALink: '/settings/integrations/github',
+  mainCTALink: 'https://github.com/apps/sentry-io',
 } as const;
 
-export default function TestPreOnboardingPage() {
+export default function TestsPreOnboardingPage() {
   const organization = useOrganization();
   const regionData = getRegionDataFromOrganization(organization);
   const isUSStorage = regionData?.name === 'us';
@@ -36,7 +36,7 @@ export default function TestPreOnboardingPage() {
         <Alert.Container>
           <Alert type="info">
             {t(
-              'Test Analytics data is stored in the U.S. only. To use this feature, create a new Sentry organization with U.S. data storage.'
+              'Test Analytics data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
             )}
           </Alert>
         </Alert.Container>
@@ -47,7 +47,7 @@ export default function TestPreOnboardingPage() {
             <img src={isDarkMode ? testsAnalyticsSummaryDark : testsAnalyticsSummary} />
           </ImgContainer>
           <StyledDiv>
-            <h2>{t('Keep test problems from slowing you down')}</h2>
+            <h2>{t('Keep Test Problems From Slowing You Down')}</h2>
             <SpacedParagraph>
               {t('Get testing data that keeps your CI running smoothly')}
             </SpacedParagraph>
@@ -72,7 +72,11 @@ export default function TestPreOnboardingPage() {
             <h2>{INSTRUCTIONS_TEXT.header}</h2>
             <SubtextParagraph>{INSTRUCTIONS_TEXT.subtext}</SubtextParagraph>
             <ButtonBar>
-              <LinkButton priority="primary" href={INSTRUCTIONS_TEXT.mainCTA}>
+              <LinkButton
+                external
+                priority="primary"
+                href={INSTRUCTIONS_TEXT.mainCTALink}
+              >
                 {INSTRUCTIONS_TEXT.mainCTA}
               </LinkButton>
               <LinkButton priority="default" href="/settings/integrations/github">

@@ -1,10 +1,14 @@
+from django.db.models.expressions import RawSQL
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.models.activity import Activity
+from sentry.reprocessing2 import is_group_finished
 from sentry.tasks.reprocessing2 import reprocess_group
+from sentry.types.activity import ActivityType
 
 
 @region_silo_endpoint
@@ -20,11 +24,30 @@ class GroupReprocessingEndpoint(GroupEndpoint):
 
         This endpoint triggers reprocessing for all events in a group.
 
+        Returns a 409 if the group itself is currently on the receiving-end
+        of a reprocessing.
+
         :pparam string issue_id: the numeric ID of the issue to reprocess. The
             reprocessed events will be assigned to a new numeric ID. See comments
             in sentry.reprocessing2.
         :auth: required
         """
+
+        # Using raw SQL since data is LegacyTextJSONField which can't be filtered with Django ORM
+        parent = (
+            Activity.objects.filter(project_id=group.project_id, type=ActivityType.REPROCESS.value)
+            .annotate(new_group_id=RawSQL("(data::json ->> 'newGroupId')", []))
+            .filter(new_group_id=str(group.id))
+            .first()  # There should only be one activity
+        )
+
+        if parent and not is_group_finished(parent.group_id):
+            return self.respond(
+                {
+                    "error": "group is part of an ongoing reprocessing",
+                },
+                status=409,
+            )
 
         max_events = request.data.get("maxEvents")
         if max_events:

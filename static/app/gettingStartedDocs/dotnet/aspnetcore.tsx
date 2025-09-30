@@ -12,7 +12,7 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
-  getCrashReportSDKInstallFirstStep,
+  getCrashReportSDKInstallFirstBlocks,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {
   feedbackOnboardingJsLoader,
@@ -97,7 +97,6 @@ const onboarding: OnboardingConfig = {
       }),
       configurations: [
         {
-          partialLoading: params.sourcePackageRegistries.isLoading,
           code: [
             {
               language: 'shell',
@@ -219,14 +218,18 @@ const crashReportOnboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      configurations: [
-        getCrashReportSDKInstallFirstStep(params),
+      content: [
+        ...getCrashReportSDKInstallFirstBlocks(params),
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'If you are rendering the page from the server, for example on ASP.NET MVC, the [code:Error.cshtml] razor page can be:',
             {code: <code />}
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'cshtml',
               value: 'html',
@@ -250,9 +253,14 @@ const crashReportOnboarding: OnboardingConfig = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/dotnet/guides/aspnetcore/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/dotnet/guides/aspnetcore/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],

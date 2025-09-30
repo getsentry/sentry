@@ -1,6 +1,7 @@
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
@@ -53,7 +54,7 @@ export default function DetectorNew() {
       navigate({
         pathname: `${makeMonitorBasePathname(organization.slug)}new/settings/`,
         query: {
-          detectorType: data.detectorType,
+          detectorType: location.query.detectorType as DetectorType,
           project: data.project,
         },
       });
@@ -83,9 +84,15 @@ export default function DetectorNew() {
         <LinkButton priority="default" to={makeMonitorBasePathname(organization.slug)}>
           {t('Cancel')}
         </LinkButton>
-        <Button priority="primary" type="submit">
-          {t('Next')}
-        </Button>
+        <Tooltip
+          title={t('Select a monitor type to continue')}
+          disabled={!!detectorType}
+          skipWrapper
+        >
+          <Button priority="primary" type="submit" disabled={!detectorType}>
+            {t('Next')}
+          </Button>
+        </Tooltip>
       </EditLayout.Footer>
     </EditLayout>
   );

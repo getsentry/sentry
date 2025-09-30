@@ -4,13 +4,17 @@ from unittest.mock import Mock, patch
 import orjson
 import pytest
 import responses
+from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
 from sentry.integrations.slack.unfurl.types import Handler, make_type_coercer
+from sentry.integrations.types import EventLifecycleOutcome
+from sentry.testutils.asserts import assert_slo_metric
 
 from . import LINK_SHARED_EVENT, BaseEventTest, build_test_block
 
 
+@patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
 class LinkSharedEventTest(BaseEventTest):
     @pytest.fixture(autouse=True)
     def mock_chat_unfurlMessage(self):
@@ -49,13 +53,13 @@ class LinkSharedEventTest(BaseEventTest):
             )
         },
     )
-    def test_share_links_sdk(self, mock_match_link) -> None:
+    def test_share_links_sdk(self, mock_match_link, mock_record) -> None:
         resp = self.post_webhook(event_data=orjson.loads(LINK_SHARED_EVENT))
         assert resp.status_code == 200, resp.content
         assert len(mock_match_link.mock_calls) == 3
 
         data = self.mock_unfurl.call_args[1]
-        unfurls = orjson.loads(data["unfurls"])
+        unfurls = data["unfurls"]
 
         # We only have two unfurls since one link was duplicated
         assert len(unfurls) == 2
@@ -87,13 +91,13 @@ class LinkSharedEventTest(BaseEventTest):
             )
         },
     )
-    def test_share_links_block_kit_sdk(self, mock_match_link) -> None:
+    def test_share_links_block_kit_sdk(self, mock_match_link, mock_record) -> None:
         resp = self.post_webhook(event_data=orjson.loads(LINK_SHARED_EVENT))
         assert resp.status_code == 200, resp.content
         assert len(mock_match_link.mock_calls) == 3
 
         data = self.mock_unfurl.call_args[1]
-        unfurls = orjson.loads(data["unfurls"])
+        unfurls = data["unfurls"]
 
         # We only have two unfurls since one link was duplicated
         assert len(unfurls) == 2
@@ -103,3 +107,52 @@ class LinkSharedEventTest(BaseEventTest):
         del result2["text"]
         assert unfurls["link1"] == result1
         assert unfurls["link2"] == result2
+
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+    @patch(
+        "sentry.integrations.slack.webhooks.event.match_link",
+        # match_link will be called twice, for each our links. Resolve into
+        # two unique links and one duplicate.
+        side_effect=[
+            ("mock_link", {"arg1": "value1"}),
+            ("mock_link", {"arg1", "value2"}),
+            ("mock_link", {"arg1": "value1"}),
+        ],
+    )
+    @patch(
+        "sentry.integrations.slack.webhooks.event.link_handlers",
+        {
+            "mock_link": Handler(
+                matcher=[re.compile(r"test")],
+                arg_mapper=make_type_coercer({}),
+                fn=Mock(
+                    return_value={
+                        "link1": build_test_block(LINK_SHARED_EVENT[0]),
+                        "link2": build_test_block(LINK_SHARED_EVENT[1]),
+                    }
+                ),
+            )
+        },
+    )
+    def test_share_links_failure(self, mock_match_link, mock_record) -> None:
+
+        with patch("slack_sdk.web.client.WebClient.chat_unfurl") as custom_mock:
+            # Your custom behavior
+            custom_mock.side_effect = SlackApiError(
+                message="beep boop",
+                response=SlackResponse(
+                    client=None,
+                    http_verb="POST",
+                    api_url="https://slack.com/api/chat.unfurl",
+                    req_args={},
+                    data={"ok": False, "error": "invalid_blocks"},
+                    headers={},
+                    status_code=200,
+                ),
+            )
+            resp = self.post_webhook(event_data=orjson.loads(LINK_SHARED_EVENT))
+
+        assert resp.status_code == 200, resp.content
+
+        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
