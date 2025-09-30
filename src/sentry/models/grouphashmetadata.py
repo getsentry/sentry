@@ -88,6 +88,9 @@ class GroupHashMetadata(Model):
     # The event ID of the event which generated the metadata.
     event_id = models.CharField(max_length=32, null=True)
 
+    # The date the metadata was last updated.
+    date_updated = models.DateTimeField(default=timezone.now, null=True)
+
     # HASHING
 
     # Most recent config to produce this hash
