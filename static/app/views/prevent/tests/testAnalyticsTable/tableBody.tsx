@@ -5,6 +5,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t, tct} from 'sentry/locale';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {
   RIGHT_ALIGNED_FIELDS,
   type Column,
@@ -64,7 +65,7 @@ export function renderTableBody({column, row, wrapToggleValue}: TableBodyProps) 
           )}
         >
           <Text tabular ellipsis>
-            {Number(value).toFixed(2)}%
+            {formatPercentage(Number(value) / 100, 2, {minimumValue: 0.0001})}
           </Text>
         </Tooltip>
       </Flex>

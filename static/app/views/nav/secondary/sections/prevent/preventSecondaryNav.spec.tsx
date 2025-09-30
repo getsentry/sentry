@@ -103,7 +103,7 @@ describe('PreventSecondaryNav', () => {
         organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
         initialRouterConfig: {
           location: {
-            pathname: '/organizations/org-slug/prevent/prevent-ai/new/',
+            pathname: '/organizations/org-slug/prevent/ai-code-review/new/',
           },
         },
       }
@@ -113,7 +113,7 @@ describe('PreventSecondaryNav', () => {
     expect(preventAILink).toBeInTheDocument();
     expect(preventAILink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/prevent/prevent-ai/new/'
+      '/organizations/org-slug/prevent/ai-code-review/new/'
     );
   });
 });

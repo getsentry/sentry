@@ -70,6 +70,25 @@ function BuildButton({buildDetails, icon, label, onRemove}: BuildButtonProps) {
   );
 }
 
+const ComparisonContainer = styled(Flex)`
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: ${p => p.theme.space.lg};
+  width: 100%;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    flex-direction: column;
+    gap: ${p => p.theme.space.md};
+    padding-bottom: ${p => p.theme.space.lg};
+
+    > * {
+      min-width: 0;
+      max-width: 100%;
+    }
+  }
+`;
+
 interface SizeCompareSelectedBuildsProps {
   headBuildDetails: BuildDetailsApiResponse;
   isComparing: boolean;
@@ -86,7 +105,7 @@ export function SizeCompareSelectedBuilds({
   onTriggerComparison,
 }: SizeCompareSelectedBuildsProps) {
   return (
-    <Flex align="center" gap="lg" width="100%" justify="center">
+    <ComparisonContainer>
       <BuildButton
         buildDetails={headBuildDetails}
         icon={<IconLock size="xs" locked />}
@@ -95,38 +114,34 @@ export function SizeCompareSelectedBuilds({
 
       <Text>{t('vs')}</Text>
 
-      <Flex align="center" gap="sm">
-        {baseBuildDetails ? (
-          <BuildButton
-            buildDetails={baseBuildDetails}
-            icon={<IconFocus size="xs" color="purple400" />}
-            label={t('Base')}
-            onRemove={onClearBaseBuild}
-          />
-        ) : (
-          <SelectBuild>
-            <Text size="sm">{t('Select a build')}</Text>
-          </SelectBuild>
-        )}
-      </Flex>
+      {baseBuildDetails ? (
+        <BuildButton
+          buildDetails={baseBuildDetails}
+          icon={<IconFocus size="xs" color="purple400" />}
+          label={t('Base')}
+          onRemove={onClearBaseBuild}
+        />
+      ) : (
+        <SelectBuild>
+          <Text size="sm">{t('Select a build')}</Text>
+        </SelectBuild>
+      )}
 
       {onTriggerComparison && (
-        <Flex align="center" gap="sm">
-          <Button
-            onClick={() => {
-              if (baseBuildDetails) {
-                onTriggerComparison();
-              }
-            }}
-            disabled={!baseBuildDetails || isComparing}
-            priority="primary"
-            icon={<IconTelescope size="sm" />}
-          >
-            {isComparing ? t('Comparing...') : t('Compare builds')}
-          </Button>
-        </Flex>
+        <Button
+          onClick={() => {
+            if (baseBuildDetails) {
+              onTriggerComparison();
+            }
+          }}
+          disabled={!baseBuildDetails || isComparing}
+          priority="primary"
+          icon={<IconTelescope size="sm" />}
+        >
+          {isComparing ? t('Comparing...') : t('Compare builds')}
+        </Button>
       )}
-    </Flex>
+    </ComparisonContainer>
   );
 }
 
