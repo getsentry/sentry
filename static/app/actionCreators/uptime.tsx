@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 import {
   addErrorMessage,
   addLoadingMessage,
+  addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
@@ -31,6 +32,14 @@ export async function updateUptimeRule(
       }
     );
     clearIndicators();
+
+    if (data.status !== undefined) {
+      const isEnabled = data.status === 'active';
+      addSuccessMessage(
+        isEnabled ? t('Uptime monitor enabled') : t('Uptime monitor disabled')
+      );
+    }
+
     return resp;
   } catch (err) {
     const respError = err as RequestError;
