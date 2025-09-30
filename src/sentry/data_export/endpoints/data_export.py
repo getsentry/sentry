@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 import sentry_sdk
@@ -41,6 +42,8 @@ SUPPORTED_DATASETS = {
     "transactions": Dataset.Transactions,
     "errors": Dataset.Events,
 }
+
+logger = logging.getLogger(__name__)
 
 
 class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
@@ -265,6 +268,11 @@ class DataExportEndpoint(OrganizationEndpoint):
         Create a new asynchronous file export task, and
         email user upon completion,
         """
+        logger.info(
+            "DataExport: POST Request started",
+            extra={"organization_id": organization.id},
+        )
+
         # The data export feature is only available alongside `discover-query`.
         # So to export issue tags, they must have have `discover-query`
         if not features.has("organizations:discover-query", organization):
