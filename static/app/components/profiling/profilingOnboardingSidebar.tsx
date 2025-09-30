@@ -7,6 +7,7 @@ import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {DeprecatedPlatformInfo} from 'sentry/components/onboarding/gettingStartedDoc/deprecatedPlatformInfo';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   DocsPageLocation,
@@ -281,16 +282,6 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     );
   }
 
-  if (!docs) {
-    return (
-      <LoadingError
-        message={t(
-          'The getting started documentation for this platform is currently unavailable.'
-        )}
-      />
-    );
-  }
-
   if (!dsn) {
     return (
       <LoadingError
@@ -298,6 +289,20 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
           'We encountered an issue while loading the DSN for this getting started documentation.'
         )}
         onRetry={refetch}
+      />
+    );
+  }
+
+  if (props.platform.deprecated) {
+    return <DeprecatedPlatformInfo platform={props.platform} dsn={dsn} />;
+  }
+
+  if (!docs) {
+    return (
+      <LoadingError
+        message={t(
+          'The getting started documentation for this platform is currently unavailable.'
+        )}
       />
     );
   }
