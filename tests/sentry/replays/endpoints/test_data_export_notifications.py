@@ -18,6 +18,8 @@ class DataExportNotificationsTestCase(APITestCase):
 
     @patch("sentry.replays.data_export.request_run_transfer_job")
     def test_simple(self, do_request) -> None:  # type: ignore[no-untyped-def]
+        do_request.return_value = None
+
         data = {
             "data": base64.b64encode(
                 json.dumps(
