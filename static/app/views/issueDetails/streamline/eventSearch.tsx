@@ -16,6 +16,7 @@ import {
   FieldKind,
   getFieldDefinition,
   ISSUE_EVENT_PROPERTY_FIELDS,
+  ISSUE_PROPERTY_FIELDS,
 } from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -55,7 +56,7 @@ export function useEventQuery({groupId}: {groupId: string}): string {
     eventQuery = locationQuery;
   }
 
-  const {data = []} = useGroupTags({
+  const {data = [], isPending} = useGroupTags({
     groupId,
     environment: environments,
   });
@@ -72,21 +73,34 @@ export function useEventQuery({groupId}: {groupId: string}): string {
   // For example: "is:unresolved browser.name:firefox" -> "browser.name:firefox"
   // Note: This is _probably_ not accounting for MANY invalid filters which could come in from the
   // issue stream. Will likely have to refine this in the future.
-  const validQuery = parsedQuery.filter((token: any) => {
-    if (token.type === Token.FREE_TEXT) {
-      return false;
-    }
-    if (token.type === Token.FILTER) {
-      let tagKey = token.key.text;
-      if (tagKey.startsWith('tags[')) {
-        tagKey = tagKey.slice(5, -1);
-      }
-      if (!filterKeys.hasOwnProperty(tagKey)) {
-        return false;
-      }
-    }
-    return true;
-  });
+  // While tags are loading, do not aggressively filter by known filter keys,
+  // otherwise we risk filtering out the entire query before tag data arrives.
+  const withoutFreeText = parsedQuery.filter(token => token.type !== Token.FREE_TEXT);
+  const validQuery = isPending
+    ? // While tags are loading, use our static list of issue properties to filter the query
+      // This allows us to optimistically make the correct query. It might be possible in some cases to not use tags at all.
+      withoutFreeText.filter(token => {
+        if (token.type !== Token.FILTER) {
+          return true;
+        }
+        let filterKey = token.key.text;
+        if (filterKey.startsWith('tags[')) {
+          filterKey = filterKey.slice(5, -1);
+        }
+        return !(ISSUE_PROPERTY_FIELDS as string[]).includes(filterKey);
+      })
+    : withoutFreeText.filter(token => {
+        if (token.type === Token.FILTER) {
+          let tagKey = token.key.text;
+          if (tagKey.startsWith('tags[')) {
+            tagKey = tagKey.slice(5, -1);
+          }
+          if (!filterKeys.hasOwnProperty(tagKey)) {
+            return false;
+          }
+        }
+        return true;
+      });
 
   return joinQuery(validQuery, false, true);
 }

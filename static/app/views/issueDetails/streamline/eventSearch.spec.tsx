@@ -1,14 +1,11 @@
 import {GroupFixture} from 'sentry-fixture/group';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 
 import {
-  makeAllTheProviders,
   render,
-  renderHook,
+  renderHookWithProviders,
   screen,
   userEvent,
   waitFor,
@@ -36,11 +33,12 @@ describe('EventSearch', () => {
   };
   const [tagKey, tagValue] = ['user.email', 'leander@s.io'];
   let mockTagKeyQuery: jest.Mock;
+  let mockTagsRequest: jest.Mock;
 
   beforeEach(() => {
     OrganizationStore.onUpdate(organization, {replace: true});
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
+    mockTagsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
       body: TagsFixture(),
       method: 'GET',
@@ -74,72 +72,79 @@ describe('EventSearch', () => {
     );
   }, 10_000);
 
-  it('filters issue tokens from event queries', () => {
+  it('filters issue tokens from event queries', async () => {
     const validQuery = `${tagKey}:${tagValue} device.family:[iphone,pixel]`;
 
-    const {result: onlyIssueTokens} = renderHook(
+    const {result: onlyIssueTokens} = renderHookWithProviders(
       () => useEventQuery({groupId: group.id}),
       {
-        wrapper: makeAllTheProviders({
-          deprecatedRouterMocks: true,
-          organization,
-          router: RouterFixture({
-            location: LocationFixture({
-              query: {query: 'is:resolved assigned:[me,#issues] issue.priority:high'},
-            }),
-          }),
-        }),
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/test/',
+            query: {query: 'is:resolved assigned:[me,#issues] issue.priority:high'},
+          },
+        },
       }
     );
     expect(onlyIssueTokens.current).toBe('');
 
-    const {result: combinedTokens} = renderHook(
+    const {result: combinedTokens} = renderHookWithProviders(
       () => useEventQuery({groupId: group.id}),
       {
-        wrapper: makeAllTheProviders({
-          deprecatedRouterMocks: true,
-          organization,
-          router: RouterFixture({
-            location: LocationFixture({
-              query: {query: `is:resolved assigned:[me,#issues] ${validQuery}`},
-            }),
-          }),
-        }),
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/test/',
+            query: {query: `is:resolved assigned:[me,#issues] ${validQuery}`},
+          },
+        },
       }
     );
     expect(combinedTokens.current).toBe(validQuery);
 
-    const {result: onlyEventTokens} = renderHook(
+    const {result: onlyEventTokens} = renderHookWithProviders(
       () => useEventQuery({groupId: group.id}),
       {
-        wrapper: makeAllTheProviders({
-          deprecatedRouterMocks: true,
-          organization,
-          router: RouterFixture({
-            location: LocationFixture({
-              query: {query: validQuery},
-            }),
-          }),
-        }),
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/test/',
+            query: {query: validQuery},
+          },
+        },
       }
     );
     expect(onlyEventTokens.current).toBe(validQuery);
 
-    const {result: unrecognizedFilterKey} = renderHook(
+    const {result: unrecognizedFilterKey} = renderHookWithProviders(
       () => useEventQuery({groupId: group.id}),
       {
-        wrapper: makeAllTheProviders({
-          deprecatedRouterMocks: true,
-          organization,
-          router: RouterFixture({
-            location: LocationFixture({
-              // This isn't in the TagsFixture or ISSUE_EVENT_PROPERTY_FIELDS
-              query: {query: `${validQuery} organization.slug:sentry`},
-            }),
-          }),
-        }),
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/test/',
+            // This isn't in the TagsFixture or ISSUE_EVENT_PROPERTY_FIELDS
+            query: {query: `${validQuery} organization.slug:sentry`},
+          },
+        },
       }
     );
-    expect(unrecognizedFilterKey.current).toBe(validQuery);
+    await waitFor(() => expect(unrecognizedFilterKey.current).toBe(validQuery));
+  });
+
+  it('keeps event filter from "is:unresolved level:error" and only makes one request', async () => {
+    const {result} = renderHookWithProviders(() => useEventQuery({groupId: group.id}), {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/test/',
+          query: {query: 'is:unresolved level:error'},
+        },
+      },
+    });
+
+    expect(result.current).toBe('level:error');
+    await waitFor(() => expect(mockTagsRequest).toHaveBeenCalledTimes(1));
   });
 });
