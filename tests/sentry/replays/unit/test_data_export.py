@@ -28,6 +28,7 @@ def test_export_blob_data() -> None:
     bucket_name = "BUCKET"
     bucket_prefix = "PREFIX"
     start_date = datetime(year=2025, month=1, day=31)
+    job_description = "something"
     job_duration = timedelta(days=5)
     end_date = start_date + job_duration
 
@@ -37,6 +38,7 @@ def test_export_blob_data() -> None:
         source_prefix=bucket_prefix,
         destination_bucket="b",
         notification_topic=pubsub_topic,
+        job_description=job_description,
         job_duration=job_duration,
         transfer_job_name=None,
         do_create_transfer_job=lambda event: event,
@@ -45,7 +47,7 @@ def test_export_blob_data() -> None:
 
     assert result == CreateTransferJobRequest(
         transfer_job=TransferJob(
-            description="Session Replay EU Compliance Export",
+            description=job_description,
             project_id=gcs_project_id,
             status=storage_transfer_v1.TransferJob.Status.ENABLED,
             transfer_spec=TransferSpec(

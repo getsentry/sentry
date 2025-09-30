@@ -155,6 +155,7 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
                 start=t0,
                 end=t3,
                 destination_bucket="test",
+                max_rows_to_export=3,
                 limit=1,
                 num_pages=1,
             )
@@ -167,6 +168,7 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
                 start=t0,
                 end=t3,
                 destination_bucket="test",
+                max_rows_to_export=3,
                 limit=1,
                 num_pages=3,
             )
@@ -179,6 +181,7 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
                 start=t0,
                 end=t3,
                 destination_bucket="test",
+                max_rows_to_export=3,
                 limit=3,
                 num_pages=1,
             )
@@ -191,6 +194,7 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
                 start=t0,
                 end=t3,
                 destination_bucket="test",
+                max_rows_to_export=3,
                 limit=2,
                 num_pages=1,
             )
@@ -203,6 +207,7 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
                 start=t0,
                 end=t3,
                 destination_bucket="test",
+                max_rows_to_export=3,
                 limit=2,
                 num_pages=2,
             )

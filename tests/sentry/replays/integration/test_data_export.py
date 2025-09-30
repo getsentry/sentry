@@ -103,11 +103,14 @@ def test_get_replay_date_query_ranges(replay_store) -> None:  # type: ignore[no-
     assert results[0][1] == datetime.datetime(
         year=t0.year, month=t0.month, day=t0.day
     ) + datetime.timedelta(days=1)
+    assert results[0][2] == 1
     assert results[1][0] == datetime.datetime(year=t1.year, month=t1.month, day=t1.day)
     assert results[1][1] == datetime.datetime(
         year=t1.year, month=t1.month, day=t1.day
     ) + datetime.timedelta(days=1)
+    assert results[1][2] == 1
     assert results[2][0] == datetime.datetime(year=t2.year, month=t2.month, day=t2.day)
     assert results[2][1] == datetime.datetime(
         year=t2.year, month=t2.month, day=t2.day
     ) + datetime.timedelta(days=1)
+    assert results[2][2] == 2
