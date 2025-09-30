@@ -421,7 +421,7 @@ def export_replay_row_set(
     end: datetime,
     limit: int,
     initial_offset: int,
-    write_to_sink: Callable[[str, str], None],
+    write_to_storage: Callable[[str, str], None],
     num_pages: int = EXPORT_QUERY_PAGES_PER_TASK,
 ) -> int | None:
     rows = list(
@@ -436,7 +436,7 @@ def export_replay_row_set(
     if len(rows) > 0:
         filename = f"replay-row-data/{uuid.uuid4().hex}"
         csv_data = row_iterator_to_csv(rows)
-        write_to_sink(filename, csv_data)
+        write_to_storage(filename, csv_data)
 
     if len(rows) == (limit * num_pages):
         return initial_offset + len(rows)

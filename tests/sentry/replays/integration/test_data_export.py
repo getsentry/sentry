@@ -66,7 +66,7 @@ def test_export_replay_row_set(replay_store) -> None:  # type: ignore[no-untyped
             self.contents = contents
 
     sink = Sink()
-    export_replay_row_set(1, t0, t2, limit=1, initial_offset=0, write_to_sink=sink)
+    export_replay_row_set(1, t0, t2, limit=1, initial_offset=0, write_to_storage=sink)
 
     assert sink.filename is not None
     assert sink.contents is not None
