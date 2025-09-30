@@ -13,7 +13,7 @@ from sentry.notifications.platform.discord.provider import (
     DiscordNotificationProvider,
     DiscordRenderable,
 )
-from sentry.notifications.platform.target import IntegrationNotificationTarget, prepare_targets
+from sentry.notifications.platform.target import IntegrationNotificationTarget
 
 
 def is_action_row(component: DiscordMessageComponentDict) -> TypeGuard[DiscordActionRowDict]:
@@ -24,6 +24,19 @@ def is_action_row(component: DiscordMessageComponentDict) -> TypeGuard[DiscordAc
 def is_button(component: DiscordMessageComponentDict) -> TypeGuard[DiscordButtonDict]:
     """Type guard to check if component is a button."""
     return component.get("type") == 2
+
+
+def assert_button_properties(
+    button: DiscordMessageComponentDict,
+    expected_label: str,
+    expected_url: str,
+    expected_custom_id: str,
+) -> None:
+    """Helper function to assert button properties."""
+    assert is_button(button)
+    assert button["label"] == expected_label
+    assert button["url"] == expected_url
+    assert button["custom_id"] == expected_custom_id
 
 
 from sentry.notifications.platform.types import (
@@ -73,10 +86,7 @@ class DiscordRendererTest(TestCase):
         assert len(action_row["components"]) == 1
 
         button = action_row["components"][0]
-        assert is_button(button)
-        assert button["label"] == "Visit Sentry"
-        assert button["url"] == "https://www.sentry.io"
-        assert button["custom_id"] == "visit_sentry"
+        assert_button_properties(button, "Visit Sentry", "https://www.sentry.io", "visit_sentry")
 
     def test_renderer_without_chart(self) -> None:
         """Test rendering when no chart is provided"""
@@ -207,23 +217,11 @@ class DiscordRendererTest(TestCase):
         assert len(buttons) == 3
 
         # Test button properties
-        button_0 = buttons[0]
-        assert is_button(button_0)
-        assert button_0["label"] == "Action 1"
-        assert button_0["url"] == "https://example1.com"
-        assert button_0["custom_id"] == "action_1"
-
-        button_1 = buttons[1]
-        assert is_button(button_1)
-        assert button_1["label"] == "Action 2"
-        assert button_1["url"] == "https://example2.com"
-        assert button_1["custom_id"] == "action_2"
-
-        button_2 = buttons[2]
-        assert is_button(button_2)
-        assert button_2["label"] == "Complex Action Name"
-        assert button_2["url"] == "https://example3.com"
-        assert button_2["custom_id"] == "complex_action_name"
+        assert_button_properties(buttons[0], "Action 1", "https://example1.com", "action_1")
+        assert_button_properties(buttons[1], "Action 2", "https://example2.com", "action_2")
+        assert_button_properties(
+            buttons[2], "Complex Action Name", "https://example3.com", "complex_action_name"
+        )
 
 
 class DiscordNotificationProviderTest(TestCase):
@@ -280,7 +278,6 @@ class DiscordNotificationProviderSendTest(TestCase):
         mock_client_instance.send_message.return_value = {"id": "1234567890123456789"}
 
         target = self._create_target()
-        prepare_targets([target])
         renderable = self._create_renderable()
 
         DiscordNotificationProvider.send(target=target, renderable=renderable)
@@ -302,7 +299,6 @@ class DiscordNotificationProviderSendTest(TestCase):
             integration_id=self.integration.id,
             organization_id=self.organization.id,
         )
-        prepare_targets([target])
         renderable = self._create_renderable()
 
         DiscordNotificationProvider.send(target=target, renderable=renderable)

@@ -3,7 +3,10 @@ from typing import TYPE_CHECKING
 from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
-from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.target import (
+    IntegrationNotificationTarget,
+    PreparedIntegrationNotificationTarget,
+)
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -103,7 +106,7 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
                 f"Target '{target.__class__.__name__}' is not a valid dataclass for {cls.__name__}"
             )
 
-        installation = DiscordIntegration(
-            model=target.integration, organization_id=target.organization_id
+        discord_target = PreparedIntegrationNotificationTarget[DiscordIntegration](
+            target=target, installation_cls=DiscordIntegration
         )
-        installation.send_notification(target=target, payload=renderable)
+        discord_target.integration_installation.send_notification(target=target, payload=renderable)
