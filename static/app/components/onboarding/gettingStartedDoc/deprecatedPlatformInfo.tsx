@@ -27,7 +27,7 @@ export function DeprecatedPlatformInfo({platform, dsn}: DeprecatedPlatformInfoPr
         </Text>
 
         <CodeSnippet dark language="properties">
-          {t('DSN: %s', dsn.public)}
+          {dsn.public}
         </CodeSnippet>
 
         <Text>
