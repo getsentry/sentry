@@ -12,6 +12,7 @@ from sentry.models.groupopenperiod import (
     get_open_periods_for_group,
     update_group_open_period,
 )
+from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.testutils.cases import APITestCase
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models.detector_group import DetectorGroup
@@ -34,6 +35,15 @@ class OrganizationOpenPeriodsTest(APITestCase):
 
         # Link detector to group
         DetectorGroup.objects.create(detector=self.detector, group=self.group)
+
+        self.group_open_period = GroupOpenPeriod.objects.get(group=self.group)
+
+        self.opened_gopa = GroupOpenPeriodActivity.objects.create(
+            date_added=self.group_open_period.date_added,
+            group_open_period=self.group_open_period,
+            type=OpenPeriodActivityType.OPENED,
+            value=self.group.priority,
+        )
 
     def get_url_args(self):
         return [self.organization.slug]
@@ -58,6 +68,12 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert open_period["end"] is None
         assert open_period["duration"] is None
         assert open_period["isOpen"] is True
+        assert len(open_period["activities"]) == 1
+        assert open_period["activities"][0] == {
+            "id": str(self.opened_gopa.id),
+            "type": str(OpenPeriodActivityType.OPENED.value),
+            "value": self.group.priority,
+        }
 
     def test_open_periods_group_id(self) -> None:
         response = self.get_success_response(
