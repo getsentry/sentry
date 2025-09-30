@@ -42,7 +42,9 @@ class GroupOpenPeriodSerializer(Serializer):
         result: defaultdict[GroupOpenPeriod, dict[str, list[GroupOpenPeriodActivityResponse]]] = (
             defaultdict(dict)
         )
-        activities = GroupOpenPeriodActivity.objects.filter(group_open_period__in=item_list)[:1000]
+        activities = GroupOpenPeriodActivity.objects.filter(
+            group_open_period__in=item_list
+        ).order_by("id")
 
         gopas = defaultdict(list)
         for activity, serialized_activity in zip(
@@ -50,7 +52,7 @@ class GroupOpenPeriodSerializer(Serializer):
         ):
             gopas[activity.group_open_period].append(serialized_activity)
         for item in item_list:
-            result[item]["activities"] = gopas[item]
+            result[item]["activities"] = gopas[item][:100]
 
         return result
 
