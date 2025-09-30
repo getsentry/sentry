@@ -436,7 +436,11 @@ def build_actions(
         )
 
     def _assign_button() -> MessageAction:
-        assignee = group.get_assignee()
+        try:
+            assignee = group.get_assignee()
+        except Actor.InvalidActor:
+            assignee = None
+
         assign_button = MessageAction(
             name="assign",
             label="Select Assignee...",
@@ -735,7 +739,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # build actions
         actions = []
-        assignee = self.group.get_assignee()
+        try:
+            assignee = self.group.get_assignee()
+        except Actor.InvalidActor:
+            assignee = None
+
         for action in payload_actions:
             if action.label in (
                 "Archive",

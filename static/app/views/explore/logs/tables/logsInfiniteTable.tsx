@@ -444,14 +444,14 @@ export function LogsInfiniteTable({
           />
         )}
         {embeddedOptions?.replay && showJumpUpButton ? (
-          <JumpButtons jump={'up'} onClick={onClickToJump} tableHeaderHeight={0} />
+          <JumpButtons jump="up" onClick={onClickToJump} tableHeaderHeight={0} />
         ) : null}
       </FloatingBackToTopContainer>
       <FloatingBottomContainer
         tableWidth={tableRef.current?.getBoundingClientRect().width ?? 0}
       >
         {embeddedOptions?.replay && showJumpDownButton ? (
-          <JumpButtons jump={'down'} onClick={onClickToJump} tableHeaderHeight={0} />
+          <JumpButtons jump="down" onClick={onClickToJump} tableHeaderHeight={0} />
         ) : null}
       </FloatingBottomContainer>
     </Fragment>

@@ -27,8 +27,10 @@ export function OurLogFilters({
   return (
     <StyledFiltersGrid>
       <CompactSelect
-        triggerProps={{prefix: t('Log Level')}}
-        triggerLabel={selectValues.length === 0 ? t('Any') : null}
+        triggerProps={{
+          prefix: t('Log Level'),
+          children: selectValues.length === 0 ? t('Any') : null,
+        }}
         multiple
         options={severityLevels}
         onChange={setSeverityLevel}

@@ -25,7 +25,8 @@ from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 # 6 -> store client fingerprint as JSON rather than string (2025-02-07)
 # 7 -> add platform (2025-02-11)
 # 8 -> add schema version (2025-02-24)
-GROUPHASH_METADATA_SCHEMA_VERSION = "8"
+# 9 -> add event id (2025-09-29)
+GROUPHASH_METADATA_SCHEMA_VERSION = "9"
 
 
 # The overall grouping method used
@@ -83,6 +84,9 @@ class GroupHashMetadata(Model):
     # platform, as event platforms are normalized to a handful of known values, whereas project
     # platforms are all over the place.
     platform = models.CharField(null=True)
+
+    # The event ID of the event which generated the metadata.
+    event_id = models.CharField(max_length=32, null=True)
 
     # HASHING
 

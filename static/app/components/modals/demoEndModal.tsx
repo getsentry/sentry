@@ -122,7 +122,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton}: Props) 
         <LinkButton
           priority="primary"
           external
-          href={'https://sentry.io/signup/'}
+          href="https://sentry.io/signup/"
           onClick={() => {
             trackAnalytics('growth.end_modal_signup', {
               organization: null,

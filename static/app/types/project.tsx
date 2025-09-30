@@ -322,6 +322,7 @@ export type PlatformIntegration = {
   link: string | null;
   name: string;
   type: string;
+  deprecated?: boolean;
   iconConfig?: {
     withLanguageIcon: boolean;
   };

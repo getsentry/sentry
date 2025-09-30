@@ -35,10 +35,12 @@ class GroupReprocessingEndpoint(GroupEndpoint):
 
         # Using raw SQL since data is LegacyTextJSONField which can't be filtered with Django ORM
         parent = (
-            Activity.objects.annotate(new_group_id=RawSQL("(data::json ->> 'newGroupId')", []))
-            .filter(type=ActivityType.REPROCESS.value, new_group_id=str(group.id))
+            Activity.objects.filter(project_id=group.project_id, type=ActivityType.REPROCESS.value)
+            .annotate(new_group_id=RawSQL("(data::json ->> 'newGroupId')", []))
+            .filter(new_group_id=str(group.id))
             .first()  # There should only be one activity
         )
+
         if parent and not is_group_finished(parent.group_id):
             return self.respond(
                 {
