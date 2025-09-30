@@ -236,6 +236,12 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
         assert len(response.data) == 1
         assert response.data[0]["email"] == "billy@localhost"
 
+    def test_id_query_with_invalid_value(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "id:not-a-number"}
+        )
+        assert len(response.data) == 0
+
     def test_user_id_query(self) -> None:
         user = self.create_user("zoo@localhost", username="zoo")
         OrganizationMember.objects.create(user_id=user.id, organization=self.organization)
@@ -245,6 +251,12 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
 
         assert len(response.data) == 1
         assert response.data[0]["email"] == "zoo@localhost"
+
+    def test_user_id_query_with_invalid_value(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "user.id:undefined"}
+        )
+        assert len(response.data) == 0
 
     def test_query_null_user(self) -> None:
         OrganizationMember.objects.create(email="billy@localhost", organization=self.organization)
