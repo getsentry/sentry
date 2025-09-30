@@ -8,7 +8,7 @@ from sentry.integrations.project_management.metrics import (
 )
 from sentry.integrations.tasks import should_comment_sync
 from sentry.models.activity import Activity
-from sentry.shared_integrations.exceptions import IntegrationInstallationConfigurationError
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
@@ -75,5 +75,5 @@ def create_comment(external_issue_id: int, user_id: int, group_note_id: int) -> 
                     organization_id=external_issue.organization_id,
                 )
             )
-        except IntegrationInstallationConfigurationError as e:
+        except IntegrationConfigurationError as e:
             lifecycle.record_halt(halt_reason=e)

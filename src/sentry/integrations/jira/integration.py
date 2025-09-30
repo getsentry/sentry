@@ -534,7 +534,7 @@ class JiraIntegration(IssueSyncIntegration):
         try:
             return self.get_client().create_comment(issue_id, quoted_comment)
         except ApiUnauthorized as e:
-            raise IntegrationInstallationConfigurationError(
+            raise IntegrationConfigurationError(
                 "Insufficient permissions to create a comment on the Jira issue."
             ) from e
         except ApiError as e:
@@ -556,7 +556,7 @@ class JiraIntegration(IssueSyncIntegration):
                 issue_id, group_note.data["external_id"], quoted_comment
             )
         except ApiUnauthorized as e:
-            raise IntegrationInstallationConfigurationError(
+            raise IntegrationConfigurationError(
                 "Insufficient permissions to update a comment on the Jira issue."
             ) from e
         except ApiError as e:
