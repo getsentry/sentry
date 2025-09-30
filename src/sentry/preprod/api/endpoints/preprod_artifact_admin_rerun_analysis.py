@@ -1,6 +1,7 @@
 import logging
 
 import orjson
+from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -130,10 +131,11 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
     def _cleanup_old_metrics(self, preprod_artifact: PreprodArtifact) -> dict:
         """Deletes old size metrics and comparisons associated with an artifact along with any associated files."""
 
+        # These stats include cascading delete counts as well
         stats = {
-            "size_metrics_deleted": 0,
-            "size_comparisons_deleted": 0,
-            "files_deleted": 0,
+            "size_metrics_total_deleted": 0,
+            "size_comparisons_total_deleted": 0,
+            "files_total_deleted": 0,
         }
 
         size_metrics = list(
@@ -154,17 +156,21 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
             head_size_analysis_id__in=size_metric_ids
         ) | PreprodArtifactSizeComparison.objects.filter(base_size_analysis_id__in=size_metric_ids)
 
-        for comparison in comparisons:
-            if comparison.file_id:
-                file_ids_to_delete.append(comparison.file_id)
+        comparison_file_ids = list(
+            comparisons.exclude(file_id__isnull=True).values_list("file_id", flat=True)
+        )
+        file_ids_to_delete.extend(comparison_file_ids)
 
-        stats["size_comparisons_deleted"], _ = comparisons.delete()
+        with transaction.atomic(using=router.db_for_write(PreprodArtifact)):
+            stats["size_comparisons_total_deleted"], _ = comparisons.delete()
 
-        stats["size_metrics_deleted"], _ = PreprodArtifactSizeMetrics.objects.filter(
-            id__in=size_metric_ids
-        ).delete()
+            stats["size_metrics_total_deleted"], _ = PreprodArtifactSizeMetrics.objects.filter(
+                id__in=size_metric_ids
+            ).delete()
 
         if file_ids_to_delete:
-            stats["files_deleted"], _ = File.objects.filter(id__in=file_ids_to_delete).delete()
+            stats["files_total_deleted"], _ = File.objects.filter(
+                id__in=file_ids_to_delete
+            ).delete()
 
         return stats

@@ -79,9 +79,9 @@ class PreprodArtifactAdminRerunAnalysisTest(APITestCase):
         assert response.data["new_state"] == PreprodArtifact.ArtifactState.UPLOADED
 
         cleanup_stats = response.data["cleanup_stats"]
-        assert cleanup_stats["size_metrics_deleted"] == 2
-        assert cleanup_stats["size_comparisons_deleted"] == 1
-        assert cleanup_stats["files_deleted"] == 3  # 2 analysis files + 1 comparison file
+        assert cleanup_stats["size_metrics_total_deleted"] == 2
+        assert cleanup_stats["size_comparisons_total_deleted"] == 1
+        assert cleanup_stats["files_total_deleted"] == 3  # 2 analysis files + 1 comparison file
 
         assert PreprodArtifactSizeMetrics.objects.filter(preprod_artifact=artifact).count() == 0
         assert not PreprodArtifactSizeComparison.objects.filter(id=comparison.id).exists()
@@ -116,9 +116,9 @@ class PreprodArtifactAdminRerunAnalysisTest(APITestCase):
         )
 
         assert response.data["success"] is True
-        assert response.data["cleanup_stats"]["size_metrics_deleted"] == 0
-        assert response.data["cleanup_stats"]["size_comparisons_deleted"] == 0
-        assert response.data["cleanup_stats"]["files_deleted"] == 0
+        assert response.data["cleanup_stats"]["size_metrics_total_deleted"] == 0
+        assert response.data["cleanup_stats"]["size_comparisons_total_deleted"] == 0
+        assert response.data["cleanup_stats"]["files_total_deleted"] == 0
 
         artifact.refresh_from_db()
         assert artifact.state == PreprodArtifact.ArtifactState.UPLOADED
@@ -165,7 +165,7 @@ class PreprodArtifactAdminRerunAnalysisTest(APITestCase):
         )
 
         # Verify the comparison was deleted (since artifact1's metrics were used as base)
-        assert response.data["cleanup_stats"]["size_comparisons_deleted"] == 1
+        assert response.data["cleanup_stats"]["size_comparisons_total_deleted"] == 1
         assert not PreprodArtifactSizeComparison.objects.filter(id=comparison.id).exists()
 
         # Verify artifact2's metrics still exist
