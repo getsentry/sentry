@@ -373,7 +373,7 @@ def get_replay_date_query_ranges(
 ) -> Generator[tuple[datetime, datetime]]:
     """
     SQL:
-        SELECT formatDateTime(toStartOfDay(timestamp), '%F')
+        SELECT formatDateTime(toStartOfDay(timestamp), '%F'), count()
         FROM replays_dist
         WHERE project_id = 11276
         GROUP BY toStartOfDay(timestamp)
@@ -390,7 +390,8 @@ def get_replay_date_query_ranges(
     query = Query(
         match=Entity("replays"),
         select=[
-            Function("formatDateTime", parameters=[to_start_of_day_timestamp, "%F"], alias="day")
+            Function("formatDateTime", parameters=[to_start_of_day_timestamp, "%F"], alias="day"),
+            Function("count", parameters=[], alias="max_rows_to_export"),
         ],
         where=[
             Condition(Column("project_id"), Op.EQ, project_id),
@@ -412,7 +413,7 @@ def get_replay_date_query_ranges(
     for result in results:
         start = datetime.fromisoformat(result["day"])
         end = start + timedelta(days=1)
-        yield start, end
+        yield (start, end), result["max_rows_to_export"]
 
 
 def export_replay_row_set(
@@ -469,6 +470,7 @@ def export_replay_row_set_async(
     start: datetime,
     end: datetime,
     destination_bucket: str,
+    max_rows_to_export: int,
     limit: int = EXPORT_QUERY_ROWS_PER_PAGE,
     offset: int = 0,
     num_pages: int = EXPORT_QUERY_PAGES_PER_TASK,
@@ -491,8 +493,15 @@ def export_replay_row_set_async(
     # Tasks can run for a defined length of time. The export can take an unbounded length of time
     # to complete. For this reason we cap the amount of work we'll perform within a single task's
     # lifetime and schedule the remainder of the work to take place on another task.
-    if next_offset:
+    #
+    # The call chain is explicitly terminated by a pre-computed max_rows_to_export value. If this
+    # value is exceeded the chain exits immediately even if more rows could have been found. Its
+    # unlikely there will be more rows because in order to export your data you need to terminate
+    # your Sentry account. Under those conditions you're no longer a Sentry customer and should
+    # not be ingesting any data into Sentry.
+    if next_offset and next_offset < max_rows_to_export:
         assert next_offset > offset, "Next offset was not greater than previous offset."
+
         export_replay_row_set_async.delay(
             project_id=project_id,
             start=start,
@@ -515,12 +524,13 @@ def export_replay_project_async(
     num_pages: int = EXPORT_QUERY_PAGES_PER_TASK,
 ):
     # Each populated day bucket is scheduled for export.
-    for start, end in get_replay_date_query_ranges(project_id):
+    for (start, end), max_rows_to_export in get_replay_date_query_ranges(project_id):
         export_replay_row_set_async.delay(
             project_id=project_id,
             start=start,
             end=end,
             destination_bucket=destination_bucket,
+            max_rows_to_export=max_rows_to_export,
             limit=limit,
             offset=0,
             num_pages=num_pages,
