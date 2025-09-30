@@ -2,7 +2,6 @@ import React, {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
