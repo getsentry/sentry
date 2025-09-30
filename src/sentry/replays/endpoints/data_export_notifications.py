@@ -17,7 +17,7 @@ class DataExportNotificationsEndpoint(Endpoint):
     """PubSub notifications endpoint."""
 
     owner = ApiOwner.REPLAY
-    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    publish_status = {"POST": ApiPublishStatus.PRIVATE}
     permission_classes = (SentryIsAuthenticated,)
 
     def post(self, request: Request, service: str) -> Response:
