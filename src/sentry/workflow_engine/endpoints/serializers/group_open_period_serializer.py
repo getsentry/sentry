@@ -8,6 +8,12 @@ from sentry.models.groupopenperiod import GroupOpenPeriod, get_last_checked_for_
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
 
 
+class GroupOpenPeriodActivityResponse(TypedDict):
+    id: str
+    type: str
+    value: int | None
+
+
 class GroupOpenPeriodResponse(TypedDict):
     id: str
     start: datetime
@@ -15,19 +21,14 @@ class GroupOpenPeriodResponse(TypedDict):
     duration: timedelta | None
     isOpen: bool
     lastChecked: datetime
-
-
-class GroupOpenPeriodActivityResponse(TypedDict):
-    id: str
-    type: int
-    value: int | None
+    activities: GroupOpenPeriodActivityResponse | None
 
 
 @register(GroupOpenPeriodActivity)
 class GroupOpenPeriodActivitySerializer(Serializer):
     def serialize(
         self, obj: GroupOpenPeriodActivity, attrs: Mapping[str, Any], user, **kwargs
-    ) -> GroupOpenPeriodResponse:
+    ) -> GroupOpenPeriodActivityResponse:
         return {
             "id": str(obj.id),
             "type": str(obj.type),
@@ -38,7 +39,9 @@ class GroupOpenPeriodActivitySerializer(Serializer):
 @register(GroupOpenPeriod)
 class GroupOpenPeriodSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
-        result: defaultdict[GroupOpenPeriod, dict[str, Any]] = defaultdict(dict)
+        result: defaultdict[GroupOpenPeriod, dict[str, list[GroupOpenPeriodActivityResponse]]] = (
+            defaultdict(dict)
+        )
         activities = GroupOpenPeriodActivity.objects.filter(group_open_period__in=item_list)[:1000]
 
         gopas = defaultdict(list)
