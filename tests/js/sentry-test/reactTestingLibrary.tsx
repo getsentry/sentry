@@ -67,7 +67,7 @@ interface ProviderOptions {
 }
 
 interface BaseRenderOptions<T extends boolean = boolean>
-  extends Pick<ProviderOptions, 'organization'>,
+  extends Pick<ProviderOptions, 'organization' | 'additionalWrapper'>,
     rtl.RenderOptions {
   /**
    * @deprecated do not use this option for new tests
@@ -398,6 +398,7 @@ function render<T extends boolean = false>(
 
   const AllTheProviders = makeAllTheProviders({
     organization: options.organization,
+    additionalWrapper: options.additionalWrapper,
     router: legacyRouterConfig,
     deprecatedRouterMocks: options.deprecatedRouterMocks,
     history,
