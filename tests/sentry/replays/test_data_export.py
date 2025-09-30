@@ -24,7 +24,8 @@ from sentry.testutils.skips import requires_snuba
 @requires_snuba
 def test_replay_data_export(default_organization, default_project, replay_store) -> None:  # type: ignore[no-untyped-def]
     replay_id = str(uuid.uuid4())
-    t0 = datetime.datetime.now()
+    t0 = datetime.datetime(year=2025, month=1, day=1)
+    t1 = t0 + datetime.timedelta(days=1)
     replay_store.save(mock_replay(t0, default_project.id, replay_id, segment_id=0))
 
     # Setting has_replays flag because the export will skip projects it assumes do not have
@@ -47,7 +48,10 @@ def test_replay_data_export(default_organization, default_project, replay_store)
         assert store_rows.called
         assert store_rows.call_count == 1
         assert store_rows.call_args[0][0] == "destination"
-        assert store_rows.call_args[0][1].startswith("replay-row-data/")
+        assert (
+            store_rows.call_args[0][1]
+            == f"database/session-replay/{default_project.id}/{t0.isoformat()}/{t1.isoformat()}/0"
+        )
         assert replay_id in store_rows.call_args[0][2]
 
 
