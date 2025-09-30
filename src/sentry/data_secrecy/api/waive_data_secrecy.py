@@ -106,7 +106,7 @@ class WaiveDataSecrecyEndpoint(OrganizationEndpoint):
 
         result = validator.validated_data
 
-        DataAccessGrant.objects.create_or_update(
+        DataAccessGrant.objects.update_or_create(
             organization=organization,
             grant_type=DataAccessGrant.GrantType.MANUAL,
             defaults={
