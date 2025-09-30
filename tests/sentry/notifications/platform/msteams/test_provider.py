@@ -12,7 +12,7 @@ from sentry.notifications.platform.msteams.provider import (
     MSTeamsNotificationProvider,
     MSTeamsRenderable,
 )
-from sentry.notifications.platform.target import IntegrationNotificationTarget, prepare_targets
+from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationCategory,
     NotificationProviderKey,
@@ -277,7 +277,6 @@ class MSTeamsNotificationProviderSendTest(TestCase):
 
         target = self._create_target()
         renderable = self._create_renderable()
-        prepare_targets([target])
 
         MSTeamsNotificationProvider.send(target=target, renderable=renderable)
 
@@ -299,7 +298,6 @@ class MSTeamsNotificationProviderSendTest(TestCase):
             organization_id=self.organization.id,
         )
 
-        prepare_targets([target])
         renderable = self._create_renderable()
 
         MSTeamsNotificationProvider.send(target=target, renderable=renderable)
