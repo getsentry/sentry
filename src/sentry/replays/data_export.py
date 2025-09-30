@@ -512,6 +512,7 @@ def export_replay_row_set_async(
             limit=limit,
             offset=next_offset,
             destination_bucket=destination_bucket,
+            max_rows_to_export=max_rows_to_export,
             num_pages=num_pages,
         )
 
