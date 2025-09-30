@@ -134,14 +134,21 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
             except (ValueError, IndexError):
                 return HttpResponse(status=400)
 
-        fp = file_obj.getfile()
-        response = StreamingHttpResponse(
-            iter(lambda: fp.read(4096), b""),
+        def file_iterator():
+            with file_obj.getfile() as fp:
+                while True:
+                    chunk = fp.read(4096)
+                    if not chunk:
+                        break
+                    yield chunk
+
+        streaming_response = StreamingHttpResponse(
+            file_iterator(),
             content_type="application/octet-stream",
         )
 
-        response["Content-Length"] = file_size
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
-        response["Accept-Ranges"] = "bytes"
+        streaming_response["Content-Length"] = file_size
+        streaming_response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        streaming_response["Accept-Ranges"] = "bytes"
 
-        return response
+        return streaming_response
