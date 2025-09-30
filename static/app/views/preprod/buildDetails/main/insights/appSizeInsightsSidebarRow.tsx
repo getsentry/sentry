@@ -157,7 +157,7 @@ function OptimizableImageFileRow({
             -{formatBytesBase10(maxSavings)}
           </Text>
           <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
-            ({formatUpside(maxSavings / currentSize)})
+            ({formatUpside(file.percentage / 100)})
           </Text>
         </Flex>
       </FlexAlternatingRow>
@@ -181,7 +181,7 @@ function OptimizableImageFileRow({
               tabular
               style={{minWidth: '64px', textAlign: 'right'}}
             >
-              ({formatUpside(originalFile.minify_savings / currentSize)})
+              ({formatUpside(file.data.minifyPercentage / 100)})
             </Text>
           </Flex>
         )}
@@ -204,7 +204,7 @@ function OptimizableImageFileRow({
               tabular
               style={{minWidth: '64px', textAlign: 'right'}}
             >
-              ({formatUpside(originalFile.conversion_savings / currentSize)})
+              ({formatUpside(file.data.conversionPercentage / 100)})
             </Text>
           </Flex>
         )}

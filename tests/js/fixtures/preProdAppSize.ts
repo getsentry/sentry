@@ -43,6 +43,8 @@ export function ProcessedInsightFixture(
         percentage: 4.0,
         data: {
           fileType: 'optimizable_image' as const,
+          minifyPercentage: 0,
+          conversionPercentage: 4.0,
           originalFile: {
             best_optimization_type: 'convert_to_heic',
             conversion_savings: 128000,
