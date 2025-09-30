@@ -98,13 +98,17 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         resp = response.data[0]
-        open_period = GroupOpenPeriod.objects.get(group=self.group)
-        assert resp["id"] == str(open_period.id)
+        assert resp["id"] == str(self.group_open_period.id)
         assert resp["start"] == self.group.first_seen
         assert resp["end"] is None
         assert resp["duration"] is None
         assert resp["isOpen"] is True
         assert resp["lastChecked"] >= last_checked
+        assert resp["activities"][0] == {
+            "id": str(self.opened_gopa.id),
+            "type": str(OpenPeriodActivityType.OPENED.value),
+            "value": self.group.priority,
+        }
 
     def test_open_periods_resolved_group(self) -> None:
         self.group.status = GroupStatus.RESOLVED
@@ -130,6 +134,9 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert response.status_code == 200, response.content
         resp = response.data[0]
         open_period = GroupOpenPeriod.objects.get(group=self.group, date_ended=resolved_time)
+        closed_gopa = GroupOpenPeriodActivity.objects.get(
+            group_open_period=open_period, type=OpenPeriodActivityType.CLOSED
+        )
         assert resp["id"] == str(open_period.id)
         assert resp["start"] == self.group.first_seen
         assert resp["end"] == resolved_time
@@ -138,6 +145,17 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["lastChecked"].replace(second=0, microsecond=0) == activity.datetime.replace(
             second=0, microsecond=0
         )
+        assert len(resp["activities"]) == 2
+        assert resp["activities"][0] == {
+            "id": str(self.opened_gopa.id),
+            "type": str(OpenPeriodActivityType.OPENED.value),
+            "value": self.group.priority,
+        }
+        assert resp["activities"][1] == {
+            "id": str(closed_gopa.id),
+            "type": str(OpenPeriodActivityType.CLOSED.value),
+            "value": None,
+        }
 
     def test_open_periods_unresolved_group(self) -> None:
         self.group.status = GroupStatus.RESOLVED
@@ -156,6 +174,9 @@ class OrganizationOpenPeriodsTest(APITestCase):
             resolution_activity=resolve_activity,
         )
         open_period = GroupOpenPeriod.objects.get(group=self.group, date_ended=resolved_time)
+        closed_gopa = GroupOpenPeriodActivity.objects.get(
+            group_open_period=open_period, type=OpenPeriodActivityType.CLOSED
+        )
 
         unresolved_time = timezone.now()
         self.group.status = GroupStatus.UNRESOLVED
@@ -186,6 +207,12 @@ class OrganizationOpenPeriodsTest(APITestCase):
         open_period2 = GroupOpenPeriod.objects.get(
             group=self.group, date_ended=second_resolved_time
         )
+        opened_gopa2 = GroupOpenPeriodActivity.objects.get(
+            group_open_period=open_period2, type=OpenPeriodActivityType.OPENED
+        )
+        closed_gopa2 = GroupOpenPeriodActivity.objects.get(
+            group_open_period=open_period2, type=OpenPeriodActivityType.CLOSED
+        )
 
         response = self.get_success_response(
             *self.get_url_args(), qs_params={"groupId": self.group.id}
@@ -202,6 +229,17 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["lastChecked"].replace(second=0, microsecond=0) == second_resolved_time.replace(
             second=0, microsecond=0
         )
+        assert len(resp["activities"]) == 2
+        assert resp["activities"][0] == {
+            "id": str(opened_gopa2.id),
+            "type": str(OpenPeriodActivityType.OPENED.value),
+            "value": self.group.priority,
+        }
+        assert resp["activities"][1] == {
+            "id": str(closed_gopa2.id),
+            "type": str(OpenPeriodActivityType.CLOSED.value),
+            "value": None,
+        }
 
         assert resp2["id"] == str(open_period.id)
         assert resp2["start"] == self.group.first_seen
@@ -211,6 +249,17 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp2["lastChecked"].replace(second=0, microsecond=0) == resolved_time.replace(
             second=0, microsecond=0
         )
+        assert len(resp2["activities"]) == 2
+        assert resp2["activities"][0] == {
+            "id": str(self.opened_gopa.id),
+            "type": str(OpenPeriodActivityType.OPENED.value),
+            "value": self.group.priority,
+        }
+        assert resp2["activities"][1] == {
+            "id": str(closed_gopa.id),
+            "type": str(OpenPeriodActivityType.CLOSED.value),
+            "value": None,
+        }
 
     def test_open_periods_limit(self) -> None:
         self.group.status = GroupStatus.RESOLVED

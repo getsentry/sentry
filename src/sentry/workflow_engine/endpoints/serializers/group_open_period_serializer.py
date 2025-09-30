@@ -30,8 +30,8 @@ class GroupOpenPeriodActivitySerializer(Serializer):
     ) -> GroupOpenPeriodResponse:
         return {
             "id": str(obj.id),
-            "type": str(obj.type),  # convert to string?
-            "value": obj.value,  # convert to string?
+            "type": str(obj.type),
+            "value": obj.value,
         }
 
 
@@ -39,7 +39,7 @@ class GroupOpenPeriodActivitySerializer(Serializer):
 class GroupOpenPeriodSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         result: defaultdict[GroupOpenPeriod, dict[str, Any]] = defaultdict(dict)
-        activities = GroupOpenPeriodActivity.objects.filter(group_open_period__in=item_list)
+        activities = GroupOpenPeriodActivity.objects.filter(group_open_period__in=item_list)[:1000]
 
         gopas = defaultdict(list)
         for activity, serialized_activity in zip(
