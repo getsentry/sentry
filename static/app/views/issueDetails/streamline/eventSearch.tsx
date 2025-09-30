@@ -43,6 +43,19 @@ interface EventSearchProps {
   queryBuilderProps?: Partial<SearchQueryBuilderProps>;
 }
 
+function taglessQueryFilter(
+  token: NonNullable<ReturnType<typeof parseQueryBuilderValue>>[number]
+): boolean {
+  if (token.type !== Token.FILTER) {
+    return true;
+  }
+  let filterKey = token.key.text;
+  if (filterKey.startsWith('tags[')) {
+    filterKey = filterKey.slice(5, -1);
+  }
+  return !(ISSUE_PROPERTY_FIELDS as string[]).includes(filterKey);
+}
+
 export function useEventQuery({groupId}: {groupId: string}): string {
   const {selection} = usePageFilters();
   const location = useLocation();
@@ -79,16 +92,7 @@ export function useEventQuery({groupId}: {groupId: string}): string {
   const validQuery = isPending
     ? // While tags are loading, use our static list of issue properties to filter the query
       // This allows us to optimistically make the correct query. It might be possible in some cases to not use tags at all.
-      withoutFreeText.filter(token => {
-        if (token.type !== Token.FILTER) {
-          return true;
-        }
-        let filterKey = token.key.text;
-        if (filterKey.startsWith('tags[')) {
-          filterKey = filterKey.slice(5, -1);
-        }
-        return !(ISSUE_PROPERTY_FIELDS as string[]).includes(filterKey);
-      })
+      withoutFreeText.filter(taglessQueryFilter)
     : withoutFreeText.filter(token => {
         if (token.type === Token.FILTER) {
           let tagKey = token.key.text;
