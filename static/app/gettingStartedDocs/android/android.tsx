@@ -45,7 +45,7 @@ options.sessionReplay.maskAllImages = true`;
 const onboarding: OnboardingConfig = {
   install: params => [
     {
-      type: StepType.INSTALL,
+      title: t('Automatic Configuration (Recommended)'),
       content: [
         {
           type: 'text',
