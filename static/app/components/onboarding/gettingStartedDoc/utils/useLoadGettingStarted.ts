@@ -66,7 +66,7 @@ export function useLoadGettingStarted({
         );
         setModule(mod);
       } catch (err) {
-        setModule(undefined);
+        setModule('none');
         Sentry.captureException(err);
       }
     }
