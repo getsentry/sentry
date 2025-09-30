@@ -3,11 +3,14 @@ from sentry.notifications.notification_action.utils import execute_via_group_typ
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
+from sentry.workflow_engine.transformers import TargetTypeConfigTransformer
+from sentry.workflow_engine.types import ActionHandler, ConfigTransformer, WorkflowEventData
 
 
 @action_handler_registry.register(Action.Type.EMAIL)
 class EmailActionHandler(ActionHandler):
+    _config_transformer: ConfigTransformer | None = None
+
     config_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "description": "The configuration schema for an email Action",
@@ -34,6 +37,7 @@ class EmailActionHandler(ActionHandler):
             },
         ],
     }
+
     data_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -48,6 +52,14 @@ class EmailActionHandler(ActionHandler):
     }
 
     group = ActionHandler.Group.NOTIFICATION
+
+    @classmethod
+    def get_config_transformer(cls) -> ConfigTransformer | None:
+        if cls._config_transformer is None:
+            cls._config_transformer = TargetTypeConfigTransformer.from_config_schema(
+                cls.config_schema
+            )
+        return cls._config_transformer
 
     @staticmethod
     def execute(

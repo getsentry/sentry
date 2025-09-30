@@ -1,4 +1,3 @@
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
@@ -10,7 +9,7 @@ class TestEmailActionValidator(TestCase):
         self.team = self.create_team(organization=self.organization)
         self.valid_data = {
             "type": Action.Type.EMAIL,
-            "config": {"targetType": ActionTarget.USER, "targetIdentifier": str(self.user.id)},
+            "config": {"targetType": "user", "targetIdentifier": str(self.user.id)},
             "data": {},
         }
 
@@ -26,7 +25,7 @@ class TestEmailActionValidator(TestCase):
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
-                "config": {"target_type": ActionTarget.USER},
+                "config": {"target_type": "user"},
             },
             context={"organization": self.organization},
         )
@@ -38,31 +37,31 @@ class TestEmailActionValidator(TestCase):
             data={
                 **self.valid_data,
                 "config": {
-                    "target_type": ActionTarget.TEAM,
+                    "target_type": "team",
                     "target_identifier": str(self.team.id),
                 },
             },
             context={"organization": self.organization},
         )
-        result = validator.is_valid()
+        result = validator.is_valid(raise_exception=True)
         assert result is True
 
     def test_validate__issue_owners(self):
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
-                "config": {"target_type": ActionTarget.ISSUE_OWNERS},
+                "config": {"target_type": "issue_owners"},
             },
             context={"organization": self.organization},
         )
-        result = validator.is_valid()
+        result = validator.is_valid(raise_exception=True)
         assert result is True
 
     def test_validate__invalid_target_type(self):
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
-                "config": {"targetType": ActionTarget.SPECIFIC},
+                "config": {"targetType": "specific"},
             },
             context={"organization": self.organization},
         )
