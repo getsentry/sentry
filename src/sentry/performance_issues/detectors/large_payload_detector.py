@@ -38,18 +38,6 @@ FILE_DOWNLOAD_CONTENT_TYPES = {
 
 
 class LargeHTTPPayloadDetector(PerformanceDetector):
-    """
-    Detects large HTTP payloads that may indicate performance issues.
-
-    This detector excludes file downloads based on:
-    1. File extensions in URLs (existing behavior)
-    2. HTTP response headers indicating file downloads (new behavior):
-       - Content-Disposition: attachment
-       - Content-Type values indicating file downloads (e.g., application/pdf, image/*, video/*, etc.)
-
-    This addresses the issue where file download endpoints using internal unique identifiers
-    (without file extensions in URLs) were incorrectly flagged as performance issues.
-    """
 
     type = DetectorType.LARGE_HTTP_PAYLOAD
     settings_key = DetectorType.LARGE_HTTP_PAYLOAD
