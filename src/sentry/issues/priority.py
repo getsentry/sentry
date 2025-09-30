@@ -78,13 +78,13 @@ def update_priority(
     if group.type == MetricIssue.type_id:
         update_incident_activity_based_on_group_activity(group, priority)
 
-    # create a row in the GroupOpenPeriodActivity table
-    open_period = get_latest_open_period(group)
-    if open_period is None:
-        metrics.incr("issues.priority.no_open_period_found")
-        logger.error("No open period found for group", extra={"group_id": group.id})
-    else:
-        if get_group_type_by_type_id(group.type).detector_settings is not None:
+    if get_group_type_by_type_id(group.type).track_open_periods:
+        # create a row in the GroupOpenPeriodActivity table
+        open_period = get_latest_open_period(group)
+        if open_period is None:
+            metrics.incr("issues.priority.no_open_period_found")
+            logger.error("No open period found for group", extra={"group_id": group.id})
+        else:
             if is_regression:
                 try:
                     activity_entry_to_update = GroupOpenPeriodActivity.objects.get(

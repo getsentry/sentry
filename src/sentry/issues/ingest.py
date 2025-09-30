@@ -25,6 +25,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.priority import PriorityChangeReason, update_priority
+from sentry.models.group import get_group_type_by_type_id
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupopenperiod import get_latest_open_period
@@ -259,13 +260,14 @@ def save_issue_from_occurrence(
                     detector_id=occurrence.evidence_data["detector_id"],
                     group_id=group.id,
                 )
-
-            open_period = get_latest_open_period(group)
-            if open_period is not None:
-                highest_seen_priority = group.priority
-                open_period.update(
-                    data={**open_period.data, "highest_seen_priority": highest_seen_priority}
-                )
+            should_update_open_period = get_group_type_by_type_id(group.type).track_open_periods
+            if should_update_open_period:
+                open_period = get_latest_open_period(group)
+                if open_period is not None:
+                    highest_seen_priority = group.priority
+                    open_period.update(
+                        data={**open_period.data, "highest_seen_priority": highest_seen_priority}
+                    )
             is_regression = False
             span.set_tag("save_issue_from_occurrence.outcome", "new_group")
             metric_tags["save_issue_from_occurrence.outcome"] = "new_group"
@@ -336,18 +338,19 @@ def save_issue_from_occurrence(
                 project=project,
                 is_regression=is_regression,
             )
-
-            open_period = get_latest_open_period(group)
-            if open_period is not None:
-                highest_seen_priority = open_period.data.get("highest_seen_priority", None)
-                if highest_seen_priority is None:
-                    highest_seen_priority = group.priority
-                elif group.priority is not None:
-                    # XXX: we know this is not None, because we just set the group's priority
-                    highest_seen_priority = max(highest_seen_priority, group.priority)
-                open_period.update(
-                    data={**open_period.data, "highest_seen_priority": highest_seen_priority}
-                )
+            should_update_open_period = get_group_type_by_type_id(group.type).track_open_periods
+            if should_update_open_period:
+                open_period = get_latest_open_period(group)
+                if open_period is not None:
+                    highest_seen_priority = open_period.data.get("highest_seen_priority", None)
+                    if highest_seen_priority is None:
+                        highest_seen_priority = group.priority
+                    elif group.priority is not None:
+                        # XXX: we know this is not None, because we just set the group's priority
+                        highest_seen_priority = max(highest_seen_priority, group.priority)
+                    open_period.update(
+                        data={**open_period.data, "highest_seen_priority": highest_seen_priority}
+                    )
 
     additional_hashes = [f for f in occurrence.fingerprint if f != primary_grouphash.hash]
     for fingerprint_hash in additional_hashes:
