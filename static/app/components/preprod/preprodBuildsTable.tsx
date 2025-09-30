@@ -109,7 +109,7 @@ export function PreprodBuildsTable({
               <Flex align="center" gap="xs">
                 <IconCommit size="xs" />
                 <Text size="sm" variant="muted" monospace>
-                  #{(build.vcs_info?.head_sha?.slice(0, 7) || '--').toUpperCase()}
+                  {(build.vcs_info?.head_sha?.slice(0, 7) || '--').toUpperCase()}
                 </Text>
                 {build.vcs_info?.head_ref !== null && (
                   <React.Fragment>
