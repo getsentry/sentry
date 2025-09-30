@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 
+import type {FormProps} from 'sentry/components/forms/form';
 import type {Data} from 'sentry/components/forms/types';
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import type {
@@ -18,6 +19,7 @@ type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   detectorType: DetectorType;
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   initialFormData: Partial<TFormData>;
+  mapFormErrors?: (error: any) => any;
   previewChart?: React.ReactNode;
 };
 
@@ -28,6 +30,7 @@ export function NewDetectorLayout<
   children,
   formDataToEndpointPayload,
   initialFormData,
+  mapFormErrors,
   previewChart,
   detectorType,
 }: NewDetectorLayoutProps<TFormData, TUpdatePayload>) {
@@ -58,9 +61,10 @@ export function NewDetectorLayout<
     projects,
   ]);
 
-  const formProps = {
+  const formProps: FormProps = {
     initialData,
     onSubmit: formSubmitHandler,
+    mapFormErrors,
   };
 
   return (
