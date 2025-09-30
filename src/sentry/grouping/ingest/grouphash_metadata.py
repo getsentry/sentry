@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from time import timezone
 from typing import Any, TypeIs, cast
 
 from sentry.grouping.api import get_contributing_variant_and_component
@@ -208,7 +209,7 @@ def create_or_update_grouphash_metadata_if_needed(
 
         # Only hit the DB if there's something to change
         if updated_data:
-            updated_data["date_updated"] = datetime.now()
+            updated_data["date_updated"] = timezone.now
             grouphash.metadata.update(**updated_data)
 
     # If we did something, collect a metric
@@ -244,7 +245,7 @@ def get_grouphash_metadata_data(
             "latest_grouping_config": grouping_config_id,
             "platform": event.platform or "unknown",
             "event_id": event.event_id,
-            "date_updated": datetime.now(),
+            "date_updated": timezone.now,
         }
         hashing_metadata: HashingMetadata = {}
 
