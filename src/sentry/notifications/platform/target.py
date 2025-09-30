@@ -1,10 +1,13 @@
 from dataclasses import dataclass, field
+from functools import cached_property
 from typing import Any
 
+from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.services.integration.model import (
     RpcIntegration,
     RpcOrganizationIntegration,
 )
+from sentry.integrations.services.integration.service import integration_service
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTarget,
@@ -14,6 +17,13 @@ from sentry.notifications.platform.types import (
 
 class NotificationTargetError(Exception):
     pass
+
+
+INTEGRATION_PROVIDER_KEYS = [
+    NotificationProviderKey.SLACK,
+    NotificationProviderKey.DISCORD,
+    NotificationProviderKey.MSTEAMS,
+]
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -49,21 +59,36 @@ class IntegrationNotificationTarget(GenericNotificationTarget):
 
     integration_id: int
     organization_id: int
-    integration: RpcIntegration = field(init=False)
-    """
-    The integration associated with the target, must call `prepare_targets` to populate.
-    """
-    organization_integration: RpcOrganizationIntegration = field(init=False)
-    """
-    The integration associated with the target, must call `prepare_targets` to populate.
-    """
 
 
-def prepare_targets(targets: list[NotificationTarget]) -> None:
-    """
-    This method is used to prepare the targets for receiving a notification.
-    For example, with IntegrationNotificationTargets, this will populate the `integration` and
-    `organization_integration` fields by making RPC/DB calls.
-    """
-    for target in targets:
-        object.__setattr__(target, "is_prepared", True)
+@dataclass(kw_only=True, frozen=True)
+class PreparedIntegrationNotificationTarget[IntegrationInstallationT: IntegrationInstallation]:
+    target: IntegrationNotificationTarget
+    installation_cls: type[IntegrationInstallationT]
+
+    @cached_property
+    def integration(self) -> RpcIntegration:
+        integration = integration_service.get_integration(integration_id=self.target.integration_id)
+        if integration is None:
+            raise NotificationTargetError(f"Integration {self.target.integration_id} not found")
+        return integration
+
+    @cached_property
+    def organization_integration(self) -> RpcOrganizationIntegration:
+        organization_integration = integration_service.get_organization_integration(
+            integration_id=self.target.integration_id,
+            organization_id=self.target.organization_id,
+        )
+
+        if organization_integration is None:
+            raise NotificationTargetError(
+                f"Organization integration for integration {self.target.integration_id} and organization {self.target.organization_id} not found"
+            )
+        return organization_integration
+
+    @cached_property
+    def integration_installation(self) -> IntegrationInstallationT:
+        return self.installation_cls(
+            model=self.integration,
+            organization_id=self.organization_integration.organization_id,
+        )
