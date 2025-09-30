@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
@@ -21,6 +21,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.autofix_examples import AutofixExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
@@ -55,14 +56,16 @@ class AutofixRequestSerializer(CamelSnakeSerializer):
     )
 
 
-class AutofixResponseSerializer(serializers.Serializer):
-    run_id = serializers.IntegerField(help_text="The unique identifier for this issue fix run.")
+class AutofixResponse(TypedDict):
+    """Response type for the POST endpoint"""
+
+    run_id: int
 
 
-class AutofixStateSerializer(serializers.Serializer):
-    autofix = serializers.JSONField(
-        help_text="The current state of the issue fix process, including status, code changes, and repositories."
-    )
+class AutofixStateResponse(TypedDict):
+    """Response type for the GET endpoint"""
+
+    autofix: dict[str, Any] | None
 
 
 @region_silo_endpoint
@@ -98,7 +101,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         ],
         request=AutofixRequestSerializer,
         responses={
-            202: AutofixResponseSerializer,
+            202: inline_sentry_response_serializer("AutofixResponse", AutofixResponse),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -146,7 +149,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             IssueParams.ISSUE_ID,
         ],
         responses={
-            200: AutofixStateSerializer,
+            200: inline_sentry_response_serializer("AutofixStateResponse", AutofixStateResponse),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
