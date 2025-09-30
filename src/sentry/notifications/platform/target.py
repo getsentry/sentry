@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from functools import cached_property
 from typing import Any
 
+from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.services.integration.model import (
     RpcIntegration,
     RpcOrganizationIntegration,
@@ -61,8 +62,9 @@ class IntegrationNotificationTarget(GenericNotificationTarget):
 
 
 @dataclass(kw_only=True, frozen=True)
-class PreparedIntegrationNotificationTarget:
+class PreparedIntegrationNotificationTarget[IntegrationInstallationT: IntegrationInstallation]:
     target: IntegrationNotificationTarget
+    installation_cls: type[IntegrationInstallationT]
 
     @cached_property
     def integration(self) -> RpcIntegration:
@@ -84,3 +86,10 @@ class PreparedIntegrationNotificationTarget:
                 f"Organization integration {self.target.integration_id} not found"
             )
         return organization_integration
+
+    @cached_property
+    def integration_installation(self) -> IntegrationInstallationT:
+        return self.installation_cls(
+            model=self.integration,
+            organization_id=self.organization_integration.organization_id,
+        )

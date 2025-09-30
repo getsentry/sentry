@@ -87,9 +87,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
                 f"Target '{target.__class__.__name__}' is not a valid dataclass for {cls.__name__}"
             )
 
-        slack_target = PreparedIntegrationNotificationTarget(target=target)
-        installation = SlackIntegration(
-            model=slack_target.integration,
-            organization_id=slack_target.organization_integration.organization_id,
+        slack_target = PreparedIntegrationNotificationTarget[SlackIntegration](
+            target=target, installation_cls=SlackIntegration
         )
-        installation.send_notification(target=target, payload=renderable)
+        slack_target.integration_installation.send_notification(target=target, payload=renderable)

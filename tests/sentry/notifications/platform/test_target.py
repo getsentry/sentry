@@ -1,3 +1,4 @@
+from sentry.integrations.slack.integration import SlackIntegration
 from sentry.notifications.platform.target import (
     IntegrationNotificationTarget,
     PreparedIntegrationNotificationTarget,
@@ -24,8 +25,9 @@ class NotificationTargetTest(TestCase):
             organization_id=self.organization.id,
         )
 
-        prepared_integration_target = PreparedIntegrationNotificationTarget(
-            target=integration_target
+        prepared_integration_target = PreparedIntegrationNotificationTarget[SlackIntegration](
+            target=integration_target,
+            installation_cls=SlackIntegration,
         )
 
         assert prepared_integration_target.integration is not None
