@@ -5,8 +5,9 @@ import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Radio} from 'sentry/components/core/radio';
 import {Text} from 'sentry/components/core/text';
+import Hook from 'sentry/components/hook';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import HookStore from 'sentry/stores/hookStore';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -32,6 +33,7 @@ interface DetectorTypeOption {
   id: DetectorType;
   name: string;
   visualization: React.ReactNode;
+  disabled?: boolean;
   infoBanner?: React.ReactNode;
 }
 
@@ -39,6 +41,11 @@ function MonitorTypeField() {
   const location = useLocation();
   const navigate = useNavigate();
   const selectedDetectorType = location.query.detectorType as DetectorType;
+
+  const useMetricDetectorLimit =
+    HookStore.get('react-hook:use-metric-detector-limit')[0] ?? (() => null);
+  const quota = useMetricDetectorLimit();
+  const canCreateMetricDetector = !quota?.hasReachedLimit;
 
   const handleChange = (value: DetectorType) => {
     navigate({
@@ -56,6 +63,10 @@ function MonitorTypeField() {
       name: getDetectorTypeLabel('metric_issue'),
       description: t('Monitor error counts, transaction duration, and more!'),
       visualization: <MetricVisualization />,
+      infoBanner: canCreateMetricDetector ? undefined : (
+        <Hook name="component:metric-alert-quota-message" />
+      ),
+      disabled: !canCreateMetricDetector,
     },
     {
       id: 'monitor_check_in_failure',
@@ -83,10 +94,10 @@ function MonitorTypeField() {
 
   return (
     <RadioOptions role="radiogroup" aria-label={t('Monitor type')}>
-      {options.map(({id, name, description, visualization, infoBanner}) => {
+      {options.map(({id, name, description, visualization, infoBanner, disabled}) => {
         const checked = selectedDetectorType === id;
         return (
-          <OptionLabel key={id} aria-checked={checked}>
+          <OptionLabel key={id} aria-checked={checked} disabled={disabled}>
             <OptionBody>
               <Flex direction="column" gap="sm">
                 <Radio
@@ -94,13 +105,20 @@ function MonitorTypeField() {
                   checked={checked}
                   onChange={() => handleChange(id)}
                   aria-label={name}
+                  disabled={disabled}
                 />
-                <Text bold>{name}</Text>
-                {description && <Text size="sm">{description}</Text>}
+                <Text size="lg" bold variant={disabled ? 'muted' : undefined}>
+                  {name}
+                </Text>
+                {description && (
+                  <Text size="md" variant="muted">
+                    {description}
+                  </Text>
+                )}
               </Flex>
               {visualization && <Visualization>{visualization}</Visualization>}
             </OptionBody>
-            {infoBanner && checked && <OptionInfo>{infoBanner}</OptionInfo>}
+            {infoBanner && (checked || disabled) && <OptionInfo>{infoBanner}</OptionInfo>}
           </OptionLabel>
         );
       })}
@@ -118,17 +136,24 @@ const FormContainer = styled('div')`
 const RadioOptions = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
-const OptionLabel = styled('label')`
+const OptionBody = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  padding: ${p => p.theme.space.xl};
+  align-items: center;
+`;
+
+const OptionLabel = styled('label')<{disabled?: boolean}>`
   display: grid;
   grid-template-columns: 1fr;
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
   background-color: ${p => p.theme.surface400};
   font-weight: ${p => p.theme.fontWeight.normal};
-  cursor: pointer;
+  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   overflow: hidden;
 
   input[type='radio'] {
@@ -145,28 +170,25 @@ const OptionLabel = styled('label')`
     border-color: ${p => p.theme.focusBorder};
     outline: solid 1px ${p => p.theme.focusBorder};
   }
-`;
 
-const OptionBody = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  padding: ${p => p.theme.space.xl};
-  align-items: center;
+  ${OptionBody} {
+    opacity: ${p => (p.disabled ? 0.7 : 1)};
+  }
 `;
 
 const OptionInfo = styled('div')`
   border-top: 1px solid ${p => p.theme.border};
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   background-color: ${p => p.theme.backgroundSecondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const Header = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
-  margin-top: ${space(3)};
-  margin-bottom: ${space(1)};
+  gap: ${p => p.theme.space.sm};
+  margin-top: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.md};
 
   h3 {
     margin: 0;
