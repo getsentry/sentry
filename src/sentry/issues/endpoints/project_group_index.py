@@ -176,9 +176,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         try:
             cursor_result, query_kwargs = prep_search(request, project, {"count_hits": True})
-        except ValidationError as exc:
-            return Response({"detail": str(exc)}, status=400)
-        except InvalidSearchQuery as exc:
+        except (ValidationError, InvalidSearchQuery) as exc:
             return Response({"detail": str(exc)}, status=400)
 
         results = list(cursor_result)
