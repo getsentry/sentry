@@ -5,7 +5,7 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import {IconBranch, IconCommit, IconFile, IconGithub} from 'sentry/icons';
-import {tn} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import type {
   PullRequestDetailsSuccessResponse,
   PullRequestState,
@@ -70,7 +70,7 @@ export function PullRequestDetailsHeaderContent({
         </Stack>
         {pr.url && (
           <LinkButton icon={<IconGithub size="sm" />} href={pr.url} external>
-            View on GitHub
+            {t('View on GitHub')}
           </LinkButton>
         )}
       </Flex>
@@ -84,7 +84,7 @@ export function PullRequestDetailsHeaderContent({
   );
 }
 
-function getPrStateBadge(state: PullRequestState) {
+function getPrStateBadge(state: PullRequestState): React.ReactNode | null {
   switch (state) {
     case 'open':
       return <Tag type="success">Open</Tag>;
@@ -92,8 +92,10 @@ function getPrStateBadge(state: PullRequestState) {
       return <Tag type="error">Closed</Tag>;
     case 'merged':
       return <Tag type="info">Merged</Tag>;
-    default:
+    case 'draft':
       return <Tag type="default">Draft</Tag>;
+    default:
+      return null;
   }
 }
 
