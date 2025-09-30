@@ -139,7 +139,10 @@ class SlackNotificationProviderSendTest(TestCase):
         )
         renderable = self._create_renderable()
 
-        with pytest.raises(NotificationProviderError, match="Target .* is not a valid dataclass"):
+        with pytest.raises(
+            NotificationProviderError,
+            match="Target 'GenericNotificationTarget' is not a valid dataclass for SlackNotificationProvider",
+        ):
             SlackNotificationProvider.send(target=target, renderable=renderable)
 
     @patch("sentry.integrations.slack.integration.SlackSdkClient")
