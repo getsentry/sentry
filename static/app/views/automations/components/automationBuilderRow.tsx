@@ -31,10 +31,10 @@ export default function AutomationBuilderRow({
           icon={<IconDelete />}
           borderless
           onClick={onDelete}
-          className={'delete-row'}
+          className="delete-row"
         />
       </RowContainer>
-      {hasError && errorMessage && <Alert type={'error'}>{errorMessage}</Alert>}
+      {hasError && errorMessage && <Alert type="error">{errorMessage}</Alert>}
     </Flex>
   );
 }

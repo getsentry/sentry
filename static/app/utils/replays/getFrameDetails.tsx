@@ -521,7 +521,7 @@ function WebVitalTitle(frame: WebVitalFrame) {
       {t('Web Vital: ') + toTitleCase(explodeSlug(frame.description))}
       <QuestionTooltip
         isHoverable
-        size={'xs'}
+        size="xs"
         title={
           <Fragment>
             {vitalDefinition()}

@@ -163,7 +163,7 @@ function DashboardTable({
 
       return (
         <SortLink
-          align={'left'}
+          align="left"
           title={column.name}
           direction={sortDirection}
           canSort
@@ -284,7 +284,7 @@ function DashboardTable({
                     });
                   }}
                   aria-label={t('Duplicate Dashboard')}
-                  data-test-id={'dashboard-duplicate'}
+                  data-test-id="dashboard-duplicate"
                   icon={<IconCopy />}
                   size="sm"
                   disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
@@ -302,7 +302,7 @@ function DashboardTable({
                 });
               }}
               aria-label={t('Delete Dashboard')}
-              data-test-id={'dashboard-delete'}
+              data-test-id="dashboard-delete"
               icon={<IconDelete />}
               size="sm"
               disabled={dashboards && dashboards.length <= 1}

@@ -251,7 +251,7 @@ export function SavedQueriesTable({
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="created-by">
               {query.isPrebuilt ? (
-                <Tooltip title={'Sentry'}>
+                <Tooltip title="Sentry">
                   <ActivityAvatar type="system" size={20} />
                 </Tooltip>
               ) : query.createdBy ? (

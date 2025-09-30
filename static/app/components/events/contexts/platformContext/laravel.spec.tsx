@@ -50,8 +50,8 @@ describe('LaravelContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'default'}
-        alias={'laravel'}
+        type="default"
+        alias="laravel"
         value={{...MOCK_LARAVEL_CONTEXT, extra_data: ''}}
       />
     );

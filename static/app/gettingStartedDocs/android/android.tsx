@@ -632,9 +632,7 @@ const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
             'For more detailed information on profiling, see the [link:profiling documentation].',
             {
               link: (
-                <ExternalLink
-                  href={`https://docs.sentry.io/platforms/android/profiling/`}
-                />
+                <ExternalLink href="https://docs.sentry.io/platforms/android/profiling/" />
               ),
             }
           ),
@@ -809,9 +807,7 @@ class MyApplication : Application() {
             'You can also configure [link:logging integrations] to automatically capture logs from your application from libraries like [code:Timber] or [code:Logcat].',
             {
               link: (
-                <ExternalLink
-                  href={'https://docs.sentry.io/platforms/android/logs/#integrations'}
-                />
+                <ExternalLink href="https://docs.sentry.io/platforms/android/logs/#integrations" />
               ),
               code: <code />,
             }

@@ -42,8 +42,8 @@ export function DateSelector() {
       options={options}
       value={preventPeriod ?? ''}
       onChange={handleChange}
-      menuWidth={'16rem'}
       menuTitle={t('Filter to time period')}
+      menuWidth="16rem"
       trigger={(triggerProps, isOpen) => {
         const defaultLabel = options.some(item => item.value === preventPeriod)
           ? preventPeriod?.toUpperCase()

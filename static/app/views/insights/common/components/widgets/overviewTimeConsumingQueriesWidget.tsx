@@ -153,7 +153,7 @@ export default function OverviewTimeConsumingQueriesWidget(
           <TimeSpentCell
             percentage={item['time_spent_percentage()']}
             total={item[totalTimeField]}
-            op={'db'}
+            op="db"
           />
         </Fragment>
       ))}

@@ -103,7 +103,7 @@ export function TraceChildrenButton(props: {
 }) {
   return (
     <button
-      className={`TraceChildrenCount`}
+      className="TraceChildrenCount"
       onClick={props.onClick}
       onDoubleClick={props.onDoubleClick}
     >

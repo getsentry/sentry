@@ -59,11 +59,11 @@ function RefundVercelRequestModal({
       <Body>
         <div>Send request to Vercel to initiate a refund for a given invoice.</div>
         <br />
-        <Form onSubmit={onSubmit} submitLabel={'Send Request'} onCancel={closeModal}>
+        <Form onSubmit={onSubmit} submitLabel="Send Request" onCancel={closeModal}>
           <TextField
             label="Invoice GUID"
             name="invoice_guid"
-            placeholder={'invoice guid'}
+            placeholder="invoice guid"
             onChange={(value: string) => {
               setGuid(value);
             }}
@@ -72,7 +72,7 @@ function RefundVercelRequestModal({
           <TextField
             label="Reason"
             name="reason"
-            placeholder={'reason for refund'}
+            placeholder="reason for refund"
             onChange={(value: string) => {
               setReason(value);
             }}

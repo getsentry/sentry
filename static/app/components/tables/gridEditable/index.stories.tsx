@@ -294,7 +294,7 @@ export default Storybook.story('GridEditable', story => {
       <Fragment>
         <p>
           Passing
-          <Storybook.JSXProperty name="fit" value={'max-content'} /> will set the width of
+          <Storybook.JSXProperty name="fit" value="max-content" /> will set the width of
           the grid to fit around the content.
         </p>
         <p>
@@ -303,7 +303,7 @@ export default Storybook.story('GridEditable', story => {
           or be cut off, which might not be desired (ex. when the table has many columns
           or is placed into a small container). One way to control column width this is to
           provide
-          <Storybook.JSXProperty name="minColumnWidth" value={'number'} />, which applies
+          <Storybook.JSXProperty name="minColumnWidth" value="number" />, which applies
           the same width to all columns. However, this does not account for varying widths
           between columns, unlike this prop does.
         </p>

@@ -61,8 +61,8 @@ describe('StateContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'default'}
-        alias={'state'}
+        type="default"
+        alias="state"
         value={{...MOCK_STATE_CONTEXT, extra_data: ''}}
       />
     );

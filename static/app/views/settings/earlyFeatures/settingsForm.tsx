@@ -66,7 +66,7 @@ export default function EarlyFeaturesSettingsForm({access, location}: Props) {
       <Form
         data-test-id="organization-settings"
         apiMethod="PUT"
-        apiEndpoint={`/internal/feature-flags/`}
+        apiEndpoint="/internal/feature-flags/"
         saveOnBlur
         allowUndo
         initialData={initialData}

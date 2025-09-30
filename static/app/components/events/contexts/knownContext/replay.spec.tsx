@@ -49,8 +49,8 @@ describe('ReplayContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'default'}
-        alias={'replay'}
+        type="default"
+        alias="replay"
         value={{...MOCK_REPLAY_CONTEXT, extra_data: ''}}
       />
     );

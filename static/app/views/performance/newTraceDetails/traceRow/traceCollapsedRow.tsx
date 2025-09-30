@@ -39,7 +39,7 @@ export function TraceCollapsedRow(props: TraceRowProps<CollapsedNode>) {
     <div
       key={props.index}
       tabIndex={props.tabIndex}
-      className={`Collapsed TraceRow`}
+      className="Collapsed TraceRow"
       onPointerDown={props.onRowClick}
       onKeyDown={props.onRowKeyDown}
       style={props.style}

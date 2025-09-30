@@ -94,7 +94,7 @@ export function ClientTable() {
       <HeadSortCell
         sortKey={column.key}
         align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
-        cursorParamName={'tableCursor'}
+        cursorParamName="tableCursor"
         forceCellGrow={column.key === 'transaction'}
       >
         {column.name}
@@ -193,7 +193,7 @@ export function ClientTable() {
       data={tableDataRequest.data}
       initialColumnOrder={pageloadColumnOrder}
       stickyHeader
-      cursorParamName={'tableCursor'}
+      cursorParamName="tableCursor"
       pageLinks={pagesTablePageLinks}
       isPlaceholderData={tableDataRequest.isPlaceholderData}
       grid={{

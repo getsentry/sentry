@@ -93,7 +93,7 @@ export default function FeatureFlagInlineCTA({
     <Button
       aria-label={t('Give feedback on the feature flag section')}
       icon={<IconMegaphone />}
-      size={'xs'}
+      size="xs"
       onClick={() =>
         openForm({
           messagePlaceholder: t('How can we make feature flags work better for you?'),

@@ -320,7 +320,7 @@ export const LogRowContent = memo(function LogRowContent({
           }
         }}
       >
-        <LogsTableBodyFirstCell key={'first'}>
+        <LogsTableBodyFirstCell key="first">
           <LogFirstCellContent>
             {blockRowExpanding ? null : shouldRenderHoverElements ? (
               <StyledChevronButton
