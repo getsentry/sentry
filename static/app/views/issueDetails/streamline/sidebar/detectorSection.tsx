@@ -107,6 +107,8 @@ export function DetectorSection({group, project}: {group: Group; project: Projec
         to={detectorPath}
         style={{width: '100%'}}
         size="sm"
+        replace
+        preventScrollReset
       >
         {issueConfig.detector.ctaText ?? t('View detector details')}
       </LinkButton>

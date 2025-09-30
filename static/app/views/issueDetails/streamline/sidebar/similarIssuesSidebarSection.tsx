@@ -19,6 +19,8 @@ export function SimilarIssuesSidebarSection() {
           pathname: `${baseUrl}${TabPaths[Tab.SIMILAR_ISSUES]}`,
           query: location.query,
         }}
+        replace
+        preventScrollReset
       >
         {t('View')}
       </ViewButton>
