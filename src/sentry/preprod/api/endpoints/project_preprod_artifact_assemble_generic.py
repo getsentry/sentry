@@ -4,7 +4,6 @@ from enum import Enum
 import jsonschema
 import orjson
 import sentry_sdk
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -16,7 +15,10 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.preprod.analytics import PreprodArtifactApiAssembleGenericEvent
-from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
+from sentry.preprod.authentication import (
+    LaunchpadRpcPermission,
+    LaunchpadRpcSignatureAuthentication,
+)
 from sentry.preprod.tasks import (
     assemble_preprod_artifact_installable_app,
     assemble_preprod_artifact_size_analysis,
@@ -88,22 +90,12 @@ class ProjectPreprodArtifactAssembleGenericEndpoint(ProjectEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (LaunchpadRpcSignatureAuthentication,)
-    permission_classes = ()
-
-    def _is_authorized(self, request: Request) -> bool:
-        if request.auth and isinstance(
-            request.successful_authenticator, LaunchpadRpcSignatureAuthentication
-        ):
-            return True
-        return False
+    permission_classes = (LaunchpadRpcPermission,)
 
     def post(self, request: Request, project, head_artifact_id) -> Response:
         """
         Assembles a generic file for a preprod artifact and stores it in the database.
         """
-        if not self._is_authorized(request):
-            raise PermissionDenied
-
         analytics.record(
             PreprodArtifactApiAssembleGenericEvent(
                 organization_id=project.organization_id,

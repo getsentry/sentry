@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING, Any
 from sentry.grouping.component import MessageGroupingComponent
 from sentry.grouping.parameterization import Parameterizer
 from sentry.grouping.strategies.base import (
+    ComponentsByVariant,
     GroupingContext,
-    ReturnedVariants,
     produces_variants,
     strategy,
 )
@@ -71,7 +71,7 @@ def normalize_message_for_grouping(message: str, event: Event) -> str:
 @produces_variants(["default"])
 def message_v1(
     interface: Message, event: Event, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+) -> ComponentsByVariant:
     variant_name = context["variant_name"]
 
     # This is true for all but our test config

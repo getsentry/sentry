@@ -14,7 +14,10 @@ from slack_sdk.models.blocks import (
 from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
-from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.target import (
+    IntegrationNotificationTarget,
+    PreparedIntegrationNotificationTarget,
+)
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -47,14 +50,14 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
                 actions_block.elements.append(ButtonElement(text=action.label, url=action.link))
             blocks.append(actions_block)
 
-        if rendered_template.footer:
-            footer = SectionBlock(text=MarkdownTextObject(text=rendered_template.footer))
-            blocks.append(footer)
         if rendered_template.chart:
             chart = ImageBlock(
                 image_url=rendered_template.chart.url, alt_text=rendered_template.chart.alt_text
             )
             blocks.append(chart)
+        if rendered_template.footer:
+            footer = SectionBlock(text=MarkdownTextObject(text=rendered_template.footer))
+            blocks.append(footer)
 
         return SlackRenderable(blocks=blocks)
 
@@ -84,7 +87,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
                 f"Target '{target.__class__.__name__}' is not a valid dataclass for {cls.__name__}"
             )
 
-        installation = SlackIntegration(
-            model=target.integration, organization_id=target.organization_id
+        slack_target = PreparedIntegrationNotificationTarget[SlackIntegration](
+            target=target, installation_cls=SlackIntegration
         )
-        installation.send_notification(target=target, payload=renderable)
+        slack_target.integration_installation.send_notification(target=target, payload=renderable)
