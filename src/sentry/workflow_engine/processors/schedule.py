@@ -41,7 +41,9 @@ def process_in_batches(client: ProjectDelayedWorkflowClient) -> None:
     )  # TODO: Use workflow engine-specific option.
 
     event_count = client.get_hash_length()
-    metrics.incr("delayed_workflow.num_groups", tags={"num_groups": bucket_num_groups(event_count)})
+    metrics.incr(
+        "workflow_engine.schedule.num_groups", tags={"num_groups": bucket_num_groups(event_count)}
+    )
     metrics.distribution("workflow_engine.schedule.event_count", event_count)
 
     if event_count < batch_size:
