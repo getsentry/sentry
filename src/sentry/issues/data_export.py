@@ -10,6 +10,7 @@ from google.cloud.storage.bucket import Bucket
 from sentry.models.organization import Organization
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
+from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
@@ -69,22 +70,12 @@ def add_events_to_upload_queue(events_data: list[dict], upload_queue: Queue):
     upload_queue.put(compressed_data)
 
 
-def process_event_batch(events: list[Event], organization_id: int) -> list[dict]:
+def process_event_batch(events: list[Event]) -> list[dict]:
     results = []
 
     for event in events:
         if event.data:
-            # TODO: some of this metadata might not be necessary
-            event_data = {
-                "event_id": event.event_id,
-                "project_id": event.project_id,
-                "organization_id": organization_id,
-                "timestamp": event.datetime.isoformat(),
-                "platform": event.platform,
-                "message": event.message,
-                "type": event.get_event_type(),
-                "data": dict(event.data),  # Full event payload
-            }
+            event_data = dict(event.data)
             results.append(event_data)
         else:
             logger.warning("No data for event", extra={"event_id": event.event_id})
@@ -96,7 +87,6 @@ def process_event_batches(
     event_batches: Iterator[list[Event]],
     destination_bucket: str,
     gcs_prefix: str,
-    organization_id: int,
 ):
     # Create upload queue and background uploader
     upload_queue = Queue(maxsize=UPLOAD_QUEUE_SIZE)
@@ -108,7 +98,7 @@ def process_event_batches(
     upload_thread.start()
 
     for batch in event_batches:
-        events_data = process_event_batch(batch, organization_id)
+        events_data = process_event_batch(batch)
         add_events_to_upload_queue(events_data, upload_queue)
 
     upload_queue.put(None)  # Signal upload thread to finish
@@ -125,6 +115,7 @@ def get_event_batches(
             limit=BATCH_SIZE,
             offset=offset,
             referrer=REFERRER,
+            dataset=Dataset.Events,
             tenant_ids={"organization_id": organization_id},
         )
 
@@ -143,19 +134,20 @@ def get_event_batches(
 def export_project_errors_async(
     project_id: int, organization_id: int, destination_bucket: str, gcs_prefix: str
 ):
+    # Export all events within retention
     event_filter = eventstore.Filter(
         project_ids=[project_id],
         start=None,
         end=None,
-        conditions=[["event.type", "=", "error"]],  # Only error events
     )
     event_batches = get_event_batches(organization_id, event_filter)
 
-    process_event_batches(event_batches, destination_bucket, gcs_prefix, organization_id)
+    process_event_batches(event_batches, destination_bucket, gcs_prefix)
 
     logger.info("Errors data export completed for project", extra={"project_id": project_id})
 
 
+# TODO: add tests
 def export_errors_data(
     organization_id: int,
     destination_bucket: str,
