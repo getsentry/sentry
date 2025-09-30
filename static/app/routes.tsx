@@ -2385,6 +2385,11 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      // Backwards compatibility for renamed route (still used in marketing links)
+      path: 'prevent-ai/*',
+      redirectTo: '/prevent/ai-code-review/',
+    },
+    {
       path: 'ai-code-review/',
       children: [
         {
