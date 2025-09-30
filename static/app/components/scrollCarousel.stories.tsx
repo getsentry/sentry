@@ -28,11 +28,33 @@ export default Storybook.story('ScrollCarousel', story => {
       </div>
     </Fragment>
   ));
+
+  story('Vertical', () => (
+    <Fragment>
+      <p>
+        Vertical lists are also supported with{' '}
+        <Storybook.JSXProperty name="orientation" value="vertical" />.
+      </p>
+      <div style={{width: '240px', height: '160px', display: 'block'}}>
+        <ScrollCarousel
+          aria-label="vertical-example"
+          orientation="vertical"
+          css={css`
+            gap: ${space(1)};
+          `}
+        >
+          {['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta'].map(item => (
+            <ExampleItem key={item}>{item}</ExampleItem>
+          ))}
+        </ScrollCarousel>
+      </div>
+    </Fragment>
+  ));
 });
 
 const ExampleItem = styled('div')`
   min-width: 100px;
-  height: 30px;
+  min-height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
