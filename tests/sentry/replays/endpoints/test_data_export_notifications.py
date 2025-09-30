@@ -17,7 +17,7 @@ class DataExportNotificationsTestCase(APITestCase):
         self.login_as(user=self.user)
 
     @patch("sentry.replays.data_export.request_run_transfer_job")
-    def test_simple(self, do_request) -> None:
+    def test_simple(self, do_request) -> None:  # type: ignore[no-untyped-def]
         data = {
             "data": base64.b64encode(
                 json.dumps(
