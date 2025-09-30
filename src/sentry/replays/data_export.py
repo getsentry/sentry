@@ -437,7 +437,7 @@ def export_replay_row_set(
     )
 
     if len(rows) > 0:
-        filename = f"clickhouse/session-replay/{project_id}/{start.isoformat()}/{end.isoformat()}/{limit * num_pages}/{initial_offset}"
+        filename = f"clickhouse/session-replay/{project_id}/{start.isoformat()}/{end.isoformat()}/{initial_offset}"
         csv_data = rows_to_csv(rows)
         write_to_storage(filename, csv_data)
 

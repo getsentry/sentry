@@ -50,7 +50,7 @@ def test_replay_data_export(default_organization, default_project, replay_store)
         assert store_rows.call_args[0][0] == "destination"
         assert (
             store_rows.call_args[0][1]
-            == f"clickhouse/session-replay/{default_project.id}/{t0.isoformat()}/{t1.isoformat()}/10/0"
+            == f"clickhouse/session-replay/{default_project.id}/{t0.isoformat()}/{t1.isoformat()}/0"
         )
         assert replay_id in store_rows.call_args[0][2]
 
