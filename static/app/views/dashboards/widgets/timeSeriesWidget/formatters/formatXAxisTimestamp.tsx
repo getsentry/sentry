@@ -26,7 +26,7 @@ export function formatXAxisTimestamp(
   // parser is not aware of the other ticks
   let format = 'MMM Do';
 
-  // Choose which time to use for boundary detection--local or UTC
+  // Choose whether to use local or UTC time for boundary detection
   const boundaryTime = options.utc ? parsed : parsed.clone().local();
 
   if (
