@@ -69,7 +69,6 @@ class PreparedIntegrationNotificationTarget[IntegrationInstallationT: Integratio
     @cached_property
     def integration(self) -> RpcIntegration:
         integration = integration_service.get_integration(integration_id=self.target.integration_id)
-
         if integration is None:
             raise NotificationTargetError(f"Integration {self.target.integration_id} not found")
         return integration
@@ -83,7 +82,7 @@ class PreparedIntegrationNotificationTarget[IntegrationInstallationT: Integratio
 
         if organization_integration is None:
             raise NotificationTargetError(
-                f"Organization integration {self.target.integration_id} not found"
+                f"Organization integration for integration {self.target.integration_id} and organization {self.target.organization_id} not found"
             )
         return organization_integration
 
