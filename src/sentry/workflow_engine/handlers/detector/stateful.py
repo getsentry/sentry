@@ -1,12 +1,13 @@
 import abc
 import dataclasses
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Generic, cast
 from uuid import uuid4
 
 from django.conf import settings
 from django.db.models import Q
+from django.utils import timezone
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -352,6 +353,17 @@ class StatefulDetectorHandler(
         """
         return {}
 
+    def get_detection_timestamp(self, data_packet: DataPacket[DataPacketType]) -> datetime:
+        """
+        Returns the time at which detection happened. Will be used for issue
+        occurrence creation and status resolution.
+
+        This may be overridden for example using a timestamp from the
+        data_packet if the "detection time" should be derived from an upstream
+        timestamp.
+        """
+        return timezone.now()
+
     def _build_workflow_engine_evidence_data(
         self,
         evaluation_result: ProcessedDataConditionGroup,
@@ -475,6 +487,7 @@ class StatefulDetectorHandler(
             new_substatus=None,
             detector_id=self.detector.id,
             activity_data=evidence_data,
+            update_date=self.get_detection_timestamp(data_packet),
         )
 
     def _extract_value_from_packet(
@@ -597,6 +610,7 @@ class StatefulDetectorHandler(
             project_id=self.detector.project_id,
             status=new_priority,
             additional_evidence_data=evidence_data,
+            detection_time=self.get_detection_timestamp(data_packet),
         )
 
     def _evaluation_detector_conditions(
