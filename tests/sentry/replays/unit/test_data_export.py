@@ -33,7 +33,7 @@ def test_export_blob_data() -> None:
     end_date = start_date + job_duration
 
     result = create_transfer_job(
-        gcs_project_id=gcs_project_id,
+        gcp_project_id=gcs_project_id,
         source_bucket=bucket_name,
         source_prefix=bucket_prefix,
         destination_bucket="b",

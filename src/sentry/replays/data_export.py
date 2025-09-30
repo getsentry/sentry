@@ -136,7 +136,7 @@ def request_create_transfer_job(request: CreateTransferJobRequest) -> None:
 
 
 def create_transfer_job[T](
-    gcs_project_id: str,
+    gcp_project_id: str,
     transfer_job_name: str | None,
     source_bucket: str,
     source_prefix: str,
@@ -150,18 +150,17 @@ def create_transfer_job[T](
     """
     Create a transfer-job which copies a bucket by prefix to another bucket.
 
-    Transfer jobs are templates for transfer-job-runs. Transfer jobs do not automatically create
-    transfer-job-runs. You can run a transfer-job manually but this function will define a
-    schedule for automatic transfer-job-run creation. Once the schedules constraints are met GCS
-    will create a transfer-job-run automatically. Automatic run creation is one-time only (for the
-    schedule adopted by this function). If it fails or you want to run the transfer-job twice you
-    will need to manually create a transfer-job-run on the second attempt.
+    Transfer jobs are templates for transfer-job-runs. Transfer jobs are run based on a schedule.
+    They start immediately and run until the job_duration value. Automatic run creation based on
+    the schedule is one-time only. If it fails or you want to run the transfer-job twice you will
+    need to manually create a transfer-job-run on the second attempt.
 
     Failure notifications are handled by pubsub. When the transfer service fails it will send a
     notification to the specified topic. That topic should be configured to propagate the failure
     notice to our HTTP endpoint which will then call the appropriate retry function.
 
-    :param gcs_project_id:
+    :param gcp_project_id: The GCP project_id. This can be extracted from the storage class
+        returned by `get_storage` function.
     :param source_bucket:
     :param source_prefix:
     :param destination_bucket:
@@ -176,7 +175,7 @@ def create_transfer_job[T](
 
     transfer_job = TransferJob(
         description=job_description,
-        project_id=gcs_project_id,
+        project_id=gcp_project_id,
         status=storage_transfer_v1.TransferJob.Status.ENABLED,
         transfer_spec=TransferSpec(
             gcs_data_source=GcsData(bucket_name=source_bucket, path=source_prefix),
@@ -221,10 +220,14 @@ def retry_transfer_job_run[T](
     do_run_transfer_job: Callable[[RunTransferJobRequest], T],
 ) -> T | None:
     """
-    Retry failed transfer job run.
+    Retry a failed transfer job run.
+
+    This function expects an event structured in the Google Cloud pubsub notification format.
 
     :param event:
-    :param do_run_transfer_job:
+    :param do_run_transfer_job: Any callback function which triggers a `run_transfer_job` action
+        on GCP. You should use `request_run_transfer_job` by default unless you need to manually
+        specify credentials or have some other divergent behavior.
     """
     if "data" not in event:
         return None
@@ -236,9 +239,9 @@ def retry_transfer_job_run[T](
     # Check for a failed transfer operation
     if "transferOperation" in payload and payload["transferOperation"]["status"] == "FAILED":
         job_name = payload["transferOperation"]["transferJobName"]
-        gcs_project_id = payload["transferOperation"]["projectId"]
+        gcp_project_id = payload["transferOperation"]["projectId"]
 
-        request = RunTransferJobRequest(job_name=job_name, project_id=gcs_project_id)
+        request = RunTransferJobRequest(job_name=job_name, project_id=gcp_project_id)
         return do_run_transfer_job(request)
 
     return None
@@ -543,7 +546,7 @@ def export_replay_project_async(
 
 def export_replay_blob_data[T](
     project_id: int,
-    gcs_project_id: str,
+    gcp_project_id: str,
     destination_bucket: str,
     job_duration: timedelta,
     do_create_transfer_job: Callable[[CreateTransferJobRequest], T],
@@ -559,7 +562,7 @@ def export_replay_blob_data[T](
 
     for retention_days in (30, 60, 90):
         create_transfer_job(
-            gcs_project_id=gcs_project_id,
+            gcp_project_id=gcp_project_id,
             transfer_job_name=None,
             source_bucket=source_bucket,
             source_prefix=f"{retention_days}/{project_id}",
@@ -573,7 +576,7 @@ def export_replay_blob_data[T](
 
 def export_replay_data(
     organization_id: int,
-    gcs_project_id: str,
+    gcp_project_id: str,
     destination_bucket: str,
     blob_export_job_duration: timedelta = EXPORT_JOB_DURATION_DEFAULT,
     database_rows_per_page: int = EXPORT_QUERY_ROWS_PER_PAGE,
@@ -585,7 +588,7 @@ def export_replay_data(
         "Starting replay export...",
         extra={
             "organization_id": organization_id,
-            "gcs_project_id": gcs_project_id,
+            "gcp_project_id": gcp_project_id,
             "destination_bucket": destination_bucket,
             "blob_export_job_duration": str(blob_export_job_duration),
             "database_rows_per_page": database_rows_per_page,
@@ -620,7 +623,7 @@ def export_replay_data(
         )
         export_replay_blob_data(
             project_id=project.id,
-            gcs_project_id=gcs_project_id,
+            gcp_project_id=gcp_project_id,
             destination_bucket=destination_bucket,
             pubsub_topic_name=pubsub_topic_name,
             source_bucket=source_bucket,

@@ -39,7 +39,7 @@ def test_replay_data_export(default_organization, default_project, replay_store)
     ):
         export_replay_data(
             organization_id=default_organization.id,
-            gcs_project_id="1",
+            gcp_project_id="1",
             destination_bucket="destination",
             database_rows_per_page=1,
         )
@@ -71,7 +71,7 @@ def test_replay_data_export_invalid_organization(default_project, replay_store) 
     ):
         export_replay_data(
             organization_id=1,
-            gcs_project_id="1",
+            gcp_project_id="1",
             destination_bucket="destination",
             database_rows_per_page=1,
         )
@@ -96,7 +96,7 @@ def test_replay_data_export_no_replay_projects(  # type: ignore[no-untyped-def]
     ):
         export_replay_data(
             organization_id=default_organization.id,
-            gcs_project_id="1",
+            gcp_project_id="1",
             destination_bucket="destination",
             database_rows_per_page=1,
         )
@@ -122,7 +122,7 @@ def test_replay_data_export_no_replay_data(  # type: ignore[no-untyped-def]
     ):
         export_replay_data(
             organization_id=default_organization.id,
-            gcs_project_id="1",
+            gcp_project_id="1",
             destination_bucket="destination",
             database_rows_per_page=1,
         )
