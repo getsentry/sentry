@@ -106,15 +106,17 @@ function TeamFilter({
         }
         return handleChangeFilter(opts.map(opt => opt.value));
       }}
-      triggerLabel={
-        <Fragment>
-          {triggerLabel}
-          {selectedTeams.length > 1 && (
-            <StyledBadge type="default">{`+${selectedTeams.length - 1}`}</StyledBadge>
-          )}
-        </Fragment>
-      }
-      triggerProps={{icon: triggerIcon}}
+      triggerProps={{
+        icon: triggerIcon,
+        children: (
+          <Fragment>
+            {triggerLabel}
+            {selectedTeams.length > 1 && (
+              <StyledBadge type="default">{`+${selectedTeams.length - 1}`}</StyledBadge>
+            )}
+          </Fragment>
+        ),
+      }}
     />
   );
 }
