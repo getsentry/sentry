@@ -36,6 +36,7 @@ from snuba_sdk import (
 from sentry.models.files.utils import get_storage
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.services.filestore.gcs import GoogleCloudStorage
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
@@ -445,6 +446,7 @@ def export_replay_row_set(
 
 def save_to_storage(destination_bucket: str, filename: str, contents: str) -> None:
     storage = get_storage(None)
+    assert isinstance(storage, GoogleCloudStorage)
     storage.bucket_name = destination_bucket
     storage.save(filename, io.BytesIO(contents.encode()))
 
