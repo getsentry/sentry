@@ -158,7 +158,7 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
             exporting_region=replying_region_name,
             public_key=encrypt_with_public_key,
             state=RelocationTransferState.Request,
-            # Set next runtime in the future to reduce races with celerybeat
+            # Set next runtime in the future to reduce races with scheduled tasks
             scheduled_for=timezone.now() + RETRY_BACKOFF,
         )
         process_relocation_transfer_control.delay(transfer_id=transfer.id)
@@ -201,7 +201,7 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
             requesting_region=requesting_region_name,
             exporting_region=replying_region_name,
             state=RelocationTransferState.Reply,
-            # Set next runtime in the future to reduce races with celerybeat
+            # Set next runtime in the future to reduce races with scheduled tasks
             scheduled_for=timezone.now() + RETRY_BACKOFF,
         )
         process_relocation_transfer_control.delay(transfer_id=transfer.id)

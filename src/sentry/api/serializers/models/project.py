@@ -1109,7 +1109,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "debugFilesRole": attrs["options"].get("sentry:debug_files_role"),
         }
 
-        if has_tempest_access(obj.organization, user):
+        if has_tempest_access(obj.organization):
             data["tempestFetchScreenshots"] = attrs["options"].get(
                 "sentry:tempest_fetch_screenshots", False
             )

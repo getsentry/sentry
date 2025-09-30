@@ -6,23 +6,18 @@ from typing import Union
 
 from django.db.models import Q
 
-from sentry import features
-from sentry.hybridcloud.services.organization_mapping.serial import serialize_organization_mapping
 from sentry.integrations.types import (
     EXTERNAL_PROVIDERS_REVERSE_VALUES,
     PERSONAL_NOTIFICATION_PROVIDERS,
     ExternalProviderEnum,
     ExternalProviders,
 )
-from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.team import Team
 from sentry.notifications.helpers import (
     get_default_for_provider,
-    get_team_members,
     get_type_defaults,
     recipient_is_team,
     recipient_is_user,
-    team_is_valid_recipient,
 )
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
@@ -71,26 +66,7 @@ class NotificationController:
         self.organization_id = organization_id
         self.type = type
         self.provider = provider
-
-        if organization_id is not None:
-            org_mapping = OrganizationMapping.objects.filter(
-                organization_id=organization_id
-            ).first()
-            org = serialize_organization_mapping(org_mapping) if org_mapping is not None else None
-        else:
-            org = None
-        if org and features.has("organizations:team-workflow-notifications", org):
-            self.recipients: list[Recipient] = []
-            for recipient in recipients:
-                if recipient_is_team(recipient):
-                    if team_is_valid_recipient(recipient):
-                        self.recipients.append(recipient)
-                    else:
-                        self.recipients += get_team_members(recipient)
-                else:
-                    self.recipients.append(recipient)
-        else:
-            self.recipients = list(recipients)
+        self.recipients = list(recipients)
 
         if self.recipients:
             query = self._get_query()
@@ -288,15 +264,6 @@ class NotificationController:
             )
         )
 
-        if self.organization_id is not None:
-            org_mapping = OrganizationMapping.objects.filter(
-                organization_id=self.organization_id
-            ).first()
-            org = serialize_organization_mapping(org_mapping) if org_mapping is not None else None
-        else:
-            org = None
-        has_team_workflow = org and features.has("organizations:team-workflow-notifications", org)
-
         for recipient in self.recipients:
             # get the settings for this user/team
             filter_kwargs = kwargs.copy()
@@ -328,8 +295,7 @@ class NotificationController:
                 for provider_str in PERSONAL_NOTIFICATION_PROVIDERS:
                     provider = ExternalProviderEnum(provider_str)
                     if provider_str not in most_specific_recipient_providers[type]:
-                        # TODO(jangjodi): Remove this once the flag is removed
-                        if recipient_is_team(recipient) and (not has_team_workflow):
+                        if recipient_is_team(recipient):
                             most_specific_recipient_providers[type][
                                 provider_str
                             ] = NotificationSettingsOptionEnum.NEVER

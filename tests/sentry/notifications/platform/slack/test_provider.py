@@ -8,7 +8,6 @@ from sentry.notifications.platform.slack.provider import SlackNotificationProvid
 from sentry.notifications.platform.target import (
     GenericNotificationTarget,
     IntegrationNotificationTarget,
-    prepare_targets,
 )
 from sentry.notifications.platform.types import (
     NotificationCategory,
@@ -44,12 +43,12 @@ class SlackRendererTest(TestCase):
                 ],
                 "type": "actions",
             },
-            {"text": {"text": "This is a mock footer", "type": "mrkdwn"}, "type": "section"},
             {
                 "image_url": "https://raw.githubusercontent.com/knobiknows/all-the-bufo/main/all-the-bufo/bufo-pog.png",
                 "alt_text": "Bufo Pog",
                 "type": "image",
             },
+            {"text": {"text": "This is a mock footer", "type": "mrkdwn"}, "type": "section"},
         ]
 
 
@@ -97,8 +96,6 @@ class SlackNotificationProviderSendTest(TestCase):
             integration_id=self.integration.id,
             organization_id=self.organization.id,
         )
-        # Use prepare_targets to populate integration and organization_integration fields
-        prepare_targets([target])
         return target
 
     def _create_renderable(self) -> SlackRenderable:
@@ -142,7 +139,10 @@ class SlackNotificationProviderSendTest(TestCase):
         )
         renderable = self._create_renderable()
 
-        with pytest.raises(NotificationProviderError, match="Target .* is not a valid dataclass"):
+        with pytest.raises(
+            NotificationProviderError,
+            match="Target 'GenericNotificationTarget' is not a valid dataclass for SlackNotificationProvider",
+        ):
             SlackNotificationProvider.send(target=target, renderable=renderable)
 
     @patch("sentry.integrations.slack.integration.SlackSdkClient")
@@ -158,8 +158,6 @@ class SlackNotificationProviderSendTest(TestCase):
             integration_id=self.integration.id,
             organization_id=self.organization.id,
         )
-        # Use prepare_targets to populate integration and organization_integration fields
-        prepare_targets([target])
         renderable = self._create_renderable()
 
         SlackNotificationProvider.send(target=target, renderable=renderable)

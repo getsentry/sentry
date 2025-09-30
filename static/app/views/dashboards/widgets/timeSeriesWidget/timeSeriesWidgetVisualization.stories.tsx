@@ -1215,7 +1215,7 @@ function hasTimestamp(release: Partial<Release>): release is Release {
 }
 
 const NULL_META: TimeSeriesMeta = {
-  valueType: null,
+  valueType: 'number',
   valueUnit: null,
   interval: 0,
 };

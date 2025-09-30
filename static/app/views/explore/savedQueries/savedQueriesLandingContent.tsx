@@ -47,8 +47,8 @@ export function SavedQueriesLandingContent() {
           triggerProps={{
             icon: <IconSort />,
             size: 'md',
+            children: sortOptions.find(option => option.value === sort)?.label,
           }}
-          triggerLabel={sortOptions.find(option => option.value === sort)?.label}
           options={sortOptions}
           value={sort}
           onChange={option => setSort(option.value)}
