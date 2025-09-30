@@ -24,7 +24,7 @@ const getRow = (row: any) => [
         href={`mailto:${row.email}`}
         icon={<IconMail size="xs" />}
         title="Send email"
-        aria-label={'Send email'}
+        aria-label="Send email"
       />
       {row.user ? (
         <Link to={`/_admin/users/${row.user.id}/`}>{row.email}</Link>
