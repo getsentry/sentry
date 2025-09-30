@@ -78,7 +78,7 @@ function ReleaseListInner({
       releasesReloading={reloading}
       healthStatsPeriod={
         typeof location.query.healthStatsPeriod === 'string'
-          ? HealthStatsPeriodOption.TWENTY_FOUR_HOURS
+          ? location.query.healthStatsPeriod === HealthStatsPeriodOption.TWENTY_FOUR_HOURS
             ? HealthStatsPeriodOption.TWENTY_FOUR_HOURS
             : HealthStatsPeriodOption.AUTO
           : undefined
