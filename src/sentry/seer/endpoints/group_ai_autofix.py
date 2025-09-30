@@ -3,10 +3,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import orjson
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
-from rest_framework.exceptions import ParseError, PermissionDenied
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -119,24 +118,23 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         The process runs asynchronously, and you can get the state using the GET endpoint.
         """
-        data = orjson.loads(request.body)
+        serializer = AutofixRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
-        stopping_point = data.get("stopping_point", None)
+        data = serializer.validated_data
+
+        stopping_point = data.get("stopping_point")
         if stopping_point is not None:
-            try:
-                stopping_point = AutofixStoppingPoint(stopping_point)
-            except ValueError:
-                raise ParseError(
-                    "Invalid stopping_point. Must be one of: root_cause, solution, code_changes, open_pr."
-                )
+            stopping_point = AutofixStoppingPoint(stopping_point)
 
         return trigger_autofix(
             group=group,
             # This event_id is the event that the user is looking at when they click the "Fix" button
-            event_id=data.get("event_id", None),
+            event_id=data.get("event_id"),
             user=request.user,
-            instruction=data.get("instruction", None),
-            pr_to_comment_on_url=data.get("pr_to_comment_on_url", None),
+            instruction=data.get("instruction"),
+            pr_to_comment_on_url=data.get("pr_to_comment_on_url"),
             stopping_point=stopping_point,
         )
 

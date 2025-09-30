@@ -827,7 +827,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 400
-        assert "Invalid stopping_point" in response.data.get("detail", "")
+        assert "stoppingPoint" in response.data
+        assert "not a valid choice" in str(response.data["stoppingPoint"])
 
     def test_ai_autofix_post_invalid_stopping_point_type(self, mock_get_seer_org_acknowledgement):
         group = self.create_group()
@@ -840,4 +841,5 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 400
-        assert "Invalid stopping_point" in response.data.get("detail", "")
+        assert "stoppingPoint" in response.data
+        assert "not a valid choice" in str(response.data["stoppingPoint"])
