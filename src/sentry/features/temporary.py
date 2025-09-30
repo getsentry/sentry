@@ -633,14 +633,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
         api_expose=False,
     )
 
-    # Controls access to tempest features
-    manager.add(
-        "organizations:tempest-access",
-        OrganizationFeature,
-        FeatureHandlerStrategy.FLAGPOLE,
-        api_expose=True,
-    )
-
     # Control access to a new debug files role management
     manager.add(
         "organizations:debug-files-role-management",
