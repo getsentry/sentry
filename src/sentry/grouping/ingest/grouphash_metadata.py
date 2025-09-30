@@ -242,6 +242,7 @@ def get_grouphash_metadata_data(
             "schema_version": GROUPHASH_METADATA_SCHEMA_VERSION,
             "latest_grouping_config": grouping_config_id,
             "platform": event.platform or "unknown",
+            "event_id": event.event_id,
         }
         hashing_metadata: HashingMetadata = {}
 

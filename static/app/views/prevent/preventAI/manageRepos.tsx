@@ -40,6 +40,7 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
   useEffect(() => {
     const org = installedOrgs.find(o => o.id === selectedOrg);
     if (org && !org.repos.some(repo => repo.id === selectedRepo)) {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setSelectedRepo(org.repos[0]?.id ?? '');
     }
   }, [selectedOrg, installedOrgs, selectedRepo]);

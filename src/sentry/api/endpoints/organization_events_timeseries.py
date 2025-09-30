@@ -68,7 +68,7 @@ class Row(TypedDict):
 class SeriesMeta(TypedDict):
     order: NotRequired[int]
     isOther: NotRequired[str]
-    valueUnit: NotRequired[str]
+    valueUnit: str | None
     dataScanned: NotRequired[Literal["partial", "full"]]
     valueType: str
     interval: float
@@ -352,10 +352,9 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         unit, field_type = self.get_unit_and_type(axis, result.data["meta"]["fields"][axis])
         series_meta = SeriesMeta(
             valueType=field_type,
+            valueUnit=unit,
             interval=rollup * 1000,
         )
-        if unit is not None:
-            series_meta["valueUnit"] = unit
         if "is_other" in result.data:
             series_meta["isOther"] = result.data["is_other"]
         if "order" in result.data:

@@ -2,7 +2,7 @@ import logging
 import types
 import uuid
 from collections.abc import Mapping, Sequence
-from typing import Any, cast
+from typing import Any
 
 import sentry_sdk
 from django.core.exceptions import ValidationError
@@ -283,7 +283,7 @@ def _track_outcomes(segment_span: CompatibleSpan, spans: list[CompatibleSpan]) -
     outcome_aggregator.track_outcome_aggregated(
         org_id=segment_span["organization_id"],
         project_id=segment_span["project_id"],
-        key_id=cast(int | None, segment_span.get("key_id", None)),
+        key_id=segment_span.get("key_id", None),
         outcome=Outcome.ACCEPTED,
         reason=None,
         timestamp=to_datetime(segment_span["received"]),

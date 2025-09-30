@@ -362,7 +362,7 @@ def main(slow=False):
 
 
 if __name__ == "__main__":
-    settings.CELERY_ALWAYS_EAGER = True
+    settings.TASKWORKER_ALWAYS_EAGER = True
 
     from optparse import OptionParser
 

@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api.helpers.group_index.update import update_groups
-from sentry.integrations.discord.analytics import DiscordIntegrationStatus
+from sentry.integrations.discord.analytics import DiscordIntegrationAssign, DiscordIntegrationStatus
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.message_builder.base.component import (
     DiscordComponentCustomIds as CustomIds,
@@ -177,8 +177,9 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
         assert self.request.user is not None
 
         analytics.record(
-            "integrations.discord.assign",
-            actor_id=self.request.user.id,
+            DiscordIntegrationAssign(
+                actor_id=self.request.user.id,
+            )
         )
 
         message = DiscordMessageBuilder(
