@@ -78,9 +78,9 @@ class EventDatastore:
     def _get_log_info(self) -> list[_LogInfo]:
         if self._log_info is None:
             log_info: _LogInfo = {}
-            logger = get_path(self.event, "logger", filter=True)
-            if logger:
-                log_info["logger"] = logger
+            logger_name = get_path(self.event, "logger", filter=True)
+            if logger_name:
+                log_info["logger"] = logger_name
             level = get_path(self.event, "level", filter=True)
             if level:
                 log_info["level"] = level

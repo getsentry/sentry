@@ -14,8 +14,9 @@ import {
 } from 'sentry/views/replays/detail/ai/utils';
 
 const POLL_INTERVAL_MS = 500;
-const START_TIMEOUT_MS = 15e3; // Max time to wait for processing to start after a start request.
-const TOTAL_TIMEOUT_MS = 100e3; // Max time to wait for results after a start request. Task timeout in Seer (90s) + 10s buffer.
+const ERROR_POLL_INTERVAL_MS = 5000;
+const START_TIMEOUT_MS = 15_000; // Max time to wait for processing to start after a start request.
+const TOTAL_TIMEOUT_MS = 100_000; // Max time to wait for results after a start request. Task timeout in Seer (90s) + 10s buffer.
 
 export interface UseReplaySummaryResult {
   /**
@@ -97,6 +98,7 @@ export function useReplaySummary(
     timeMs: TOTAL_TIMEOUT_MS,
     onTimeout: () => {
       setDidTimeout(true);
+      cancelTotalTimeout();
     },
   });
 
@@ -107,6 +109,18 @@ export function useReplaySummary(
       cancelTotalTimeout();
     },
   });
+
+  // Start initial timeouts in case auto-start request is not made.
+  // The callbacks are stable so this should only run on mount.
+  useEffect(() => {
+    startStartTimeout();
+    startTotalTimeout();
+
+    return () => {
+      cancelTotalTimeout();
+      cancelStartTimeout();
+    };
+  }, [startStartTimeout, startTotalTimeout, cancelStartTimeout, cancelTotalTimeout]);
 
   const {
     mutate: startSummaryRequestMutate,
@@ -155,25 +169,16 @@ export function useReplaySummary(
     startStartTimeout();
   }, [options?.enabled, startSummaryRequestMutate, startTotalTimeout, startStartTimeout]);
 
-  const {
-    data: summaryData,
-    isError: isFetchError,
-    dataUpdatedAt: lastFetchTime,
-  } = useApiQuery<SummaryResponse>(
+  const {data: summaryData, dataUpdatedAt: lastFetchTime} = useApiQuery<SummaryResponse>(
     createAISummaryQueryKey(organization.slug, project?.slug, replayRecord?.id ?? ''),
     {
       staleTime: 0,
       retry: false,
       refetchInterval: query => {
-        if (
-          shouldPoll(
-            query.state.data?.[0],
-            query.state.status === 'error',
-            isStartSummaryRequestError,
-            didTimeout
-          )
-        ) {
-          return POLL_INTERVAL_MS;
+        if (shouldPoll(query.state.data?.[0], isStartSummaryRequestError, didTimeout)) {
+          return query.state.status === 'error'
+            ? ERROR_POLL_INTERVAL_MS
+            : POLL_INTERVAL_MS;
         }
         return false;
       },
@@ -198,9 +203,7 @@ export function useReplaySummary(
   }, [segmentsIncreased, startSummaryRequest, summaryData?.status]);
 
   const isErrorState =
-    isFetchError ||
-    isStartSummaryRequestError ||
-    summaryData?.status === ReplaySummaryStatus.ERROR;
+    isStartSummaryRequestError || summaryData?.status === ReplaySummaryStatus.ERROR;
 
   const isFinishedState =
     isErrorState ||
@@ -221,7 +224,8 @@ export function useReplaySummary(
     if (
       summaryData &&
       summaryData.status !== ReplaySummaryStatus.NOT_STARTED &&
-      new Date(summaryData.created_at!).getTime() > startSummaryRequestTime.current
+      (!summaryData.created_at || // note created_at should exist for started statuses
+        new Date(summaryData.created_at).getTime() > startSummaryRequestTime.current)
     ) {
       cancelStartTimeout();
     }

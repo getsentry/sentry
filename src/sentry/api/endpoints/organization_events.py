@@ -18,7 +18,7 @@ from sentry.api.helpers.error_upsampling import (
     transform_orderby_for_error_upsampling,
     transform_query_columns_for_error_upsampling,
 )
-from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.paginator import EAPPageTokenPaginator, GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
@@ -45,6 +45,7 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.types import DatasetQuery
 from sentry.snuba.utils import RPC_DATASETS, dataset_split_decision_inferred_from_query, get_dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.cursors import Cursor, EAPPageTokenCursor
 from sentry.utils.snuba import SnubaError
 
 logger = logging.getLogger(__name__)
@@ -485,7 +486,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 sentry_sdk.capture_exception(e)
                 return _data_fn(scoped_dataset_query, offset, limit, scoped_query)
 
-        def data_fn_factory(scoped_dataset):
+        def paginator_factory(scoped_dataset):
             """
             This factory closes over query and dataset in order to make an additional request to the errors dataset
             in the case that this request is from a dashboard widget or a discover query and we're trying to split
@@ -497,29 +498,56 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             dashboard_widget_id = request.GET.get("dashboardWidgetId", None)
             discover_saved_query_id = request.GET.get("discoverSavedQueryId", None)
 
-            def fn(offset, limit):
+            def get_rpc_config():
+                if scoped_dataset not in RPC_DATASETS:
+                    raise NotImplementedError
+
+                if scoped_dataset == Spans:
+                    return SearchResolverConfig(
+                        auto_fields=True,
+                        use_aggregate_conditions=use_aggregate_conditions,
+                        fields_acl=FieldsACL(functions={"time_spent_percentage"}),
+                        disable_aggregate_extrapolation="disableAggregateExtrapolation"
+                        in request.GET,
+                    )
+                elif scoped_dataset == OurLogs:
+                    # ourlogs doesn't have use aggregate conditions
+                    return SearchResolverConfig(
+                        use_aggregate_conditions=False,
+                    )
+                elif scoped_dataset == uptime_results.UptimeResults:
+                    return SearchResolverConfig(
+                        use_aggregate_conditions=use_aggregate_conditions, auto_fields=True
+                    )
+                else:
+                    return SearchResolverConfig(
+                        use_aggregate_conditions=use_aggregate_conditions,
+                    )
+
+            if snuba_params.sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME":
+
+                def flex_time_data_fn(limit, page_token):
+                    config = get_rpc_config()
+
+                    return scoped_dataset.run_table_query(
+                        params=snuba_params,
+                        query_string=scoped_query or "",
+                        selected_columns=self.get_field_list(organization, request),
+                        equations=self.get_equation_list(organization, request),
+                        orderby=self.get_orderby(request),
+                        offset=0,  # required but not used because we're using page tokens here
+                        limit=limit,
+                        referrer=referrer,
+                        config=config,
+                        sampling_mode=snuba_params.sampling_mode,
+                        page_token=page_token,
+                    )
+
+                return EAPPageTokenPaginator(data_fn=flex_time_data_fn), EAPPageTokenCursor
+
+            def data_fn(offset, limit):
                 if scoped_dataset in RPC_DATASETS:
-                    if scoped_dataset == Spans:
-                        config = SearchResolverConfig(
-                            auto_fields=True,
-                            use_aggregate_conditions=use_aggregate_conditions,
-                            fields_acl=FieldsACL(functions={"time_spent_percentage"}),
-                            disable_aggregate_extrapolation="disableAggregateExtrapolation"
-                            in request.GET,
-                        )
-                    elif scoped_dataset == OurLogs:
-                        # ourlogs doesn't have use aggregate conditions
-                        config = SearchResolverConfig(
-                            use_aggregate_conditions=False,
-                        )
-                    elif scoped_dataset == uptime_results.UptimeResults:
-                        config = SearchResolverConfig(
-                            use_aggregate_conditions=use_aggregate_conditions, auto_fields=True
-                        )
-                    else:
-                        config = SearchResolverConfig(
-                            use_aggregate_conditions=use_aggregate_conditions,
-                        )
+                    config = get_rpc_config()
 
                     return scoped_dataset.run_table_query(
                         params=snuba_params,
@@ -546,9 +574,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     scoped_dataset.query, offset, limit, scoped_query, dashboard_widget_id
                 )
 
-            return fn
+            return GenericOffsetPaginator(data_fn=data_fn), Cursor
 
-        data_fn = data_fn_factory(dataset)
+        paginator, cursor_cls = paginator_factory(dataset)
 
         max_per_page = 9999 if dataset == OurLogs else None
 
@@ -567,11 +595,14 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         with handle_query_errors():
             # Don't include cursor headers if the client won't be using them
             if request.GET.get("noPagination"):
-                return Response(_handle_results(data_fn(0, self.get_per_page(request))))
+                per_page = self.get_per_page(request)
+                result = paginator.get_result(limit=per_page, cursor=None)
+                return Response(_handle_results(result.results))
             else:
                 return self.paginate(
                     request=request,
-                    paginator=GenericOffsetPaginator(data_fn=data_fn),
+                    paginator=paginator,
+                    cursor_cls=cursor_cls,
                     on_results=_handle_results,
                     max_per_page=max_per_page,
                 )

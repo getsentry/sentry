@@ -67,8 +67,8 @@ describe('useReplaySummary', () => {
       expect(mockRequest).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle GET errors gracefully', async () => {
-      MockApiClient.addMockResponse({
+    it('should handle GET error gracefully, and keep pending/polling', async () => {
+      const mockGet = MockApiClient.addMockResponse({
         url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
         statusCode: 500,
         body: {detail: 'Internal server error'},
@@ -78,9 +78,10 @@ describe('useReplaySummary', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.isError).toBe(true);
+        expect(mockGet).toHaveBeenCalledTimes(1);
       });
-      expect(result.current.isPending).toBe(false);
+      expect(result.current.isError).toBe(false);
+      expect(result.current.isPending).toBe(true);
     });
   });
 
