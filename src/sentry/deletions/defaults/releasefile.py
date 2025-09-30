@@ -6,19 +6,24 @@ class ReleaseFileDeletionTask(ModelDeletionTask[ReleaseFile]):
     def get_child_relations(self, instance: ReleaseFile) -> list[BaseRelation]:
         from sentry.models.files.file import File
 
+        try:
+            file_type = instance.file.type
+        except File.DoesNotExist:
+            return []
+
         # Always safe to delete Files for these types as they are 1:1 with ReleaseFile
         always_safe_types = {
             "release.file",  # Regular uploaded files
             "release.artifact-index",  # Artifact index files (release-specific)
         }
 
-        if instance.file.type in always_safe_types:
+        if file_type in always_safe_types:
             return [
                 ModelRelation(File, {"id": instance.file_id}),
             ]
 
         # For artifact.bundle files, only delete if no other references exist
-        if instance.file.type == "artifact.bundle":
+        if file_type == "artifact.bundle":
             if self._is_last_reference_to_file(instance):
                 return [
                     ModelRelation(File, {"id": instance.file_id}),
