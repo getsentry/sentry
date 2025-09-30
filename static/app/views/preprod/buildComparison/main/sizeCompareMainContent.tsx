@@ -324,7 +324,7 @@ export function SizeCompareMainContent() {
                         {metric.diff > 0 ? '+' : metric.diff < 0 ? '-' : ''}
                         {formatBytesBase10(Math.abs(metric.diff))}
                         {metric.percentageChange && (
-                          <Text as="span">
+                          <Text as="span" variant={variant}>
                             {' ('}
                             <PercentChange
                               value={metric.percentageChange}
