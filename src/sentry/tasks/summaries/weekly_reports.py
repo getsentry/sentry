@@ -137,7 +137,7 @@ def schedule_organizations(
                 result_value_getter=lambda item: item.id,
                 min_id=minimum_organization_id,
             ):
-                # Create a celery task per organization
+                # Create a task per organization
                 logger.info(
                     "weekly_reports.schedule_organizations",
                     extra={
@@ -407,7 +407,7 @@ class _DuplicateDeliveryCheck:
         if is_duplicate_detected:
             # There is no lock for concurrency, which leaves open the possibility of
             # a race condition, in case another thread or server node received a
-            # duplicate Celery task somehow. But we do not think this is a likely
+            # duplicate task somehow. But we do not think this is a likely
             # failure mode.
             #
             # Nonetheless, the `cluster.incr` operation is atomic, so if concurrent

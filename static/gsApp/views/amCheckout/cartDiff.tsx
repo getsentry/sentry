@@ -21,7 +21,10 @@ import {formatReservedWithUnits, isNewPayingCustomer} from 'getsentry/utils/bill
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
-import {parseOnDemandBudgetsFromSubscription} from 'getsentry/views/onDemandBudgets/utils';
+import {
+  getTotalBudget,
+  parseOnDemandBudgetsFromSubscription,
+} from 'getsentry/views/onDemandBudgets/utils';
 
 const DEFAULT_PAYG_BUDGET: SharedOnDemandBudget = {
   budgetMode: OnDemandBudgetMode.SHARED,
@@ -34,7 +37,9 @@ type CheckoutChange<K, V> = {
   newValue: V | null;
 };
 
-type PlanChange = CheckoutChange<'plan' | 'contractInterval', string>;
+type PlanChange = CheckoutChange<'plan', string>;
+
+type CycleChange = CheckoutChange<'contractInterval', string>;
 
 type ProductChange = CheckoutChange<SelectableProduct, boolean>;
 
@@ -83,13 +88,15 @@ function PlanDiff({
   newPlan,
   planChanges,
   productChanges,
+  cycleChanges,
 }: {
   currentPlan: Plan;
+  cycleChanges: CycleChange[];
   newPlan: Plan;
   planChanges: PlanChange[];
   productChanges: ProductChange[];
 }) {
-  const changes = [...planChanges, ...productChanges];
+  const changes = [...planChanges, ...productChanges, ...cycleChanges];
   return (
     <ChangeSection data-test-id="plan-diff">
       <ChangeGrid>
@@ -101,14 +108,18 @@ function PlanDiff({
           }
           let formattingFunction = (value: any) => value;
           if (key === 'plan' || key === 'contractInterval') {
-            formattingFunction = (value: any) => (value ? capitalize(value) : null);
+            formattingFunction = (value: any) =>
+              value === 'annual'
+                ? t('Yearly')
+                : value
+                  ? t('%s', capitalize(value))
+                  : null;
           } else {
             formattingFunction = (value: any) =>
               value
                 ? toTitleCase(
-                    newPlan.availableReservedBudgetTypes[key]?.productCheckoutName ??
-                      currentPlan.availableReservedBudgetTypes[key]
-                        ?.productCheckoutName ??
+                    newPlan.addOnCategories[key]?.productName ??
+                      currentPlan.addOnCategories[key]?.productName ??
                       key,
                     {allowInnerUpperCase: true}
                   )
@@ -193,7 +204,11 @@ function OnDemandDiff({
               let leftComponent = <div />;
               if (index === 0) {
                 leftComponent = (
-                  <ChangeSectionTitle>{t('Shared spend limit')}</ChangeSectionTitle>
+                  <ChangeSectionTitle>
+                    {newPlan.budgetTerm === 'pay-as-you-go'
+                      ? t('PAYG spend limit')
+                      : t('Shared spend limit')}
+                  </ChangeSectionTitle>
                 );
               }
               return (
@@ -273,24 +288,29 @@ function CartDiff({
   const newBudgetMode = newOnDemandBudget.budgetMode;
 
   const getPlanChanges = useCallback((): PlanChange[] => {
-    const changes: PlanChange[] = [];
     if (activePlan.name !== currentPlan.name) {
-      changes.push({
-        key: 'plan',
-        currentValue: currentPlan.name,
-        newValue: activePlan.name,
-      });
+      return [
+        {
+          key: 'plan',
+          currentValue: currentPlan.name,
+          newValue: activePlan.name,
+        },
+      ];
     }
+    return [];
+  }, [activePlan, currentPlan]);
 
+  const getCycleChanges = useCallback((): CycleChange[] => {
     if (activePlan.contractInterval !== currentPlan.contractInterval) {
-      changes.push({
-        key: 'contractInterval',
-        currentValue: currentPlan.contractInterval,
-        newValue: activePlan.contractInterval,
-      });
+      return [
+        {
+          key: 'contractInterval',
+          currentValue: currentPlan.contractInterval,
+          newValue: activePlan.contractInterval,
+        },
+      ];
     }
-
-    return changes;
+    return [];
   }, [activePlan, currentPlan]);
 
   const getProductChanges = useCallback((): ProductChange[] => {
@@ -332,9 +352,11 @@ function CartDiff({
   const getCategoryChanges = ({
     currentValues,
     newValues,
+    shouldIncludeZero = true,
   }: {
     currentValues: Partial<Record<DataCategory, number>>;
     newValues: Partial<Record<DataCategory, number>>;
+    shouldIncludeZero?: boolean;
   }): ReservedChange[] | PerCategoryOnDemandChange[] => {
     const nodes: ReservedChange[] | PerCategoryOnDemandChange[] = [];
 
@@ -343,7 +365,10 @@ function CartDiff({
       if (category in currentValues) {
         currentValue = currentValues[category as DataCategory] ?? null;
       }
-      if (newValue !== currentValue) {
+      if (!shouldIncludeZero && currentValue === 0) {
+        currentValue = null;
+      }
+      if (newValue !== currentValue && (shouldIncludeZero || newValue !== 0)) {
         nodes.push({
           key: category as DataCategory,
           currentValue,
@@ -354,7 +379,7 @@ function CartDiff({
 
     // in case there are categories in the current plan that are not in the new plan
     Object.entries(currentValues).forEach(([category, currentValue]) => {
-      if (!(category in newValues)) {
+      if (!(category in newValues) && (shouldIncludeZero || currentValue !== 0)) {
         nodes.push({
           key: category as DataCategory,
           currentValue,
@@ -367,10 +392,9 @@ function CartDiff({
   };
 
   const getReservedChanges = useCallback((): ReservedChange[] => {
-    // TODO(checkout v3): This will need to be updated to handle non-budget products
-    const productCategories = Object.values(
-      activePlan.availableReservedBudgetTypes
-    ).flatMap(productInfo => productInfo.dataCategories);
+    const productCategories = Object.values(activePlan.addOnCategories).flatMap(
+      addOnInfo => addOnInfo.dataCategories
+    );
 
     const currentReserved: Partial<Record<DataCategory, number>> = {};
     const relevantFormDataReserved = Object.fromEntries(
@@ -418,7 +442,9 @@ function CartDiff({
     if (
       isEqual(currentOnDemandBudget, newOnDemandBudget) ||
       (currentBudgetMode !== OnDemandBudgetMode.SHARED &&
-        newBudgetMode !== OnDemandBudgetMode.SHARED)
+        newBudgetMode !== OnDemandBudgetMode.SHARED) ||
+      (getTotalBudget(currentOnDemandBudget) === 0 &&
+        getTotalBudget(newOnDemandBudget) === 0)
     ) {
       return [];
     }
@@ -464,10 +490,12 @@ function CartDiff({
     return getCategoryChanges({
       currentValues: parsedCurrentOnDemandBudget,
       newValues: parsedNewOnDemandBudget,
+      shouldIncludeZero: currentBudgetMode === newBudgetMode,
     });
   }, [currentOnDemandBudget, newOnDemandBudget, currentBudgetMode, newBudgetMode]);
 
   const planChanges = useMemo(() => getPlanChanges(), [getPlanChanges]);
+  const cycleChanges = useMemo(() => getCycleChanges(), [getCycleChanges]);
   const productChanges = useMemo(() => getProductChanges(), [getProductChanges]);
   const reservedChanges = useMemo(() => getReservedChanges(), [getReservedChanges]);
   const sharedOnDemandChanges = useMemo(
@@ -483,6 +511,7 @@ function CartDiff({
     () => [
       ...planChanges,
       ...productChanges,
+      ...cycleChanges,
       ...reservedChanges,
       ...sharedOnDemandChanges,
       ...perCategoryOnDemandChanges,
@@ -490,6 +519,7 @@ function CartDiff({
     [
       planChanges,
       productChanges,
+      cycleChanges,
       reservedChanges,
       sharedOnDemandChanges,
       perCategoryOnDemandChanges,
@@ -501,7 +531,14 @@ function CartDiff({
   }
 
   return (
-    <CartDiffContainer data-test-id="cart-diff">
+    <Flex
+      data-test-id="cart-diff"
+      direction="column"
+      padding="xl"
+      border="primary"
+      background="primary"
+      radius="md"
+    >
       <Flex justify="between" align="center">
         <Title>{tct('Changes ([numChanges])', {numChanges: allChanges.length})}</Title>
         <Button
@@ -513,12 +550,13 @@ function CartDiff({
       </Flex>
       {isOpen && (
         <ChangesContainer>
-          {planChanges.length + productChanges.length > 0 && (
+          {planChanges.length + productChanges.length + cycleChanges.length > 0 && (
             <PlanDiff
               currentPlan={currentPlan}
               newPlan={activePlan}
               planChanges={planChanges}
               productChanges={productChanges}
+              cycleChanges={cycleChanges}
             />
           )}
           {reservedChanges.length > 0 && (
@@ -538,18 +576,11 @@ function CartDiff({
           )}
         </ChangesContainer>
       )}
-    </CartDiffContainer>
+    </Flex>
   );
 }
 
 export default CartDiff;
-
-const CartDiffContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.xl};
-  border-bottom: 1px solid ${p => p.theme.border};
-`;
 
 const ChangesContainer = styled('div')`
   & > div:not(:last-child) {

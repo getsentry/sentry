@@ -13,7 +13,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.helpers.teams import is_team_admin
 from sentry.constants import ObjectStatus
 from sentry.identity.services.identity import identity_service
@@ -392,7 +392,7 @@ class LinkTeamView(TeamLinkageView, ABC):
     def execute(
         self, request: HttpRequest, integration: RpcIntegration, params: Mapping[str, Any]
     ) -> HttpResponseBase:
-        from sentry.integrations.slack.analytics import IntegrationIdentityLinked
+        from sentry.integrations.slack.analytics import SlackIntegrationIdentityLinked
         from sentry.integrations.slack.views.link_team import (
             SUCCESS_LINKED_MESSAGE,
             SUCCESS_LINKED_TITLE,
@@ -492,7 +492,7 @@ class LinkTeamView(TeamLinkageView, ABC):
 
         try:
             analytics.record(
-                IntegrationIdentityLinked(
+                SlackIntegrationIdentityLinked(
                     provider=self.provider_slug,
                     actor_id=team.id,
                     actor_type="team",
@@ -505,21 +505,15 @@ class LinkTeamView(TeamLinkageView, ABC):
             self.capture_metric("failure.team_already_linked")
             return self.notify_team_already_linked(request, channel_id, integration, team)
 
-        has_team_workflow = features.has(
-            "organizations:team-workflow-notifications", team.organization
+        notifications_service.enable_all_settings_for_provider(
+            external_provider=self.external_provider_enum,
+            team_id=team.id,
+            types=[NotificationSettingEnum.ISSUE_ALERTS],
         )
-        # Turn on notifications for all of a team's projects.
-        # TODO(jangjodi): Remove this once the flag is removed
-        if not has_team_workflow:
-            notifications_service.enable_all_settings_for_provider(
-                external_provider=self.external_provider_enum,
-                team_id=team.id,
-                types=[NotificationSettingEnum.ISSUE_ALERTS],
-            )
 
         message = SUCCESS_LINKED_MESSAGE.format(
             slug=team.slug,
-            workflow_addon=" and workflow" if has_team_workflow else "",
+            workflow_addon="",
             channel_name=channel_name,
         )
         self.notify_on_success(channel_id, integration, message)

@@ -500,6 +500,9 @@ class Project(Model):
         from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
         from sentry.incidents.models.alert_rule import AlertRule
         from sentry.integrations.models.external_issue import ExternalIssue
+        from sentry.integrations.models.repository_project_path_config import (
+            RepositoryProjectPathConfig,
+        )
         from sentry.models.environment import Environment, EnvironmentProject
         from sentry.models.projectteam import ProjectTeam
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
@@ -634,6 +637,9 @@ class Project(Model):
         linked_groups = GroupLink.objects.filter(project_id=self.id).values_list(
             "linked_id", flat=True
         )
+
+        # Delete code mappings to prevent them from being stuck on the old org
+        RepositoryProjectPathConfig.objects.filter(project_id=self.id).delete()
 
         for external_issues in chunked(
             RangeQuerySetWrapper(

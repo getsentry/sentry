@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
 
 interface TextSelection {
+  isRangeSelection: boolean;
   referenceElement: HTMLElement | null;
   selectedText: string;
 }
@@ -13,6 +14,61 @@ export function useTextSelection(containerRef: React.RefObject<HTMLElement | nul
 
   const shouldIgnoreElement = (target: HTMLElement) =>
     target.closest('[data-ignore-autofix-highlight="true"]');
+
+  const getSelectedTextWithinContainer = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return '';
+    }
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) {
+      return '';
+    }
+    const anchorNode = sel.anchorNode;
+    const focusNode = sel.focusNode;
+    if (!anchorNode || !focusNode) {
+      return '';
+    }
+
+    const isNodeInside = (node: Node) => {
+      const element =
+        node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
+      return !!element && container.contains(element);
+    };
+
+    // Only treat as a valid selection if both endpoints are within our container
+    if (!isNodeInside(anchorNode) || !isNodeInside(focusNode)) {
+      return '';
+    }
+
+    return sel.toString().trim();
+  }, [containerRef]);
+
+  const handleMouseUp = useCallback(
+    (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+
+      // Ignore interactions with the popup or explicitly ignored elements
+      if (isClickInPopup(target) || shouldIgnoreElement(target)) {
+        return;
+      }
+
+      // Only react to mouseup inside the container
+      if (!containerRef.current?.contains(target)) {
+        return;
+      }
+
+      const selected = getSelectedTextWithinContainer();
+      if (selected) {
+        setSelection({
+          selectedText: selected,
+          referenceElement: containerRef.current,
+          isRangeSelection: true,
+        });
+      }
+    },
+    [containerRef, getSelectedTextWithinContainer]
+  );
 
   const handleClick = useCallback(
     (event: MouseEvent) => {
@@ -35,26 +91,37 @@ export function useTextSelection(containerRef: React.RefObject<HTMLElement | nul
         return;
       }
 
-      // Get the text content of the clicked element or its container
+      // If there is an actual user text selection inside the container, prefer that
+      const currentUserSelection = getSelectedTextWithinContainer();
+      if (currentUserSelection) {
+        setSelection({
+          selectedText: currentUserSelection,
+          referenceElement: containerRef.current!,
+          isRangeSelection: true,
+        });
+        return;
+      }
+
+      // If clicking within the same container while already selected (and no range selection), toggle off
+      if (selection?.referenceElement === containerRef.current) {
+        setSelection(null);
+        return;
+      }
+
+      // Otherwise treat it as a simple click-to-open
       const clickedText = containerRef.current?.textContent?.trim() || '';
       if (!clickedText) {
         setSelection(null);
         return;
       }
 
-      // Clear selection if clicking within the same container while already selected
-      if (selection?.referenceElement === containerRef.current) {
-        setSelection(null);
-        return;
-      }
-
-      // Use the containerRef as the reference element for positioning
       setSelection({
         selectedText: clickedText,
-        referenceElement: containerRef.current,
+        referenceElement: containerRef.current!,
+        isRangeSelection: false,
       });
     },
-    [containerRef, selection]
+    [containerRef, selection, getSelectedTextWithinContainer]
   );
 
   const clearSelection = useCallback(
@@ -78,13 +145,15 @@ export function useTextSelection(containerRef: React.RefObject<HTMLElement | nul
 
   useEffect(() => {
     document.addEventListener('click', handleClick, true);
+    document.addEventListener('mouseup', handleMouseUp, true);
     document.addEventListener('mousedown', clearSelection);
 
     return () => {
       document.removeEventListener('click', handleClick, true);
+      document.removeEventListener('mouseup', handleMouseUp, true);
       document.removeEventListener('mousedown', clearSelection);
     };
-  }, [handleClick, clearSelection]);
+  }, [handleClick, handleMouseUp, clearSelection]);
 
   return selection;
 }

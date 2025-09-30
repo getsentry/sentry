@@ -58,12 +58,12 @@ export default function SubregionSelector({size}: Props) {
       searchable
       triggerProps={{
         prefix: t('Geo region'),
+        children: value.length === 0 ? t('All') : undefined,
       }}
       multiple
       loading={isPending}
       clearable
       value={value}
-      triggerLabel={value.length === 0 ? t('All') : undefined}
       menuTitle={
         <MenuTitleContainer>
           {t('Filter region')}

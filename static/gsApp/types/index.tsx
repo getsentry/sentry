@@ -135,6 +135,7 @@ export enum AddOnCategory {
 
 type AddOnCategoryInfo = {
   apiName: AddOnCategory;
+  billingFlag: string | null;
   dataCategories: DataCategory[];
   name: string;
   order: number;
@@ -482,7 +483,6 @@ export type PromotionData = {
   completedPromotions: PromotionClaimed[];
 };
 
-/** @internal exported for tests only */
 export type Feature = {
   description: string;
   name: string;
@@ -810,7 +810,6 @@ export enum CohortId {
   TEST_ONE = 111,
 }
 
-/** @internal exported for tests only */
 export type Cohort = {
   cohortId: CohortId;
   nextPlan: NextPlanInfo | null;
@@ -1017,6 +1016,10 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   canProductTrial: boolean;
   /**
+   * The tooltip text for the checkout page
+   */
+  checkoutTooltip: string | null;
+  /**
    * The feature flag that enables the category
    */
   feature: string | null;
@@ -1036,10 +1039,6 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    * The maximum number of free events that can be gifted
    */
   maxAdminGift: number;
-  /**
-   * The tooltip text for the checkout page
-   */
-  reservedVolumeTooltip: string | null;
   /**
    * How usage is tallied for the category
    */

@@ -58,7 +58,7 @@ Object.entries(DEFAULT_BILLED_DATA_CATEGORY_INFO).forEach(
       freeEventsMultiple: 0,
       feature: null,
       hasSpikeProtection: false,
-      reservedVolumeTooltip: null,
+      checkoutTooltip: null,
       tallyType: 'usage',
       hasPerCategory: false,
     };
@@ -78,7 +78,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     maxAdminGift: 10_000_000,
     freeEventsMultiple: 1_000,
     hasSpikeProtection: true,
-    reservedVolumeTooltip: t(
+    checkoutTooltip: t(
       'Errors are sent every time an SDK catches a bug. You can send them manually too, if you want.'
     ),
     hasPerCategory: true,
@@ -91,7 +91,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     freeEventsMultiple: 1_000,
     feature: 'performance-view',
     hasSpikeProtection: true,
-    reservedVolumeTooltip: t(
+    checkoutTooltip: t(
       'Transactions are sent when your service receives a request and sends a response.'
     ),
     hasPerCategory: true,
@@ -103,9 +103,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     freeEventsMultiple: 1,
     feature: 'event-attachments',
     hasSpikeProtection: true,
-    reservedVolumeTooltip: t(
-      'Attachments are files attached to errors, such as minidumps.'
-    ),
+    checkoutTooltip: t('Attachments are files attached to errors, such as minidumps.'),
     hasPerCategory: true,
     shortenedUnitName: 'GB',
   },
@@ -115,7 +113,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     maxAdminGift: 1_000_000,
     freeEventsMultiple: 1,
     feature: 'session-replay',
-    reservedVolumeTooltip: t(
+    checkoutTooltip: t(
       'Session Replays are video-like reproductions of your users’ sessions navigating your app or website.'
     ),
     hasPerCategory: true,
@@ -127,7 +125,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     freeEventsMultiple: 100_000,
     feature: 'spans-usage-tracking',
     hasSpikeProtection: true,
-    reservedVolumeTooltip: t(
+    checkoutTooltip: t(
       'Tracing is enabled by spans. A span represents a single operation of work within a trace.'
     ),
   },
@@ -145,6 +143,9 @@ export const BILLED_DATA_CATEGORY_INFO = {
     feature: 'monitor-seat-billing',
     tallyType: 'seat',
     hasPerCategory: true,
+    checkoutTooltip: t(
+      'Crons monitors scheduled jobs to confirm they run on time and alert you when they fail or misfire.'
+    ),
     shortenedUnitName: t('monitor'),
   },
   [DataCategoryExact.UPTIME]: {
@@ -154,6 +155,9 @@ export const BILLED_DATA_CATEGORY_INFO = {
     feature: 'uptime-billing',
     tallyType: 'seat',
     hasPerCategory: true,
+    checkoutTooltip: t(
+      'Uptime monitoring checks your application’s availability and alerts you when services go down so you can respond quickly.'
+    ),
     shortenedUnitName: t('monitor'),
   },
   [DataCategoryExact.PROFILE_DURATION]: {
@@ -162,6 +166,9 @@ export const BILLED_DATA_CATEGORY_INFO = {
     maxAdminGift: 10_000,
     freeEventsMultiple: 1, // in hours
     hasPerCategory: true,
+    checkoutTooltip: t(
+      'Continuous profiling tracks how code runs while your service is active, helping you find bottlenecks and improve efficiency.'
+    ),
     shortenedUnitName: t('hour'),
   },
   [DataCategoryExact.PROFILE_DURATION_UI]: {
@@ -170,6 +177,9 @@ export const BILLED_DATA_CATEGORY_INFO = {
     maxAdminGift: 10_000,
     freeEventsMultiple: 1, // in hours
     hasPerCategory: true,
+    checkoutTooltip: t(
+      'UI profiling tracks code performance during user sessions in frontend or mobile apps, helping you spot slowdowns and improve experience.'
+    ),
     shortenedUnitName: t('hour'),
   },
   // Seer categories have product trials through ReservedBudgetCategoryType.SEER, not as individual categories
@@ -191,20 +201,16 @@ export const BILLED_DATA_CATEGORY_INFO = {
     freeEventsMultiple: 1,
     hasSpikeProtection: false,
     feature: 'logs-billing',
-    reservedVolumeTooltip: t(
-      'Log bytes represent the amount of log data ingested and stored.'
+    checkoutTooltip: t(
+      'A log records events from your application, giving you the context to debug issues and understand system behavior.'
     ),
     shortenedUnitName: 'GB',
   },
   [DataCategoryExact.PREVENT_USER]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PREVENT_USER],
     feature: 'prevent-billing',
+    canProductTrial: true,
     maxAdminGift: 10_000, // TODO(prevent): Update this to the actual max admin gift
     tallyType: 'seat',
-  },
-  [DataCategoryExact.PREVENT_REVIEW]: {
-    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PREVENT_REVIEW],
-    feature: 'prevent-billing',
-    maxAdminGift: 10_000, // TODO(prevent): Update this to the actual max admin gift
   },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;

@@ -17,13 +17,15 @@ interface Props {
   sort: IssueSortOptions;
 }
 
+const RESET_PARAMS_ON_CHANGE = ['page', 'cursor'];
+
 function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
   return (
     <FiltersContainer>
       <StyledPageFilterBar>
-        <ProjectPageFilter />
-        <EnvironmentPageFilter />
-        <DatePageFilter />
+        <ProjectPageFilter resetParamsOnChange={RESET_PARAMS_ON_CHANGE} />
+        <EnvironmentPageFilter resetParamsOnChange={RESET_PARAMS_ON_CHANGE} />
+        <DatePageFilter resetParamsOnChange={RESET_PARAMS_ON_CHANGE} />
       </StyledPageFilterBar>
 
       <Search {...{query, onSearch}} />

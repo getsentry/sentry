@@ -8,6 +8,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models.release import Release
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.releases.endpoints.project_release_files import ReleaseFilesMixin
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -19,18 +20,20 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
         "POST": ApiPublishStatus.UNKNOWN,
     }
 
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=40, window=1),
-            RateLimitCategory.USER: RateLimit(limit=40, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
-        },
-        "POST": {
-            RateLimitCategory.IP: RateLimit(limit=40, window=1),
-            RateLimitCategory.USER: RateLimit(limit=40, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
-        },
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=40, window=1),
+                RateLimitCategory.USER: RateLimit(limit=40, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
+            },
+            "POST": {
+                RateLimitCategory.IP: RateLimit(limit=40, window=1),
+                RateLimitCategory.USER: RateLimit(limit=40, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
+            },
+        }
+    )
 
     def get(self, request: Request, organization, version) -> Response:
         """
