@@ -38,22 +38,21 @@ export function formatXAxisTimestamp(
     // Start of a year
     format = 'MMM Do YYYY';
   } else if (
-    boundaryTime.day() === 0 &&
+    boundaryTime.date() === 1 &&
     boundaryTime.hour() === 0 &&
     boundaryTime.minute() === 0 &&
     boundaryTime.second() === 0
   ) {
     // Start of a month
     format = 'MMM Do';
-  } else if (boundaryTime.minute() === 0 && boundaryTime.second() === 0) {
-    // Hour boundary - check if this represents a day boundary
-    // but keep the parsed object in UTC for consistent display formatting
-    if (boundaryTime.hour() === 0) {
-      format = 'MMM Do'; // Show date for day boundaries
-    } else {
-      format = getTimeFormat(); // Show time for other hour boundaries
-    }
-  } else if (parsed.second() === 0) {
+  } else if (
+    boundaryTime.hour() === 0 &&
+    boundaryTime.minute() === 0 &&
+    boundaryTime.second() === 0
+  ) {
+    // Start of a day
+    format = 'MMM Do';
+  } else if (boundaryTime.second() === 0) {
     // Hours, minutes
     format = getTimeFormat();
   } else {
