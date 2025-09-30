@@ -9,7 +9,9 @@ from django.db.models import ProtectedError
 from django.utils import timezone
 
 from sentry.issues.grouptype import FeedbackGroup, ProfileFileIOGroupType, ReplayHydrationErrorType
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus, get_group_with_redirect
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupsnooze import GroupSnooze
@@ -19,6 +21,7 @@ from sentry.testutils.cases import ReplaysSnubaTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
+from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -527,3 +530,51 @@ class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
                     "has_replays": False,
                 },
             )
+
+    def test_update_group_status_with_custom_update_date(self) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        custom_datetime = timezone.now() + timedelta(hours=1)
+
+        Group.objects.update_group_status(
+            groups=[group],
+            status=GroupStatus.RESOLVED,
+            substatus=None,
+            activity_type=ActivityType.SET_RESOLVED,
+            update_date=custom_datetime,
+        )
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+        assert group.resolved_at == custom_datetime
+
+        activity = Activity.objects.filter(
+            group=group, type=ActivityType.SET_RESOLVED.value
+        ).first()
+        assert activity is not None
+        assert activity.datetime == custom_datetime
+
+        open_period = GroupOpenPeriod.objects.get(group=group)
+        assert open_period.date_ended == custom_datetime
+
+    def test_update_group_status_without_custom_update_date(self) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        before = timezone.now()
+
+        Group.objects.update_group_status(
+            groups=[group],
+            status=GroupStatus.RESOLVED,
+            substatus=None,
+            activity_type=ActivityType.SET_RESOLVED,
+        )
+
+        after = timezone.now()
+        group.refresh_from_db()
+
+        assert group.status == GroupStatus.RESOLVED
+        assert before <= group.resolved_at <= after
+
+        activity = Activity.objects.filter(
+            group=group, type=ActivityType.SET_RESOLVED.value
+        ).first()
+        assert activity is not None
+        assert before <= activity.datetime <= after
