@@ -39,6 +39,10 @@ describe('SetSpendLimit', () => {
         invoiceItems: [],
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
   });
   it('renders for checkout v3 on AM3 tier', async () => {
     MockApiClient.addMockResponse({

@@ -127,18 +127,6 @@ function SidebarContent() {
             }}
           >
             <CompactSelect
-              triggerLabel={
-                currentProject ? (
-                  <StyledIdBadge
-                    project={currentProject}
-                    avatarSize={16}
-                    hideOverflow
-                    disableLink
-                  />
-                ) : (
-                  t('Select a project')
-                )
-              }
               value={currentProject?.id}
               onChange={opt => {
                 const newProject = allProjects.find(p => p.id === opt.value);
@@ -148,7 +136,19 @@ function SidebarContent() {
                   platform: newProject?.platform,
                 });
               }}
-              triggerProps={{'aria-label': currentProject?.slug}}
+              triggerProps={{
+                'aria-label': currentProject?.slug,
+                children: currentProject ? (
+                  <StyledIdBadge
+                    project={currentProject}
+                    avatarSize={16}
+                    hideOverflow
+                    disableLink
+                  />
+                ) : (
+                  t('Select a project')
+                ),
+              }}
               options={projectSelectOptions}
               position="bottom-end"
             />
@@ -225,7 +225,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                 sdkSelect: (
                   <CompactSelect
                     size="xs"
-                    triggerLabel={sdkProvider.label}
+                    triggerProps={{children: sdkProvider.label}}
                     value={sdkProvider.value}
                     onChange={value => {
                       setsdkProvider(value);

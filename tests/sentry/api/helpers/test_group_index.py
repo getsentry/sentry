@@ -36,7 +36,6 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
@@ -127,7 +126,6 @@ class UpdateGroupsTest(TestCase):
         assert send_unresolved.called
 
     @patch("sentry.signals.issue_resolved.send_robust")
-    @with_feature("organizations:issue-open-periods")
     def test_resolving_unresolved_group(self, send_robust: Mock) -> None:
         unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
         add_group_to_inbox(unresolved_group, GroupInboxReason.NEW)
@@ -155,7 +153,6 @@ class UpdateGroupsTest(TestCase):
         assert open_period.date_ended is not None
 
     @patch("sentry.signals.issue_resolved.send_robust")
-    @with_feature("organizations:issue-open-periods")
     def test_resolving_unresolved_group_without_open_period(self, send_robust: Mock) -> None:
         unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
         add_group_to_inbox(unresolved_group, GroupInboxReason.NEW)
@@ -825,60 +822,6 @@ class TestHandleAssignedTo(TestCase):
         )
 
     @patch("sentry.analytics.record")
-    @with_feature("organizations:team-workflow-notifications")
-    def test_unassign_team_with_team_workflow_notifications_flag(self, mock_record: Mock) -> None:
-        user1 = self.create_user("foo@example.com")
-        user2 = self.create_user("bar@example.com")
-        team1 = self.create_team()
-        member1 = self.create_member(user=user1, organization=self.organization, role="member")
-        member2 = self.create_member(user=user2, organization=self.organization, role="member")
-        self.create_team_membership(team1, member1, role="admin")
-        self.create_team_membership(team1, member2, role="admin")
-
-        # first assign the issue to team1
-        assigned_to = handle_assigned_to(
-            Actor.from_identifier(f"team:{team1.id}"),
-            None,
-            None,
-            self.group_list,
-            self.project_lookup,
-            self.user,
-        )
-
-        assert GroupAssignee.objects.filter(group=self.group, team_id=team1.id).exists()
-        assert GroupSubscription.objects.filter(
-            group=self.group,
-            project=self.group.project,
-            team_id=team1.id,
-            reason=GroupSubscriptionReason.assigned,
-        ).exists()
-
-        # then unassign it
-        assigned_to = handle_assigned_to(
-            None, None, None, self.group_list, self.project_lookup, self.user
-        )
-
-        assert not GroupAssignee.objects.filter(group=self.group, team_id=team1.id).exists()
-        assert not GroupSubscription.objects.filter(
-            group=self.group,
-            project=self.group.project,
-            user_id=team1.id,
-            reason=GroupSubscriptionReason.assigned,
-        ).exists()
-
-        assert assigned_to is None
-        assert_last_analytics_event(
-            mock_record,
-            ManualIssueAssignment(
-                group_id=self.group.id,
-                organization_id=self.group.project.organization_id,
-                project_id=self.group.project_id,
-                assigned_by=None,
-                had_to_deassign=True,
-            ),
-        )
-
-    @patch("sentry.analytics.record")
     def test_reassign_user(self, mock_record: Mock) -> None:
         user2 = self.create_user(email="meow@meow.meow")
 
@@ -1060,85 +1003,6 @@ class TestHandleAssignedTo(TestCase):
             group=self.group,
             project=self.group.project,
             user_id=user4.id,
-            reason=GroupSubscriptionReason.assigned,
-        ).exists()
-
-        assert assigned_to == {
-            "id": str(team2.id),
-            "name": team2.slug,
-            "type": "team",
-        }
-        assert_last_analytics_event(
-            mock_record,
-            ManualIssueAssignment(
-                group_id=self.group.id,
-                organization_id=self.group.project.organization_id,
-                project_id=self.group.project_id,
-                assigned_by=None,
-                had_to_deassign=True,
-            ),
-        )
-
-    @patch("sentry.analytics.record")
-    @with_feature("organizations:team-workflow-notifications")
-    def test_reassign_team_with_team_workflow_notifications_flag(self, mock_record: Mock) -> None:
-        user1 = self.create_user("foo@example.com")
-        user2 = self.create_user("bar@example.com")
-        team1 = self.create_team()
-        member1 = self.create_member(user=user1, organization=self.organization, role="member")
-        member2 = self.create_member(user=user2, organization=self.organization, role="member")
-        self.create_team_membership(team1, member1, role="admin")
-        self.create_team_membership(team1, member2, role="admin")
-
-        user3 = self.create_user("baz@example.com")
-        user4 = self.create_user("boo@example.com")
-        team2 = self.create_team()
-        member3 = self.create_member(user=user3, organization=self.organization, role="member")
-        member4 = self.create_member(user=user4, organization=self.organization, role="member")
-        self.create_team_membership(team2, member3, role="admin")
-        self.create_team_membership(team2, member4, role="admin")
-
-        # first assign the issue to team1
-        assigned_to = handle_assigned_to(
-            Actor.from_identifier(f"team:{team1.id}"),
-            None,
-            None,
-            self.group_list,
-            self.project_lookup,
-            self.user,
-        )
-
-        assert GroupAssignee.objects.filter(group=self.group, team=team1.id).exists()
-        assert GroupSubscription.objects.filter(
-            group=self.group,
-            project=self.group.project,
-            team=team1,
-            reason=GroupSubscriptionReason.assigned,
-        ).exists()
-
-        # then assign it to team2
-        assigned_to = handle_assigned_to(
-            Actor.from_identifier(f"team:{team2.id}"),
-            None,
-            None,
-            self.group_list,
-            self.project_lookup,
-            self.user,
-        )
-
-        assert not GroupAssignee.objects.filter(group=self.group, team=team1.id).exists()
-        assert not GroupSubscription.objects.filter(
-            group=self.group,
-            project=self.group.project,
-            team=team1,
-            reason=GroupSubscriptionReason.assigned,
-        ).exists()
-
-        assert GroupAssignee.objects.filter(group=self.group, team=team2.id).exists()
-        assert GroupSubscription.objects.filter(
-            group=self.group,
-            project=self.group.project,
-            team=team2,
             reason=GroupSubscriptionReason.assigned,
         ).exists()
 

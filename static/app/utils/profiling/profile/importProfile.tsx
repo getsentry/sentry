@@ -234,7 +234,7 @@ function importSchema(
       return {
         ...frame,
         count: frameInfo?.count,
-        weight: frameInfo?.weight,
+        weight: frameInfo?.sumDuration,
       };
     })
   );

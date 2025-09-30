@@ -38,8 +38,8 @@ function Filter({name, options, path, queryKey, value}: FilterProps) {
       triggerProps={{
         size: 'sm',
         borderless: true,
+        children: currentLabel,
       }}
-      triggerLabel={currentLabel}
       options={[
         {
           value: 'any',
@@ -96,10 +96,10 @@ function SortBy({options, path, value}: SortByProps) {
   const sortBySelector = (
     <div className="sort-options">
       <CompactSelect
-        triggerLabel={currentSortLabel}
         triggerProps={{
           size: 'sm',
           borderless: true,
+          children: currentSortLabel,
         }}
         options={options.map(option => ({
           value: option[0],

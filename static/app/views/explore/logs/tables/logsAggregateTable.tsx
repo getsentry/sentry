@@ -19,14 +19,9 @@ import useProjects from 'sentry/utils/useProjects';
 import CellAction, {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
-import {
-  LOGS_AGGREGATE_CURSOR_KEY,
-  useLogsSearch,
-  useSetLogsSearch,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
 import {LogFieldRenderer} from 'sentry/views/explore/logs/fieldRenderers';
+import {getTargetWithReadableQueryParams} from 'sentry/views/explore/logs/logsQueryParams';
 import {getLogColors} from 'sentry/views/explore/logs/styles';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {type useLogsAggregatesQuery} from 'sentry/views/explore/logs/useLogsQuery';
@@ -38,10 +33,12 @@ import {
   useQueryParamsAggregateSortBys,
   useQueryParamsFields,
   useQueryParamsGroupBys,
+  useQueryParamsSearch,
   useQueryParamsSortBys,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
   useSetQueryParamsAggregateCursor,
+  useSetQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
 
 export function LogsAggregateTable({
@@ -66,8 +63,8 @@ export function LogsAggregateTable({
   const setAggregateCursor = useSetQueryParamsAggregateCursor();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const topEventsLimit = useQueryParamsTopEventsLimit();
-  const search = useLogsSearch();
-  const setSearch = useSetLogsSearch();
+  const search = useQueryParamsSearch();
+  const setSearch = useSetQueryParamsSearch();
   const fields = useQueryParamsFields();
   const sorts = useQueryParamsSortBys();
   const location = useLocation();
@@ -112,29 +109,27 @@ export function LogsAggregateTable({
               title = prettifyTagKey(field);
             }
 
+            const direction: 'asc' | 'desc' | undefined =
+              aggregateSortBys?.[0]?.field === column.key
+                ? aggregateSortBys?.[0]?.kind
+                : undefined;
+
             return (
               <SortLink
                 key={i}
                 align={func ? 'right' : 'left'}
                 canSort
-                direction={
-                  aggregateSortBys?.[0]?.field === column.key
-                    ? aggregateSortBys?.[0]?.kind
-                    : undefined
-                }
-                generateSortLink={() => ({
-                  ...location,
-                  query: {
-                    ...location.query,
-                    [LOGS_AGGREGATE_SORT_BYS_KEY]:
-                      aggregateSortBys?.[0]?.field === column.key
-                        ? aggregateSortBys?.[0]?.kind === 'asc'
-                          ? `-${column.key}`
-                          : column.key
-                        : `-${column.key}`,
-                    [LOGS_AGGREGATE_CURSOR_KEY]: undefined,
-                  },
-                })}
+                direction={direction}
+                generateSortLink={() => {
+                  return getTargetWithReadableQueryParams(location, {
+                    aggregateSortBys: [
+                      {
+                        field: column.key,
+                        kind: direction === 'desc' ? 'asc' : 'desc',
+                      },
+                    ],
+                  });
+                }}
                 title={title}
               />
             );
