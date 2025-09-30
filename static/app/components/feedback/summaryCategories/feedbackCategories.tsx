@@ -51,14 +51,10 @@ export default function FeedbackCategories() {
   const organization = useOrganization();
 
   useEffect(() => {
-    trackAnalytics('feedback.summary.categories-loaded', {
-      organization,
-      num_categories: categories ? categories.length : 0,
-    });
-  }, [organization, categories]);
-
-  useEffect(() => {
     // Analytics for the rendered state. Should match the conditions below.
+    if (isPending || isOrgSeerSetupPending) {
+      return;
+    }
     if (isError) {
       trackAnalytics('feedback.summary.categories-error', {
         organization,
@@ -67,13 +63,15 @@ export default function FeedbackCategories() {
       trackAnalytics('feedback.summary.categories-too-few-feedbacks', {
         organization,
       });
-    } else if (
-      categories &&
-      categories.length > 0 &&
-      setupAcknowledgement.orgHasAcknowledged
-    ) {
+    } else if (!categories || categories.length === 0) {
+      // Expecting very few of this event.
+      trackAnalytics('feedback.summary.categories-empty', {
+        organization,
+      });
+    } else if (setupAcknowledgement.orgHasAcknowledged) {
       trackAnalytics('feedback.summary.categories-rendered', {
         organization,
+        num_categories: categories.length,
       });
     }
   }, [
@@ -82,6 +80,8 @@ export default function FeedbackCategories() {
     tooFewFeedbacks,
     categories,
     setupAcknowledgement.orgHasAcknowledged,
+    isPending,
+    isOrgSeerSetupPending,
   ]);
 
   const currentQuery = useMemo(
