@@ -64,7 +64,7 @@ class TokenizerWrapper:
     Lazy-loaded singleton for the tokenizer to avoid expensive initialization at module load time.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._tokenizer: Tokenizer | None = None
         self._lock = threading.RLock()
 
