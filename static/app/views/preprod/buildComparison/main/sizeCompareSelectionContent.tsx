@@ -229,7 +229,7 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
           )}
           {build.app_info?.build_configuration && (
             <Flex align="center" gap="sm">
-              <IconMobile size="sm" color="gray300" />
+              <IconMobile size="xs" color="gray300" />
               <Tooltip title={t('Build configuration')}>
                 <Text monospace>{build.app_info.build_configuration}</Text>
               </Tooltip>
