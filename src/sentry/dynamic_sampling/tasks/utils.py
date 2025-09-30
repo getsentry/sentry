@@ -3,6 +3,8 @@ from functools import wraps
 from random import random
 from typing import Any
 
+import sentry_sdk
+
 from sentry.utils import metrics
 
 
@@ -19,15 +21,21 @@ def _compute_task_name(function_name: str) -> str:
 
 
 def dynamic_sampling_task(func: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    Decorator to wrap dynamic sampling related tasks to record metrics for the execution of
+    the task, durations associated with it as metrics, and capture all exceptions in sentry.
+    """
+
     @wraps(func)
     def _wrapper(*args: Any, **kwargs: Any) -> Any:
         function_name = func.__name__
         task_name = _compute_task_name(function_name)
-
-        # We will count how many times the function is run.
         metrics.incr(f"{task_name}.start", sample_rate=1.0)
-        # We will count how much it takes to run the function.
         with metrics.timer(task_name, sample_rate=1.0):
-            return func(*args, **kwargs)
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+                raise
 
     return _wrapper
