@@ -2,10 +2,12 @@ import React, {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -68,9 +70,23 @@ export function PreprodBuildsTable({
                     {build.app_info?.name || '--'}
                   </Text>
                 </Flex>
-                <Text size="sm" variant="muted">
-                  {build.app_info?.app_id || '--'}
-                </Text>
+                <Flex align="center" gap="xs">
+                  <Text size="sm" variant="muted">
+                    {build.app_info?.app_id || '--'}
+                  </Text>
+                  {build.app_info?.build_configuration && (
+                    <React.Fragment>
+                      <Text size="sm" variant="muted">
+                        {' • '}
+                      </Text>
+                      <Tooltip title={t('Build configuration')}>
+                        <Text size="sm" variant="muted" monospace>
+                          {build.app_info.build_configuration}
+                        </Text>
+                      </Tooltip>
+                    </React.Fragment>
+                  )}
+                </Flex>
               </Flex>
             ) : null}
           </SimpleTable.RowCell>
@@ -179,4 +195,9 @@ const FullRowLink = styled(Link)`
   &:hover {
     color: inherit;
   }
+`;
+
+const InlineCodeSnippet = styled(CodeSnippet)`
+  font-size: ${p => p.theme.fontSize.xs};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
 `;
