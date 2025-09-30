@@ -29,11 +29,6 @@ export interface UseReplaySummaryResult {
    */
   isPending: boolean;
   /**
-   * Whether the last start request is pending.
-   * The summary could still be processing even if this is false.
-   */
-  isStartSummaryRequestPending: boolean;
-  /**
    * Whether the summary processing timed out. Not the same as isError.
    */
   isTimedOut: boolean;
@@ -240,6 +235,5 @@ export function useReplaySummary(
     isError: isErrorState,
     isTimedOut: didTimeout,
     startSummaryRequest,
-    isStartSummaryRequestPending,
   };
 }
