@@ -40,11 +40,10 @@ export interface UseReplaySummaryResult {
 
 const shouldPoll = (
   summaryData: SummaryResponse | undefined,
-  lastFetchFailed: boolean,
   startRequestFailed: boolean,
   didTimeout: boolean
 ) => {
-  if (lastFetchFailed || startRequestFailed || didTimeout) {
+  if (startRequestFailed || didTimeout) {
     return false;
   }
 
@@ -98,7 +97,6 @@ export function useReplaySummary(
     timeMs: TOTAL_TIMEOUT_MS,
     onTimeout: () => {
       setDidTimeout(true);
-      cancelTotalTimeout();
     },
   });
 
