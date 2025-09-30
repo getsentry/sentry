@@ -3118,6 +3118,13 @@ register(
 )
 
 register(
+    "workflow_engine.associate_error_detectors",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
     type=Bool,
     default=True,
