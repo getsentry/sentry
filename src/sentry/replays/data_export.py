@@ -500,7 +500,10 @@ def export_replay_row_set_async(
     # your Sentry account. Under those conditions you're no longer a Sentry customer and should
     # not be ingesting any data into Sentry.
     if next_offset and next_offset < max_rows_to_export:
-        assert next_offset > offset, "Next offset was not greater than previous offset."
+        # We assert the call chain is making forward progress.
+        assert next_offset > offset, "next_offset was not greater than previous offset."
+        # We assert the call chain is making meaningful progress. We should not overlap.
+        assert next_offset == (offset + (limit * num_pages)), "next_offset overlapped previous run."
 
         export_replay_row_set_async.delay(
             project_id=project_id,
