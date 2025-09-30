@@ -544,7 +544,11 @@ def convert_search_filter_to_snuba_query(
         return None
     elif name in key_conversion_map:
         return key_conversion_map[name](search_filter, name, params)
-    elif name in ARRAY_FIELDS and search_filter.value.is_wildcard():
+    elif (
+        name in ARRAY_FIELDS
+        and search_filter.value.is_wildcard()
+        and not search_filter.value.is_str_sequence()
+    ):
         # Escape and convert meta characters for LIKE expressions.
         raw_value = search_filter.value.raw_value
         assert isinstance(raw_value, str), raw_value
