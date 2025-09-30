@@ -16,7 +16,7 @@ class DataExportNotificationsTestCase(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    @patch("sentry.replays.data_export.request_run_transfer_job")
+    @patch("sentry.replays.endpoints.data_export_notifications.request_run_transfer_job")
     def test_simple(self, do_request) -> None:  # type: ignore[no-untyped-def]
         do_request.return_value = None
 
