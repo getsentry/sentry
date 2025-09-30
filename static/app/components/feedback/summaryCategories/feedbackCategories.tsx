@@ -64,7 +64,6 @@ export default function FeedbackCategories() {
         organization,
       });
     } else if (!categories || categories.length === 0) {
-      // Expecting very few of this event.
       trackAnalytics('feedback.summary.categories-empty', {
         organization,
       });
