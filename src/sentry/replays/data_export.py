@@ -370,7 +370,7 @@ def query_replays_dataset(
 def get_replay_date_query_ranges(
     project_id: int,
     referrer: str = Referrer.EU_DATA_EXPORT.value,
-) -> Generator[tuple[datetime, datetime]]:
+) -> Generator[tuple[datetime, datetime, int]]:
     """
     SQL:
         SELECT formatDateTime(toStartOfDay(timestamp), '%F'), count()
@@ -413,7 +413,7 @@ def get_replay_date_query_ranges(
     for result in results:
         start = datetime.fromisoformat(result["day"])
         end = start + timedelta(days=1)
-        yield (start, end), result["max_rows_to_export"]
+        yield start, end, result["max_rows_to_export"]
 
 
 def export_replay_row_set(
@@ -527,7 +527,7 @@ def export_replay_project_async(
     num_pages: int = EXPORT_QUERY_PAGES_PER_TASK,
 ):
     # Each populated day bucket is scheduled for export.
-    for (start, end), max_rows_to_export in get_replay_date_query_ranges(project_id):
+    for start, end, max_rows_to_export in get_replay_date_query_ranges(project_id):
         export_replay_row_set_async.delay(
             project_id=project_id,
             start=start,
