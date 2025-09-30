@@ -49,7 +49,9 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const {data: createdByUser} = useUserFromId({id: Number(automation.createdBy)});
+  const {data: createdByUser} = useUserFromId({
+    id: automation.createdBy ? Number(automation.createdBy) : undefined,
+  });
 
   const {
     data: detectors,
@@ -186,7 +188,11 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                   />
                   <KeyValueTableRow
                     keyName={t('Created by')}
-                    value={createdByUser?.name || createdByUser?.email || t('Unknown')}
+                    value={
+                      automation.createdBy
+                        ? createdByUser?.name || createdByUser?.email || t('Unknown')
+                        : t('Sentry')
+                    }
                   />
                   <KeyValueTableRow
                     keyName={t('Last modified')}
