@@ -115,11 +115,14 @@ export function BranchSelector() {
       return t('Getting branches...');
     }
 
-    if (searchValue && !displayedBranches.length) {
-      return t('Sorry, no branches match your search query');
+    if (!displayedBranches.length) {
+      if (searchValue?.length) {
+        return t('No branches found. Please enter a different search term.');
+      }
+      return t('No branches found');
     }
 
-    return t('No branches found');
+    return undefined;
   }
 
   const disabled = !repository;

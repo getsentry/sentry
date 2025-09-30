@@ -127,15 +127,15 @@ export function RepoSelector() {
       return t('Getting repositories...');
     }
 
-    if (searchValue && !repositories?.length) {
-      if (searchValue.length < 3) {
-        return t('No repositories found. Please try entering more characters to search.');
+    if (!repositories?.length) {
+      if (searchValue?.length) {
+        return t('No repositories found. Please enter a different search term.');
       }
 
       return t('No repositories found');
     }
 
-    return t('No repositories found');
+    return undefined;
   }
 
   useEffect(() => {
