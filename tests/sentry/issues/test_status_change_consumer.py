@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
+
+from django.utils import timezone
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.occurrence_consumer import _process_message
@@ -11,7 +14,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason
-from sentry.models.groupopenperiod import get_latest_open_period
+from sentry.models.groupopenperiod import GroupOpenPeriod, get_latest_open_period
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
@@ -25,6 +28,7 @@ def get_test_message_status_change(
     new_status: int = GroupStatus.RESOLVED,
     new_substatus: int | None = None,
     detector_id: int | None = None,
+    update_date: datetime | None = None,
 ) -> dict[str, Any]:
     payload = {
         "project_id": project_id,
@@ -35,6 +39,8 @@ def get_test_message_status_change(
         "detector_id": detector_id,
         "activity_data": {"test": "test"},
     }
+    if update_date is not None:
+        payload["update_date"] = update_date
 
     return payload
 
@@ -520,3 +526,24 @@ class TestStatusChangeRegistry(IssueOccurrenceTestBase):
             assert latest_activity.data == {"test": "test"}
 
             mock_handler.assert_called_once_with(self.group, self.message, latest_activity)
+
+    def test_update_status_with_custom_update_date(self) -> None:
+        self.message["new_status"] = GroupStatus.RESOLVED
+        self.message["new_substatus"] = None
+        custom_datetime = timezone.now() + timedelta(hours=1)
+        self.message["update_date"] = custom_datetime
+
+        update_status(self.group, self.message)
+
+        self.group.refresh_from_db()
+        assert self.group.status == GroupStatus.RESOLVED
+        assert self.group.resolved_at == custom_datetime
+
+        activity = Activity.objects.filter(
+            group=self.group, type=ActivityType.SET_RESOLVED.value
+        ).first()
+        assert activity is not None
+        assert activity.datetime == custom_datetime
+
+        open_period = GroupOpenPeriod.objects.get(group=self.group)
+        assert open_period.date_ended == custom_datetime
