@@ -1,6 +1,6 @@
 import {EventFixture} from 'sentry-fixture/event';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {EventError, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -107,5 +107,28 @@ describe('StackTracePreview', () => {
     expect(await screen.findByTestId(component)).toBeInTheDocument();
     // Hide the platform icon for stack trace previews
     expect(screen.queryAllByRole('img')).toHaveLength(1);
+  });
+
+  it('sanitizes non-event filters from query and requests with level filter only', async () => {
+    const eventRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/123/events/recommended/`,
+      body: EventFixture({id: '456', entries: []}),
+      match: [
+        MockApiClient.matchQuery({
+          query: 'level:error',
+          collapse: ['fullRelease'],
+        }),
+      ],
+    });
+
+    render(
+      <StackTracePreview groupId="123" query="is:unresolved level:error">
+        Preview Trigger
+      </StackTracePreview>
+    );
+
+    await userEvent.hover(screen.getByText(/Preview Trigger/));
+
+    await waitFor(() => expect(eventRequest).toHaveBeenCalledTimes(1));
   });
 });

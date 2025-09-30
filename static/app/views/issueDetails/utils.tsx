@@ -7,14 +7,17 @@ import {
   useFetchIssueTagValues,
 } from 'sentry/actionCreators/group';
 import type {Client} from 'sentry/api';
+import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
+import {joinQuery, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
-import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
+import type {Group, GroupActivity, TagCollection, TagValue} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {getFieldDefinition, ISSUE_EVENT_PROPERTY_FIELDS} from 'sentry/utils/fields';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -197,7 +200,7 @@ export function useEnvironmentsFromUrl(): string[] {
   return envsArray;
 }
 
-export function getGroupEventDetailsQueryData({
+function getGroupEventDetailsQueryData({
   environments,
   query,
   start,
