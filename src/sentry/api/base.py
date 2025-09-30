@@ -36,7 +36,6 @@ from sentry.organizations.absolute_url import generate_organization_url
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.snuba.query_sources import QuerySource
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
@@ -223,11 +222,7 @@ class Endpoint(APIView):
 
     owner: ApiOwner = ApiOwner.UNOWNED
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
-    rate_limits: (
-        RateLimitConfig
-        | dict[str, dict[RateLimitCategory, RateLimit]]
-        | Callable[..., RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]]]
-    ) = DEFAULT_RATE_LIMIT_CONFIG
+    rate_limits: RateLimitConfig = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
 
     def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor) -> str:
