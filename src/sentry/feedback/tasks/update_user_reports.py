@@ -11,6 +11,7 @@ from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.services import eventstore
 from sentry.silo.base import SiloMode
+from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.tasks.update_user_reports",
+    name="sentry.feedback.tasks.update_user_reports",
     queue="update",
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
@@ -35,6 +36,10 @@ def update_user_reports(
     max_events: int | None = None,
     event_lookback_days: int | None = None,
 ) -> None:
+    """
+    Scheduled task to update user report -> event links that were missed during ingestion.
+    """
+
     now = timezone.now()
     start = now - timedelta(days=1)
     # +5 minutes just to catch clock skew
@@ -89,7 +94,7 @@ def update_user_reports(
             )
             try:
                 events_chunk = eventstore.backend.get_events(
-                    filter=snuba_filter, referrer="tasks.update_user_reports"
+                    filter=snuba_filter, referrer=Referrer.TASKS_UPDATE_USER_REPORTS.value
                 )
                 events.extend(events_chunk)
             except Exception:
