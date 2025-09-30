@@ -556,19 +556,21 @@ def get_token_count(
         tags={"platform": platform},
     ) as timer_tags:
         try:
-            timer_tags["has_content"] = False
-            timer_tags["cached"] = event.data.get("stacktrace_string") is not None
-            timer_tags["source"] = "stacktrace_string"
-
-            # Check if stacktrace string is already cached on the event
             stacktrace_text = event.data.get("stacktrace_string")
+            timer_tags["has_content"] = False
+            timer_tags["source"] = "cached_stacktrace_string"
 
             if stacktrace_text is None:
+                timer_tags["source"] = "generated_stacktrace_string"
+                if not variants:
+                    timer_tags["source"] = "no_variants"
+                    return 0
                 stacktrace_text = get_stacktrace_string(get_grouping_info_from_variants(variants))
 
             if stacktrace_text:
                 timer_tags["has_content"] = True
-                return len(get_tokenizer().encode(stacktrace_text))
+                encoding = get_tokenizer().encode(stacktrace_text)
+                return len(encoding.ids)
 
             timer_tags["source"] = "no_stacktrace_string"
             return 0
