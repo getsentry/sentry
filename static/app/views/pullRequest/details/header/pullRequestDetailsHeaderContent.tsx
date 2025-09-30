@@ -5,7 +5,7 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import {IconBranch, IconCommit, IconFile, IconGithub} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {tn} from 'sentry/locale';
 import type {
   PullRequestDetailsSuccessResponse,
   PullRequestState,

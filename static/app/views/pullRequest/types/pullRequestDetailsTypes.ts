@@ -1,5 +1,5 @@
 export type PullRequestState = 'open' | 'closed' | 'merged' | 'draft';
-export type PullRequestFileStatus = 'added' | 'modified' | 'removed' | 'renamed';
+type PullRequestFileStatus = 'added' | 'modified' | 'removed' | 'renamed';
 
 interface PullRequestAuthor {
   avatar_url: string | null;
