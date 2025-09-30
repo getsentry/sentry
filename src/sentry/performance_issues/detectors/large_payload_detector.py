@@ -38,7 +38,6 @@ FILE_DOWNLOAD_CONTENT_TYPES = {
 
 
 class LargeHTTPPayloadDetector(PerformanceDetector):
-
     type = DetectorType.LARGE_HTTP_PAYLOAD
     settings_key = DetectorType.LARGE_HTTP_PAYLOAD
 
@@ -137,8 +136,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         if extension and extension.group(1) not in EXTENSION_ALLOW_LIST:
             return False
 
-        # Exclude Next.js static and data URLs as specified in documentation
-        if description.startswith(("_next/static/", "_next/data/")):
+        if any([x in description for x in ["_next/static/", "_next/data/"]]):
             return False
 
         span_data = span.get("data", {})
