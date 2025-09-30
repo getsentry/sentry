@@ -298,5 +298,12 @@ class IntegrationService(RpcService):
     ) -> RpcIntegrationIdentityContext:
         pass
 
+    @rpc_method
+    @abstractmethod
+    def refresh_github_access_token(
+        self, *, integration_id: int, organization_id: int
+    ) -> RpcIntegration | None:
+        pass
+
 
 integration_service = IntegrationService.create_delegation()
