@@ -49,7 +49,7 @@ function FastlaneMethod({
           Add to your fastlane/Pluginfile:
         </Text>
         <OnboardingCodeSnippet language="ruby">
-          {`gem 'fastlane-plugin-sentry', git: 'https://github.com/getsentry/sentry-fastlane-plugin.git', ref: 'b0c36a1472a6bfde0a4766c612c1154706dbd014'`}
+          {`gem 'fastlane-plugin-sentry', git: 'https://github.com/getsentry/sentry-fastlane-plugin.git', ref: '840ac30316aeda41630db1be6c3d17d2c870d08c'`}
         </OnboardingCodeSnippet>
       </Container>
 
@@ -61,10 +61,6 @@ function FastlaneMethod({
           {`sentry_upload_build(
   org_slug: '${organizationSlug}',
   project_slug: '${projectSlug}',
-  base_ref: ENV['GITHUB_BASE_REF'],
-  base_sha: ENV['GITHUB_BASE_SHA'],
-  head_ref: ENV['GITHUB_HEAD_REF'] || ENV['GITHUB_REF']&.sub('refs/heads/', ''),
-  head_sha: ENV['SENTRY_SHA'],
 )`}
         </OnboardingCodeSnippet>
       </Container>
@@ -76,9 +72,7 @@ function FastlaneMethod({
         <OnboardingCodeSnippet language="yaml">
           {`env:
   SENTRY_AUTH_TOKEN: \${{ secrets.SENTRY_AUTH_TOKEN }}
-  SENTRY_CONFIGURATION: Release
-  GITHUB_BASE_SHA: \${{ github.event.pull_request.base.sha }}
-  SENTRY_SHA: \${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}`}
+  SENTRY_CONFIGURATION: Release`}
         </OnboardingCodeSnippet>
       </Container>
     </Flex>
@@ -101,7 +95,7 @@ function GradleMethod({projectPlatform}: {projectPlatform: PlatformKey | null}) 
         </Text>
         <OnboardingCodeSnippet language="kotlin">
           {`plugins {
-  id "io.sentry.android.gradle" version "6.0.0-alpha.3"
+  id "io.sentry.android.gradle" version "6.0.0-alpha.4"
 }`}
         </OnboardingCodeSnippet>
       </Container>
@@ -113,16 +107,7 @@ function GradleMethod({projectPlatform}: {projectPlatform: PlatformKey | null}) 
         <OnboardingCodeSnippet language="kotlin">
           {`sentry {
   sizeAnalysis {
-    enabled = true
-  }
-
-  vcsInfo {
-    fun env(key: String): String? = System.getenv(key)?.takeIf { it.isNotEmpty() }
-
-    (env("GITHUB_HEAD_REF") ?: env("GITHUB_REF")?.removePrefix("refs/heads/"))?.let { headRef.set(it) }
-    env("GITHUB_BASE_REF")?.let { baseRef.set(it) }
-    env("GITHUB_BASE_SHA")?.let { baseSha.set(it) }
-    env("SENTRY_SHA")?.let { headSha.set(it) }
+    enabled = providers.environmentVariable("GITHUB_ACTIONS").isPresent
   }
 }`}
         </OnboardingCodeSnippet>
@@ -134,9 +119,7 @@ function GradleMethod({projectPlatform}: {projectPlatform: PlatformKey | null}) 
         </Text>
         <OnboardingCodeSnippet language="yaml">
           {`env:
-  SENTRY_AUTH_TOKEN: \${{ secrets.SENTRY_AUTH_TOKEN }}
-  GITHUB_BASE_SHA: \${{ github.event.pull_request.base.sha }}
-  SENTRY_SHA: \${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}`}
+  SENTRY_AUTH_TOKEN: \${{ secrets.SENTRY_AUTH_TOKEN }}`}
         </OnboardingCodeSnippet>
       </Container>
     </Flex>
@@ -183,6 +166,8 @@ curl -sL https://sentry.io/get-cli/ | bash`}
   --project ${projectSlug} \\
   --head-sha <sha> \\
   --base-sha <sha> \\
+  --head-ref <ref> \\
+  --base-ref <ref> \\
   --head-repo-name <org/repo> \\
   --pr-number <pr-number> \\
   --vcs-provider github \\
@@ -197,7 +182,7 @@ curl -sL https://sentry.io/get-cli/ | bash`}
         <OnboardingCodeSnippet language="bash">
           {`export SENTRY_AUTH_TOKEN=<your-auth-token>
 # These are set automatically in GitHub Actions:
-# --repo-name, --vcs-provider, --pr-number`}
+# --repo-name, --vcs-provider, --pr-number, --base-sha, --head-sha, --base-ref, --head-ref`}
         </OnboardingCodeSnippet>
       </Container>
     </Flex>
