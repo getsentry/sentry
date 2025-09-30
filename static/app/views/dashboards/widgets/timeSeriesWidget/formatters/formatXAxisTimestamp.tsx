@@ -43,8 +43,29 @@ export function formatXAxisTimestamp(
     // Start of a month
     format = 'MMM Do';
   } else if (parsed.hour() === 0 && parsed.minute() === 0 && parsed.second() === 0) {
-    // Start of a day
+    // Start of a day (exact midnight)
     format = 'MMM Do';
+  } else if (parsed.minute() === 0 && parsed.second() === 0) {
+    // Hour boundary - check if this represents a day boundary in local timezone
+    // but keep the parsed object in UTC for consistent display formatting
+    let isDayBoundary = false;
+
+    if (options.utc) {
+      // UTC mode: check if it's UTC midnight
+      isDayBoundary = parsed.hour() === 0;
+    } else {
+      // Local mode: check if this UTC time represents local midnight
+      // Create a temporary local version just for boundary detection
+      const localTime = parsed.clone().local();
+      isDayBoundary = localTime.hour() === 0;
+      // Note: we don't modify 'parsed', so formatting stays in UTC
+    }
+
+    if (isDayBoundary) {
+      format = 'MMM Do'; // Show date for day boundaries
+    } else {
+      format = getTimeFormat(); // Show time for other hour boundaries
+    }
   } else if (parsed.second() === 0) {
     // Hours, minutes
     format = getTimeFormat();
