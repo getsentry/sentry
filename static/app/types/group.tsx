@@ -1,7 +1,7 @@
 import type {LocationDescriptor} from 'history';
 
-import type {SearchGroup} from 'sentry/components/deprecatedSmartSearchBar/types';
 import type {TitledPlugin} from 'sentry/components/group/pluginActions';
+import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
 import type {FieldKind} from 'sentry/utils/fields';
 
@@ -946,6 +946,7 @@ export interface BaseGroup {
 export interface GroupOpenPeriod {
   duration: string;
   end: string;
+  id: string;
   isOpen: boolean;
   lastChecked: string;
   start: string;

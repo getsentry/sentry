@@ -11,15 +11,14 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useParams} from 'sentry/utils/useParams';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import SharedGroupHeader from './sharedGroupHeader';
 
-type Props = RouteComponentProps<{shareId: string; orgId?: string}>;
-
-function SharedGroupDetails({params}: Props) {
+function SharedGroupDetails() {
+  const {shareId, orgId} = useParams();
   useLayoutEffect(() => {
     document.body.classList.add('shared-group');
     return () => {
@@ -28,17 +27,16 @@ function SharedGroupDetails({params}: Props) {
   }, []);
 
   const orgSlug = useMemo(() => {
-    if (params.orgId) {
-      return params.orgId;
+    if (orgId) {
+      return orgId;
     }
     const {customerDomain} = window.__initialData || {};
     if (customerDomain?.subdomain) {
       return customerDomain.subdomain;
     }
     return null;
-  }, [params.orgId]);
+  }, [orgId]);
 
-  const {shareId} = params;
   const {
     data: group,
     isPending,

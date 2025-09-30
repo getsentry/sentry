@@ -158,7 +158,7 @@ x-sentry-service-config:
     migrations: [postgres, redis]
     acceptance-ci: [postgres, snuba, chartcuterie]
     chartcuterie: [postgres, snuba, chartcuterie, spotlight]
-    launchpad: [snuba, postgres, relay, spotlight, launchpad]
+    launchpad: [snuba, postgres, relay, spotlight, launchpad, taskbroker, taskworker]
     objectstore: [snuba, postgres, relay, spotlight, objectstore]
     taskbroker: [snuba, postgres, relay, spotlight, taskbroker]
     taskworker:
@@ -434,7 +434,7 @@ services:
     labels:
       - orchestrator=devservices
   spotlight:
-    image: ghcr.io/getsentry/spotlight:latest
+    image: ghcr.io/getsentry/spotlight:7640f9ff4be79a934e5cac8b255d2a2055ceeb28
     healthcheck:
       interval: 1s
       timeout: 1s

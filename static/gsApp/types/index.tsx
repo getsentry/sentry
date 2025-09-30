@@ -135,6 +135,7 @@ export enum AddOnCategory {
 
 type AddOnCategoryInfo = {
   apiName: AddOnCategory;
+  billingFlag: string | null;
   dataCategories: DataCategory[];
   name: string;
   order: number;
@@ -186,6 +187,7 @@ export type Plan = {
     Record<DataCategory, {plural: string; singular: string}>
   >;
   checkoutType?: CheckoutType;
+  retentions?: Partial<Record<DataCategory, {downsampled: number; standard: number}>>;
 };
 
 type PendingChanges = {
@@ -481,7 +483,6 @@ export type PromotionData = {
   completedPromotions: PromotionClaimed[];
 };
 
-/** @internal exported for tests only */
 export type Feature = {
   description: string;
   name: string;
@@ -701,6 +702,7 @@ export type BillingMetricHistory = {
   trueForward: boolean;
   usage: number;
   usageExceeded: boolean;
+  retention?: {downsampled: number | null; standard: number};
 };
 
 export type BillingHistory = {
@@ -808,7 +810,6 @@ export enum CohortId {
   TEST_ONE = 111,
 }
 
-/** @internal exported for tests only */
 export type Cohort = {
   cohortId: CohortId;
   nextPlan: NextPlanInfo | null;
@@ -1015,6 +1016,10 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   canProductTrial: boolean;
   /**
+   * The tooltip text for the checkout page
+   */
+  checkoutTooltip: string | null;
+  /**
    * The feature flag that enables the category
    */
   feature: string | null;
@@ -1035,16 +1040,11 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   maxAdminGift: number;
   /**
-   * The multiplier to use on the category to display
-   * its PAYG pricing
-   */
-  paygPriceMultiplier: number;
-  /**
-   * The tooltip text for the checkout page
-   */
-  reservedVolumeTooltip: string | null;
-  /**
    * How usage is tallied for the category
    */
   tallyType: 'usage' | 'seat';
+  /**
+   * The shortened form of the singular unit name (ie. 'error', 'hour', 'monitor').
+   */
+  shortenedUnitName?: string;
 }

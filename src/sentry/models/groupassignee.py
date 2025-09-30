@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -29,6 +29,11 @@ if TYPE_CHECKING:
     from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
+
+
+class NewAssignee(NamedTuple):
+    id: int
+    type: str
 
 
 class GroupAssigneeManager(BaseManager["GroupAssignee"]):
@@ -71,36 +76,22 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         self,
         group: Group,
         previous_assignee: GroupAssignee | None,
-        new_assignee_id: int | None = None,
-        new_assignee_type: str | None = None,
+        *,
+        new_assignee: NewAssignee | None = None,
     ) -> None:
         from sentry.models.team import Team
 
         if not previous_assignee:
             return
 
-        if (
-            features.has("organizations:team-workflow-notifications", group.organization)
-            and previous_assignee.team
-        ):
-            GroupSubscription.objects.filter(
-                group=group,
-                project=group.project,
-                team=previous_assignee.team,
-                reason=GroupSubscriptionReason.assigned,
-            ).delete()
-            logger.info(
-                "groupassignee.remove",
-                extra={"group_id": group.id, "team_id": previous_assignee.team.id},
-            )
-        elif previous_assignee.team:
+        if previous_assignee.team:
             team_members = list(previous_assignee.team.member_set.values_list("user_id", flat=True))
             if (
-                new_assignee_type
-                and new_assignee_type == "user"
-                and new_assignee_id in team_members
+                new_assignee is not None
+                and new_assignee.type == "user"
+                and new_assignee.id in team_members
             ):
-                team_members.remove(new_assignee_id)
+                team_members.remove(new_assignee.id)
 
             GroupSubscription.objects.filter(
                 group=group,
@@ -114,8 +105,8 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             )
         else:
             # if the new assignee is a team that the old assignee (a user) is in, don't remove them
-            if new_assignee_type == "team":
-                team = Team.objects.get(id=new_assignee_id)
+            if new_assignee is not None and new_assignee.type == "team":
+                team = Team.objects.get(id=new_assignee.id)
                 team_members = list(team.member_set.values_list("user_id", flat=True))
                 if previous_assignee.user_id in team_members:
                     return
@@ -198,7 +189,9 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
                 )
 
             if not created:  # aka re-assignment
-                self.remove_old_assignees(group, assignee, assigned_to_id, assignee_type)
+                self.remove_old_assignees(
+                    group, assignee, new_assignee=NewAssignee(id=assigned_to_id, type=assignee_type)
+                )
 
         return {"new_assignment": created, "updated_assignment": bool(not created and affected)}
 

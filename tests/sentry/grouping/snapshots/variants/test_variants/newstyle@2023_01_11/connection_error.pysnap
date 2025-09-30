@@ -1,19 +1,19 @@
 ---
-created: '2025-09-11T18:38:49.425980+00:00'
+created: '2025-09-24T20:27:05.692871+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "6b059b9febc815ac18ac4d2082e38a9b"
   contributing component: exception
-  component:
+  root_component:
     app*
       exception*
         stacktrace*
           frame* (marked in-app by the client)
             module*
               "sentry.utils.safe"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "safe.py"
             function*
               "safe_execute"
@@ -22,7 +22,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "sentry.utils.services"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "services.py"
             function*
               "<lambda>"
@@ -31,7 +31,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "getsentry.quotas"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "quotas.py"
             function*
               "is_rate_limited"
@@ -40,7 +40,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "sentry.quotas.redis"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "redis.py"
             function*
               "is_rate_limited"
@@ -49,7 +49,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "sentry.utils.redis"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "redis.py"
             function*
               "call_script"
@@ -58,7 +58,7 @@ app:
           frame (marked out of app by the client)
             module*
               "redis.client"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "client.py"
             function*
               "__call__"
@@ -67,7 +67,7 @@ app:
           frame (marked out of app by the client)
             module*
               "redis.client"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "client.py"
             function*
               "evalsha"
@@ -76,7 +76,7 @@ app:
           frame (marked out of app by the client)
             module*
               "redis.client"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "client.py"
             function*
               "execute_command"
@@ -85,7 +85,7 @@ app:
           frame (marked out of app by the client)
             module*
               "redis.client"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "client.py"
             function*
               "parse_response"
@@ -94,7 +94,7 @@ app:
           frame (marked out of app by the client)
             module*
               "redis.connection"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "connection.py"
             function*
               "read_response"
@@ -103,7 +103,7 @@ app:
           frame (marked out of app by the client)
             module*
               "redis.connection"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "connection.py"
             function*
               "read_response"
@@ -117,22 +117,22 @@ app:
 default:
   hash: null
   contributing component: null
-  component:
-    default (exception of app/system takes precedence)
-      message (exception of app/system takes precedence)
+  root_component:
+    default (ignored because app/system exception takes precedence)
+      message (ignored because app/system exception takes precedence)
         "%s.process_error"
 --------------------------------------------------------------------------
 system:
   hash: "013d3477a774fe20c468dc8accd516f1"
   contributing component: exception
-  component:
+  root_component:
     system*
       exception*
         stacktrace*
           frame*
             module*
               "sentry.utils.safe"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "safe.py"
             function*
               "safe_execute"
@@ -141,7 +141,7 @@ system:
           frame*
             module*
               "sentry.utils.services"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "services.py"
             function*
               "<lambda>"
@@ -150,7 +150,7 @@ system:
           frame*
             module*
               "getsentry.quotas"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "quotas.py"
             function*
               "is_rate_limited"
@@ -159,7 +159,7 @@ system:
           frame*
             module*
               "sentry.quotas.redis"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "redis.py"
             function*
               "is_rate_limited"
@@ -168,7 +168,7 @@ system:
           frame*
             module*
               "sentry.utils.redis"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "redis.py"
             function*
               "call_script"
@@ -177,7 +177,7 @@ system:
           frame*
             module*
               "redis.client"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "client.py"
             function*
               "__call__"
@@ -186,7 +186,7 @@ system:
           frame*
             module*
               "redis.client"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "client.py"
             function*
               "evalsha"
@@ -195,7 +195,7 @@ system:
           frame*
             module*
               "redis.client"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "client.py"
             function*
               "execute_command"
@@ -204,7 +204,7 @@ system:
           frame*
             module*
               "redis.client"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "client.py"
             function*
               "parse_response"
@@ -213,7 +213,7 @@ system:
           frame*
             module*
               "redis.connection"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "connection.py"
             function*
               "read_response"
@@ -222,7 +222,7 @@ system:
           frame*
             module*
               "redis.connection"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "connection.py"
             function*
               "read_response"

@@ -30,7 +30,6 @@ function getConfiguration({
   additionalInfo,
   onCopy,
   onSelectAndCopy,
-  partialLoading,
 }: Configuration) {
   return (
     <Configuration>
@@ -40,7 +39,6 @@ function getConfiguration({
           tabs={code}
           onCopy={onCopy}
           onSelectAndCopy={onSelectAndCopy}
-          partialLoading={partialLoading}
         />
       ) : (
         language &&
@@ -49,8 +47,6 @@ function getConfiguration({
             language={language}
             onCopy={onCopy}
             onSelectAndCopy={onSelectAndCopy}
-            hideCopyButton={partialLoading}
-            disableUserSelection={partialLoading}
           >
             {code}
           </OnboardingCodeSnippet>

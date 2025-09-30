@@ -48,8 +48,13 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
         except NoProjects:
             return Response({"rankedAttributes": []})
 
+        aggregate_extrapolation = request.GET.get("aggregateExtrapolation") == "1"
+        resolver_config = SearchResolverConfig(
+            disable_aggregate_extrapolation=not aggregate_extrapolation
+        )
+
         resolver = SearchResolver(
-            params=snuba_params, config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
+            params=snuba_params, config=resolver_config, definitions=SPAN_DEFINITIONS
         )
 
         meta = resolver.resolve_meta(
@@ -91,7 +96,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 query_string=query_1,
                 selected_columns=[f"{function_name}({function_parameter})"],
                 orderby=None,
-                config=SearchResolverConfig(),
+                config=resolver_config,
                 offset=0,
                 limit=1,
                 sampling_mode=snuba_params.sampling_mode,
@@ -152,7 +157,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 query_string=query_1,
                 selected_columns=["count(span.duration)"],
                 orderby=None,
-                config=SearchResolverConfig(),
+                config=resolver_config,
                 offset=0,
                 limit=1,
                 sampling_mode=snuba_params.sampling_mode,
@@ -170,7 +175,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 query_string=query_2,
                 selected_columns=["count(span.duration)"],
                 orderby=None,
-                config=SearchResolverConfig(),
+                config=resolver_config,
                 offset=0,
                 limit=1,
                 sampling_mode=snuba_params.sampling_mode,
@@ -215,8 +220,16 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                         )
                         break
 
-        total_outliers = int(totals_1_result["data"][0]["count(span.duration)"])
-        total_spans = int(totals_2_result["data"][0]["count(span.duration)"])
+        total_outliers = (
+            int(totals_1_result["data"][0]["count(span.duration)"])
+            if totals_1_result.get("data")
+            else 0
+        )
+        total_spans = (
+            int(totals_2_result["data"][0]["count(span.duration)"])
+            if totals_2_result.get("data")
+            else 0
+        )
         total_baseline = total_spans - total_outliers
 
         scored_attrs_rrf = keyed_rrf_score(
@@ -252,6 +265,8 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 "value": function_value if function_value else "N/A",
                 "above": above,
             },
+            "cohort1Total": total_outliers,
+            "cohort2Total": total_baseline,
         }
 
         for i, (attr, _) in enumerate(scored_attrs_rrf):
