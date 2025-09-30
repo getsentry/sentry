@@ -12,6 +12,8 @@ import type {QuickStartProps} from 'sentry/views/insights/crons/components/quick
 import {
   CLICronQuickStart,
   CurlCronQuickStart,
+  DotNetCronQuickStart,
+  DotNetHangfireCronQuickStart,
   GoCronQuickStart,
   JavaCronQuickStart,
   JavaQuartzCronQuickStart,
@@ -123,6 +125,38 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
     label: 'Sidekiq',
     Guide: RubySidekiqCronQuickStart,
     platforms: new Set(['ruby', 'ruby-rails']),
+  },
+  dotnet: {
+    label: '.NET',
+    Guide: DotNetCronQuickStart,
+    platforms: new Set([
+      'dotnet',
+      'dotnet-aspnet',
+      'dotnet-aspnetcore',
+      'dotnet-awslambda',
+      'dotnet-gcpfunctions',
+      'dotnet-maui',
+      'dotnet-uwp',
+      'dotnet-winforms',
+      'dotnet-wpf',
+      'dotnet-xamarin',
+    ]),
+  },
+  dotnetHangfire: {
+    label: 'Hangfire',
+    Guide: DotNetHangfireCronQuickStart,
+    platforms: new Set([
+      'dotnet',
+      'dotnet-aspnet',
+      'dotnet-aspnetcore',
+      'dotnet-awslambda',
+      'dotnet-gcpfunctions',
+      'dotnet-maui',
+      'dotnet-uwp',
+      'dotnet-winforms',
+      'dotnet-wpf',
+      'dotnet-xamarin',
+    ]),
   },
 };
 
