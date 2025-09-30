@@ -36,6 +36,7 @@ def parse_request_with_pydantic(request: Request, model: type[T]) -> T:
         # can be used instead of parse_obj_as
         return parse_obj_as(model, j)
     except pydantic.ValidationError:
+        logger.exception("Could not parse PutSize")
         raise serializers.ValidationError("Could not parse PutSize")
 
 
@@ -88,4 +89,4 @@ def do_put(request: Request, project, identifier, head_artifact) -> Response:
             assert False, "unreachable"
     metrics.save()
 
-    return Response({"artifactId": head_artifact.id})
+    return Response({"artifactId": str(head_artifact.id)})
