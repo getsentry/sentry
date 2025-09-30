@@ -140,6 +140,7 @@ def create_transfer_job[T](
     source_bucket: str,
     source_prefix: str,
     destination_bucket: str,
+    job_description: str,
     job_duration: timedelta,
     do_create_transfer_job: Callable[[CreateTransferJobRequest], T],
     notification_topic: str | None = None,
@@ -173,7 +174,7 @@ def create_transfer_job[T](
     date_job_ends = date_job_starts + job_duration
 
     transfer_job = TransferJob(
-        description="Session Replay EU Compliance Export",
+        description=job_description,
         project_id=gcs_project_id,
         status=storage_transfer_v1.TransferJob.Status.ENABLED,
         transfer_spec=TransferSpec(
@@ -548,6 +549,7 @@ def export_replay_blob_data[T](
             source_prefix=f"{retention_days}/{project_id}",
             destination_bucket=destination_bucket,
             notification_topic=pubsub_topic_name,
+            job_description="Session Replay EU Compliance Export",
             job_duration=job_duration,
             do_create_transfer_job=do_create_transfer_job,
         )
