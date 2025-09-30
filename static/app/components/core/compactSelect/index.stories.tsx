@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import debounce from 'lodash/debounce';
 
+import {IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
@@ -292,10 +293,6 @@ export default Storybook.story('CompactSelect', story => {
       {value: '5', label: '5XX', details: 'Optional'},
     ];
 
-    const handleValueChange = (newValue: any) => {
-      setValue(newValue.value);
-    };
-
     return (
       <Fragment>
         <p>
@@ -304,7 +301,13 @@ export default Storybook.story('CompactSelect', story => {
           maintain its own selection state.
         </p>
 
-        <CompactSelect value={value} onChange={handleValueChange} options={options} />
+        <CompactSelect
+          value={value}
+          onChange={newValue => {
+            setValue(newValue.value);
+          }}
+          options={options}
+        />
       </Fragment>
     );
   });
@@ -378,6 +381,47 @@ export default Storybook.story('CompactSelect', story => {
             clearable
           />
         </Storybook.Grid>
+      </Fragment>
+    );
+  });
+
+  story('Custom Trigger', () => {
+    const [value, setValue] = useState<string>('');
+    const options = [
+      {value: '1', label: '1XX', details: 'Informational Response'},
+      {value: '2', label: '2XX', details: 'Successful'},
+      {value: '3', label: '3XX', details: 'Redirection'},
+      {value: '4', label: '4XX', details: 'Client Error'},
+      {value: '5', label: '5XX', details: 'Server Error'},
+    ];
+    const option = options.find(opt => opt.value === value);
+
+    return (
+      <Fragment>
+        <p>
+          <code>CompactSelect</code> should always be triggered by a <code>button</code>.
+          By default, it will render a <code>DropdownButton</code> for you. You can
+          customize its appearance by passing <code>triggerProps</code>.
+        </p>
+        <p>
+          To customize the label text inside the trigger button, set{' '}
+          <code>triggerProps.children</code>. By default the selected option's label will
+          be used.
+        </p>
+
+        <CompactSelect
+          value={value}
+          triggerProps={{
+            prefix: 'Status Code',
+            priority: 'danger',
+            icon: <IconSiren />,
+            children: option ? `${option.label} (${option.details})` : 'None',
+          }}
+          onChange={newValue => {
+            setValue(newValue.value);
+          }}
+          options={options}
+        />
       </Fragment>
     );
   });

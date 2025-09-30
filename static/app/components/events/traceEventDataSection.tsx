@@ -415,9 +415,9 @@ export function TraceEventDataSection({
                 size: 'xs',
                 showChevron: false,
                 'aria-label': t('Options'),
+                children: '',
               }}
               multiple
-              triggerLabel=""
               position="bottom-end"
               value={displayValues}
               onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}

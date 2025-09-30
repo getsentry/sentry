@@ -277,8 +277,10 @@ function GenericConsumptionGroup(props: GenericConsumptionGroupProps) {
           return (
             <SelectGroupRow key={index}>
               <StyledCompactSelect
-                triggerLabel={`${threshold}%`}
-                triggerProps={{style: {width: '100%', fontWeight: 'normal'}}}
+                triggerProps={{
+                  style: {width: '100%', fontWeight: 'normal'},
+                  children: `${threshold}%`,
+                }}
                 value={undefined}
                 options={availableOptions}
                 onChange={value => {
@@ -300,12 +302,13 @@ function GenericConsumptionGroup(props: GenericConsumptionGroupProps) {
         {hideAddButton ? null : (
           <SelectGroupRow>
             <StyledCompactSelect
-              triggerLabel={
-                newThresholdValue === undefined
-                  ? t('Add threshold')
-                  : `${newThresholdValue}%`
-              }
-              triggerProps={{style: {width: '100%', fontWeight: 'normal'}}}
+              triggerProps={{
+                style: {width: '100%', fontWeight: 'normal'},
+                children:
+                  newThresholdValue === undefined
+                    ? t('Add threshold')
+                    : `${newThresholdValue}%`,
+              }}
               value={undefined}
               options={availableOptions}
               onChange={value => {

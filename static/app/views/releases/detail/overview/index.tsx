@@ -321,7 +321,9 @@ function ReleaseOverview() {
               utc={utc ?? null}
               onChange={handleDateChange}
               menuTitle={t('Filter Time Range')}
-              triggerLabel={defaultDateTimeSelected ? releaseBoundsLabel : null}
+              triggerProps={{
+                children: defaultDateTimeSelected ? releaseBoundsLabel : null,
+              }}
               relativeOptions={({defaultOptions, arbitraryOptions}) =>
                 releaseBounds.type === 'ancient'
                   ? {...defaultOptions, ...arbitraryOptions}

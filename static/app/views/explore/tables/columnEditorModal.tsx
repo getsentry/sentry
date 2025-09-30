@@ -267,11 +267,11 @@ function ColumnEditorRow({
       <StyledCompactSelect
         data-test-id="editor-column"
         options={options}
-        triggerLabel={label}
         value={column.column ?? ''}
         onChange={handleColumnChange}
         searchable
         triggerProps={{
+          children: label,
           prefix: t('Column'),
           style: {
             width: '100%',

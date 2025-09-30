@@ -39,8 +39,10 @@ export default function ErrorFilters({
           },
         ]}
         size="sm"
-        triggerLabel={selectValue?.length === 0 ? t('Any') : null}
-        triggerProps={{prefix: t('Filter')}}
+        triggerProps={{
+          prefix: t('Filter'),
+          children: selectValue?.length === 0 ? t('Any') : null,
+        }}
         value={selectValue}
       />
       <SearchBar
