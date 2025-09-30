@@ -261,7 +261,7 @@ const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Configure your app automatically by running the [wizardLink:Sentry wizard] in the root of your project.',
+            'Add Sentry automatically to your app with the [wizardLink:Sentry wizard] (call this inside your project directory).',
             {
               wizardLink: (
                 <ExternalLink href="https://docs.sentry.io/platforms/react-native/#install" />
