@@ -1,23 +1,22 @@
 import {useCallback, useMemo} from 'react';
-import type {Location} from 'history';
 import dropRightWhile from 'lodash/dropRightWhile';
 
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {decodeInteger, decodeList} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-interface Props<K extends string> {
-  columns: Array<GridColumnOrder<K>>;
-  location: Location;
+interface Props<Col extends GridColumnOrder<unknown>> {
+  columns: Col[];
   paramName?: string;
 }
 
-export default function useQueryBasedColumnResize<K extends string>({
+export default function useQueryBasedColumnResize<Col extends GridColumnOrder<unknown>>({
   columns,
-  location,
   paramName = 'width',
-}: Props<K>) {
+}: Props<Col>) {
+  const location = useLocation();
   const queryParam = location.query[paramName];
   const navigate = useNavigate();
   const columnsWidthWidths = useMemo(() => {
@@ -30,7 +29,7 @@ export default function useQueryBasedColumnResize<K extends string>({
   }, [columns, queryParam]);
 
   const handleResizeColumn = useCallback(
-    (columnIndex: number, resizedColumn: GridColumnOrder<K>) => {
+    (columnIndex: number, resizedColumn: Col) => {
       const widths = columns.map(
         (column, i) =>
           (i === columnIndex ? resizedColumn.width : column.width) ?? COL_WIDTH_UNDEFINED

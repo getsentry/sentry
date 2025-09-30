@@ -136,7 +136,6 @@ export function TransactionsTable() {
   };
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: [...COLUMN_ORDER],
-    location,
   });
 
   return (

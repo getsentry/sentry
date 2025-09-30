@@ -9,7 +9,6 @@ import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/use
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -26,7 +25,6 @@ export function OrganizationFeatureFlagsAuditLogTable({
   pageSize?: number;
 }) {
   const organization = useOrganization();
-  const location = useLocation();
   const locationQuery = useLocationQuery({
     fields: {
       cursor: decodeScalar,
@@ -63,9 +61,8 @@ export function OrganizationFeatureFlagsAuditLogTable({
 
   const [activeRowKey, setActiveRowKey] = useState<number | undefined>();
 
-  const {columns, handleResizeColumn} = useQueryBasedColumnResize<ColumnKey>({
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: BASE_COLUMNS,
-    location,
   });
 
   const handleMouseOver = useCallback((_dataRow: RawFlag, key: number) => {

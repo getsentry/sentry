@@ -86,11 +86,10 @@ export function JobsTable() {
     );
   }, []);
 
+  type TableData = (typeof tableDataRequest.data)[number];
+
   const renderBodyCell = useCallback(
-    (
-      column: GridColumnOrder<string>,
-      dataRow: (typeof tableDataRequest.data)[number]
-    ) => {
+    (column: GridColumnOrder<string>, dataRow: TableData) => {
       switch (column.key) {
         case 'messaging.destination.name':
           return <DestinationCell destination={dataRow['messaging.destination.name']} />;
@@ -119,7 +118,7 @@ export function JobsTable() {
           return <div />;
       }
     },
-    [tableDataRequest]
+    []
   );
 
   return (
@@ -127,7 +126,7 @@ export function JobsTable() {
       isLoading={tableDataRequest.isPending}
       error={tableDataRequest.error}
       data={tableDataRequest.data}
-      initialColumnOrder={defaultColumnOrder}
+      initialColumnOrder={defaultColumnOrder as Array<GridColumnOrder<keyof TableData>>}
       stickyHeader
       grid={{
         renderBodyCell,

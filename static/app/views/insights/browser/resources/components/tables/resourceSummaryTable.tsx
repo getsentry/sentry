@@ -168,7 +168,6 @@ function ResourceSummaryTable() {
   };
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: [...columnOrder],
-    location,
   });
 
   return (

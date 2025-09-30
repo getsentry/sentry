@@ -256,7 +256,6 @@ export function SpanOperationTable({
 
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: gridColumnOrder,
-    location,
   });
 
   return (

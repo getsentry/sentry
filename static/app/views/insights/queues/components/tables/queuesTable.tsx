@@ -129,7 +129,6 @@ export function QueuesTable({error, destination, sort}: Props) {
   };
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: [...COLUMN_ORDER],
-    location,
   });
 
   return (

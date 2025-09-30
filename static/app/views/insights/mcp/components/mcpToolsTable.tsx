@@ -88,11 +88,10 @@ export function McpToolsTable() {
     [handleSort]
   );
 
+  type TableData = (typeof tableDataRequest.data)[number];
+
   const renderBodyCell = useCallback(
-    (
-      column: GridColumnOrder<string>,
-      dataRow: (typeof tableDataRequest.data)[number]
-    ) => {
+    (column: GridColumnOrder<string>, dataRow: TableData) => {
       switch (column.key) {
         case SpanFields.MCP_TOOL_NAME:
           return <McpToolCell tool={dataRow[SpanFields.MCP_TOOL_NAME]} />;
@@ -118,7 +117,7 @@ export function McpToolsTable() {
           return <div />;
       }
     },
-    [tableDataRequest, organization, query, selection]
+    [organization, query, selection]
   );
 
   return (
@@ -126,7 +125,7 @@ export function McpToolsTable() {
       isLoading={tableDataRequest.isPending}
       error={tableDataRequest.error}
       data={tableDataRequest.data}
-      initialColumnOrder={defaultColumnOrder}
+      initialColumnOrder={defaultColumnOrder as Array<GridColumnOrder<keyof TableData>>}
       stickyHeader
       grid={{
         renderBodyCell,

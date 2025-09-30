@@ -204,7 +204,6 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
   };
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: [...columnOrder],
-    location,
   });
 
   return (

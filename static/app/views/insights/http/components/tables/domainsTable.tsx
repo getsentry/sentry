@@ -132,7 +132,6 @@ export function DomainsTable({response, sort}: Props) {
   };
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: [...COLUMN_ORDER],
-    location,
   });
 
   return (
