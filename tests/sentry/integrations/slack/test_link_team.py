@@ -19,7 +19,6 @@ from sentry.notifications.models.notificationsettingprovider import Notification
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import add_identity, install_slack, link_team
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -199,46 +198,6 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
                 organization=team.organization, team_ids=[team.id]
             )
             assert len(external_actors) == 1
-
-    @with_feature("organizations:team-workflow-notifications")
-    def test_message_includes_workflow(self) -> None:
-        self.get_success_response(data={"team": self.team.id})
-        external_actors = self.get_linked_teams()
-
-        assert self.mock_post.call_count == 1
-        text = self.mock_post.call_args.kwargs["text"]
-        assert (
-            f"The {self.team.slug} team will now receive issue alert and workflow notifications in the {external_actors[0].external_name} channel."
-            in text
-        )
-
-    @with_feature("organizations:team-workflow-notifications")
-    def test_link_team_v2(self) -> None:
-        """Test that we successfully link a team to a Slack channel"""
-        response = self.get_success_response()
-        self.assertTemplateUsed(response, "sentry/integrations/slack/link-team.html")
-
-        response = self.get_success_response(data={"team": self.team.id})
-        self.assertTemplateUsed(response, "sentry/integrations/slack/post-linked-team.html")
-
-        external_actors = self.get_linked_teams()
-        assert len(external_actors) == 1
-        assert external_actors[0].team_id == self.team.id
-
-        assert self.mock_post.call_count == 1
-        text = self.mock_post.call_args.kwargs["text"]
-        assert (
-            f"The {self.team.slug} team will now receive issue alert and workflow notifications in the {external_actors[0].external_name} channel."
-            in text
-        )
-
-        # Test that we didn't make an NotificationSetting object
-        # Instead we will use the default in notificationcontroller.py
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            team_settings = NotificationSettingProvider.objects.filter(
-                team_id=self.team.id,
-            )
-            assert len(team_settings) == 0
 
 
 class SlackIntegrationUnlinkTeamTestWithSdk(SlackIntegrationLinkTeamTestBase):
