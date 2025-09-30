@@ -48,7 +48,7 @@ import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
-import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
+import {useSpanEventWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSpanEventWidgetState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
@@ -92,7 +92,7 @@ function WidgetBuilderSlideout({
   const isEditing = useIsEditingWidget();
   const source = useDashboardWidgetSource();
   const {cacheBuilderState} = useCacheBuilderState();
-  const {setSegmentSpanBuilderState} = useSegmentSpanWidgetState();
+  const {setSpanEventBuilderState} = useSpanEventWidgetState();
   const disableTransactionWidget = useDisableTransactionWidget();
   const isTransactionsWidget = state.dataset === WidgetType.TRANSACTIONS;
   const [showTransactionsDeprecationAlert, setShowTransactionsDeprecationAlert] =
@@ -260,7 +260,7 @@ function WidgetBuilderSlideout({
                           }}
                           onClick={() => {
                             cacheBuilderState(state.dataset ?? WidgetType.ERRORS);
-                            setSegmentSpanBuilderState();
+                            setSpanEventBuilderState();
                           }}
                         >
                           {t('spans')}

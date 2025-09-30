@@ -8,7 +8,7 @@ import uuid
 from copy import deepcopy
 from typing import Any, cast
 
-from sentry_kafka_schemas.schema_types.buffered_segments_v1 import _SentryExtractedTags
+import sentry_sdk
 
 from sentry.performance_issues.types import SentryTags as PerformanceIssuesSentryTags
 from sentry.spans.consumers.process_segments.types import (
@@ -34,26 +34,29 @@ def make_compatible(span: EnrichedSpan) -> CompatibleSpan:
         "op": get_span_op(span),
         # Note: Event protocol spans expect `exclusive_time` while EAP expects
         # `exclusive_time_ms`. Both are the same value in milliseconds
-        "exclusive_time": span["exclusive_time_ms"],
+        "exclusive_time": span["exclusive_time_ms"],  # FIXME
     }
 
     return ret
 
 
-def _sentry_tags(attributes: dict[str, Any]) -> _SentryExtractedTags:
+def _sentry_tags(attributes: dict[str, Any]) -> dict[str, str]:
     """Backfill sentry tags used in performance issue detection.
 
     Once performance issue detection is only called from process_segments,
     (not from event_manager), the performance issues code can be refactored to access
     span attributes instead of sentry_tags.
     """
-    sentry_tags: _SentryExtractedTags = {}
+    sentry_tags = {}
     for tag_key in PerformanceIssuesSentryTags.__mutable_keys__:
         attribute_key = (
             "sentry.normalized_description" if tag_key == "description" else f"sentry.{tag_key}"
         )
         if attribute_key in attributes:
-            sentry_tags[tag_key] = (attributes[attribute_key] or {}).get("value")
+            try:
+                sentry_tags[tag_key] = str((attributes[attribute_key] or {}).get("value"))
+            except Exception:
+                sentry_sdk.capture_exception()
 
     return sentry_tags
 

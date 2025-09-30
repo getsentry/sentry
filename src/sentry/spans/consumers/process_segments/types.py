@@ -1,7 +1,12 @@
 from typing import Any, NotRequired
 
-import sentry_sdk
-from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import (
+    _FullStopIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalue as AttributeValue,
+)
+
+Attributes = dict[str, AttributeValue]
+
 
 # The default span.op to assume if it is missing on the span. This should be
 # normalized by Relay, but we defensively apply the same fallback as the op is
@@ -9,11 +14,11 @@ from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 DEFAULT_SPAN_OP = "default"
 
 
-def get_span_op(span: SegmentSpan) -> str:
+def get_span_op(span: SpanEvent) -> str:
     return attribute_value(span, "sentry.op") or DEFAULT_SPAN_OP
 
 
-class EnrichedSpan(SegmentSpan, total=True):
+class EnrichedSpan(SpanEvent, total=True):
     """
     Enriched version of the incoming span payload that has additional attributes
     extracted from its child spans and/or inherited from its parent span.
@@ -29,16 +34,12 @@ class CompatibleSpan(EnrichedSpan, total=True):
 
     exclusive_time: float
     op: str
+    sentry_tags: dict[str, str]
 
     # Added by `SpanGroupingResults.write_to_spans` in `_enrich_spans`
     hash: NotRequired[str]
 
 
-def attribute_value(span: SegmentSpan, key) -> Any:
-    attributes = span.get("attributes") or {}
-    try:
-        return attributes.get(key).get("value")
-    except Exception as e:
-        # `attributes` is not a dict or the attribute itself is not a dict.
-        sentry_sdk.capture_exception(e)
-        return None
+def attribute_value(span: SpanEvent, key: str) -> Any:
+    attributes: Attributes = span.get("attributes") or {}
+    return (attributes.get(key) or {}).get("value")

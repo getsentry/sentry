@@ -5,10 +5,10 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToStateQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToStateQueryParams';
 
-export function useSegmentSpanWidgetState() {
+export function useSpanEventWidgetState() {
   const {dispatch, state} = useWidgetBuilderContext();
 
-  const setSegmentSpanBuilderState = useCallback(() => {
+  const setSpanEventBuilderState = useCallback(() => {
     const nextDataset = WidgetType.SPANS;
     const stateParams = convertBuilderStateToStateQueryParams(state);
     dispatch({
@@ -22,6 +22,6 @@ export function useSegmentSpanWidgetState() {
   }, [dispatch, state]);
 
   return {
-    setSegmentSpanBuilderState,
+    setSpanEventBuilderState,
   };
 }

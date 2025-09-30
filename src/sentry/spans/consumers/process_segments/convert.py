@@ -39,10 +39,11 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
     client_sample_rate = 1.0
     server_sample_rate = 1.0
 
-    for k, v in (span.get("attributes") or {}).items():
+    for k, field_value in (span.get("attributes") or {}).items():
+        if (value := field_value.get("value")) is None:
+            continue
         try:
             # NOTE: This ignores the `type` field of the attribute itself
-            value = v["value"]
             attributes[k] = _anyvalue(value)
         except Exception:
             sentry_sdk.capture_exception()
@@ -59,9 +60,9 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
                     pass
 
     for field_name, attribute_name in FIELD_TO_ATTRIBUTE.items():
-        v = span.get(field_name)
-        if v is not None:
-            attributes[attribute_name] = _anyvalue(v)
+        field_value = span.get(field_name)
+        if field_value is not None:
+            attributes[attribute_name] = _anyvalue(field_value)
 
     # Rename some attributes from their sentry-conventions name to what the product currently expects.
     # Eventually this should all be handled by deprecation policies in sentry-conventions.
@@ -135,7 +136,10 @@ def _sanitize_span_link(link: SpanLink) -> SpanLink:
     # might be an intermediary state where there is a pre-existing dropped
     # attributes count. Respect that count, if it's present. It should always be
     # an integer.
-    dropped_attributes_count = attributes.get("sentry.dropped_attributes_count", 0)
+    try:
+        dropped_attributes_count = int(attributes["sentry.dropped_attributes_count"]["value"])  # type: ignore[arg-type]
+    except (KeyError, ValueError, TypeError):
+        dropped_attributes_count = 0
 
     for key, value in attributes.items():
         if key in ALLOWED_LINK_ATTRIBUTE_KEYS:
@@ -144,7 +148,10 @@ def _sanitize_span_link(link: SpanLink) -> SpanLink:
             dropped_attributes_count += 1
 
     if dropped_attributes_count > 0:
-        allowed_attributes["sentry.dropped_attributes_count"] = dropped_attributes_count
+        allowed_attributes["sentry.dropped_attributes_count"] = {
+            "type": "integer",
+            "value": dropped_attributes_count,
+        }
 
     # Only include the `attributes` key if the key was present in the original
     # link, don't create a an empty object, since there is a semantic difference

@@ -21,7 +21,7 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useCacheBuilderState';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
-import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
+import {useSpanEventWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSpanEventWidgetState';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 
 function WidgetBuilderDatasetSelector() {
@@ -31,7 +31,7 @@ function WidgetBuilderDatasetSelector() {
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
   const {cacheBuilderState, restoreOrSetBuilderState} = useCacheBuilderState();
-  const {setSegmentSpanBuilderState} = useSegmentSpanWidgetState();
+  const {setSpanEventBuilderState} = useSpanEventWidgetState();
   const disabledChoices: RadioGroupProps<WidgetType>['disabledChoices'] = [];
 
   const datasetChoices: Array<RadioOption<WidgetType>> = [];
@@ -56,7 +56,7 @@ function WidgetBuilderDatasetSelector() {
             }}
             onClick={() => {
               cacheBuilderState(state.dataset ?? WidgetType.ERRORS);
-              setSegmentSpanBuilderState();
+              setSpanEventBuilderState();
             }}
           >
             {t('spans')}
