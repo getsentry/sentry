@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -95,7 +95,7 @@ class PreparedIntegrationNotificationTargetTest(TestCase):
             ).organization_integration
 
     @patch("sentry.integrations.slack.integration.SlackSdkClient.chat_postMessage")
-    def test_prepare_targets_valid_installation_cls(self, mock_slack_client) -> None:
+    def test_prepare_targets_valid_installation_cls(self, mock_slack_client: MagicMock) -> None:
         integration_target = IntegrationNotificationTarget(
             provider_key=NotificationProviderKey.SLACK,
             resource_type=NotificationTargetResourceType.CHANNEL,
