@@ -4,6 +4,7 @@ import re
 from datetime import timedelta
 from typing import Any
 
+from sentry import features
 from sentry.issues.grouptype import PerformanceLargeHTTPPayloadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
@@ -24,28 +25,14 @@ EXTENSION_REGEX = re.compile(r"\.([a-zA-Z0-9]+)/?(?!/)(\?.*)?$")
 EXTENSION_ALLOW_LIST = ("JSON",)
 
 # Content-Type values that typically indicate file downloads
+# Focused on the most common scenarios that would cause false positives
 FILE_DOWNLOAD_CONTENT_TYPES = {
-    "application/octet-stream",
-    "application/pdf",
-    "application/zip",
-    "application/x-zip-compressed",
-    "application/x-rar-compressed",
-    "application/x-7z-compressed",
-    "application/x-tar",
-    "application/x-gzip",
-    "application/x-bzip2",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/vnd.ms-powerpoint",
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    "application/vnd.oasis.opendocument.text",
-    "application/vnd.oasis.opendocument.spreadsheet",
-    "application/vnd.oasis.opendocument.presentation",
-    "image/",
-    "video/",
-    "audio/",
-    "text/csv",
-    "text/plain",
+    "application/octet-stream",  # Generic binary file
+    "application/pdf",  # PDF documents
+    "application/zip",  # ZIP archives
+    "image/",  # All image types
+    "video/",  # All video types
+    "audio/",  # All audio types
 }
 
 
@@ -70,6 +57,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         super().__init__(settings, event)
 
         self.consecutive_http_spans: list[Span] = []
+        self.organization = self.settings.get("organization")
 
     def visit_span(self, span: Span) -> None:
         if not self._is_span_eligible(span):
@@ -148,7 +136,9 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         # Check if this is a file download based on HTTP headers
         # This addresses the issue where file download endpoints using internal unique identifiers
         # (without file extensions in URLs) were incorrectly flagged as performance issues.
-        if self._is_file_download(span):
+        if features.has(
+            "organizations:large-http-payload-detector-improvements", self.organization
+        ) and self._is_file_download(span):
             return False
 
         normalized_description = description.strip().upper()
@@ -156,7 +146,8 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         if extension and extension.group(1) not in EXTENSION_ALLOW_LIST:
             return False
 
-        if any([x in description for x in ["_next/static/", "_next/data/"]]):
+        # Exclude Next.js static and data URLs as specified in documentation
+        if description.startswith(("_next/static/", "_next/data/")):
             return False
 
         span_data = span.get("data", {})
@@ -168,7 +159,6 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
     def _is_file_download(self, span: Span) -> bool:
         """
         Check if this span represents a file download based on HTTP headers.
-        Returns True if the response indicates a file download, False otherwise.
         """
         span_data = span.get("data", {})
         if not span_data:
@@ -194,9 +184,11 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
             return True
 
         # Check for prefix matches (e.g., image/, video/, audio/)
-        for download_type in FILE_DOWNLOAD_CONTENT_TYPES:
-            if download_type.endswith("/") and content_type.startswith(download_type):
-                return True
+        if any(
+            content_type.startswith(download_type) and download_type.endswith("/")
+            for download_type in FILE_DOWNLOAD_CONTENT_TYPES
+        ):
+            return True
 
         return False
 
