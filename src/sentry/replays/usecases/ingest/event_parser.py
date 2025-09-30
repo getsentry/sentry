@@ -410,15 +410,14 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             payload = event.get("data", {}).get("payload", {})
             tap_attributes: dict[str, Value] = {
                 "category": "ui.tap",
-                "message": as_string_strict(payload.get("message", "")),
-                "view_id": as_string_strict(payload.get("view.id", "")),
-                "view_class": as_string_strict(payload.get("view.class", "")),
+                "message": as_string_strict(payload["message"]),
+                "view_id": as_string_strict(payload["data"]["view.id"]),
+                "view_class": as_string_strict(payload["data"]["view.class"]),
             }
-            timestamp = payload.get("timestamp")
             return {
                 "attributes": tap_attributes,
                 "event_hash": uuid.uuid4().bytes,
-                "timestamp": float(timestamp),
+                "timestamp": float(payload["timestamp"]),
             }
         case EventType.NAVIGATION:
             payload = event["data"]["payload"]
