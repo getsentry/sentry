@@ -164,10 +164,10 @@ def _format_failure_summary(artifacts: list[PreprodArtifact]) -> str:
             version_parts.append(artifact.build_version)
         if artifact.build_number:
             version_parts.append(f"({artifact.build_number})")
-        version_string = " ".join(version_parts) if version_parts else _("Unknown")
+        version_string = " ".join(version_parts) if version_parts else "-"
 
         artifact_url = get_preprod_artifact_url(artifact)
-        app_id_link = f"[`{artifact.app_id or '--'}`]({artifact_url})"
+        app_id_link = f"[`{artifact.app_id or _('Unknown App')}`]({artifact_url})"
 
         if artifact.state == PreprodArtifact.ArtifactState.FAILED:
             error_msg = artifact.error_message or _("Unknown error")
