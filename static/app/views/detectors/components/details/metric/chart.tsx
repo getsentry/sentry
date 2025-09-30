@@ -44,7 +44,7 @@ function incidentSeriesTooltip(ctx: IncidentTooltipContext) {
   const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${ctx.theme.red400};margin-right:6px;vertical-align:middle;"></span>`;
   return [
     '<div class="tooltip-series">',
-    `<div><span class="tooltip-label"><strong>#ID_MISSING</strong></span></div>`,
+    `<div><span class="tooltip-label"><strong>#${ctx.period.id}</strong></span></div>`,
     `<div><span class="tooltip-label">${t('Started')}</span> ${startTime}</div>`,
     `<div><span class="tooltip-label">${t('Ended')}</span> ${endTime}</div>`,
     `<div><span class="tooltip-label">${t('Priority')}</span> ${priorityDot} ${t('Critical')}</div>`,
@@ -58,7 +58,7 @@ function incidentMarklineTooltip(ctx: IncidentTooltipContext) {
   const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${ctx.theme.red400};margin-right:6px;vertical-align:middle;"></span>`;
   return [
     '<div class="tooltip-series">',
-    `<div><span class="tooltip-label"><strong>${t('#%s Triggered', 'ID_MISSING')}</strong></span></div>`,
+    `<div><span class="tooltip-label"><strong>${t('#%s Triggered', ctx.period.id)}</strong></span></div>`,
     `<div><span class="tooltip-label">${t('Started')}</span> ${time}</div>`,
     `<div><span class="tooltip-label">${t('Priority')}</span> ${priorityDot} ${t('Critical')}</div>`,
     '</div>',

@@ -45,6 +45,7 @@ export interface IncidentPeriod {
    * End timestamp in milliseconds
    */
   end: number;
+  id: string;
   /**
    * Display name for the incident
    */

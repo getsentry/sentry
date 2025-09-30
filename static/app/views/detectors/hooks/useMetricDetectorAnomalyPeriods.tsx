@@ -76,6 +76,8 @@ function groupAnomaliesForBubbles(
       if (currentPeriod === null) {
         // Start a new anomaly period
         currentPeriod = {
+          // Anomaly id is not shown
+          id: anomalies.indexOf(anomaly).toString(),
           type: anomaly.anomaly.anomaly_type,
           name: isHighConfidence
             ? t('High Confidence Anomaly')
