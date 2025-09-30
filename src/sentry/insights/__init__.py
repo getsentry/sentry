@@ -27,7 +27,7 @@ class FilterSpan(NamedTuple):
 
     @classmethod
     def from_span_attributes(cls, attributes: dict[str, Any]) -> "FilterSpan":
-        """Get relevant fields from `span.data`."""
+        """Get relevant fields from `span.attributes`."""
         return cls(
             op=(attributes.get("sentry.op") or {}).get("value"),
             category=(attributes.get("sentry.category") or {}).get("value"),
