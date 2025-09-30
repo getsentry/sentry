@@ -138,16 +138,19 @@ def _format_processing_summary(
                 download_change = str(_("N/A"))
                 install_change = str(_("N/A"))
 
+            na_text = str(_("N/A"))
             table_rows.append(
-                f"| {app_id_link} | {version_string} | {download_size} | {download_change} | {install_size} | {install_change} | {_('N/A')} |"
+                f"| {app_id_link} | {version_string} | {download_size} | {download_change} | {install_size} | {install_change} | {na_text} |"
             )
         else:
             # This metric is still processing
+            processing_text = str(_("Processing..."))
+            na_text = str(_("N/A"))
             table_rows.append(
-                f"| {app_id_link} | {version_string} | {_('Processing...')} | - | {_('Processing...')} | - | {_('N/A')} |"
+                f"| {app_id_link} | {version_string} | {processing_text} | - | {processing_text} | - | {na_text} |"
             )
 
-    install_label = _("Uncompressed") if artifact.is_android() else _("Install")
+    install_label = str(_("Uncompressed")) if artifact.is_android() else str(_("Install"))
     return _(
         "| Name | Version | Download | Change | {install_label} | Change | Approval |\n"
         "|------|---------|----------|--------|---------|--------|----------|\n"
@@ -164,17 +167,19 @@ def _format_failure_summary(artifacts: list[PreprodArtifact]) -> str:
             version_parts.append(artifact.build_version)
         if artifact.build_number:
             version_parts.append(f"({artifact.build_number})")
-        version_string = " ".join(version_parts) if version_parts else _("Unknown")
+        version_string = " ".join(version_parts) if version_parts else "-"
 
         artifact_url = get_preprod_artifact_url(artifact)
-        app_id_link = f"[`{artifact.app_id or '--'}`]({artifact_url})"
+        unknown_app_text = str(_("Unknown App"))
+        app_id_link = f"[`{artifact.app_id or unknown_app_text}`]({artifact_url})"
 
         if artifact.state == PreprodArtifact.ArtifactState.FAILED:
-            error_msg = artifact.error_message or _("Unknown error")
+            error_msg = artifact.error_message or str(_("Unknown error"))
             table_rows.append(f"| {app_id_link} | {version_string} | {error_msg} |")
         else:
             # Show successful/processing ones too in mixed state
-            table_rows.append(f"| {app_id_link} | {version_string} | {_('Processing...')} |")
+            processing_text = str(_("Processing..."))
+            table_rows.append(f"| {app_id_link} | {version_string} | {processing_text} |")
 
     return _("| Name | Version | Error |\n" "|------|---------|-------|\n" "{table_rows}").format(
         table_rows="\n".join(table_rows)
@@ -242,11 +247,12 @@ def _format_success_summary(
             install_change = "-"
 
         app_id_link = f"[`{app_id}`]({artifact_url})"
+        na_text = str(_("N/A"))
         table_rows.append(
-            f"| {app_id_link} | {version_string} | {download_size} | {download_change} | {install_size} | {install_change} | {_('N/A')} |"
+            f"| {app_id_link} | {version_string} | {download_size} | {download_change} | {install_size} | {install_change} | {na_text} |"
         )
 
-    install_label = _("Uncompressed") if artifact.is_android() else _("Install")
+    install_label = str(_("Uncompressed")) if artifact.is_android() else str(_("Install"))
     return _(
         "| Name | Version | Download | Change | {install_label} | Change | Approval |\n"
         "|------|---------|----------|--------|---------|--------|----------|\n"
