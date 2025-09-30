@@ -196,8 +196,3 @@ const FullRowLink = styled(Link)`
     color: inherit;
   }
 `;
-
-const InlineCodeSnippet = styled(CodeSnippet)`
-  font-size: ${p => p.theme.fontSize.xs};
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
-`;
