@@ -86,7 +86,7 @@ export function OverviewRow({summary, uptimeDetector, timeWindowConfig, single}:
             <IconTimer />
             {t('Checked every %s', getDuration(subscription.intervalSeconds))}
           </Flex>
-          {summary === undefined ? null : summary === null ? (
+          {summary === null ? null : summary === undefined ? (
             <Fragment>
               <Placeholder width="60px" height="1lh" />
               <Placeholder width="40px" height="1lh" />

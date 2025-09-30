@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Generic, TypeVar
 
+from django.utils import timezone
+
 from sentry.issues.grouptype import GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.types.actor import Actor
@@ -45,6 +47,7 @@ class DetectorOccurrence:
     resource_id: str | None = None
     assignee: Actor | None = None
     priority: DetectorPriorityLevel | None = None
+    detection_time: datetime | None = None
 
     def to_issue_occurrence(
         self,
@@ -52,7 +55,6 @@ class DetectorOccurrence:
         occurrence_id: str,
         project_id: int,
         status: DetectorPriorityLevel,
-        detection_time: datetime,
         additional_evidence_data: Mapping[str, Any],
         fingerprint: list[str],
     ) -> IssueOccurrence:
@@ -67,7 +69,7 @@ class DetectorOccurrence:
             evidence_data={**self.evidence_data, **additional_evidence_data},
             evidence_display=self.evidence_display,
             type=self.type,
-            detection_time=detection_time,
+            detection_time=self.detection_time or timezone.now(),
             level=self.level,
             culprit=self.culprit,
             priority=self.priority or status,

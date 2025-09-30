@@ -95,9 +95,7 @@ SentrySDK.start { options in
             'For more detailed information on profiling, see the [link:profiling documentation].',
             {
               link: (
-                <ExternalLink
-                  href={`https://docs.sentry.io/platforms/apple/profiling/`}
-                />
+                <ExternalLink href="https://docs.sentry.io/platforms/apple/profiling/" />
               ),
             }
           ),

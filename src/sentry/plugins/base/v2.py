@@ -5,6 +5,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from threading import local
 from typing import TYPE_CHECKING, Any, Protocol
 
+from django import forms
 from django.http import HttpResponseRedirect
 
 from sentry.plugins import HIDDEN_PLUGINS
@@ -66,7 +67,7 @@ class IPlugin2(local, PluginConfigMixin):
     conf_key: str | None = None
     conf_title: str | _StrPromise | None = None
 
-    project_conf_form: Any = None
+    project_conf_form: type[forms.Form] | None = None
 
     # Global enabled state
     enabled = True

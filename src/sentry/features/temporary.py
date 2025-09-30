@@ -72,8 +72,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:prevent-test-analytics", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the improved command menu (Cmd+K)
     manager.add("organizations:command-menu-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable dual writing Commits and CommitFileChanges to the new models in `releases/`
-    manager.add("organizations:commit-retention-dual-writing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable continuous profiling
     manager.add("organizations:continuous-profiling", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enabled for beta orgs
@@ -424,8 +422,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:grouptombstones-hit-counter", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable static ClickHouse sampling for `OrganizationTagsEndpoint`
     manager.add("organizations:tag-key-sample-n", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable team workflow notifications
-    manager.add("organizations:team-workflow-notifications", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable feature to load more than 100 rows in performance trace view.
     manager.add("organizations:trace-view-load-more", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to load new trace view.
@@ -631,14 +627,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
         OrganizationFeature,
         FeatureHandlerStrategy.FLAGPOLE,
         api_expose=False,
-    )
-
-    # Controls access to tempest features
-    manager.add(
-        "organizations:tempest-access",
-        OrganizationFeature,
-        FeatureHandlerStrategy.FLAGPOLE,
-        api_expose=True,
     )
 
     # Control access to a new debug files role management
