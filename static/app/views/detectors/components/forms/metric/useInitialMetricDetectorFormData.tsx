@@ -10,7 +10,7 @@ import {
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
-export function getLocationDataset(
+function getLocationDataset(
   query: Record<string, string | string[] | undefined | null>
 ): DetectorDataset {
   const raw = decodeScalar(query.dataset);
@@ -23,7 +23,7 @@ export function getLocationDataset(
     : DEFAULT_THRESHOLD_METRIC_FORM_DATA.dataset;
 }
 
-export function getLocationAggregate(
+function getLocationAggregate(
   query: Record<string, string | string[] | undefined | null>,
   datasetConfig: ReturnType<typeof getDatasetConfig>,
   organization: Organization
@@ -43,22 +43,6 @@ export function getLocationAggregate(
   return allowed.includes(parsedAggregate?.name) ? raw : undefined;
 }
 
-export function getLocationQuery(query: Record<string, any>): string {
-  return decodeScalar(query.query, '') ?? '';
-}
-
-export function getLocationEnvironment(
-  query: Record<string, string | string[] | undefined | null>
-): string {
-  return decodeScalar(query.environment, '') ?? '';
-}
-
-export function getLocationName(
-  query: Record<string, string | string[] | undefined | null>
-): string {
-  return decodeScalar(query.name, '') ?? '';
-}
-
 export function useInitialMetricDetectorFormData(): Partial<MetricDetectorFormData> {
   const location = useLocation();
   const organization = useOrganization();
@@ -70,9 +54,9 @@ export function useInitialMetricDetectorFormData(): Partial<MetricDetectorFormDa
     datasetConfig,
     organization
   );
-  const queryFromUrl = getLocationQuery(location.query);
-  const environmentFromUrl = getLocationEnvironment(location.query);
-  const nameFromUrl = getLocationName(location.query);
+  const queryFromUrl = decodeScalar(location.query.query, '') ?? '';
+  const environmentFromUrl = decodeScalar(location.query.environment, '') ?? '';
+  const nameFromUrl = decodeScalar(location.query.name, '') ?? '';
 
   return {
     ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
