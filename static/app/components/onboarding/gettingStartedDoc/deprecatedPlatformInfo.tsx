@@ -5,7 +5,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import type {PlatformIntegration, ProjectKey} from 'sentry/types/project';
 
 type DeprecatedPlatformInfoProps = {
