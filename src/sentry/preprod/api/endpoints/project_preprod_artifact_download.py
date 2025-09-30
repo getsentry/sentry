@@ -62,9 +62,13 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
     def head(self, request: Request, project, head_artifact_id, head_artifact) -> HttpResponseBase:
         file_obj = self._get_file_object(head_artifact)
         filename = self._get_filename(head_artifact)
+        file_size = file_obj.size
+
+        if file_size is None or file_size < 0:
+            return Response({"error": "File size unavailable"}, status=500)
 
         response = HttpResponse()
-        response["Content-Length"] = file_obj.size
+        response["Content-Length"] = file_size
         response["Content-Type"] = "application/octet-stream"
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         response["Accept-Ranges"] = "bytes"
