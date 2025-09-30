@@ -304,11 +304,13 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         event = create_event(spans)
         assert len(self.find_problems(event)) == 0
 
-    @with_feature("organizations:large-http-payload-detector-improvement")
+    @with_feature("organizations:large-http-payload-detector-improvements")
     def test_does_not_trigger_detection_for_file_downloads_with_content_disposition_attachment(
         self,
     ) -> None:
         """Test that spans with Content-Disposition: attachment are excluded"""
+        settings = get_detection_settings(organization=self.organization)
+
         spans = [
             create_span(
                 "http.client",
@@ -329,13 +331,14 @@ class LargeHTTPPayloadDetectorTest(TestCase):
             )
         ]
         event = create_event(spans)
-        assert len(self.find_problems(event)) == 0
+        detector = LargeHTTPPayloadDetector(settings, event)
+        run_detector_on_data(detector, event)
+        assert len(detector.stored_problems) == 0
 
-    @with_feature("organizations:large-http-payload-detector-improvement")
+    @with_feature("organizations:large-http-payload-detector-improvements")
     def test_does_not_trigger_detection_for_file_downloads(self) -> None:
         """Test that file downloads are excluded when feature flag is enabled"""
-        organization = self.create_organization()
-        settings = get_detection_settings(organization=organization)
+        settings = get_detection_settings(organization=self.organization)
 
         spans = [
             create_span(
