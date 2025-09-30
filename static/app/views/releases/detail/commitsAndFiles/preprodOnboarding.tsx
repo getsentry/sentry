@@ -72,7 +72,7 @@ function FastlaneMethod({
         <OnboardingCodeSnippet language="yaml">
           {`env:
   SENTRY_AUTH_TOKEN: \${{ secrets.SENTRY_AUTH_TOKEN }}
-  SENTRY_CONFIGURATION: Release  # Adjust to your actual build configuration`}
+  SENTRY_BUILD_CONFIGURATION: Release  # Adjust to your actual build configuration`}
         </OnboardingCodeSnippet>
       </Container>
     </Flex>
