@@ -811,23 +811,47 @@ class FormModel {
 
     let errorDisplayed = false;
 
-    // Show resp msg from API endpoint if possible
-    Object.keys(resp).forEach(id => {
-      // non-field errors can be camelcase or snake case
-      const nonFieldErrors = resp.non_field_errors || resp.nonFieldErrors;
-      if (
-        (id === 'non_field_errors' || id === 'nonFieldErrors') &&
-        Array.isArray(nonFieldErrors) &&
-        nonFieldErrors.length
-      ) {
-        addErrorMessage(nonFieldErrors[0], {duration: 10000});
-        errorDisplayed = true;
-      } else if (Array.isArray(resp[id]) && resp[id].length) {
-        // Just take first resp for now
-        this.setError(id, resp[id][0]);
-        errorDisplayed = true;
+    const getNonFieldErrorsFromObject = (value: Record<PropertyKey, unknown>) => {
+      if ('nonFieldErrors' in value) {
+        return value.nonFieldErrors;
       }
-    });
+      if ('non_field_errors' in value) {
+        return value.non_field_errors;
+      }
+      return undefined;
+    };
+
+    const findNonFieldErrors = (value: unknown): string | undefined => {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return undefined;
+      }
+
+      const nonFieldErrors = getNonFieldErrorsFromObject(
+        value as Record<string, unknown>
+      );
+
+      if (Array.isArray(nonFieldErrors) && nonFieldErrors.length) {
+        return nonFieldErrors[0];
+      }
+
+      for (const key of Object.keys(value)) {
+        const child = value[key as keyof typeof value];
+        if (child && typeof child === 'object') {
+          const found = findNonFieldErrors(child);
+          if (found) {
+            return found;
+          }
+        }
+      }
+
+      return undefined;
+    };
+
+    const nonFieldError = findNonFieldErrors(resp);
+    if (nonFieldError) {
+      addErrorMessage(nonFieldError, {duration: 10000});
+      errorDisplayed = true;
+    }
 
     if (!errorDisplayed) {
       addErrorMessage(t('Unknown error while saving'));
