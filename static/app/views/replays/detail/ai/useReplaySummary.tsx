@@ -14,7 +14,9 @@ import {
 } from 'sentry/views/replays/detail/ai/utils';
 
 const POLL_INTERVAL_MS = 500;
-const POLL_TIMEOUT_MS = 100 * 1000; // Task timeout in Seer (90s) + 10s buffer.
+const ERROR_POLL_INTERVAL_MS = 5000;
+const START_TIMEOUT_MS = 15_000; // Max time to wait for processing to start after a start request.
+const TOTAL_TIMEOUT_MS = 100_000; // Max time to wait for results after a start request. Task timeout in Seer (90s) + 10s buffer.
 
 export interface UseReplaySummaryResult {
   /**
@@ -43,11 +45,10 @@ export interface UseReplaySummaryResult {
 
 const shouldPoll = (
   summaryData: SummaryResponse | undefined,
-  lastFetchFailed: boolean,
   startRequestFailed: boolean,
   didTimeout: boolean
 ) => {
-  if (lastFetchFailed || startRequestFailed || didTimeout) {
+  if (startRequestFailed || didTimeout) {
     return false;
   }
 
@@ -97,12 +98,32 @@ export function useReplaySummary(
   const hasMadeStartRequest = useRef<boolean>(false);
 
   const [didTimeout, setDidTimeout] = useState(false);
-  const {start: startPollingTimeout, cancel: cancelPollingTimeout} = useTimeout({
-    timeMs: POLL_TIMEOUT_MS,
+  const {start: startTotalTimeout, cancel: cancelTotalTimeout} = useTimeout({
+    timeMs: TOTAL_TIMEOUT_MS,
     onTimeout: () => {
       setDidTimeout(true);
     },
   });
+
+  const {start: startStartTimeout, cancel: cancelStartTimeout} = useTimeout({
+    timeMs: START_TIMEOUT_MS,
+    onTimeout: () => {
+      setDidTimeout(true);
+      cancelTotalTimeout();
+    },
+  });
+
+  // Start initial timeouts in case auto-start request is not made.
+  // The callbacks are stable so this should only run on mount.
+  useEffect(() => {
+    startStartTimeout();
+    startTotalTimeout();
+
+    return () => {
+      cancelTotalTimeout();
+      cancelStartTimeout();
+    };
+  }, [startStartTimeout, startTotalTimeout, cancelStartTimeout, cancelTotalTimeout]);
 
   const {
     mutate: startSummaryRequestMutate,
@@ -145,30 +166,22 @@ export function useReplaySummary(
     startSummaryRequestMutate();
     hasMadeStartRequest.current = true;
 
-    // Start a new timeout.
+    // Start new timeouts.
     setDidTimeout(false);
-    startPollingTimeout();
-  }, [options?.enabled, startSummaryRequestMutate, startPollingTimeout]);
+    startTotalTimeout();
+    startStartTimeout();
+  }, [options?.enabled, startSummaryRequestMutate, startTotalTimeout, startStartTimeout]);
 
-  const {
-    data: summaryData,
-    isError: isFetchError,
-    dataUpdatedAt: lastFetchTime,
-  } = useApiQuery<SummaryResponse>(
+  const {data: summaryData, dataUpdatedAt: lastFetchTime} = useApiQuery<SummaryResponse>(
     createAISummaryQueryKey(organization.slug, project?.slug, replayRecord?.id ?? ''),
     {
       staleTime: 0,
       retry: false,
       refetchInterval: query => {
-        if (
-          shouldPoll(
-            query.state.data?.[0],
-            query.state.status === 'error',
-            isStartSummaryRequestError,
-            didTimeout
-          )
-        ) {
-          return POLL_INTERVAL_MS;
+        if (shouldPoll(query.state.data?.[0], isStartSummaryRequestError, didTimeout)) {
+          return query.state.status === 'error'
+            ? ERROR_POLL_INTERVAL_MS
+            : POLL_INTERVAL_MS;
         }
         return false;
       },
@@ -193,9 +206,7 @@ export function useReplaySummary(
   }, [segmentsIncreased, startSummaryRequest, summaryData?.status]);
 
   const isErrorState =
-    isFetchError ||
-    isStartSummaryRequestError ||
-    summaryData?.status === ReplaySummaryStatus.ERROR;
+    isStartSummaryRequestError || summaryData?.status === ReplaySummaryStatus.ERROR;
 
   const isFinishedState =
     isErrorState ||
@@ -203,12 +214,25 @@ export function useReplaySummary(
       !isStartSummaryRequestPending &&
       summaryData?.status === ReplaySummaryStatus.COMPLETED);
 
-  // Clears the polling timeout when we get a finished state.
+  // Cancel timeouts when we get a finished state.
   useEffect(() => {
     if (isFinishedState) {
-      cancelPollingTimeout();
+      cancelTotalTimeout();
+      cancelStartTimeout();
     }
-  }, [isFinishedState, cancelPollingTimeout]);
+  }, [cancelTotalTimeout, cancelStartTimeout, isFinishedState]);
+
+  // Cancel the start timeout when status passes NOT_STARTED.
+  useEffect(() => {
+    if (
+      summaryData &&
+      summaryData.status !== ReplaySummaryStatus.NOT_STARTED &&
+      (!summaryData.created_at || // note created_at should exist for started statuses
+        new Date(summaryData.created_at).getTime() > startSummaryRequestTime.current)
+    ) {
+      cancelStartTimeout();
+    }
+  }, [cancelStartTimeout, summaryData]);
 
   return {
     summaryData,
