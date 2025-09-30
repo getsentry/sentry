@@ -214,31 +214,35 @@ const replayOnboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Make sure your Sentry Flutter SDK version is at least 8.9.0, which is required for Session Replay. You can update your [code:pubspec.yaml] to the matching version:',
-        {code: <code />}
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: tct(
+            'Make sure your Sentry Flutter SDK version is at least 8.9.0, which is required for Session Replay. You can update your [code:pubspec.yaml] to the matching version:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'YAML',
-              value: 'yaml',
               language: 'yaml',
               code: getManualInstallSnippet(params),
             },
           ],
         },
         {
-          description: t(
+          type: 'text',
+          text: t(
             'To set up the integration, add the following to your Sentry initialization:'
           ),
         },
         {
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'Dart',
-              value: 'dart',
               language: 'dart',
               code: getInstallReplaySnippet(),
             },
@@ -250,18 +254,24 @@ const replayOnboarding: OnboardingConfig = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getReplayMobileConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/flutter/session-replay/#privacy',
-      }),
-      configurations: [
+      content: [
         {
-          description: t(
+          type: 'text',
+          text: getReplayMobileConfigureDescription({
+            link: 'https://docs.sentry.io/platforms/flutter/session-replay/#privacy',
+          }),
+        },
+        {
+          type: 'text',
+          text: t(
             'The following code is the default configuration, which masks and blocks everything.'
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'Dart',
-              value: 'dart',
               language: 'dart',
               code: getConfigureReplaySnippet(),
             },
@@ -281,34 +291,43 @@ const feedbackOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        "Use the [code:SentryFeedbackWidget] to let users send feedback data to Sentry. [break] [break] The widget requests and collects the user's name, email address, and a description of what occurred. When an event identifier is provided, Sentry pairs the feedback with the original event, giving you additional insights into issues. Additionally, you can provide a screenshot that will be sent to Sentry. Learn more about how to enable screenshots in our [screenshotsDocs:screenshots documentation].",
+      content: [
         {
-          screenshotsDocs: (
-            <ExternalLink href="https://docs.sentry.io/platforms/dart/guides/flutter/enriching-events/screenshots/" />
+          type: 'text',
+          text: tct(
+            'Use the [code:SentryFeedbackWidget] to let users send feedback data to Sentry.',
+            {
+              code: <code />,
+            }
           ),
-          break: <br />,
-          code: <code />,
-        }
-      ),
-      configurations: [
+        },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
+            "The widget requests and collects the user's name, email address, and a description of what occurred. When an event identifier is provided, Sentry pairs the feedback with the original event, giving you additional insights into issues. Additionally, you can provide a screenshot that will be sent to Sentry. Learn more about how to enable screenshots in our [screenshotsDocs:screenshots documentation].",
+            {
+              screenshotsDocs: (
+                <ExternalLink href="https://docs.sentry.io/platforms/dart/guides/flutter/enriching-events/screenshots/" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
             'One possible use for the [code:SentryFeedbackWidget] is to listen for specific Sentry events in the [code:beforeSend] callback and show the widget to users.',
             {
               code: <code />,
             }
           ),
-          configurations: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
-              code: [
-                {
-                  label: 'Dart',
-                  value: 'dart',
-                  language: 'dart',
-                  code: getFeedbackConfigureSnippet(),
-                },
-              ],
+              label: 'Dart',
+              language: 'dart',
+              code: getFeedbackConfigureSnippet(),
             },
           ],
         },
