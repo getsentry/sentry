@@ -83,10 +83,10 @@ function DropdownActions({actions, label}: Props) {
           onConfirm: action.onAction,
         });
       }}
-      triggerLabel={label}
       triggerProps={
         {
           'data-test-id': 'detail-actions',
+          children: label,
         } as any
       }
     />

@@ -99,8 +99,8 @@ function ReleaseSelector({
         icon: <IconReleases />,
         title: selectorValue,
         prefix: triggerLabelPrefix,
+        children: triggerLabelContent,
       }}
-      triggerLabel={triggerLabelContent}
       menuTitle={t('Filter Release')}
       loading={isLoading}
       searchable
