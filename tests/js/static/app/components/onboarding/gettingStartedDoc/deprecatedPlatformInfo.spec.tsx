@@ -23,13 +23,11 @@ describe('DeprecatedPlatformInfo', () => {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          `${platform.name} has been deprecated, but you can still use this project with the following DSN key:`
+          `${platform.name} has been deprecated, but you can still use this project with the following DSN:`
         )
       )
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher(`DSN: ${dsn.public}`))
-    ).toBeInTheDocument();
+    expect(screen.getByText(dsn.public)).toBeInTheDocument();
     expect(screen.getByRole('button', {name: /Copy snippet/i})).toBeInTheDocument();
     const docsLink = screen.getByRole('link', {name: 'docs'});
     expect(docsLink).toHaveAttribute('href', platform.link);
