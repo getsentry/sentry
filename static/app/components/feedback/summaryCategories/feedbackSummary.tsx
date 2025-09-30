@@ -21,6 +21,9 @@ export default function FeedbackSummary() {
 
   useEffect(() => {
     // Analytics for the rendered state. Should match the conditions below.
+    if (isPending || isOrgSeerSetupPending) {
+      return;
+    }
     if (!setupAcknowledgement.orgHasAcknowledged) {
       trackAnalytics('feedback.summary.seer-cta-rendered', {
         organization,
@@ -38,7 +41,14 @@ export default function FeedbackSummary() {
         organization,
       });
     }
-  }, [organization, isError, tooFewFeedbacks, setupAcknowledgement.orgHasAcknowledged]);
+  }, [
+    organization,
+    isError,
+    tooFewFeedbacks,
+    setupAcknowledgement.orgHasAcknowledged,
+    isPending,
+    isOrgSeerSetupPending,
+  ]);
 
   if (isPending || isOrgSeerSetupPending) {
     return <LoadingPlaceholder />;
