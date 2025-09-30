@@ -4,7 +4,7 @@ from enum import StrEnum
 from typing import Any, TypedDict, TypeVar
 
 import sentry_sdk
-from transformers import AutoTokenizer
+from tokenizers import Tokenizer
 
 from sentry import options
 from sentry.grouping.api import get_contributing_variant_and_component
@@ -49,7 +49,7 @@ BASE64_ENCODED_PREFIXES = [
 ]
 
 IGNORED_FILENAMES = ["<compiler-generated>"]
-TOKENIZER = AutoTokenizer.from_pretrained("jinaai/jina-embeddings-v2-base-en")
+TOKENIZER = Tokenizer.from_pretrained("jinaai/jina-embeddings-v2-base-en")
 
 
 class ReferrerOptions(StrEnum):
