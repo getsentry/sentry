@@ -1,4 +1,4 @@
-from django.http.response import FileResponse, HttpResponse, HttpResponseBase
+from django.http.response import HttpResponse, HttpResponseBase, StreamingHttpResponse
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -7,6 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import UserAuthTokenAuthentication
 from sentry.api.base import region_silo_endpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import StaffPermission
 from sentry.models.files.file import File
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
@@ -48,22 +49,18 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
 
     def _get_file_object(self, head_artifact):
         if head_artifact.file_id is None:
-            return None, Response({"error": "Preprod artifact file not available"}, status=404)
+            raise ResourceDoesNotExist
 
         try:
-            file_obj = File.objects.get(id=head_artifact.file_id)
-            return file_obj, None
+            return File.objects.get(id=head_artifact.file_id)
         except File.DoesNotExist:
-            return None, Response({"error": "Preprod artifact file not found"}, status=404)
+            raise ResourceDoesNotExist
 
     def _get_filename(self, head_artifact):
         return f"preprod_artifact_{head_artifact.id}.zip"
 
     def head(self, request: Request, project, head_artifact_id, head_artifact) -> HttpResponseBase:
-        file_obj, error_response = self._get_file_object(head_artifact)
-        if error_response:
-            return error_response
-
+        file_obj = self._get_file_object(head_artifact)
         filename = self._get_filename(head_artifact)
 
         response = HttpResponse()
@@ -90,10 +87,7 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
         :auth: required
         """
 
-        file_obj, error_response = self._get_file_object(head_artifact)
-        if error_response:
-            return error_response
-
+        file_obj = self._get_file_object(head_artifact)
         filename = self._get_filename(head_artifact)
         file_size = file_obj.size
 
@@ -107,6 +101,9 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
                 if not ranges:
                     return HttpResponse(status=400)
 
+                if len(ranges) > 1:
+                    raise MalformedRangeHeader("Too many ranges specified.")
+
                 range_obj = ranges[0]
 
                 if file_size == 0:
@@ -114,18 +111,10 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
 
                 start, end = range_obj.make_range(file_size - 1)
 
-                try:
-                    fp = file_obj.getfile()
-                    try:
-                        fp.seek(start)
-                        content_length = end - start + 1
-                        file_content = fp.read(content_length)
-                    finally:
-                        fp.close()
-                except Exception:
-                    return Response(
-                        {"error": "Failed to retrieve preprod artifact file"}, status=500
-                    )
+                with file_obj.getfile() as fp:
+                    fp.seek(start)
+                    content_length = end - start + 1
+                    file_content = fp.read(content_length)
 
                 response = HttpResponse(
                     file_content,
@@ -133,7 +122,7 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
                     status=206,
                 )
 
-                response["Content-Length"] = str(content_length)
+                response["Content-Length"] = content_length
                 response["Content-Range"] = f"bytes {start}-{end}/{file_size}"
                 response["Accept-Ranges"] = "bytes"
                 response["Content-Disposition"] = f'attachment; filename="{filename}"'
@@ -145,18 +134,14 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
             except (ValueError, IndexError):
                 return HttpResponse(status=400)
 
-        try:
-            fp = file_obj.getfile()
-        except Exception:
-            return Response({"error": "Failed to retrieve preprod artifact file"}, status=500)
-
-        file_response: HttpResponseBase = FileResponse(
-            fp,
+        fp = file_obj.getfile()
+        response = StreamingHttpResponse(
+            iter(lambda: fp.read(4096), b""),
             content_type="application/octet-stream",
         )
 
-        file_response["Content-Length"] = file_size
-        file_response["Content-Disposition"] = f'attachment; filename="{filename}"'
-        file_response["Accept-Ranges"] = "bytes"
+        response["Content-Length"] = file_size
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response["Accept-Ranges"] = "bytes"
 
-        return file_response
+        return response

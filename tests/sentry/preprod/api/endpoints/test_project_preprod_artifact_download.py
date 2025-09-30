@@ -14,7 +14,7 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
         super().setUp()
 
         # Create a test file
-        self.file = File.objects.create(
+        self.file = self.create_file(
             name="test_artifact.apk",
             type="application/octet-stream",
         )
@@ -75,7 +75,7 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
             response = self.client.get(url, **headers)
 
         assert response.status_code == 404
-        assert "file not available" in response.json()["error"]
+        assert response.json()["detail"] == "The requested resource does not exist"
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_head_preprod_artifact_success(self) -> None:
