@@ -50,7 +50,7 @@ export function formatXAxisTimestamp(
     boundaryTime.minute() === 0 &&
     boundaryTime.second() === 0
   ) {
-    // Start of a day
+    // Start of day
     format = 'MMM Do';
   } else if (boundaryTime.second() === 0) {
     // Hours, minutes
