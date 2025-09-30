@@ -188,7 +188,7 @@ class PushEventWebhook(Webhook):
                         )
 
                     if file_changes:
-                        bulk_create_commit_file_changes(organization, file_changes)
+                        bulk_create_commit_file_changes(file_changes)
 
             except IntegrityError:
                 pass
