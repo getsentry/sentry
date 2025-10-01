@@ -324,7 +324,7 @@ function buildRoutes(): RouteObject[] {
       withOrgPath: true,
     },
     {
-      path: '/debug/notifications/',
+      path: '/debug/notifications/:notificationSource?/',
       component: make(() => import('sentry/debug/notifications/views/index')),
       withOrgPath: true,
     },
@@ -943,12 +943,6 @@ function buildRoutes(): RouteObject[] {
           ),
         },
       ],
-    },
-    {
-      path: 'rate-limits/',
-      name: t('Rate Limits'),
-      component: make(() => import('sentry/views/settings/organizationRateLimits')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'relay/',
@@ -2675,11 +2669,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'queue/',
       component: make(() => import('sentry/views/admin/adminQueue')),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'quotas/',
-      component: make(() => import('sentry/views/admin/adminQuotas')),
       deprecatedRouteProps: true,
     },
     {

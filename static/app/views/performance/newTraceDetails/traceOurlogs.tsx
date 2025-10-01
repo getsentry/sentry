@@ -8,7 +8,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {
@@ -31,12 +30,7 @@ export function TraceViewLogsDataProvider({
       source="state"
       freeze={{traceId: traceSlug}}
     >
-      <LogsPageParamsProvider
-        isTableFrozen
-        analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
-      >
-        <LogsPageDataProvider>{children}</LogsPageDataProvider>
-      </LogsPageParamsProvider>
+      <LogsPageDataProvider>{children}</LogsPageDataProvider>
     </LogsQueryParamsProvider>
   );
 }
