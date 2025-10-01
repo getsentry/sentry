@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 from sentry.event_manager import EventManager
@@ -379,3 +380,41 @@ class ActivityTest(TestCase):
             )
 
         mock_send_activity_notifications.assert_not_called()
+
+    def test_create_group_activity_with_custom_datetime(self) -> None:
+        project = self.create_project(name="test_custom_datetime")
+        group = self.create_group(project)
+        user = self.create_user()
+
+        custom_datetime = datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
+
+        activity = Activity.objects.create_group_activity(
+            group=group,
+            type=ActivityType.SET_RESOLVED,
+            user=user,
+            data={"reason": "test"},
+            send_notification=False,
+            datetime=custom_datetime,
+        )
+
+        assert activity.datetime == custom_datetime
+        assert activity.type == ActivityType.SET_RESOLVED.value
+        assert activity.user_id == user.id
+
+    def test_create_group_activity_without_custom_datetime(self) -> None:
+        project = self.create_project(name="test_default_datetime")
+        group = self.create_group(project)
+        user = self.create_user()
+
+        before = datetime.now(timezone.utc)
+
+        activity = Activity.objects.create_group_activity(
+            group=group,
+            type=ActivityType.SET_IGNORED,
+            user=user,
+            send_notification=False,
+        )
+
+        after = datetime.now(timezone.utc)
+
+        assert before <= activity.datetime <= after

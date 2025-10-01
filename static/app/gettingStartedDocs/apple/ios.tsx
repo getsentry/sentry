@@ -1,6 +1,6 @@
 import {ExternalLink} from 'sentry/components/core/link';
+import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import type {
-  BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -16,242 +16,7 @@ import {appleProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/apple';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 import {getWizardInstallSnippet} from 'sentry/utils/gettingStartedDocs/mobileWizard';
 
-export enum InstallationMode {
-  AUTO = 'auto',
-  MANUAL_SWIFT = 'manual-swift',
-  MANUAL_OBJECTIVE_C = 'manual-objective-c',
-}
-
-const platformOptions = {
-  installationMode: {
-    label: t('Installation Mode'),
-    items: [
-      {
-        label: t('Auto'),
-        value: InstallationMode.AUTO,
-      },
-      {
-        label: t('Manual (Swift)'),
-        value: InstallationMode.MANUAL_SWIFT,
-      },
-      {
-        label: t('Manual (Objective-C)'),
-        value: InstallationMode.MANUAL_OBJECTIVE_C,
-      },
-    ],
-    defaultValue: InstallationMode.AUTO,
-  },
-} satisfies BasePlatformOptions;
-
-type PlatformOptions = typeof platformOptions;
-type Params = DocsParams<PlatformOptions>;
-
-const isAutoInstall = (params: Params) =>
-  params.platformOptions.installationMode === InstallationMode.AUTO;
-
-const isManualSwift = (params: Params) =>
-  params.platformOptions.installationMode === InstallationMode.MANUAL_SWIFT;
-
-const selectedLanguage = (params: Params) => (isManualSwift(params) ? 'swift' : 'objc');
-
-const getManualInstallSnippet = (params: Params) => `
-.package(url: "https://github.com/getsentry/sentry-cocoa", from: "${getPackageVersion(
-  params,
-  'sentry.cocoa',
-  '8.49.0'
-)}"),`;
-
-const getConfigurationSnippetSwift = (params: Params) => `
-import Sentry
-
-// ....
-
-func application(_ application: UIApplication,
-    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-
-    SentrySDK.start { options in
-        options.dsn = "${params.dsn.public}"
-        options.debug = true // Enabling debug when first installing is always helpful
-
-        // Adds IP for users.
-        // For more information, visit: https://docs.sentry.io/platforms/apple/data-management/data-collected/
-        options.sendDefaultPii = true${
-          params.isPerformanceSelected
-            ? `
-
-        // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
-        // We recommend adjusting this value in production.
-        options.tracesSampleRate = 1.0`
-            : ''
-        }${
-          params.isProfilingSelected &&
-          params.profilingOptions?.defaultProfilingMode !== 'continuous'
-            ? `
-
-        // Sample rate for profiling, applied on top of TracesSampleRate.
-        // We recommend adjusting this value in production.
-        options.profilesSampleRate = 1.0`
-            : params.isProfilingSelected &&
-                params.profilingOptions?.defaultProfilingMode === 'continuous'
-              ? `
-
-        // Configure the profiler to start profiling when there is an active root span
-        // For more information, visit: https://docs.sentry.io/platforms/apple/profiling/
-        options.configureProfiling = {
-            $0.lifecycle = .trace
-            $0.sessionSampleRate = 1.0
-        }`
-              : ''
-        }${
-          params.isReplaySelected
-            ? `
-
-        // Record Session Replays for 100% of Errors and 10% of Sessions
-        options.sessionReplay.onErrorSampleRate = 1.0
-        options.sessionReplay.sessionSampleRate = 0.1`
-            : ''
-        }
-    }
-
-    return true
-}`;
-
-const getConfigurationSnippetObjectiveC = (params: Params) => `
-@import Sentry;
-
-// ....
-
-- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    [SentrySDK startWithConfigureOptions:^(SentryOptions *options) {
-        options.dsn = "${params.dsn.public}";
-        options.debug = YES; // Enabling debug when first installing is always helpful
-
-        // Adds IP for users.
-        // For more information, visit: https://docs.sentry.io/platforms/apple/data-management/data-collected/
-        options.sendDefaultPii = YES;${
-          params.isPerformanceSelected
-            ? `
-
-        // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
-        // We recommend adjusting this value in production.
-        options.tracesSampleRate = @1.0;`
-            : ''
-        }${
-          params.isProfilingSelected &&
-          params.profilingOptions?.defaultProfilingMode !== 'continuous'
-            ? `
-
-        // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
-        // We recommend adjusting this value in production.
-        options.tracesSampleRate = @1.0;`
-            : params.isProfilingSelected &&
-                params.profilingOptions?.defaultProfilingMode === 'continuous'
-              ? `
-
-        // Configure the profiler to start profiling when there is an active root span
-        // For more information, visit: https://docs.sentry.io/platforms/apple/profiling/
-        [options setConfigureProfiling:^(SentryProfileOptions * _Nonnull profiling) {
-              profiling.lifecycle = SentryProfileLifecycleTrace;
-              profiling.sessionSampleRate = 1.0;
-        }];`
-              : ''
-        }${
-          params.isReplaySelected
-            ? `
-
-        // Record Session Replays for 100% of Errors and 10% of Sessions
-        options.sessionReplay.onErrorSampleRate = 1.0;
-        options.sessionReplay.sessionSampleRate = 0.1;`
-            : ''
-        }
-    }];
-    return YES;
-}`;
-
-const getConfigurationSnippetSwiftUi = (params: Params) => `
-import Sentry
-
-@main
-struct SwiftUIApp: App {
-    init() {
-        SentrySDK.start { options in
-            options.dsn = "${params.dsn.public}"
-            options.debug = true // Enabling debug when first installing is always helpful
-
-            // Adds IP for users.
-            // For more information, visit: https://docs.sentry.io/platforms/apple/data-management/data-collected/
-            options.sendDefaultPii = true${
-              params.isPerformanceSelected
-                ? `
-
-            // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
-            // We recommend adjusting this value in production.
-            options.tracesSampleRate = 1.0`
-                : ''
-            }${
-              params.isProfilingSelected &&
-              params.profilingOptions?.defaultProfilingMode !== 'continuous'
-                ? `
-
-            // Sample rate for profiling, applied on top of TracesSampleRate.
-            // We recommend adjusting this value in production.
-            options.profilesSampleRate = 1.0`
-                : params.isProfilingSelected &&
-                    params.profilingOptions?.defaultProfilingMode === 'continuous'
-                  ? `
-
-            // Configure the profiler to start profiling when there is an active root span
-            // For more information, visit: https://docs.sentry.io/platforms/apple/profiling/
-            options.configureProfiling = {
-                $0.lifecycle = .trace
-                $0.sessionSampleRate = 1.0
-            }`
-                  : ''
-            }${
-              params.isReplaySelected
-                ? `
-
-            // Record Session Replays for 100% of Errors and 10% of Sessions
-            options.sessionReplay.onErrorSampleRate = 1.0
-            options.sessionReplay.sessionSampleRate = 0.1`
-                : ''
-            }
-        }
-    }
-}`;
-
-const getVerifySnippet = (params: Params) =>
-  isManualSwift(params)
-    ? `
-enum MyCustomError: Error {
-    case myFirstIssue
-}
-
-func thisFunctionThrows() throws {
-    throw MyCustomError.myFirstIssue
-}
-
-func verifySentrySDK() {
-    do {
-        try thisFunctionThrows()
-    } catch {
-        SentrySDK.capture(error: error)
-    }
-}`
-    : `
-- (void)thisFunctionReturnsAnError:(NSError **)error {
-    *error = [NSError errorWithDomain:@"com.example.myapp"
-                                 code:1001
-                             userInfo:@{
-      NSLocalizedDescriptionKey: @"Something went wrong."
-    }];
-}
-
-- (void)verifySentrySDK {
-    NSError *error = nil;
-    [self thisFunctionReturnsAnError:&error];
-    [SentrySDK captureError:error];
-}`;
+type Params = DocsParams;
 
 const getReplaySetupSnippet = (params: Params) => `
 SentrySDK.start(configureOptions: { options in
@@ -266,231 +31,87 @@ const getReplayConfigurationSnippet = () => `
 options.sessionReplay.maskAllText = true
 options.sessionReplay.maskAllImages = true`;
 
-const onboarding: OnboardingConfig<PlatformOptions> = {
-  install: params =>
-    isAutoInstall(params)
-      ? [
-          {
-            type: StepType.INSTALL,
-            content: [
+const onboarding: OnboardingConfig = {
+  install: params => [
+    {
+      title: t('Automatic Configuration (Recommended)'),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Add Sentry automatically to your app with the [wizardLink:Sentry wizard] (call this inside your project directory).',
+            {
+              wizardLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/#install" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'code',
+          tabs: getWizardInstallSnippet({
+            platform: 'ios',
+            params,
+          }),
+        },
+        {
+          type: 'text',
+          text: t('The Sentry wizard will automatically patch your application:'),
+        },
+        {
+          type: 'list',
+          items: [
+            t('Install the Sentry SDK via Swift Package Manager or Cocoapods'),
+            tct(
+              'Update your [appDelegate: AppDelegate] or SwiftUI App Initializer with the default Sentry configuration and an example error',
               {
-                type: 'text',
-                text: tct(
-                  'Add Sentry automatically to your app with the [wizardLink:Sentry wizard] (call this inside your project directory).',
-                  {
-                    wizardLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/#install" />
-                    ),
-                  }
-                ),
-              },
+                appDelegate: <code />,
+              }
+            ),
+            tct(
+              'Add a new [code: Upload Debug Symbols] phase to your [code: xcodebuild] build script',
               {
-                type: 'code',
-                tabs: getWizardInstallSnippet({
-                  platform: 'ios',
-                  params,
-                }),
-              },
-            ],
-          },
-        ]
-      : [
-          {
-            type: StepType.INSTALL,
-            content: [
+                code: <code />,
+              }
+            ),
+            tct(
+              'Create [code: .sentryclirc] with an auth token to upload debug symbols (this file is automatically added to [code: .gitignore])',
               {
-                type: 'text',
-                text: tct(
-                  'We recommend installing the SDK with Swift Package Manager (SPM), but we also support [alternateMethods: alternate installation methods]. To integrate Sentry into your Xcode project using SPM, open your App in Xcode and open [addPackage: File > Add Packages]. Then add the SDK by entering the Git repo url in the top right search field:',
-                  {
-                    alternateMethods: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/apple/install/" />
-                    ),
-                    addPackage: <strong />,
-                  }
-                ),
-              },
-              {
-                type: 'code',
-                language: 'url',
-                code: `https://github.com/getsentry/sentry-cocoa.git`,
-              },
-              {
-                type: 'text',
-                text: tct(
-                  'Alternatively, when your project uses a [packageSwift: Package.swift] file to manage dependencies, you can specify the target with:',
-                  {
-                    packageSwift: <code />,
-                  }
-                ),
-              },
-              {
-                type: 'code',
-                tabs: [
-                  {
-                    label: 'Swift',
-                    language: 'swift',
-                    code: getManualInstallSnippet(params),
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-  configure: params =>
-    isAutoInstall(params)
-      ? [
-          {
-            type: StepType.CONFIGURE,
-            content: [
-              {
-                type: 'text',
-                text: t('The Sentry wizard will automatically patch your application:'),
-              },
-              {
-                type: 'list',
-                items: [
-                  t('Install the Sentry SDK via Swift Package Manager or Cocoapods'),
-                  tct(
-                    'Update your [appDelegate: AppDelegate] or SwiftUI App Initializer with the default Sentry configuration and an example error',
-                    {
-                      appDelegate: <code />,
-                    }
-                  ),
-                  tct(
-                    'Add a new [code: Upload Debug Symbols] phase to your [code: xcodebuild] build script',
-                    {
-                      code: <code />,
-                    }
-                  ),
-                  tct(
-                    'Create [code: .sentryclirc] with an auth token to upload debug symbols (this file is automatically added to [code: .gitignore])',
-                    {
-                      code: <code />,
-                    }
-                  ),
-                  t(
-                    "When you're using Fastlane, it will add a Sentry lane for uploading debug symbols"
-                  ),
-                ],
-              },
-            ],
-          },
-        ]
-      : [
-          {
-            type: StepType.CONFIGURE,
-            content: [
-              {
-                type: 'text',
-                text: tct(
-                  'Make sure you initialize the SDK as soon as possible in your application lifecycle e.g. in your [appDelegate:] method:',
-                  {
-                    appDelegate: (
-                      <code>
-                        - [UIAppDelegate application:didFinishLaunchingWithOptions:]
-                      </code>
-                    ),
-                  }
-                ),
-              },
-              {
-                type: 'conditional',
-                condition: isManualSwift(params),
-                content: [
-                  {
-                    type: 'code',
-                    tabs: [
-                      {
-                        label: 'Swift',
-                        language: 'swift',
-                        code: getConfigurationSnippetSwift(params),
-                      },
-                    ],
-                  },
-                  {
-                    type: 'text',
-                    text: tct(
-                      "When using SwiftUI and your app doesn't implement an app delegate, initialize the SDK within the [initializer: App conformer's initializer]:",
-                      {
-                        initializer: (
-                          <ExternalLink href="https://developer.apple.com/documentation/swiftui/app/main()" />
-                        ),
-                      }
-                    ),
-                  },
-                  {
-                    type: 'code',
-                    tabs: [
-                      {
-                        label: 'SwiftUI',
-                        language: 'swift',
-                        code: getConfigurationSnippetSwiftUi(params),
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'conditional',
-                condition: !isManualSwift(params),
-                content: [
-                  {
-                    type: 'code',
-                    tabs: [
-                      {
-                        label: 'Objective-C',
-                        language: 'objc',
-                        code: getConfigurationSnippetObjectiveC(params),
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-  verify: params =>
-    isAutoInstall(params)
-      ? [
-          {
-            type: StepType.VERIFY,
-            content: [
-              {
-                type: 'text',
-                text: t(
-                  'The Sentry wizard automatically adds a code snippet that captures a message to your project. Simply run your app and you should see this message in your Sentry project.'
-                ),
-              },
-            ],
-          },
-        ]
-      : [
-          {
-            type: StepType.VERIFY,
-            content: [
-              {
-                type: 'text',
-                text: tct(
-                  'This snippet contains an intentional error you can use to test that errors are uploaded to Sentry correctly. You can call [verifySentrySDK: verifySentrySDK()] from where you want to test it.',
-                  {
-                    verifySentrySDK: <code />,
-                  }
-                ),
-              },
-              {
-                type: 'code',
-                tabs: [
-                  {
-                    label: isManualSwift(params) ? 'Swift' : 'Objective-C',
-                    language: selectedLanguage(params),
-                    code: getVerifySnippet(params),
-                  },
-                ],
-              },
-            ],
-          },
-        ],
+                code: <code />,
+              }
+            ),
+            t(
+              "When you're using Fastlane, it will add a Sentry lane for uploading debug symbols"
+            ),
+          ],
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      title: t('Manual Configuration'),
+      collapsible: true,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Alternatively, you can also set up the SDK manually, by following the [manualSetupLink:manual setup docs].',
+            {
+              manualSetupLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/manual-setup/" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'custom',
+          content: <CopyDsnField params={params} />,
+        },
+      ],
+    },
+  ],
+  verify: () => [],
   nextSteps: () => [
     {
       id: 'cocoapods-carthage',
@@ -515,7 +136,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   ],
 };
 
-const replayOnboarding: OnboardingConfig<PlatformOptions> = {
+const replayOnboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
@@ -609,7 +230,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   nextSteps: () => [],
 };
 
-const logsOnboarding: OnboardingConfig<PlatformOptions> = {
+const logsOnboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
@@ -741,11 +362,10 @@ SentryLogger *logger = SentrySDK.logger;
   ],
 };
 
-const docs: Docs<PlatformOptions> = {
+const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: appleFeedbackOnboarding,
   crashReportOnboarding: appleFeedbackOnboarding,
-  platformOptions,
   replayOnboarding,
   profilingOnboarding: appleProfilingOnboarding,
   logsOnboarding,

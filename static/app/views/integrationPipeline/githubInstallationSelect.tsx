@@ -179,7 +179,9 @@ export function GithubInstallationSelect({
           onChange={handleSelect}
           options={selectOptions}
           value={installationID}
-          triggerLabel={installationID ? undefined : 'Choose Installation'}
+          triggerProps={{
+            children: installationID ? undefined : 'Choose Installation',
+          }}
         />
         <ButtonContainer>
           {organization.features.includes('github-multi-org-upsell-modal') ? (

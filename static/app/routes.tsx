@@ -233,7 +233,6 @@ function buildRoutes(): RouteObject[] {
       path: '/data-export/:dataExportId',
       component: make(() => import('sentry/views/dataExport/dataDownload')),
       withOrgPath: true,
-      deprecatedRouteProps: true,
     },
     {
       component: errorHandler(OrganizationContainer),
@@ -2465,6 +2464,23 @@ function buildRoutes(): RouteObject[] {
     deprecatedRouteProps: true,
   };
 
+  const pullRequestChildren: SentryRouteObject[] = [
+    {
+      path: ':repoOrg/:repoName/:prId/',
+      component: make(
+        () => import('sentry/views/pullRequest/details/pullRequestDetails')
+      ),
+    },
+  ];
+
+  const pullRequestRoutes: SentryRouteObject = {
+    path: '/pull/',
+    component: make(() => import('sentry/views/pullRequest/index')),
+    withOrgPath: true,
+    children: pullRequestChildren,
+    deprecatedRouteProps: true,
+  };
+
   const feedbackV2Children: SentryRouteObject[] = [
     {
       index: true,
@@ -2930,6 +2946,7 @@ function buildRoutes(): RouteObject[] {
       alertRoutes,
       preventRoutes,
       preprodRoutes,
+      pullRequestRoutes,
       replayRoutes,
       releasesRoutes,
       statsRoutes,
