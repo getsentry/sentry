@@ -426,8 +426,8 @@ class QuerySubscriptionValidator(BaseDataSourceValidator[QuerySubscription]):
     - Add this on the MetricIsueDetectorHandler
     """
 
-    id = serializers.IntegerField(required=False)
-    status = serializers.ChoiceField(choices=QuerySubscription.Status.choices, required=False)
+    id = serializers.CharField(required=False)
+    status = serializers.ChoiceField(choices=QuerySubscription.Status.choices(), required=False)
     subscription = serializers.CharField(required=False)
     # TODO make sure the snubaQuery field is validated correctly, this should match: SnubaQuerySerializer
     # -- in src/sentry/incidents/endpoints/serializers/query_subscription.py

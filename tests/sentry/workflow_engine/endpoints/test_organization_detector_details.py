@@ -239,7 +239,10 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
         self.assert_snuba_query_updated(snuba_query)
 
-    def test_update__new_data_source(self) -> None:
+    @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
+    def test_update__new_data_source(
+        self, mock_schedule_update_project_config: mock.MagicMock
+    ) -> None:
         with self.tasks():
             response = self.get_success_response(
                 self.organization.slug,
