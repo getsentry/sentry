@@ -12,9 +12,9 @@ Motion in the UI, when used thoughtfully, can bring interfaces to life and guide
 
 # Principles
 
-## Purposeful
+## Intentional
 
-Use animation only when it serves a clear purpose. Every motion should communicate something useful (e.g. feedback, a state change) and not exist just for decoration. If an animation doesn’t help the user achieve a goal or learn something, reconsider using it.
+Use animation intentionally to enhance interactions (e.g. state change) or emphasize communication (e.g. feedback). Animations should not exist purely for decoration. Applying animation treatments carelessly leads to user frustration.
 
 ## Performant
 
@@ -30,13 +30,9 @@ Design animations to include everyone. No essential information should ever be c
 
 # Usage
 
-## Productive Motion
+Motion is a useful tool for emulating _tactility_, which can bring an otherwise static interface to life. Motion is often applied as a result of **direct user interaction**, such as pressing a button. These subtle micro-interactions should be fast. Wherever possible, refer to satisfying physical motion as inspiration.
 
-Motion is a useful tool for emulating _tactility_, which can enhance interactions within components. _Productive_ motion is used as a result of direct user interaction, such as pressing a button. These are typically subtle micro-interactions that bring the interface to life and should be fast. Wherever possible, refer to satisfying physical motion as inspiration.
-
-## Expressive Motion
-
-Motion is a useful tool for communication, and true to Sentry’s tone, we make room for some tongue-in-cheek playfulness in our product. _Expressive_ motion draws attention and adds character, which is appropriate for tasks like onboarding, toasts, and other interruptions. These typically provide a bit of emphasis or levity and should be slower. See our [Voice and Tone](/stories/principles/voice-and-tone) guide for more information on **humor**.
+Motion is also useful for communication, and true to Sentry’s tone, we make room for some tongue-in-cheek playfulness in our product. Playful motion can draw attention and add character, which is appropriate for tasks like onboarding, toasts, and other interruptions. These typically provide a bit of emphasis or levity and should be slower. See our [Voice and Tone](/stories/principles/voice-and-tone) guide for more information on **humor**.
 
 ## When not to use animations
 
@@ -46,11 +42,11 @@ Overuse of animation can lead to user frustration over sluggish interactions. Be
 
 ## Respect motion preferences
 
-Motion requires careful consideration for users with perceptual sensitivities or cognitive challenges, who may have indicated to their operating system that they prefer reduced motion. By default, avoid expressive motion and only use it as an enhancement if the user has not indicated a preference for reduced motion. _Reduced motion_ still allows for meaningful motion, so if motion provides useful interaction feedback, consider providing a subdued alternative.
+Motion requires careful consideration for users with perceptual sensitivities or cognitive challenges, who may have indicated to their operating system that they prefer reduced motion. By default, avoid strong motion and only use it as an enhancement if the user has not indicated a preference for reduced motion. _Reduced motion_ still allows for meaningful motion, so if motion provides useful interaction feedback, consider providing a subdued alternative.
 
 ## Be mindful of focus
 
-On an otherwise static page, any motion will draw user attention. For this reason, motion should be employed strategically, respecting the existing information hierarchy of a page. Motion in multiple places disrupts user focus, so avoid competing expressive motion at all costs.
+On an otherwise static page, any motion will draw user attention. For this reason, motion should be employed strategically, respecting the existing information hierarchy of a page. Motion in multiple places disrupts user focus, so avoid competing motion at all costs.
 
 # Token Reference
 
@@ -59,7 +55,7 @@ Motion tokens for CSS are exposed under the `theme.motion` namespace as pairs of
 ```js
 const theme = useTheme();
 
-// motion -> easing.duration
+// motion[easing][duration]
 theme.motion.smooth.moderate;
 ```
 
