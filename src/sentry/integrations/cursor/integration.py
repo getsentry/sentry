@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 from django import forms
@@ -21,6 +21,7 @@ from sentry.integrations.coding_agent.integration import (
 from sentry.integrations.cursor.client import CursorAgentClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.apitoken import generate_token
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -121,6 +122,31 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
 
 
 class CursorAgentIntegration(CodingAgentIntegration):
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "name": "api_key",
+                "type": "secret",
+                "label": _("Cursor API Key"),
+                "help": _("Update the API key used by Cursor Background Agents."),
+                "required": True,
+                "placeholder": "***********************",
+            }
+        ]
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        api_key = data.get("api_key")
+        if not api_key:
+            raise IntegrationError("API key is required")
+
+        # Persist on the Integration metadata since this key is global per installation
+        metadata = dict(self.model.metadata or {})
+        metadata["api_key"] = api_key
+        integration_service.update_integration(integration_id=self.model.id, metadata=metadata)
+
+        # Do not store API key in org config; clear any submitted value
+        super().update_organization_config({})
+
     def get_client(self):
         return CursorAgentClient(
             api_key=self.api_key,

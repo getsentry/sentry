@@ -100,9 +100,9 @@ def test_mep_to_eap_simple_query(input: str, expected: str) -> None:
             [],
         ),
         pytest.param(
-            ["count()", "avg(transaction.duration)"],
+            ["count()", "avg(transaction.duration)", "count_web_vitals(measurements.lcp,good)"],
             ["count(span.duration)", "avg(span.duration)"],
-            [],
+            ["count_web_vitals(measurements.lcp,good)"],
         ),
         pytest.param(
             ["avgIf(transaction.duration,greater,300)"],
@@ -125,8 +125,12 @@ def test_mep_to_eap_simple_query(input: str, expected: str) -> None:
             [],
         ),
         pytest.param(
-            ["user_misery(300)", "apdex(300)"],
-            ["user_misery(span.duration,300)", "apdex(span.duration,300)"],
+            ["user_misery(300)", "apdex(300)", "count_if(transaction.duration,greater,300)"],
+            [
+                "equation|user_misery(span.duration,300)",
+                "equation|apdex(span.duration,300)",
+                "equation|count_if(span.duration,greater,300)",
+            ],
             [],
         ),
         pytest.param(
@@ -201,6 +205,16 @@ def test_mep_to_eap_simple_selected_columns(
                     "equation": "equation|count_miserable(user,300)",
                     "reason": ["count_miserable(user,300)"],
                 },
+            ],
+        ),
+        pytest.param(
+            ["equation|count_if(total.count,greater,300)"],
+            [],
+            [
+                {
+                    "equation": "equation|count_if(total.count,greater,300)",
+                    "reason": ["count_if(total.count,greater,300)"],
+                }
             ],
         ),
         pytest.param(
@@ -281,11 +295,17 @@ def test_mep_to_eap_simple_equations(
             [],
         ),
         pytest.param(
-            ["-apdex(300)", "user_misery(300)", "count_unique(http.method)"],
             [
-                "-apdex(span.duration,300)",
-                "user_misery(span.duration,300)",
+                "-apdex(300)",
+                "user_misery(300)",
+                "count_unique(http.method)",
+                "count_if(transaction.duration,greater,300)",
+            ],
+            [
+                "-equation|apdex(span.duration,300)",
+                "equation|user_misery(span.duration,300)",
                 "count_unique(transaction.method)",
+                "equation|count_if(span.duration,greater,300)",
             ],
             [],
         ),

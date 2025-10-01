@@ -150,13 +150,14 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 source_id=data_source.id,
                 type=validated_data["data_source"]["data_source_type"],
             )
-            for condition in validated_data["condition_group"]["conditions"]:
-                DataCondition.objects.create(
-                    comparison=condition["comparison"],
-                    condition_result=condition["condition_result"],
-                    type=condition["type"],
-                    condition_group=condition_group,
-                )
+            if "condition_group" in validated_data:
+                for condition in validated_data["condition_group"]["conditions"]:
+                    DataCondition.objects.create(
+                        comparison=condition["comparison"],
+                        condition_result=condition["condition_result"],
+                        type=condition["type"],
+                        condition_group=condition_group,
+                    )
 
             owner = validated_data.get("owner")
             owner_user_id = None

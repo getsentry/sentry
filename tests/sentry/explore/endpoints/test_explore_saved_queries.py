@@ -3,6 +3,7 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.explore.models import (
     ExploreSavedQuery,
+    ExploreSavedQueryDataset,
     ExploreSavedQueryLastVisited,
     ExploreSavedQueryStarred,
 )
@@ -1076,3 +1077,38 @@ class ExploreSavedQueriesTest(APITestCase):
                 },
             },
         }
+
+    def test_get_with_migration_feature_flag(self) -> None:
+        self.features_with_migration = {"organizations:expose-migrated-discover-queries": True}
+        self.features_with_migration.update(self.features)
+        model = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            date_added=before_now(),
+            # sort by name so it shows up last
+            name="Z - Segment span query",
+            query={"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]},
+            dataset=ExploreSavedQueryDataset.SEGMENT_SPANS,
+        )
+
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model,
+            last_visited=before_now(),
+        )
+
+        with self.feature(self.features_with_migration):
+            response_with_flag = self.client.get(self.url, data={"sortBy": ["name"]})
+
+        assert response_with_flag.status_code == 200, response_with_flag.content
+        assert len(response_with_flag.data) == 6
+
+        assert response_with_flag.data[5]["name"] == "Z - Segment span query"
+        assert response_with_flag.data[5]["dataset"] == "segment_spans"
+
+        with self.feature(self.features):
+            response_without_flag = self.client.get(self.url)
+
+        assert response_without_flag.status_code == 200, response_without_flag.content
+        assert len(response_without_flag.data) == 5

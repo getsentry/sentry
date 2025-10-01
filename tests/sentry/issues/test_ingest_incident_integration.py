@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest import mock
 from unittest.mock import patch
 
 from django.utils import timezone
@@ -10,20 +11,24 @@ from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
+from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.issues.status_change_consumer import update_status
 from sentry.issues.status_change_message import StatusChangeMessageData
+from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
-@with_feature("organizations:issue-open-periods")
 @with_feature("organizations:workflow-engine-single-process-metric-issues")
 class IncidentGroupOpenPeriodIntegrationTest(TestCase):
     def setUp(self) -> None:
@@ -232,3 +237,68 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         assert last_activity_entry.type == 2
         assert last_activity_entry.previous_value == str(IncidentStatus.CRITICAL.value)
         assert last_activity_entry.value == str(IncidentStatus.CLOSED.value)
+
+    @mock.patch("sentry.models.group.logger")
+    def test_bulk_transition_new_group_to_ongoing__metric_issues__no_incident_activites(
+        self, mock_logger
+    ) -> None:
+        """Ensure we do not trigger an IGOP write for a new to ongoing status change"""
+        _, group_info = self.save_issue_occurrence()
+        group = group_info.group
+        assert group is not None
+
+        open_period = GroupOpenPeriod.objects.get(group=group, project=self.project)
+        assert open_period
+
+        dummy_relationship = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
+        incident = Incident.objects.get(id=dummy_relationship.incident_id)
+        assert len(IncidentActivity.objects.filter(incident_id=incident.id)) == 3
+
+        group.substatus = GroupSubStatus.NEW
+        group.save()
+
+        bulk_transition_group_to_ongoing(GroupStatus.UNRESOLVED, GroupSubStatus.NEW, [group.id])
+        assert Activity.objects.filter(
+            group=group, type=ActivityType.AUTO_SET_ONGOING.value
+        ).exists()
+        assert GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.UNRESOLVED
+        ).exists()
+        assert mock_logger.error.call_count == 0
+
+        assert (
+            len(IncidentActivity.objects.filter(incident_id=incident.id)) == 3
+        )  # no new IGOP entry
+
+    @mock.patch("sentry.models.group.logger")
+    def test_bulk_transition_regressed_group_to_ongoing__metric_issues__no_incident_activites(
+        self, mock_logger
+    ) -> None:
+        """Ensure we do not trigger an IGOP write for a regressed to ongoing status change"""
+        _, group_info = self.save_issue_occurrence()
+        group = group_info.group
+        assert group is not None
+
+        open_period = GroupOpenPeriod.objects.get(group=group, project=self.project)
+        assert open_period
+
+        dummy_relationship = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
+        incident = Incident.objects.get(id=dummy_relationship.incident_id)
+        assert len(IncidentActivity.objects.filter(incident_id=incident.id)) == 3
+        group.substatus = GroupSubStatus.REGRESSED
+        group.save()
+
+        bulk_transition_group_to_ongoing(
+            GroupStatus.UNRESOLVED, GroupSubStatus.REGRESSED, [group.id]
+        )
+        assert Activity.objects.filter(
+            group=group, type=ActivityType.AUTO_SET_ONGOING.value
+        ).exists()
+        assert GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.UNRESOLVED
+        ).exists()
+        assert mock_logger.error.call_count == 0
+
+        assert (
+            len(IncidentActivity.objects.filter(incident_id=incident.id)) == 3
+        )  # no new IGOP entry

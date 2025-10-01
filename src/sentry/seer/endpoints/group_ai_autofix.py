@@ -4,7 +4,8 @@ import logging
 from typing import Any
 
 import orjson
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import ParseError, PermissionDenied
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
@@ -15,16 +16,15 @@ from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_m
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.models.repository import Repository
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix import trigger_autofix
-from sentry.seer.autofix.utils import get_autofix_state
+from sentry.seer.autofix.utils import AutofixStoppingPoint, get_autofix_state
 from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
-
-from rest_framework.request import Request
 
 
 @region_silo_endpoint
@@ -35,21 +35,32 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
-    rate_limits = {
-        "POST": {
-            RateLimitCategory.IP: RateLimit(limit=25, window=60),
-            RateLimitCategory.USER: RateLimit(limit=25, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60 * 60),  # 1 hour
-        },
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=1024, window=60),
-            RateLimitCategory.USER: RateLimit(limit=1024, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=8192, window=60),
-        },
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.IP: RateLimit(limit=25, window=60),
+                RateLimitCategory.USER: RateLimit(limit=25, window=60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60 * 60),  # 1 hour
+            },
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=1024, window=60),
+                RateLimitCategory.USER: RateLimit(limit=1024, window=60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=8192, window=60),
+            },
+        }
+    )
 
     def post(self, request: Request, group: Group) -> Response:
         data = orjson.loads(request.body)
+
+        stopping_point = data.get("stopping_point", None)
+        if stopping_point is not None:
+            try:
+                stopping_point = AutofixStoppingPoint(stopping_point)
+            except ValueError:
+                raise ParseError(
+                    "Invalid stopping_point. Must be one of: root_cause, solution, code_changes, open_pr."
+                )
 
         return trigger_autofix(
             group=group,
@@ -58,6 +69,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             user=request.user,
             instruction=data.get("instruction", None),
             pr_to_comment_on_url=data.get("pr_to_comment_on_url", None),
+            stopping_point=stopping_point,
         )
 
     def get(self, request: Request, group: Group) -> Response:

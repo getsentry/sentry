@@ -43,7 +43,6 @@ const {organization, projects, router} = initializeOrg({
   organization: {
     id: '1337',
     slug: 'org-slug',
-    features: ['global-views'],
     access: [],
   },
   router: {

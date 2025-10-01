@@ -31,8 +31,6 @@ from sentry.taskworker.constants import CompressionType
 
 logger = logging.getLogger("sentry.taskworker.worker")
 
-AT_MOST_ONCE_TIMEOUT = 60 * 60 * 24  # 1 day
-
 
 class ProcessingDeadlineExceeded(BaseException):
     pass
@@ -44,15 +42,10 @@ def child_worker_init(process_type: str) -> None:
     Child worker processes are spawned and don't inherit db
     connections or configuration from the parent process.
     """
-    from django.conf import settings
-
     from sentry.runner import configure
 
     if process_type == "spawn":
         configure()
-
-    for module in settings.TASKWORKER_IMPORTS:
-        __import__(module)
 
 
 @contextlib.contextmanager
@@ -73,11 +66,6 @@ def timeout_alarm(
     finally:
         signal.alarm(0)
         signal.signal(signal.SIGALRM, original)
-
-
-def get_at_most_once_key(namespace: str, taskname: str, task_id: str) -> str:
-    # tw:amo -> taskworker:at_most_once
-    return f"tw:amo:{namespace}:{taskname}:{task_id}"
 
 
 def load_parameters(data: str, headers: dict[str, str]) -> dict[str, Any]:
@@ -105,6 +93,7 @@ def status_name(status: TaskActivationStatus.ValueType) -> str:
 
 
 def child_process(
+    app_module: str,
     child_tasks: queue.Queue[InflightTaskActivation],
     processed_tasks: queue.Queue[ProcessingResult],
     shutdown_event: Event,
@@ -121,14 +110,16 @@ def child_process(
     """
     child_worker_init(process_type)
 
-    from django.core.cache import cache
-
-    from sentry.taskworker.registry import taskregistry
+    from sentry.taskworker.app import import_app
     from sentry.taskworker.retry import NoRetriesRemainingError
     from sentry.taskworker.state import clear_current_task, current_task, set_current_task
     from sentry.taskworker.task import Task
     from sentry.utils import metrics
     from sentry.utils.memory import track_memory_usage
+
+    app = import_app(app_module)
+    app.load_modules()
+    taskregistry = app.taskregistry
 
     def _get_known_task(activation: TaskActivation) -> Task[Any, Any] | None:
         if not taskregistry.contains(activation.namespace):
@@ -225,12 +216,7 @@ def child_process(
                 continue
 
             if task_func.at_most_once:
-                key = get_at_most_once_key(
-                    inflight.activation.namespace,
-                    inflight.activation.taskname,
-                    inflight.activation.id,
-                )
-                if cache.add(key, "1", timeout=AT_MOST_ONCE_TIMEOUT):  # The key didn't exist
+                if app.should_attempt_at_most_once(inflight.activation):
                     metrics.incr(
                         "taskworker.task.at_most_once.executed",
                         tags={

@@ -249,11 +249,6 @@ export function useExploreDataset(): DiscoverDatasets {
   return DiscoverDatasets.SPANS;
 }
 
-export function useExploreFields(): string[] {
-  const pageParams = useExplorePageParams();
-  return pageParams.fields;
-}
-
 export function useExploreQuery(): string {
   const pageParams = useExplorePageParams();
   return pageParams.query;
@@ -508,64 +503,6 @@ export function useSetExplorePageParams(): (
   );
 }
 
-export function useSetExploreFields() {
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (fields: string[]) => {
-      setPageParams({fields});
-    },
-    [setPageParams]
-  );
-}
-
-export function useSetExploreGroupBys() {
-  const pageParams = useExplorePageParams();
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (groupBys: string[], mode?: Mode) => {
-      const aggregateFields = [];
-
-      let seenVisualizes = false;
-      let groupByAfterVisualizes = false;
-
-      for (const aggregateField of pageParams.aggregateFields) {
-        if (isGroupBy(aggregateField) && seenVisualizes) {
-          groupByAfterVisualizes = true;
-          break;
-        } else if (isVisualize(aggregateField)) {
-          seenVisualizes = true;
-        }
-      }
-
-      const iter = groupBys[Symbol.iterator]();
-
-      for (const aggregateField of pageParams.aggregateFields) {
-        if (isGroupBy(aggregateField)) {
-          const {value: groupBy, done} = iter.next();
-          if (!done) {
-            aggregateFields.push({groupBy});
-          }
-        } else {
-          if (!groupByAfterVisualizes) {
-            // no existing group by appears after a visualize, so any additional
-            // group bys will be inserted before any visualizes as well
-            for (const groupBy of iter) {
-              aggregateFields.push({groupBy});
-            }
-          }
-          aggregateFields.push(aggregateField.toJSON());
-        }
-      }
-      for (const groupBy of iter) {
-        aggregateFields.push({groupBy});
-      }
-
-      setPageParams({aggregateFields, mode});
-    },
-    [pageParams, setPageParams]
-  );
-}
-
 export function useSetExploreMode() {
   const pageParams = useExplorePageParams();
   const setPageParams = useSetExplorePageParams();
@@ -617,51 +554,5 @@ export function useSetExploreSortBys() {
       );
     },
     [pageParams, setPageParams]
-  );
-}
-
-export function useSetExploreVisualizes() {
-  const pageParams = useExplorePageParams();
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (visualizes: BaseVisualize[]) => {
-      const aggregateFields: WritablePageParams['aggregateFields'] = [];
-      let i = 0;
-      for (const aggregateField of pageParams.aggregateFields) {
-        if (isVisualize(aggregateField)) {
-          if (i < visualizes.length) {
-            aggregateFields.push(visualizes[i++]!);
-          }
-        } else {
-          aggregateFields.push(aggregateField);
-        }
-      }
-      for (; i < visualizes.length; i++) {
-        aggregateFields.push(visualizes[i]!);
-      }
-
-      setPageParams({aggregateFields});
-    },
-    [pageParams, setPageParams]
-  );
-}
-
-export function useSetExploreTitle() {
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (title: string) => {
-      setPageParams({title});
-    },
-    [setPageParams]
-  );
-}
-
-export function useSetExploreId() {
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (id: string) => {
-      setPageParams({id});
-    },
-    [setPageParams]
   );
 }

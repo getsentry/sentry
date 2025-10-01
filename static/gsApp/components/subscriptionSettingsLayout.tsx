@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -50,8 +50,10 @@ function SubscriptionSettingsLayout(props: Props) {
         </Flex>
       </StyledSettingsHeader>
 
-      <Flex maxWidth={'1440px'} flex="1">
-        <Content>{children}</Content>
+      <Flex maxWidth="1440px" flex="1">
+        <Container padding={{xs: 'xl', md: '3xl'}} minWidth={0} flex={1}>
+          {children}
+        </Container>
       </Flex>
     </SettingsColumn>
   );
@@ -67,15 +69,6 @@ const SettingsColumn = styled(Flex)`
 
 const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`
   flex: 1;
-`;
-
-/**
- * Note: `overflow: hidden` will cause some buttons in `SettingsPageHeader` to be cut off because it has negative margin.
- * Will also cut off tooltips.
- */
-const Content = styled('div')`
-  flex: 1;
-  min-width: 0; /* keep children from stretching container */
 `;
 
 const StyledSettingsHeader = styled(SettingsHeader)`

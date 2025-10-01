@@ -18,6 +18,7 @@ from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.seer.seer_setup import get_seer_org_acknowledgement, get_seer_user_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
@@ -110,13 +111,17 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=200, window=60, concurrent_limit=20),
-            RateLimitCategory.USER: RateLimit(limit=100, window=60, concurrent_limit=10),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=1000, window=60, concurrent_limit=100),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=200, window=60, concurrent_limit=20),
+                RateLimitCategory.USER: RateLimit(limit=100, window=60, concurrent_limit=10),
+                RateLimitCategory.ORGANIZATION: RateLimit(
+                    limit=1000, window=60, concurrent_limit=100
+                ),
+            }
         }
-    }
+    )
 
     def get(self, request: Request, group: Group) -> Response:
         """

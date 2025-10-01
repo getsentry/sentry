@@ -92,7 +92,7 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import GroupOpenPeriod, create_open_period
+from sentry.models.groupopenperiod import create_open_period
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
@@ -912,17 +912,23 @@ def _get_or_create_environment_many(jobs: Sequence[Job], projects: ProjectsMappi
 @sentry_sdk.tracing.trace
 def _get_or_create_group_environment_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
-        _get_or_create_group_environment(job["environment"], job["release"], job["groups"])
+        _get_or_create_group_environment(
+            job["environment"], job["release"], job["groups"], job["event"].datetime
+        )
 
 
 def _get_or_create_group_environment(
-    environment: Environment, release: Release | None, groups: Sequence[GroupInfo]
+    environment: Environment,
+    release: Release | None,
+    groups: Sequence[GroupInfo],
+    event_datetime: datetime,
 ) -> None:
     for group_info in groups:
+
         group_info.is_new_group_environment = GroupEnvironment.get_or_create(
             group_id=group_info.group.id,
             environment_id=environment.id,
-            defaults={"first_release": release or None},
+            defaults={"first_release": release or None, "first_seen": event_datetime},
         )[1]
 
 
@@ -1317,23 +1323,6 @@ def assign_event_to_group(
 
     # From here on out, we're just doing housekeeping
 
-    # TODO: Temporary metric to debug missing grouphash metadata. This metric *should* exactly match
-    # the `grouping.grouphashmetadata.backfill_needed` metric collected in
-    # `get_or_create_grouphashes`. If it doesn't, perhaps there's a race condition between creation
-    # of the metadata and our ability to pull it from the database immediately thereafter.
-    for grouphash in [*primary.grouphashes, *secondary.grouphashes]:
-        grouphash.refresh_from_db()
-        if not grouphash.metadata:
-            logger.warning(
-                "grouphash_metadata.hash_without_metadata",
-                extra={
-                    "event_id": event.event_id,
-                    "project_id": project.id,
-                    "hash": grouphash.hash,
-                },
-            )
-            metrics.incr("grouping.grouphashmetadata.backfill_needed_2", sample_rate=1.0)
-
     # Background grouping is a way for us to get performance metrics for a new
     # config without having it actually affect on how events are grouped. It runs
     # either before or after the main grouping logic, depending on the option value.
@@ -1606,13 +1595,8 @@ def _create_group(
             logger.exception("Error after unsticking project counter")
             raise
 
-    if features.has("organizations:issue-open-periods", project.organization):
-        GroupOpenPeriod.objects.create(
-            group=group,
-            project_id=project.id,
-            date_started=group.first_seen,
-            date_ended=None,
-        )
+    create_open_period(group=group, start_time=group.first_seen)
+
     return group
 
 

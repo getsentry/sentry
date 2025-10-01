@@ -1,14 +1,10 @@
 from sentry import analytics
+from sentry.analytics.events.base_notification_sent import BaseNotificationSent
 
 
 @analytics.eventclass("integrations.discord.notification_sent")
-class DiscordIntegrationNotificationSent(analytics.Event):
-    organization_id: int
-    project_id: int | None = None
-    category: str
-    group_id: int | None = None
-    notification_uuid: str
-    alert_id: int | None = None
+class DiscordIntegrationNotificationSent(BaseNotificationSent):
+    pass
 
 
 @analytics.eventclass("integrations.discord.command_interaction")

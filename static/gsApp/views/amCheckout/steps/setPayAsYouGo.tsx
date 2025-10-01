@@ -92,6 +92,7 @@ function SetPayAsYouGo({
           plan: formData.plan,
           cents: totalBudget || 0,
           method: fromButton ? 'button' : 'textbox',
+          isNewCheckout: false,
         });
       }
       setCurrentBudget(totalBudget);
@@ -312,7 +313,7 @@ function SetPayAsYouGo({
 
   const renderFooter = () => {
     return (
-      <StepFooter data-test-id={'footer-set-payg'}>
+      <StepFooter data-test-id="footer-set-payg">
         <Button priority="primary" onClick={() => onCompleteStep(stepNumber)}>
           {t('Continue')}
         </Button>

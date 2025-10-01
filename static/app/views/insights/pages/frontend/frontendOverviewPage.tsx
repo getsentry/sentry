@@ -7,7 +7,6 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -21,6 +20,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {OverviewIssuesWidget} from 'sentry/views/insights/common/components/overviewIssuesWidget';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
@@ -30,6 +30,7 @@ import OverviewTimeConsumingRequestsWidget from 'sentry/views/insights/common/co
 import OverviewTransactionDurationChartWidget from 'sentry/views/insights/common/components/widgets/overviewTransactionDurationChartWidget';
 import OverviewTransactionThroughputChartWidget from 'sentry/views/insights/common/components/widgets/overviewTransactionThroughputChartWidget';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {TripleRowWidgetWrapper} from 'sentry/views/insights/pages/backend/backendOverviewPage';
@@ -70,6 +71,8 @@ function FrontendOverviewPage() {
   const navigate = useNavigate();
   const {selection} = usePageFilters();
   const search = useFrontendQuery({includeWebVitalOps: true});
+
+  useDefaultToAllProjects();
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
   const spanOp: PageSpanOps = getSpanOpFromQuery(
@@ -148,7 +151,7 @@ function FrontendOverviewPage() {
               <ToolRibbon>
                 <PageFilterBar condensed>
                   <InsightsProjectSelector />
-                  <EnvironmentPageFilter />
+                  <InsightsEnvironmentSelector />
                   <DatePageFilter />
                 </PageFilterBar>
                 {!showOnboarding && (

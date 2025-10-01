@@ -11,7 +11,6 @@ import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
-import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import IdBadge from 'sentry/components/idBadge';
@@ -210,7 +209,7 @@ interface ProfileFiltersProps {
 }
 
 function ProfileFilters(props: ProfileFiltersProps) {
-  const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
+  const handleSearch = useCallback(
     (searchQuery: string) => {
       browserHistory.push({
         ...props.location,

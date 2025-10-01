@@ -182,7 +182,7 @@ def process_batch(
                 trace_id=val["trace_id"],
                 span_id=val["span_id"],
                 parent_span_id=val.get("parent_span_id"),
-                segment_id=cast(str | None, val.get("segment_id")),
+                segment_id=val.get("segment_id"),
                 project_id=val["project_id"],
                 payload=payload.value,
                 end_timestamp_precise=val["end_timestamp_precise"],

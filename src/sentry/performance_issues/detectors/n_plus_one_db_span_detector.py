@@ -11,9 +11,8 @@ from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
-from ..base import (
-    DetectorType,
-    PerformanceDetector,
+from ..base import DetectorType, PerformanceDetector
+from ..detectors.utils import (
     get_notification_attachment_body,
     get_span_evidence_value,
     total_span_time,

@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Sequence
 
-from django.db import router
+from django.db import router, transaction
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_SUCCESS,
@@ -10,12 +10,14 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 from sentry import quotas
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.environment import Environment
+from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.types.actor import Actor
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
-from sentry.uptime.grouptype import UptimeDomainCheckFailure, resolve_uptime_issue
 from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
@@ -53,6 +55,31 @@ UPTIME_SUBSCRIPTION_TYPE = "uptime_monitor"
 MAX_AUTO_SUBSCRIPTIONS_PER_ORG = 1
 MAX_MANUAL_SUBSCRIPTIONS_PER_ORG = 100
 MAX_MONITORS_PER_DOMAIN = 100
+
+
+def build_detector_fingerprint_component(detector: Detector) -> str:
+    return f"uptime-detector:{detector.id}"
+
+
+def build_fingerprint(detector: Detector) -> list[str]:
+    return [build_detector_fingerprint_component(detector)]
+
+
+def resolve_uptime_issue(detector: Detector) -> None:
+    """
+    Sends an update to the issue platform to resolve the uptime issue for this
+    monitor.
+    """
+    status_change = StatusChangeMessage(
+        fingerprint=build_fingerprint(detector),
+        project_id=detector.project_id,
+        new_status=GroupStatus.RESOLVED,
+        new_substatus=None,
+    )
+    produce_occurrence_to_kafka(
+        payload_type=PayloadType.STATUS_CHANGE,
+        status_change=status_change,
+    )
 
 
 class MaxManualUptimeSubscriptionsReached(ValueError):
@@ -120,8 +147,11 @@ def create_uptime_subscription(
             mode=region_config.mode,
         )
 
-    create_remote_uptime_subscription.delay(subscription.id)
-    fetch_subscription_rdap_info.delay(subscription.id)
+    def commit_tasks():
+        create_remote_uptime_subscription.delay(subscription.id)
+        fetch_subscription_rdap_info.delay(subscription.id)
+
+    transaction.on_commit(commit_tasks, using=router.db_for_write(UptimeSubscription))
     return subscription
 
 
@@ -162,8 +192,12 @@ def update_uptime_subscription(
 
     # Associate active regions with this subscription
     check_and_update_regions(subscription, load_regions_for_uptime_subscription(subscription.id))
-    update_remote_uptime_subscription.delay(subscription.id)
-    fetch_subscription_rdap_info.delay(subscription.id)
+
+    def commit_tasks():
+        update_remote_uptime_subscription.delay(subscription.id)
+        fetch_subscription_rdap_info.delay(subscription.id)
+
+    transaction.on_commit(commit_tasks, using=router.db_for_write(UptimeSubscription))
 
 
 def delete_uptime_subscription(uptime_subscription: UptimeSubscription):
@@ -172,7 +206,10 @@ def delete_uptime_subscription(uptime_subscription: UptimeSubscription):
     deletion to the external system and remove the row once successful.
     """
     uptime_subscription.update(status=UptimeSubscription.Status.DELETING.value)
-    delete_remote_uptime_subscription.delay(uptime_subscription.id)
+    transaction.on_commit(
+        lambda: delete_remote_uptime_subscription.delay(uptime_subscription.id),
+        using=router.db_for_write(UptimeSubscription),
+    )
 
 
 def create_uptime_detector(
@@ -199,7 +236,7 @@ def create_uptime_detector(
     if mode == UptimeMonitorMode.MANUAL:
         manual_subscription_count = Detector.objects.filter(
             status=ObjectStatus.ACTIVE,
-            type=UptimeDomainCheckFailure.slug,
+            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
             project__organization=project.organization,
             config__mode=UptimeMonitorMode.MANUAL,
         ).count()
@@ -329,6 +366,7 @@ def update_uptime_detector(
     """
     Updates a uptime detector and its associated uptime subscription.
     """
+
     with atomic_transaction(
         using=(
             router.db_for_write(UptimeSubscription),
@@ -336,7 +374,6 @@ def update_uptime_detector(
         )
     ):
         uptime_subscription = get_uptime_subscription(detector)
-
         update_uptime_subscription(
             uptime_subscription,
             url=url,
@@ -373,15 +410,11 @@ def update_uptime_detector(
                 "mode": mode,
                 "environment": env.name if env else None,
                 "recovery_threshold": default_if_not_set(
-                    # TODO: Remove DEFAULT_RECOVERY_THRESHOLD fallback after
-                    # backfill migration ensures all configs have this value
-                    detector.config.get("recovery_threshold", DEFAULT_RECOVERY_THRESHOLD),
+                    detector.config["recovery_threshold"],
                     recovery_threshold,
                 ),
                 "downtime_threshold": default_if_not_set(
-                    # TODO: Remove DEFAULT_DOWNTIME_THRESHOLD fallback after
-                    # backfill migration ensures all configs have this value
-                    detector.config.get("downtime_threshold", DEFAULT_DOWNTIME_THRESHOLD),
+                    detector.config["downtime_threshold"],
                     downtime_threshold,
                 ),
             },
@@ -483,7 +516,11 @@ def enable_uptime_detector(
     # The subscription was disabled, it can be re-activated now
     if uptime_subscription.status == UptimeSubscription.Status.DISABLED.value:
         uptime_subscription.update(status=UptimeSubscription.Status.CREATING.value)
-        create_remote_uptime_subscription.delay(uptime_subscription.id)
+
+        transaction.on_commit(
+            lambda: create_remote_uptime_subscription.delay(uptime_subscription.id),
+            using=router.db_for_write(UptimeSubscription),
+        )
 
 
 def delete_uptime_detector(detector: Detector):
@@ -499,11 +536,11 @@ def remove_uptime_subscription_if_unused(uptime_subscription: UptimeSubscription
     Determines if an uptime subscription is no longer used by any detectors and removes it if so
     """
     # If the uptime subscription is no longer used, we also remove it.
-    has_active_detectors = Detector.objects.filter(
+    has_active_detector = Detector.objects.filter(
         data_sources__source_id=str(uptime_subscription.id),
         status=ObjectStatus.ACTIVE,
     ).exists()
-    if not has_active_detectors:
+    if not has_active_detector:
         delete_uptime_subscription(uptime_subscription)
 
 
@@ -511,7 +548,7 @@ def is_url_auto_monitored_for_project(project: Project, url: str) -> bool:
     auto_detected_subscription_ids = list(
         Detector.objects.filter(
             status=ObjectStatus.ACTIVE,
-            type=UptimeDomainCheckFailure.slug,
+            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
             project=project,
             config__mode__in=(
                 UptimeMonitorMode.AUTO_DETECTED_ONBOARDING.value,
@@ -539,7 +576,7 @@ def get_auto_monitored_detectors_for_project(
         ]
     return list(
         Detector.objects.filter(
-            type=UptimeDomainCheckFailure.slug, project=project, config__mode__in=modes
+            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, project=project, config__mode__in=modes
         )
     )
 

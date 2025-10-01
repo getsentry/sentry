@@ -7,7 +7,7 @@ import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {ScreenSummary} from 'sentry/views/insights/mobile/appStarts/views/screenSummaryPage';
+import {ScreenSummaryContentPage} from 'sentry/views/insights/mobile/appStarts/views/screenSummaryPage';
 import {SpanFields} from 'sentry/views/insights/types';
 
 jest.mock('sentry/utils/usePageFilters');
@@ -115,7 +115,7 @@ describe('Screen Summary', () => {
         ],
       });
 
-      render(<ScreenSummary />, {organization, deprecatedRouterMocks: true});
+      render(<ScreenSummaryContentPage />, {organization, deprecatedRouterMocks: true});
 
       await waitFor(() => {
         expect(eventsMock).toHaveBeenCalled();

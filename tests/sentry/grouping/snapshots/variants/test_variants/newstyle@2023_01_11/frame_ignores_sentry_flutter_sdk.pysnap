@@ -1,12 +1,12 @@
 ---
-created: '2025-05-12T23:41:08.168621+00:00'
+created: '2025-09-24T20:27:07.080863+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   contributing component: null
-  component:
+  root_component:
     app
       stacktrace (ignored because it contains no in-app frames)
         frame (marked out of app by stack trace rule (path:package:sentry_flutter/** -app))
@@ -21,7 +21,7 @@ fallback:
 system:
   hash: null
   contributing component: null
-  component:
+  root_component:
     system
       stacktrace (ignored because it contains no contributing frames)
         frame (ignored by stack trace rule (path:package:sentry_flutter/** -group))

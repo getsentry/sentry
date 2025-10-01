@@ -6,6 +6,7 @@ import {Link} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -13,8 +14,6 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
-import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
@@ -27,6 +26,7 @@ import {
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {SpanFields} from 'sentry/views/insights/types';
 import {HighestCacheMissRateTransactionsWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 function isColumnNotFoundError(error: QueryError | null) {
@@ -57,21 +57,22 @@ export default function OverviewCacheMissChartWidget(props: LoadableChartWidgetP
     cachesRequest.data.map(item => `"${item.transaction}"`)
   );
 
-  const timeSeriesRequest = useTopNSpanSeries(
+  const timeSeriesRequest = useFetchSpanTimeSeries(
     {
       ...pageFilterChartParams,
-      search,
-      fields: ['transaction', 'cache_miss_rate()'],
       yAxis: ['cache_miss_rate()'],
+      query: search,
+      excludeOther: true,
+      groupBy: [SpanFields.TRANSACTION],
       sort: {field: 'cache_miss_rate()', kind: 'desc'},
-      topN: 4,
+      topEvents: 4,
       enabled: !!cachesRequest.data,
+      pageFilters: props.pageFilters,
     },
-    Referrer.CACHE_CHART,
-    props.pageFilters
+    Referrer.CACHE_CHART
   );
 
-  const timeSeries = timeSeriesRequest.data.filter(ts => ts.seriesName !== 'Other');
+  const timeSeries = timeSeriesRequest.data?.timeSeries || [];
 
   const isLoading = timeSeriesRequest.isLoading || cachesRequest.isLoading;
   // The BE returns an error if cache.hit is not found in the metrics indexer.
@@ -99,8 +100,7 @@ export default function OverviewCacheMissChartWidget(props: LoadableChartWidgetP
         id: 'overviewCacheMissChartWidget',
         showLegend: props.loaderSource === 'releases-drawer' ? 'auto' : 'never',
         plottables: timeSeries.map(
-          (ts, index) =>
-            new Line(convertSeriesToTimeseries(ts), {color: colorPalette[index]})
+          (ts, index) => new Line(ts, {color: colorPalette[index]})
         ),
         ...props,
         ...releaseBubbleProps,

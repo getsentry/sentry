@@ -38,6 +38,7 @@ class ProjectUserIssueEndpointTest(APITestCase):
             "transaction": "/test-transaction",
             "issueType": WebVitalsGroup.slug,
             "score": 75,
+            "value": 1000,
             "vital": "lcp",
             "traceId": "1234567890",
             "timestamp": "2025-01-01T00:00:00Z",
@@ -73,6 +74,7 @@ class ProjectUserIssueEndpointTest(APITestCase):
             "vital": "lcp",
             "score": 75,
             "trace_id": "1234567890",
+            "lcp": 1000,
         }
 
         # Verify event data
@@ -85,6 +87,7 @@ class ProjectUserIssueEndpointTest(APITestCase):
             "transaction": "/test-transaction",
             "web_vital": "lcp",
             "score": "75",
+            "lcp": "1000",
         }
         assert event_data["contexts"] == {
             "trace": {
@@ -133,6 +136,7 @@ class ProjectUserIssueEndpointTest(APITestCase):
             "issueType": WebVitalsGroup.slug,
             "score": 150,
             "vital": "invalid_vital",
+            "value": 1000,
         }
 
         response = self.get_error_response(
@@ -153,6 +157,7 @@ class ProjectUserIssueEndpointTest(APITestCase):
             "issueType": WebVitalsGroup.slug,
             "score": 75,
             "vital": "lcp",
+            "value": 1000,
         }
 
         with patch(

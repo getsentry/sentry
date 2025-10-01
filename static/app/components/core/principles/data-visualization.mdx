@@ -1,0 +1,104 @@
+---
+title: Data Visualization
+layout: document
+description: Sentry has a wealth of components, tools, and techniques for displaying various kinds of data.
+status: in-progress
+---
+
+## Data and Formatting
+
+Sentry supports many kinds of numeric data, and many representations of that data in the UI. Every data type has its own requirements for how to represent it in various contexts. This section serves as a reference for how we think those values should be represented. While there are often exceptions to these rules, this document covers what we see as the correct general guidelines.
+
+Data formatting depends on the UI context. Some contexts require that data be truncated, or condensed and others require that data is fully expanded (e.g., in tooltips). The most important contexts are:
+
+1. **Full** (the full value, suitable for display in tooltips, and in details panels)
+2. **Dense** (a highly condensed value, when the context is severely constrained in space, like in Y axis labels)
+3. **Regular** (a general purpose context, like table cells)
+
+A few general notes for formatting:
+
+- when the value is abbreviated, the full value should still be available to the user, either via a tooltip, or some other mechanism
+- it's important to respect the current user's locale as often as possible, especially when it comes to delimiters
+- the amount of precision when rounding a number depends on the context. Abbreviating "12.1231" to "12.1" is unhelpful, if the value next to it is "12.124" and the difference is important
+
+### Number
+
+A "number" is the most basic type of numeric data that Sentry can display. A "number" is any numeric value with unknown meaning. The "number" type is used as a fallback when we can't determine the meaning of a value, or if a value has no semantic meaning. The lack of meaning means that we do not abbreviate numbers, and they have the same representation is event context.
+
+| Common Value | Large Value   | Small Value | Zero |
+| ------------ | ------------- | ----------- | ---- |
+| 78.81        | 12,123,013.23 | 0.0000012   | 0    |
+| 78.81        | 12,123,013.23 | 0.0000012   | 0    |
+| 78.81        | 12,123,013.23 | 0.0000012   | 0    |
+
+- "number" values are always formatted in the current locale, which affects the placement of delimiters as well as rounding and truncation rules
+
+### Integer
+
+An "integer" is any whole number or 0. Integers are often used for counts. Integer values are usually positive, usually large, and always whole, they are formatted with an SI multiplier suffix. The value is always rounded to the nearest integer.
+
+| Context | Common Value | Large Value | Small Value | Zero |
+| ------- | ------------ | ----------- | ----------- | ---- |
+| Full    | 78           | 12,123,123  | 1           | 0    |
+| Regular | 78           | 12.1K       | 1           | 0    |
+| Dense   | 78           | 12.1K       | 1           | 0    |
+
+- when abbreviating large integers, we omit trailing 0s (e.g., `"12K"` instead of `"12.0K"`)
+
+### Percentage
+
+A percentage is a positive or negative value, similar to the "number" type, but the represent a proportion of something. For example, CPU capacity may be a percentage, but it can exceed 100%. Percentages are treated identically to the "number" type, with a trailing "%" sign. The only exception is that in "regular" contexts, percentages have a minimum. Any value below 0.0001 are shown as "&lt;0.1%"
+
+| Representation | Common Value | Large Value | Small Value | Zero |
+| -------------- | ------------ | ----------- | ----------- | ---- |
+| Full           | 78.12%       | 12,123.12%  | 0.000001    | 0%   |
+| Regular        | 78.12%       | 12,123.12%  | &lt;0.1%    | 0%   |
+| Dense          | 78.12%       | 12,123.12%  | &lt;0.1%    | 0%   |
+
+### Duration
+
+A "duration" represents elapsed time. Many parts of Sentry's UI measure the durations of various operations. A duration is always specified with a corresponding unit. The unit is _always_ chosen based on the quantity of the duration. e.g., "123 ms" is correct, "0.123 s" is not correct, nor "123,000 μs".
+
+| Representation | Common Value      | Large Value | Small Value       | Zero |
+| -------------- | ----------------- | ----------- | ----------------- | ---- |
+| Full           | 12.1 milliseconds | 16.7 years  | 0.001 nanoseconds | 0 ns |
+| Regular        | 12.1 ms           | 16.7 yr     | 0.001 ns          | 0 ns |
+| Dense          | 12.1 ms           | 16.7 yr     | 0.001 ns          | 0 ns |
+
+- the minimum unit multiplier is "nanosecond" and the maximum unit multiplier is "year"
+
+### Size
+
+Size represents the volume of data, in bytes. Size is always specified with a corresponding unit. The unit is _always_ chosen based on the quantity of the duration. e.g., 1.2MiB is correct, we never format it as "0.00117GiB"
+
+| Representation | Common Value  | Large Value    | Small Value | Zero |
+| -------------- | ------------- | -------------- | ----------- | ---- |
+| Full           | 724 kibibytes | 16.7 pebibytes | 3 kilobytes | 0 b  |
+| Regular        | 724 KiB       | 16.8 PiB       | 3 KB        | 0 b  |
+| Dense          | 724 KiB       | 16.8 PiB       | 3 KB        | 0 b  |
+
+- prefer using IEC units (mebibyte, gibibyte) over SI units (megabyte, gigabyte)
+- the minimum multiplier is none, i.e., the base unit is "bits"
+- the maximum multiplier is pebibyte
+- always use 3 digits for display, not counting the 0 before a decimal
+
+### Score
+
+A "score" is a positive integer value from 0 to 100. Scores are a synthetic measure, like Sentry's "Performance Score". This is very similar to an integer, except many parts of the UI give it special handling.
+
+- score values are _always_ formatted as integers
+- when a "score" is plotted, the Y axis _must_ range from 0 to 100 regardless of the contents
+- scores are often shown next to a qualitative label like "good" or "meh"
+
+### Rate
+
+A "rate" is a measurement of a number over time. Throughput measurements like "spans per minute" are a "rate". Rates use one of three multiplier units (per second, per minute, per hour), but they are not chosen automatically based on the quantity. Rate units must be chosen based on what is semantically valid. For example, the metric `epm()` is "events per minute", therefore it must _always_ be represented using the "per minute" unit. Rates also have a minimum. Any value below 0.0001 are shown as "&lt;0.01"
+
+| Representation | Common Value    | Large Value           | Small Value       | Zero         |
+| -------------- | --------------- | --------------------- | ----------------- | ------------ |
+| Full           | 12.1 per minute | 12,000,123 per minute | 0.000213 per hour | 0 per minute |
+| Regular        | 12.1/min        | 12,000,123/min        | &lt;0.01/h        | 0/m          |
+| Dense          | 12.1/min        | 12,000,123/min        | &lt;0.01/h        | 0/m          |
+
+- the number part of the display follows the same formatting rules as the "number" type
+- the number part is always rounded to two significant figures

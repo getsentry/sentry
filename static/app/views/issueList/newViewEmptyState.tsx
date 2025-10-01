@@ -70,15 +70,9 @@ function Query({label, query}: SearchSuggestion) {
 
 export function NewViewEmptyState() {
   const organization = useOrganization();
-  const {data: savedSearches = [], isPending} = useFetchSavedSearchesForOrg(
-    {
-      orgSlug: organization.slug,
-    },
-    {
-      // Force this to be enabled even with the new navigation
-      enabled: true,
-    }
-  );
+  const {data: savedSearches = [], isPending} = useFetchSavedSearchesForOrg({
+    orgSlug: organization.slug,
+  });
 
   const personalSavedSearches = savedSearches.filter(
     search => search.visibility === SavedSearchVisibility.OWNER

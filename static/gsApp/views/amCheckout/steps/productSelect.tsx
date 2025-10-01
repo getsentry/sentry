@@ -24,12 +24,36 @@ import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {Color} from 'sentry/utils/theme';
 
+import type {AddOnCategory} from 'getsentry/types';
 import {getProductIcon} from 'getsentry/utils/billing';
 import {getSingularCategoryName} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import CheckoutOption from 'getsentry/views/amCheckout/checkoutOption';
 import {SelectableProduct, type StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
+
+export function getProductCheckoutDescription(
+  product: SelectableProduct,
+  isNewCheckout: boolean,
+  includedBudget: string,
+  withPunctuation: boolean
+) {
+  if (product === SelectableProduct.SEER) {
+    if (isNewCheckout) {
+      return tct('Detect and fix issues faster with our AI agent[punctuation]', {
+        punctuation: withPunctuation ? '.' : '',
+      });
+    }
+    return tct(
+      'Detect and fix issues faster with [includedBudget]/mo in credits towards our AI agent[punctuation]',
+      {
+        includedBudget,
+        punctuation: withPunctuation ? '.' : '',
+      }
+    );
+  }
+  return '';
+}
 
 function ProductSelect({
   activePlan,
@@ -55,14 +79,12 @@ function ProductSelect({
       gradientEndColor: theme.pink100 as Color,
       buttonBorderColor: theme.pink200 as Color,
       getProductDescription: (includedBudget: string) =>
-        isNewCheckout
-          ? t('Detect and fix issues faster with our AI agent')
-          : tct(
-              'Detect and fix issues faster with [includedBudget]/mo in credits towards our AI agent',
-              {
-                includedBudget,
-              }
-            ),
+        getProductCheckoutDescription(
+          SelectableProduct.SEER,
+          !!isNewCheckout,
+          includedBudget,
+          false
+        ),
       categoryInfo: {
         [DataCategory.SEER_AUTOFIX]: {
           perEventNameOverride: isNewCheckout ? 'run' : 'fix',
@@ -88,6 +110,9 @@ function ProductSelect({
     <Fragment>
       {!isNewCheckout && <Separator orientation="horizontal" />}
       {availableProducts.map(productInfo => {
+        const productName =
+          activePlan.addOnCategories[productInfo.apiName as unknown as AddOnCategory]
+            ?.productName ?? productInfo.productCheckoutName;
         const checkoutInfo =
           PRODUCT_CHECKOUT_INFO[productInfo.apiName as string as SelectableProduct];
         if (!checkoutInfo) {
@@ -118,7 +143,7 @@ function ProductSelect({
           formData.selectedProducts?.[productInfo.apiName as string as SelectableProduct]
             ?.enabled;
 
-        const ariaLabel = t('Add %s to plan', productInfo.productCheckoutName);
+        const ariaLabel = t('Add %s to plan', productName);
 
         const toggleProductOption = () => {
           onUpdate({
@@ -159,7 +184,7 @@ function ProductSelect({
                   <Flex direction="column" gap="0" width="100%">
                     <Flex align="center" justify="between" gap="sm">
                       <Heading as="h3" variant="primary">
-                        {toTitleCase(productInfo.productCheckoutName, {
+                        {toTitleCase(productName, {
                           allowInnerUpperCase: true,
                         })}
                       </Heading>
@@ -172,22 +197,22 @@ function ProductSelect({
                     </ProductDescription>
                     <Container paddingTop="md">
                       <Text
-                        size={'2xl'}
+                        size="2xl"
                         bold
                         variant="primary"
                       >{`+$${priceInDollars}`}</Text>
-                      <Text size={'md'} variant="primary">{`/${billingInterval}`}</Text>
+                      <Text size="md" variant="primary">{`/${billingInterval}`}</Text>
                     </Container>
                   </Flex>
                 </Flex>
                 <Flex direction="column" gap="2xs">
                   <Separator orientation="horizontal" border="primary" />
                   <Flex direction="column" gap="sm" paddingTop="xl">
-                    <FeatureItem data-test-id={`product-option-feature-credits`}>
+                    <FeatureItem data-test-id="product-option-feature-credits">
                       <IconContainer>
                         <IconCheckmark color={theme.successText as Color} />
                       </IconContainer>
-                      <Text size={'md'}>
+                      <Text size="md">
                         {tct('Includes [includedBudget]/mo in credits', {
                           includedBudget: formattedMonthlyBudget,
                         })}
@@ -207,13 +232,12 @@ function ProductSelect({
                           <IconContainer>
                             <IconCheckmark color={theme.successText as Color} />
                           </IconContainer>
-                          <Text size={'md'}>
+                          <Text size="md">
                             <FeatureItemCategory>
                               {getSingularCategoryName({
                                 plan: activePlan,
                                 category: category as DataCategory,
                                 hadCustomDynamicSampling: false,
-                                title: true,
                               })}
                               {':'}
                             </FeatureItemCategory>
@@ -236,7 +260,7 @@ function ProductSelect({
         return (
           <ProductOption
             key={productInfo.apiName}
-            aria-label={productInfo.productCheckoutName}
+            aria-label={productName}
             data-test-id={`product-option-${productInfo.apiName}`}
             onClick={toggleProductOption}
           >
@@ -251,7 +275,7 @@ function ProductSelect({
                   <ProductLabel productColor={checkoutInfo.color}>
                     {productIcon}
                     <ProductName>
-                      {toTitleCase(productInfo.productCheckoutName, {
+                      {toTitleCase(productName, {
                         allowInnerUpperCase: true,
                       })}
                     </ProductName>

@@ -171,7 +171,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
           ? [
               {
                 language: 'groovy',
-                partialLoading: params.sourcePackageRegistries.isLoading,
                 description: tct(
                   'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
                   {
@@ -189,7 +188,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
           ? [
               {
                 language: 'xml',
-                partialLoading: params.sourcePackageRegistries.isLoading,
                 description: tct(
                   'The [link:Sentry Maven Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:pom.xml] file:',
                   {

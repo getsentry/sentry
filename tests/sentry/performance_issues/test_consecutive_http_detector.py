@@ -36,7 +36,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def create_issue_spans(self, span_duration=2000) -> list[Span]:
+    def create_issue_spans(self, span_duration: int = 2000) -> list[Span]:
         spans = [
             create_span(
                 "http.client", span_duration, "GET /api/0/organizations/endpoint1", "hash1"
@@ -54,7 +54,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
 
         return spans
 
-    def create_issue_event(self, span_duration=2000):
+    def create_issue_event(self, span_duration: int = 2000) -> dict[str, Any]:
         spans = self.create_issue_spans(span_duration)
         return create_event(spans)
 

@@ -22,6 +22,8 @@ class AuthenticatorIndexEndpoint(Endpoint):
     def get(self, request: Request) -> Response:
         """Returns u2f interface for a user, otherwise an empty array"""
 
+        assert request.user.is_authenticated
+
         # Currently just expose u2f challenge, not sure if it's necessary to list all
         # authenticator interfaces that are enabled
         try:

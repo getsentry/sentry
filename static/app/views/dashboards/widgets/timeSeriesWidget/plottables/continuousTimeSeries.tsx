@@ -67,7 +67,7 @@ export abstract class ContinuousTimeSeries<
     if (this.timeSeries.groupBy?.length) {
       name += ` : ${this.timeSeries.groupBy
         ?.map(groupBy => {
-          return `${groupBy.key}:${groupBy.value}`;
+          return `${groupBy.key} : ${groupBy.value}`;
         })
         .join(',')}`;
     }

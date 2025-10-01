@@ -1,9 +1,10 @@
 import logging
 import types
 import uuid
-from collections.abc import Sequence
-from typing import cast
+from collections.abc import Mapping, Sequence
+from typing import Any
 
+import sentry_sdk
 from django.core.exceptions import ValidationError
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 
@@ -44,6 +45,7 @@ outcome_aggregator = OutcomeAggregator()
 def process_segment(
     unprocessed_spans: list[SegmentSpan], skip_produce: bool = False
 ) -> list[CompatibleSpan]:
+    _verify_compatibility(unprocessed_spans)
     segment_span, spans = _enrich_spans(unprocessed_spans)
     if segment_span is None:
         return spans
@@ -70,6 +72,43 @@ def process_segment(
     #     _track_outcomes(segment_span, spans)
 
     return spans
+
+
+def _verify_compatibility(spans: Sequence[Mapping[str, Any]]) -> list[None | dict[str, Any]]:
+    result: list[None | dict[str, Any]] = [None for span in spans]
+    try:
+        for i, span in enumerate(spans):
+            # As soon as compatibility spans are fully rolled out, we can assert that attributes exist here.
+            if "attributes" in span:
+                metrics.incr("spans.consumers.process_segments.span_v2")
+
+                attributes = span.get("attributes") or {}
+                data = span.get("data") or {}
+                # Verify that all data exist also in attributes.
+                mismatches = [
+                    (key, data_value, attribute_value)
+                    for (key, data_value) in data.items()
+                    if data_value != (attribute_value := (attributes.get(key) or {}).get("value"))
+                ]
+                if mismatches:
+                    redacted = _redact(span)
+                    logger.warning("Attribute mismatch", extra={"span": redacted})
+                    result[i] = redacted
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+
+    return result
+
+
+def _redact(data: Any) -> Any:
+    if isinstance(data, list):
+        return [_redact(item) for item in data]
+    elif isinstance(data, dict):
+        return {key: _redact(value) for key, value in data.items()}
+    elif isinstance(data, str):
+        return "[redacted]"
+    else:
+        return data
 
 
 @metrics.wraps("spans.consumers.process_segments.enrich_spans")
@@ -244,7 +283,7 @@ def _track_outcomes(segment_span: CompatibleSpan, spans: list[CompatibleSpan]) -
     outcome_aggregator.track_outcome_aggregated(
         org_id=segment_span["organization_id"],
         project_id=segment_span["project_id"],
-        key_id=cast(int | None, segment_span.get("key_id", None)),
+        key_id=segment_span.get("key_id", None),
         outcome=Outcome.ACCEPTED,
         reason=None,
         timestamp=to_datetime(segment_span["received"]),

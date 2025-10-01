@@ -3379,7 +3379,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert new_group4.resolved_at is None
         assert new_group4.status == GroupStatus.UNRESOLVED
 
-    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_current_release(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
@@ -3421,7 +3420,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert open_period.date_ended == group.resolved_at
         assert open_period.resolution_activity == activity
 
-    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_current_release_without_open_period(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
@@ -3461,7 +3459,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         assert GroupOpenPeriod.objects.filter(group=group).count() == 0
 
-    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_explicit_release(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
@@ -3505,7 +3502,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert open_period.date_ended == group.resolved_at
         assert open_period.resolution_activity == activity
 
-    @with_feature("organizations:issue-open-periods")
     def test_in_semver_projects_set_resolved_in_explicit_release(self) -> None:
         release_1 = self.create_release(version="fake_package@3.0.0")
         release_2 = self.create_release(version="fake_package@2.0.0")
@@ -3664,7 +3660,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
         ).exists()
 
-    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_explicit_commit_released(self) -> None:
         release = self.create_release(project=self.project)
         repo = self.create_repo(project=self.project, name=self.project.name)
@@ -3712,7 +3707,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert open_period.date_ended == group.resolved_at
         assert open_period.resolution_activity == activity
 
-    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_explicit_commit_missing(self) -> None:
         repo = self.create_repo(project=self.project, name=self.project.name)
         group = self.create_group(status=GroupStatus.UNRESOLVED)

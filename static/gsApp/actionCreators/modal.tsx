@@ -127,7 +127,7 @@ type EditCreditCardOptions = {
 };
 
 export async function openEditCreditCard(options: EditCreditCardOptions) {
-  const {default: Modal} = await import('getsentry/components/creditCardEditModal');
+  const {default: Modal} = await import('getsentry/components/creditCardEdit/modal');
 
   openModal(deps => <Modal {...deps} {...options} />);
 }
@@ -139,7 +139,7 @@ type EditBillingDetailsOptions = {
 };
 
 export async function openEditBillingDetails(options: EditBillingDetailsOptions) {
-  const {default: Modal} = await import('getsentry/components/billingDetailsEditModal');
+  const {default: Modal} = await import('getsentry/components/billingDetails/modal');
   openModal(deps => <Modal {...deps} {...options} />);
 }
 

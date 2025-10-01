@@ -4,7 +4,6 @@ import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import localStorage from 'sentry/utils/localStorage';
 import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -50,26 +49,6 @@ export enum MEPState {
 
 const METRIC_SETTING_PARAM = 'metricSetting';
 export const METRIC_SEARCH_SETTING_PARAM = 'metricSearchSetting'; // TODO: Clean this up since we don't need multiple params in practice.
-
-const storageKey = 'performance.metrics-enhanced-setting';
-export const MEPSetting = {
-  get(): MEPState | null {
-    const value = localStorage.getItem(storageKey);
-    if (value) {
-      if (!(value in MEPState)) {
-        localStorage.removeItem(storageKey);
-        return null;
-      }
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      return MEPState[value];
-    }
-    return null;
-  },
-
-  set(value: MEPState) {
-    localStorage.setItem(storageKey, value);
-  },
-};
 
 function canUseMetricsDevUI(organization: Organization) {
   return organization.features.includes('performance-use-metrics');
