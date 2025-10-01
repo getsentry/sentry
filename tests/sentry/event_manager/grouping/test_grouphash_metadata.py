@@ -395,10 +395,7 @@ class GroupHashMetadataTest(TestCase):
             project=self.project, hash=event1.get_primary_hash()
         ).first()
         assert grouphash and grouphash.metadata
-
-        # Set the date_updated to be new
-        now = timezone.now()
-        grouphash.metadata.update(date_updated=now, event_id="old_event_id")
+        current_date_updated = grouphash.metadata.date_updated
 
         # Create a new event with the same hash
         event2 = save_new_event({"message": "Dogs are great!"}, self.project)
