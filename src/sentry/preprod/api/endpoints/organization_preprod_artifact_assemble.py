@@ -182,11 +182,8 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
 
             if artifact is None:
                 return Response(
-                    {
-                        "state": ChunkFileState.ERROR,
-                        "detail": "Failed to create preprod artifact row.",
-                        "missingChunks": [],
-                    }
+                    {"error": "Failed to create preprod artifact row."},
+                    status=500,
                 )
 
             create_preprod_status_check_task.apply_async(

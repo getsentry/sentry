@@ -742,10 +742,8 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
-        assert response.status_code == 200, response.content
-        assert response.data["state"] == ChunkFileState.ERROR
-        assert response.data["detail"] == "Failed to create preprod artifact row."
-        assert response.data["missingChunks"] == []
+        assert response.status_code == 500, response.content
+        assert response.data["error"] == "Failed to create preprod artifact row."
 
         mock_create_preprod_artifact.assert_called_once_with(
             org_id=self.organization.id,
