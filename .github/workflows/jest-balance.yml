@@ -37,7 +37,7 @@ jobs:
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
         run: JEST_TEST_BALANCER=1 pnpm run test-ci
 
-      - uses: actions/upload-artifact@master
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # 4.6.2
         with:
           name: jest-balance.json
           path: tests/js/test-balancer/jest-balance.json
