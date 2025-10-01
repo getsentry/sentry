@@ -83,6 +83,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
 

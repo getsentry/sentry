@@ -323,7 +323,7 @@ export function Visualize() {
           </div>
           <StyledAggregateSelect
             searchable
-            triggerLabel={aggregate || t('Select aggregate')}
+            triggerProps={{children: aggregate || t('Select aggregate')}}
             options={aggregateDropdownOptions}
             value={aggregate}
             onChange={option => {
@@ -337,11 +337,11 @@ export function Visualize() {
               {param.kind === 'column' ? (
                 <StyledVisualizeSelect
                   searchable
-                  triggerLabel={
-                    lockSpanOptions
+                  triggerProps={{
+                    children: lockSpanOptions
                       ? LOCKED_SPAN_COUNT_OPTION.label
-                      : parameters[index] || param.defaultValue || t('Select metric')
-                  }
+                      : parameters[index] || param.defaultValue || t('Select metric'),
+                  }}
                   options={
                     lockSpanOptions ? [LOCKED_SPAN_COUNT_OPTION] : fieldOptionsDropdown
                   }
@@ -358,9 +358,10 @@ export function Visualize() {
               ) : param.kind === 'dropdown' && param.options ? (
                 <StyledVisualizeSelect
                   searchable
-                  triggerLabel={
-                    parameters[index] || param.defaultValue || t('Select value')
-                  }
+                  triggerProps={{
+                    children:
+                      parameters[index] || param.defaultValue || t('Select value'),
+                  }}
                   options={param.options.map(option => ({
                     value: option.value,
                     label: option.label,

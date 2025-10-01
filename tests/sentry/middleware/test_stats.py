@@ -8,6 +8,7 @@ from rest_framework.permissions import AllowAny
 from sentry.api.base import Endpoint
 from sentry.middleware.ratelimit import RatelimitMiddleware
 from sentry.middleware.stats import RequestTimingMiddleware
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.testutils.cases import TestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -16,7 +17,9 @@ class RateLimitedEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
     enforce_rate_limit = True
-    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(limit=0, window=10)}}
+    rate_limits = RateLimitConfig(
+        limit_overrides={"GET": {RateLimitCategory.IP: RateLimit(limit=0, window=10)}}
+    )
 
     def get(self):
         raise NotImplementedError

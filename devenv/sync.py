@@ -143,8 +143,6 @@ Then, use it to run sync this time:
     FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
     SKIP_FRONTEND = os.environ.get("SENTRY_DEVENV_SKIP_FRONTEND") is not None
 
-    USE_OLD_DEVSERVICES = os.environ.get("USE_OLD_DEVSERVICES") == "1"
-
     if constants.DARWIN and os.path.exists(f"{constants.root}/bin/colima"):
         binroot = f"{reporoot}/.devenv/bin"
         colima.uninstall(binroot)
@@ -264,41 +262,11 @@ Then, use it to run sync this time:
         print("Skipping python migrations since SENTRY_DEVENV_FRONTEND_ONLY is set.")
         return 0
 
-    if USE_OLD_DEVSERVICES:
-        # Ensure new devservices is not being used, otherwise ports will conflict
-        proc.run(
-            (f"{venv_dir}/bin/devservices", "down"),
-            pathprepend=f"{reporoot}/.devenv/bin",
-            exit=True,
-        )
-        # TODO: check healthchecks for redis and postgres to short circuit this
-        proc.run(
-            (
-                f"{venv_dir}/bin/{repo}",
-                "devservices",
-                "up",
-                "redis",
-                "postgres",
-            ),
-            pathprepend=f"{reporoot}/.devenv/bin",
-            exit=True,
-        )
-    else:
-        # Ensure old sentry devservices is not being used, otherwise ports will conflict
-        proc.run(
-            (
-                f"{venv_dir}/bin/{repo}",
-                "devservices",
-                "down",
-            ),
-            pathprepend=f"{reporoot}/.devenv/bin",
-            exit=True,
-        )
-        proc.run(
-            (f"{venv_dir}/bin/devservices", "up", "--mode", "migrations"),
-            pathprepend=f"{reporoot}/.devenv/bin",
-            exit=True,
-        )
+    proc.run(
+        (f"{venv_dir}/bin/devservices", "up", "--mode", "migrations"),
+        pathprepend=f"{reporoot}/.devenv/bin",
+        exit=True,
+    )
 
     if not run_procs(
         repo,
@@ -315,16 +283,12 @@ Then, use it to run sync this time:
     ):
         return 1
 
-    postgres_container = (
-        "sentry_postgres" if os.environ.get("USE_OLD_DEVSERVICES") == "1" else "sentry-postgres-1"
-    )
-
     # faster prerequisite check than starting up sentry and running createuser idempotently
     stdout = proc.run(
         (
             "docker",
             "exec",
-            postgres_container,
+            "sentry-postgres-1",
             "psql",
             "sentry",
             "postgres",

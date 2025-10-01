@@ -1,7 +1,7 @@
 import abc
 import dataclasses
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from typing import Any, Generic, cast
 from uuid import uuid4
 
@@ -596,7 +596,6 @@ class StatefulDetectorHandler(
             occurrence_id=str(uuid4()),
             project_id=self.detector.project_id,
             status=new_priority,
-            detection_time=datetime.now(UTC),
             additional_evidence_data=evidence_data,
         )
 

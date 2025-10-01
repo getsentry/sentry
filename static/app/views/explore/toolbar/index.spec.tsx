@@ -16,7 +16,6 @@ import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {
   PageParamsProvider,
-  useExploreFields,
   useExploreSortBys,
   useSetExploreMode,
 } from 'sentry/views/explore/contexts/pageParamsContext';
@@ -24,6 +23,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
   useQueryParamsAggregateFields,
+  useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsVisualizes,
@@ -230,10 +230,10 @@ describe('ExploreToolbar', () => {
   });
 
   it('allows changing visualizes', async () => {
-    let fields!: string[];
+    let fields!: readonly string[];
     let visualizes: any;
     function Component() {
-      fields = useExploreFields();
+      fields = useQueryParamsFields();
       visualizes = useQueryParamsVisualizes();
       return <ExploreToolbar />;
     }

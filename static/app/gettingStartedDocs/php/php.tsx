@@ -380,7 +380,7 @@ const logsOnboarding: OnboardingConfig = {
           text: tct(
             'For more detailed configuration options, see the [link:logs documentation].',
             {
-              link: <ExternalLink href={`https://docs.sentry.io/platforms/php/logs/`} />,
+              link: <ExternalLink href="https://docs.sentry.io/platforms/php/logs/" />,
             }
           ),
         },

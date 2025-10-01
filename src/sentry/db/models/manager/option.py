@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from celery.signals import task_postrun
 from django.core.signals import request_finished
 from django.db.models import Model
 
@@ -23,7 +22,6 @@ class OptionManager(BaseManager[M]):
 
     def contribute_to_class(self, model: type[Model], name: str) -> None:
         super().contribute_to_class(model, name)
-        task_postrun.connect(self.clear_local_cache)
         request_finished.connect(self.clear_local_cache)
 
     def _make_key(self, instance_id: int | str) -> str:

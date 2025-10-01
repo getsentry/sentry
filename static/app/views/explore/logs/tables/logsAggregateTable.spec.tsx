@@ -31,7 +31,10 @@ describe('LogsAggregateTable', () => {
     aggregatesTableResult: ReturnType<typeof useLogsAggregatesQuery>;
   }) {
     return (
-      <LogsQueryParamsProvider source="location">
+      <LogsQueryParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        source="location"
+      >
         <LogsPageParamsProvider
           analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         >

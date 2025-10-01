@@ -7,7 +7,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   PageParamsProvider,
   useExplorePageParams,
-  useSetExploreFields,
   useSetExploreMode,
   useSetExplorePageParams,
   useSetExploreQuery,
@@ -21,6 +20,7 @@ import {
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
+  useSetQueryParamsFields,
   useSetQueryParamsGroupBys,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
@@ -52,7 +52,7 @@ describe('defaults', () => {
 describe('PageParamsProvider', () => {
   let pageParams: ReturnType<typeof useExplorePageParams>;
   let setPageParams: ReturnType<typeof useSetExplorePageParams>;
-  let setFields: ReturnType<typeof useSetExploreFields>;
+  let setFields: ReturnType<typeof useSetQueryParamsFields>;
   let setGroupBys: ReturnType<typeof useSetQueryParamsGroupBys>;
   let setMode: ReturnType<typeof useSetExploreMode>;
   let setQuery: ReturnType<typeof useSetExploreQuery>;
@@ -62,7 +62,7 @@ describe('PageParamsProvider', () => {
   function Component() {
     pageParams = useExplorePageParams();
     setPageParams = useSetExplorePageParams();
-    setFields = useSetExploreFields();
+    setFields = useSetQueryParamsFields();
     setGroupBys = useSetQueryParamsGroupBys();
     setMode = useSetExploreMode();
     setQuery = useSetExploreQuery();
@@ -692,8 +692,7 @@ describe('PageParamsProvider', () => {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        // span.duration should be added automatically once setPageParams is migrated to use setQueryParams.
-        fields: ['id', 'timestamp', 'span.self_time' /* 'span.duration' */],
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
       })
     );
   });

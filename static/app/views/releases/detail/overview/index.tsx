@@ -9,7 +9,6 @@ import Feature from 'sentry/components/acl/feature';
 import {useSessionsRequest} from 'sentry/components/charts/useSessionsRequest';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {DateTime} from 'sentry/components/dateTime';
-import PerformanceCardTable from 'sentry/components/discover/performanceCardTable';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import TransactionsList from 'sentry/components/discover/transactionsList';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -27,7 +26,6 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {MobileVital, SpanOpBreakdown, WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -42,10 +40,6 @@ import {
 } from 'sentry/views/performance/transactionSummary/utils';
 import type {TrendView} from 'sentry/views/performance/trends/types';
 import {TrendChangeType} from 'sentry/views/performance/trends/types';
-import {
-  platformToPerformanceType,
-  ProjectPerformanceType,
-} from 'sentry/views/performance/utils';
 import {
   getReleaseParams,
   isReleaseArchived,
@@ -235,101 +229,6 @@ function ReleaseOverview() {
     return trendView;
   };
 
-  const getReleasePerformanceEventView = (
-    performanceType: string,
-    baseQuery: NewQuery
-  ): EventView => {
-    const eventView =
-      performanceType === ProjectPerformanceType.FRONTEND
-        ? EventView.fromSavedQuery({
-            ...baseQuery,
-            fields: [
-              ...baseQuery.fields,
-              `p75(${WebVital.FCP})`,
-              `p75(${WebVital.FID})`,
-              `p75(${WebVital.LCP})`,
-              `p75(${WebVital.CLS})`,
-              `p75(${SpanOpBreakdown.SPANS_HTTP})`,
-              `p75(${SpanOpBreakdown.SPANS_BROWSER})`,
-              `p75(${SpanOpBreakdown.SPANS_RESOURCE})`,
-            ],
-          })
-        : performanceType === ProjectPerformanceType.BACKEND
-          ? EventView.fromSavedQuery({
-              ...baseQuery,
-              fields: [
-                ...baseQuery.fields,
-                'apdex()',
-                'p75(spans.http)',
-                'p75(spans.db)',
-              ],
-            })
-          : performanceType === ProjectPerformanceType.MOBILE
-            ? EventView.fromSavedQuery({
-                ...baseQuery,
-                fields: [
-                  ...baseQuery.fields,
-                  `p75(${MobileVital.APP_START_COLD})`,
-                  `p75(${MobileVital.APP_START_WARM})`,
-                  `p75(${MobileVital.FRAMES_SLOW})`,
-                  `p75(${MobileVital.FRAMES_FROZEN})`,
-                ],
-              })
-            : EventView.fromSavedQuery({
-                ...baseQuery,
-              });
-
-    return eventView;
-  };
-
-  const getAllReleasesPerformanceView = (projectId: number, performanceType: string) => {
-    const {environments} = selection;
-
-    const {start, end, statsPeriod} = getReleaseParams({
-      location,
-      releaseBounds,
-    });
-
-    const baseQuery: NewQuery = {
-      id: undefined,
-      version: 2,
-      name: 'All Releases',
-      query: 'event.type:transaction',
-      fields: ['user_misery()'],
-      range: statsPeriod || undefined,
-      environment: environments,
-      projects: [projectId],
-      start: start ? getUtcDateString(start) : undefined,
-      end: end ? getUtcDateString(end) : undefined,
-    };
-
-    return getReleasePerformanceEventView(performanceType, baseQuery);
-  };
-
-  const getReleasePerformanceView = (projectId: number, performanceType: string) => {
-    const {environments} = selection;
-
-    const {start, end, statsPeriod} = getReleaseParams({
-      location,
-      releaseBounds,
-    });
-
-    const baseQuery: NewQuery = {
-      id: undefined,
-      version: 2,
-      name: `Release:${version}`,
-      query: `event.type:transaction release:${version}`,
-      fields: ['user_misery()'],
-      range: statsPeriod || undefined,
-      environment: environments,
-      projects: [projectId],
-      start: start ? getUtcDateString(start) : undefined,
-      end: end ? getUtcDateString(end) : undefined,
-    };
-
-    return getReleasePerformanceEventView(performanceType, baseQuery);
-  };
-
   const handleTransactionsListSortChange = (value: string) => {
     const target = {
       pathname: location.pathname,
@@ -372,11 +271,7 @@ function ReleaseOverview() {
   const {start, end, period, utc} = getPageDateTime();
   const hasDiscover = organization.features.includes('discover-basic');
   const hasPerformance = organization.features.includes('performance-view');
-  const hasReleaseComparisonPerformance = organization.features.includes(
-    'release-comparison-performance'
-  );
   const {environments} = selection;
-  const performanceType = platformToPerformanceType([project], [project.id])!;
   const {selectedSort, sortOptions} = getTransactionsListSort(location);
   const releaseEventView = getReleaseEventView(project.id, selectedSort);
   const titles =
@@ -384,11 +279,6 @@ function ReleaseOverview() {
       ? [t('transaction'), t('failure_count()'), t('tpm()'), t('p75(lcp)')]
       : [t('transaction'), t('failure_count()'), t('tpm()'), t('p50()')];
   const releaseTrendView = getReleaseTrendView(project.id, releaseMeta.released);
-  const allReleasesPerformanceView = getAllReleasesPerformanceView(
-    project.id,
-    performanceType
-  );
-  const releasePerformanceView = getReleasePerformanceView(project.id, performanceType);
 
   const generateLink = {
     transaction: generateTransactionLink(
@@ -431,7 +321,9 @@ function ReleaseOverview() {
               utc={utc ?? null}
               onChange={handleDateChange}
               menuTitle={t('Filter Time Range')}
-              triggerLabel={defaultDateTimeSelected ? releaseBoundsLabel : null}
+              triggerProps={{
+                children: defaultDateTimeSelected ? releaseBoundsLabel : null,
+              }}
               relativeOptions={({defaultOptions, arbitraryOptions}) =>
                 releaseBounds.type === 'ancient'
                   ? {...defaultOptions, ...arbitraryOptions}
@@ -486,29 +378,18 @@ function ReleaseOverview() {
             withChart
           />
           <Feature features="performance-view">
-            {hasReleaseComparisonPerformance ? (
-              <PerformanceCardTable
-                organization={organization}
-                project={project}
-                location={location}
-                allReleasesEventView={allReleasesPerformanceView}
-                releaseEventView={releasePerformanceView}
-                performanceType={performanceType}
-              />
-            ) : (
-              <TransactionsList
-                location={location}
-                organization={organization}
-                eventView={releaseEventView}
-                trendView={releaseTrendView}
-                selected={selectedSort}
-                options={sortOptions}
-                handleDropdownChange={handleTransactionsListSortChange}
-                titles={titles}
-                generateLink={generateLink}
-                supportsInvestigationRule={false}
-              />
-            )}
+            <TransactionsList
+              location={location}
+              organization={organization}
+              eventView={releaseEventView}
+              trendView={releaseTrendView}
+              selected={selectedSort}
+              options={sortOptions}
+              handleDropdownChange={handleTransactionsListSortChange}
+              titles={titles}
+              generateLink={generateLink}
+              supportsInvestigationRule={false}
+            />
           </Feature>
         </Layout.Main>
         <Layout.Side>

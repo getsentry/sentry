@@ -24,7 +24,6 @@ describe('TempestSettings', () => {
   describe('Access Control', () => {
     it('renders warning alert when user does not have tempest access', () => {
       const organizationWithoutAccess = OrganizationFixture({
-        features: [],
         enabledConsolePlatforms: [],
       });
 
@@ -40,25 +39,8 @@ describe('TempestSettings', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('renders settings when user has tempest-access feature', () => {
-      const organizationWithFeature = OrganizationFixture({
-        features: ['tempest-access'],
-        enabledConsolePlatforms: [],
-      });
-
-      render(
-        <TempestSettings organization={organizationWithFeature} project={project} />
-      );
-
-      expect(
-        screen.queryByText("You don't have access to this feature")
-      ).not.toBeInTheDocument();
-      expect(screen.getByRole('heading', {name: 'DevKit Crashes'})).toBeInTheDocument();
-    });
-
     it('renders settings when user has playstation console platform enabled', () => {
       const organizationWithPlatform = OrganizationFixture({
-        features: [],
         enabledConsolePlatforms: ['playstation'],
       });
 
@@ -72,9 +54,8 @@ describe('TempestSettings', () => {
       expect(screen.getByRole('heading', {name: 'DevKit Crashes'})).toBeInTheDocument();
     });
 
-    it('renders settings when user has both tempest-access feature and playstation platform', () => {
+    it('renders settings when user has playstation platform', () => {
       const organizationWithBoth = OrganizationFixture({
-        features: ['tempest-access'],
         enabledConsolePlatforms: ['playstation'],
       });
 
@@ -88,7 +69,6 @@ describe('TempestSettings', () => {
 
     it('does not grant access with other console platforms', () => {
       const organizationWithOtherPlatform = OrganizationFixture({
-        features: [],
         enabledConsolePlatforms: ['xbox', 'nintendo'],
       });
 

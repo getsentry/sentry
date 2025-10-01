@@ -9,7 +9,6 @@ dependencies = [
     "botocore>=1.34.128",
     "brotli>=1.1.0",
     "cachetools>=5.3.0",
-    "celery>=5.5.2",
     "click>=8.2.1",
     "confluent-kafka>=2.8.0",
     "cronsim>=2.6",
@@ -78,11 +77,11 @@ dependencies = [
     # [end] jsonschema format validators
     "sentry-arroyo>=2.25.5",
     "sentry-forked-email-reply-parser>=0.5.12.post1",
-    "sentry-kafka-schemas>=2.1.0",
+    "sentry-kafka-schemas>=2.1.3",
     "sentry-ophio>=1.1.3",
     "sentry-protos>=0.4.0",
     "sentry-redis-tools>=0.5.0",
-    "sentry-relay>=0.9.15",
+    "sentry-relay>=0.9.16",
     "sentry-sdk[http2]>=2.35.1",
     "sentry-usage-accountant>=0.0.10",
     # remove once there are no unmarked transitive dependencies on setuptools
@@ -209,8 +208,7 @@ split_on_trailing_comma = false
 [tool.pytest.ini_options]
 python_files = "test_*.py sentry/testutils/*"
 # note: When updating the traceback format, make sure to update .github/pytest.json
-# We don't use the celery pytest plugin.
-addopts = "--tb=short -p no:celery --nomigrations"
+addopts = "--tb=short --nomigrations"
 # TODO: --import-mode=importlib will become the default soon,
 # currently we have a few relative imports that don't work with that.
 markers = [
@@ -278,7 +276,6 @@ module = [
     "boto3.*",
     "botocore.client.*",
     "botocore.exceptions.*",
-    "celery.*",
     "confluent_kafka.*",
     "cssselect.*",
     "django_zero_downtime_migrations.backends.postgres.schema.*",
@@ -312,7 +309,6 @@ module = [
     "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
     "sentry.net.http",
-    "sentry.plugins.config",
     "sentry.release_health.metrics_sessions_v2",
     "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",

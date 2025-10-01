@@ -162,7 +162,7 @@ export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
           ))}
         </StyledList>
       ) : (
-        <SectionContent text={''} />
+        <SectionContent text="" />
       )}
 
       {openFeedbackForm && (

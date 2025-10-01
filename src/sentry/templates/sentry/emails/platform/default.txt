@@ -2,9 +2,8 @@
 
 {{body}}
 {% if actions %}{% for action_label, action_link in actions %}
-* {{ action_label }}: {{ action_link }}
-{% endfor %}{% endif %}
-{% if chart_alt_text %}{{chart_alt_text}}:{% endif %}
-{% if chart_url %}{{chart_url}}{% endif %}
+* {{ action_label }}: {{ action_link }}{% endfor %}{% endif %}
+{% if chart_alt_text %}{{chart_alt_text}}:{% endif %}{% if chart_url %}
+{{chart_url}}{% endif %}{% if footer %}
 
-{% if footer %}{{footer}}{% endif %}
+{{footer}}{% endif %}

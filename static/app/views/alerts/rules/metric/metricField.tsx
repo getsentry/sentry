@@ -42,6 +42,17 @@ export const getFieldOptionConfig = ({
         return [key, agg];
       }
 
+      // When using apdex with the transactions dataset, it uses the metrics which does not accept a parameter.
+      // Attempting to save with `apdex(300)` will fail with the message: "Cannot query apdex with a threshold parameter on the metrics dataset"
+      if (
+        (dataset === Dataset.TRANSACTIONS || dataset === Dataset.GENERIC_METRICS) &&
+        key === 'apdex'
+      ) {
+        const base = AGGREGATIONS[key] as Aggregation;
+        const agg: Aggregation = {...base, parameters: []};
+        return [key, agg];
+      }
+
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return [key, AGGREGATIONS[key]];
     })

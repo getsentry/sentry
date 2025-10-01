@@ -222,7 +222,7 @@ export const AlertWizardRuleTemplates: Record<
     eventTypes: EventTypes.TRANSACTION,
   },
   apdex: {
-    aggregate: 'apdex(300)',
+    aggregate: 'apdex()',
     dataset: Dataset.TRANSACTIONS,
     eventTypes: EventTypes.TRANSACTION,
   },

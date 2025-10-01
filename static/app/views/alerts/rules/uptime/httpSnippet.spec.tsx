@@ -15,7 +15,7 @@ describe('HTTPSnippet', () => {
       <HTTPSnippet
         url="https://example.com/test?query=value"
         method="POST"
-        body={'{"key": "value"}'}
+        body='{"key": "value"}'
         headers={[['X-Something', 'Header Value']]}
         traceSampling={false}
       />

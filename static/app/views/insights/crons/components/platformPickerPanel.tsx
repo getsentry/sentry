@@ -20,7 +20,8 @@ export type SupportedPlatform =
   | 'java'
   | 'java-spring-boot'
   | 'ruby'
-  | 'ruby-rails';
+  | 'ruby-rails'
+  | 'dotnet';
 
 interface SDKPlatformInfo {
   label: string;
@@ -38,6 +39,7 @@ export const CRON_SDK_PLATFORMS: SDKPlatformInfo[] = [
   {platform: 'java-spring-boot', label: 'Spring Boot'},
   {platform: 'ruby', label: 'Ruby'},
   {platform: 'ruby-rails', label: 'Rails'},
+  {platform: 'dotnet', label: '.NET'},
 ];
 
 interface Props {

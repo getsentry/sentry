@@ -165,7 +165,11 @@ export function SizeCompareItemDiffTable({diffItems}: SizeCompareItemDiffTablePr
 }
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 0.5fr 3fr 0.5fr 0.5fr 0.5fr;
+  overflow-x: auto;
+  overflow-y: auto;
+  grid-template-columns:
+    minmax(120px, 0.5fr) minmax(200px, 3fr) minmax(100px, 0.5fr) minmax(100px, 0.5fr)
+    minmax(100px, 0.5fr);
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   border-left: 0px;
   border-right: 0px;

@@ -486,7 +486,7 @@ class PushEventWebhook(GitHubWebhook):
                         )
 
                     if file_changes:
-                        bulk_create_commit_file_changes(organization, file_changes)
+                        bulk_create_commit_file_changes(file_changes)
                         post_bulk_create(file_changes)
 
             except IntegrityError:

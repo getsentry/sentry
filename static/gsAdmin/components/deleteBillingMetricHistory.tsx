@@ -100,7 +100,7 @@ function DeleteBillingMetricHistoryModal({
       <Body>
         <div>Delete billing metric history for a specific data category.</div>
         <br />
-        <Form onSubmit={onSubmit} submitLabel={'Delete'} onCancel={closeModal}>
+        <Form onSubmit={onSubmit} submitLabel="Delete" onCancel={closeModal}>
           <SelectField
             inline={false}
             stacked

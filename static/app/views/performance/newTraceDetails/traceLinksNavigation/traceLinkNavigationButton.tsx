@@ -93,11 +93,7 @@ export function TraceLinkNavigationButton({
           `This links to the previous trace within the same session. To learn more, [link:read the docs].`,
           {
             link: (
-              <ExternalLink
-                href={
-                  'https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces'
-                }
-              />
+              <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
             ),
           }
         )}
@@ -131,11 +127,7 @@ export function TraceLinkNavigationButton({
           `This links to the next trace within the same session. To learn more, [link:read the docs].`,
           {
             link: (
-              <ExternalLink
-                href={
-                  'https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces'
-                }
-              />
+              <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
             ),
           }
         )}

@@ -91,8 +91,8 @@ describe('MemoryInfoContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'memory_info'}
-        alias={'memory_info'}
+        type="memory_info"
+        alias="memory_info"
         value={{...MOCK_MEMORY_INFO_CONTEXT, pinned_objects_count: ''}}
       />
     );

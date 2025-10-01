@@ -38,8 +38,8 @@ describe('SpringContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'spring'}
-        alias={'spring'}
+        type="spring"
+        alias="spring"
         value={{...MOCK_SPRING_CONTEXT}}
       />
     );

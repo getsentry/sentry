@@ -6,7 +6,6 @@ from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
-from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone as django_timezone
 from sentry_sdk import set_tag
 
@@ -212,5 +211,5 @@ def process_commit_context(
                 sentry_sdk.capture_exception(e)
     except UnableToAcquireLock:
         pass
-    except (MaxRetriesExceededError, NoRetriesRemainingError):
+    except NoRetriesRemainingError:
         metrics.incr("tasks.process_commit_context.max_retries_exceeded")

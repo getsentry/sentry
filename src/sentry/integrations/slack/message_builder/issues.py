@@ -436,7 +436,11 @@ def build_actions(
         )
 
     def _assign_button() -> MessageAction:
-        assignee = group.get_assignee()
+        try:
+            assignee = group.get_assignee()
+        except Actor.InvalidActor:
+            assignee = None
+
         assign_button = MessageAction(
             name="assign",
             label="Select Assignee...",
@@ -508,9 +512,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         title = summary_headline or build_attachment_title(event_or_group)
         title_emojis = self.get_title_emoji(has_action)
 
-        return self.get_rich_text_link(title_emojis, title, title_link)
+        title_text = f"{title_emojis} <{title_link}|*{escape_slack_text(title)}*>"
+        return self.get_markdown_block(title_text)
 
-    def get_title_emoji(self, has_action: bool) -> list[str]:
+    def get_title_emoji(self, has_action: bool) -> str:
         is_error_issue = self.group.issue_category == GroupCategory.ERROR
 
         title_emojis: list[str] = []
@@ -527,7 +532,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         else:
             title_emojis = CATEGORY_TO_EMOJI.get(self.group.issue_category, [])
 
-        return title_emojis
+        return " ".join(title_emojis)
 
     def get_issue_summary_headline(self, event_or_group: Event | GroupEvent | Group) -> str | None:
         if self.issue_summary is None:
@@ -734,7 +739,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # build actions
         actions = []
-        assignee = self.group.get_assignee()
+        try:
+            assignee = self.group.get_assignee()
+        except Actor.InvalidActor:
+            assignee = None
+
         for action in payload_actions:
             if action.label in (
                 "Archive",

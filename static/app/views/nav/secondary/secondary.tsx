@@ -82,6 +82,11 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactN
           aria-label={isCollapsed ? t('Expand') : t('Collapse')}
           onClick={() => setIsCollapsed(!isCollapsed)}
           priority={isCollapsed ? 'primary' : undefined}
+          analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
+          analyticsEventKey="sidebar_secondary_toggle_button_clicked"
+          analyticsParams={{
+            is_collapsed: isCollapsed,
+          }}
         />
       </div>
     </Header>

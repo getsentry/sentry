@@ -25,7 +25,7 @@ export const ActionMetadata: Partial<
   },
   [ActionType.DISCORD]: {
     name: t('Discord'),
-    icon: <StyledPluginIcon pluginId={'discord'} size={ICON_SIZE} />,
+    icon: <StyledPluginIcon pluginId="discord" size={ICON_SIZE} />,
   },
   [ActionType.EMAIL]: {name: t('Email'), icon: <IconMail size="md" />},
   [ActionType.GITHUB]: {

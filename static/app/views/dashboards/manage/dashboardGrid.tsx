@@ -218,7 +218,7 @@ function DashboardGrid({
       <DashboardGridContainer
         rows={rowCount}
         columns={columnCount}
-        data-test-id={'dashboard-grid'}
+        data-test-id="dashboard-grid"
       >
         {renderMiniDashboards()}
         {isLoading &&

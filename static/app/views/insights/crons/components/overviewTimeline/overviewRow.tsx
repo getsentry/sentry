@@ -168,7 +168,7 @@ export function OverviewRow({
                 onConfirm: () => onDeleteEnvironment(env),
                 header: t('Delete Environment?'),
                 message: tct(
-                  'Are you sure you want to permanently delete the "[envName]" environment?',
+                  'Are you sure you want to remove the "[envName]" environment and delete the associated check-ins from this Cron Monitor?',
                   {envName: env}
                 ),
                 confirmText: t('Delete'),

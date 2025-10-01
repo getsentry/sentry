@@ -61,7 +61,7 @@ export function ArithmeticTokenFunction({
       tabIndex={isFocused ? 0 : -1}
       aria-label={`${token.function}(${attrText ?? ''})`}
       aria-invalid={false}
-      state={'valid'}
+      state="valid"
     >
       <FunctionGridCell {...gridCellProps}>{token.function}</FunctionGridCell>
       <ArgumentsGrid rowRef={ref} item={item} state={state} token={token} />

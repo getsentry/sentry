@@ -1,15 +1,28 @@
-import {css} from '@emotion/react';
+import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
+import {Flex, Grid} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
-import {IconFilter} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
+import {Heading, Text} from 'sentry/components/core/text';
+import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconClose, IconFilter} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {SummaryFilterKey} from 'sentry/views/prevent/tests/config';
 
 // exporting for testing purposes
-export function useCreateSummaryFilterLink(filterBy: SummaryFilterKey) {
+export function useCreateSummaryFilterLink(filterBy: SummaryFilterKey | undefined) {
   const location = useLocation();
+
+  if (!filterBy) {
+    return {
+      isFiltered: false,
+      filterLink: location,
+    };
+  }
+
   const isFiltered = location.query.filterBy === filterBy;
 
   const filterLink = {
@@ -34,92 +47,134 @@ export function useCreateSummaryFilterLink(filterBy: SummaryFilterKey) {
   };
 }
 
-const SummaryEntryBase = css`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  font-size: 2.25rem;
-`;
+interface SummaryCardProps {
+  label: string;
+  tooltip: ReactNode;
+  extra?: ReactNode;
+  filterBy?: SummaryFilterKey;
+  value?: string | number;
+}
 
-export const SummaryEntryValue = styled('span')`
-  ${SummaryEntryBase}
-  color: ${p => p.theme.textColor};
-`;
-
-const StyledSummaryEntryValueLink = styled('span')`
-  font-variant-numeric: tabular-nums;
-  color: ${p => p.theme.linkColor};
-  font-size: 2.25rem;
-
-  /* This stops the text from jumping when becoming bold */
-  &::after {
-    content: attr(data-text);
-    height: 0;
-    visibility: hidden;
-    overflow: hidden;
-    pointer-events: none;
-    font-weight: ${p => p.theme.fontWeight.bold};
-    display: block;
-  }
-
-  &[data-is-filtered='true'] {
-    font-weight: ${p => p.theme.fontWeight.bold};
-  }
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
-type SummaryEntryValueLinkProps = {
-  children: React.ReactNode;
-  filterBy: SummaryFilterKey;
-};
-
-export function SummaryEntryValueLink({children, filterBy}: SummaryEntryValueLinkProps) {
+export function SummaryCard({label, tooltip, value, filterBy, extra}: SummaryCardProps) {
   const {filterLink, isFiltered} = useCreateSummaryFilterLink(filterBy);
 
+  const filterLabel = isFiltered
+    ? t('Clear filter')
+    : t('Filter the table to these tests');
+
+  const content = (
+    <Fragment>
+      <Flex align="center" gap="xs">
+        <Heading as="h4" size="sm">
+          {label}
+        </Heading>
+        <QuestionTooltip title={tooltip} size="xs" />
+      </Flex>
+      <Flex justify="between" align="center">
+        <Flex align="center" gap="sm">
+          <Text size="2xl" bold variant={filterBy ? 'accent' : undefined}>
+            {value ?? '-'}
+          </Text>
+          {extra}
+        </Flex>
+        {filterBy && (
+          <Button
+            size="zero"
+            borderless
+            icon={isFiltered ? <IconClose /> : <IconFilter />}
+            title={filterLabel}
+            aria-label={filterLabel}
+          />
+        )}
+      </Flex>
+    </Fragment>
+  );
+
   return (
-    <div style={{display: 'flex', alignItems: 'center', gap: space(0.5)}}>
-      <IconFilter />
-      <Link to={filterLink}>
-        <StyledSummaryEntryValueLink data-is-filtered={isFiltered}>
-          {children}
-        </StyledSummaryEntryValueLink>
-      </Link>
-    </div>
+    <SummaryCardContainer
+      direction="column"
+      padding="md"
+      gap="sm"
+      isFiltered={isFiltered}
+      isClickable={!!filterBy}
+    >
+      {props =>
+        filterBy ? (
+          <li>
+            <Link to={filterLink} {...props}>
+              {content}
+            </Link>
+          </li>
+        ) : (
+          <li {...props}> {content}</li>
+        )
+      }
+    </SummaryCardContainer>
   );
 }
 
-export const SummaryEntry = styled('div')<{columns?: number}>`
-  display: flex;
-  flex-direction: column;
-  align-items: start;
-  justify-content: space-between;
-  grid-column: span ${p => p.columns ?? 1};
+const SummaryCardContainer = styled(Flex)<{isClickable?: boolean; isFiltered?: boolean}>`
+  border: 1px solid ${p => (p.isFiltered ? p.theme.purple300 : p.theme.border)};
+  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => (p.isFiltered ? p.theme.purple100 : p.theme.background)};
+
+  ${p =>
+    p.isClickable &&
+    `
+    &:hover {
+      background: ${p.theme.backgroundSecondary};
+    }
+  `}
 `;
 
-export const SummaryEntries = styled('div')<{
-  largeColumnSpan: number;
-  smallColumnSpan: number;
-}>`
-  display: grid;
-  align-items: start;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.md};
-  padding-left: ${p => p.theme.space.xl};
-  padding-right: ${p => p.theme.space.xl};
-  padding-top: ${p => p.theme.space['2xl']};
-  padding-bottom: ${p => p.theme.space.sm};
-  grid-template-columns: repeat(${p => p.smallColumnSpan}, 1fr);
+interface SummaryCardGroupProps {
+  children: ReactNode;
+  isLoading: boolean;
+  placeholderCount: number;
+  title: string;
+  trailingHeaderItems?: ReactNode;
+}
 
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: repeat(${p => p.largeColumnSpan}, 1fr);
-  }
-`;
+export function SummaryCardGroup({
+  title,
+  isLoading,
+  placeholderCount,
+  children,
+  trailingHeaderItems,
+}: SummaryCardGroupProps) {
+  return (
+    <Flex
+      gap="lg"
+      direction="column"
+      padding="xl"
+      background="secondary"
+      radius="md"
+      as="section"
+    >
+      <Flex justify="between" align="center" gap="md">
+        <Heading as="h4" size="lg">
+          {title}
+        </Heading>
+        {trailingHeaderItems}
+      </Flex>
+      <SummaryListGrid
+        columns="repeat(auto-fit, minmax(200px, 1fr))"
+        align="start"
+        gap="md"
+        as="ul"
+      >
+        {isLoading
+          ? Array.from({length: placeholderCount}, (_, index) => (
+              <Placeholder key={index} height="66px" />
+            ))
+          : children}
+      </SummaryListGrid>
+    </Flex>
+  );
+}
 
-export const SummaryContainer = styled('div')<{columns: number}>`
-  display: grid;
-  grid-template-columns: repeat(${p => p.columns}, 1fr);
-  gap: ${p => p.theme.space.md};
+const SummaryListGrid = styled(Grid)`
+  margin: 0;
+  padding: 0;
+  list-style: none;
 `;

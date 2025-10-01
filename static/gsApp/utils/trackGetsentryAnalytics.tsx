@@ -200,6 +200,9 @@ type GetsentryEventParameters = {
     CheckoutUI;
   'spend_allocations.open_form': {create_or_edit: string} & HasSub;
   'spend_allocations.submit': {create_or_edit: string} & HasSub;
+  'subscription_page.display_mode.changed': {
+    display_mode: 'usage' | 'cost';
+  } & HasSub;
   'subscription_page.usagelog_filter.clicked': {selection: string};
   'subscription_page.viewed': {
     page_tab: string;
@@ -350,6 +353,7 @@ const getsentryEventMap: Record<GetsentryEventKey, string> = {
   'gen_ai_consent.settings_clicked': 'Gen AI Consent: Settings Toggle Clicked',
   'gen_ai_consent.in_drawer_clicked': 'Gen AI Consent: Clicked In Drawer',
   'gen_ai_consent.view_in_settings_clicked': 'Gen AI Consent: View in Settings Clicked',
+  'subscription_page.display_mode.changed': 'Subscription Page: Display Mode Changed',
 };
 
 const trackGetsentryAnalytics = makeAnalyticsFunction<

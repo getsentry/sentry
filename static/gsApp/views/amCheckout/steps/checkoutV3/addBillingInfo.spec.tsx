@@ -16,6 +16,7 @@ describe('AddBillingInformation', () => {
   const subscription = SubscriptionFixture({organization, plan: 'am3_f'});
 
   beforeEach(() => {
+    organization.access = ['org:billing'];
     api.clear();
     MockApiClient.clearMockResponses();
     SubscriptionStore.set(organization.slug, subscription);
@@ -56,6 +57,16 @@ describe('AddBillingInformation', () => {
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/setup/`,
+      method: 'POST',
+      body: {
+        id: '123',
+        clientSecret: 'seti_abc123',
+        status: 'require_payment_method',
+        lastError: null,
+      },
+    });
   });
 
   it('renders heading with complete existing billing info', async () => {
@@ -79,10 +90,16 @@ describe('AddBillingInformation', () => {
     expect(await screen.findByText('Edit billing information')).toBeInTheDocument();
     expect(screen.getByText('Business address')).toBeInTheDocument();
     expect(screen.getByText('Payment method')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Confirm and pay'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Confirm'})).toBeEnabled();
+    expect(
+      screen.getByRole('button', {name: 'Edit business address'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Edit payment method'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Save Changes'})).not.toBeInTheDocument();
   });
 
-  it('renders heading with some existing billing info', async () => {
+  it('renders heading with partial billing info', async () => {
+    // subscription has payment source
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
@@ -98,10 +115,15 @@ describe('AddBillingInformation', () => {
     expect(await screen.findByText('Edit billing information')).toBeInTheDocument();
     expect(screen.getByText('Business address')).toBeInTheDocument();
     expect(screen.getByText('Payment method')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Confirm and pay'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled();
+    expect(
+      screen.queryByRole('button', {name: 'Edit business address'})
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Edit payment method'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save Changes'})).toBeInTheDocument();
   });
 
-  it('renders heading with no existing billing info', async () => {
+  it('renders heading and auto opens with no existing billing info', async () => {
     const newSubscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
@@ -124,6 +146,13 @@ describe('AddBillingInformation', () => {
     expect(await screen.findByText('Add billing information')).toBeInTheDocument();
     expect(screen.getByText('Business address')).toBeInTheDocument();
     expect(screen.getByText('Payment method')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Confirm and pay'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled();
+    expect(
+      screen.queryByRole('button', {name: 'Edit business address'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Edit payment method'})
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', {name: 'Save Changes'})).toHaveLength(2);
   });
 });

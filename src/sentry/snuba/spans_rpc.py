@@ -4,7 +4,7 @@ from typing import Any
 
 import sentry_sdk
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken, TraceItemType
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.constants import DOUBLE, INT, STRING
@@ -41,6 +41,7 @@ class Spans(rpc_dataset_common.RPCBase):
         sampling_mode: SAMPLING_MODES | None = None,
         equations: list[str] | None = None,
         search_resolver: SearchResolver | None = None,
+        page_token: PageToken | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
@@ -52,6 +53,7 @@ class Spans(rpc_dataset_common.RPCBase):
                 limit=limit,
                 referrer=referrer,
                 sampling_mode=sampling_mode,
+                page_token=page_token,
                 resolver=search_resolver or cls.get_resolver(params, config),
             ),
             params.debug,

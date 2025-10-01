@@ -5,7 +5,6 @@ import {
 } from 'sentry-fixture/authenticators';
 import {OrganizationsFixture} from 'sentry-fixture/organizations';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -48,27 +47,20 @@ describe('AccountSecurityDetails', () => {
     });
 
     it('has enrolled circle indicator', async () => {
-      const params = {
-        authId: '15',
-      };
-      const {router} = initializeOrg({
-        router: {
-          params,
+      render(<AccountSecurityWrapper />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/settings/account/security/mfa/15/',
+          },
+          route: '/settings/account/security/',
+          children: [
+            {
+              path: 'mfa/:authId/',
+              element: <AccountSecurityDetails />,
+            },
+          ],
         },
       });
-
-      render(
-        <AccountSecurityWrapper>
-          <AccountSecurityDetails
-            onRegenerateBackupCodes={jest.fn()}
-            deleteDisabled={false}
-          />
-        </AccountSecurityWrapper>,
-        {
-          router,
-          deprecatedRouterMocks: true,
-        }
-      );
 
       expect(
         await screen.findByRole('status', {name: 'Authentication Method Active'})
@@ -85,27 +77,20 @@ describe('AccountSecurityDetails', () => {
         method: 'DELETE',
       });
 
-      const params = {
-        authId: '15',
-      };
-      const {router} = initializeOrg({
-        router: {
-          params,
+      render(<AccountSecurityWrapper />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/settings/account/security/mfa/15/',
+          },
+          route: '/settings/account/security/',
+          children: [
+            {
+              path: 'mfa/:authId/',
+              element: <AccountSecurityDetails />,
+            },
+          ],
         },
       });
-
-      render(
-        <AccountSecurityWrapper>
-          <AccountSecurityDetails
-            onRegenerateBackupCodes={jest.fn()}
-            deleteDisabled={false}
-          />
-        </AccountSecurityWrapper>,
-        {
-          router,
-          deprecatedRouterMocks: true,
-        }
-      );
 
       await userEvent.click(await screen.findByRole('button', {name: 'Remove'}));
 
@@ -127,27 +112,20 @@ describe('AccountSecurityDetails', () => {
         method: 'DELETE',
       });
 
-      const params = {
-        authId: '15',
-      };
-      const {router} = initializeOrg({
-        router: {
-          params,
+      render(<AccountSecurityWrapper />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/settings/account/security/mfa/15/',
+          },
+          route: '/settings/account/security/',
+          children: [
+            {
+              path: 'mfa/:authId/',
+              element: <AccountSecurityDetails />,
+            },
+          ],
         },
       });
-
-      render(
-        <AccountSecurityWrapper>
-          <AccountSecurityDetails
-            onRegenerateBackupCodes={jest.fn()}
-            deleteDisabled={false}
-          />
-        </AccountSecurityWrapper>,
-        {
-          router,
-          deprecatedRouterMocks: true,
-        }
-      );
 
       await userEvent.click(await screen.findByRole('button', {name: 'Remove'}));
 
@@ -169,28 +147,20 @@ describe('AccountSecurityDetails', () => {
         body: [AuthenticatorsFixture().Totp()],
       });
 
-      const params = {
-        authId: '15',
-      };
-
-      const {router} = initializeOrg({
-        router: {
-          params,
+      render(<AccountSecurityWrapper />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/settings/account/security/mfa/15/',
+          },
+          route: '/settings/account/security/',
+          children: [
+            {
+              path: 'mfa/:authId/',
+              element: <AccountSecurityDetails />,
+            },
+          ],
         },
       });
-
-      render(
-        <AccountSecurityWrapper>
-          <AccountSecurityDetails
-            onRegenerateBackupCodes={jest.fn()}
-            deleteDisabled={false}
-          />
-        </AccountSecurityWrapper>,
-        {
-          router,
-          deprecatedRouterMocks: true,
-        }
-      );
 
       expect(await screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
     });
@@ -220,28 +190,20 @@ describe('AccountSecurityDetails', () => {
     });
 
     it('has enrolled circle indicator', async () => {
-      const params = {
-        authId: '16',
-      };
-
-      const {router} = initializeOrg({
-        router: {
-          params,
+      render(<AccountSecurityWrapper />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/settings/account/security/mfa/16/',
+          },
+          route: '/settings/account/security/',
+          children: [
+            {
+              path: 'mfa/:authId/',
+              element: <AccountSecurityDetails />,
+            },
+          ],
         },
       });
-
-      render(
-        <AccountSecurityWrapper>
-          <AccountSecurityDetails
-            onRegenerateBackupCodes={jest.fn()}
-            deleteDisabled={false}
-          />
-        </AccountSecurityWrapper>,
-        {
-          router,
-          deprecatedRouterMocks: true,
-        }
-      );
 
       expect(
         await screen.findByRole('status', {name: 'Authentication Method Active'})
@@ -252,33 +214,31 @@ describe('AccountSecurityDetails', () => {
     });
 
     it('regenerates codes', async () => {
+      MockApiClient.addMockResponse({
+        url: `${ENDPOINT}16/`,
+        method: 'GET',
+        body: AuthenticatorsFixture().Recovery(),
+      });
+
       const deleteMock = MockApiClient.addMockResponse({
         url: `${ENDPOINT}16/`,
         method: 'PUT',
       });
 
-      const params = {
-        authId: '16',
-      };
-
-      const {router} = initializeOrg({
-        router: {
-          params,
+      render(<AccountSecurityWrapper />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/settings/account/security/mfa/16/',
+          },
+          route: '/settings/account/security/',
+          children: [
+            {
+              path: 'mfa/:authId/',
+              element: <AccountSecurityDetails />,
+            },
+          ],
         },
       });
-
-      render(
-        <AccountSecurityWrapper>
-          <AccountSecurityDetails
-            onRegenerateBackupCodes={jest.fn()}
-            deleteDisabled={false}
-          />
-        </AccountSecurityWrapper>,
-        {
-          router,
-          deprecatedRouterMocks: true,
-        }
-      );
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'Regenerate Codes'})
@@ -298,32 +258,30 @@ describe('AccountSecurityDetails', () => {
     });
 
     it('has copy, print and download buttons', async () => {
-      const params = {
-        authId: '16',
-      };
-
-      const {router} = initializeOrg({
-        router: {
-          params,
-        },
-      });
-
       Object.defineProperty(document, 'queryCommandSupported', {
         value: () => true,
       });
 
-      render(
-        <AccountSecurityWrapper>
-          <AccountSecurityDetails
-            onRegenerateBackupCodes={jest.fn()}
-            deleteDisabled={false}
-          />
-        </AccountSecurityWrapper>,
-        {
-          router,
-          deprecatedRouterMocks: true,
-        }
-      );
+      MockApiClient.addMockResponse({
+        url: `${ENDPOINT}16/`,
+        method: 'GET',
+        body: AuthenticatorsFixture().Recovery(),
+      });
+
+      render(<AccountSecurityWrapper />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/settings/account/security/mfa/16/',
+          },
+          route: '/settings/account/security/',
+          children: [
+            {
+              path: 'mfa/:authId/',
+              element: <AccountSecurityDetails />,
+            },
+          ],
+        },
+      });
 
       expect(await screen.findByRole('button', {name: 'print'})).toBeInTheDocument();
 

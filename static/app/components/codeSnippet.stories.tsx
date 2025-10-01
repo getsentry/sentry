@@ -124,7 +124,7 @@ Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
         <h2>
           <Storybook.JSXProperty name="filename" value="index.jsx" />
         </h2>
-        <CodeSnippet filename={'index.jsx'} language="javascript">{`Sentry.init({
+        <CodeSnippet filename="index.jsx" language="javascript">{`Sentry.init({
   // Note, Replay is NOT instantiated below:
   integrations: [],
 });

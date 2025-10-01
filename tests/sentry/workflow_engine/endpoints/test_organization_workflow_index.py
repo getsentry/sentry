@@ -514,7 +514,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
                         "config": {
                             "targetIdentifier": "test",
                             "targetDisplay": "Test",
-                            "targetType": 0,
+                            "targetType": "specific",
                         },
                         "data": {},
                         "integrationId": self.integration.id,

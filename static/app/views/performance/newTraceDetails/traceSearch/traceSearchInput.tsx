@@ -220,7 +220,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
           <StyledSearchIcon
             data-test-id="trace-search-success"
             color="subText"
-            size={'xs'}
+            size="xs"
           />
         )}
       </InputGroup.LeadingItems>

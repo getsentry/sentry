@@ -230,6 +230,7 @@ export function SpanNodeDetails(
             traceID={profileId ?? profilerId ?? ''}
           >
             <LogsQueryParamsProvider
+              analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
               source="state"
               freeze={{
                 span: {

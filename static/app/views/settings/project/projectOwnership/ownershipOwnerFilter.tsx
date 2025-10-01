@@ -63,15 +63,17 @@ export function OwnershipOwnerFilter({
         }
         return handleChangeFilter(opts.map(opt => opt.value));
       }}
-      triggerLabel={
-        <Fragment>
-          {label}
-          {!isMyTeams && selectedTeams.length > 1 && (
-            <StyledBadge type="default">{`+${selectedTeams.length - 1}`}</StyledBadge>
-          )}
-        </Fragment>
-      }
-      triggerProps={{icon: <IconUser />}}
+      triggerProps={{
+        icon: <IconUser />,
+        children: (
+          <Fragment>
+            {label}
+            {!isMyTeams && selectedTeams.length > 1 && (
+              <StyledBadge type="default">{`+${selectedTeams.length - 1}`}</StyledBadge>
+            )}
+          </Fragment>
+        ),
+      }}
     />
   );
 }

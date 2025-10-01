@@ -101,19 +101,19 @@ function DestinationSummaryPage() {
                       <MetricReadout
                         title={t('Error Rate')}
                         value={errorRate}
-                        unit={'percentage'}
+                        unit="percentage"
                         isLoading={isPending}
                       />
                       <MetricReadout
                         title={t('Published')}
                         value={data[0]?.['count_op(queue.publish)']}
-                        unit={'count'}
+                        unit="count"
                         isLoading={isPending}
                       />
                       <MetricReadout
                         title={t('Processed')}
                         value={data[0]?.['count_op(queue.process)']}
-                        unit={'count'}
+                        unit="count"
                         isLoading={isPending}
                       />
                       <MetricReadout

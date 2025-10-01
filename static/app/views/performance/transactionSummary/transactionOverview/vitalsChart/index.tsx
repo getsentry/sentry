@@ -22,7 +22,6 @@ import Content from './content';
 type Props = ViewProps & {
   organization: OrganizationSummary;
   queryExtra: Query;
-  withoutZerofill: boolean;
   queryExtras?: Record<string, string>;
 };
 
@@ -33,7 +32,6 @@ function VitalsChart({
   query,
   statsPeriod,
   queryExtra,
-  withoutZerofill,
   start: propsStart,
   end: propsEnd,
   queryExtras,
@@ -134,7 +132,6 @@ function VitalsChart({
         includePrevious={false}
         yAxis={yAxis}
         partial
-        withoutZerofill={withoutZerofill}
         referrer="api.insights.transaction-summary.vitals-chart"
         queryExtras={queryExtras}
       >

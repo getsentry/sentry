@@ -1,8 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
 
 export function hasTempestAccess(organization: Organization) {
-  return (
-    organization.features.includes('tempest-access') ||
-    organization.enabledConsolePlatforms?.includes('playstation')
-  );
+  return organization.enabledConsolePlatforms?.includes('playstation');
 }

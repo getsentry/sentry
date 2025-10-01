@@ -101,7 +101,7 @@ class SlackNotifyActionTest(RuleTestCase):
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
-        assert event.title in blocks[0]["elements"][0]["elements"][-1]["text"]
+        assert event.title in blocks[0]["text"]["text"]
 
     def test_render_label_with_notes(self) -> None:
         rule = self.get_rule(
@@ -373,7 +373,7 @@ class SlackNotifyActionTest(RuleTestCase):
             blocks = mock_post.call_args.kwargs["blocks"]
             blocks = orjson.loads(blocks)
 
-            assert event.title in blocks[0]["elements"][0]["elements"][-1]["text"]
+            assert event.title in blocks[0]["text"]["text"]
             assert blocks[5]["text"]["text"] == self.organization.slug
             assert blocks[6]["text"]["text"] == self.integration.id
             assert_last_analytics_event(

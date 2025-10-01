@@ -16,12 +16,12 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Authenticator, AuthenticatorDevice} from 'sentry/types/auth';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
+import {useAccountSecurityContext} from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
 import RecoveryCodes from 'sentry/views/settings/account/accountSecurity/components/recoveryCodes';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import U2fEnrolledDetails from 'sentry/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
@@ -51,12 +51,8 @@ function AuthenticatorDate({label, date}: AuthenticatorDateProps) {
   );
 }
 
-interface Props {
-  deleteDisabled: boolean;
-  onRegenerateBackupCodes: () => void;
-}
-
-function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props) {
+export default function AccountSecurityDetails() {
+  const {deleteDisabled, onRegenerateBackupCodes} = useAccountSecurityContext();
   const api = useApi();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -213,11 +209,9 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
   );
 }
 
-export default AccountSecurityDetails;
-
 const AuthenticatorDates = styled('div')`
   display: grid;
-  gap: ${space(0.75)} ${space(2)};
+  gap: ${p => p.theme.space.sm} ${p => p.theme.space.xl};
   grid-template-columns: max-content auto;
 `;
 
@@ -226,10 +220,10 @@ const DateLabel = styled('span')`
 `;
 
 const PhoneWrapper = styled('div')`
-  margin-top: ${space(4)};
+  margin-top: ${p => p.theme.space['3xl']};
 `;
 
 const Phone = styled('span')`
   font-weight: ${p => p.theme.fontWeight.bold};
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;

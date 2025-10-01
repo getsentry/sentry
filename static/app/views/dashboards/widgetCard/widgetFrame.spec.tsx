@@ -52,7 +52,7 @@ describe('WidgetFrame', () => {
 
       expect(screen.queryByText('Sampled')).not.toBeInTheDocument();
 
-      rerender(<WidgetFrame title="count()" badgeProps={'Sampled'} />);
+      rerender(<WidgetFrame title="count()" badgeProps="Sampled" />);
 
       expect(screen.getByText('Sampled')).toBeInTheDocument();
     });

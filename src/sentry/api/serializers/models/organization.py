@@ -29,7 +29,6 @@ from sentry.api.utils import generate_region_url
 from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.constants import (
-    ACCOUNT_RATE_LIMIT_DEFAULT,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DATA_CONSENT_DEFAULT,
@@ -48,7 +47,6 @@ from sentry.constants import (
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     METRIC_ALERTS_THREAD_DEFAULT,
-    PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
@@ -79,6 +77,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.types.prevent_config import PREVENT_AI_CONFIG_GITHUB_DEFAULT
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -101,12 +100,6 @@ logger = logging.getLogger(__name__)
 # the OrganizationOption.
 OptionFeature = tuple[str, Callable[[OrganizationOption], bool]]
 ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, list[OptionFeature]] = {
-    "sentry:project-rate-limit": [
-        ("legacy-rate-limits", lambda opt: True),
-    ],
-    "sentry:account-rate-limit": [
-        ("legacy-rate-limits", lambda opt: True),
-    ],
     "quotas:new-spike-protection": [
         ("spike-projections", lambda opt: bool(opt.value)),
     ],
@@ -522,7 +515,6 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
 @extend_schema_serializer(exclude_fields=["availableRoles"])
 class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResponseOptional):
     experiments: Any
-    quota: Any
     isDefault: bool
     defaultRole: str  # TODO: replace with enum/literal
     availableRoles: list[Any]  # TODO: deprecated, use orgRoleList
@@ -563,6 +555,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     streamlineOnly: bool
     defaultAutofixAutomationTuning: str
     defaultSeerScannerAutomation: bool
+    preventAiConfigGithub: dict[str, Any]
     enablePrReviewTestGeneration: bool
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
@@ -589,7 +582,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         base = super().serialize(
             obj, attrs, user, access=access, include_feature_flags=include_feature_flags
         )
-        max_rate = quotas.backend.get_maximum_quota(obj)
 
         is_dynamically_sampled = False
         sample_rate = None
@@ -619,24 +611,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             # TODO(epurkhiser): This can be removed once we confirm the
             # frontend does not use it
             "experiments": {},
-            "quota": {
-                "maxRate": max_rate[0],
-                "maxRateInterval": max_rate[1],
-                "accountLimit": int(
-                    OrganizationOption.objects.get_value(
-                        organization=obj,
-                        key="sentry:account-rate-limit",
-                        default=ACCOUNT_RATE_LIMIT_DEFAULT,
-                    )
-                ),
-                "projectLimit": int(
-                    OrganizationOption.objects.get_value(
-                        organization=obj,
-                        key="sentry:project-rate-limit",
-                        default=PROJECT_RATE_LIMIT_DEFAULT,
-                    )
-                ),
-            },
             "isDefault": obj.is_default,
             "defaultRole": obj.default_role,
             "availableRoles": [{"id": r.id, "name": r.name} for r in roles.get_all()],  # Deprecated
@@ -723,6 +697,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "sentry:default_seer_scanner_automation",
                 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
             ),
+            "preventAiConfigGithub": obj.get_option(
+                "sentry:prevent_ai_config_github",
+                PREVENT_AI_CONFIG_GITHUB_DEFAULT,
+            ),
             "enablePrReviewTestGeneration": bool(
                 obj.get_option(
                     "sentry:enable_pr_review_test_generation",
@@ -803,6 +781,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "streamlineOnly",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
+        "preventAiConfigGithub",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(

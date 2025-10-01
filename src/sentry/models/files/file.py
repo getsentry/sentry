@@ -4,13 +4,13 @@ from typing import Any
 from django.core.files.base import ContentFile
 from django.db import models
 
-from sentry.celery import SentryTask
 from sentry.db.models import FlexibleForeignKey
 from sentry.db.models.base import region_silo_model
 from sentry.models.files.abstractfile import AbstractFile
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.tasks.files import delete_unreferenced_blobs_region
+from sentry.taskworker.task import Task
 
 
 @region_silo_model
@@ -43,5 +43,5 @@ class File(AbstractFile[FileBlobIndex, FileBlob]):
     def _get_blobs_by_id(self, blob_ids: Sequence[int]) -> models.QuerySet[FileBlob]:
         return FileBlob.objects.filter(id__in=blob_ids).all()
 
-    def _delete_unreferenced_blob_task(self) -> SentryTask:
+    def _delete_unreferenced_blob_task(self) -> Task[Any, Any]:
         return delete_unreferenced_blobs_region

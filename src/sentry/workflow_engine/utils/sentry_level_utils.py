@@ -5,6 +5,8 @@ from typing import Any, Literal
 
 import sentry_sdk
 
+from sentry.workflow_engine.utils.exception_grouping import exception_grouping_context
+
 logger = logging.getLogger(__name__)
 
 
@@ -53,7 +55,13 @@ def quiet_redis_noise() -> Generator[None]:
     those to be treated as errors in Sentry.
     """
     from redis.exceptions import TimeoutError
-    from rediscluster.exceptions import MovedError  # type: ignore[attr-defined]
+    from rediscluster.exceptions import (  # type: ignore[attr-defined]
+        MovedError,
+        RedisClusterException,
+    )
 
-    with set_sentry_exception_levels({TimeoutError: "info", MovedError: "info"}):
+    with (
+        exception_grouping_context({RedisClusterException: "redis.redis_cluster_exception"}),
+        set_sentry_exception_levels({TimeoutError: "info", MovedError: "info"}),
+    ):
         yield

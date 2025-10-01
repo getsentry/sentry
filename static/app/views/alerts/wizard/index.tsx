@@ -221,7 +221,11 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
                   </PanelBody>
                 </div>
                 <WizardFooter>{renderCreateAlertButton()}</WizardFooter>
-                {isMetricAlert && <Hook name="component:metric-alert-quota-message" />}
+                {isMetricAlert && (
+                  <DisabledAlertMessageContainer>
+                    <Hook name="component:metric-alert-quota-message" />
+                  </DisabledAlertMessageContainer>
+                )}
               </WizardPanelBody>
             </WizardPanel>
           </WizardBody>
@@ -324,6 +328,14 @@ const WizardGroupedOptions = styled(RadioPanelGroup)`
   label {
     grid-template-columns: repeat(3, max-content);
   }
+`;
+
+const DisabledAlertMessageContainer = styled('div')`
+  border-top: 1px solid ${p => p.theme.border};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  background-color: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.subText};
+  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
 `;
 
 export default AlertWizard;

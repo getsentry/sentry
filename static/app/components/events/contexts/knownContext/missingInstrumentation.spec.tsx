@@ -71,8 +71,8 @@ describe('MissingInstrumentationContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'missing_instrumentation'}
-        alias={'missing_instrumentation'}
+        type="missing_instrumentation"
+        alias="missing_instrumentation"
         value={{...MOCK_MISSING_INSTRUMENTATION_CONTEXT, package: ''}}
       />
     );

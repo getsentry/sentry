@@ -20,7 +20,7 @@ describe('EAPChartsWidget', () => {
   });
 
   it('shows default widget type when no query param is provided', async () => {
-    render(<EAPChartsWidget transactionName={transactionName} query={''} />);
+    render(<EAPChartsWidget transactionName={transactionName} query="" />);
 
     await waitFor(() => {
       expect(screen.getByText('Duration Breakdown')).toBeInTheDocument();
@@ -28,7 +28,7 @@ describe('EAPChartsWidget', () => {
   });
 
   it('shows default widget when invalid query param is provided', async () => {
-    render(<EAPChartsWidget transactionName={transactionName} query={''} />, {
+    render(<EAPChartsWidget transactionName={transactionName} query="" />, {
       initialRouterConfig: {
         route: '/organizations/:orgId/insights/summary/',
         location: {

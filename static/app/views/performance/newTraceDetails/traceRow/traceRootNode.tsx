@@ -45,7 +45,7 @@ export function TraceRootRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace>
             <TraceRowConnectors node={props.node} manager={props.manager} />
             {props.node.children.length > 0 || props.node.canFetch ? (
               <TraceChildrenButton
-                icon={''}
+                icon=""
                 status={props.node.fetchStatus}
                 expanded
                 onClick={() => void 0}

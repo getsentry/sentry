@@ -135,6 +135,7 @@ export enum AddOnCategory {
 
 type AddOnCategoryInfo = {
   apiName: AddOnCategory;
+  billingFlag: string | null;
   dataCategories: DataCategory[];
   name: string;
   order: number;
@@ -482,7 +483,6 @@ export type PromotionData = {
   completedPromotions: PromotionClaimed[];
 };
 
-/** @internal exported for tests only */
 export type Feature = {
   description: string;
   name: string;
@@ -810,7 +810,6 @@ export enum CohortId {
   TEST_ONE = 111,
 }
 
-/** @internal exported for tests only */
 export type Cohort = {
   cohortId: CohortId;
   nextPlan: NextPlanInfo | null;

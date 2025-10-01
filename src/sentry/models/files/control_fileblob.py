@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import Any
 
 from sentry import options
-from sentry.celery import SentryTask
 from sentry.db.models import control_silo_model
 from sentry.models.files.abstractfileblob import AbstractFileBlob
 from sentry.models.files.control_fileblobowner import ControlFileBlobOwner
 from sentry.options.manager import UnknownOption
 from sentry.tasks.files import delete_file_control
+from sentry.taskworker.task import Task
 
 
 def control_file_storage_config() -> dict[str, Any] | None:
@@ -50,5 +50,5 @@ class ControlFileBlob(AbstractFileBlob[ControlFileBlobOwner]):
     def _create_blob_owner(self, organization_id: int) -> ControlFileBlobOwner:
         return ControlFileBlobOwner.objects.create(organization_id=organization_id, blob=self)
 
-    def _delete_file_task(self) -> SentryTask:
+    def _delete_file_task(self) -> Task[Any, Any]:
         return delete_file_control

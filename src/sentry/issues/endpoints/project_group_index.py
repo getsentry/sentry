@@ -22,6 +22,7 @@ from sentry.api.helpers.group_index import (
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
 from sentry.models.grouphash import GroupHash
@@ -175,7 +176,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         try:
             cursor_result, query_kwargs = prep_search(request, project, {"count_hits": True})
-        except ValidationError as exc:
+        except (ValidationError, InvalidSearchQuery) as exc:
             return Response({"detail": str(exc)}, status=400)
 
         results = list(cursor_result)

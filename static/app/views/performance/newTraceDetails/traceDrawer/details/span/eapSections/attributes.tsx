@@ -16,6 +16,7 @@ import {FieldKey} from 'sentry/utils/fields';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {looksLikeAJSONArray} from 'sentry/utils/string/looksLikeAJSONArray';
+import {looksLikeAJSONObject} from 'sentry/utils/string/looksLikeAJSONObject';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -36,15 +37,6 @@ import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 type CustomRenderersProps = AttributesFieldRendererProps<RenderFunctionBaggage>;
 
 const HIDDEN_ATTRIBUTES = ['is_segment', 'project_id', 'received'];
-const JSON_ATTRIBUTES = [
-  'gen_ai.request.messages',
-  'gen_ai.response.messages',
-  'gen_ai.response.tool_calls',
-  'gen_ai.response.object',
-  'gen_ai.prompt',
-  'gen_ai.request.available_tools',
-  'ai.prompt',
-];
 const TRUNCATED_TEXT_ATTRIBUTES = ['gen_ai.response.text'];
 
 function tryParseJson(value: unknown) {
@@ -175,12 +167,6 @@ export function Attributes({
     },
   };
 
-  // Some semantic attributes are known to contain JSON-encoded arrays or
-  // JSON-encoded objects. Add a JSON renderer for those attributes.
-  for (const attribute of JSON_ATTRIBUTES) {
-    customRenderers[attribute] = jsonRenderer;
-  }
-
   // Some attributes (semantic or otherwise) look like they contain JSON-encoded
   // arrays. Use a JSON renderer for any value that looks suspiciously like it's
   // a JSON-encoded array. NOTE: This happens a lot because EAP doesn't support
@@ -188,7 +174,8 @@ export function Attributes({
   sortedAndFilteredAttributes.forEach(attribute => {
     if (Object.hasOwn(customRenderers, attribute.name)) return;
     if (attribute.type !== 'str') return;
-    if (!looksLikeAJSONArray(attribute.value)) return;
+    if (!looksLikeAJSONArray(attribute.value) && !looksLikeAJSONObject(attribute.value))
+      return;
 
     customRenderers[attribute.name] = jsonRenderer;
   });

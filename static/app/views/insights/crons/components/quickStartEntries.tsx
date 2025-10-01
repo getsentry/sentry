@@ -932,3 +932,140 @@ sentry_monitor_check_ins slug: '${slug}', monitor_config: Sentry::Cron::MonitorC
     </Fragment>
   );
 }
+
+export function DotNetCronQuickStart(props: QuickStartProps) {
+  const {slug} = withDefaultProps(props);
+
+  const checkInSuccessCode = `// 🟡 Notify Sentry your job is running:
+var checkInId = SentrySdk.CaptureCheckIn("${slug}", CheckInStatus.InProgress);
+
+// Execute your scheduled task here...
+
+// 🟢 Notify Sentry your job has completed successfully:
+SentrySdk.CaptureCheckIn("${slug}", CheckInStatus.Ok, checkInId);`;
+
+  const checkInFailCode = `// 🔴 Notify Sentry your job has failed:
+SentrySdk.CaptureCheckIn("${slug}", CheckInStatus.Error, checkInId);`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          '[installLink:Install and configure] the Sentry .NET SDK (min v4.2.0), then instrument your monitor:',
+          {
+            installLink: <ExternalLink href="https://docs.sentry.io/platforms/dotnet/" />,
+          }
+        )}
+      </div>
+      <CodeSnippet language="csharp">{checkInSuccessCode}</CodeSnippet>
+      <div>{t('To notify Sentry if your job execution fails')}</div>
+      <CodeSnippet language="csharp">{checkInFailCode}</CodeSnippet>
+    </Fragment>
+  );
+}
+
+export function DotNetUpsertPlatformGuide() {
+  const scheduleCode = `// Create a crontab schedule (every 10 minutes)
+SentrySdk.CaptureCheckIn(
+    "<monitor-slug>",
+    CheckInStatus.InProgress,
+    configureMonitorOptions: options =>
+    {
+        options.Interval("*/10 * * * *");
+        options.CheckInMargin = TimeSpan.FromMinutes(5);
+        options.MaxRuntime = TimeSpan.FromMinutes(15);
+        options.TimeZone = "Europe/Vienna";
+    });
+
+// Create an interval schedule (every 10 minutes)
+SentrySdk.CaptureCheckIn(
+    "<monitor-slug>",
+    CheckInStatus.InProgress,
+    configureMonitorOptions: options =>
+    {
+        options.Interval(10, SentryMonitorInterval.Minute);
+        options.CheckInMargin = TimeSpan.FromMinutes(5);
+        options.MaxRuntime = TimeSpan.FromMinutes(15);
+        options.TimeZone = "Europe/Vienna";
+    });`;
+
+  const upsertCode = `// 🟡 Notify Sentry your job is running:
+var checkInId = SentrySdk.CaptureCheckIn(
+    "<monitor-slug>",
+    CheckInStatus.InProgress,
+    configureMonitorOptions: options =>
+    {
+        options.Interval("*/10 * * * *");
+        options.CheckInMargin = TimeSpan.FromMinutes(5);
+        options.MaxRuntime = TimeSpan.FromMinutes(15);
+        options.TimeZone = "Europe/Vienna";
+    });
+
+// Execute your scheduled task here...
+
+// 🟢 Notify Sentry your job has completed successfully:
+SentrySdk.CaptureCheckIn("<monitor-slug>", CheckInStatus.Ok, checkInId);`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          'You can use the [additionalDocs:.NET SDK] to create and update your Monitors programmatically with code rather than creating them manually.',
+          {
+            additionalDocs: (
+              <ExternalLink href="https://docs.sentry.io/platforms/dotnet/crons/" />
+            ),
+          }
+        )}
+      </div>
+      <CodeSnippet language="csharp">{scheduleCode}</CodeSnippet>
+      <CodeSnippet language="csharp">{upsertCode}</CodeSnippet>
+    </Fragment>
+  );
+}
+
+export function DotNetHangfireCronQuickStart(props: QuickStartProps) {
+  const {slug} = withDefaultProps(props);
+
+  const code = `using Hangfire;
+using Sentry.Hangfire;
+
+// Configure Hangfire to use Sentry
+GlobalConfiguration.Configuration.UseSentry();
+
+// Enqueue the job
+BackgroundJob.Enqueue<PricingUpdateWorker>(job => job.Execute());
+
+public class PricingUpdateWorker
+{
+    [SentryMonitorSlug("${slug}")]
+    public void Execute()
+    {
+        // Your job implementation here
+    }
+}`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          '[installLink:Install and configure] the Sentry .NET SDK, add the Sentry.Hangfire package, then instrument your monitor:',
+          {
+            installLink: <ExternalLink href="https://docs.sentry.io/platforms/dotnet/" />,
+          }
+        )}
+      </div>
+      <CodeSnippet language="csharp">{code}</CodeSnippet>
+      <div>
+        {tct(
+          'For more examples see the [docsLink:Sentry Hangfire Cron Monitor documentation].',
+          {
+            docsLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/dotnet/crons/hangfire/" />
+            ),
+          }
+        )}
+      </div>
+    </Fragment>
+  );
+}

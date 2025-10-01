@@ -89,11 +89,18 @@ export function CodeSnippet({
   const ref = useRef<HTMLModElement | null>(null);
   const theme = useTheme();
 
+  const [lineHighlightLoaded, setLineHighlightLoaded] = useState(false);
+
   // https://prismjs.com/plugins/line-highlight/
   useEffect(() => {
-    if (linesToHighlight) {
+    async function loadLineHighlight() {
       // @ts-expect-error TS(7016): Could not find a declaration file for module 'pris... Remove this comment to see the full error message
-      import('prismjs/plugins/line-highlight/prism-line-highlight');
+      await import('prismjs/plugins/line-highlight/prism-line-highlight');
+      setLineHighlightLoaded(true);
+    }
+
+    if (linesToHighlight) {
+      loadLineHighlight();
     }
   }, [linesToHighlight]);
 
@@ -116,7 +123,7 @@ export function CodeSnippet({
       onLoad: () =>
         Prism.highlightElement(element, false, () => onAfterHighlight?.(element)),
     });
-  }, [children, language, onAfterHighlight]);
+  }, [children, language, onAfterHighlight, lineHighlightLoaded]);
 
   const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');
 

@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 import sentry_sdk
@@ -41,6 +42,8 @@ SUPPORTED_DATASETS = {
     "transactions": Dataset.Transactions,
     "errors": Dataset.Events,
 }
+
+logger = logging.getLogger(__name__)
 
 
 class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
@@ -265,6 +268,21 @@ class DataExportEndpoint(OrganizationEndpoint):
         Create a new asynchronous file export task, and
         email user upon completion,
         """
+        query_info: dict[str, Any] | None = None
+        if request.data and hasattr(request.data, "post"):
+            query_info = request.data.get("query_info", {})
+
+        project_id = ""
+        if query_info is not None and "project" in query_info:
+            project_id = query_info["project"]
+
+        extra = {
+            "organization_id": organization.id,
+            "project": project_id,
+            "user": request.user,
+        }
+        logger.info("API Request started", extra=extra)
+
         # The data export feature is only available alongside `discover-query`.
         # So to export issue tags, they must have have `discover-query`
         if not features.has("organizations:discover-query", organization):
@@ -275,7 +293,10 @@ class DataExportEndpoint(OrganizationEndpoint):
             environment_id = get_environment_id(request, organization.id)
         except Environment.DoesNotExist as error:
             return Response(error, status=400)
-        limit = request.data.get("limit")
+
+        limit = None
+        if request.data and hasattr(request.data, "get"):
+            limit = request.data.get("limit")
 
         batch_features = self.get_features(organization, request)
 
@@ -324,10 +345,16 @@ class DataExportEndpoint(OrganizationEndpoint):
                     data_export_id=data_export.id, export_limit=limit, environment_id=environment_id
                 )
                 status = 201
+            # This value can be used to find the schedule task in the GCP logs
+            extra["data_export_id"] = data_export.id
+            extra["status"] = "done" if status == 200 else "assemble_download.task_scheduled"
         except ValidationError as e:
             # This will handle invalid JSON requests
             metrics.incr(
                 "dataexport.invalid", tags={"query_type": data.get("query_type")}, sample_rate=1.0
             )
+            logger.exception("API Request failed", extra=extra)
             return Response({"detail": str(e)}, status=400)
+
+        logger.info("API Request completed", extra=extra)
         return Response(serialize(data_export, request.user), status=status)

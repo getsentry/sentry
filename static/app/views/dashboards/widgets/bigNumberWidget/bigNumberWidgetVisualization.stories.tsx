@@ -91,7 +91,7 @@ export default Storybook.story('BigNumberWidgetVisualization', story => {
           <SmallStorybookSizingWindow>
             <Container>
               <BigNumberWidgetVisualization
-                value={'2024-10-17T16:08:07+00:00'}
+                value="2024-10-17T16:08:07+00:00"
                 field="max(timestamp)"
                 type="date"
                 unit={null}
@@ -156,7 +156,7 @@ export default Storybook.story('BigNumberWidgetVisualization', story => {
 
         <p>
           The <code>preferredPolarity</code> prop controls the color of the comparison
-          string. Setting <Storybook.JSXProperty name="preferredPolarity" value={'+'} />{' '}
+          string. Setting <Storybook.JSXProperty name="preferredPolarity" value="+" />{' '}
           mean that a higher number is <i>better</i> and will paint increases in the value
           green. Vice versa with negative polarity. Omitting a preferred polarity will
           prevent colorization.

@@ -1,19 +1,24 @@
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import type {
   AggregateField,
   WritableAggregateField,
 } from 'sentry/views/explore/queryParams/aggregateField';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import {updateNullableLocation} from 'sentry/views/explore/queryParams/location';
 import {deriveUpdatedManagedFields} from 'sentry/views/explore/queryParams/managedFields';
 import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import {
   isVisualize,
   isVisualizeEquation,
@@ -417,5 +422,32 @@ export function useSetQueryParamsExtrapolate() {
       setQueryParams({extrapolate});
     },
     [setQueryParams]
+  );
+}
+
+export function useQueryParamsId() {
+  const queryParams = useQueryParams();
+  return queryParams.id;
+}
+
+export function useQueryParamsTitle() {
+  const queryParams = useQueryParams();
+  return queryParams.title;
+}
+
+export function useSetQueryParamsSavedQuery() {
+  // This by-passes the context entirely because wrapping the modal in the context
+  // is not practical. Instead, we directly use `useLocation` and `useNavigate` to
+  // set the `id` and `title`.
+  const location = useLocation();
+  const navigate = useNavigate();
+  return useCallback(
+    (id: string, title: string) => {
+      const target: Location = {...location, query: {...location.query}};
+      updateNullableLocation(target, ID_KEY, id);
+      updateNullableLocation(target, TITLE_KEY, title);
+      navigate(target);
+    },
+    [location, navigate]
   );
 }

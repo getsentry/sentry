@@ -139,7 +139,7 @@ export default function StreamlinedGroupHeader({
                 size="xs"
                 external
                 title={t('Learn more about the new UI')}
-                href={`https://docs.sentry.io/product/issues/issue-details/`}
+                href="https://docs.sentry.io/product/issues/issue-details/"
                 aria-label={t('Learn more about the new UI')}
                 icon={<IconInfo />}
                 analyticsEventKey="issue_details.streamline_ui_learn_more"
@@ -154,7 +154,7 @@ export default function StreamlinedGroupHeader({
               <Button
                 aria-label={t('Give feedback on the issue Sentry detected')}
                 icon={<IconMegaphone />}
-                size={'xs'}
+                size="xs"
                 onClick={() =>
                   openForm({
                     messagePlaceholder: t(

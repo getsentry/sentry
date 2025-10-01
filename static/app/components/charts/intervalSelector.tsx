@@ -228,9 +228,9 @@ export default function IntervalSelector({
       triggerProps={{
         prefix: t('Interval'),
         borderless: true,
+        children: interval,
       }}
       disabled={false}
-      triggerLabel={interval}
     />
   );
 }

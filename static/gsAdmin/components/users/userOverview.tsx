@@ -110,7 +110,7 @@ function UserOverview({
                     size="xs"
                     title="Disconnect Identity"
                     onClick={() => onIdentityDisconnect(identity)}
-                    aria-label={'Disconnect Identity'}
+                    aria-label="Disconnect Identity"
                     disabled={
                       identity.status !== UserIdentityStatus.CAN_DISCONNECT &&
                       identity.category !== UserIdentityCategory.ORG_IDENTITY
@@ -150,7 +150,7 @@ function UserOverview({
                     size="xs"
                     title="Remove Authenticator"
                     onClick={() => onAuthenticatorRemove(auth)}
-                    aria-label={'Remove Authenticator'}
+                    aria-label="Remove Authenticator"
                   />
                 </ButtonWrapper>
                 <small style={{color: '#999999'}}>
@@ -174,9 +174,7 @@ function UserOverview({
                 key={token.id}
                 token={token}
                 onRemove={revokeToken}
-                onRemoveConfirmMessage={
-                  "Are you sure you want to revoke this user's token? Doing so may break user's applications, and should usually only be done if the token has been leaked."
-                }
+                onRemoveConfirmMessage="Are you sure you want to revoke this user's token? Doing so may break user's applications, and should usually only be done if the token has been leaked."
               />
             ))}
           </PanelTable>

@@ -23,7 +23,7 @@ import TeamResolutionTime from './teamResolutionTime';
 import {TeamUnresolvedIssues} from './teamUnresolvedIssues';
 import {dataDatetime} from './utils';
 
-function TeamStatsIssues() {
+export default function TeamStatsIssues() {
   const organization = useOrganization();
   const location = useLocation();
   const router = useRouter();
@@ -163,5 +163,3 @@ function TeamStatsIssues() {
     </Fragment>
   );
 }
-
-export default TeamStatsIssues;

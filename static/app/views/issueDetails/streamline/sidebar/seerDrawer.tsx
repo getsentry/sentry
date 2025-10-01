@@ -375,13 +375,16 @@ export const useOpenSeerDrawer = ({
         return false;
       },
       onClose: () => {
-        navigate({
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            seerDrawer: undefined,
+        navigate(
+          {
+            pathname: location.pathname,
+            query: {
+              ...location.query,
+              seerDrawer: undefined,
+            },
           },
-        });
+          {replace: true, preventScrollReset: true}
+        );
       },
     });
   }, [openDrawer, event, group, project, location, navigate, organization]);

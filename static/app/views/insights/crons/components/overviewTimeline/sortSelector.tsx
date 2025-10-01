@@ -77,11 +77,11 @@ export function SortSelector({onChangeOrder, onChangeSort, order, sort, size}: P
   return (
     <CompositeSelect
       size={size}
-      triggerLabel={`${label} \u2014 ${orderLabel}`}
       triggerProps={{
         prefix: t('Sort By'),
         'aria-label': t('Sort Cron Monitors'),
         icon: <IconSort />,
+        children: `${label} \u2014 ${orderLabel}`,
       }}
     >
       <CompositeSelect.Region

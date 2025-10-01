@@ -54,7 +54,7 @@ function SubscriptionHeaderCard({
       direction="column"
       padding="xl"
       background={isMainCard ? 'secondary' : 'primary'}
-      border={'primary'}
+      border="primary"
       radius="md"
       gap="xs"
     >

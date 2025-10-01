@@ -150,7 +150,7 @@ export function RepoSelector() {
       value={repository ?? ''}
       onChange={handleChange}
       onOpenChange={_ => setSearchValue(undefined)}
-      menuWidth={'16rem'}
+      menuWidth="16rem"
       menuHeaderTrailingItems={
         <Syncbutton
           disabled={isSyncing}

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any, DefaultDict, TypedDict
 from unittest import mock
 from uuid import uuid4
@@ -1011,30 +1011,6 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             [{"count": 2}],
             [{"count": 0}],
         ]
-
-    def test_without_zerofill(self) -> None:
-        start = self.day_ago.isoformat()
-        end = (self.day_ago + timedelta(hours=2)).isoformat()
-        response = self.do_request(
-            data={
-                "start": start,
-                "end": end,
-                "interval": "30m",
-                "withoutZerofill": "1",
-            },
-            features={
-                "organizations:performance-chart-interpolation": True,
-                "organizations:discover-basic": True,
-            },
-        )
-
-        assert response.status_code == 200, response.content
-        assert [attrs for time, attrs in response.data["data"]] == [
-            [{"count": 1}],
-            [{"count": 2}],
-        ]
-        assert response.data["start"] == datetime.fromisoformat(start).timestamp()
-        assert response.data["end"] == datetime.fromisoformat(end).timestamp()
 
     def test_comparison_error_dataset(self) -> None:
         self.store_event(

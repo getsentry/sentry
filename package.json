@@ -65,9 +65,9 @@
     "@rspack/core": "1.5.2",
     "@rspack/plugin-react-refresh": "1.5.0",
     "@sentry-internal/global-search": "^1.0.0",
-    "@sentry-internal/rrweb": "2.34.0",
-    "@sentry-internal/rrweb-player": "2.34.0",
-    "@sentry-internal/rrweb-snapshot": "2.34.0",
+    "@sentry-internal/rrweb": "2.38.0",
+    "@sentry-internal/rrweb-player": "2.38.0",
+    "@sentry-internal/rrweb-snapshot": "2.38.0",
     "@sentry/core": "10.13.0",
     "@sentry/node": "10.13.0",
     "@sentry/react": "10.13.0",
@@ -186,7 +186,7 @@
     "@eslint/js": "9.32.0",
     "@ianvs/prettier-plugin-sort-imports": "4.6.1",
     "@prettier/plugin-oxc": "0.0.4",
-    "@sentry-internal/rrweb-types": "2.34.0",
+    "@sentry-internal/rrweb-types": "2.38.0",
     "@sentry/jest-environment": "6.1.0",
     "@sentry/profiling-node": "10.13.0",
     "@styled/typescript-styled-plugin": "^1.0.1",
@@ -279,7 +279,7 @@
     "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost 127.0.0.1 dev.getsentry.net *.dev.getsentry.net && mkcert -install",
     "https-proxy": "caddy run --config - <<< '{\"apps\":{\"http\":{\"servers\":{\"srv0\":{\"listen\":[\":8003\"],\"routes\":[{\"handle\":[{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"localhost:8000\"}]}]}],\"tls_connection_policies\":[{\"certificate_selection\":{\"any_tag\":[\"cert0\"]}}]}}},\"tls\":{\"certificates\":{\"load_files\":[{\"certificate\":\"./config/localhost.pem\",\"key\":\"./config/localhost-key.pem\",\"tags\":[\"cert0\"]}]}}}}'",
     "knip": "NODE_OPTIONS='--experimental-transform-types' knip --treat-config-hints-as-errors",
-    "knip:prod": "pnpm run knip --production --exclude exports,types,dependencies,unresolved"
+    "knip:prod": "pnpm run knip --production --exclude dependencies,unresolved"
   },
   "browserslist": {
     "production": [

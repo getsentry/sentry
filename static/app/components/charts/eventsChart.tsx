@@ -459,10 +459,6 @@ export type EventsChartProps = {
    * Should datetimes be formatted in UTC?
    */
   utc?: boolean | null;
-  /**
-   * Whether or not to zerofill results
-   */
-  withoutZerofill?: boolean;
 } & Pick<
   ChartProps,
   | 'seriesTransformer'
@@ -539,7 +535,6 @@ class EventsChart extends Component<EventsChartProps> {
       chartComponent,
       usePageZoom,
       height,
-      withoutZerofill,
       fromDiscover,
       additionalSeries,
       loadingAdditionalSeries,
@@ -681,8 +676,6 @@ class EventsChart extends Component<EventsChartProps> {
               topEvents={topEvents}
               confirmedQuery={confirmedQuery}
               partial
-              // Cannot do interpolation when stacking series
-              withoutZerofill={withoutZerofill && !this.isStacked()}
               dataset={dataset}
             >
               {eventData => {

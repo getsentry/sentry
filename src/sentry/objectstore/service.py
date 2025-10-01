@@ -78,9 +78,13 @@ class Client:
             return dict(sentry_sdk.get_current_scope().iter_trace_propagation_headers())
         return {}
 
-    def _make_url(self, url: str) -> str:
+    def _make_url(self, id: str | None, full=False) -> str:
+        base_path = f"/v1/{id}" if id else "/v1/"
         qs = urlencode({"usecase": self._usecase, "scope": self._scope})
-        return url + "?" + qs
+        if full:
+            return f"http://{self._pool.host}:{self._pool.port}{base_path}?{qs}"
+        else:
+            return f"{base_path}?{qs}"
 
     def put(
         self,
@@ -122,7 +126,7 @@ class Client:
         with measure_storage_operation("put", self._usecase) as metric_emitter:
             response = self._pool.request(
                 "PUT",
-                self._make_url(f"/{id}" if id else "/"),
+                self._make_url(id),
                 body=body,
                 headers=headers,
                 preload_content=True,
@@ -151,7 +155,7 @@ class Client:
         with measure_storage_operation("get", self._usecase):
             response = self._pool.request(
                 "GET",
-                self._make_url(f"/{id}"),
+                self._make_url(id),
                 preload_content=False,
                 decode_content=False,
                 headers=headers,
@@ -173,6 +177,16 @@ class Client:
 
         return GetResult(metadata, stream)
 
+    def object_url(self, id: str) -> str:
+        """
+        Generates a GET url to the object with the given `id`.
+
+        This can then be used by downstream services to fetch the given object.
+        NOTE however that the service does not strictly follow HTTP semantics,
+        in particular in relation to `Accept-Encoding`.
+        """
+        return self._make_url(id, full=True)
+
     def delete(self, id: str):
         """
         Deletes the blob with the given `id`.
@@ -182,7 +196,7 @@ class Client:
         with measure_storage_operation("delete", self._usecase):
             response = self._pool.request(
                 "DELETE",
-                self._make_url(f"/{id}"),
+                self._make_url(id),
                 headers=headers,
             )
             raise_for_status(response)

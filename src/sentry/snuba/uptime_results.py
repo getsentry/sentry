@@ -1,6 +1,7 @@
 import logging
 
 import sentry_sdk
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
@@ -30,6 +31,7 @@ class UptimeResults(rpc_dataset_common.RPCBase):
         sampling_mode: SAMPLING_MODES | None = None,
         equations: list[str] | None = None,
         search_resolver: SearchResolver | None = None,
+        page_token: PageToken | None = None,
         debug: bool = False,
     ) -> EAPResponse:
         return cls._run_table_query(
@@ -43,6 +45,7 @@ class UptimeResults(rpc_dataset_common.RPCBase):
                 referrer=referrer,
                 sampling_mode=sampling_mode,
                 resolver=search_resolver or cls.get_resolver(params, config),
+                page_token=page_token,
             ),
             debug,
         )

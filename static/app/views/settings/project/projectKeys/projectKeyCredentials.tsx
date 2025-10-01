@@ -88,7 +88,14 @@ function ProjectKeyCredentials({
         <Fragment>
           <FieldGroup
             label={t('OTLP Logs Endpoint')}
-            help={t(`Set this URL as your OTLP exporter's log endpoint.`)}
+            help={tct(
+              `Set this URL as your OTLP exporter's log endpoint. [link:Learn more]`,
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/concepts/otlp/#opentelemetry-logs" />
+                ),
+              }
+            )}
             inline={false}
             flexibleControlStateSize
           >
@@ -114,7 +121,14 @@ function ProjectKeyCredentials({
         <Fragment>
           <FieldGroup
             label={t('OTLP Traces Endpoint')}
-            help={t(`Set this URL as your OTLP exporter's trace endpoint.`)}
+            help={tct(
+              `Set this URL as your OTLP exporter's trace endpoint. [link:Learn more]`,
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/concepts/otlp/#opentelemetry-traces" />
+                ),
+              }
+            )}
             inline={false}
             flexibleControlStateSize
           >

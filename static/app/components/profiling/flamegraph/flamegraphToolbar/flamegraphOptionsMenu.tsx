@@ -68,8 +68,7 @@ function FlamegraphOptionsMenu({
         {t('Reset Zoom')}
       </Button>
       <CompactSelect
-        triggerLabel={t('Color Coding')}
-        triggerProps={{icon: <IconSliders />, size: 'xs'}}
+        triggerProps={{children: t('Color Coding'), icon: <IconSliders />, size: 'xs'}}
         options={colorCodingOptions}
         position="bottom-end"
         value={colorCoding}

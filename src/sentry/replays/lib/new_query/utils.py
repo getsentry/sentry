@@ -49,5 +49,9 @@ def translate_condition_to_function(condition: Condition | And | Or) -> Function
         return Function("in", parameters=[condition.lhs, condition.rhs])
     elif condition.op == Op.NOT_IN:
         return Function("notIn", parameters=[condition.lhs, condition.rhs])
+    elif condition.op == Op.IS_NULL:
+        return Function("isNull", parameters=[condition.lhs])
+    elif condition.op == Op.IS_NOT_NULL:
+        return Function("isNotNull", parameters=[condition.lhs])
     else:
         raise Exception(f"Didn't understand operation: {condition.op}")

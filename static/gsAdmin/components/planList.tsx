@@ -78,12 +78,10 @@ function PlanList({
     100000: '100K',
   };
 
-  const availableProducts = Object.values(activePlan?.availableReservedBudgetTypes || {})
+  const availableProducts = Object.values(activePlan?.addOnCategories || {})
     .filter(
       productInfo =>
-        productInfo.isFixed && // NOTE: for now, we only supported fixed budget products in checkout
-        productInfo.billingFlag &&
-        organization.features.includes(productInfo.billingFlag)
+        productInfo.billingFlag && organization.features.includes(productInfo.billingFlag)
     )
     .map(productInfo => {
       return productInfo;
@@ -179,14 +177,15 @@ function PlanList({
         <StyledFormSection>
           <h4>Available Products</h4>
           {availableProducts.map(productInfo => {
+            const addOnKey = `addOn${toTitleCase(productInfo.apiName)}`;
             return (
               <CheckboxField
                 key={productInfo.productName}
                 data-test-id={`checkbox-${productInfo.productName}`}
                 label={toTitleCase(productInfo.productName)}
-                name={productInfo.productName}
+                name={addOnKey}
                 onChange={(value: any) => {
-                  formModel.setValue(productInfo.productName, value.target.checked);
+                  formModel.setValue(addOnKey, value.target.checked);
                 }}
               />
             );

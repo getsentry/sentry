@@ -60,7 +60,7 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
         />
         <Flex style={{transform: 'translateY(-70px)'}}>
           <Tooltip
-            title={'Select an organization and repository to configure settings'}
+            title="Select an organization and repository to configure settings"
             disabled={isOrgSelected && isRepoSelected}
             position="left"
           >

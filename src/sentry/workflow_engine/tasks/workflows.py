@@ -17,7 +17,6 @@ from sentry.taskworker.retry import Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.models import Detector
-from sentry.workflow_engine.processors.workflow import process_workflows
 from sentry.workflow_engine.tasks.utils import (
     EventNotFoundError,
     build_workflow_event_data_from_event,
@@ -56,6 +55,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
     and then process the data in `process_workflows`.
     """
     from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
+    from sentry.workflow_engine.processors.workflow import process_workflows
 
     with transaction.atomic(router.db_for_write(Detector)):
         try:
@@ -120,6 +120,7 @@ def process_workflows_event(
     **kwargs: dict[str, Any],
 ) -> None:
     from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
+    from sentry.workflow_engine.processors.workflow import process_workflows
 
     recorder = scopedstats.Recorder()
     start_time = time.time()

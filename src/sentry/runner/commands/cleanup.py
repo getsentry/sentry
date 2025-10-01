@@ -253,7 +253,7 @@ def cleanup(
         )
 
         debug_output("Running bulk deletes in DELETES")
-        for model_tp, dtfield, order_by in deletes:
+        for model_tp, dtfield, order_by, use_range_wrapper in deletes:
             debug_output(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
 
             if is_filtered(model_tp):
@@ -270,7 +270,9 @@ def cleanup(
                     order_by=order_by,
                 )
 
-                for chunk in q.iterator(chunk_size=100):
+                for chunk in q.iterator(
+                    chunk_size=100, batch_size=10000, use_range_wrapper=use_range_wrapper
+                ):
                     task_queue.put((imp, chunk))
 
                 task_queue.join()
@@ -447,7 +449,7 @@ def exported_data(
             item.delete_file()
 
 
-def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]:
+def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str, bool]]:
     from sentry.models.artifactbundle import ArtifactBundle
     from sentry.models.eventattachment import EventAttachment
     from sentry.models.grouprulestatus import GroupRuleStatus
@@ -458,26 +460,26 @@ def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]
     from sentry.replays.models import ReplayRecordingSegment
 
     # Deletions that use the `deletions` code path (which handles their child relations)
-    # (model, datetime_field, order_by)
+    # (model, datetime_field, order_by, use_range_wrapper)
     return [
-        (EventAttachment, "date_added", "date_added"),
-        (ReplayRecordingSegment, "date_added", "date_added"),
-        (ArtifactBundle, "date_added", "date_added"),
-        (MonitorCheckIn, "date_added", "date_added"),
-        (GroupRuleStatus, "date_added", "date_added"),
-        (PullRequest, "date_added", "date_added"),
-        (RuleFireHistory, "date_added", "date_added"),
-        (Release, "date_added", "date_added"),
+        (EventAttachment, "date_added", "date_added", False),
+        (ReplayRecordingSegment, "date_added", "date_added", False),
+        (ArtifactBundle, "date_added", "date_added", False),
+        (MonitorCheckIn, "date_added", "date_added", False),
+        (GroupRuleStatus, "date_added", "date_added", False),
+        (PullRequest, "date_added", "date_added", False),
+        (RuleFireHistory, "date_added", "date_added", False),
+        (Release, "date_added", "date_added", True),
     ]
 
 
 def remove_cross_project_models(
-    deletes: list[tuple[type[Model], str, str]],
-) -> list[tuple[type[Model], str, str]]:
+    deletes: list[tuple[type[Model], str, str, bool]],
+) -> list[tuple[type[Model], str, str, bool]]:
     from sentry.models.artifactbundle import ArtifactBundle
 
     # These models span across projects, so let's skip them
-    deletes.remove((ArtifactBundle, "date_added", "date_added"))
+    deletes.remove((ArtifactBundle, "date_added", "date_added", False))
     return deletes
 
 

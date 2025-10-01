@@ -155,7 +155,7 @@ def set_commit(idx, data, release):
             )
             for patched_file in patch_set
         ]
-        bulk_create_commit_file_changes(release.organization, file_changes)
+        bulk_create_commit_file_changes(file_changes)
 
     try:
         with atomic_transaction(using=router.db_for_write(ReleaseCommit)):

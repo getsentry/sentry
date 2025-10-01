@@ -1,5 +1,6 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+import color from 'color';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -196,6 +197,8 @@ export function SeerSectionCtaButton({
     <StyledButton
       to={seerLink}
       onClick={handleOpenDrawer}
+      replace
+      preventScrollReset
       analyticsEventKey="issue_details.seer_opened"
       analyticsEventName="Issue Details: Seer Opened"
       analyticsParams={{
@@ -236,7 +239,8 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin-left: ${space(1)};
 
   .loading-indicator {
-    border-left-color: ${p => p.theme.progressBackground};
+    border-color: ${p => color(p.theme.button.primary.color).alpha(0.35).string()};
+    border-left-color: ${p => p.theme.button.primary.color};
   }
 `;
 

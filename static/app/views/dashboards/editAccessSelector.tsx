@@ -336,7 +336,7 @@ function EditAccessSelector({
 
   const dropdownMenu = (
     <StyledCompactSelect
-      data-test-id={'edit-access-dropdown'}
+      data-test-id="edit-access-dropdown"
       size="sm"
       onChange={newSelectedOptions => {
         onSelectOptions(newSelectedOptions);
@@ -345,15 +345,16 @@ function EditAccessSelector({
       searchable
       options={allDropdownOptions}
       value={selectedOptions}
-      triggerLabel={
-        listOnly
+      triggerProps={{
+        children: listOnly
           ? [triggerAvatars]
           : [
               <LabelContainer key="selector-label">{t('Editors:')}</LabelContainer>,
               triggerAvatars,
-            ]
-      }
-      triggerProps={{borderless: listOnly, style: listOnly ? {padding: 2} : {}}}
+            ],
+        borderless: listOnly,
+        style: listOnly ? {padding: 2} : {},
+      }}
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
       onOpenChange={newOpenState => {

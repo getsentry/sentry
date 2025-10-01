@@ -534,6 +534,43 @@ describe('Incident Rules Form', () => {
         })
       );
     });
+
+    it('creates a metrics Apdex rule without satisfaction parameter', async () => {
+      organization.features = [
+        ...organization.features,
+        'performance-view',
+        'mep-rollout-flag',
+      ];
+
+      const rule = MetricRuleFixture();
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          aggregate: 'count()',
+          eventTypes: ['transaction'],
+          dataset: Dataset.TRANSACTIONS,
+        },
+      });
+
+      // Open the wizard and switch to Apdex
+      await userEvent.click(screen.getAllByText('Throughput')[1]!);
+      await userEvent.click(await screen.findByText('Apdex'));
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            // Apdex should be saved without a satisfaction parameter
+            aggregate: 'apdex()',
+            dataset: Dataset.GENERIC_METRICS,
+            eventTypes: ['transaction'],
+          }),
+        })
+      );
+    });
   });
 
   describe('Editing a rule', () => {

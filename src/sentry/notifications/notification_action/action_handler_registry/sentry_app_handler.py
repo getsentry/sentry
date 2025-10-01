@@ -2,7 +2,8 @@ from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
+from sentry.workflow_engine.transformers import TargetTypeConfigTransformer
+from sentry.workflow_engine.types import ActionHandler, ConfigTransformer, WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
@@ -29,6 +30,7 @@ class SentryAppActionHandler(ActionHandler):
         "required": ["target_type", "target_identifier", "sentry_app_identifier"],
         "additionalProperties": False,
     }
+
     data_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -37,6 +39,10 @@ class SentryAppActionHandler(ActionHandler):
         },
         "additionalProperties": False,
     }
+
+    @staticmethod
+    def get_config_transformer() -> ConfigTransformer | None:
+        return TargetTypeConfigTransformer.from_config_schema(SentryAppActionHandler.config_schema)
 
     @staticmethod
     def execute(

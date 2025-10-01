@@ -36,6 +36,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import (
     ActionHandler,
+    ConfigTransformer,
     DataConditionHandler,
     DataConditionResult,
     DetectorPriorityLevel,
@@ -83,6 +84,10 @@ class MockActionHandler(ActionHandler):
         "required": ["baz"],
         "additionalProperties": False,
     }
+
+    @staticmethod
+    def get_config_transformer() -> ConfigTransformer | None:
+        return None
 
 
 class MockActionValidatorTranslator(BaseActionValidatorHandler):

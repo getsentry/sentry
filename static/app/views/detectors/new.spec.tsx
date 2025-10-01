@@ -29,6 +29,8 @@ describe('DetectorNew', () => {
     // Set detectorType
     await userEvent.click(screen.getByRole('radio', {name: 'Uptime'}));
 
+    expect(router.location.query.detectorType).toBe('uptime_domain_failure');
+
     expect(screen.getByRole('button', {name: 'Next'})).toBeEnabled();
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
@@ -54,6 +56,8 @@ describe('DetectorNew', () => {
     });
 
     await userEvent.click(screen.getByRole('radio', {name: 'Uptime'}));
+
+    expect(router.location.query.detectorType).toBe('uptime_domain_failure');
 
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 

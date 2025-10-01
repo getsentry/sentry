@@ -5,7 +5,6 @@ from collections.abc import Sequence
 from typing import Any
 
 import sentry_sdk
-from celery.exceptions import SoftTimeLimitExceeded
 from django.utils import timezone
 
 from sentry import features, options
@@ -478,9 +477,6 @@ def check_field_cardinality(
                                 "widget_query.count": count,
                             },
                         )
-        except SoftTimeLimitExceeded as error:
-            scope.set_tag("widget_soft_deadline", True)
-            sentry_sdk.capture_exception(error)
         except Exception as error:
             sentry_sdk.capture_exception(error)
 

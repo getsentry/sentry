@@ -7,8 +7,14 @@ import type {Organization} from 'sentry/types/organization';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {type AutoRefreshState} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {
+  LOGS_AUTO_REFRESH_KEY,
+  type AutoRefreshState,
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {
+  LOGS_GROUP_BY_KEY,
+  LogsPageParamsProvider,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
@@ -38,7 +44,6 @@ describe('useStreamingTimeseriesResult', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    mockUseLocation.mockReturnValue(LocationFixture());
     mockUseNavigate.mockReturnValue(jest.fn());
   });
 
@@ -51,21 +56,25 @@ describe('useStreamingTimeseriesResult', () => {
     groupBy?: string;
     organization?: Organization;
   }) => {
-    const testContext: Record<string, any> = {
-      autoRefresh,
-    };
     return function ({children}: {children: React.ReactNode}) {
-      const mockLocation = LocationFixture({
-        query: groupBy ? {logsGroupBy: groupBy} : {},
-      });
+      const query: Record<string, string> = {};
+      if (autoRefresh) {
+        query[LOGS_AUTO_REFRESH_KEY] = autoRefresh;
+      }
+      if (groupBy) {
+        query[LOGS_GROUP_BY_KEY] = groupBy;
+      }
+      const mockLocation = LocationFixture({query});
       mockUseLocation.mockReturnValue(mockLocation);
 
       return (
         <OrganizationContext.Provider value={organization ?? logsOrganization}>
-          <LogsQueryParamsProvider source="location">
+          <LogsQueryParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+            source="location"
+          >
             <LogsPageParamsProvider
               analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-              _testContext={testContext}
             >
               {children}
             </LogsPageParamsProvider>

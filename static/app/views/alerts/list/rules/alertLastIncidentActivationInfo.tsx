@@ -22,17 +22,21 @@ interface Props {
 function LastUptimeIncident({rule}: {rule: UptimeAlert}) {
   // TODO(davidenwang): Once we have a lastTriggered field returned from
   // backend, display that info here
-  return tct('Actively monitoring every [interval]', {
-    interval: getDuration(rule.intervalSeconds),
-  });
+  return rule.status === 'active'
+    ? tct('Actively monitoring every [interval]', {
+        interval: getDuration(rule.intervalSeconds),
+      })
+    : t('Uptime monitor disabled');
 }
 
 function LastCronMonitorIncident({rule}: {rule: CronRule}) {
   // TODO(evanpurkhiser): Would probably be better if we had a way to get the
   // most recent incident.
-  return tct('Expected [interval]', {
-    interval: scheduleAsText(rule.config),
-  });
+  return rule.status === 'active'
+    ? tct('Expected [interval]', {
+        interval: scheduleAsText(rule.config),
+      })
+    : t('Cron monitor disabled');
 }
 
 /**

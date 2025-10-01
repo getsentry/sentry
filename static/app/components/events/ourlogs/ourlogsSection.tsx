@@ -37,7 +37,11 @@ export function OurlogsSection({
 }) {
   const traceId = event.contexts?.trace?.trace_id;
   return (
-    <LogsQueryParamsProvider source="state" freeze={traceId ? {traceId} : undefined}>
+    <LogsQueryParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+      source="state"
+      freeze={traceId ? {traceId} : undefined}
+    >
       <LogsPageParamsProvider
         analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
         isTableFrozen
@@ -78,6 +82,7 @@ function OurlogsSectionContent({
       openDrawer(
         () => (
           <LogsQueryParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
             source="state"
             freeze={traceId ? {traceId} : undefined}
           >

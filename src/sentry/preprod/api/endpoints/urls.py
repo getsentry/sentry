@@ -26,12 +26,16 @@ from .project_preprod_artifact_update import ProjectPreprodArtifactUpdateEndpoin
 from .project_preprod_build_details import ProjectPreprodBuildDetailsEndpoint
 from .project_preprod_check_for_updates import ProjectPreprodArtifactCheckForUpdatesEndpoint
 from .project_preprod_list_builds import ProjectPreprodListBuildsEndpoint
+from .project_preprod_size import (
+    ProjectPreprodSizeEndpoint,
+    ProjectPreprodSizeWithIdentifierEndpoint,
+)
 
 preprod_urlpatterns = [
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/pullrequest-files/(?P<repo_name>.+?)/(?P<pr_number>\d+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/pullrequest-details/(?P<repo_name>.+?)/(?P<pr_number>\d+)/$",
         OrganizationPullRequestDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-pullrequest-files",
+        name="sentry-api-0-organization-pullrequest-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/assemble/$",
@@ -116,5 +120,15 @@ preprod_internal_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/(?P<head_artifact_id>[^/]+)/assemble-generic/$",
         ProjectPreprodArtifactAssembleGenericEndpoint.as_view(),
         name="sentry-api-0-project-preprod-artifact-assemble-generic",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/(?P<head_artifact_id>[^/]+)/size/$",
+        ProjectPreprodSizeEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-size",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/(?P<head_artifact_id>[^/]+)/size/(?P<identifier>[^/]+)/$",
+        ProjectPreprodSizeWithIdentifierEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-size-identifier",
     ),
 ]

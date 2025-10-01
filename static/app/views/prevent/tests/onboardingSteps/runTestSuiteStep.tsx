@@ -1,16 +1,22 @@
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import testAnalyticsPRCommentDark from 'sentry-images/features/test-analytics-pr-comment-dark.png';
 import testAnalyticsPRCommentLight from 'sentry-images/features/test-analytics-pr-comment-light.png';
-import testAnalyticsWorkflowLogs from 'sentry-images/features/test-analytics-workflow-logs.svg';
 
+import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
 interface RunTestSuiteStepProps {
   step: string;
 }
+
+const WORKFLOW_LOGS_SNIPPET = `
+98  info - 2024-02-09 13:40:22,646 -- Found 1 test_results files to upload
+99  info - 2024-02-09 13:40:22,646 -- > /home/runner/work/mcos/mcos/thebeast/mcos.junit.xml
+100 info - 2024-02-09 13:40:22,728 -- Process Upload Complete
+`.trim();
 
 export function RunTestSuiteStep({step}: RunTestSuiteStepProps) {
   const theme = useTheme();
@@ -25,17 +31,19 @@ export function RunTestSuiteStep({step}: RunTestSuiteStepProps) {
       <OnboardingStep.Body>
         <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
         <OnboardingStep.Content>
-          <StyledP>
+          <Text>
             {t(
               'You can inspect the workflow logs to see if the call to Sentry succeeded.'
             )}
-          </StyledP>
-          <StyledImg src={testAnalyticsWorkflowLogs} />
-          <StyledP>
+          </Text>
+          <CodeSnippet language="text" dark hideCopyButton>
+            {WORKFLOW_LOGS_SNIPPET}
+          </CodeSnippet>
+          <Text>
             {t(
               'Run your tests as usual. A failed test is needed to view the failed tests report.'
             )}
-          </StyledP>
+          </Text>
         </OnboardingStep.Content>
       </OnboardingStep.Body>
       <OnboardingStep.ExpandableDropdown
@@ -54,12 +62,3 @@ export function RunTestSuiteStep({step}: RunTestSuiteStepProps) {
     </OnboardingStep.Container>
   );
 }
-
-const StyledImg = styled('img')`
-  margin-top: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
-const StyledP = styled('p')`
-  margin: 0;
-`;

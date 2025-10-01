@@ -30,7 +30,7 @@ describe('ResultsSearchQueryBuilder', () => {
   it('does not show function tags in has: dropdown', async () => {
     render(
       <ResultsSearchQueryBuilder
-        query={''}
+        query=""
         onSearch={jest.fn()}
         onChange={jest.fn()}
         projectIds={[]}
@@ -62,7 +62,7 @@ describe('ResultsSearchQueryBuilder', () => {
   it('shows normal tags, e.g. transaction, in the dropdown', async () => {
     render(
       <ResultsSearchQueryBuilder
-        query={''}
+        query=""
         onSearch={jest.fn()}
         onChange={jest.fn()}
         projectIds={[]}

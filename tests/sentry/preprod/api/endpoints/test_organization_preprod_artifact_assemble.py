@@ -742,7 +742,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
-        assert response.status_code == 200, response.content
+        assert response.status_code == 500, response.content
         assert response.data["state"] == ChunkFileState.ERROR
         assert response.data["detail"] == "Failed to create preprod artifact row."
 
@@ -761,3 +761,46 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             base_ref=None,
             pr_number=None,
         )
+
+    def test_assemble_missing_vcs_parameters(self) -> None:
+        """Test that providing partial VCS parameters returns a 400 error with specific missing params."""
+        content = b"test missing vcs params"
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file(ContentFile(content))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
+
+        # Test missing head_ref
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob.checksum],
+                "head_sha": "e" * 40,
+                "provider": "github",
+                "head_repo_name": "owner/repo",
+                # Missing head_ref
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        assert response.status_code == 400, response.content
+        assert "error" in response.data
+        assert "Missing parameters: head_ref" in response.data["error"]
+
+        # Test missing multiple parameters
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob.checksum],
+                "head_sha": "e" * 40,
+                # Missing provider, head_repo_name, head_ref
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        assert response.status_code == 400, response.content
+        assert "error" in response.data
+        assert "Missing parameters:" in response.data["error"]
+        assert "head_repo_name" in response.data["error"]
+        assert "provider" in response.data["error"]
+        assert "head_ref" in response.data["error"]

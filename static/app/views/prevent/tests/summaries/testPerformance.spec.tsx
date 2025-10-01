@@ -17,25 +17,24 @@ describe('TestPerformance', () => {
   it('renders number of flaky tests with filter link', () => {
     render(<TestPerformance {...testPerformanceData} isLoading={false} />);
 
-    const flakyTestNumber = screen.getByRole('link', {name: '88'});
-    expect(flakyTestNumber).toBeInTheDocument();
-    expect(flakyTestNumber).toHaveAttribute(
-      'href',
-      '/mock-pathname/?filterBy=flakyTests'
-    );
+    const flakyTestCard = screen.getByRole('link', {name: /Flaky Tests.*88/});
+    expect(flakyTestCard).toBeInTheDocument();
+    expect(flakyTestCard).toHaveAttribute('href', '/mock-pathname/?filterBy=flakyTests');
   });
 
   it('renders average flake rate', () => {
     render(<TestPerformance {...testPerformanceData} isLoading={false} />);
 
-    const averageFlakeRate = screen.getByText(/0.10%/);
+    const averageFlakeRate = screen.getByText(/0.1%/);
     expect(averageFlakeRate).toBeInTheDocument();
   });
 
   it('renders cumulative failures with filter link', () => {
     render(<TestPerformance {...testPerformanceData} isLoading={false} />);
 
-    const cumulativeFailures = screen.getByRole('link', {name: '356'});
+    const cumulativeFailures = screen.getByRole('link', {
+      name: /Cumulative Failures.*356/,
+    });
     expect(cumulativeFailures).toBeInTheDocument();
     expect(cumulativeFailures).toHaveAttribute(
       'href',
@@ -46,7 +45,7 @@ describe('TestPerformance', () => {
   it('renders skipped tests with filter link', () => {
     render(<TestPerformance {...testPerformanceData} isLoading={false} />);
 
-    const skippedTests = screen.getByRole('link', {name: '50'});
+    const skippedTests = screen.getByRole('link', {name: /Skipped Tests.*50/});
     expect(skippedTests).toBeInTheDocument();
     expect(skippedTests).toHaveAttribute('href', '/mock-pathname/?filterBy=skippedTests');
   });

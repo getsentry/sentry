@@ -369,7 +369,7 @@ class TestWorkflowValidatorUpdate(TestCase):
                         "config": {
                             "target_identifier": "foo",
                             "target_display": "bar",
-                            "target_type": 0,
+                            "target_type": "specific",
                         },
                         "data": {},
                         "integrationId": self.integration.id,
@@ -486,7 +486,7 @@ class TestWorkflowValidatorUpdate(TestCase):
                         "config": {
                             "targetIdentifier": "bar",
                             "targetDisplay": "baz",
-                            "targetType": 0,
+                            "targetType": "specific",
                         },
                         "data": {},
                         "integrationId": self.integration.id,
@@ -610,7 +610,7 @@ class TestWorkflowValidatorUpdate(TestCase):
                 "config": {
                     "targetIdentifier": "foo",
                     "targetDisplay": "bar",
-                    "targetType": 0,
+                    "targetType": "specific",
                 },
                 "data": {},
                 "integrationId": self.integration.id,
@@ -639,7 +639,7 @@ class TestWorkflowValidatorUpdate(TestCase):
                 "type": Action.Type.EMAIL,
                 "config": {
                     "targetIdentifier": str(self.user.id),
-                    "targetType": ActionTarget.USER,
+                    "targetType": "user",
                 },
                 "data": {},
             }

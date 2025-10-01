@@ -150,8 +150,13 @@ function SidebarContent() {
             }}
           >
             <CompactSelect
-              triggerLabel={
-                currentProject ? (
+              value={currentProject?.id}
+              onChange={opt =>
+                setCurrentProject(allProjects.find(p => p.id === opt.value))
+              }
+              triggerProps={{
+                'aria-label': currentProject?.slug,
+                children: currentProject ? (
                   <StyledIdBadge
                     project={currentProject}
                     avatarSize={16}
@@ -160,13 +165,8 @@ function SidebarContent() {
                   />
                 ) : (
                   t('Select a project')
-                )
-              }
-              value={currentProject?.id}
-              onChange={opt =>
-                setCurrentProject(allProjects.find(p => p.id === opt.value))
-              }
-              triggerProps={{'aria-label': currentProject?.slug}}
+                ),
+              }}
               options={projectSelectOptions}
               position="bottom-end"
             />
@@ -273,7 +273,7 @@ function OnboardingContent({
                     platformSelect: (
                       <CompactSelect
                         size="xs"
-                        triggerLabel={jsFramework.label}
+                        triggerProps={{children: jsFramework.label}}
                         value={jsFramework.value}
                         onChange={setJsFramework}
                         options={jsFrameworkSelectOptions}

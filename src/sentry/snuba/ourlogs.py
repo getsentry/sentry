@@ -2,6 +2,7 @@ import logging
 from datetime import timedelta
 
 import sentry_sdk
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 
 from sentry.search.eap import constants
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
@@ -36,6 +37,7 @@ class OurLogs(rpc_dataset_common.RPCBase):
         sampling_mode: SAMPLING_MODES | None = None,
         equations: list[str] | None = None,
         search_resolver: SearchResolver | None = None,
+        page_token: PageToken | None = None,
         debug: bool = False,
     ) -> EAPResponse:
         """timestamp_precise is always displayed in the UI in lieu of timestamp but since the TraceItem table isn't a DateTime64
@@ -64,6 +66,7 @@ class OurLogs(rpc_dataset_common.RPCBase):
                     params=params,
                     config=config,
                 ),
+                page_token=page_token,
             ),
             debug=debug,
         )

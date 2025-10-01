@@ -1,5 +1,8 @@
 import type {ReactNode} from 'react';
 
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
+import {LogsAutoRefreshProvider} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   LogsFrozenContextProvider,
   type LogsFrozenContextProviderProps,
@@ -8,7 +11,18 @@ import {LogsLocationQueryParamsProvider} from 'sentry/views/explore/logs/logsLoc
 import {LogsStateQueryParamsProvider} from 'sentry/views/explore/logs/logsStateQueryParamsProvider';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 
+const [
+  _LogsAnalyticsPageSourceProvider,
+  _useLogsAnalyticsPageSource,
+  LogsAnalyticsPageSourceContext,
+] = createDefinedContext<LogsAnalyticsPageSource>({
+  name: 'LogsAnalyticsPageSourceContext',
+});
+
+export const useLogsAnalyticsPageSource = _useLogsAnalyticsPageSource;
+
 interface LogsQueryParamsProviderProps {
+  analyticsPageSource: LogsAnalyticsPageSource;
   children: ReactNode;
   source: 'location' | 'state';
   freeze?: LogsFrozenContextProviderProps;
@@ -16,6 +30,7 @@ interface LogsQueryParamsProviderProps {
 }
 
 export function LogsQueryParamsProvider({
+  analyticsPageSource,
   children,
   source,
   freeze,
@@ -32,11 +47,17 @@ export function LogsQueryParamsProvider({
     throw new Error(`Unknown source for LogsQueryParamsProvider: ${source}`);
   }
 
+  const isTableFrozen = source === 'state';
+
   return (
-    <LogsFrozenContextProvider {...freeze}>
-      <LogsQueryParamsProviderComponent frozenParams={frozenParams}>
-        {children}
-      </LogsQueryParamsProviderComponent>
-    </LogsFrozenContextProvider>
+    <LogsAnalyticsPageSourceContext value={analyticsPageSource}>
+      <LogsFrozenContextProvider {...freeze}>
+        <LogsQueryParamsProviderComponent frozenParams={frozenParams}>
+          <LogsAutoRefreshProvider isTableFrozen={isTableFrozen}>
+            {children}
+          </LogsAutoRefreshProvider>
+        </LogsQueryParamsProviderComponent>
+      </LogsFrozenContextProvider>
+    </LogsAnalyticsPageSourceContext>
   );
 }

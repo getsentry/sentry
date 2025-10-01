@@ -177,7 +177,7 @@ def send_incident_occurrence(
         ],
         evidence_data=evidence_data,
         culprit="",
-        detection_time=current_timestamp,
+        detection_time=failed_checkin.date_added,
         level="error",
         assignee=monitor_env.monitor.owner_actor,
     )

@@ -182,8 +182,8 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
       disabled={isDisabled}
       options={eventNavDropdownOptions}
       value={selectedValue ? selectedValue : EventNavDropdownOption.CUSTOM}
-      triggerLabel={
-        selectedValue ? (
+      triggerProps={{
+        children: selectedValue ? (
           selectedValue === EventNavDropdownOption.RECOMMENDED ? (
             t('Recommended')
           ) : undefined
@@ -192,8 +192,8 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
             date={event.dateCreated ?? event.dateReceived}
             disabledAbsoluteTooltip
           />
-        )
-      }
+        ),
+      }}
       menuWidth={232}
       onChange={selectedOption => {
         trackAnalytics('issue_details.event_dropdown_option_selected', {

@@ -1,11 +1,15 @@
 import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from sentry.api.serializers import serialize
-from sentry.incidents.charts import build_metric_alert_chart, incident_date_range
+from sentry.incidents.charts import (
+    build_metric_alert_chart,
+    fetch_metric_issue_open_periods,
+    incident_date_range,
+)
 from sentry.incidents.endpoints.serializers.alert_rule import (
     AlertRuleSerializer,
     AlertRuleSerializerResponse,
@@ -20,6 +24,7 @@ from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodCon
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 
 now = "2022-05-16T20:00:00"
 frozen_time = f"{now}Z"
@@ -119,3 +124,34 @@ class BuildMetricAlertChartTest(TestCase):
         mock_generate_chart.assert_called()
         assert mock_client_get.call_args[1]["params"]["dataset"] == "spans"
         assert mock_client_get.call_args[1]["params"]["query"] == "span.op:pageload"
+
+
+class FetchOpenPeriodsTest(TestCase):
+    @freeze_time(frozen_time)
+    @patch("sentry.incidents.charts.client.get")
+    @with_feature("organizations:workflow-engine-single-process-metric-issues")
+    def test_get_incidents_from_detector(self, mock_client_get: MagicMock) -> None:
+        self.create_detector()  # dummy so detector ID != alert rule ID
+        detector = self.create_detector(project=self.project)
+        alert_rule = self.create_alert_rule(organization=self.organization, projects=[self.project])
+        self.create_alert_rule_detector(detector=detector, alert_rule_id=alert_rule.id)
+        incident = Incident(
+            date_started=must_parse_datetime("2022-05-16T18:55:00Z"),
+            date_closed=None,
+            alert_rule=alert_rule,
+        )
+        time_period = incident_date_range(60, incident.date_started, incident.date_closed)
+
+        fetch_metric_issue_open_periods(self.organization, detector.id, time_period)
+        mock_client_get.assert_called_with(
+            auth=ANY,
+            user=ANY,
+            path="/organizations/baz/incidents/",
+            params={
+                "alertRule": alert_rule.id,
+                "expand": "activities",
+                "includeSnapshots": True,
+                "project": -1,
+                **time_period,
+            },
+        )

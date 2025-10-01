@@ -143,8 +143,8 @@ describe('DeviceContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'device'}
-        alias={'device'}
+        type="device"
+        alias="device"
         value={{...MOCK_DEVICE_CONTEXT, name: ''}}
       />
     );

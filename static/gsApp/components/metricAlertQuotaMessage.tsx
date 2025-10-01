@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -58,17 +56,13 @@ export function MetricAlertQuotaMessage() {
   const metricAlertQuota = useMetricDetectorLimit();
 
   if (metricAlertQuota?.hasReachedLimit) {
-    return (
-      <DisabledAlertMessageContainer>
-        {tct(
-          "You have reached your plan's limit on metric monitors ([limit]). [removeLink:Remove existing monitors] or [upgradeLink:upgrade your plan].",
-          {
-            limit: metricAlertQuota.detectorLimit.toLocaleString(),
-            removeLink: <Link to={makeAlertsPathname({organization, path: '/rules/'})} />,
-            upgradeLink: <UpgradeLink />,
-          }
-        )}
-      </DisabledAlertMessageContainer>
+    return tct(
+      "You have reached your plan's limit on metric monitors ([limit]). [removeLink:Remove existing monitors] or [upgradeLink:upgrade your plan].",
+      {
+        limit: metricAlertQuota.detectorLimit.toLocaleString(),
+        removeLink: <Link to={makeAlertsPathname({organization, path: '/rules/'})} />,
+        upgradeLink: <UpgradeLink />,
+      }
     );
   }
 
@@ -76,27 +70,15 @@ export function MetricAlertQuotaMessage() {
     metricAlertQuota &&
     metricAlertQuota.detectorLimit === metricAlertQuota.detectorCount + 1
   ) {
-    return (
-      <DisabledAlertMessageContainer>
-        {tct(
-          'You have used [count] of [limit] metric monitors for your plan. To increase the limit, [upgradeLink:upgrade your plan].',
-          {
-            count: metricAlertQuota.detectorCount.toLocaleString(),
-            limit: metricAlertQuota.detectorLimit.toLocaleString(),
-            upgradeLink: <UpgradeLink />,
-          }
-        )}
-      </DisabledAlertMessageContainer>
+    return tct(
+      'You have used [count] of [limit] metric monitors for your plan. To increase the limit, [upgradeLink:upgrade your plan].',
+      {
+        count: metricAlertQuota.detectorCount.toLocaleString(),
+        limit: metricAlertQuota.detectorLimit.toLocaleString(),
+        upgradeLink: <UpgradeLink />,
+      }
     );
   }
 
   return null;
 }
-
-const DisabledAlertMessageContainer = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-`;

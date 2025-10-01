@@ -647,7 +647,6 @@ from .endpoints.internal import (
     InternalMailEndpoint,
     InternalPackagesEndpoint,
     InternalQueueTasksEndpoint,
-    InternalQuotasEndpoint,
     InternalRpcServiceEndpoint,
     InternalStatsEndpoint,
     InternalWarningsEndpoint,
@@ -3349,11 +3348,6 @@ INTERNAL_URLS = [
         r"^frontend-version/$",
         FrontendVersionEndpoint.as_view(),
         name="sentry-api-0-internal-frontend-version",
-    ),
-    re_path(
-        r"^quotas/$",
-        InternalQuotasEndpoint.as_view(),
-        name="sentry-api-0-internal-quotas",
     ),
     re_path(
         r"^queue/tasks/$",

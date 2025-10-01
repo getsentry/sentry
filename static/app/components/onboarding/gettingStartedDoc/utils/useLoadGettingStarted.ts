@@ -45,6 +45,7 @@ export function useLoadGettingStarted({
   useEffect(() => {
     async function getGettingStartedDoc() {
       if (
+        platform.deprecated ||
         platform.id === 'other' ||
         !platformPath ||
         (productType === 'replay' && !replayPlatforms.includes(platform.id)) ||
@@ -66,7 +67,7 @@ export function useLoadGettingStarted({
         );
         setModule(mod);
       } catch (err) {
-        setModule(undefined);
+        setModule('none');
         Sentry.captureException(err);
       }
     }
@@ -76,7 +77,7 @@ export function useLoadGettingStarted({
     return () => {
       setModule(undefined);
     };
-  }, [platformPath, platform.id, productType]);
+  }, [platformPath, platform.id, platform.deprecated, productType]);
 
   return {
     refetch: projectKeys.refetch,

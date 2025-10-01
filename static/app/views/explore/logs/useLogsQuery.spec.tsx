@@ -13,7 +13,11 @@ import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {type AutoRefreshState} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {
+  LOGS_AUTO_REFRESH_KEY,
+  LOGS_REFRESH_INTERVAL_KEY,
+  type AutoRefreshState,
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
@@ -29,7 +33,7 @@ import {
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
-const mockedUsedLocation = jest.mocked(useLocation);
+const mockUseLocation = jest.mocked(useLocation);
 
 jest.mock('sentry/utils/usePageFilters');
 const mockUsePageFilters = jest.mocked(usePageFilters);
@@ -46,13 +50,16 @@ const linkHeaders = {
 describe('useInfiniteLogsQuery', () => {
   const organization = OrganizationFixture();
   const queryClient = makeTestQueryClient();
-  const mockLocation = mockedUsedLocation.mockReturnValue(LocationFixture());
+  const mockLocation = mockUseLocation.mockReturnValue(LocationFixture());
 
   function createWrapper() {
     return function ({children}: {children?: React.ReactNode}) {
       return (
         <QueryClientProvider client={queryClient}>
-          <LogsQueryParamsProvider source="location">
+          <LogsQueryParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+            source="location"
+          >
             <LogsPageParamsProvider
               analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
             >
@@ -425,15 +432,23 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
 
   function createWrapper({autoRefresh = 'enabled'}: {autoRefresh?: AutoRefreshState}) {
     return function ({children}: {children?: React.ReactNode}) {
+      mockUseLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            [LOGS_AUTO_REFRESH_KEY]: autoRefresh,
+            [LOGS_REFRESH_INTERVAL_KEY]: '5', // Fast refresh for testing
+          },
+        })
+      );
+
       return (
         <QueryClientProvider client={queryClient}>
-          <LogsQueryParamsProvider source="location">
+          <LogsQueryParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+            source="location"
+          >
             <LogsPageParamsProvider
               analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-              _testContext={{
-                autoRefresh,
-                refreshInterval: 5, // Fast refresh for testing
-              }}
             >
               <OrganizationContext.Provider value={organization}>
                 {children}
@@ -450,7 +465,6 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     mockUseNavigate.mockReturnValue(jest.fn());
     MockApiClient.clearMockResponses();
     queryClient.clear();
-    mockedUsedLocation.mockReturnValue(LocationFixture());
 
     mockUsePageFilters.mockReturnValue({
       isReady: true,

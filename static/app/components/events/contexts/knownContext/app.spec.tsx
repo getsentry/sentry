@@ -92,8 +92,8 @@ describe('AppContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'app'}
-        alias={'app'}
+        type="app"
+        alias="app"
         value={{...MOCK_APP_CONTEXT, app_name: ''}}
       />
     );

@@ -3,7 +3,6 @@ import re
 
 import jsonschema
 import orjson
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,7 +13,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.models.release import Release
 from sentry.preprod.analytics import PreprodArtifactApiUpdateEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
-from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
+from sentry.preprod.authentication import (
+    LaunchpadRpcPermission,
+    LaunchpadRpcSignatureAuthentication,
+)
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 
@@ -176,14 +178,7 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (LaunchpadRpcSignatureAuthentication,)
-    permission_classes = ()
-
-    def _is_authorized(self, request: Request) -> bool:
-        if request.auth and isinstance(
-            request.successful_authenticator, LaunchpadRpcSignatureAuthentication
-        ):
-            return True
-        return False
+    permission_classes = (LaunchpadRpcPermission,)
 
     def put(self, request: Request, project, head_artifact_id, head_artifact) -> Response:
         """
@@ -201,9 +196,6 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
         :pparam object head_artifact: the preprod artifact to update.
         :auth: required
         """
-        if not self._is_authorized(request):
-            raise PermissionDenied
-
         analytics.record(
             PreprodArtifactApiUpdateEvent(
                 organization_id=project.organization_id,

@@ -141,7 +141,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
 
     def test_update_preprod_artifact_unauthorized(self) -> None:
         response = self._make_request({"artifact_type": 1}, authenticated=False)
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_empty_update(self) -> None:

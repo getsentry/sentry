@@ -273,7 +273,7 @@ TASK_FNS: dict[SymbolicatorTaskKind, str] = {}
 
 def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> SymbolicationTaskFn:
     """
-    Returns a parameterized version of `_do_symbolicate_event` that runs as a Celery task,
+    Returns a parameterized version of `_do_symbolicate_event` that runs as a task,
     and can be spawned as one.
     """
 
@@ -332,7 +332,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
 
 
 # The names of tasks and metrics in this file point to tasks.store instead of tasks.symbolicator
-# for legacy reasons, namely to prevent celery from dropping older tasks and needing to
+# for legacy reasons, namely to prevent tasks from dropping older tasks and needing to
 # update metrics tooling (e.g. DataDog). All (as of 19/10/2021) of these tasks were moved
 # out of tasks/store.py, hence the "store" bit of the name.
 #

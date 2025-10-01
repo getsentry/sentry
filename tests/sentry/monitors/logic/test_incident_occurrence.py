@@ -130,6 +130,7 @@ class IncidentOccurrenceTestCase(TestCase):
                 "type": MonitorIncidentType.type_id,
                 "level": "error",
                 "culprit": "",
+                "detection_time": self.failed_checkin.date_added.timestamp(),
             },
         ) == dict(occurrence)
 
@@ -214,6 +215,7 @@ class IncidentOccurrenceTestCase(TestCase):
                 "type": MonitorIncidentType.type_id,
                 "level": "error",
                 "culprit": "",
+                "detection_time": self.failed_checkin.date_added.timestamp(),
             },
         ) == dict(occurrence)
 

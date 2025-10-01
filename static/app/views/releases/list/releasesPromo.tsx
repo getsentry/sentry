@@ -246,8 +246,10 @@ sentry-cli releases finalize "$VERSION"`;
               {t('Add New Integration')}
             </Button>
           )}
-          triggerLabel={selectedApp ? undefined : t('Select Integration')}
-          triggerProps={{prefix: selectedApp ? t('Token From') : undefined}}
+          triggerProps={{
+            prefix: selectedApp ? t('Token From') : undefined,
+            children: selectedApp ? undefined : t('Select Integration'),
+          }}
           onChange={option => {
             const app = apps.find(i => i.slug === option.value)!;
             setSelectedApp(app);

@@ -53,7 +53,7 @@ const CloseButton = withChonk(
       <Button
         aria-label={t('Close Modal')}
         icon={<IconClose size="xs" />}
-        size={'zero'}
+        size="zero"
         {...p}
       />
     );

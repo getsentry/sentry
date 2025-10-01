@@ -72,6 +72,9 @@ class NotificationProvider[RenderableT](Protocol):
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         """
         Returns `True` if the provider is available given the key word arguments.
+        This could be used for
+        - Feature flag checking/rollout
+        - Any other provider specific checks related to the organization
         """
         ...
 
