@@ -209,7 +209,10 @@ def create_or_update_grouphash_metadata_if_needed(
             )
         # If the metadata is more than 90 days old, the event upon which it's based will have aged
         # out, so refresh the data with this new event
-        elif grouphash.metadata.date_updated < timezone.now() - timedelta(days=90):
+        elif (
+            grouphash.metadata.date_updated
+            and grouphash.metadata.date_updated < timezone.now() - timedelta(days=90)
+        ):
             updated_data.update(
                 get_grouphash_metadata_data(event, project, variants, grouping_config_id)
             )
