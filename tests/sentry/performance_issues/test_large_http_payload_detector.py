@@ -13,6 +13,7 @@ from sentry.performance_issues.performance_detection import (
 )
 from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.performance_issues.event_generators import create_event, create_span
 
 
@@ -302,3 +303,65 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         ]
         event = create_event(spans)
         assert len(self.find_problems(event)) == 0
+
+    @with_feature("organizations:large-http-payload-detector-improvements")
+    def test_does_not_trigger_detection_for_file_downloads_with_content_disposition_attachment(
+        self,
+    ) -> None:
+        """Test that spans with Content-Disposition: attachment are excluded"""
+        settings = get_detection_settings(organization=self.organization)
+
+        spans = [
+            create_span(
+                "http.client",
+                hash="hash1",
+                desc="GET /api/0/organizations/download/file/12345",
+                duration=1000.0,
+                data={
+                    "http.response_transfer_size": 50_000_000,
+                    "http.response_content_length": 50_000_000,
+                    "http.decoded_response_content_length": 50_000_000,
+                },
+            )
+        ]
+        event = create_event(spans)
+        # Add response headers at event level as list of lists
+        event["response"] = {
+            "headers": [
+                ["content-disposition", 'attachment; filename="document.pdf"'],
+                ["content-type", "application/pdf"],
+            ]
+        }
+        detector = LargeHTTPPayloadDetector(settings, event)
+        run_detector_on_data(detector, event)
+        assert len(detector.stored_problems) == 0
+
+    @with_feature("organizations:large-http-payload-detector-improvements")
+    def test_does_not_trigger_detection_for_file_downloads(self) -> None:
+        """Test that file downloads are excluded when feature flag is enabled"""
+        settings = get_detection_settings(organization=self.organization)
+
+        spans = [
+            create_span(
+                "http.client",
+                hash="hash1",
+                desc="GET /api/0/organizations/download/file/12345",
+                duration=1000.0,
+                data={
+                    "http.response_transfer_size": 50_000_000,
+                    "http.response_content_length": 50_000_000,
+                    "http.decoded_response_content_length": 50_000_000,
+                },
+            )
+        ]
+        event = create_event(spans)
+        # Add response headers at event level as list of lists
+        event["response"] = {
+            "headers": [
+                ["content-disposition", 'attachment; filename="document.pdf"'],
+                ["content-type", "application/pdf"],
+            ]
+        }
+        detector = LargeHTTPPayloadDetector(settings, event)
+        run_detector_on_data(detector, event)
+        assert len(detector.stored_problems) == 0
