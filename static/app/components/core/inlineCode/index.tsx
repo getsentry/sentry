@@ -12,7 +12,7 @@ export const inlineCodeStyles = (theme: Theme) => css`
   font-family: ${theme.text.familyMono};
   /**
    * adjust height of x character to 57% of bounding box
-   * to match Rubik (see )
+   * to match Rubik's x-height (magic number)
    */
   font-size-adjust: ex-height 0.57;
 
