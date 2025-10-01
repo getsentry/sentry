@@ -216,7 +216,7 @@ class DashboardWidgetSerializer(Serializer):
         ):
             explore_urls = self.get_explore_url(obj, attrs)
 
-        return {
+        serialized_widget: DashboardWidgetResponse = {
             "id": str(obj.id),
             "title": obj.title,
             "description": obj.description,
@@ -232,8 +232,12 @@ class DashboardWidgetSerializer(Serializer):
             "widgetType": widget_type,
             "layout": obj.detail.get("layout") if obj.detail else None,
             "datasetSource": DATASET_SOURCES[obj.dataset_source],
-            "exploreUrls": explore_urls if explore_urls else None,
         }
+
+        if explore_urls:
+            serialized_widget["exploreUrls"] = explore_urls
+
+        return serialized_widget
 
 
 @register(DashboardWidgetQueryOnDemand)
