@@ -389,6 +389,7 @@ function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
     return <LoadingIndicator />;
   }
 
+  // We ignore the error from the transaction detail query because it's not critical for EAP span details.
   if (isTraceItemError) {
     return <LoadingError message={t('Failed to fetch span details')} />;
   }
