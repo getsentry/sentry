@@ -146,6 +146,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
           />
           <NotificationsFooter>
             <NotificationButtons
+              onDemandEnabled={subscription.planDetails.allowOnDemand}
               backendThresholds={backendThresholds}
               notificationThresholds={notificationThresholds}
               setNotificationThresholds={setNotificationThresholds}
@@ -179,6 +180,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
         )}
         action={
           <NotificationButtons
+            onDemandEnabled={subscription.planDetails.allowOnDemand}
             backendThresholds={backendThresholds}
             notificationThresholds={notificationThresholds}
             setNotificationThresholds={setNotificationThresholds}
@@ -336,7 +338,9 @@ function NotificationButtons({
   notificationThresholds,
   setNotificationThresholds,
   onSubmit,
+  onDemandEnabled,
 }: {
+  onDemandEnabled: boolean;
   onSubmit: () => void;
   setNotificationThresholds: (newThresholds: ThresholdsType) => void;
   backendThresholds?: ThresholdsType;
@@ -367,7 +371,8 @@ function NotificationButtons({
           !backendThresholds ||
           isThresholdsEqual(backendThresholds, notificationThresholds) ||
           notificationThresholds.reservedPercent.length === 0 ||
-          notificationThresholds.perProductOndemandPercent.length === 0
+          (onDemandEnabled &&
+            notificationThresholds.perProductOndemandPercent.length === 0)
         }
         onClick={onSubmit}
       >
