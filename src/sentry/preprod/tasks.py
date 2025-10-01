@@ -192,6 +192,28 @@ def create_preprod_artifact(
         bind_organization_context(organization)
 
         with transaction.atomic(router.db_for_write(PreprodArtifact)):
+            # Validate VCS parameters: if any are provided, all required ones must be present
+            vcs_params = {
+                "head_sha": head_sha,
+                "head_repo_name": head_repo_name,
+                "provider": provider,
+                "head_ref": head_ref,
+            }
+            provided_vcs_params = {k: v for k, v in vcs_params.items() if v}
+
+            if provided_vcs_params and len(provided_vcs_params) < len(vcs_params):
+                missing_params = [k for k, v in vcs_params.items() if not v]
+                logger.error(
+                    "Partial VCS parameters provided - all required parameters must be present",
+                    extra={
+                        "project_id": project_id,
+                        "organization_id": org_id,
+                        "provided_params": list(provided_vcs_params.keys()),
+                        "missing_params": missing_params,
+                    },
+                )
+                return None
+
             # Create CommitComparison if git information is provided
             commit_comparison = None
             if head_sha and head_repo_name and provider and head_ref:
