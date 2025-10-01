@@ -41,9 +41,9 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
     if (computeIsLive()) {
       const ONE_MINUTE_INTERVAL = 60 * 1000;
       tickerRef = window.setInterval(() => {
-        setIsLive(computeIsLive());
-
-        if (!computeIsLive()) {
+        const computedIsLive = computeIsLive();
+        setIsLive(computedIsLive);
+        if (!computedIsLive) {
           window.clearInterval(tickerRef);
         }
       }, ONE_MINUTE_INTERVAL);
