@@ -475,7 +475,6 @@ class Referrer(StrEnum):
     API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
     API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
     API_PROFILING_LANDING_FUNCTIONS_CARD = "api.profiling.landing-functions-card"
-    API_PROFILING_PERFORMANCE_CHANGE_EXPLORER = "api.profiling.performance-change-explorer"
     API_PROFILING_PROFILE_HAS_CHUNKS = "api.profiling.profile-has-chunks"
     API_PROFILING_PROFILE_SUMMARY_CHART = "api.profiling.profile-summary-chart"
     API_PROFILING_PROFILE_SUMMARY_TOTALS = "api.profiling.profile-summary-totals"

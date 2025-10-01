@@ -161,12 +161,12 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                         },
                       });
                     }}
-                    triggerLabel={
-                      period === defaultStatsPeriod && !defaultStatsPeriod.isMaxRetention
-                        ? t('Since First Seen')
-                        : undefined
-                    }
                     triggerProps={{
+                      children:
+                        period === defaultStatsPeriod &&
+                        !defaultStatsPeriod.isMaxRetention
+                          ? t('Since First Seen')
+                          : undefined,
                       style: {
                         padding: `${theme.space.md} ${theme.space.lg}`,
                       },

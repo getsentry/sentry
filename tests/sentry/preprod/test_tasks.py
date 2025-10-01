@@ -372,6 +372,45 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
     # assemble_result.build_configuration which doesn't exist
 
 
+class CreatePreprodArtifactTest(TestCase):
+    def test_create_preprod_artifact_with_all_vcs_params_succeeds(self) -> None:
+        """Test that create_preprod_artifact succeeds when all required VCS params are provided"""
+        content = b"test with all VCS params"
+        total_checksum = sha1(content).hexdigest()
+
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            head_sha="a" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            head_ref="feature/xyz",
+            # Optional parameters
+            base_sha="b" * 40,
+            base_repo_name="owner/repo",
+            base_ref="main",
+            pr_number=123,
+        )
+
+        assert artifact is not None
+        assert artifact.commit_comparison is not None
+
+    def test_create_preprod_artifact_with_no_vcs_params_succeeds(self) -> None:
+        """Test that create_preprod_artifact succeeds when no VCS params are provided"""
+        content = b"test with no VCS params"
+        total_checksum = sha1(content).hexdigest()
+
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+        )
+
+        assert artifact is not None
+        assert artifact.commit_comparison is None
+
+
 class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
     def setUp(self) -> None:
         super().setUp()

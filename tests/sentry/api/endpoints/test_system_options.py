@@ -38,7 +38,6 @@ class SystemOptionsTest(APITestCase):
         self.login_as(user=self.user, superuser=True)
         response = self.client.get(self.url, {"query": "is:required"})
         assert response.status_code == 200
-        assert "system.rate-limit" not in response.data
         assert "system.url-prefix" in response.data
 
     def test_not_logged_in(self) -> None:

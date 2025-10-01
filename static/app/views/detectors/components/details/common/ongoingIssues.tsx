@@ -23,10 +23,13 @@ import Section from 'sentry/components/workflowEngine/ui/section';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {
+  buildDetectorZoomQuery,
+  computeZoomRangeMs,
+} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
@@ -81,7 +84,7 @@ function OpenPeriodsSubTable({groupId, onZoom}: OpenPeriodsSubTableProps) {
           <SimpleTable.Row key={`${period.start}-${idx}`}>
             <SimpleTable.RowCell>
               {/* TODO: Status Color */}
-              #ID_MISSING
+              <Text tabular>#{period.id}</Text>
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
               <Text>
@@ -156,39 +159,14 @@ function LatestGroupWithOpenPeriods({
     (start: Date, end?: Date) => {
       const startMs = start.getTime();
       const endMs = (end ?? new Date()).getTime();
-
-      // Default to 1 minute if intervalSeconds is not provided
-      const intervalMs = Math.max((intervalSeconds ?? 60) * 1000, 60_000);
-      const bufferMs = 10 * intervalMs; // show ~10 data points of context on each side
-
-      // Desired symmetric range around the open period
-      const desiredStart = startMs - bufferMs;
-      const desiredEnd = endMs + bufferMs;
-
-      // Clamp total span to avoid rendering more than 10k points or 90 days
-      const MAX_POINTS = 10_000;
-      const pointsSpanMs = MAX_POINTS * intervalMs;
-      const ninetyDaysMs = 90 * 24 * 60 * 60 * 1000; // 90 days
-      const maxSpanMs = Math.min(pointsSpanMs, ninetyDaysMs);
-      let zoomStartMs = desiredStart;
-      let zoomEndMs = desiredEnd;
-      if (zoomEndMs - zoomStartMs > maxSpanMs) {
-        // Open periods can be longer than 90 days.
-        // Prefer to show the end: clamp the window to the last maxSpanMs ending at desiredEnd
-        zoomEndMs = desiredEnd;
-        zoomStartMs = zoomEndMs - maxSpanMs;
-      }
-
-      const zoomStart = Math.floor(zoomStartMs / 60_000) * 60_000;
-      const zoomEnd = Math.ceil(zoomEndMs / 60_000) * 60_000;
+      const {start: zoomStart, end: zoomEnd} = computeZoomRangeMs({
+        startMs,
+        endMs,
+        intervalSeconds,
+      });
       navigate({
         pathname: location.pathname,
-        query: {
-          ...location.query,
-          start: getUtcDateString(zoomStart),
-          end: getUtcDateString(zoomEnd),
-          statsPeriod: undefined,
-        },
+        query: buildDetectorZoomQuery(location.query, zoomStart, zoomEnd),
       });
     },
     [location.pathname, location.query, navigate, intervalSeconds]

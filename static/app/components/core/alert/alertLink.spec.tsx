@@ -65,7 +65,7 @@ describe('AlertLink', () => {
       <AlertLink
         type="info"
         to="/settings/accounts/notifications"
-        trailingItems={'custom trailing item'}
+        trailingItems="custom trailing item"
       >
         This is an external link button
       </AlertLink>

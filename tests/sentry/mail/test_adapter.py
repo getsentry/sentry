@@ -868,7 +868,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         assert "Suspect Commits" in msg.body
         assert self.user.email in msg.body
-        assert commit.key[-7] in msg.body
+        assert commit.key[:7] in msg.body
 
     def test_notify_with_replay_id(self) -> None:
         project = self.project
