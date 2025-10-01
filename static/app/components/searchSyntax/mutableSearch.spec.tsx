@@ -1,4 +1,5 @@
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
+import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 
 describe('MutableSearch', () => {
   describe('fromQueryObject', () => {
@@ -58,7 +59,7 @@ describe('MutableSearch', () => {
 
   describe('operations', () => {
     it('add tokens to query object', () => {
-      const results = new MutableSearch('');
+      let results = new MutableSearch('');
 
       results.addStringFilter('a:a');
       expect(results.formatString()).toBe('a:a');
@@ -81,6 +82,45 @@ describe('MutableSearch', () => {
       results.addStringFilter('f:\uf00dContains\uf00dtest');
       expect(results.formatString()).toBe(
         'a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3" d:d2 f:\uf00dContains\uf00dtest'
+      );
+
+      results.addStringFilter('g:\uf00dStartsWith\uf00dtest1');
+      expect(results.formatString()).toBe(
+        'a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3" d:d2 f:\uf00dContains\uf00dtest g:\uf00dStartsWith\uf00dtest1'
+      );
+
+      results.addStringFilter('h:\uf00dEndsWith\uf00dtest2');
+      expect(results.formatString()).toBe(
+        'a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3" d:d2 f:\uf00dContains\uf00dtest g:\uf00dStartsWith\uf00dtest1 h:\uf00dEndsWith\uf00dtest2'
+      );
+
+      results = new MutableSearch('');
+      results.addContainsFilterValue('f', 'test');
+      expect(results.formatString()).toBe('f:\uf00dContains\uf00dtest');
+
+      results.addContainsFilterValues('g', ['test1', 'test2']);
+      expect(results.formatString()).toBe(
+        'f:\uf00dContains\uf00dtest g:\uf00dContains\uf00dtest1 g:\uf00dContains\uf00dtest2'
+      );
+
+      results.addStartsWithFilterValue('h', 'test');
+      expect(results.formatString()).toBe(
+        'f:\uf00dContains\uf00dtest g:\uf00dContains\uf00dtest1 g:\uf00dContains\uf00dtest2 h:\uf00dStartsWith\uf00dtest'
+      );
+
+      results.addStartsWithFilterValues('i', ['test1', 'test2']);
+      expect(results.formatString()).toBe(
+        'f:\uf00dContains\uf00dtest g:\uf00dContains\uf00dtest1 g:\uf00dContains\uf00dtest2 h:\uf00dStartsWith\uf00dtest i:\uf00dStartsWith\uf00dtest1 i:\uf00dStartsWith\uf00dtest2'
+      );
+
+      results.addEndsWithFilterValue('j', 'test');
+      expect(results.formatString()).toBe(
+        'f:\uf00dContains\uf00dtest g:\uf00dContains\uf00dtest1 g:\uf00dContains\uf00dtest2 h:\uf00dStartsWith\uf00dtest i:\uf00dStartsWith\uf00dtest1 i:\uf00dStartsWith\uf00dtest2 j:\uf00dEndsWith\uf00dtest'
+      );
+
+      results.addEndsWithFilterValues('k', ['test1', 'test2']);
+      expect(results.formatString()).toBe(
+        'f:\uf00dContains\uf00dtest g:\uf00dContains\uf00dtest1 g:\uf00dContains\uf00dtest2 h:\uf00dStartsWith\uf00dtest i:\uf00dStartsWith\uf00dtest1 i:\uf00dStartsWith\uf00dtest2 j:\uf00dEndsWith\uf00dtest k:\uf00dEndsWith\uf00dtest1 k:\uf00dEndsWith\uf00dtest2'
       );
     });
 
@@ -151,6 +191,15 @@ describe('MutableSearch', () => {
 
       results.setFilterValues('tag', ['too']);
       expect(results.formatString()).toBe('tag:too');
+
+      results.setContainsFilterValues('tag', ['baz']);
+      expect(results.formatString()).toBe(`tag:${WildcardOperators.CONTAINS}baz`);
+
+      results.setStartsWithFilterValues('tag', ['foo']);
+      expect(results.formatString()).toBe(`tag:${WildcardOperators.STARTS_WITH}foo`);
+
+      results.setEndsWithFilterValues('tag', ['bar']);
+      expect(results.formatString()).toBe(`tag:${WildcardOperators.ENDS_WITH}bar`);
     });
 
     it('setFilterValues replaces tags in OR', () => {
@@ -215,16 +264,31 @@ describe('MutableSearch', () => {
       results = new MutableSearch('a:a (b:b1 OR b:b2 OR b:b3) c:c');
       results.removeFilter('b');
       expect(results.formatString()).toBe('a:a c:c');
+
+      results = new MutableSearch(
+        `a:a b:${WildcardOperators.CONTAINS}foo b:${WildcardOperators.STARTS_WITH}bar b:${WildcardOperators.ENDS_WITH}baz`
+      );
+      results.removeFilter('b');
+      expect(results.formatString()).toBe('a:a');
     });
 
     it('can return the tag keys', () => {
-      const results = new MutableSearch('tag:value other:value additional text');
+      let results = new MutableSearch('tag:value other:value additional text');
+      expect(results.getFilterKeys()).toEqual(['tag', 'other']);
+
+      results = new MutableSearch(
+        `tag:${WildcardOperators.CONTAINS}value other:value additional text`
+      );
       expect(results.getFilterKeys()).toEqual(['tag', 'other']);
     });
 
     it('getFilterValues', () => {
-      const results = new MutableSearch(
-        'tag:value other:value tag:value2 additional text'
+      let results = new MutableSearch('tag:value other:value tag:value2 additional text');
+      expect(results.getFilterValues('tag')).toEqual(['value', 'value2']);
+      expect(results.getFilterValues('nonexistent')).toEqual([]);
+
+      results = new MutableSearch(
+        `tag:${WildcardOperators.CONTAINS}value other:${WildcardOperators.STARTS_WITH}value tag:${WildcardOperators.ENDS_WITH}value2 additional text`
       );
       expect(results.getFilterValues('tag')).toEqual(['value', 'value2']);
       expect(results.getFilterValues('nonexistent')).toEqual([]);
@@ -243,6 +307,34 @@ describe('MutableSearch', () => {
       results = new MutableSearch('event.type:[error, default] browser:Chrome');
       results.removeFilter('event.type');
       expect(results.formatString()).toBe('browser:Chrome');
+
+      results = new MutableSearch(
+        `event.type:${WildcardOperators.CONTAINS}error event.type:${WildcardOperators.ENDS_WITH}default browser:Chrome`
+      );
+      results.removeFilter('event.type');
+      expect(results.formatString()).toBe('browser:Chrome');
+    });
+
+    it('addDisjunctionFilterValues', () => {
+      const results = new MutableSearch('');
+
+      results.addDisjunctionFilterValues('a', ['a1', 'a2']);
+      expect(results.formatString()).toBe('( a:a1 OR a:a2 )');
+
+      results.addDisjunctionContainsFilterValues('b', ['b1', 'b2']);
+      expect(results.formatString()).toBe(
+        `( a:a1 OR a:a2 ) ( b:${WildcardOperators.CONTAINS}b1 OR b:${WildcardOperators.CONTAINS}b2 )`
+      );
+
+      results.addDisjunctionStartsWithFilterValues('c', ['c1', 'c2']);
+      expect(results.formatString()).toBe(
+        `( a:a1 OR a:a2 ) ( b:${WildcardOperators.CONTAINS}b1 OR b:${WildcardOperators.CONTAINS}b2 ) ( c:${WildcardOperators.STARTS_WITH}c1 OR c:${WildcardOperators.STARTS_WITH}c2 )`
+      );
+
+      results.addDisjunctionEndsWithFilterValues('d', ['d1', 'd2']);
+      expect(results.formatString()).toBe(
+        `( a:a1 OR a:a2 ) ( b:${WildcardOperators.CONTAINS}b1 OR b:${WildcardOperators.CONTAINS}b2 ) ( c:${WildcardOperators.STARTS_WITH}c1 OR c:${WildcardOperators.STARTS_WITH}c2 ) ( d:${WildcardOperators.ENDS_WITH}d1 OR d:${WildcardOperators.ENDS_WITH}d2 )`
+      );
     });
   });
 
@@ -419,6 +511,21 @@ describe('MutableSearch', () => {
           'message:["value with \\\\\\" complex escape",other]',
         ]),
         string: 'message:["value with \\\\\\" complex escape",other]',
+      },
+      {
+        name: 'handles contains filter',
+        object: new MutableSearch(['message:\uf00dContains\uf00d"test value"']),
+        string: 'message:\uf00dContains\uf00d"test value"',
+      },
+      {
+        name: 'handles starts with filter',
+        object: new MutableSearch(['message:\uf00dStartsWith\uf00d"test value"']),
+        string: 'message:\uf00dStartsWith\uf00d"test value"',
+      },
+      {
+        name: 'handles ends with filter',
+        object: new MutableSearch(['message:\uf00dEndsWith\uf00d"test value"']),
+        string: 'message:\uf00dEndsWith\uf00d"test value"',
       },
     ];
 
