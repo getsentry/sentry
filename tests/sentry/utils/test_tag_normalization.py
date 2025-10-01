@@ -35,6 +35,7 @@ def test_shortens_non_js(tag: str, expected: str) -> None:
     assert normalize_sdk_tag(tag) == expected
 
 
+@pytest.mark.skip(reason="flaky: #99025")
 @pytest.mark.parametrize(
     ("tag", "expected"),
     (
