@@ -70,7 +70,7 @@ export function KeySettings({
   }, [organization, api, onRemove, keyId, projectId]);
 
   const showOtlpTraces =
-    useOTelFriendlyUI() && project.features.includes('relay-otel-endpoint');
+    useOTelFriendlyUI() && organization.features.includes('relay-otlp-traces-endpoint');
   const showOtlpLogs = organization.features.includes('relay-otel-logs-endpoint');
 
   return (
