@@ -348,7 +348,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           return defined(sampleId) ? sampleId.toString() : seriesName;
         }
 
-        return aliases[seriesName] ?? seriesName;
+        const name = aliases[seriesName] ?? seriesName;
+        return truncationFormatter(name, true);
       },
       valueFormatter: function (value, _field, valueFormatterParams) {
         // Use the series to figure out the corresponding `Plottable`, and get the field type. From that, use whichever unit we chose for that field type.
@@ -375,7 +376,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
         return formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined);
       },
-      truncate: true,
+      truncate: false,
       utc: utc ?? false,
     })(deDupedParams, asyncTicket);
   };
