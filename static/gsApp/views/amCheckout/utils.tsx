@@ -217,7 +217,7 @@ type ReservedTotalProps = {
 /**
  * Returns the price for a reserved budget category (ie. Seer) in cents.
  */
-export function getReservedPriceForReservedBudgetCategory({
+function getReservedPriceForReservedBudgetCategory({
   plan,
   reservedBudgetCategory,
 }: {
