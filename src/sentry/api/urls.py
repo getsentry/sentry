@@ -3569,7 +3569,7 @@ urlpatterns = [
         name="sentry-api-0-organization-accept-organization-invite",
     ),
     re_path(
-        r"data-export/notifications/google-cloud/$",
+        r"^data-export/notifications/google-cloud/$",
         DataExportNotificationsEndpoint.as_view(),
         name="sentry-api-0-data-export-notifications",
     ),
