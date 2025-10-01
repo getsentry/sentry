@@ -173,20 +173,16 @@ class NotificationTemplate[T: NotificationData](abc.ABC):
     The category that a notification belongs to. This will be used to determine which settings a
     user needs to modify to manage receipt of these notifications (if applicable).
     """
+    example_data: T
+    """
+    The example data for this notification.
+    """
 
     @abc.abstractmethod
     def render(self, data: T) -> NotificationRenderedTemplate:
         """
         Produce a rendered template given the notification data. Usually, this will involve
         formatting the data into user-friendly strings of text.
-        """
-        ...
-
-    @property
-    @abc.abstractmethod
-    def example_data(self) -> T:
-        """
-        The example data for this notification.
         """
         ...
 
