@@ -34,16 +34,7 @@ enum TokenType {
   OPERATOR = 0,
   FILTER = 1,
   FREE_TEXT = 2,
-  CONTAINS_FILTER = 3,
-  STARTS_WITH_FILTER = 4,
-  ENDS_WITH_FILTER = 5,
 }
-
-type TokenFilterTypes =
-  | TokenType.FILTER
-  | TokenType.CONTAINS_FILTER
-  | TokenType.STARTS_WITH_FILTER
-  | TokenType.ENDS_WITH_FILTER;
 
 interface BaseToken {
   text: string;
@@ -61,18 +52,22 @@ interface FilterToken extends BaseToken {
    * Otherwise it is the concrete key returned by getKeyName().
    */
   key: string;
-  type: TokenFilterTypes;
+  type: TokenType.FILTER;
+  /**
+   * A normalized value for lookups. For HAS filters this is the actual field name.
+   * For other filters this is the unquoted value string (quotes stripped when applicable),
+   * unless the token uses bracket-expression syntax, in which case the brackets are preserved.
+   */
+  value: string;
   /**
    * When the filter value is a list (e.g. [a,b]) capture the parsed items using the AST.
    * This enables getFilterValues() to return individual values instead of the raw bracket text.
    */
   listValues?: string[];
   /**
-   * A normalized value for lookups. For HAS filters this is the actual field name.
-   * For other filters this is the unquoted value string (quotes stripped when applicable),
-   * unless the token uses bracket-expression syntax, in which case the brackets are preserved.
+   * Wildcard operator for text filters, when applicable.
    */
-  value?: string;
+  wildcard?: WildcardOperators;
 }
 
 interface FreeTextToken extends BaseToken {
@@ -100,12 +95,7 @@ function isSpaceOnly(s: string) {
 }
 
 function isFilterToken(token: Token): token is FilterToken {
-  return (
-    token.type === TokenType.FILTER ||
-    token.type === TokenType.CONTAINS_FILTER ||
-    token.type === TokenType.STARTS_WITH_FILTER ||
-    token.type === TokenType.ENDS_WITH_FILTER
-  );
+  return token.type === TokenType.FILTER;
 }
 
 function formatQuery(query: string) {
@@ -227,16 +217,23 @@ function parseToFlatTokens(query: string): Token[] {
           text = `${keyName}:${op}${rawVal}`;
         }
 
-        let type = TokenType.FILTER;
+        let wildcard: WildcardOperators | undefined;
         if (t.operator === TermOperator.CONTAINS) {
-          type = TokenType.CONTAINS_FILTER;
+          wildcard = WildcardOperators.CONTAINS;
         } else if (t.operator === TermOperator.STARTS_WITH) {
-          type = TokenType.STARTS_WITH_FILTER;
+          wildcard = WildcardOperators.STARTS_WITH;
         } else if (t.operator === TermOperator.ENDS_WITH) {
-          type = TokenType.ENDS_WITH_FILTER;
+          wildcard = WildcardOperators.ENDS_WITH;
         }
 
-        tokens.push({type, key: keyName, value: lookupValue, listValues, text});
+        tokens.push({
+          type: TokenType.FILTER,
+          key: keyName,
+          value: lookupValue,
+          listValues,
+          text,
+          wildcard,
+        });
         break;
       }
       default:
@@ -571,8 +568,7 @@ export class MutableSearch {
       | ''
       | WildcardOperators.CONTAINS
       | WildcardOperators.STARTS_WITH
-      | WildcardOperators.ENDS_WITH,
-    type: TokenFilterTypes
+      | WildcardOperators.ENDS_WITH
   ): this {
     if (key === 'has' || key === '!has') {
       this.tokens.push({type: TokenType.FILTER, key, value, text: `${key}:${value}`});
@@ -582,47 +578,30 @@ export class MutableSearch {
     const escaped = shouldEscape ? escapeFilterValue(value) : value;
     const valueText = quoteIfNeeded(escaped);
     this.tokens.push({
-      type,
+      type: TokenType.FILTER,
       key,
       value: escaped,
       text: `${key}:${operator}${valueText}`,
+      wildcard: operator || undefined,
     });
 
     return this;
   }
 
   addFilterValue(key: string, value: string, shouldEscape = true): this {
-    return this._addFilterValue(key, value, shouldEscape, '', TokenType.FILTER);
+    return this._addFilterValue(key, value, shouldEscape, '');
   }
 
   addContainsFilterValue(key: string, value: string, shouldEscape = true): this {
-    return this._addFilterValue(
-      key,
-      value,
-      shouldEscape,
-      WildcardOperators.CONTAINS,
-      TokenType.CONTAINS_FILTER
-    );
+    return this._addFilterValue(key, value, shouldEscape, WildcardOperators.CONTAINS);
   }
 
   addStartsWithFilterValue(key: string, value: string, shouldEscape = true): this {
-    return this._addFilterValue(
-      key,
-      value,
-      shouldEscape,
-      WildcardOperators.STARTS_WITH,
-      TokenType.STARTS_WITH_FILTER
-    );
+    return this._addFilterValue(key, value, shouldEscape, WildcardOperators.STARTS_WITH);
   }
 
   addEndsWithFilterValue(key: string, value: string, shouldEscape = true): this {
-    return this._addFilterValue(
-      key,
-      value,
-      shouldEscape,
-      WildcardOperators.ENDS_WITH,
-      TokenType.ENDS_WITH_FILTER
-    );
+    return this._addFilterValue(key, value, shouldEscape, WildcardOperators.ENDS_WITH);
   }
 
   setFilterValues(key: string, values: string[], shouldEscape = true): this {
