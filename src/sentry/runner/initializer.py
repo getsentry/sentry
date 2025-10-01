@@ -502,7 +502,6 @@ def apply_legacy_settings(settings: Any) -> None:
 
     for old, new in (
         ("SENTRY_ADMIN_EMAIL", "system.admin-email"),
-        ("SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE", "system.rate-limit"),
         ("SENTRY_ENABLE_EMAIL_REPLIES", "mail.enable-replies"),
         ("SENTRY_SMTP_HOSTNAME", "mail.reply-hostname"),
         ("MAILGUN_API_KEY", "mail.mailgun-api-key"),

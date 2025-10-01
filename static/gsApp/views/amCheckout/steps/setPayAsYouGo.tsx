@@ -313,7 +313,7 @@ function SetPayAsYouGo({
 
   const renderFooter = () => {
     return (
-      <StepFooter data-test-id={'footer-set-payg'}>
+      <StepFooter data-test-id="footer-set-payg">
         <Button priority="primary" onClick={() => onCompleteStep(stepNumber)}>
           {t('Continue')}
         </Button>

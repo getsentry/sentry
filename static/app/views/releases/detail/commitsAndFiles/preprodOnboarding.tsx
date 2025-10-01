@@ -46,10 +46,12 @@ function FastlaneMethod({
       )}
       <Container>
         <Text as="p" size="md">
-          Add to your fastlane/Pluginfile:
+          {t(
+            'Make sure you are using 1.34.0 or higher of the sentry-fastlane-plugin. If you are using fastlane but do not have the fastlane plugin, you can install it with:'
+          )}
         </Text>
-        <OnboardingCodeSnippet language="ruby">
-          {`gem 'fastlane-plugin-sentry', git: 'https://github.com/getsentry/sentry-fastlane-plugin.git', ref: '840ac30316aeda41630db1be6c3d17d2c870d08c'`}
+        <OnboardingCodeSnippet language="bash">
+          {`bundle exec fastlane add_plugin fastlane-plugin-sentry`}
         </OnboardingCodeSnippet>
       </Container>
 
@@ -61,18 +63,8 @@ function FastlaneMethod({
           {`sentry_upload_build(
   org_slug: '${organizationSlug}',
   project_slug: '${projectSlug}',
+  build_configuration: 'Release' # Adjust to your build configuration
 )`}
-        </OnboardingCodeSnippet>
-      </Container>
-
-      <Container>
-        <Text as="p" size="md">
-          Set environment variables in your GitHub Action:
-        </Text>
-        <OnboardingCodeSnippet language="yaml">
-          {`env:
-  SENTRY_AUTH_TOKEN: \${{ secrets.SENTRY_AUTH_TOKEN }}
-  SENTRY_BUILD_CONFIGURATION: Release  # Adjust to your actual build configuration`}
         </OnboardingCodeSnippet>
       </Container>
     </Flex>
@@ -91,13 +83,20 @@ function GradleMethod({projectPlatform}: {projectPlatform: PlatformKey | null}) 
       )}
       <Container>
         <Text as="p" size="md">
-          Apply the plugin (use version 6.0.0-alpha.3):
+          {tct(
+            'Update your Sentry Android Gradle Plugin to [code:6.0.0-alpha.4]. For installation instructions, see the [link:Android Gradle configuration guide].',
+            {
+              code: <code />,
+              link: (
+                <ExternalLink
+                  href="https://docs.sentry.io/platforms/android/configuration/gradle/"
+                  target="_blank"
+                  rel="noreferrer"
+                />
+              ),
+            }
+          )}
         </Text>
-        <OnboardingCodeSnippet language="kotlin">
-          {`plugins {
-  id "io.sentry.android.gradle" version "6.0.0-alpha.4"
-}`}
-        </OnboardingCodeSnippet>
       </Container>
 
       <Container>
@@ -110,16 +109,6 @@ function GradleMethod({projectPlatform}: {projectPlatform: PlatformKey | null}) 
     enabled = providers.environmentVariable("GITHUB_ACTIONS").isPresent
   }
 }`}
-        </OnboardingCodeSnippet>
-      </Container>
-
-      <Container>
-        <Text as="p" size="md">
-          Set environment variables in GitHub Actions:
-        </Text>
-        <OnboardingCodeSnippet language="yaml">
-          {`env:
-  SENTRY_AUTH_TOKEN: \${{ secrets.SENTRY_AUTH_TOKEN }}`}
         </OnboardingCodeSnippet>
       </Container>
     </Flex>
@@ -137,7 +126,7 @@ function CliMethod({
     <Flex direction="column" gap="2xl">
       <Container>
         <Text as="p" size="md">
-          {tct('Install the [link:Sentry CLI]', {
+          {tct('[link:Install the Sentry CLI]', {
             link: (
               <ExternalLink
                 href="https://docs.sentry.io/cli/installation/"
@@ -147,18 +136,11 @@ function CliMethod({
             ),
           })}
         </Text>
-        <OnboardingCodeSnippet language="bash">
-          {`# Using npm
-npm install -g @sentry/cli
-
-# Using curl
-curl -sL https://sentry.io/get-cli/ | bash`}
-        </OnboardingCodeSnippet>
       </Container>
 
       <Container>
         <Text as="p" size="md">
-          Upload your build using the CLI:
+          {t("Upload your build using the CLI's build upload command:")}
         </Text>
         <OnboardingCodeSnippet language="bash">
           {`sentry-cli build upload <path-to-apk|aab|xcarchive> \\
@@ -172,17 +154,6 @@ curl -sL https://sentry.io/get-cli/ | bash`}
   --pr-number <pr-number> \\
   --vcs-provider github \\
   --build-configuration <build-config>`}
-        </OnboardingCodeSnippet>
-      </Container>
-
-      <Container>
-        <Text as="p" size="md">
-          Set these environment variables in your CI:
-        </Text>
-        <OnboardingCodeSnippet language="bash">
-          {`export SENTRY_AUTH_TOKEN=<your-auth-token>
-# These are set automatically in GitHub Actions:
-# --repo-name, --vcs-provider, --pr-number, --base-sha, --head-sha, --base-ref, --head-ref`}
         </OnboardingCodeSnippet>
       </Container>
     </Flex>
@@ -279,7 +250,7 @@ export function PreprodOnboarding({
               </Heading>
               <Text as="p" size="md">
                 {tct(
-                  'You need a Sentry Auth Token to upload builds. [link:Generate one here] and set it as [code:SENTRY_AUTH_TOKEN] in your environment.',
+                  'You need a Sentry organization auth token to upload builds. [link:Generate one here] and set it as [code:SENTRY_AUTH_TOKEN] in your environment.',
                   {
                     link: <Link to={`/settings/${organizationSlug}/auth-tokens/`} />,
                     code: <code />,
