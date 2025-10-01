@@ -12,6 +12,7 @@ import sentry_sdk
 from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -346,10 +347,13 @@ class IntegrationEventLifecycle(EventLifecycle):
             # so we can just exit quietly.
             return
 
-        if exc_value is not None and isinstance(exc_value.__cause__, RestrictedIPAddress):
-            # ApiHostError is raised from RestrictedIPAddress
-            self.record_halt(exc_value)
-            return
+        if exc_value is not None:
+            if isinstance(exc_value.__cause__, RestrictedIPAddress) or (
+                isinstance(exc_value, ApiError) and exc_value.code >= 500
+            ):
+                # ApiHostError is raised from RestrictedIPAddress
+                self.record_halt(exc_value)
+                return
         super().__exit__(exc_type, exc_value, traceback)
 
 
