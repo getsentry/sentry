@@ -519,13 +519,17 @@ class AMCheckout extends Component<Props, State> {
       },
       ...(onDemandMaxSpend > 0 && {onDemandMaxSpend}),
       onDemandBudget: parseOnDemandBudgetsFromSubscription(subscription),
-      addOns: Object.values(subscription.addOns).reduce((acc, addOn) => {
-        acc[addOn.apiName] = {
-          // don't prepopulate add-ons from trial state
-          enabled: addOn.enabled && !isTrialPlan(subscription.plan),
-        };
-        return acc;
-      }, {} as CheckoutAddOns),
+      addOns: Object.values(subscription.addOns)
+        .filter(
+          addOn => !addOn.billingFlag || organization.features.includes(addOn.billingFlag)
+        )
+        .reduce((acc, addOn) => {
+          acc[addOn.apiName] = {
+            // don't prepopulate add-ons from trial state
+            enabled: addOn.enabled && !isTrialPlan(subscription.plan),
+          };
+          return acc;
+        }, {} as CheckoutAddOns),
     };
 
     if (

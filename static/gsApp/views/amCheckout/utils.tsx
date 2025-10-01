@@ -270,15 +270,10 @@ export function getReservedPriceCents({
 
   Object.entries(addOns ?? {}).forEach(([apiName, {enabled}]) => {
     if (enabled) {
-      const budgetInfo =
-        plan.availableReservedBudgetTypes[apiName as ReservedBudgetCategoryType];
-      if (budgetInfo) {
-        // if there's no budget info, we assume it's a PAYG only add on (costs $0)
-        reservedCents += getReservedPriceForReservedBudgetCategory({
-          plan,
-          reservedBudgetCategory: apiName as ReservedBudgetCategoryType,
-        });
-      }
+      reservedCents += getPrepaidPriceForAddOn({
+        plan,
+        addOnCategory: apiName as AddOnCategory,
+      });
     }
   });
 
@@ -412,22 +407,6 @@ function recordAnalytics(
     Record<AddOnCategory, {enabled: boolean; previously_enabled: boolean}>
   > = {};
 
-  Object.keys(data).forEach(key => {
-    if (key.startsWith('reserved')) {
-      const targetKey = key.charAt(8).toLowerCase() + key.slice(9);
-      (currentData as any)[targetKey] = data[key as keyof CheckoutAPIData];
-    }
-    if (key.startsWith('addOn')) {
-      const targetKey = key.charAt(5).toLowerCase() + key.slice(6);
-      productSelectAnalyticsData[targetKey as AddOnCategory] = {
-        enabled: data[key as keyof CheckoutAPIData] as boolean,
-        previously_enabled: isTrialPlan(previousData.previous_plan) // don't count trial addons
-          ? false
-          : (subscription.addOns?.[targetKey as AddOnCategory]?.enabled ?? false),
-      };
-    }
-  });
-
   const previousData: PreviousData = {
     previous_plan: subscription.plan,
   };
@@ -439,6 +418,22 @@ function recordAnalytics(
       metricHistory.reserved !== undefined
     ) {
       (previousData as any)[`previous_${category}`] = metricHistory.reserved;
+    }
+  });
+
+  Object.keys(data).forEach(key => {
+    if (key.startsWith('reserved')) {
+      const targetKey = key.charAt(8).toLowerCase() + key.slice(9);
+      (currentData as any)[targetKey] = data[key as keyof CheckoutAPIData];
+    }
+    if (key.startsWith('addOn')) {
+      const targetKey = (key.charAt(5).toLowerCase() + key.slice(6)) as AddOnCategory;
+      const previouslyEnabled = subscription.addOns[targetKey]?.enabled ?? false;
+      productSelectAnalyticsData[targetKey] = {
+        enabled: data[key as keyof CheckoutAPIData] as boolean,
+        // don't count trial addons
+        previously_enabled: !isTrialPlan(previousData.previous_plan) && previouslyEnabled,
+      };
     }
   });
 

@@ -419,7 +419,7 @@ describe('utils', () => {
         reservedUptime: 60,
         reservedAttachments: 70,
         reservedProfileDuration: 80,
-        seer: false,
+        addOnSeer: false,
       });
     });
   });

@@ -89,7 +89,7 @@ function ProductSelect({
   onUpdate,
   isNewCheckout,
 }: Pick<StepProps, 'activePlan' | 'onUpdate' | 'formData' | 'isNewCheckout'>) {
-  const availableProducts = Object.values(activePlan.addOnCategories).filter(
+  const availableAddOns = Object.values(activePlan.addOnCategories).filter(
     addOnInfo =>
       !addOnInfo.billingFlag || activePlan.features.includes(addOnInfo.billingFlag)
   );
@@ -147,7 +147,7 @@ function ProductSelect({
   return (
     <Fragment>
       {!isNewCheckout && <Separator orientation="horizontal" />}
-      {availableProducts.map(addOnInfo => {
+      {availableAddOns.map(addOnInfo => {
         const {productName, apiName} = addOnInfo;
         const checkoutInfo = PRODUCT_CHECKOUT_INFO[apiName];
         if (!checkoutInfo) {

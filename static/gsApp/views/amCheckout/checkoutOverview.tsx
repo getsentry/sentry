@@ -15,7 +15,6 @@ import type {
   BillingConfig,
   Plan,
   Promotion,
-  ReservedBudgetCategoryType,
   Subscription,
 } from 'getsentry/types';
 import {OnDemandBudgetMode} from 'getsentry/types';
@@ -79,19 +78,17 @@ class CheckoutOverview extends Component<Props> {
       .filter(([_, addOn]) => addOn.enabled)
       .map(([apiName, _]) => {
         const addOnInfo = activePlan.addOnCategories[apiName as AddOnCategory];
-        const budgetInfo =
-          activePlan.availableReservedBudgetTypes[apiName as ReservedBudgetCategoryType];
 
-        if (!addOnInfo && !budgetInfo) {
+        if (!addOnInfo) {
           return null;
         }
         const price = utils.displayPrice({
-          cents: utils.getReservedPriceForReservedBudgetCategory({
+          cents: utils.getPrepaidPriceForAddOn({
             plan: activePlan,
-            reservedBudgetCategory: apiName as ReservedBudgetCategoryType,
+            addOnCategory: apiName as AddOnCategory,
           }),
         });
-        const productName = addOnInfo?.productName || budgetInfo?.productName || apiName;
+        const productName = addOnInfo.productName;
         return (
           <DetailItem key={apiName} data-test-id={`${apiName}-reserved`}>
             <DetailTitle>

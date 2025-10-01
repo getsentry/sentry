@@ -58,8 +58,8 @@ function SetPayAsYouGo({
     return activePlan.checkoutCategories;
   }, [activePlan]);
 
-  const availableReservedBudgetTypes = useMemo(() => {
-    return activePlan.availableReservedBudgetTypes;
+  const addOnCategories = useMemo(() => {
+    return Object.values(activePlan.addOnCategories);
   }, [activePlan]);
 
   const paygOnlyCategories = useMemo(() => {
@@ -158,11 +158,11 @@ function SetPayAsYouGo({
                   </span>
                 </li>
               ))}
-            {Object.values(availableReservedBudgetTypes).map(product => (
-              <li key={product.apiName}>
+            {addOnCategories.map(addOnInfo => (
+              <li key={addOnInfo.apiName}>
                 <IconSubtract size="xs" />
                 <span>
-                  {toTitleCase(product.productCheckoutName, {allowInnerUpperCase: true})}
+                  {toTitleCase(addOnInfo.productName, {allowInnerUpperCase: true})}
                 </span>
               </li>
             ))}

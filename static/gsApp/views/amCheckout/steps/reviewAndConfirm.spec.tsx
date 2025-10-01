@@ -45,7 +45,7 @@ jest.mock('getsentry/hooks/useStripeInstance', () => ({
 
 describe('AmCheckout > ReviewAndConfirm', () => {
   const api = new MockApiClient();
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['seer-billing']});
   const subscription = SubscriptionFixture({organization});
 
   const bizPlan = PlanDetailsLookupFixture('am1_business')!;
@@ -263,15 +263,6 @@ describe('AmCheckout > ReviewAndConfirm', () => {
         }),
       })
     );
-    // No DOM updates to wait on, but we can use this.
-    await waitFor(() =>
-      expect(router.location).toEqual(
-        expect.objectContaining({
-          pathname: `/settings/${organization.slug}/billing/overview/`,
-          query: {referrer: 'billing', showSeerAutomationAlert: 'true'},
-        })
-      )
-    );
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith('checkout.upgrade', {
       organization,
@@ -312,6 +303,15 @@ describe('AmCheckout > ReviewAndConfirm', () => {
         transactions: updatedData.reserved.transactions,
         previous_transactions: 10_000,
       }
+    );
+    // No DOM updates to wait on, but we can use this.
+    await waitFor(() =>
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/settings/${organization.slug}/billing/overview/`,
+          query: {referrer: 'billing', showSeerAutomationAlert: 'true'},
+        })
+      )
     );
   });
 

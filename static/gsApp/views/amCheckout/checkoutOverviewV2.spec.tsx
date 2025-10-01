@@ -97,7 +97,7 @@ describe('CheckoutOverviewV2', () => {
       />
     );
 
-    expect(screen.getByTestId('seer-reserved')).toHaveTextContent('Seer AI Agent$216/yr');
+    expect(screen.getByTestId('seer-reserved')).toHaveTextContent('Seer$216/yr');
     expect(screen.getByText('Total Annual Charges')).toBeInTheDocument();
     expect(screen.getByText('$312/yr')).toBeInTheDocument();
     expect(screen.getByTestId('additional-monthly-charge')).toHaveTextContent(

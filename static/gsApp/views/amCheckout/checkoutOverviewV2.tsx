@@ -14,13 +14,7 @@ import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
-import type {
-  BillingConfig,
-  Plan,
-  Promotion,
-  ReservedBudgetCategoryType,
-  Subscription,
-} from 'getsentry/types';
+import type {BillingConfig, Plan, Promotion, Subscription} from 'getsentry/types';
 import {
   formatReservedWithUnits,
   getReservedBudgetCategoryForAddOn,

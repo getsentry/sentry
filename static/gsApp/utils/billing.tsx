@@ -33,7 +33,11 @@ import {
   type ProductTrial,
   type Subscription,
 } from 'getsentry/types';
-import {isByteCategory, isContinuousProfiling} from 'getsentry/utils/dataCategory';
+import {
+  getCategoryInfoFromPlural,
+  isByteCategory,
+  isContinuousProfiling,
+} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
@@ -407,9 +411,11 @@ export const getOnDemandCategories = ({
 }) => {
   if (budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
     return plan.onDemandCategories.filter(category => {
-      return Object.values(plan.availableReservedBudgetTypes).every(
-        budgetType => !budgetType.dataCategories.includes(category)
-      );
+      const categoryInfo = getCategoryInfoFromPlural(category);
+      if (!categoryInfo) {
+        return false;
+      }
+      return categoryInfo.hasPerCategory;
     });
   }
 
