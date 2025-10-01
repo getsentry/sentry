@@ -267,7 +267,7 @@ export function generateTargetQuery({
   sorts,
   yAxes,
 }: {
-  fields: string[];
+  fields: readonly string[];
   groupBys: readonly string[];
   location: Location;
   // needed to generate targets when `project` is in the group by
@@ -365,7 +365,7 @@ export function viewSamplesTarget({
   row,
   projects,
 }: {
-  fields: string[];
+  fields: readonly string[];
   groupBys: readonly string[];
   location: Location;
   // needed to generate targets when `project` is in the group by

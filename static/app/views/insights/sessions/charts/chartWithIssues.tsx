@@ -103,7 +103,7 @@ export default function ChartWithIssues(props: Props) {
     <FooterIssues>
       {recentIssues.map(group => (
         <GroupWrapper canSelect key={group.id}>
-          <EventOrGroupHeader data={group} source={'session-health'} />
+          <EventOrGroupHeader data={group} source="session-health" />
           <EventOrGroupExtraDetails data={group} showLifetime={false} />
         </GroupWrapper>
       ))}

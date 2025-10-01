@@ -14,12 +14,12 @@ type Props = {
 };
 
 function ReleaseCardStatsPeriod({location, selection}: Props) {
-  const activePeriod =
-    location.query.healthStatsPeriod || HealthStatsPeriodOption.TWENTY_FOUR_HOURS;
+  const activePeriod = location.query.healthStatsPeriod || HealthStatsPeriodOption.AUTO;
   const {pathname, query} = location;
 
   return (
     <Wrapper>
+      {/* don't show duplicate 24h options */}
       {selection.datetime.period !== HealthStatsPeriodOption.TWENTY_FOUR_HOURS && (
         <Period
           to={{

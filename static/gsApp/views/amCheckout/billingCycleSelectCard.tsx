@@ -98,7 +98,7 @@ function BillingCycleSelectCard({
           <Flex align="center" gap="md">
             {formattedPriceBeforeDiscount && (
               <Text
-                variant={'muted'}
+                variant="muted"
                 strikethrough
                 size="2xl"
               >{`$${formattedPriceBeforeDiscount}`}</Text>

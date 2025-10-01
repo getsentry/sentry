@@ -152,7 +152,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             if detector.created_by_id:
                 rpc_user = user_by_user_id.get(detector.created_by_id)
             if not rpc_user:
-                result[detector]["created_by"] = {}
+                result[detector]["created_by"] = None
             else:
                 created_by = dict(
                     id=rpc_user.id, name=rpc_user.get_display_name(), email=rpc_user.email
@@ -313,8 +313,8 @@ class WorkflowEngineDetectorSerializer(Serializer):
             )
             result[detector]["query"] = query_subscription.snuba_query.query
             result[detector]["aggregate"] = query_subscription.snuba_query.aggregate
-            result[detector]["timeWindow"] = query_subscription.snuba_query.time_window
-            result[detector]["resolution"] = query_subscription.snuba_query.resolution
+            result[detector]["timeWindow"] = query_subscription.snuba_query.time_window / 60
+            result[detector]["resolution"] = query_subscription.snuba_query.resolution / 60
 
         return result
 
@@ -332,7 +332,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
         data: AlertRuleSerializerResponse = {
             "id": str(alert_rule_detector_id),
             "name": obj.name,
-            "organizationId": obj.project.organization_id,
+            "organizationId": str(obj.project.organization_id),
             "status": (
                 AlertRuleStatus.PENDING.value
                 if obj.enabled is True
@@ -342,7 +342,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "aggregate": attrs.get("aggregate"),
             "timeWindow": attrs.get("timeWindow"),
             "resolution": attrs.get("resolution"),
-            "thresholdPeriod": obj.config.get("thresholdPeriod"),
+            "thresholdPeriod": 1,  # unset on detectors
             "triggers": triggers,
             "projects": sorted(attrs.get("projects", [])),
             "owner": attrs.get("owner", None),
@@ -350,7 +350,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by"),
             "description": obj.description if obj.description else "",
-            "detectionType": obj.type,
+            "detectionType": obj.config.get("detection_type"),
         }
         if "latestIncident" in self.expand:
             data["latestIncident"] = attrs.get("latestIncident", None)

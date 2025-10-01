@@ -227,19 +227,7 @@ else:
 
 NODE_MODULES_ROOT = os.path.normpath(NODE_MODULES_ROOT)
 
-DEVSERVICES_CONFIG_DIR = os.path.normpath(
-    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config")
-)
-
 SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES = False
-
-RELAY_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "relay")
-
-SYMBOLICATOR_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "symbolicator")
-
-# XXX(epurkhiser): The generated chartucterie config.js file will be stored
-# here. This directory may not exist until that file is generated.
-CHARTCUTERIE_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "chartcuterie")
 
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
@@ -843,6 +831,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.dynamic_sampling.tasks.custom_rule_notifications",
     "sentry.dynamic_sampling.tasks.recalibrate_orgs",
     "sentry.dynamic_sampling.tasks.sliding_window_org",
+    "sentry.feedback.tasks.update_user_reports",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
@@ -924,7 +913,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
-    "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tempest.tasks",
@@ -995,7 +983,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "schedule": task_crontab("*/1", "*", "*", "*", "*"),
     },
     "update-user-reports": {
-        "task": "issues:sentry.tasks.update_user_reports",
+        "task": "issues:sentry.feedback.tasks.update_user_reports",
         "schedule": task_crontab("*/15", "*", "*", "*", "*"),
     },
     "schedule-auto-resolution": {
@@ -2092,271 +2080,6 @@ SENTRY_USE_TASKBROKER = False
 # This flag activates the objectstore in devservices
 SENTRY_USE_OBJECTSTORE = False
 
-# SENTRY_DEVSERVICES = {
-#     "service-name": lambda settings, options: (
-#         {
-#             "image": "image-name:version",
-#             # optional ports to expose
-#             "ports": {"internal-port/tcp": external-port},
-#             # optional command
-#             "command": ["exit 1"],
-#             optional mapping of volumes
-#             "volumes": {"volume-name": {"bind": "/path/in/container"}},
-#             # optional statement to test if service should run
-#             "only_if": lambda settings, options: True,
-#             # optional environment variables
-#             "environment": {
-#                 "ENV_VAR": "1",
-#             }
-#         }
-#     )
-# }
-
-
-SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
-    "redis": lambda settings, options: (
-        {
-            "image": "ghcr.io/getsentry/image-mirror-library-redis:5.0-alpine",
-            "ports": {"6379/tcp": 6379},
-            "command": [
-                "redis-server",
-                "--appendonly",
-                "yes",
-                "--save",
-                "60",
-                "20",
-                "--auto-aof-rewrite-percentage",
-                "100",
-                "--auto-aof-rewrite-min-size",
-                "64mb",
-            ],
-            "volumes": {"redis": {"bind": "/data"}},
-        }
-    ),
-    "redis-cluster": lambda settings, options: (
-        {
-            "image": "ghcr.io/getsentry/docker-redis-cluster:7.0.10",
-            "ports": {f"700{idx}/tcp": f"700{idx}" for idx in range(6)},
-            "volumes": {"redis-cluster": {"bind": "/redis-data"}},
-            "environment": {"IP": "0.0.0.0"},
-            "only_if": settings.SENTRY_DEV_USE_REDIS_CLUSTER,
-        }
-    ),
-    "rabbitmq": lambda settings, options: (
-        {
-            "image": "ghcr.io/getsentry/image-mirror-library-rabbitmq:3-management",
-            "ports": {"5672/tcp": 5672, "15672/tcp": 15672},
-            "environment": {"IP": "0.0.0.0"},
-            "only_if": settings.SENTRY_DEV_USE_RABBITMQ,
-        }
-    ),
-    "postgres": lambda settings, options: (
-        {
-            "image": f"ghcr.io/getsentry/image-mirror-library-postgres:{PG_VERSION}-alpine",
-            "ports": {"5432/tcp": 5432},
-            "environment": {
-                "POSTGRES_DB": "sentry",
-                "POSTGRES_HOST_AUTH_METHOD": "trust",
-            },
-            "volumes": {
-                "postgres": {"bind": "/var/lib/postgresql/data"},
-                "wal2json": {"bind": "/wal2json"},
-            },
-            "command": [
-                "postgres",
-                "-c",
-                "wal_level=logical",
-                "-c",
-                "max_replication_slots=1",
-                "-c",
-                "max_wal_senders=1",
-            ],
-        }
-    ),
-    "kafka": lambda settings, options: (
-        {
-            "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:7.5.0",
-            "ports": {"9092/tcp": 9092},
-            # https://docs.confluent.io/platform/current/installation/docker/config-reference.html#cp-kakfa-example
-            "environment": {
-                "KAFKA_PROCESS_ROLES": "broker,controller",
-                "KAFKA_CONTROLLER_QUORUM_VOTERS": "1@127.0.0.1:29093",
-                "KAFKA_CONTROLLER_LISTENER_NAMES": "CONTROLLER",
-                "KAFKA_NODE_ID": "1",
-                "CLUSTER_ID": "MkU3OEVBNTcwNTJENDM2Qk",
-                "KAFKA_LISTENERS": "PLAINTEXT://0.0.0.0:29092,INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093",
-                "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://127.0.0.1:29092,INTERNAL://sentry_kafka:9093,EXTERNAL://127.0.0.1:9092",
-                "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT",
-                "KAFKA_INTER_BROKER_LISTENER_NAME": "PLAINTEXT",
-                "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
-                "KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS": "1",
-                "KAFKA_LOG_RETENTION_HOURS": "24",
-                "KAFKA_MESSAGE_MAX_BYTES": "50000000",
-                "KAFKA_MAX_REQUEST_SIZE": "50000000",
-            },
-            "volumes": {"kafka": {"bind": "/var/lib/kafka/data"}},
-            "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
-            or settings.SENTRY_USE_RELAY
-            or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS
-            or settings.SENTRY_USE_PROFILING,
-        }
-    ),
-    "clickhouse": lambda settings, options: (
-        {
-            "image": (
-                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:23.8.11.29.altinitystable"
-            ),
-            "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
-            "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
-            # The arm image does not properly load the MAX_MEMORY_USAGE_RATIO
-            # from the environment in loc_config.xml, thus, hard-coding it there
-            "volumes": {
-                (
-                    "clickhouse_dist"
-                    if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
-                    else "clickhouse"
-                ): {"bind": "/var/lib/clickhouse"},
-                os.path.join(
-                    settings.DEVSERVICES_CONFIG_DIR,
-                    "clickhouse",
-                    (
-                        "dist_config.xml"
-                        if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
-                        else "loc_config.xml"
-                    ),
-                ): {"bind": "/etc/clickhouse-server/config.d/sentry.xml"},
-            },
-        }
-    ),
-    "snuba": lambda settings, options: (
-        {
-            "image": "ghcr.io/getsentry/snuba:latest",
-            "ports": {"1218/tcp": 1218, "1219/tcp": 1219},
-            "command": ["devserver"]
-            + (["--no-workers"] if "snuba" in settings.SENTRY_EVENTSTREAM else []),
-            "environment": {
-                "PYTHONUNBUFFERED": "1",
-                "SNUBA_SETTINGS": "docker",
-                "DEBUG": "1",
-                "CLICKHOUSE_HOST": "{containers[clickhouse][name]}",
-                "CLICKHOUSE_PORT": "9000",
-                "CLICKHOUSE_HTTP_PORT": "8123",
-                "DEFAULT_BROKERS": (
-                    ""
-                    if "snuba" in settings.SENTRY_EVENTSTREAM
-                    else "{containers[kafka][name]}:9093"
-                ),
-                "REDIS_HOST": "{containers[redis][name]}",
-                "REDIS_PORT": "6379",
-                "REDIS_DB": "1",
-                "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",
-                "ENABLE_PROFILES_CONSUMER": "1" if settings.SENTRY_USE_PROFILING else "",
-                "ENABLE_SPANS_CONSUMER": "1" if settings.SENTRY_USE_SPANS else "",
-                "ENABLE_ISSUE_OCCURRENCE_CONSUMER": (
-                    "1" if settings.SENTRY_USE_ISSUE_OCCURRENCE else ""
-                ),
-                "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": "1",
-                # TODO: remove setting
-                "ENABLE_GROUP_ATTRIBUTES_CONSUMER": (
-                    "1" if settings.SENTRY_USE_GROUP_ATTRIBUTES else ""
-                ),
-            },
-            "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
-            or "kafka" in settings.SENTRY_EVENTSTREAM,
-            # we don't build linux/arm64 snuba images anymore
-            # apple silicon users should have working emulation under colima 0.6.2
-            # or docker desktop
-            "platform": "linux/amd64",
-        }
-    ),
-    "taskbroker": lambda settings, options: (
-        {
-            "image": "ghcr.io/getsentry/taskbroker:latest",
-            "ports": {"50051/tcp": 50051},
-            "environment": {
-                "TASKBROKER_KAFKA_CLUSTER": (
-                    "sentry_kafka"
-                    if os.environ.get("USE_OLD_DEVSERVICES") == "1"
-                    else "kafka-kafka-1"
-                ),
-            },
-            "only_if": settings.SENTRY_USE_TASKBROKER,
-            "platform": "linux/amd64",
-        }
-    ),
-    "bigtable": lambda settings, options: (
-        {
-            "image": "ghcr.io/getsentry/cbtemulator:d28ad6b63e461e8c05084b8c83f1c06627068c04",
-            "ports": {"8086/tcp": 8086},
-            # NEED_BIGTABLE is set by CI so we don't have to pass
-            # --skip-only-if when compiling which services to run.
-            "only_if": os.environ.get("NEED_BIGTABLE", False)
-            or "bigtable" in settings.SENTRY_NODESTORE,
-        }
-    ),
-    "memcached": lambda settings, options: (
-        {
-            "image": "ghcr.io/getsentry/image-mirror-library-memcached:1.5-alpine",
-            "ports": {"11211/tcp": 11211},
-            "only_if": "memcached" in settings.CACHES.get("default", {}).get("BACKEND"),
-        }
-    ),
-    "symbolicator": lambda settings, options: (
-        {
-            "image": "us-central1-docker.pkg.dev/sentryio/symbolicator/image:nightly",
-            "ports": {"3021/tcp": 3021},
-            "volumes": {settings.SYMBOLICATOR_CONFIG_DIR: {"bind": "/etc/symbolicator"}},
-            "command": ["run", "--config", "/etc/symbolicator/config.yml"],
-            "only_if": options.get("symbolicator.enabled"),
-        }
-    ),
-    "relay": lambda settings, options: (
-        {
-            "image": "us-central1-docker.pkg.dev/sentryio/relay/relay:nightly",
-            "ports": {"7899/tcp": settings.SENTRY_RELAY_PORT},
-            "volumes": {settings.RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
-            "command": ["run", "--config", "/etc/relay"],
-            "only_if": bool(os.environ.get("SENTRY_USE_RELAY", settings.SENTRY_USE_RELAY)),
-            "with_devserver": True,
-        }
-    ),
-    "chartcuterie": lambda settings, options: (
-        {
-            "image": "us-central1-docker.pkg.dev/sentryio/chartcuterie/image:latest",
-            "volumes": {settings.CHARTCUTERIE_CONFIG_DIR: {"bind": "/etc/chartcuterie"}},
-            "environment": {
-                "CHARTCUTERIE_CONFIG": "/etc/chartcuterie/config.js",
-                "CHARTCUTERIE_CONFIG_POLLING": "true",
-            },
-            "ports": {"9090/tcp": 7901},
-            # NEED_CHARTCUTERIE is set by CI so we don't have to pass --skip-only-if when compiling which services to run.
-            "only_if": os.environ.get("NEED_CHARTCUTERIE", False)
-            or options.get("chart-rendering.enabled"),
-        }
-    ),
-    "vroom": lambda settings, options: (
-        {
-            "image": "us-central1-docker.pkg.dev/sentryio/vroom/vroom:latest",
-            "volumes": {"profiles": {"bind": "/var/lib/sentry-profiles"}},
-            "environment": {
-                "SENTRY_KAFKA_BROKERS_PROFILING": "{containers[kafka][name]}:9093",
-                "SENTRY_KAFKA_BROKERS_OCCURRENCES": "{containers[kafka][name]}:9093",
-                "SENTRY_SNUBA_HOST": "http://{containers[snuba][name]}:1218",
-            },
-            "ports": {"8085/tcp": 8085},
-            "only_if": settings.SENTRY_USE_PROFILING,
-        }
-    ),
-    "objectstore": lambda settings, options: (
-        {
-            "image": "ghcr.io/getsentry/objectstore:latest",
-            "ports": {"8888/tcp": 8888},
-            "environment": {},
-            "only_if": settings.SENTRY_USE_OBJECTSTORE,
-        }
-    ),
-}
-
 # Max file size for serialized file uploads in API
 SENTRY_MAX_SERIALIZED_FILE_SIZE = 5000000
 
@@ -2624,7 +2347,6 @@ SENTRY_BUILTIN_SOURCES = {
         "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://driver-symbols.nvidia.com/",
         "is_public": True,
-        "has_index": True,
     },
     "chromium": {
         "type": "http",

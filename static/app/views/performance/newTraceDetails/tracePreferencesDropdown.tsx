@@ -17,11 +17,13 @@ import {getCustomInstrumentationLink} from 'sentry/views/performance/newTraceDet
 import {findSpanAttributeValue} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {TraceShortcutsModal} from 'sentry/views/performance/newTraceDetails/traceShortcutsModal';
 
-const CompactSelectTriggerProps: DropdownButtonProps = {
+const compactSelectTriggerProps: DropdownButtonProps = {
   icon: <IconSettings />,
   showChevron: false,
   size: 'xs' as const,
   'aria-label': t('Trace Preferences'),
+  // Force the trigger to be so that we only render the icon
+  children: '',
 };
 
 interface TracePreferencesDropdownProps {
@@ -113,9 +115,7 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
     <CompactSelect
       multiple
       value={values}
-      // Force the trigger to be so that we only render the icon
-      triggerLabel=""
-      triggerProps={CompactSelectTriggerProps}
+      triggerProps={compactSelectTriggerProps}
       options={selectOptions}
       onChange={onChange}
       menuFooter={menuFooter}

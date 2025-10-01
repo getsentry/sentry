@@ -233,7 +233,6 @@ function buildRoutes(): RouteObject[] {
       path: '/data-export/:dataExportId',
       component: make(() => import('sentry/views/dataExport/dataDownload')),
       withOrgPath: true,
-      deprecatedRouteProps: true,
     },
     {
       component: errorHandler(OrganizationContainer),
@@ -262,14 +261,12 @@ function buildRoutes(): RouteObject[] {
         make(() => import('sentry/views/organizationJoinRequest'))
       ),
       customerDomainOnlyRoute: true,
-      deprecatedRouteProps: true,
     },
     {
       path: '/join-request/:orgId/',
       component: withDomainRedirect(
         make(() => import('sentry/views/organizationJoinRequest'))
       ),
-      deprecatedRouteProps: true,
     },
     {
       path: '/relocation/',
@@ -946,12 +943,6 @@ function buildRoutes(): RouteObject[] {
           ),
         },
       ],
-    },
-    {
-      path: 'rate-limits/',
-      name: t('Rate Limits'),
-      component: make(() => import('sentry/views/settings/organizationRateLimits')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'relay/',
@@ -2467,6 +2458,23 @@ function buildRoutes(): RouteObject[] {
     deprecatedRouteProps: true,
   };
 
+  const pullRequestChildren: SentryRouteObject[] = [
+    {
+      path: ':repoOrg/:repoName/:prId/',
+      component: make(
+        () => import('sentry/views/pullRequest/details/pullRequestDetails')
+      ),
+    },
+  ];
+
+  const pullRequestRoutes: SentryRouteObject = {
+    path: '/pull/',
+    component: make(() => import('sentry/views/pullRequest/index')),
+    withOrgPath: true,
+    children: pullRequestChildren,
+    deprecatedRouteProps: true,
+  };
+
   const feedbackV2Children: SentryRouteObject[] = [
     {
       index: true,
@@ -2661,11 +2669,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'queue/',
       component: make(() => import('sentry/views/admin/adminQueue')),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'quotas/',
-      component: make(() => import('sentry/views/admin/adminQuotas')),
       deprecatedRouteProps: true,
     },
     {
@@ -2932,6 +2935,7 @@ function buildRoutes(): RouteObject[] {
       alertRoutes,
       preventRoutes,
       preprodRoutes,
+      pullRequestRoutes,
       replayRoutes,
       releasesRoutes,
       statsRoutes,
