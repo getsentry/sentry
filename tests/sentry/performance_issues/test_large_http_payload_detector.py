@@ -321,16 +321,17 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                     "http.response_transfer_size": 50_000_000,
                     "http.response_content_length": 50_000_000,
                     "http.decoded_response_content_length": 50_000_000,
-                    "response": {
-                        "headers": {
-                            "content-disposition": 'attachment; filename="document.pdf"',
-                            "content-type": "application/pdf",
-                        }
-                    },
                 },
             )
         ]
         event = create_event(spans)
+        # Add response headers at event level as list of lists
+        event["response"] = {
+            "headers": [
+                ["content-disposition", 'attachment; filename="document.pdf"'],
+                ["content-type", "application/pdf"],
+            ]
+        }
         detector = LargeHTTPPayloadDetector(settings, event)
         run_detector_on_data(detector, event)
         assert len(detector.stored_problems) == 0
@@ -350,16 +351,17 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                     "http.response_transfer_size": 50_000_000,
                     "http.response_content_length": 50_000_000,
                     "http.decoded_response_content_length": 50_000_000,
-                    "response": {
-                        "headers": {
-                            "content-disposition": 'attachment; filename="document.pdf"',
-                            "content-type": "application/pdf",
-                        }
-                    },
                 },
             )
         ]
         event = create_event(spans)
+        # Add response headers at event level as list of lists
+        event["response"] = {
+            "headers": [
+                ["content-disposition", 'attachment; filename="document.pdf"'],
+                ["content-type", "application/pdf"],
+            ]
+        }
         detector = LargeHTTPPayloadDetector(settings, event)
         run_detector_on_data(detector, event)
         assert len(detector.stored_problems) == 0

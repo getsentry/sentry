@@ -10,6 +10,7 @@ from sentry.issues.grouptype import PerformanceLargeHTTPPayloadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.utils.safe import get_path
 
 from ..base import DetectorType, PerformanceDetector
 from ..detectors.utils import (
@@ -46,6 +47,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
 
         self.consecutive_http_spans: list[Span] = []
         self.organization = self.settings.get("organization")
+        self.extract_headers(event)
 
     def visit_span(self, span: Span) -> None:
         if not self._is_span_eligible(span):
@@ -67,11 +69,21 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         if encoded_body_size > payload_size_threshold:
             # Check if this is a file download that should be excluded - can be moved to `is_span_eligible` once the flag is removed
             # Right now, this location allows for better tracking of impact
-            if features.has(
-                "organizations:large-http-payload-detector-improvements", self.organization
-            ) and self._is_file_download(span):
+            if (
+                features.has(
+                    "organizations:large-http-payload-detector-improvements",
+                    self.organization,
+                )
+                and self.event_has_file_download
+            ):
                 logging.info(
                     "Excluding large payload detection for file download",
+                    extra={
+                        "description": span.get("description", ""),
+                        "is_root_span": get_path(self._event, "contexts", "trace")
+                        == span.get("span_id"),
+                        "project_id": self._event.get("project", ""),
+                    },
                 )
                 return
 
@@ -145,41 +157,41 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
 
         return True
 
-    def _is_file_download(self, span: Span) -> bool:
+    def extract_headers(self, event: dict[str, Any]) -> None:
         """
         Check if this span represents a file download based on HTTP headers.
         """
-        span_data = span.get("data", {})
-        if not span_data:
-            return False
+        self.event_has_file_download = False
+        headers = get_path(event, "response", "headers")
+        if not headers:
+            return
 
-        # Check response headers
-        response_headers = span_data.get("response", {}).get("headers", {})
-        if not response_headers:
-            return False
+        response_headers = {}
+        for header_pair in headers:
+            if isinstance(header_pair, list) and len(header_pair) == 2:
+                key, value = header_pair
+                response_headers[key.lower()] = value
 
         # Check Content-Disposition header for attachment
         content_disposition = response_headers.get("content-disposition", "").lower()
         if content_disposition and "attachment" in content_disposition:
-            return True
+            self.event_has_file_download = True
 
         # Check Content-Type header for file download indicators
         content_type = response_headers.get("content-type", "").lower()
         if not content_type:
-            return False
+            return
 
         # Check for exact matches
         if content_type in FILE_DOWNLOAD_CONTENT_TYPES:
-            return True
+            self.event_has_file_download = True
 
         # Check for prefix matches (e.g., image/, video/, audio/)
         if any(
             content_type.startswith(download_type) and download_type.endswith("/")
             for download_type in FILE_DOWNLOAD_CONTENT_TYPES
         ):
-            return True
-
-        return False
+            self.event_has_file_download = True
 
     def _fingerprint(self, span: Span) -> str:
         hashed_url_paths = fingerprint_http_spans([span])
