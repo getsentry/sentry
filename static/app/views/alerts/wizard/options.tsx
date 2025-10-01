@@ -264,7 +264,7 @@ export const AlertWizardRuleTemplates: Record<
   eap_metrics: {
     aggregate: 'count(span.duration)',
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-    eventTypes: EventTypes.TRANSACTION,
+    eventTypes: EventTypes.TRACE_ITEM_SPAN,
   },
   trace_item_throughput: {
     aggregate: 'count(span.duration)',
