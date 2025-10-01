@@ -9,13 +9,7 @@ import sentry_sdk
 
 from sentry import options
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
-from sentry.grouping.component import (
-    AppGroupingComponent,
-    BaseGroupingComponent,
-    ContributingComponent,
-    DefaultGroupingComponent,
-    SystemGroupingComponent,
-)
+from sentry.grouping.component import ContributingComponent, RootGroupingComponent
 from sentry.grouping.enhancer import (
     DEFAULT_ENHANCEMENTS_BASE,
     EnhancementsConfig,
@@ -310,7 +304,7 @@ def _get_variants_from_strategies(
 ) -> dict[str, ComponentVariant]:
     winning_strategy: str | None = None
     precedence_hint: str | None = None
-    all_strategies_components_by_variant: dict[str, list[BaseGroupingComponent[Any]]] = {}
+    all_strategies_components_by_variant: dict[str, list[ContributingComponent]] = {}
     winning_strategy_components_by_variant = {}
 
     # `iter_strategies` presents strategies in priority order, which allows us to go with the first
@@ -358,12 +352,7 @@ def _get_variants_from_strategies(
     variants = {}
 
     for variant_name, components in all_strategies_components_by_variant.items():
-        component_class_by_variant = {
-            "app": AppGroupingComponent,
-            "default": DefaultGroupingComponent,
-            "system": SystemGroupingComponent,
-        }
-        root_component = component_class_by_variant[variant_name](values=components)
+        root_component = RootGroupingComponent(variant_name=variant_name, values=components)
 
         # The root component will pull its `contributes` value from the components it wraps - if
         # none of them contributes, it will also be marked as non-contributing. But those components
