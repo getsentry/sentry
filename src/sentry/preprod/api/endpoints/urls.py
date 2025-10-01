@@ -6,6 +6,9 @@ from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_co
 from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare_download import (
     ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint,
 )
+from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare_run import (
+    ProjectPreprodArtifactSizeAnalysisCompareRunEndpoint,
+)
 from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_download import (
     ProjectPreprodArtifactSizeAnalysisDownloadEndpoint,
 )
@@ -82,6 +85,11 @@ preprod_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/size-analysis/compare/(?P<head_artifact_id>[^/]+)/(?P<base_artifact_id>[^/]+)/$",
         ProjectPreprodArtifactSizeAnalysisCompareEndpoint.as_view(),
         name="sentry-api-0-project-preprod-artifact-size-analysis-compare",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/size-analysis/compare/(?P<head_artifact_id>[^/]+)/(?P<base_artifact_id>[^/]+)/run/$",
+        ProjectPreprodArtifactSizeAnalysisCompareRunEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-size-analysis-compare-run",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/size-analysis/compare/(?P<head_size_metric_id>[^/]+)/(?P<base_size_metric_id>[^/]+)/download/$",
