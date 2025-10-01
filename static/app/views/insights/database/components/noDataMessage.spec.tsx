@@ -95,34 +95,7 @@ describe('NoDataMessage', () => {
 
     expect(screen.getAllByRole('link')[1]).toHaveAttribute(
       'href',
-      '/organizations/org-slug/projects/awesome-api/'
-    );
-  });
-
-  it('shows a list of denylisted projects if any are set even if data is available', async () => {
-    ProjectsStore.loadInitialData([
-      ProjectFixture({
-        name: 'Awful API',
-        slug: 'awful-api',
-        features: [],
-      }),
-    ]);
-
-    render(<NoDataMessage isDataAvailable />);
-
-    await tick(); // There is no visual indicator, this awaits the promise resolve
-
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          'Some of your projects have been omitted from query performance analysis'
-        )
-      )
-    ).toBeInTheDocument();
-
-    expect(screen.getAllByRole('link')[1]).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/projects/awful-api/'
+      '/organizations/org-slug/insights/projects/awesome-api/'
     );
   });
 });

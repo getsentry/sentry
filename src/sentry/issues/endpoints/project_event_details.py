@@ -17,6 +17,7 @@ from sentry.api.serializers.models.event import IssueEventSerializerResponse
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -91,13 +92,15 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=5, window=1),
-            RateLimitCategory.USER: RateLimit(limit=5, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
-        },
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=5, window=1),
+                RateLimitCategory.USER: RateLimit(limit=5, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+            },
+        }
+    )
 
     def get(self, request: Request, project: Project, event_id: str) -> Response:
         """

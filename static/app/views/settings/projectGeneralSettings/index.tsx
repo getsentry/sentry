@@ -26,7 +26,9 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
+import {consoles} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
@@ -52,6 +54,7 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
   const form: Record<string, FieldValue> = {};
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const {isSelfHosted} = useLegacyStore(ConfigStore);
 
   const organization = useOrganization();
   const {projectId} = useParams<{projectId: string}>();
@@ -308,6 +311,20 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
     help: t('The unique identifier for this project. It cannot be modified.'),
   };
 
+  // Create filtered platform field without mutating the shared fields object
+  const platformField = {
+    ...fields.platform,
+    options: fields.platform.options.filter(({value}) => {
+      if (!consoles.includes(value)) return true;
+
+      return (
+        organization.features?.includes('project-creation-games-tab') &&
+        organization.enabledConsolePlatforms?.includes(value) &&
+        !isSelfHosted
+      );
+    }),
+  };
+
   return (
     <div>
       <SentryDocumentTitle title={t('Project Settings')} projectSlug={project.slug} />
@@ -317,7 +334,7 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
         <JsonForm
           {...jsonFormProps}
           title={t('Project Details')}
-          fields={[fields.name, projectIdField, fields.platform]}
+          fields={[fields.name, projectIdField, platformField]}
         />
         <JsonForm {...jsonFormProps} title={t('Email')} fields={[fields.subjectPrefix]} />
       </Form>

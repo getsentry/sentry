@@ -1,12 +1,10 @@
+import type {StripeConstructor} from '@stripe/stripe-js';
+
 import type {DataCategory, DataCategoryInfo} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 
 declare global {
   interface Window {
-    /**
-     * Stripe SDK
-     */
-    Stripe: stripe.Stripe;
     /**
      * Used in admin
      */
@@ -27,6 +25,10 @@ declare global {
      * Zendesk widget
      */
     zE: any;
+    /**
+     * Stripe SDK
+     */
+    Stripe?: StripeConstructor;
     /**
      * Pendo which is used to render guides
      */
@@ -126,7 +128,22 @@ export type ReservedBudgetCategory = {
   productName: string;
 };
 
+export enum AddOnCategory {
+  SEER = 'seer',
+  PREVENT = 'prevent',
+}
+
+type AddOnCategoryInfo = {
+  apiName: AddOnCategory;
+  billingFlag: string | null;
+  dataCategories: DataCategory[];
+  name: string;
+  order: number;
+  productName: string;
+};
+
 export type Plan = {
+  addOnCategories: Partial<Record<AddOnCategory, AddOnCategoryInfo>>;
   allowAdditionalReservedEvents: boolean;
   allowOnDemand: boolean;
   /**
@@ -170,6 +187,7 @@ export type Plan = {
     Record<DataCategory, {plural: string; singular: string}>
   >;
   checkoutType?: CheckoutType;
+  retentions?: Partial<Record<DataCategory, {downsampled: number; standard: number}>>;
 };
 
 type PendingChanges = {
@@ -465,7 +483,6 @@ export type PromotionData = {
   completedPromotions: PromotionClaimed[];
 };
 
-/** @internal exported for tests only */
 export type Feature = {
   description: string;
   name: string;
@@ -542,6 +559,18 @@ type SentryTaxIds = TaxNumberName & {
   };
 };
 
+export type Charge = {
+  amount: number;
+  amountRefunded: number;
+  cardLast4: string | null;
+  dateCreated: string;
+  failureCode: string | null;
+  id: string;
+  isPaid: boolean;
+  isRefunded: boolean;
+  stripeID: string | null;
+};
+
 export type InvoiceBase = StructuredAddress & {
   amount: number;
   amountBilled: number | null;
@@ -566,7 +595,7 @@ export type InvoiceBase = StructuredAddress & {
 };
 
 export type Invoice = InvoiceBase & {
-  charges: any[];
+  charges: Charge[];
   customer:
     | Subscription
     | {
@@ -641,6 +670,8 @@ export enum InvoiceItemType {
   RESERVED_PROFILE_DURATION = 'reserved_profile_duration',
   RESERVED_SEER_AUTOFIX = 'reserved_seer_autofix',
   RESERVED_SEER_SCANNER = 'reserved_seer_scanner',
+  RESERVED_SEER_BUDGET = 'reserved_seer_budget',
+  RESERVED_LOG_BYTES = 'reserved_log_bytes',
 }
 
 export enum InvoiceStatus {
@@ -671,6 +702,7 @@ export type BillingMetricHistory = {
   trueForward: boolean;
   usage: number;
   usageExceeded: boolean;
+  retention?: {downsampled: number | null; standard: number};
 };
 
 export type BillingHistory = {
@@ -710,7 +742,7 @@ export type PreviewData = {
   paymentSecret?: string;
 };
 
-type PreviewInvoiceItem = BaseInvoiceItem & {
+export type PreviewInvoiceItem = BaseInvoiceItem & {
   period_end: string;
   period_start: string;
 };
@@ -778,7 +810,6 @@ export enum CohortId {
   TEST_ONE = 111,
 }
 
-/** @internal exported for tests only */
 export type Cohort = {
   cohortId: CohortId;
   nextPlan: NextPlanInfo | null;
@@ -985,6 +1016,10 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   canProductTrial: boolean;
   /**
+   * The tooltip text for the checkout page
+   */
+  checkoutTooltip: string | null;
+  /**
    * The feature flag that enables the category
    */
   feature: string | null;
@@ -992,6 +1027,10 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    * The event multiplier for gifts
    */
   freeEventsMultiple: number;
+  /**
+   * Has per-category PAYG
+   */
+  hasPerCategory: boolean;
   /**
    * Whether the category has spike protection support
    */
@@ -1001,11 +1040,11 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   maxAdminGift: number;
   /**
-   * The tooltip text for the checkout page
-   */
-  reservedVolumeTooltip: string | null;
-  /**
    * How usage is tallied for the category
    */
   tallyType: 'usage' | 'seat';
+  /**
+   * The shortened form of the singular unit name (ie. 'error', 'hour', 'monitor').
+   */
+  shortenedUnitName?: string;
 }

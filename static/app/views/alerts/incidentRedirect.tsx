@@ -2,27 +2,26 @@ import {useCallback, useEffect, useState} from 'react';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 
 import {fetchIncident} from './utils/apiCalls';
 import {alertDetailsLink} from './utils';
 
-type Props = {
-  organization: Organization;
-} & RouteComponentProps<{alertId: string}>;
-
 /**
  * Reirects from an incident to the incident's metric alert details page
  */
-function IncidentRedirect({organization, params}: Props) {
+function IncidentRedirect() {
+  const organization = useOrganization();
+  const params = useParams<{alertId: string}>();
   const api = useApi();
   const location = useLocation();
+  const navigate = useNavigate();
   const [hasError, setHasError] = useState(false);
 
   const track = useCallback(() => {
@@ -37,16 +36,17 @@ function IncidentRedirect({organization, params}: Props) {
 
     try {
       const incident = await fetchIncident(api, organization.slug, params.alertId);
-      browserHistory.replace(
+      navigate(
         normalizeUrl({
           pathname: alertDetailsLink(organization, incident),
           query: {...location.query, alert: incident.identifier},
-        })
+        }),
+        {replace: true}
       );
-    } catch (err) {
+    } catch {
       setHasError(true);
     }
-  }, [setHasError, api, params.alertId, organization, location.query]);
+  }, [navigate, setHasError, api, params.alertId, organization, location.query]);
 
   useEffect(() => {
     fetchData();

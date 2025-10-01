@@ -1,12 +1,10 @@
 import {useCallback, useMemo} from 'react';
 
 import type {DateString} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useLogsPageParams} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
 import {
   isGroupBy as isLegacyGroupBy,
@@ -174,21 +172,19 @@ export function useFromSavedQuery() {
 export function useLogsSaveQuery() {
   const pageFilters = usePageFilters();
   const [interval] = useChartInterval();
-  const logsParams = useLogsPageParams();
   const queryParams = useQueryParams();
-  const {id, title} = logsParams;
+  const {id, title} = queryParams;
 
   const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useFromSavedQuery();
 
   const requestData = useMemo((): ExploreSavedQueryRequest => {
     return convertLogsPageParamsToRequest({
-      logsParams,
       queryParams,
       pageFilters,
       interval,
       title: title ?? '',
     });
-  }, [logsParams, queryParams, pageFilters, interval, title]);
+  }, [queryParams, pageFilters, interval, title]);
 
   const {saveQueryApi, updateQueryApi} = useCreateOrUpdateSavedQuery(id);
 
@@ -226,16 +222,14 @@ function convertExplorePageParamsToRequest(
       return true;
     })
     .map(aggregateField => {
-      return isLegacyVisualize(aggregateField)
-        ? defined(aggregateField.selectedChartType)
-          ? {
-              yAxes: [aggregateField.yAxis],
-              chartType: aggregateField.selectedChartType,
-            }
-          : {
-              yAxes: [aggregateField.yAxis],
-            }
-        : {groupBy: aggregateField.groupBy};
+      if (isLegacyVisualize(aggregateField)) {
+        const json = aggregateField.toJSON();
+        return {
+          ...json,
+          yAxes: [...json.yAxes],
+        };
+      }
+      return {groupBy: aggregateField.groupBy};
     });
 
   return {
@@ -260,14 +254,12 @@ function convertExplorePageParamsToRequest(
 }
 
 function convertLogsPageParamsToRequest({
-  logsParams,
   queryParams,
   pageFilters,
   interval,
   title,
 }: {
   interval: string;
-  logsParams: ReturnType<typeof useLogsPageParams>;
   pageFilters: ReturnType<typeof usePageFilters>;
   queryParams: ReadableQueryParams;
   title: string;
@@ -276,28 +268,31 @@ function convertLogsPageParamsToRequest({
   const {datetime, projects, environments} = selection;
   const {start, end, period} = datetime;
 
-  const {sortBys, fields, search, mode} = logsParams;
+  const {sortBys, fields, search, mode} = queryParams;
   const query = search?.formatString() ?? '';
 
-  const aggregateFields = queryParams.aggregateFields.map(aggregateField => {
-    if (isGroupBy(aggregateField)) {
-      return {groupBy: aggregateField.groupBy};
-    }
+  const aggregateFields = queryParams.aggregateFields
+    .filter(aggregateField => {
+      if (isGroupBy(aggregateField)) {
+        return Boolean(aggregateField.groupBy);
+      }
+      return true;
+    })
+    .map(aggregateField => {
+      if (isGroupBy(aggregateField)) {
+        return {groupBy: aggregateField.groupBy};
+      }
 
-    if (isVisualize(aggregateField)) {
-      if (defined(aggregateField.selectedChartType)) {
+      if (isVisualize(aggregateField)) {
+        const serialized = aggregateField.serialize();
         return {
-          yAxes: [aggregateField.yAxis],
-          chartType: aggregateField.selectedChartType,
+          ...serialized,
+          yAxes: [...serialized.yAxes],
         };
       }
-      return {
-        yAxes: [aggregateField.yAxis],
-      };
-    }
 
-    throw new Error(`Unknown aggregate field: ${JSON.stringify(aggregateField)}`);
-  });
+      throw new Error(`Unknown aggregate field: ${JSON.stringify(aggregateField)}`);
+    });
 
   return {
     name: title,

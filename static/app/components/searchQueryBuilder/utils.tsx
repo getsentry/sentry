@@ -15,8 +15,6 @@ import {
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {FieldValueType} from 'sentry/utils/fields';
 
-export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
-
 function getSearchConfigFromKeys(
   keys: TagCollection,
   getFieldDefinition: FieldDefinitionGetter

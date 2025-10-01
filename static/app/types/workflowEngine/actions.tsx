@@ -1,9 +1,11 @@
+import type {ObjectStatus} from 'sentry/types/core';
 import type {IssueConfigField} from 'sentry/types/integrations';
 
 export interface Action {
   config: ActionConfig;
   data: Record<string, any>;
   id: string;
+  status: ObjectStatus;
   type: ActionType;
   integrationId?: string;
 }
@@ -25,11 +27,11 @@ export interface ActionConfig {
 }
 
 export enum ActionTarget {
-  SPECIFIC = 0,
-  USER = 1,
-  TEAM = 2,
-  SENTRY_APP = 3,
-  ISSUE_OWNERS = 4,
+  SPECIFIC = 'specific',
+  USER = 'user',
+  TEAM = 'team',
+  SENTRY_APP = 'sentry_app',
+  ISSUE_OWNERS = 'issue_owners',
 }
 
 export enum ActionType {

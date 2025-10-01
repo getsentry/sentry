@@ -179,7 +179,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
           <EnvironmentHighlight environmentTag={environmentTag} />
         </ScrollCarousel>
       </IconBar>
-      <SectionDivider style={{marginTop: space(1)}} />
+      <SectionDivider margin="md 0 lg 0" orientation="horizontal" />
     </Fragment>
   ) : null;
 }

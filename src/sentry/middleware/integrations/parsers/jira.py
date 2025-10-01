@@ -12,6 +12,7 @@ from sentry.integrations.jira.views import (
     JiraSentryInstallationView,
     JiraSentryIssueDetailsView,
 )
+from sentry.integrations.jira.views.sentry_issue_details import JiraSentryIssueDetailsControlView
 from sentry.integrations.jira.webhooks import (
     JiraIssueUpdatedWebhook,
     JiraSentryInstalledWebhook,
@@ -40,6 +41,7 @@ class JiraRequestParser(BaseRequestParser):
         JiraSentryUninstalledWebhook,
         JiraExtensionConfigurationView,
         JiraSearchEndpoint,
+        JiraSentryIssueDetailsControlView,
     ]
 
     immediate_response_region_classes = [JiraSentryIssueDetailsView]

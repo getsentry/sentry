@@ -132,7 +132,7 @@ function BaseExploreFieldRenderer({
 
   if (field === 'timestamp') {
     const date = new Date(data.timestamp);
-    rendered = <StyledTimeSince unitStyle="extraShort" date={date} tooltipShowSeconds />;
+    rendered = <StyledTimeSince unitStyle="short" date={date} tooltipShowSeconds />;
   }
 
   if (field === 'trace') {
@@ -239,6 +239,7 @@ function spanDescriptionRenderFunc(projects: Record<string, Project>) {
                 avatarSize={16}
                 avatarProps={{hasTooltip: true, tooltip: project.slug}}
                 hideName
+                disableLink
               />
             )}
             <WrappingText>

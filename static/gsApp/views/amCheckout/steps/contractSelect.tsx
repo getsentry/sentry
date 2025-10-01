@@ -11,7 +11,6 @@ import {space} from 'sentry/styles/space';
 
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import type {Plan} from 'getsentry/types';
-import BillingCycleSelectCard from 'getsentry/views/amCheckout/billingCycleSelectCard';
 import PlanSelectRow from 'getsentry/views/amCheckout/steps/planSelectRow';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
@@ -75,8 +74,7 @@ class ContractSelect extends Component<Props> {
   }
 
   renderBody = () => {
-    const {onUpdate, formData, subscription, promotion, isNewCheckout} = this.props;
-    let previousPlanPrice = 0;
+    const {onUpdate, formData, subscription, promotion} = this.props;
 
     return (
       <PanelBody data-test-id={this.title}>
@@ -116,35 +114,12 @@ class ContractSelect extends Component<Props> {
           });
           const formattedPriceAfterDiscount = formatPrice({cents: priceAfterDiscount});
 
-          const priceBeforeDiscount = isAnnual ? previousPlanPrice * 12 : 0;
-          const formattedPriceBeforeDiscount = previousPlanPrice
-            ? formatPrice({cents: priceBeforeDiscount})
-            : '';
-          previousPlanPrice = priceAfterDiscount;
-
-          const commonProps = {
-            plan,
-            isSelected,
-            onUpdate,
-          };
-
-          if (isNewCheckout) {
-            // TODO(checkout v3): take this out when the new plan step is implemented
-            return (
-              <BillingCycleSelectCard
-                key={plan.id}
-                subscription={subscription}
-                priceAfterDiscount={priceAfterDiscount}
-                formattedPriceAfterDiscount={formattedPriceAfterDiscount}
-                formattedPriceBeforeDiscount={formattedPriceBeforeDiscount}
-                {...commonProps}
-              />
-            );
-          }
-
           return (
             <PlanSelectRow
               key={plan.id}
+              plan={plan}
+              isSelected={isSelected}
+              onUpdate={onUpdate}
               planName={name}
               planValue={plan.billingInterval}
               planContent={{description, features: {}}}
@@ -153,7 +128,6 @@ class ContractSelect extends Component<Props> {
               shouldShowDefaultPayAsYouGo={false}
               shouldShowEventPrice={false}
               price={formattedPriceAfterDiscount}
-              {...commonProps}
             />
           );
         })}

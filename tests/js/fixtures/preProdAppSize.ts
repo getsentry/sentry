@@ -1,7 +1,6 @@
 import type {
   AppleInsightResults,
   OptimizableImageFile,
-  TreemapElement,
 } from 'sentry/views/preprod/types/appSizeTypes';
 import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 
@@ -40,10 +39,12 @@ export function ProcessedInsightFixture(
       },
       {
         path: 'src/assets/logo.png',
-        savings: 256000,
-        percentage: 4.0,
+        savings: 128000,
+        percentage: 2.0,
         data: {
           fileType: 'optimizable_image' as const,
+          minifyPercentage: 0,
+          conversionPercentage: 2.0,
           originalFile: {
             best_optimization_type: 'convert_to_heic',
             conversion_savings: 128000,
@@ -102,62 +103,6 @@ export function AppleInsightResultsFixture(
         },
       ],
     },
-    ...params,
-  };
-}
-
-export function TreemapElementFixture(
-  params: Partial<TreemapElement> = {}
-): TreemapElement {
-  return {
-    name: 'root',
-    size: 1000,
-    type: 'files' as any,
-    is_dir: true,
-    children: [
-      {
-        name: 'src',
-        size: 500,
-        type: 'files' as any,
-        is_dir: true,
-        path: '/app/src',
-        children: [
-          {
-            name: 'main.js',
-            size: 200,
-            type: 'files' as any,
-            is_dir: false,
-            path: '/app/src/main.js',
-            children: [],
-          },
-          {
-            name: 'utils.js',
-            size: 300,
-            type: 'files' as any,
-            is_dir: false,
-            path: '/app/src/utils.js',
-            children: [],
-          },
-        ],
-      },
-      {
-        name: 'assets',
-        size: 500,
-        type: 'assets' as any,
-        is_dir: true,
-        path: '/app/assets',
-        children: [
-          {
-            name: 'image.png',
-            size: 500,
-            type: 'assets' as any,
-            is_dir: false,
-            path: '/app/assets/image.png',
-            children: [],
-          },
-        ],
-      },
-    ],
     ...params,
   };
 }

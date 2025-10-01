@@ -6,20 +6,25 @@ import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconChevron, IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface FlamegraphOptionsMenuProps {
   canvasPoolManager: CanvasPoolManager;
+  profileType: 'transaction profile' | 'continuous profile';
 }
 
 function FlamegraphOptionsMenu({
   canvasPoolManager,
+  profileType,
 }: FlamegraphOptionsMenuProps): React.ReactElement {
   const location = useLocation();
+  const organization = useOrganization();
   const {colorCoding} = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
 
@@ -35,7 +40,11 @@ function FlamegraphOptionsMenu({
 
   const onResetZoom = useCallback(() => {
     canvasPoolManager.dispatch('reset zoom', []);
-  }, [canvasPoolManager]);
+    trackAnalytics('profiling_views.flamegraph.zoom.reset', {
+      organization,
+      profile_type: profileType,
+    });
+  }, [canvasPoolManager, organization, profileType]);
 
   const continuousLocationDescriptor: {end: string; start: string} | null =
     useMemo(() => {
@@ -59,8 +68,7 @@ function FlamegraphOptionsMenu({
         {t('Reset Zoom')}
       </Button>
       <CompactSelect
-        triggerLabel={t('Color Coding')}
-        triggerProps={{icon: <IconSliders />, size: 'xs'}}
+        triggerProps={{children: t('Color Coding'), icon: <IconSliders />, size: 'xs'}}
         options={colorCodingOptions}
         position="bottom-end"
         value={colorCoding}

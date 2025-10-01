@@ -505,7 +505,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
                 icon={<IconSearch />}
                 priority="primary"
                 size="sm"
-                aria-label={'Search'}
+                aria-label="Search"
               />
             </SearchBar>
           )}

@@ -1,6 +1,9 @@
 import {Fragment, useRef} from 'react';
+import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Container} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
 import {
@@ -25,7 +28,7 @@ import {PrimaryNavigationHelp} from 'sentry/views/nav/primary/help';
 import {PrimaryNavigationOnboarding} from 'sentry/views/nav/primary/onboarding';
 import {PrimaryNavigationServiceIncidents} from 'sentry/views/nav/primary/serviceIncidents';
 import {useActivateNavGroupOnHover} from 'sentry/views/nav/primary/useActivateNavGroupOnHover';
-import {PrimaryNavigationWhatsNew} from 'sentry/views/nav/primary/whatsNew';
+import {PrimaryNavigationWhatsNew} from 'sentry/views/nav/primary/whatsNew/whatsNew';
 import {NavTourElement, StackedNavigationTour} from 'sentry/views/nav/tour/tour';
 import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
@@ -142,15 +145,18 @@ export function PrimaryNavigationItems() {
         </Feature>
 
         <Feature features={['prevent-ai']}>
-          <SidebarLink
-            to={`/${prefix}/${PREVENT_BASE_URL}/${PREVENT_AI_BASE_URL}/new/`}
-            activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
-            analyticsKey="prevent"
-            group={PrimaryNavGroup.PREVENT}
-            {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
-          >
-            <IconPrevent />
-          </SidebarLink>
+          <Container position="relative" height="100%">
+            <SidebarLink
+              to={`/${prefix}/${PREVENT_BASE_URL}/${PREVENT_AI_BASE_URL}/new/`}
+              activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
+              analyticsKey="prevent"
+              group={PrimaryNavGroup.PREVENT}
+              {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
+            >
+              <IconPrevent />
+            </SidebarLink>
+            <BetaBadge type="beta" />
+          </Container>
         </Feature>
 
         <SeparatorItem />
@@ -162,7 +168,7 @@ export function PrimaryNavigationItems() {
         >
           <SidebarLink
             to={`/settings/${organization.slug}/`}
-            activeTo={`/settings/`}
+            activeTo="/settings/"
             analyticsKey="settings"
             group={PrimaryNavGroup.SETTINGS}
             {...makeNavItemProps(PrimaryNavGroup.SETTINGS)}
@@ -179,11 +185,7 @@ export function PrimaryNavigationItems() {
           <PrimaryNavigationWhatsNew />
         </ErrorBoundary>
         <ErrorBoundary customComponent={null}>
-          <Hook
-            name="sidebar:try-business"
-            organization={organization}
-            orientation="left"
-          />
+          <Hook name="sidebar:try-business" organization={organization} />
         </ErrorBoundary>
         <ErrorBoundary customComponent={null}>
           <Hook name="sidebar:billing-status" organization={organization} />
@@ -200,3 +202,13 @@ export function PrimaryNavigationItems() {
     </Fragment>
   );
 }
+
+const BetaBadge = styled(FeatureBadge)`
+  position: absolute;
+  pointer-events: none;
+  top: -2px;
+  right: 2px;
+  font-size: ${p => p.theme.fontSize.xs};
+  padding: 0 ${p => p.theme.space.xs};
+  height: 16px;
+`;

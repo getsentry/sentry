@@ -1,5 +1,6 @@
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import Placeholder from 'sentry/components/placeholder';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
@@ -71,7 +72,9 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
       <DetailLayout.Body>
         <DetailLayout.Main>
           <DatePageFilter />
-          <DetectorDetailsOngoingIssues detectorId={detector.id} />
+          <ErrorBoundary mini>
+            <DetectorDetailsOngoingIssues detector={detector} />
+          </ErrorBoundary>
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>
         <DetailLayout.Sidebar>
@@ -90,7 +93,7 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
           <Section title={t('Assign')}>
             <Text as="p">
               {tct(
-                'Sentry will attempt to autotmatically assign new issues based on [link:Ownership Rules].',
+                'Sentry will attempt to automatically assign new issues based on [link:Ownership Rules].',
                 {
                   link: (
                     <Link

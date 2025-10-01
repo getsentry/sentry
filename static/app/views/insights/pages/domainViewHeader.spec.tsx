@@ -13,7 +13,7 @@ const useLocationMock = jest.mocked(useLocation);
 
 describe('DomainViewHeader', () => {
   const organization = OrganizationFixture({
-    features: ['insights-entry-points'],
+    features: ['insight-modules'],
   });
 
   beforeEach(() => {

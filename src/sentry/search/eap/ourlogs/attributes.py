@@ -37,13 +37,13 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
-            public_alias="trace",
+            public_alias=constants.TRACE_ALIAS,
             internal_name="sentry.trace_id",
             search_type="string",
             validator=is_event_id_or_list,
         ),
         ResolvedAttribute(
-            public_alias="timestamp_precise",
+            public_alias=constants.TIMESTAMP_PRECISE_ALIAS,
             internal_name="sentry.timestamp_precise",
             search_type="number",
         ),
@@ -63,6 +63,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("environment"),
         simple_sentry_field("message.template"),
         simple_sentry_field("release"),
+        simple_sentry_field("replay_id"),
         simple_sentry_field("trace.parent_span_id"),
         simple_sentry_field("sdk.name"),
         simple_sentry_field("sdk.version"),
@@ -96,6 +97,11 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
         ),
     ]
 }
+
+# Ensure that required fields are defined at runtime
+for field in {constants.TIMESTAMP_ALIAS, constants.TIMESTAMP_PRECISE_ALIAS, constants.TRACE_ALIAS}:
+    assert field in OURLOG_ATTRIBUTE_DEFINITIONS, f"{field} must be defined for ourlogs"
+
 
 OURLOG_VIRTUAL_CONTEXTS = {
     key: VirtualColumnDefinition(

@@ -1,7 +1,12 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {openInsightChartModal} from 'sentry/actionCreators/modal';
+import {Button} from 'sentry/components/core/button';
+import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getIntervalForTimeSeriesQuery} from 'sentry/utils/timeSeries/getIntervalForTimeSeriesQuery';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -13,12 +18,12 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {BaseChartActionDropdown} from 'sentry/views/insights/common/components/chartActionDropdown';
+import {ModalChartContainer} from 'sentry/views/insights/common/components/insightsChartContainer';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
-import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+import type {AddToSpanDashboardOptions} from 'sentry/views/insights/common/utils/useAddToSpanDashboard';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import {DomainCell} from 'sentry/views/insights/http/components/tables/domainCell';
 import {Referrer} from 'sentry/views/insights/pages/frontend/referrers';
@@ -48,6 +53,7 @@ export default function OverviewTimeConsumingRequestsWidget(
   const yAxes = `p75(${SpanFields.SPAN_DURATION})`;
   const totalTimeField = `sum(${SpanFields.SPAN_SELF_TIME})`;
   const title = t('Network Requests by Time Spent');
+  const interval = getIntervalForTimeSeriesQuery(yAxes, selection.datetime);
 
   const {
     data: requestsListData,
@@ -73,30 +79,31 @@ export default function OverviewTimeConsumingRequestsWidget(
     data: requestSeriesData,
     isLoading: isRequestSeriesLoading,
     error: requestSeriesError,
-  } = useTopNSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
-      search: `${SpanFields.SPAN_DOMAIN}:[${requestsListData?.map(item => `"${item[SpanFields.SPAN_DOMAIN]}"`).join(',')}]`,
-      fields: [groupBy, yAxes],
+      query: `${SpanFields.SPAN_DOMAIN}:[${requestsListData?.map(item => `"${item[SpanFields.SPAN_DOMAIN]}"`).join(',')}]`,
+      groupBy: [groupBy],
       yAxis: [yAxes],
-      topN: 3,
+      topEvents: 3,
       enabled: requestsListData?.length > 0,
+      excludeOther: true,
+      interval,
     },
     referrer
   );
 
   const isLoading = isRequestSeriesLoading || isRequestsListLoading;
   const error = requestSeriesError || requestsListError;
+  const timeSeries = requestSeriesData?.timeSeries ?? [];
 
   const hasData =
-    requestsListData && requestsListData.length > 0 && requestSeriesData.length > 0;
+    requestsListData && requestsListData.length > 0 && timeSeries.length > 0;
 
-  const colorPalette = theme.chart.getColorPalette(requestSeriesData.length - 1);
+  const colorPalette = theme.chart.getColorPalette(timeSeries.length - 1);
 
-  const aliases: Record<string, string> = {};
-
-  requestsListData.forEach(item => {
-    aliases[item[groupBy]] = `${yAxes}, ${item[groupBy]}`;
-  });
+  const plottables = timeSeries.map(
+    (ts, index) => new Line(ts, {color: colorPalette[index]})
+  );
 
   const visualization = (
     <WidgetVisualizationStates
@@ -108,13 +115,7 @@ export default function OverviewTimeConsumingRequestsWidget(
       visualizationProps={{
         id: 'overviewTimeConsumingRequestsWidget',
         showLegend: props.loaderSource === 'releases-drawer' ? 'auto' : 'never',
-        plottables: requestSeriesData.map(
-          (ts, index) =>
-            new Line(convertSeriesToTimeseries(ts), {
-              color: colorPalette[index],
-              alias: aliases[ts.seriesName],
-            })
-        ),
+        plottables,
         ...props,
         ...releaseBubbleProps,
       }}
@@ -139,7 +140,7 @@ export default function OverviewTimeConsumingRequestsWidget(
           <TimeSpentCell
             percentage={item['time_spent_percentage()']}
             total={item[totalTimeField]}
-            op={'http.client'}
+            op="http.client"
           />
         </Fragment>
       ))}
@@ -160,35 +161,67 @@ export default function OverviewTimeConsumingRequestsWidget(
     query: search?.formatString(),
     sort: undefined,
     groupBy: [groupBy],
+    interval,
     referrer,
   });
 
-  const chartActions = (
-    <BaseChartActionDropdown
-      key="time consuming requests widget"
-      exploreUrl={exploreUrl}
-      referrer={referrer}
-      alertMenuOptions={requestSeriesData.map(series => ({
-        key: series.seriesName,
-        label: aliases[series.seriesName],
-        to: getAlertsUrl({
-          project,
-          aggregate: yAxes,
-          organization,
-          pageFilters: selection,
-          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-          query: `${SpanFields.SPAN_DOMAIN}:${series.seriesName}`,
-          referrer,
-        }),
-      }))}
-    />
-  );
+  const addToDashboardOptions: AddToSpanDashboardOptions = {
+    chartType: ChartType.LINE,
+    yAxes: [yAxes],
+    widgetName: title,
+    groupBy: [groupBy],
+    search,
+    sort: {field: totalTimeField, kind: 'desc'},
+    topEvents: 3,
+  };
 
   return (
     <Widget
       Title={<Widget.WidgetTitle title={title} />}
       Visualization={visualization}
-      Actions={hasData && <Widget.WidgetToolbar>{chartActions}</Widget.WidgetToolbar>}
+      Actions={
+        hasData && (
+          <Widget.WidgetToolbar>
+            <Fragment>
+              <BaseChartActionDropdown
+                key="time consuming requests widget"
+                exploreUrl={exploreUrl}
+                referrer={referrer}
+                addToDashboardOptions={addToDashboardOptions}
+                alertMenuOptions={plottables.map(plottable => {
+                  const domain = plottable.timeSeries.groupBy?.[0]?.value;
+                  return {
+                    key: plottable.name,
+                    label: `${plottable.timeSeries.yAxis} : ${domain}`,
+                    to: getAlertsUrl({
+                      project,
+                      aggregate: yAxes,
+                      organization,
+                      pageFilters: selection,
+                      dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+                      query: `${SpanFields.SPAN_DOMAIN}:${domain}`,
+                      referrer,
+                    }),
+                  };
+                })}
+              />
+              <Button
+                size="xs"
+                aria-label={t('Open Full-Screen View')}
+                borderless
+                icon={<IconExpand />}
+                onClick={() => {
+                  openInsightChartModal({
+                    title,
+                    footer,
+                    children: <ModalChartContainer>{visualization}</ModalChartContainer>,
+                  });
+                }}
+              />
+            </Fragment>
+          </Widget.WidgetToolbar>
+        )
+      }
       noFooterPadding
       Footer={props.loaderSource === 'releases-drawer' ? undefined : footer}
     />

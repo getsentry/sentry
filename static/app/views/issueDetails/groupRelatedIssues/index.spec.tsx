@@ -1,12 +1,13 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {GroupRelatedIssues} from 'sentry/views/issueDetails/groupRelatedIssues';
 
 describe('Related Issues View', () => {
-  const organization = OrganizationFixture({features: ['global-views']});
+  const organization = OrganizationFixture();
   const groupId = '12345678';
   const group = GroupFixture({id: groupId});
   const orgSlug = organization.slug;
@@ -29,28 +30,24 @@ describe('Related Issues View', () => {
     },
   };
   const issuesData = [
-    {
+    GroupFixture({
       id: group1,
       shortId: `EARTH-${group1}`,
-      project: {id: '3', name: 'Earth', slug: 'earth', platform: null},
-      type: 'error',
+      project: ProjectFixture({id: '3', name: 'Earth', slug: 'earth'}),
       metadata: {
         type: errorType,
       },
-      issueCategory: 'error',
       lastSeen: '2024-03-15T20:15:30Z',
-    },
-    {
+    }),
+    GroupFixture({
       id: group2,
       shortId: `EARTH-${group2}`,
-      project: {id: '3', name: 'Earth', slug: 'earth', platform: null},
-      type: 'error',
+      project: ProjectFixture({id: '3', name: 'Earth', slug: 'earth'}),
       metadata: {
         type: errorType,
       },
-      issueCategory: 'error',
       lastSeen: '2024-03-16T20:15:30Z',
-    },
+    }),
   ];
 
   beforeEach(() => {
@@ -155,43 +152,6 @@ describe('Related Issues View', () => {
     expect(linkButton).toHaveAttribute(
       'href',
       `/organizations/org-slug/issues/?project=-1&query=${encodeURIComponent('trace:1234')}`
-    );
-  });
-
-  it('sets project id when global views is disabled', async () => {
-    MockApiClient.addMockResponse({
-      url: `/issues/${groupId}/related-issues/`,
-      match: [
-        MockApiClient.matchQuery({
-          type: 'same_root_cause',
-          project: group.project.id,
-        }),
-      ],
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/issues/${groupId}/related-issues/`,
-      match: [
-        MockApiClient.matchQuery({
-          type: 'trace_connected',
-          project: group.project.id,
-        }),
-      ],
-      body: onlyTraceConnectedData,
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${orgSlug}/issues/?project=${group.project.id}&query=${encodeURIComponent(`issue.id:[${group1},${group2}]`)}`,
-      body: issuesData,
-    });
-    const noGlobalViewsOrganization = OrganizationFixture({features: []});
-    render(<GroupRelatedIssues group={group} />, {
-      organization: noGlobalViewsOrganization,
-    });
-    expect(await screen.findByText(`EARTH-${group1}`)).toBeInTheDocument();
-    const linkButton = screen.getByRole('button', {name: /open in issues/i});
-    expect(linkButton).toHaveAttribute(
-      'href',
-      `/organizations/org-slug/issues/?project=${group.project.id}&query=${encodeURIComponent('trace:1234')}`
     );
   });
 });

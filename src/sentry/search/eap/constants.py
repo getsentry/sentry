@@ -27,6 +27,14 @@ OPERATOR_MAP = {
     ">=": ComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
     "<=": ComparisonFilter.OP_LESS_THAN_OR_EQUALS,
 }
+LITERAL_OPERATOR_MAP = {
+    "equals": ComparisonFilter.OP_EQUALS,
+    "notEquals": ComparisonFilter.OP_NOT_EQUALS,
+    "greater": ComparisonFilter.OP_GREATER_THAN,
+    "less": ComparisonFilter.OP_LESS_THAN,
+    "greaterOrEquals": ComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
+    "lessOrEquals": ComparisonFilter.OP_LESS_THAN_OR_EQUALS,
+}
 IN_OPERATORS = ["IN", "NOT IN"]
 
 AGGREGATION_OPERATOR_MAP = {
@@ -41,7 +49,9 @@ AGGREGATION_OPERATOR_MAP = {
 SearchType = (
     SizeUnit
     | DurationUnit
-    | Literal["duration", "integer", "number", "percentage", "string", "boolean", "rate"]
+    | Literal[
+        "duration", "integer", "number", "percentage", "string", "boolean", "rate", "currency"
+    ]
 )
 
 SIZE_TYPE: set[SearchType] = set(SIZE_UNITS.keys())
@@ -90,6 +100,7 @@ TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
     "percentage": DOUBLE,
     "string": STRING,
     "boolean": BOOLEAN,
+    "currency": DOUBLE,
 }
 
 # https://github.com/getsentry/snuba/blob/master/snuba/web/rpc/v1/endpoint_time_series.py
@@ -161,11 +172,13 @@ RESPONSE_CODE_MAP = {
 }
 
 SAMPLING_MODE_HIGHEST_ACCURACY: SAMPLING_MODES = "HIGHEST_ACCURACY"
+SAMPLING_MODE_HIGHEST_ACCURACY_FLEX_TIME: SAMPLING_MODES = "HIGHEST_ACCURACY_FLEX_TIME"
 SAMPLING_MODE_MAP: dict[SAMPLING_MODES, DownsampledStorageConfig.Mode.ValueType] = {
     "BEST_EFFORT": DownsampledStorageConfig.MODE_BEST_EFFORT,
     "PREFLIGHT": DownsampledStorageConfig.MODE_PREFLIGHT,
     "NORMAL": DownsampledStorageConfig.MODE_NORMAL,
     SAMPLING_MODE_HIGHEST_ACCURACY: DownsampledStorageConfig.MODE_HIGHEST_ACCURACY,
+    SAMPLING_MODE_HIGHEST_ACCURACY_FLEX_TIME: DownsampledStorageConfig.MODE_HIGHEST_ACCURACY_FLEXTIME,
 }
 
 ARITHMETIC_OPERATOR_MAP: dict[str, Column.BinaryFormula.Op.ValueType] = {
@@ -180,3 +193,8 @@ META_FIELD_PREFIX = f"{META_PREFIX}.fields"
 META_ATTRIBUTE_PREFIX = f"{META_FIELD_PREFIX}.attributes"
 
 SENTRY_INTERNAL_PREFIXES = ["__sentry_internal", "sentry._internal."]
+
+# public alias that we want to be sure are consistent
+TIMESTAMP_PRECISE_ALIAS = "timestamp_precise"
+TIMESTAMP_ALIAS = "timestamp"
+TRACE_ALIAS = "trace"

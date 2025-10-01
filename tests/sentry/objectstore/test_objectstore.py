@@ -12,11 +12,19 @@ class Testserver:
     secret = ""
 
 
+def test_object_url() -> None:
+    server = Testserver()
+    client = ClientBuilder("test", {"base_url": server.url}).for_project(123, 456)
+
+    assert (
+        client.object_url("foo")
+        == "http://localhost:8888/v1/foo?usecase=test&scope=org.123%2Fproj.456"
+    )
+
+
 def test_stores_uncompressed() -> None:
     server = Testserver()
-    client = ClientBuilder(
-        "test", {"base_url": server.url, "jwt_secret": server.secret}
-    ).for_organization(12345)
+    client = ClientBuilder("test", {"base_url": server.url}).for_organization(12345)
 
     body = b"oh hai!"
     stored_id = client.put(body, "foo", compression="none")
@@ -30,9 +38,7 @@ def test_stores_uncompressed() -> None:
 
 def test_uses_zstd_by_default() -> None:
     server = Testserver()
-    client = ClientBuilder(
-        "test", {"base_url": server.url, "jwt_secret": server.secret}
-    ).for_organization(12345)
+    client = ClientBuilder("test", {"base_url": server.url}).for_organization(12345)
 
     body = b"oh hai!"
     stored_id = client.put(body, "foo")
@@ -53,9 +59,7 @@ def test_uses_zstd_by_default() -> None:
 
 def test_deletes_stored_stuff() -> None:
     server = Testserver()
-    client = ClientBuilder(
-        "test", {"base_url": server.url, "jwt_secret": server.secret}
-    ).for_organization(12345)
+    client = ClientBuilder("test", {"base_url": server.url}).for_organization(12345)
 
     body = b"oh hai!"
     stored_id = client.put(body, "foo")

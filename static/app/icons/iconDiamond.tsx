@@ -6,11 +6,11 @@ import {SvgIcon} from './svgIcon';
 /**
  * @deprecated This icon will be removed in new UI.
  */
-function IconDiamond(props: SVGIconProps) {
+export function IconDiamond(props: SVGIconProps) {
   const theme = useTheme();
 
   return (
-    <SvgIcon {...props} kind={'path'}>
+    <SvgIcon {...props} kind="path">
       <g
         style={
           theme.isChonk ? {transform: 'rotate(45deg)', transformOrigin: 'center'} : {}
@@ -21,7 +21,3 @@ function IconDiamond(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconDiamond.displayName = 'IconDiamond';
-
-export {IconDiamond};

@@ -145,3 +145,38 @@ class ExternalActorSerializerTest(TestCase):
             context={"organization": self.organization},
         )
         assert serializer.is_valid() is True
+
+    def test_create_case_insensitive_team(self) -> None:
+        sentry_team = self.create_team(organization=self.organization, members=[self.user])
+
+        external_actor_team_data = {
+            "provider": get_provider_name(ExternalProviders.GITHUB.value),
+            "external_name": "@getsentry/example-team",
+            "integrationId": self.integration.id,
+            "team_id": sentry_team.id,
+        }
+
+        serializer = ExternalTeamSerializer(
+            data=external_actor_team_data,
+            context={"organization": self.organization},
+        )
+        assert serializer.is_valid() is True
+        external_actor1, created1 = serializer.create(serializer.validated_data)
+        assert created1 is True
+        assert external_actor1.external_name == "@getsentry/example-team"
+
+        # Try to create another with different case but different team - should match existing one
+        external_actor_team_data["external_name"] = "@GETSENTRY/EXAMPLE-TEAM"
+        external_actor_team_data["team_id"] = sentry_team.id
+
+        serializer = ExternalTeamSerializer(
+            data=external_actor_team_data,
+            context={"organization": self.organization},
+        )
+        assert serializer.is_valid() is True
+        external_actor2, created2 = serializer.create(serializer.validated_data)
+
+        # We should not have created a new external actor - we should have returned the existing one
+        assert created2 is False
+        assert external_actor2.id == external_actor1.id
+        assert external_actor2.external_name == "@getsentry/example-team"

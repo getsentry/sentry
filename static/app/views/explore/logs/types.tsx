@@ -48,13 +48,16 @@ export enum OurLogKnownFieldKey {
   SERVER_ADDRESS = 'server.address',
 
   // From the EAP dataset directly not using a column alias.
-  ID = 'sentry.item_id',
+  ID = 'id',
 
   // From the EAP dataset directly not using a column alias, should be hidden.
   ITEM_TYPE = 'sentry.item_type',
 
   // Deprecated fields
   TIMESTAMP_NANOS = 'sentry.timestamp_nanos',
+
+  // Replay integration
+  REPLAY_ID = 'replay_id',
 }
 
 export type OurLogFieldKey = OurLogCustomFieldKey | OurLogKnownFieldKey;

@@ -7,15 +7,14 @@ import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {
-  LogsPageParamsProvider,
-  useLogsSearch,
-  useSetLogsSearch,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
+import {
+  useQueryParamsSearch,
+  useSetQueryParamsQuery,
+} from 'sentry/views/explore/queryParams/context';
 
 type UseTraceViewLogsDataProps = {
   children: React.ReactNode;
@@ -27,10 +26,13 @@ export function TraceViewLogsDataProvider({
   children,
 }: UseTraceViewLogsDataProps) {
   return (
-    <LogsQueryParamsProvider source="state">
+    <LogsQueryParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+      source="state"
+      freeze={{traceId: traceSlug}}
+    >
       <LogsPageParamsProvider
         isTableFrozen
-        limitToTraceId={traceSlug}
         analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
       >
         <LogsPageDataProvider>{children}</LogsPageDataProvider>
@@ -56,8 +58,8 @@ function LogsSectionContent({
 }: {
   scrollContainer: React.RefObject<HTMLDivElement | null>;
 }) {
-  const setLogsSearch = useSetLogsSearch();
-  const logsSearch = useLogsSearch();
+  const setLogsQuery = useSetQueryParamsQuery();
+  const logsSearch = useQueryParamsSearch();
 
   return (
     <Fragment>
@@ -67,7 +69,7 @@ function LogsSectionContent({
         getTagValues={() => new Promise<string[]>(() => [])}
         initialQuery={logsSearch.formatString()}
         searchSource="ourlogs"
-        onSearch={query => setLogsSearch(new MutableSearch(query))}
+        onSearch={query => setLogsQuery(query)}
       />
       <TableContainer>
         <LogsInfiniteTable embedded scrollContainer={scrollContainer} />

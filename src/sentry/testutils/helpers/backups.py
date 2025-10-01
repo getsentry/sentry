@@ -48,6 +48,8 @@ from sentry.explore.models import (
 )
 from sentry.incidents.models.incident import IncidentActivity, IncidentTrigger
 from sentry.insights.models import InsightsStarredSegment
+from sentry.integrations.models.data_forwarder import DataForwarder
+from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.activity import Activity
@@ -69,7 +71,6 @@ from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
-    DashboardWidgetSnapshot,
     DashboardWidgetTypes,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
@@ -583,7 +584,6 @@ class ExhaustiveFixtures(Fixtures):
         permissions.teams_with_edit_access.set([team])
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
-            order=1,
             title=f"Test Widget for {slug}",
             display_type=0,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -595,10 +595,6 @@ class ExhaustiveFixtures(Fixtures):
             dashboard_widget_query=widget_query,
             extraction_state=DashboardWidgetQueryOnDemand.OnDemandExtractionState.DISABLED_NOT_APPLICABLE,
             spec_hashes=[],
-        )
-        DashboardWidgetSnapshot.objects.create(
-            widget=widget,
-            data={"test": "data"},
         )
         DashboardTombstone.objects.create(organization=org, slug=f"test-tombstone-in-{slug}")
 
@@ -759,6 +755,20 @@ class ExhaustiveFixtures(Fixtures):
             segment_name="test_transaction",
         )
 
+        data_forwarder = DataForwarder.objects.create(
+            organization=org,
+            is_enabled=True,
+            enroll_new_projects=True,
+            provider="segment",
+            config={"write_key": "test_write_key"},
+        )
+        DataForwarderProject.objects.create(
+            is_enabled=True,
+            data_forwarder=data_forwarder,
+            project=project,
+            overrides={"write_key": "test_override_write_key"},
+        )
+
         return org
 
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -793,7 +803,7 @@ class ExhaustiveFixtures(Fixtures):
             provider="slack", name=f"Slack for {org.slug}", external_id=f"slack:{org.slug}"
         )
         return OrganizationIntegration.objects.create(
-            organization_id=org.id, integration=integration, config='{"hello":"hello"}'
+            organization_id=org.id, integration=integration, config={"hello": "hello"}
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)

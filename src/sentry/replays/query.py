@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Generator, Sequence
-from datetime import datetime
-from typing import Any
+from datetime import UTC, datetime, timedelta
+from typing import Any, Literal
 
 from snuba_sdk import (
     Column,
@@ -34,6 +34,9 @@ from sentry.replays.usecases.query import (
     make_full_aggregation_query,
     query_using_optimized_search,
 )
+from sentry.search.events.types import SnubaParams
+from sentry.snuba.referrer import Referrer
+from sentry.snuba.utils import get_dataset
 from sentry.utils.snuba import raw_snql_query
 
 MAX_PAGE_SIZE = 100
@@ -641,7 +644,8 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "count_warnings": ["count_warnings"],
     "count_infos": ["count_infos"],
     "viewed_by_ids": ["viewed_by_ids"],
-    "has_viewed": ["viewed_by_ids"],
+    # queried through compute_has_viewed, which is a function of viewed_by_ids and request_user_id.
+    "has_viewed": [],
 }
 
 
@@ -865,13 +869,15 @@ def collect_aliases(fields: list[str]) -> list[str]:
 
 
 def select_from_fields(fields: list[str], user_id: int | None) -> list[Column | Function]:
-    """Return a list of columns to select."""
+    """Return a list of selections from the requested fields. If no fields are requested, return all."""
+    if not fields:
+        return list(QUERY_ALIAS_COLUMN_MAP.values()) + [compute_has_viewed(user_id)]
+
     selection = []
     for alias in collect_aliases(fields):
-        if alias == "has_viewed":
-            selection.append(compute_has_viewed(user_id))
-        else:
-            selection.append(QUERY_ALIAS_COLUMN_MAP[alias])
+        selection.append(QUERY_ALIAS_COLUMN_MAP[alias])
+    if "has_viewed" in fields:
+        selection.append(compute_has_viewed(user_id))
 
     return selection
 
@@ -902,3 +908,97 @@ def compute_has_viewed(viewed_by_id: int | None) -> Function:
         ],
         alias="has_viewed",
     )
+
+
+def query_trace_connected_events(
+    dataset_label: Literal["errors", "issuePlatform", "discover"],
+    selected_columns: list[str],
+    query: str | None,
+    snuba_params: SnubaParams,
+    equations: list[str] | None = None,
+    orderby: list[str] | None = None,
+    offset: int = 0,
+    limit: int = 10,
+    referrer: str = "api.replay.details-page",
+) -> dict[str, Any]:
+    """
+    Query for trace-connected events, with a reusable query configuration for replays.
+
+    Args:
+        dataset: The Snuba dataset to query against
+        selected_columns: List of columns to select
+        query: Optional query string
+        snuba_params: Snuba parameters including project IDs, time range, etc.
+        equations: Optional list of equations
+        orderby: Optional ordering specification
+        offset: Pagination offset
+        limit: Pagination limit
+        referrer: Referrer string for tracking
+
+    Returns:
+        Query result from the dataset
+    """
+    query_details = {
+        "selected_columns": selected_columns,
+        "query": query,
+        "snuba_params": snuba_params,
+        "equations": equations,
+        "orderby": orderby,
+        "offset": offset,
+        "limit": limit,
+        "referrer": referrer,
+        "auto_fields": True,
+        "auto_aggregations": True,
+        "use_aggregate_conditions": True,
+        "allow_metric_aggregates": False,
+        "transform_alias_to_input_format": True,
+    }
+
+    dataset = get_dataset(dataset_label)
+
+    if dataset is None:
+        raise ValueError(f"Unknown dataset: {dataset_label}")
+
+    return dataset.query(**query_details)
+
+
+def get_replay_range(
+    organization_id: int,
+    project_id: int,
+    replay_id: str,
+) -> tuple[datetime, datetime] | None:
+    query = Query(
+        match=Entity("replays"),
+        select=[
+            Function("min", parameters=[Column("replay_start_timestamp")], alias="min"),
+            Function("max", parameters=[Column("timestamp")], alias="max"),
+        ],
+        where=[
+            Condition(Column("project_id"), Op.EQ, project_id),
+            Condition(Column("replay_id"), Op.EQ, replay_id),
+            Condition(Column("segment_id"), Op.IS_NOT_NULL),
+            Condition(Column("timestamp"), Op.GTE, datetime.now(UTC) - timedelta(days=90)),
+            Condition(Column("timestamp"), Op.LT, datetime.now(UTC)),
+        ],
+        groupby=[Column("replay_id")],
+        limit=Limit(1),
+    )
+
+    response = execute_query(
+        query,
+        tenant_id={"organization_id": organization_id},
+        referrer=Referrer.API_REPLAY_SUMMARIZE_BREADCRUMBS.value,
+    )
+    rows = response.get("data", [])
+    if not rows:
+        return None
+
+    min_timestamp = rows[0]["min"]
+    max_timestamp = rows[0]["max"]
+
+    if min_timestamp is None or max_timestamp is None:
+        return None
+
+    min_dt = datetime.fromisoformat(min_timestamp.replace("Z", "+00:00"))
+    max_dt = datetime.fromisoformat(max_timestamp.replace("Z", "+00:00"))
+    return (min_dt, max_dt)

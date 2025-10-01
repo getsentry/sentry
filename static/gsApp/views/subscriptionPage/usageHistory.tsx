@@ -1,9 +1,10 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Container} from 'sentry/components/core/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -109,10 +110,10 @@ function UsageHistory({subscription}: Props) {
 
   if (isPending) {
     return (
-      <Fragment>
+      <Container>
         <SubscriptionHeader subscription={subscription} organization={organization} />
         <LoadingIndicator />
-      </Fragment>
+      </Container>
     );
   }
 
@@ -128,7 +129,7 @@ function UsageHistory({subscription}: Props) {
   }
 
   return (
-    <Fragment>
+    <Container>
       <SubscriptionHeader subscription={subscription} organization={organization} />
       <Panel>
         <PanelHeader>{t('Usage History')}</PanelHeader>
@@ -139,7 +140,7 @@ function UsageHistory({subscription}: Props) {
         </PanelBody>
       </Panel>
       {usageListPageLinks && <Pagination pageLinks={usageListPageLinks} />}
-    </Fragment>
+    </Container>
   );
 }
 

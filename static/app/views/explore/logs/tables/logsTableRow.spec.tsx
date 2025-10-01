@@ -22,7 +22,10 @@ import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 function ProviderWrapper({children}: {children?: React.ReactNode}) {
   return (
-    <LogsQueryParamsProvider source="location">
+    <LogsQueryParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+      source="location"
+    >
       <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
         <table>
           <tbody>{children}</tbody>
@@ -488,11 +491,11 @@ describe('logsTableRow', () => {
       message: 'test log body',
       trace: '7b91699f',
       severity: 'info',
-      item_id: '1',
+      [OurLogKnownFieldKey.ID]: '1',
     });
 
     // Verify the JSON structure matches what ourlogToJson produces
-    expect(parsedData).toHaveProperty('item_id', '1');
+    expect(parsedData).toHaveProperty(OurLogKnownFieldKey.ID, '1');
     expect(parsedData[OurLogKnownFieldKey.TIMESTAMP_PRECISE]).toBeDefined();
     expect(parsedData).not.toHaveProperty('sentry.item_id');
   });

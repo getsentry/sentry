@@ -6,6 +6,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from arroyo.backends.kafka import build_kafka_producer_configuration
 from confluent_kafka import KafkaError
 from confluent_kafka import Message as KafkaMessage
 from confluent_kafka import Producer
@@ -42,7 +43,10 @@ class KafkaEventStream(SnubaProtocolEventStream):
             cluster_name = get_topic_definition(topic)["cluster"]
             cluster_options = get_kafka_producer_cluster_options(cluster_name)
             cluster_options["client.id"] = "sentry.eventstream.kafka"
-            self.__producers[topic] = Producer(cluster_options)
+            # XXX(markus): We should use `sentry.utils.arroyo_producer.get_arroyo_producer`.
+            self.__producers[topic] = Producer(
+                build_kafka_producer_configuration(default_config=cluster_options)
+            )
 
         return self.__producers[topic]
 
@@ -98,7 +102,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     "is_regression": encode_bool(is_regression),
                     "skip_consume": encode_bool(skip_consume),
                     "group_states": encode_list(group_states) if group_states is not None else None,
-                    "queue": self._get_queue_for_post_process(event),
                 }
             )
         else:

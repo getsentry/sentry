@@ -581,23 +581,32 @@ A POST request is issued with no body. The URL and authorization context is used
 
 - Response 204
 
-## Replay Summarize Breadcrumb [/projects/<organization_id_or_slug>/<project_id_or_slug>/replays/<replay_id>/summarize/breadcrumbs/]
+## Replay Summary [/projects/<organization_id_or_slug>/<project_id_or_slug>/replays/<replay_id>/summarize/]
 
-### Fetch Replay Breadcrumb Summary [GET]
+### Fetch Replay Summary Task State [GET]
 
-| Column                   | Type            | Description                                                                                   |
-| ------------------------ | --------------- | --------------------------------------------------------------------------------------------- |
-| title                    | str             | The main title of the user journey summary.                                                   |
-| summary                  | str             | A concise summary featuring the highlights of the user's journey while using the application. |
-| time_ranges              | list[TimeRange] | A list of TimeRange objects.                                                                  |
-| time_ranges.period_start | number          | The start time (UNIX timestamp) of the analysis window.                                       |
-| time_ranges.period_end   | number          | The end time (UNIX timestamp) of the analysis window.                                         |
-| time_ranges.period_title | str             | A concise summary utilizing 6 words or fewer describing what happened during the time range.  |
+Retrieve the last status of a replay summary task. If the status is "completed", summary results are returned in `data`.
+
+| Column                        | Type             | Description                                                                                                            |
+| ----------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| status                        | str              | One of "processing", "not_started", "error", or "completed".                                                           |
+| created_at                    | optional[str]    | Time this status was last updated. ISO 8601 format. Null if not started.                                               |
+| num_segments                  | optional[number] | The number of replay segments used for this summary. E.g. 8 means the first 8 segments were used. Null if not started. |
+| data                          | optional[object] | The summary results. Null if not completed.                                                                            |
+| data.title                    | str              | The main title of the user journey summary.                                                                            |
+| data.summary                  | str              | A concise summary featuring the highlights of the user's journey while using the application.                          |
+| data.time_ranges              | list[TimeRange]  | A list of TimeRange objects.                                                                                           |
+| data.time_ranges.period_start | number           | The start time (UNIX timestamp) of the analysis window.                                                                |
+| data.time_ranges.period_end   | number           | The end time (UNIX timestamp) of the analysis window.                                                                  |
+| data.time_ranges.period_title | str              | A concise summary utilizing 9 words or fewer describing what happened during the time range.                           |
 
 - Response 200
 
   ```json
   {
+    "status": "completed",
+    "created_at": "2025-06-06T14:05:57.909921",
+    "num_segments": 5,
     "data": {
       "title": "Something Happened",
       "summary": "The application broke",
@@ -610,6 +619,46 @@ A POST request is issued with no body. The URL and authorization context is used
       ]
     }
   }
+  ```
+
+  ```json
+  {
+    "status": "error",
+    "created_at": "2025-06-06T14:05:11.909921",
+    "num_segments": 5,
+    "data": null
+  }
+  ```
+
+  ```json
+  {
+    "status": "not_started",
+    "created_at": null,
+    "num_segments": null,
+    "data": null
+  }
+  ```
+
+### Submit a Replay Summary Task [POST]
+
+Submit a task to generate a replay summary for the first `num_segments` segments of the replay recording. This will overwrite any previous task state. If an older task is processing the same replay and `num_segments`, the new task will be dropped. If `num_segments` has increased or the other task is too old, the new one will overwrite it.
+
+- Request
+
+  ```json
+  {
+    "num_segments": 5,
+    "temperature": 0.3
+  }
+  ```
+
+  To summarize the whole replay, submit an up-to-date segment count in `num_segments`. `temperature` must be a number between 0 and 1 (inclusive).
+  Higher `temperature` causes more randomness in the results. Submitting it is optional - defaults to 0.2.
+
+- Response 200 (Empty Response)
+
+  ```json
+  {}
   ```
 
 ## Replay Deletion Jobs [/projects/<organization_id_or_slug>/<project_id_or_slug>/replays/jobs/delete/]

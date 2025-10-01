@@ -112,6 +112,7 @@ export type ProjectKey = {
     crons: string;
     csp: string;
     minidump: string;
+    otlp_logs: string;
     otlp_traces: string;
     playstation: string;
     public: string;
@@ -321,6 +322,7 @@ export type PlatformIntegration = {
   link: string | null;
   name: string;
   type: string;
+  deprecated?: boolean;
   iconConfig?: {
     withLanguageIcon: boolean;
   };

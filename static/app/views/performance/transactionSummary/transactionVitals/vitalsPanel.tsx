@@ -1,5 +1,5 @@
-import {Component, Fragment} from 'react';
-import type {Theme} from '@emotion/react';
+import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import Panel from 'sentry/components/panels/panel';
@@ -21,12 +21,15 @@ type Props = {
   location: Location;
   organization: Organization;
   results: Record<PropertyKey, unknown>;
-  theme: Theme;
   dataFilter?: DataFilter;
 };
 
-class VitalsPanel extends Component<Props> {
-  renderVitalCard(
+function VitalsPanel(props: Props) {
+  const theme = useTheme();
+
+  const vitalGroups = useMemo(() => makeVitalGroups(theme), [theme]);
+
+  function renderVitalCard(
     vital: WebVital,
     isLoading: boolean,
     error: boolean,
@@ -37,7 +40,7 @@ class VitalsPanel extends Component<Props> {
     max?: number,
     precision?: number
   ) {
-    const {location, organization, eventView, dataFilter} = this.props;
+    const {location, organization, eventView, dataFilter} = props;
     const vitalDetails = WEB_VITAL_DETAILS[vital];
 
     const zoomed = min !== undefined || max !== undefined;
@@ -83,8 +86,8 @@ class VitalsPanel extends Component<Props> {
     );
   }
 
-  renderVitalGroup(group: VitalGroup, summaryResults: any) {
-    const {location, organization, eventView, dataFilter} = this.props;
+  function renderVitalGroup(group: VitalGroup, summaryResults: any) {
+    const {location, organization, eventView, dataFilter} = props;
     const {vitals, colors, min, max, precision} = group;
 
     const bounds = vitals.reduce(
@@ -129,7 +132,7 @@ class VitalsPanel extends Component<Props> {
 
                 return (
                   <Fragment key={vital}>
-                    {this.renderVitalCard(
+                    {renderVitalCard(
                       vital,
                       isLoading,
                       error,
@@ -150,21 +153,17 @@ class VitalsPanel extends Component<Props> {
     );
   }
 
-  render() {
-    const {results} = this.props;
-
-    return (
-      <Panel>
-        <Fragment>
-          {makeVitalGroups(this.props.theme).map(vitalGroup => (
-            <Fragment key={vitalGroup.vitals.join('')}>
-              {this.renderVitalGroup(vitalGroup, results)}
-            </Fragment>
-          ))}
-        </Fragment>
-      </Panel>
-    );
-  }
+  return (
+    <Panel>
+      <Fragment>
+        {vitalGroups.map(vitalGroup => (
+          <Fragment key={vitalGroup.vitals.join('')}>
+            {renderVitalGroup(vitalGroup, props.results)}
+          </Fragment>
+        ))}
+      </Fragment>
+    </Panel>
+  );
 }
 
 function parseBound(

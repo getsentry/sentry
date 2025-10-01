@@ -1,10 +1,9 @@
-import {useLayoutEffect, useMemo, useState} from 'react';
+import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useLocation} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Text} from 'sentry/components/core/text';
-import {space} from 'sentry/styles/space';
 
 type Entry = {
   ref: HTMLElement;
@@ -40,18 +39,34 @@ function useStoryIndex(): Entry[] {
   const location = useLocation();
 
   const hash = useMemo(() => location.hash.slice(1), [location.hash]);
+  const scrolled = useRef<string>('');
 
+  // automatically scroll to hash
+  useEffect(() => {
+    if (hash) {
+      const entry = entries.find(e => e.ref.id === hash);
+      if (entry && hash !== scrolled.current) {
+        entry.ref.scrollIntoView();
+        scrolled.current = hash;
+      }
+    }
+  }, [hash, entries]);
+
+  // populate entries
+  useLayoutEffect(() => {
+    const main = document.querySelector('main');
+    if (main) {
+      const initialEntries = getContentEntries(main);
+      setEntries(initialEntries);
+    }
+  }, []);
+
+  // update entries when content changes
   useLayoutEffect(() => {
     const observer = new MutationObserver(_mutations => {
       const main = document.querySelector('main');
       if (main) {
         const newEntries = getContentEntries(main);
-        if (hash) {
-          const entry = newEntries.find(e => e.ref.id === hash);
-          if (entry) {
-            entry.ref.scrollIntoView();
-          }
-        }
         setEntries(newEntries);
       }
     });
@@ -245,9 +260,9 @@ const StoryIndexContainer = styled('div')`
   display: none;
   position: sticky;
   top: 52px;
-  margin-inline: 0 ${space(2)};
+  margin-inline: 0 ${p => p.theme.space.xl};
   height: fit-content;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   min-width: 0;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -267,17 +282,17 @@ const StoryIndexTitle = styled('div')`
 
 const StoryIndexList = styled('ul')`
   list-style: none;
-  padding-left: ${space(1)};
-  padding-right: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
+  padding-right: ${p => p.theme.space.md};
   border-left: 1px solid ${p => p.theme.tokens.border.muted};
   margin: 0;
-  margin-left: -${space(2)};
+  margin-left: -${p => p.theme.space.xl};
   display: flex;
   flex-direction: column;
 
   ul {
-    margin-left: -${space(1)};
-    padding-left: ${space(1)};
+    margin-left: -${p => p.theme.space.md};
+    padding-left: ${p => p.theme.space.md};
     border-left: none;
   }
 `;
@@ -285,7 +300,7 @@ const StoryIndexList = styled('ul')`
 const StyledLink = styled('a')<{hasActiveChild: boolean; isActive: boolean}>`
   display: block;
   text-decoration: none;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   transition: color 80ms ease-out;
   border-radius: ${p => p.theme.borderRadius};
   position: relative;
@@ -302,7 +317,7 @@ const StyledLink = styled('a')<{hasActiveChild: boolean; isActive: boolean}>`
         content: '';
         display: block;
         position: absolute;
-        left: -${space(1)};
+        left: -${p.theme.space.md};
         width: 4px;
         height: 16px;
         border-radius: 4px;
@@ -313,6 +328,6 @@ const StyledLink = styled('a')<{hasActiveChild: boolean; isActive: boolean}>`
 `;
 
 const StyledChildLink = styled(StyledLink)<{isActive: boolean}>`
-  margin-left: ${space(2)};
+  margin-left: ${p => p.theme.space.xl};
   border-left: 0;
 `;

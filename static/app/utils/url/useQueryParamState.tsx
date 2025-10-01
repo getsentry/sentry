@@ -32,6 +32,10 @@ type UseQueryParamStateProps<T> =
   | UseQueryParamStateWithListDecoder<T>
   | UseQueryParamStateWithSortsDecoder<T>;
 
+type UseQueryParamStateOptions = {
+  updateUrl?: boolean;
+};
+
 /**
  * Hook to manage a state that is synced with a query param in the URL
  *
@@ -44,7 +48,10 @@ export function useQueryParamState<T = string>({
   decoder,
   deserializer,
   serializer,
-}: UseQueryParamStateProps<T>): [T | undefined, (newField: T | undefined) => void] {
+}: UseQueryParamStateProps<T>): [
+  T | undefined,
+  (newField: T | undefined, options?: UseQueryParamStateOptions) => void,
+] {
   const {batchUrlParamUpdates} = useUrlBatchContext();
 
   // The URL query params give us our initial state
@@ -69,8 +76,12 @@ export function useQueryParamState<T = string>({
   });
 
   const updateField = useCallback(
-    (newField: T | undefined) => {
+    (newField: T | undefined, options: UseQueryParamStateOptions = {updateUrl: true}) => {
       setLocalState(newField);
+
+      if (!options?.updateUrl) {
+        return;
+      }
 
       if (!defined(newField)) {
         batchUrlParamUpdates({[fieldName]: undefined});

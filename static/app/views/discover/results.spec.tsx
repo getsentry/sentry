@@ -266,7 +266,7 @@ describe('Results', () => {
       // Should redirect and retain the old query value
       expect(router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
-          pathname: '/organizations/org-slug/discover/results/',
+          pathname: '/organizations/org-slug/explore/discover/results/',
           query: expect.objectContaining({
             query: 'tag:value',
           }),
@@ -882,7 +882,7 @@ describe('Results', () => {
 
     it('respects pinned filters for prebuilt queries', async () => {
       const organization = OrganizationFixture({
-        features: [...features, 'global-views'],
+        features: [...features],
       });
 
       const {router} = initializeOrg({
@@ -1206,7 +1206,9 @@ describe('Results', () => {
 
       expect(screen.getByText('Discover')).toHaveAttribute(
         'href',
-        expect.stringMatching(new RegExp('^/organizations/org-slug/discover/homepage/'))
+        expect.stringMatching(
+          new RegExp('^/organizations/org-slug/explore/discover/homepage/')
+        )
       );
     });
 
@@ -1235,7 +1237,9 @@ describe('Results', () => {
 
       expect(screen.getByRole('link', {name: 'Saved Queries'})).toHaveAttribute(
         'href',
-        expect.stringMatching(new RegExp('^/organizations/org-slug/discover/queries/'))
+        expect.stringMatching(
+          new RegExp('^/organizations/org-slug/explore/discover/queries/')
+        )
       );
     });
 
@@ -1306,48 +1310,6 @@ describe('Results', () => {
       });
 
       expect(screen.queryByText(/Based on your search criteria/)).not.toBeInTheDocument();
-    });
-
-    it('uses split decision to populate dataset selector', async () => {
-      const organization = OrganizationFixture({
-        features: ['discover-basic', 'discover-query'],
-      });
-
-      const {router} = initializeOrg({
-        organization,
-        router: {
-          location: {query: {id: '1'}},
-        },
-      });
-
-      ProjectsStore.loadInitialData([ProjectFixture()]);
-
-      const mockRequests = renderMockRequests();
-
-      render(<Results location={router.location} router={router} />, {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      });
-
-      await waitFor(() => {
-        expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
-      });
-      expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
-      await waitFor(() => {
-        expect(screen.getByRole('tab', {name: 'Transactions'})).toHaveAttribute(
-          'aria-selected',
-          'true'
-        );
-      });
-
-      expect(
-        screen.getByText(
-          "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to Transactions. Edit as you see fit."
-        )
-      ).toBeInTheDocument();
-
-      expect(screen.queryByText('Save Changes')).not.toBeInTheDocument();
     });
 
     it('calls events endpoint with the right dataset', async () => {

@@ -9,35 +9,41 @@ import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {useInfiniteRepositoryBranches} from 'sentry/components/prevent/branchSelector/useInfiniteRepositoryBranches';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
+import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import {IconBranch} from './iconBranch';
-
-export const ALL_BRANCHES = 'All Branches';
+const ALL_BRANCHES = 'All Branches';
 
 export function BranchSelector() {
-  const {branch, integratedOrgId, repository, preventPeriod, changeContextValue} =
-    usePreventContext();
-  const [displayedBranches, setDisplayedBranches] = useState<string[]>([]);
+  const {
+    branch,
+    integratedOrgId,
+    integratedOrgName,
+    repository,
+    preventPeriod,
+    changeContextValue,
+  } = usePreventContext();
   const [searchValue, setSearchValue] = useState<string | undefined>();
 
   const {data, isFetching, isLoading} = useInfiniteRepositoryBranches({
     term: searchValue,
   });
   const branches = data.branches;
-  const defaultBranch = data.defaultBranch;
 
   const handleChange = useCallback(
     (selectedOption: SelectOption<string>) => {
+      const newBranch =
+        selectedOption.value === ALL_BRANCHES ? null : selectedOption.value;
       changeContextValue({
+        integratedOrgName,
         integratedOrgId,
         repository,
         preventPeriod,
-        branch: selectedOption.value,
+        branch: newBranch,
       });
     },
-    [changeContextValue, integratedOrgId, repository, preventPeriod]
+    [changeContextValue, integratedOrgName, integratedOrgId, repository, preventPeriod]
   );
 
   const handleOnSearch = useMemo(
@@ -48,7 +54,16 @@ export function BranchSelector() {
     [setSearchValue]
   );
 
+  const displayedBranches = useMemo(
+    () => (isFetching ? [] : (branches?.map(item => item.name) ?? [])),
+    [branches, isFetching]
+  );
+
   const options = useMemo((): Array<SelectOption<string>> => {
+    if (isFetching) {
+      return [];
+    }
+
     const optionSet = new Set<string>([
       ALL_BRANCHES,
       ...(branch ? [branch] : []),
@@ -64,14 +79,7 @@ export function BranchSelector() {
     };
 
     return [...optionSet].map(makeOption);
-  }, [branch, displayedBranches]);
-
-  useEffect(() => {
-    // Only update displayedBranches if the hook returned something non-empty
-    if (!isFetching) {
-      setDisplayedBranches((branches ?? []).map(item => item.name));
-    }
-  }, [branches, isFetching]);
+  }, [branch, displayedBranches, isFetching]);
 
   useEffect(() => {
     // Create a use effect to cancel handleOnSearch fn on unmount to avoid memory leaks
@@ -82,36 +90,24 @@ export function BranchSelector() {
 
   const branchResetButton = useCallback(
     ({closeOverlay}: any) => {
-      if (!defaultBranch || !branch || branch === defaultBranch) {
+      if (!branch || branch === ALL_BRANCHES) {
         return null;
       }
 
       return (
         <ResetButton
           onClick={() => {
-            changeContextValue({
-              integratedOrgId,
-              repository,
-              preventPeriod,
-              branch: defaultBranch,
-            });
+            handleChange({value: ALL_BRANCHES});
             closeOverlay();
           }}
           size="zero"
           borderless
         >
-          {t('Reset to default')}
+          {t('Reset to all branches')}
         </ResetButton>
       );
     },
-    [
-      branch,
-      integratedOrgId,
-      preventPeriod,
-      repository,
-      changeContextValue,
-      defaultBranch,
-    ]
+    [branch, handleChange]
   );
 
   function getEmptyMessage() {
@@ -135,8 +131,9 @@ export function BranchSelector() {
       onSearch={handleOnSearch}
       disableSearchFilter
       searchPlaceholder={t('search by branch name')}
+      menuTitle={t('Filter to branch')}
       options={options}
-      value={branch ?? ''}
+      value={branch ?? ALL_BRANCHES}
       onChange={handleChange}
       onOpenChange={_ => setSearchValue(undefined)}
       menuHeaderTrailingItems={branchResetButton}
@@ -161,7 +158,7 @@ export function BranchSelector() {
           </DropdownButton>
         );
       }}
-      menuWidth={'22em'}
+      menuWidth="22em"
     />
   );
 }

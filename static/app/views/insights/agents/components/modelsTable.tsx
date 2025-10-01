@@ -144,7 +144,7 @@ export function ModelsTable() {
       requests: span['count()'] ?? 0,
       avg: span['avg(span.duration)'] ?? 0,
       p95: span['p95(span.duration)'] ?? 0,
-      cost: Number(span['sum(gen_ai.usage.total_cost)']),
+      cost: span['sum(gen_ai.usage.total_cost)'],
       errors: span['count_if(span.status,equals,unknown)'] ?? 0,
       inputTokens: Number(span['sum(gen_ai.usage.input_tokens)']),
       inputCachedTokens: Number(span['sum(gen_ai.usage.input_tokens.cached)']),
@@ -239,10 +239,11 @@ const BodyCell = memo(function BodyCell({
     ],
     query: `gen_ai.request.model:${dataRow.model}`,
     field: [
-      'span.description',
-      'span.duration',
+      'gen_ai.request.model',
+      'gen_ai.operation.name',
       'gen_ai.usage.input_tokens',
       'gen_ai.usage.output_tokens',
+      'span.duration',
       'timestamp',
     ],
   });

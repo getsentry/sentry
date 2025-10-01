@@ -249,7 +249,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                   suggestions={sourceSuggestions}
                 />
                 {containsRootDeepWildcard && (
-                  <Alert type="warning" style={{padding: space(1), marginTop: space(1)}}>
+                  <Alert type="warning" style={{marginTop: space(1)}}>
                     {t(
                       `Deep wildcards ('**') apply to all datasets unless negated (eg. ** || !$logs.**)`
                     )}

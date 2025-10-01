@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -14,7 +13,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import Header from 'sentry/views/organizationStats/header';
 
 import TeamStatsControls from './controls';
@@ -25,12 +23,11 @@ import TeamResolutionTime from './teamResolutionTime';
 import {TeamUnresolvedIssues} from './teamUnresolvedIssues';
 import {dataDatetime} from './utils';
 
-function TeamStatsIssues() {
+export default function TeamStatsIssues() {
   const organization = useOrganization();
   const location = useLocation();
   const router = useRouter();
   const {teams, isLoading, isError} = useUserTeams();
-  const prefersStackedNav = usePrefersStackedNav();
 
   useRouteAnalyticsEventNames('team_insights.viewed', 'Team Insights: Viewed');
 
@@ -61,14 +58,12 @@ function TeamStatsIssues() {
     return <LoadingError />;
   }
 
-  const BodyWrapper = prefersStackedNav ? NewLayoutBody : Body;
-
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Team Issues')} orgSlug={organization.slug} />
       <Header organization={organization} activeTab="issues" />
 
-      <BodyWrapper>
+      <div>
         <TeamStatsControls
           showEnvironment
           location={location}
@@ -164,17 +159,7 @@ function TeamStatsIssues() {
             </DescriptionCard>
           </Layout.Main>
         )}
-      </BodyWrapper>
+      </div>
     </Fragment>
   );
 }
-
-export default TeamStatsIssues;
-
-const Body = styled(Layout.Body)`
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    display: block;
-  }
-`;
-
-const NewLayoutBody = styled('div')``;

@@ -197,7 +197,7 @@ describe('Discover > QueryList', () => {
 
     await userEvent.click(screen.getAllByTestId(/card-*/).at(0)!);
     expect(router.push).toHaveBeenLastCalledWith({
-      pathname: '/organizations/org-slug/discover/results/',
+      pathname: '/organizations/org-slug/explore/discover/results/',
       query: expect.objectContaining({queryDataset: 'error-events'}),
     });
   });
@@ -326,7 +326,7 @@ describe('Discover > QueryList', () => {
 
     await userEvent.click(screen.getAllByTestId(/card-*/).at(0)!);
     expect(router.push).toHaveBeenLastCalledWith({
-      pathname: '/organizations/org-slug/discover/results/',
+      pathname: '/organizations/org-slug/explore/discover/results/',
       query: {id: '1', statsPeriod: '14d'},
     });
   });

@@ -1,6 +1,6 @@
 import {IncidentFixture} from 'sentry-fixture/incident';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -10,12 +10,13 @@ import IncidentRedirect from './incidentRedirect';
 jest.mock('sentry/utils/analytics');
 
 describe('IncidentRedirect', () => {
-  const params = {alertId: '123'};
-  const {organization, project, router, routerProps} = initializeOrg({
-    router: {
-      params,
+  const initialRouterConfig = {
+    location: {
+      pathname: '/organizations/org-slug/issues/alerts/123/',
     },
-  });
+    route: '/organizations/:orgId/issues/alerts/:alertId/',
+  };
+  const project = ProjectFixture();
   const mockIncident = IncidentFixture({projects: [project.slug]});
 
   beforeEach(() => {
@@ -31,9 +32,8 @@ describe('IncidentRedirect', () => {
   });
 
   it('redirects to alert details page', async () => {
-    render(<IncidentRedirect organization={organization} {...routerProps} />, {
-      router,
-      deprecatedRouterMocks: true,
+    const {router} = render(<IncidentRedirect />, {
+      initialRouterConfig,
     });
 
     expect(trackAnalytics).toHaveBeenCalledWith(
@@ -44,12 +44,14 @@ describe('IncidentRedirect', () => {
     );
 
     await waitFor(() => {
-      expect(router.replace).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/alerts/rules/details/4/',
-        query: {
-          alert: '123',
-        },
-      });
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/alerts/rules/details/4/',
+          query: {
+            alert: '123',
+          },
+        })
+      );
     });
   });
 });

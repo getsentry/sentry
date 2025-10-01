@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
+from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -87,6 +88,7 @@ class ActivityManager(BaseManager["Activity"]):
         user_id: int | None = None,
         data: Mapping[str, Any] | None = None,
         send_notification: bool = True,
+        datetime: datetime | None = None,
     ) -> Activity:
         if user:
             user_id = user.id
@@ -98,6 +100,8 @@ class ActivityManager(BaseManager["Activity"]):
         }
         if user_id is not None:
             activity_args["user_id"] = user_id
+        if datetime is not None:
+            activity_args["datetime"] = datetime
         activity = self.create(**activity_args)
 
         if send_notification:

@@ -64,7 +64,7 @@ export default function AdminSettings() {
 
       <Form
         apiMethod="PUT"
-        apiEndpoint={'/internal/options/'}
+        apiEndpoint="/internal/options/"
         initialData={initialData}
         saveOnBlur
       >

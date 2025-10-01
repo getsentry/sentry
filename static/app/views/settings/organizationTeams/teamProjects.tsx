@@ -127,7 +127,7 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
                 }
               }}
               menuTitle={t('Projects')}
-              triggerLabel={t('Add Project')}
+              triggerProps={{children: t('Add Project')}}
               searchPlaceholder={t('Search Projects')}
               emptyMessage={t('No projects')}
               loading={loadingUnlinkedProjects}

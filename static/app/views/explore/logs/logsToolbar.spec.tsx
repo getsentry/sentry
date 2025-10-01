@@ -9,7 +9,10 @@ import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
-    <LogsQueryParamsProvider source="location">
+    <LogsQueryParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+      source="location"
+    >
       <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
         {children}
       </LogsPageParamsProvider>
@@ -218,7 +221,7 @@ describe('LogsToolbar', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Add Group'}));
       expect(router.location.query.aggregateField).toEqual(
-        [{groupBy: 'message'}, {yAxes: ['count(message)']}, {groupBy: ''}].map(
+        [{groupBy: 'message'}, {groupBy: ''}, {yAxes: ['count(message)']}].map(
           aggregateField => JSON.stringify(aggregateField)
         )
       );

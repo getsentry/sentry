@@ -1,3 +1,4 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -24,7 +25,7 @@ describe('WidgetBuilderSortBySelector', () => {
   beforeEach(() => {
     const setupOrg = initializeOrg({
       organization: {
-        features: ['global-views', 'open-membership', 'visibility-explore-view'],
+        features: ['open-membership', 'visibility-explore-view'],
       },
       projects: [],
       router: {
@@ -248,7 +249,7 @@ describe('WidgetBuilderSortBySelector', () => {
 
     const setupOrg = initializeOrg({
       organization: {
-        features: ['global-views', 'open-membership', 'visibility-explore-view'],
+        features: ['open-membership', 'visibility-explore-view'],
       },
       projects: [],
       router: {
@@ -290,6 +291,126 @@ describe('WidgetBuilderSortBySelector', () => {
     expect(mockNavigate).toHaveBeenLastCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({sort: ['-count_unique(span.op)']}),
+      }),
+      expect.anything()
+    );
+  });
+
+  it('sorts by equations line chart', async () => {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+
+    const organizationWithFlag = OrganizationFixture();
+    organizationWithFlag.features.push('visibility-explore-equations');
+
+    const equationRouter = RouterFixture({
+      ...router,
+      location: {
+        ...router.location,
+        query: {
+          ...router.location.query,
+          yAxis: ['count()', 'equation|count_unique(transaction.duration) + 100'],
+        },
+      },
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          <WidgetBuilderSortBySelector />
+        </TraceItemAttributeProvider>
+      </WidgetBuilderProvider>,
+      {
+        router: equationRouter,
+        organization: organizationWithFlag,
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    const sortDirectionSelector = await screen.findByText('High to low');
+    const sortFieldSelector = await screen.findByText('(Required)');
+
+    expect(sortFieldSelector).toBeInTheDocument();
+
+    await userEvent.click(sortFieldSelector);
+    await userEvent.click(
+      await screen.findByText('count_unique(transaction.duration) + 100')
+    );
+
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        ...router.location,
+        query: expect.objectContaining({sort: ['-equation[0]']}),
+      }),
+      expect.anything()
+    );
+
+    await userEvent.click(sortDirectionSelector);
+    await userEvent.click(await screen.findByText('Low to high'));
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        ...router.location,
+        query: expect.objectContaining({sort: ['equation[0]']}),
+      }),
+      expect.anything()
+    );
+  });
+  it('sorts by equations table', async () => {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+
+    const organizationWithFlag = OrganizationFixture();
+    organizationWithFlag.features.push('visibility-explore-equations');
+
+    const equationRouter = RouterFixture({
+      ...router,
+      location: {
+        ...router.location,
+        query: {
+          ...router.location.query,
+          displayType: 'table',
+          yAxis: ['count()', 'equation|count_unique(transaction.duration) + 100'],
+        },
+      },
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          <WidgetBuilderSortBySelector />
+        </TraceItemAttributeProvider>
+      </WidgetBuilderProvider>,
+      {
+        router: equationRouter,
+        organization: organizationWithFlag,
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    const sortDirectionSelector = await screen.findByText('High to low');
+    const sortFieldSelector = await screen.findByText(`Select a column\u{2026}`);
+
+    expect(sortFieldSelector).toBeInTheDocument();
+
+    await userEvent.click(sortFieldSelector);
+    await userEvent.click(
+      await screen.findByText('count_unique(transaction.duration) + 100')
+    );
+
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        ...router.location,
+        query: expect.objectContaining({sort: ['-equation[0]']}),
+      }),
+      expect.anything()
+    );
+
+    await userEvent.click(sortDirectionSelector);
+    await userEvent.click(await screen.findByText('Low to high'));
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        ...router.location,
+        query: expect.objectContaining({sort: ['equation[0]']}),
       }),
       expect.anything()
     );

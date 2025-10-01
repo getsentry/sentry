@@ -1,7 +1,7 @@
-import {Component} from 'react';
-import type {Location} from 'history';
+import {useEffect, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 
-import type {Client, RequestOptions} from 'sentry/api';
+import type {RequestOptions} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -9,12 +9,12 @@ import Pagination from 'sentry/components/pagination';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 
 type Option = [value: string, label: string];
 
 type FilterProps = {
-  location: Location;
   name: string;
   options: Option[];
   path: string;
@@ -22,123 +22,110 @@ type FilterProps = {
   value: string;
 };
 
-class Filter extends Component<FilterProps> {
-  getCurrentLabel() {
-    const selected = this.props.options.find(
-      item => item[0] === (this.props.value ?? '')
-    );
+function Filter({name, options, path, queryKey, value}: FilterProps) {
+  const location = useLocation();
+
+  const currentLabel = useMemo(() => {
+    const selected = options.find(item => item[0] === (value ?? ''));
     if (selected) {
-      return this.props.name + ': ' + selected[1];
+      return name + ': ' + selected[1];
     }
-    return this.props.name + ': ' + 'Any';
-  }
+    return name + ': ' + 'Any';
+  }, [name, options, value]);
 
-  getSelector = () => {
-    return (
-      <CompactSelect
-        triggerProps={{
-          size: 'sm',
-          borderless: true,
-        }}
-        triggerLabel={this.getCurrentLabel()}
-        options={[
-          {
-            value: 'any',
-            label: 'Any',
-          },
-          ...this.props.options.map(([value, label]) => ({
-            value,
-            label,
-          })),
-        ]}
-        value={this.props.value ?? 'any'}
-        onChange={({value}) => {
-          if (value === 'any') {
-            const query = {...this.props.location.query, cursor: undefined};
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            delete query[this.props.queryKey];
-            browserHistory.push({pathname: this.props.path, query});
-          } else {
-            browserHistory.push({
-              pathname: this.props.path,
-              query: {
-                ...this.props.location.query,
-                [this.props.queryKey]: value,
-                cursor: undefined,
-              },
-            });
-          }
-        }}
-      />
-    );
-  };
+  const selector = (
+    <CompactSelect
+      triggerProps={{
+        size: 'sm',
+        borderless: true,
+        children: currentLabel,
+      }}
+      options={[
+        {
+          value: 'any',
+          label: 'Any',
+        },
+        ...options.map(([optValue, label]) => ({
+          value: optValue,
+          label,
+        })),
+      ]}
+      value={value ?? 'any'}
+      onChange={({value: selectedValue}) => {
+        if (selectedValue === 'any') {
+          const query = {...location.query, cursor: undefined, [queryKey]: undefined};
+          browserHistory.push({pathname: path, query});
+        } else {
+          browserHistory.push({
+            pathname: path,
+            query: {
+              ...location.query,
+              [queryKey]: selectedValue,
+              cursor: undefined,
+            },
+          });
+        }
+      }}
+    />
+  );
 
-  render() {
-    return (
-      <div className="filter-options">
-        {this.props.options.length === 1 ? (
-          <strong>{this.getCurrentLabel()}</strong>
-        ) : (
-          this.getSelector()
-        )}
-      </div>
-    );
-  }
+  return (
+    <div className="filter-options">
+      {options.length === 1 ? <strong>{currentLabel}</strong> : selector}
+    </div>
+  );
 }
 
 type SortByProps = {
-  location: Location;
   options: Option[];
   path: string;
   value: string;
 };
 
-class SortBy extends Component<SortByProps> {
-  getCurrentSortLabel() {
-    return this.props.options.find(([value]) => value === this.props.value)?.[1];
+function SortBy({options, path, value}: SortByProps) {
+  const location = useLocation();
+  const currentSortLabel = useMemo(
+    () => options.find(([optValue]) => optValue === value)?.[1],
+    [options, value]
+  );
+
+  if (options.length === 0) {
+    return null;
   }
 
-  getSortBySelector() {
-    return (
-      <div className="sort-options">
-        <CompactSelect
-          triggerLabel={this.getCurrentSortLabel()}
-          triggerProps={{
-            size: 'sm',
-            borderless: true,
-          }}
-          options={this.props.options.map(option => ({
-            value: option[0],
-            label: option[1],
-          }))}
-          onChange={({value}) => {
-            browserHistory.push({
-              pathname: this.props.path,
-              query: {...this.props.location.query, sortBy: value, cursor: undefined},
-            });
-          }}
-          value={this.props.value}
-        />
-      </div>
-    );
-  }
+  const sortBySelector = (
+    <div className="sort-options">
+      <CompactSelect
+        triggerProps={{
+          size: 'sm',
+          borderless: true,
+          children: currentSortLabel,
+        }}
+        options={options.map(option => ({
+          value: option[0],
+          label: option[1],
+        }))}
+        onChange={({value: selected}) => {
+          browserHistory.push({
+            pathname: path,
+            query: {...location.query, sortBy: selected, cursor: undefined},
+          });
+        }}
+        value={value}
+      />
+    </div>
+  );
 
-  render() {
-    if (this.props.options.length === 0) {
-      return null;
-    }
-
-    return (
-      <div className="sort-options">
-        Showing results sorted by{' '}
-        {this.props.options.length === 1 ? (
-          <strong className="sorted-by">{this.getCurrentSortLabel()}</strong>
-        ) : (
-          this.getSortBySelector()
-        )}
-      </div>
-    );
-  }
+  return (
+    <div className="sort-options">
+      Showing results sorted by{' '}
+      {options.length === 1 ? (
+        <strong className="sorted-by">{currentSortLabel}</strong>
+      ) : (
+        sortBySelector
+      )}
+    </div>
+  );
 }
 
 type FilterConfig = {
@@ -149,10 +136,7 @@ type FilterConfig = {
 // XXX(ts): Using Partial here on the DefaultProps is not really correct, since
 // defaultProps guarantees they'll be set. But because this component is
 // wrapped with a HoC, we lose the defaultProps, and users of the component
-type Props = {
-  api: Client;
-  location: Location;
-} & Partial<DefaultProps>;
+type Props = Partial<DefaultProps>;
 
 type DefaultProps = {
   columns: React.ReactNode[];
@@ -179,223 +163,346 @@ type State = {
   sortBy: string;
 };
 
-class ResultGrid extends Component<Props, State> {
-  static defaultProps: DefaultProps = {
-    path: '',
-    endpoint: '',
-    method: 'GET',
-    columns: [],
-    sortOptions: [],
-    filters: {},
-    defaultSort: '',
-    keyForRow: row => row.id,
-    columnsForRow: () => [],
-    defaultParams: {
-      per_page: 50,
-    },
-    hasPagination: true,
-    hasSearch: false,
-  };
+function ResultGrid(props: Props) {
+  const api = useApi({persistInFlight: true});
+  const location = useLocation();
 
-  state: State = this.defaultState;
+  const {
+    path = '',
+    endpoint = '',
+    method = 'GET',
+    columns = [],
+    sortOptions = [],
+    filters = {},
+    defaultSort = '',
+    keyForRow = (row: any) => row.id,
+    columnsForRow = (_row: any) => [],
+    defaultParams = {per_page: 50},
+    hasPagination = true,
+    hasSearch = false,
+  } = props;
 
-  UNSAFE_componentWillMount() {
-    this.fetchData();
-  }
-
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    const queryParams = {...nextProps.location.query} as Record<string, string>;
-    this.setState(
-      {
-        query: queryParams.query ?? '',
-        sortBy: queryParams.sortBy ?? this.props.defaultSort!,
-        filters: {...queryParams},
-        pageLinks: null,
-        loading: true,
-        error: false,
-      },
-      this.fetchData
-    );
-  }
-
-  get defaultState() {
-    const queryParams = this.query;
-
+  const buildDefaultState = (): State => {
+    const queryParams = location.query;
     return {
       rows: [],
       loading: true,
       error: false,
       pageLinks: null,
-      query: queryParams.query ?? '',
-      sortBy: queryParams.sortBy ?? this.props.defaultSort,
-      filters: {...queryParams},
-    } as State;
-  }
+      query: (queryParams.query as string | undefined) ?? '',
+      sortBy: (queryParams.sortBy as string | undefined) ?? defaultSort,
+      filters: {...queryParams} as Record<string, string>,
+    };
+  };
 
-  get query() {
-    return (this.props.location?.query ?? {}) as Record<string, string>;
-  }
+  const [state, setState] = useState<State>(buildDefaultState());
 
-  remountComponent() {
-    this.setState(this.defaultState, this.fetchData);
-  }
+  useEffect(() => {
+    const queryParams = location.query;
+    const nextSortBy = (queryParams.sortBy as string | undefined) ?? defaultSort;
 
-  refresh() {
-    this.setState({loading: true}, this.fetchData);
-  }
+    setState(prev => ({
+      ...prev,
+      query: (queryParams.query as string | undefined) ?? '',
+      sortBy: nextSortBy,
+      filters: {...queryParams} as Record<string, string>,
+      pageLinks: null,
+      loading: true,
+      error: false,
+    }));
 
-  fetchData() {
-    // TODO(dcramer): this should explicitly allow filters/sortBy/cursor/perPage
-    const queryParams = {
-      ...this.props.defaultParams,
-      sortBy: this.state.sortBy,
-      ...this.query,
+    const requestParams = {
+      ...defaultParams,
+      sortBy: nextSortBy,
+      ...queryParams,
     };
 
-    this.props.api.request(this.props.endpoint!, {
-      method: this.props.method,
-      data: queryParams,
+    api.request(endpoint, {
+      method: method as RequestOptions['method'],
+      data: requestParams,
       success: (data, _, resp) => {
-        this.setState({
+        setState(prev => ({
+          ...prev,
           loading: false,
           error: false,
           rows: data,
           pageLinks: resp?.getResponseHeader('Link') ?? null,
-        });
+        }));
       },
       error: () => {
-        this.setState({
+        setState(prev => ({
+          ...prev,
           loading: false,
           error: true,
-        });
+        }));
       },
     });
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location, endpoint, method, defaultSort, JSON.stringify(defaultParams)]);
 
-  onSearch = (e: React.FormEvent<HTMLFormElement>) => {
-    const location = this.props.location ?? {};
-    const {query} = this.state;
-    const targetQueryParams = {...location.query, query, cursor: ''};
+  const onSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    const targetQueryParams = {...location.query, query: state.query, cursor: ''};
 
     e.preventDefault();
 
     browserHistory.push({
-      pathname: this.props.path,
+      pathname: path,
       query: targetQueryParams,
     });
   };
 
-  onQueryChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({query: evt.target.value});
+  const onQueryChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
+    setState(prev => ({...prev, query: evt.target.value}));
   };
 
-  renderLoading() {
-    return (
-      <tr>
-        <td colSpan={this.props.columns!.length}>
-          <div className="loading">
-            <div className="loading-indicator" />
-            <div className="loading-message">Hold on to your butts!</div>
-          </div>
-        </td>
-      </tr>
-    );
-  }
-
-  renderError() {
-    return (
-      <tr>
-        <td colSpan={this.props.columns!.length}>
-          <Alert type="error" showIcon={false}>
-            Something bad happened :(
-          </Alert>
-        </td>
-      </tr>
-    );
-  }
-
-  renderNoResults() {
-    return (
-      <tr>
-        <td colSpan={this.props.columns!.length}>No results found.</td>
-      </tr>
-    );
-  }
-
-  renderResults() {
-    return this.state.rows.map(row => (
-      <tr key={this.props.keyForRow?.(row)}>{this.props.columnsForRow?.(row)}</tr>
-    ));
-  }
-
-  render() {
-    const {filters, sortOptions, path, location} = this.props;
-    return (
-      <div className="result-grid">
-        <div className="table-options">
-          {this.props.hasSearch && (
-            <div className="result-grid-search">
-              <form onSubmit={this.onSearch}>
-                <div className="form-group">
-                  <input
-                    type="text"
-                    className="form-control input-search"
-                    placeholder="search"
-                    style={{width: 300}}
-                    name="query"
-                    autoComplete="off"
-                    value={this.state.query}
-                    onChange={this.onQueryChange}
-                  />
-                  <Button
-                    type="submit"
-                    size="sm"
-                    priority="primary"
-                    icon={<IconSearch size="xs" />}
-                    aria-label={t('Search')}
-                  />
-                </div>
-              </form>
-            </div>
-          )}
-          <SortBy
-            options={sortOptions ?? []}
-            value={this.state.sortBy}
-            path={path ?? ''}
-            location={location}
-          />
-          {Object.keys(filters ?? {}).map(filterKey => (
-            <Filter
-              key={filterKey}
-              queryKey={filterKey}
-              value={this.state.filters[filterKey]!}
-              path={path ?? ''}
-              location={location}
-              {...(filters?.[filterKey] as FilterConfig)}
-            />
-          ))}
+  const renderLoading = () => (
+    <tr>
+      <td colSpan={columns.length}>
+        <div className="loading">
+          <div className="loading-indicator" />
+          <div className="loading-message">Hold on to your butts!</div>
         </div>
+      </td>
+    </tr>
+  );
 
-        <table className="table table-grid">
-          <thead>
-            <tr>{this.props.columns}</tr>
-          </thead>
-          <tbody>
-            {this.state.loading
-              ? this.renderLoading()
-              : this.state.error
-                ? this.renderError()
-                : this.state.rows.length === 0
-                  ? this.renderNoResults()
-                  : this.renderResults()}
-          </tbody>
-        </table>
-        {this.props.hasPagination && this.state.pageLinks && (
-          <Pagination pageLinks={this.state.pageLinks} />
+  const renderError = () => (
+    <tr>
+      <td colSpan={columns.length}>
+        <Alert type="error" showIcon={false}>
+          Something bad happened :(
+        </Alert>
+      </td>
+    </tr>
+  );
+
+  const renderNoResults = () => (
+    <tr>
+      <td colSpan={columns.length}>No results found.</td>
+    </tr>
+  );
+
+  const renderResults = () =>
+    state.rows.map(row => <tr key={keyForRow?.(row)}>{columnsForRow?.(row)}</tr>);
+
+  return (
+    <ResultGridContainer>
+      <div className="table-options">
+        {hasSearch && (
+          <div className="result-grid-search">
+            <form onSubmit={onSearch}>
+              <div className="form-group">
+                <input
+                  type="text"
+                  className="form-control input-search"
+                  placeholder="search"
+                  style={{width: 300}}
+                  name="query"
+                  autoComplete="off"
+                  value={state.query}
+                  onChange={onQueryChange}
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  priority="primary"
+                  icon={<IconSearch size="xs" />}
+                  aria-label={t('Search')}
+                />
+              </div>
+            </form>
+          </div>
         )}
+        <SortBy options={sortOptions ?? []} value={state.sortBy} path={path ?? ''} />
+        {Object.keys(filters ?? {}).map(filterKey => (
+          <Filter
+            key={filterKey}
+            queryKey={filterKey}
+            value={state.filters[filterKey]!}
+            path={path ?? ''}
+            {...(filters?.[filterKey] as FilterConfig)}
+          />
+        ))}
       </div>
-    );
-  }
+
+      <table className="table table-grid">
+        <thead>
+          <tr>{columns}</tr>
+        </thead>
+        <tbody>
+          {state.loading
+            ? renderLoading()
+            : state.error
+              ? renderError()
+              : state.rows.length === 0
+                ? renderNoResults()
+                : renderResults()}
+        </tbody>
+      </table>
+      {hasPagination && state.pageLinks && <Pagination pageLinks={state.pageLinks} />}
+    </ResultGridContainer>
+  );
 }
 
-export default withApi(ResultGrid);
+export default ResultGrid;
+
+/**
+ * Styles migrated from sentry/result-grid.less
+ */
+const ResultGridContainer = styled('div')`
+  clear: both;
+
+  .table-grid {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .table-grid > thead > tr > th,
+  .table-grid > tbody > tr > th,
+  .table-grid > tfoot > tr > th,
+  .table-grid > thead > tr > td,
+  .table-grid > tbody > tr > td,
+  .table-grid > tfoot > tr > td {
+    vertical-align: top;
+    border-top: 1px solid #f1eff3;
+    padding: 15px 20px;
+    line-height: 1.42857;
+  }
+
+  .table-grid > thead > tr > th {
+    vertical-align: bottom;
+    border-bottom: 2px solid #f1eff3;
+  }
+
+  .table-grid > caption + thead > tr:first-child > th,
+  .table-grid > colgroup + thead > tr:first-child > th,
+  .table-grid > thead:first-child > tr:first-child > th,
+  .table-grid > caption + thead > tr:first-child > td,
+  .table-grid > colgroup + thead > tr:first-child > td,
+  .table-grid > thead:first-child > tr:first-child > td {
+    border-top: 0;
+  }
+
+  .table-grid > tbody + tbody {
+    border-top: 2px solid #f1eff3;
+  }
+
+  .table-grid .table {
+    background-color: #fff;
+  }
+
+  .table-grid .label {
+    text-transform: uppercase;
+    margin-left: 10px;
+    font-size: 0.5em;
+    font-weight: 400;
+  }
+
+  .table-grid thead th {
+    text-transform: uppercase;
+    font-size: 12px;
+  }
+
+  td small {
+    font-size: 0.8em;
+  }
+
+  .table-options {
+    margin-bottom: 20px;
+    position: relative;
+  }
+
+  .filter-options,
+  .sort-options {
+    margin-right: 5px;
+    display: inline-block;
+  }
+
+  .sorted-by,
+  .filter-options {
+    color: inherit;
+    background: #f9f9f9;
+    margin-left: 5px;
+    padding: 0 10px;
+    font-weight: 600;
+    display: inline-block;
+  }
+
+  .sorted-by:hover,
+  .filter-options:hover {
+    color: inherit;
+  }
+
+  .result-grid-search {
+    float: right !important;
+  }
+
+  @media (min-width: 768px) {
+    .result-grid-search .form-group {
+      vertical-align: middle;
+      margin-bottom: 0;
+      display: inline-block;
+    }
+
+    .result-grid-search .form-control {
+      vertical-align: middle;
+      width: auto;
+      display: inline-block;
+    }
+
+    .result-grid-search .form-control-static {
+      display: inline-block;
+    }
+
+    .result-grid-search .control-label {
+      vertical-align: middle;
+      margin-bottom: 0;
+    }
+
+    .result-grid-search .radio,
+    .result-grid-search .checkbox {
+      vertical-align: middle;
+      margin-top: 0;
+      margin-bottom: 0;
+      display: inline-block;
+    }
+
+    .result-grid-search .radio label,
+    .result-grid-search .checkbox label {
+      padding-left: 0;
+    }
+
+    .result-grid-search .radio input[type='radio'] {
+      margin-left: 0;
+      position: relative;
+    }
+
+    .result-grid-search .checkbox input[type='checkbox'] {
+      margin-left: 0;
+      position: relative;
+    }
+
+    .result-grid-search .has-feedback .form-control-feedback {
+      top: 0;
+    }
+  }
+
+  .result-grid-search .input-search {
+    vertical-align: middle;
+    padding: 3px 8px;
+    font-size: 14px;
+  }
+
+  .result-grid-search .btn,
+  .result-grid-search .btn-primary,
+  .result-grid-search .btn-default {
+    border: 0;
+    margin-left: -10px;
+    position: relative;
+  }
+
+  .result-grid-search .btn-sm {
+    padding: 5px 10px;
+  }
+`;

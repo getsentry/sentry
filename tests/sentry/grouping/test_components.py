@@ -1,10 +1,13 @@
 from collections import Counter
 from typing import Any
 
+import pytest
+
 from sentry.grouping.component import (
     BaseGroupingComponent,
     ChainedExceptionGroupingComponent,
     ExceptionGroupingComponent,
+    FrameGroupingComponent,
     FunctionGroupingComponent,
     StacktraceGroupingComponent,
     ThreadsGroupingComponent,
@@ -73,6 +76,23 @@ class ComponentTest(TestCase):
             ),
         )
 
+    def test_primitive_wrappers_wrap_at_most_one_value(self) -> None:
+        # These run without erroring
+        FunctionGroupingComponent(values=[])
+        FunctionGroupingComponent(values=["playFetch"])
+
+        # Not so much this one
+        with pytest.raises(AssertionError):
+            FunctionGroupingComponent(values=["playFetch", "rollOver"])
+
+    def test_component_wrappers_can_wrap_multiple_values(self) -> None:
+        get_frame = lambda: FrameGroupingComponent(in_app=True, values=[])
+
+        # Any number of values is fine
+        StacktraceGroupingComponent(values=[])
+        StacktraceGroupingComponent(values=[get_frame()])
+        StacktraceGroupingComponent(values=[get_frame(), get_frame()])
+
     def test_frame_components_record_in_app(self) -> None:
         self.event.data["exception"]["values"][0]["stacktrace"] = {
             "frames": [
@@ -85,7 +105,7 @@ class ComponentTest(TestCase):
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
         for variant_name in ["app", "system"]:
-            exception_component = variants[variant_name].component.values[0]
+            exception_component = variants[variant_name].root_component.values[0]
             assert isinstance(exception_component, ExceptionGroupingComponent)
             stacktrace_component = find_given_child_component(
                 exception_component, StacktraceGroupingComponent
@@ -117,7 +137,7 @@ class ComponentTest(TestCase):
         # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-        system_exception_component = variants["system"].component.values[0]
+        system_exception_component = variants["system"].root_component.values[0]
         assert isinstance(system_exception_component, ExceptionGroupingComponent)
         system_stacktrace_component = find_given_child_component(
             system_exception_component, StacktraceGroupingComponent
@@ -133,7 +153,7 @@ class ComponentTest(TestCase):
 
         # In the app variant, there's no such thing as a contributing system frame, so all the
         # system frames count as non-contributing
-        app_exception_component = variants["app"].component.values[0]
+        app_exception_component = variants["app"].root_component.values[0]
         assert isinstance(app_exception_component, ExceptionGroupingComponent)
         app_stacktrace_component = find_given_child_component(
             app_exception_component, StacktraceGroupingComponent
@@ -157,7 +177,7 @@ class ComponentTest(TestCase):
         # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-        system_exception_component = variants["system"].component.values[0]
+        system_exception_component = variants["system"].root_component.values[0]
         assert isinstance(system_exception_component, ExceptionGroupingComponent)
         system_stacktrace_component = find_given_child_component(
             system_exception_component, StacktraceGroupingComponent
@@ -173,7 +193,7 @@ class ComponentTest(TestCase):
 
         # In the app variant, there's no such thing as a contributing system frame, so all the
         # system frames count as non-contributing
-        app_exception_component = variants["app"].component.values[0]
+        app_exception_component = variants["app"].root_component.values[0]
         assert isinstance(app_exception_component, ExceptionGroupingComponent)
         app_stacktrace_component = find_given_child_component(
             app_exception_component, StacktraceGroupingComponent
@@ -200,7 +220,7 @@ class ComponentTest(TestCase):
         # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-        system_exception_component = variants["system"].component.values[0]
+        system_exception_component = variants["system"].root_component.values[0]
         assert isinstance(system_exception_component, ExceptionGroupingComponent)
         system_stacktrace_component = find_given_child_component(
             system_exception_component, StacktraceGroupingComponent
@@ -217,7 +237,7 @@ class ComponentTest(TestCase):
 
         # In the app variant, there's no such thing as a contributing system frame, so all the
         # system frames count as non-contributing
-        app_exception_component = variants["app"].component.values[0]
+        app_exception_component = variants["app"].root_component.values[0]
         assert isinstance(app_exception_component, ExceptionGroupingComponent)
         app_stacktrace_component = find_given_child_component(
             app_exception_component, StacktraceGroupingComponent
@@ -246,7 +266,7 @@ class ComponentTest(TestCase):
         # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-        system_threads_component = variants["system"].component.values[0]
+        system_threads_component = variants["system"].root_component.values[0]
         assert isinstance(system_threads_component, ThreadsGroupingComponent)
         system_stacktrace_component = find_given_child_component(
             system_threads_component, StacktraceGroupingComponent
@@ -263,7 +283,7 @@ class ComponentTest(TestCase):
 
         # In the app variant, there's no such thing as a contributing system frame, so all the
         # system frames count as non-contributing
-        app_threads_component = variants["app"].component.values[0]
+        app_threads_component = variants["app"].root_component.values[0]
         assert isinstance(app_threads_component, ThreadsGroupingComponent)
         app_stacktrace_component = find_given_child_component(
             app_threads_component, StacktraceGroupingComponent
@@ -303,7 +323,7 @@ class ComponentTest(TestCase):
         # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-        system_chained_exception_component = variants["system"].component.values[0]
+        system_chained_exception_component = variants["system"].root_component.values[0]
         assert isinstance(system_chained_exception_component, ChainedExceptionGroupingComponent)
         system_exception_components = system_chained_exception_component.values
         assert [
@@ -332,7 +352,7 @@ class ComponentTest(TestCase):
 
         # In the app variant, there's no such thing as a contributing system frame, so all the
         # system frames count as non-contributing
-        app_chained_exception_component = variants["app"].component.values[0]
+        app_chained_exception_component = variants["app"].root_component.values[0]
         assert isinstance(app_chained_exception_component, ChainedExceptionGroupingComponent)
         app_exception_components = app_chained_exception_component.values
         assert [
@@ -358,3 +378,36 @@ class ComponentTest(TestCase):
             in_app_non_contributing_frames=21,
             in_app_contributing_frames=39,
         )
+
+    def test_get_subcomponent(self) -> None:
+        root_component = self.event.get_grouping_variants()["app"].root_component
+
+        # When `recursive` isn't specified, it should find direct children but not grandchildren
+        exception_component = root_component.get_subcomponent("exception")
+        stacktrace_component = root_component.get_subcomponent("stacktrace")
+        error_value_component = root_component.get_subcomponent("value")
+        assert exception_component
+        assert not stacktrace_component
+        assert not error_value_component
+
+        # Grandchildren can be found, however, if the search is recursive
+        stacktrace_component = root_component.get_subcomponent("stacktrace", recursive=True)
+        error_value_component = root_component.get_subcomponent("value", recursive=True)
+        assert stacktrace_component
+        assert error_value_component
+
+        # The `only_contributing` flag can be used to exclude components which don't contribute
+        assert stacktrace_component.contributes is False
+        contributing_stacktrace_component = root_component.get_subcomponent(
+            "stacktrace", recursive=True, only_contributing=True
+        )
+        assert not contributing_stacktrace_component
+
+        # Even if a component itself is marked as contributing, if `only_contributing` is set, the
+        # component won't be found if it has a non-contributing ancestor
+        exception_component.contributes = False
+        assert error_value_component.contributes is True
+        contributing_error_value_component = root_component.get_subcomponent(
+            "value", recursive=True, only_contributing=True
+        )
+        assert not contributing_error_value_component

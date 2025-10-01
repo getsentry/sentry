@@ -335,6 +335,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_REQUIRED,
 )
 
+# Deletions
+register(
+    "deletions.group-hashes-batch-size",
+    default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
 register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)
@@ -464,13 +471,6 @@ register(
     default=None,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Beta recording consumer rollout.
-register(
-    "replay.consumer.recording.beta-rollout",
-    type=Int,
-    default=0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Globally disables replay-video.
 register(
     "replay.replay-video.disabled",
@@ -478,11 +478,11 @@ register(
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Billing skip for mobile replay orgs.
+# Whether or not Relay replay-event publishing to Snuba is disabled.
 register(
-    "replay.replay-video.billing-skip-org-ids",
-    type=Sequence,
-    default=[],
+    "replay.relay-snuba-publishing-disabled.sample-rate",
+    type=Float,
+    default=0.0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Disables replay-video for a specific organization.
@@ -491,19 +491,6 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Used for internal dogfooding of a reduced timeout on rage/dead clicks.
-register(
-    "replay.rage-click.experimental-timeout.org-id-list",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "replay.rage-click.experimental-timeout.milliseconds",
-    type=Int,
-    default=5000,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Disables viewed by queries for a list of project ids.
 register(
@@ -524,6 +511,17 @@ register(
     "replay.consumer.recording.profiling.enabled",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Trace sampling rates for replay summary endpoint.
+register(
+    "replay.endpoints.project_replay_summary.trace_sample_rate_post",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "replay.endpoints.project_replay_summary.trace_sample_rate_get",
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -588,6 +586,22 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rollout rate for the Spans V2 format in Kafka.
+register(
+    "relay.kafka.span-v2.sample-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rollout rate for the new sessions processing pipeline.
+register(
+    "relay.session.processing.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Analytics
@@ -890,14 +904,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enable sequential deletion of events from nodestore
-register(
-    "deletions.nodestore.parallelization-task-enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "issues.severity.first-event-severity-calculation-projects-allowlist",
     type=Sequence,
@@ -927,32 +933,10 @@ register(
 )
 
 register(
-    "issues.severity.seer-timout",
+    "issues.severity.seer-timeout",
     type=Float,
     default=0.2,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.severity.gpu-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.fixability.gpu-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rollout rate to route issue summary requests to the summarization URL
-register(
-    "issues.summary.summarization-url-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
@@ -1172,7 +1156,7 @@ register(
     "embeddings-grouping.seer.delete-record-batch-size",
     type=Int,
     default=100,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Custom model costs mapping for AI Agent Monitoring. Used to map alternative model ids to existing model ids.
@@ -1263,6 +1247,13 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "release-health.disable-release-last-seen-update",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Run an experimental grouping config in background for performance analysis
 register("store.background-grouping-config-id", default=None, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -1334,9 +1325,6 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Controls the rollout rate in percent (`0.0` to `1.0`) for metric stats.
-register("relay.metric-stats.rollout-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -2223,11 +2211,6 @@ register("backpressure.status_ttl", default=60, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # The high-watermark levels per-service which will mark a service as unhealthy.
 # This should mirror the `SENTRY_PROCESSING_SERVICES` setting.
 register(
-    "backpressure.high_watermarks.celery",
-    default=0.5,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "backpressure.high_watermarks.attachments-store",
     default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2901,7 +2884,7 @@ register(
 register(
     "spans.buffer.compression.level",
     type=Int,
-    default=-1,
+    default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3117,20 +3100,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "delayed_workflow.use_workflow_engine_pool",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "delayed_workflow.rollout",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "celery_split_queue_task_rollout",
-    default={},
+    "workflow_engine.scheduler.use_conditional_delete",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3138,12 +3116,6 @@ register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
     type=Bool,
     default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "grouping.grouphash_metadata.backfill_sample_rate",
-    type=Float,
-    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3158,12 +3130,6 @@ register(
     "workflow_engine.issue_alert.group.type_id.ga",
     type=Sequence,
     default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "workflow_engine.buffer.use_new_buffer",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3198,20 +3164,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# When in active monitoring mode, overrides how many failures in a row we need to see to mark the monitor as down
-register(
-    "uptime.active-failure-threshold",
-    type=Int,
-    default=3,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When in active monitoring mode, how many successes in a row do we need to mark it as up
-register(
-    "uptime.active-recovery-threshold",
-    type=Int,
-    default=1,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "uptime.date_cutoff_epoch_seconds",
@@ -3252,12 +3204,6 @@ register(
     "releases.no_snuba_for_release_creation",
     type=Bool,
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "celery_split_queue_rollout",
-    default={"post_process_transactions": 1.0},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3370,7 +3316,7 @@ register(
 # Taskbroker flags
 register(
     "taskworker.enabled",
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3460,16 +3406,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enables saving the suspectCommitStrategy on GroupOwner
-register(
-    "issues.suspect-commit-strategy",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Whether the new objectstore implementation is being used for attachments
 register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Whether the new objectstore implementation is being used for attachments in a double-write
+# configuration where it writes to the new objectstore alongside the existing filestore.
+# This is mutually exclusive with the above setting.
+register("objectstore.double_write.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 
 # Whether to use 60s granularity for the dynamic sampling query
 register(
@@ -3502,4 +3445,46 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "commit.dual-write-start-date",
+    type=String,
+    default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch for linking identities for demo users
+register(
+    "identity.prevent-link-identity-for-demo-users.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry.send_onboarding_task_metrics",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Skip recording onboarding tasks if organization onboarding is already complete
+register(
+    "sentry:skip-record-onboarding-tasks-if-complete",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Database field encryption method
+# Supported values:
+# - 'plaintext': No encryption (default)
+# - 'fernet': Fernet symmetric encryption
+# - 'keysets': (Future) Google Tink keysets for key rotation
+register(
+    "database.encryption.method",
+    type=String,
+    default="plaintext",
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

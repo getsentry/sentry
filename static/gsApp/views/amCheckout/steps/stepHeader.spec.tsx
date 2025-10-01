@@ -97,6 +97,7 @@ describe('StepHeader', () => {
         onEdit={onEdit}
         isActive={false}
         isCompleted={false}
+        isOpen={false}
       />
     );
 
@@ -104,6 +105,9 @@ describe('StepHeader', () => {
     expect(screen.queryByText(`${stepNumber}.`)).not.toBeInTheDocument();
     expect(screen.queryByTestId('icon-check-mark')).not.toBeInTheDocument();
     expect(screen.queryByText('Edit')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Expand section')).not.toBeInTheDocument();
+
+    // based on isOpen
+    expect(screen.getByLabelText('Expand section')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Collapse section')).not.toBeInTheDocument();
   });
 });

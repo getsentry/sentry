@@ -120,12 +120,7 @@ function ToolbarVisualize({numberTags, stringTags}: LogsToolbarProps) {
 
   const addChart = useCallback(() => {
     const newVisualizes = [...visualizes, new VisualizeFunction('count(message)')].map(
-      visualize => {
-        return {
-          yAxes: [visualize.yAxis],
-          chartType: visualize.selectedChartType,
-        };
-      }
+      visualize => visualize.serialize()
     );
     setVisualizes(newVisualizes);
   }, [setVisualizes, visualizes]);
@@ -134,15 +129,9 @@ function ToolbarVisualize({numberTags, stringTags}: LogsToolbarProps) {
     (group: number, newVisualize: Visualize) => {
       const newVisualizes = visualizes.map((visualize, i) => {
         if (i === group) {
-          return {
-            yAxes: [newVisualize.yAxis],
-            chartType: newVisualize.selectedChartType,
-          };
+          return newVisualize.serialize();
         }
-        return {
-          yAxes: [visualize.yAxis],
-          chartType: visualize.selectedChartType,
-        };
+        return visualize.serialize();
       });
       setVisualizes(newVisualizes);
     },
@@ -152,10 +141,7 @@ function ToolbarVisualize({numberTags, stringTags}: LogsToolbarProps) {
   const onDelete = useCallback(
     (group: number) => {
       const newVisualizes = visualizes.toSpliced(group, 1).map(visualize => {
-        return {
-          yAxes: [visualize.yAxis],
-          chartType: visualize.selectedChartType,
-        };
+        return visualize.serialize();
       });
       setVisualizes(newVisualizes);
     },
@@ -254,7 +240,7 @@ function VisualizeDropdown({
   );
 
   const onChangeArgument = useCallback(
-    (option: SelectOption<SelectKey>) => {
+    (_index: number, option: SelectOption<SelectKey>) => {
       if (typeof option.value === 'string') {
         const yAxis = `${aggregateFunction}(${option.value})`;
         onReplace(visualize.replace({yAxis}));

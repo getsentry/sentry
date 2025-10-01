@@ -12,9 +12,10 @@ MESSAGING_ACTION_CONFIG_SCHEMA = {
             "enum": [ActionTarget.SPECIFIC.value],
         },
     },
-    "required": ["target_identifier", "target_display", "target_type"],
+    "required": ["target_display", "target_type"],
     "additionalProperties": False,
 }
+
 
 TAGS_SCHEMA = {
     "type": "string",

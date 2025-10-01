@@ -11,18 +11,18 @@ import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTi
 import Panel from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
+import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
 
 import {OverviewRow} from './overviewRow';
 
 interface Props {
-  uptimeRules: UptimeRule[];
+  uptimeDetectors: UptimeDetector[];
 }
 
-export function OverviewTimeline({uptimeRules}: Props) {
+export function OverviewTimeline({uptimeDetectors}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
@@ -31,9 +31,8 @@ export function OverviewTimeline({uptimeRules}: Props) {
   const dateNavigation = useDateNavigation();
 
   const {data: summaries} = useUptimeMonitorSummaries({
-    start: timeWindowConfig.start,
-    end: timeWindowConfig.end,
-    ruleIds: uptimeRules.map(rule => rule.id),
+    detectorIds: uptimeDetectors.map(detector => detector.id),
+    timeWindowConfig,
   });
 
   return (
@@ -68,12 +67,14 @@ export function OverviewTimeline({uptimeRules}: Props) {
         cursorOverlayAnchorOffset={10}
       />
       <UptimeAlertRow>
-        {uptimeRules.map(uptimeRule => (
+        {uptimeDetectors.map(detector => (
           <OverviewRow
-            key={uptimeRule.id}
+            key={detector.id}
             timeWindowConfig={timeWindowConfig}
-            uptimeRule={uptimeRule}
-            summary={summaries?.[uptimeRule.id] ?? null}
+            uptimeDetector={detector}
+            summary={
+              summaries === undefined ? undefined : (summaries[detector.id] ?? null)
+            }
           />
         ))}
       </UptimeAlertRow>

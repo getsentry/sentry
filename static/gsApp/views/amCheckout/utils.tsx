@@ -1,4 +1,6 @@
 import * as Sentry from '@sentry/react';
+import {type PaymentIntentResult, type Stripe} from '@stripe/stripe-js';
+import camelCase from 'lodash/camelCase';
 import moment from 'moment-timezone';
 
 import {
@@ -25,24 +27,37 @@ import {
   SUPPORTED_TIERS,
 } from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import type {
-  EventBucket,
-  OnDemandBudgets,
-  Plan,
+import {
+  InvoiceItemType,
   PlanTier,
-  PreviewData,
-  ReservedBudgetCategoryType,
-  Subscription,
+  type BillingDetails,
+  type EventBucket,
+  type InvoiceItem,
+  type OnDemandBudgets,
+  type Plan,
+  type PreviewData,
+  type PreviewInvoiceItem,
+  type ReservedBudgetCategoryType,
+  type Subscription,
 } from 'getsentry/types';
-import {InvoiceItemType} from 'getsentry/types';
-import {getSlot, isTrialPlan} from 'getsentry/utils/billing';
+import {
+  getAmPlanTier,
+  getSlot,
+  hasPartnerMigrationFeature,
+  hasSomeBillingDetails,
+  isBizPlanFamily,
+  isTeamPlanFamily,
+  isTrialPlan,
+} from 'getsentry/utils/billing';
 import {isByteCategory} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
+import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
 import {
   SelectableProduct,
   type CheckoutAPIData,
   type CheckoutFormData,
+  type PlanContent,
   type SelectedProductData,
 } from 'getsentry/views/amCheckout/types';
 import {
@@ -385,6 +400,7 @@ function recordAnalytics(
   isMigratingPartnerAccount: boolean
 ) {
   trackMarketingEvent('Upgrade', {plan: data.plan});
+  const isNewCheckout = hasNewCheckout(organization);
 
   const currentData: CheckoutData = {
     plan: data.plan,
@@ -430,12 +446,14 @@ function recordAnalytics(
     subscription,
     ...previousData,
     ...currentData,
+    isNewCheckout,
   });
 
   trackGetsentryAnalytics('checkout.product_select', {
     organization,
     subscription,
     ...selectableProductData,
+    isNewCheckout,
   });
 
   let {onDemandBudget} = data;
@@ -473,13 +491,14 @@ function recordAnalytics(
       applyNow: data.applyNow ?? false,
       daysLeft: moment(subscription.contractPeriodEnd).diff(moment(), 'days'),
       partner: subscription.partner?.partnership.id,
+      isNewCheckout,
     });
   }
 }
 
 export function stripeHandleCardAction(
   intentDetails: IntentDetails,
-  stripeInstance?: stripe.Stripe,
+  stripeInstance: Stripe | null,
   onSuccess?: () => void,
   onError?: (errorMessage?: string) => void
 ) {
@@ -490,7 +509,7 @@ export function stripeHandleCardAction(
   // This allows us to complete 3DS and MFA during checkout.
   stripeInstance
     .handleCardAction(intentDetails.paymentSecret)
-    .then((result: stripe.PaymentIntentResponse) => {
+    .then((result: PaymentIntentResult) => {
       if (result.error) {
         let message =
           'Your payment could not be authorized. Please try a different card, or try again later.';
@@ -508,7 +527,6 @@ export function stripeHandleCardAction(
     });
 }
 
-/** @internal exported for tests only */
 export function getCheckoutAPIData({
   formData,
   onDemandBudget,
@@ -608,27 +626,37 @@ export function normalizeAndGetCheckoutAPIData({
 export function useSubmitCheckout({
   organization,
   subscription,
+  previewData,
   onErrorMessage,
   onSubmitting,
   onHandleCardAction,
   onFetchPreviewData,
+  onSuccess,
   referrer = 'billing',
 }: {
   onErrorMessage: (message: string) => void;
   onFetchPreviewData: () => void;
   onHandleCardAction: ({intentDetails}: {intentDetails: IntentDetails}) => void;
   onSubmitting: (b: boolean) => void;
+  onSuccess: ({
+    isSubmitted,
+    invoice,
+    nextQueryParams,
+    previewData,
+  }: Pick<
+    CheckoutState,
+    'invoice' | 'nextQueryParams' | 'isSubmitted' | 'previewData'
+  >) => void;
   organization: Organization;
   subscription: Subscription;
+  previewData?: PreviewData;
   referrer?: string;
 }) {
   const api = useApi({});
 
   // this is necessary for recording partner billing migration-specific analytics after
   // the migration is successful (during which the flag is flipped off)
-  const isMigratingPartnerAccount = organization.features.includes(
-    'partner-billing-migration'
-  );
+  const isMigratingPartnerAccount = hasPartnerMigrationFeature(organization);
 
   return useMutation({
     mutationFn: ({data}: {data: CheckoutAPIData}) => {
@@ -640,7 +668,7 @@ export function useSubmitCheckout({
         }
       );
     },
-    onSuccess: (_, _variables) => {
+    onSuccess: (response, _variables) => {
       recordAnalytics(
         organization,
         subscription,
@@ -664,14 +692,12 @@ export function useSubmitCheckout({
       fetchOrganizationDetails(new Client(), organization.slug);
       SubscriptionStore.loadData(organization.slug);
 
-      // TODO(checkout v3): This should be changed to redirect to the success page
-      browserHistory.push(
-        normalizeUrl(
-          `/settings/${organization.slug}/billing/overview/?referrer=${referrer}${
-            justBoughtSeer ? '&showSeerAutomationAlert=true' : ''
-          }`
-        )
-      );
+      const {invoice} = response;
+      const nextQueryParams = [referrer];
+      if (justBoughtSeer) {
+        nextQueryParams.push('showSeerAutomationAlert=true');
+      }
+      onSuccess({isSubmitted: true, invoice, nextQueryParams, previewData});
     },
     onError: (error: RequestError, _variables) => {
       const body = error.responseJSON;
@@ -744,9 +770,7 @@ export async function submitCheckout(
 
   // this is necessary for recording partner billing migration-specific analytics after
   // the migration is successful (during which the flag is flipped off)
-  const isMigratingPartnerAccount = organization.features.includes(
-    'partner-billing-migration'
-  );
+  const isMigratingPartnerAccount = hasPartnerMigrationFeature(organization);
 
   const data = normalizeAndGetCheckoutAPIData({
     formData,
@@ -846,6 +870,140 @@ export function getToggleTier(checkoutTier: PlanTier | undefined) {
   return SUPPORTED_TIERS[tierIndex + 1];
 }
 
-export function hasCheckoutV3(organization: Organization) {
+export function getContentForPlan(plan: Plan, isNewCheckout?: boolean): PlanContent {
+  if (isBizPlanFamily(plan)) {
+    return {
+      description: isNewCheckout
+        ? t('For teams that need more powerful debugging')
+        : t('Everything in the Team plan + deeper insight into your application health.'),
+      features: {
+        discover: t('Advanced analytics with Discover'),
+        enhanced_priority_alerts: t('Enhanced issue priority and alerting'),
+        dashboard: t('Unlimited custom dashboards'),
+        ...(getAmPlanTier(plan.id) === PlanTier.AM3 && {
+          application_insights: t('Application Insights'),
+        }),
+        advanced_filtering: t('Advanced server-side filtering'),
+        saml: t('SAML support'),
+      },
+      hasMoreLink: true,
+    };
+  }
+
+  if (isTeamPlanFamily(plan)) {
+    return {
+      description: isNewCheckout
+        ? t('Everything to monitor your application as it scales')
+        : t('Resolve errors and track application performance as a team.'),
+      features: {
+        unlimited_members: t('Unlimited members'),
+        integrations: t('Third-party integrations'),
+        metric_alerts: t('Metric alerts'),
+      },
+    };
+  }
+
+  // TODO(checkout v3): update copy
+  return {
+    description: t('For solo devs working on small projects'),
+    features: {
+      errors: t('5K Errors'),
+      replays: t('50 Replays'),
+      spans: t('5M Spans'),
+      attachments: t('1GB Attachments'),
+      monitorSeats: t('1 Cron Monitor'),
+      uptime: t('1 Uptime Monitor'),
+      logBytes: t('5GB Logs'),
+    },
+  };
+}
+
+export function invoiceItemTypeToDataCategory(
+  type: InvoiceItemType
+): DataCategory | null {
+  if (!type.startsWith('reserved_') && !type.startsWith('ondemand_')) {
+    return null;
+  }
+  return camelCase(
+    type.replace('reserved_', '').replace('ondemand_', '')
+  ) as DataCategory;
+}
+
+export function invoiceItemTypeToProduct(
+  type: InvoiceItemType
+): SelectableProduct | null {
+  // TODO(checkout v3): update this to support more products
+  if (type !== InvoiceItemType.RESERVED_SEER_BUDGET) {
+    return null;
+  }
+  return camelCase(
+    type.replace('reserved_', '').replace('_budget', '')
+  ) as SelectableProduct;
+}
+
+export function getFees({
+  invoiceItems,
+}: {
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  return invoiceItems.filter(
+    item =>
+      [InvoiceItemType.CANCELLATION_FEE, InvoiceItemType.SALES_TAX].includes(item.type) ||
+      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount > 0)
+  );
+}
+
+export function getCredits({
+  invoiceItems,
+}: {
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  return invoiceItems.filter(
+    item =>
+      [
+        InvoiceItemType.SUBSCRIPTION_CREDIT,
+        InvoiceItemType.CREDIT_APPLIED, // TODO(isabella): This is deprecated and replaced by BALANCE_CHANGE
+        InvoiceItemType.DISCOUNT,
+        InvoiceItemType.RECURRING_DISCOUNT,
+      ].includes(item.type) ||
+      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount < 0)
+  );
+}
+
+/**
+ * Returns the credit applied to an invoice or preview data.
+ * If the invoice items contain a BALANCE_CHANGE item with a negative amount,
+ * the invoice/preview data already accounts for the credit applied, so we return 0.
+ */
+export function getCreditApplied({
+  creditApplied,
+  invoiceItems,
+}: {
+  creditApplied: number;
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  const credits = getCredits({invoiceItems});
+  if (credits.some(item => item.type === InvoiceItemType.BALANCE_CHANGE)) {
+    return 0;
+  }
+  return creditApplied;
+}
+
+// TODO(isabella): clean this up after GA
+export function hasNewCheckout(organization: Organization) {
   return organization.features.includes('checkout-v3');
+}
+
+/**
+ * Returns true if the subscription has either a payment source or some billing details set.
+ */
+export function hasBillingInfo(
+  billingDetails: BillingDetails | undefined,
+  subscription: Subscription,
+  isComplete: boolean
+) {
+  if (isComplete) {
+    return !!subscription.paymentSource && hasSomeBillingDetails(billingDetails);
+  }
+  return !!subscription.paymentSource || hasSomeBillingDetails(billingDetails);
 }

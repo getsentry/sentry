@@ -1,27 +1,33 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Flex} from 'sentry/components/core/layout/flex';
+import {Grid} from 'sentry/components/core/layout/grid';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import Pagination from 'sentry/components/pagination';
-import {
-  ALL_BRANCHES,
-  BranchSelector,
-} from 'sentry/components/prevent/branchSelector/branchSelector';
+import {BranchSelector} from 'sentry/components/prevent/branchSelector/branchSelector';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {DateSelector} from 'sentry/components/prevent/dateSelector/dateSelector';
 import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSelector/integratedOrgSelector';
 import {RepoSelector} from 'sentry/components/prevent/repoSelector/repoSelector';
 import {TestSuiteDropdown} from 'sentry/components/prevent/testSuiteDropdown/testSuiteDropdown';
-import {IconSearch} from 'sentry/icons';
+import {getPreventParamsString} from 'sentry/components/prevent/utils';
+import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {decodeSorts} from 'sentry/utils/queryString';
+import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import TestsPreOnboardingPage from 'sentry/views/prevent/tests/preOnboarding';
+import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
 import {
   useInfiniteTestResults,
   type UseInfiniteTestResultsResult,
 } from 'sentry/views/prevent/tests/queries/useGetTestResults';
+import {useRepo} from 'sentry/views/prevent/tests/queries/useRepo';
 import {DEFAULT_SORT} from 'sentry/views/prevent/tests/settings';
 import {Summaries} from 'sentry/views/prevent/tests/summaries/summaries';
 import type {ValidSort} from 'sentry/views/prevent/tests/testAnalyticsTable/testAnalyticsTable';
@@ -30,7 +36,7 @@ import TestAnalyticsTable, {
 } from 'sentry/views/prevent/tests/testAnalyticsTable/testAnalyticsTable';
 import {TestSearchBar} from 'sentry/views/prevent/tests/testSearchBar/testSearchBar';
 
-function EmptySelectorsMessage() {
+export function EmptySelectorsMessage() {
   return (
     <MessageContainer>
       <StyledIconSearch color="subText" size="xl" />
@@ -45,19 +51,41 @@ function EmptySelectorsMessage() {
 export default function TestsPage() {
   const {integratedOrgId, repository, branch, preventPeriod} = usePreventContext();
   const location = useLocation();
-
   const response = useInfiniteTestResults({
     cursor: location.query?.cursor as string | undefined,
     navigation: location.query?.navigation as 'next' | 'prev' | undefined,
   });
   const defaultBranch = response.data?.defaultBranch;
-  const shouldDisplayTestSuiteDropdown =
-    branch === ALL_BRANCHES || branch === defaultBranch;
+  const shouldDisplayTestSuiteDropdown = branch === null || branch === defaultBranch;
+  const organization = useOrganization();
+  const shouldDisplayContent = integratedOrgId && repository && preventPeriod;
 
-  const shouldDisplayContent = integratedOrgId && repository && branch && preventPeriod;
+  const {data: integrations = [], isPending: isIntegrationsPending} =
+    useGetActiveIntegratedOrgs({organization});
+  const regionData = getRegionDataFromOrganization(organization);
+  const isUSStorage = regionData?.name === 'us';
+
+  let mainContent: React.ReactNode;
+  if (isIntegrationsPending) {
+    mainContent = <LoadingIndicator />;
+  } else if (integrations.length === 0) {
+    mainContent = <TestsPreOnboardingPage />;
+  } else if (shouldDisplayContent) {
+    mainContent = <Content response={response} />;
+  } else {
+    mainContent = <EmptySelectorsMessage />;
+  }
+
+  if (!isUSStorage) {
+    return (
+      <Grid gap="xl">
+        <TestsPreOnboardingPage />
+      </Grid>
+    );
+  }
 
   return (
-    <LayoutGap>
+    <Grid gap="xl">
       <ControlsContainer>
         <PageFilterBar condensed>
           <IntegratedOrgSelector />
@@ -67,15 +95,10 @@ export default function TestsPage() {
         </PageFilterBar>
         {shouldDisplayTestSuiteDropdown && <TestSuiteDropdown />}
       </ControlsContainer>
-      {shouldDisplayContent ? <Content response={response} /> : <EmptySelectorsMessage />}
-    </LayoutGap>
+      {mainContent}
+    </Grid>
   );
 }
-
-const LayoutGap = styled('div')`
-  display: grid;
-  gap: ${space(2)};
-`;
 
 interface TestResultsContentData {
   response: UseInfiniteTestResultsResult;
@@ -85,21 +108,17 @@ function Content({response}: TestResultsContentData) {
   const location = useLocation();
   const navigate = useNavigate();
   const {branch: selectedBranch} = usePreventContext();
+  const {data: repoData, isSuccess: isRepoSuccess} = useRepo();
 
   const sorts: [ValidSort] = [
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
   ];
   const defaultBranch = response.data?.defaultBranch;
   const shouldDisplaySummaries =
-    selectedBranch === ALL_BRANCHES || selectedBranch === defaultBranch;
+    selectedBranch === null || selectedBranch === defaultBranch;
 
   const handleCursor = useCallback(
-    (
-      _cursor: string | undefined,
-      path: string,
-      query: Record<string, any>,
-      delta: number
-    ) => {
+    (delta: number) => {
       // Without these guards, the pagination cursor can get stuck on an incorrect value.
       const navigation = delta === -1 ? 'prev' : 'next';
       const goPrevPage = navigation === 'prev' && response.hasPreviousPage;
@@ -113,9 +132,8 @@ function Content({response}: TestResultsContentData) {
       }
 
       navigate({
-        pathname: path,
         query: {
-          ...query,
+          ...location.query,
           cursor: goPrevPage
             ? response.startCursor
             : goNextPage
@@ -125,17 +143,52 @@ function Content({response}: TestResultsContentData) {
         },
       });
     },
-    [navigate, response]
+    [navigate, response, location.query]
   );
+
+  const cameFromOnboardingRoute = location.state?.from === '/prevent/tests/new';
+
+  useEffect(() => {
+    if (!cameFromOnboardingRoute && !repoData?.testAnalyticsEnabled && isRepoSuccess) {
+      const queryString = getPreventParamsString(location);
+      navigate(`/prevent/tests/new${queryString ? `?${queryString}` : ''}`, {
+        state: {from: '/prevent/tests'},
+        replace: true,
+      });
+    }
+    // No `location` dependency as it causes infinite loop of redirect
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameFromOnboardingRoute, repoData?.testAnalyticsEnabled, isRepoSuccess, navigate]);
+
+  if (!cameFromOnboardingRoute && !repoData?.testAnalyticsEnabled && isRepoSuccess) {
+    return null;
+  }
 
   return (
     <Fragment>
       {shouldDisplaySummaries && <Summaries />}
       <TestSearchBar testCount={response.totalCount} />
-      <TestAnalyticsTable response={response} sort={sorts[0]} />
-      {/* We don't need to use the pageLinks prop because Codecov handles pagination using our own cursor implementation. But we need to
-          put a dummy value here because otherwise the component wouldn't render. */}
-      <StyledPagination pageLinks="showComponent" onCursor={handleCursor} />
+      <div>
+        <TestAnalyticsTable response={response} sort={sorts[0]} />
+        <Flex justify="right">
+          <ButtonBar merged gap="0">
+            <Button
+              icon={<IconChevron direction="left" />}
+              aria-label={t('Previous')}
+              size="sm"
+              disabled={!response.hasPreviousPage}
+              onClick={() => handleCursor(-1)}
+            />
+            <Button
+              icon={<IconChevron direction="right" />}
+              aria-label={t('Next')}
+              size="sm"
+              disabled={!response.hasNextPage}
+              onClick={() => handleCursor(1)}
+            />
+          </ButtonBar>
+        </Flex>
+      </div>
     </Fragment>
   );
 }
@@ -143,13 +196,13 @@ function Content({response}: TestResultsContentData) {
 const MessageContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   justify-items: center;
   align-items: center;
   text-align: center;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Subtitle = styled('div')`
@@ -162,14 +215,10 @@ const Title = styled('div')`
 `;
 
 const StyledIconSearch = styled(IconSearch)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const ControlsContainer = styled('div')`
   display: flex;
-  gap: ${space(2)};
-`;
-
-const StyledPagination = styled(Pagination)`
-  margin-top: 0px;
+  gap: ${p => p.theme.space.xl};
 `;

@@ -6,6 +6,7 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import type {IconSize} from 'sentry/utils/theme';
 
 import {
   BILLION,
@@ -19,6 +20,7 @@ import {
 } from 'getsentry/constants';
 import type {
   BillingConfig,
+  BillingDetails,
   BillingMetricHistory,
   BillingStatTotal,
   EventBucket,
@@ -149,7 +151,11 @@ export function formatReservedWithUnits(
     return options.isGifted ? '0 GB' : UNLIMITED;
   }
   if (!options.useUnitScaling) {
-    const formatted = formatReservedNumberToString(reservedQuantity, options);
+    const byteOptions =
+      dataCategory === DataCategory.LOG_BYTE
+        ? {...options, isAbbreviated: false}
+        : options;
+    const formatted = formatReservedNumberToString(reservedQuantity, byteOptions);
     return `${formatted} GB`;
   }
 
@@ -305,6 +311,14 @@ export const hasPartnerMigrationFeature = (organization: Organization) =>
 
 export const hasActiveVCFeature = (organization: Organization) =>
   organization.features.includes('vc-marketplace-active-customer');
+
+// TODO(isabella): clean this up after GA
+export const hasNewBillingUI = (organization: Organization) =>
+  organization.features.includes('subscriptions-v3');
+
+// TODO(isabella): clean this up after GA
+export const hasStripeComponentsFeature = (organization: Organization) =>
+  organization.features.includes('stripe-components');
 
 export const isDeveloperPlan = (plan?: Plan) => plan?.name === PlanName.DEVELOPER;
 
@@ -553,10 +567,10 @@ export function getPlanIcon(plan: Plan) {
   return <IconUser />;
 }
 
-export function getProductIcon(product: SelectableProduct) {
+export function getProductIcon(product: SelectableProduct, size?: IconSize) {
   switch (product) {
     case SelectableProduct.SEER:
-      return <IconSeer />;
+      return <IconSeer size={size} />;
     default:
       return null;
   }
@@ -699,4 +713,22 @@ export function partnerPlanEndingModalIsDismissed(
     default:
       return true;
   }
+}
+
+/**
+ * Returns true if some billing details are set.
+ */
+export function hasSomeBillingDetails(billingDetails: BillingDetails | undefined) {
+  if (!billingDetails) {
+    return false;
+  }
+  return (
+    billingDetails &&
+    Object.entries(billingDetails)
+      .filter(
+        ([key, _]) =>
+          key !== 'billingEmail' && key !== 'companyName' && key !== 'taxNumber'
+      )
+      .some(([_, value]) => defined(value))
+  );
 }

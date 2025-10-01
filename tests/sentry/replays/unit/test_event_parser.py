@@ -12,6 +12,7 @@ from sentry.replays.usecases.ingest.event_parser import (
     as_trace_item,
     as_trace_item_context,
     parse_events,
+    parse_multiclick_event,
     set_if,
     which,
 )
@@ -498,6 +499,201 @@ def test_parse_highlighted_events_click_event_dead_rage() -> None:
     assert action.is_rage == 1
 
 
+def test_parse_highlighted_events_multiclick_events() -> None:
+    """Test that multiclick events are parsed correctly."""
+    event1 = {
+        "type": 5,
+        "timestamp": 1674291701348,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1.1,
+                "type": "default",
+                "category": "ui.multiClick",
+                "message": "body > button#mutationButtonImmediately",
+                "data": {
+                    "clickCount": 4,
+                    "url": "http://sentry-test.io/index.html",
+                    "metric": True,
+                    "nodeId": 59,
+                    "node": {
+                        "id": 59,
+                        "tagName": "a",
+                        "attributes": {"id": "id"},
+                        "textContent": "Click me!",
+                    },
+                },
+            },
+        },
+    }
+
+    event2 = {
+        "type": 5,
+        "timestamp": 1674291701348,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1.1,
+                "type": "default",
+                "category": "ui.multiClick",
+                "message": "body > button#mutationButtonImmediately",
+                "data": {
+                    "clickCount": 5,
+                    "url": "http://sentry-test.io/index.html",
+                    "metric": True,
+                    "nodeId": 60,
+                    "node": {
+                        "id": 60,
+                        "tagName": "a",
+                        "attributes": {"id": "id"},
+                        "textContent": "Click me!",
+                    },
+                },
+            },
+        },
+    }
+
+    # This is a slow click, not multiclick, and should not be added to multiclick_events in the builder
+    event3 = {
+        "type": 5,
+        "timestamp": 1674291701348,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1.1,
+                "type": "default",
+                "category": "ui.slowClickDetected",
+                "message": "div.container > div#root > div > ul > div",
+                "data": {
+                    "url": "https://www.sentry.io",
+                    "clickCount": 5,
+                    "endReason": "timeout",
+                    "timeAfterClickMs": 7000.0,
+                    "nodeId": 61,
+                    "node": {
+                        "id": 61,
+                        "tagName": "a",
+                        "attributes": {
+                            "id": "id",
+                            "class": "class1 class2",
+                            "role": "button",
+                            "aria-label": "test",
+                            "alt": "1",
+                            "data-testid": "2",
+                            "title": "3",
+                            "data-sentry-component": "SignUpForm",
+                        },
+                        "textContent": "text",
+                    },
+                },
+            },
+        },
+    }
+
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event1), event1, sampled=False)
+    builder.add(which(event2), event2, sampled=False)
+    builder.add(which(event3), event3, sampled=False)
+    result = builder.result
+    assert len(result.multiclick_events) == 2
+
+    multiclick1 = result.multiclick_events[0]
+    assert multiclick1.click_event.node_id == 59
+    assert multiclick1.click_event.id == "id"
+    assert multiclick1.click_event.text == "Click me!"
+    assert multiclick1.click_event.is_dead == 0
+    assert multiclick1.click_event.is_rage == 0
+    assert multiclick1.click_count == 4
+    assert multiclick1.click_event.timestamp == 1
+
+    multiclick2 = result.multiclick_events[1]
+    assert multiclick2.click_event.node_id == 60
+    assert multiclick2.click_event.id == "id"
+    assert multiclick2.click_event.text == "Click me!"
+    assert multiclick2.click_event.is_dead == 0
+    assert multiclick2.click_event.is_rage == 0
+    assert multiclick2.click_count == 5
+    assert multiclick2.click_event.timestamp == 1
+
+
+def test_parse_multiclick_event() -> None:
+    """Test that multiclick events are parsed correctly."""
+    payload = {
+        "timestamp": 1.1,
+        "type": "default",
+        "category": "ui.multiClick",
+        "message": "body > button#mutationButtonImmediately",
+        "data": {
+            "clickCount": 5,
+            "url": "http://sentry-test.io/index.html",
+            "metric": True,
+            "nodeId": 59,
+            "node": {
+                "id": 59,
+                "tagName": "a",
+                "attributes": {"id": "id"},
+                "textContent": "Click me!",
+            },
+        },
+    }
+    result = parse_multiclick_event(payload)
+    assert result is not None
+    assert result.click_count == 5
+    assert result.click_event.node_id == 59
+    assert result.click_event.tag == "a"
+    assert result.click_event.id == "id"
+    assert result.click_event.text == "Click me!"
+    assert result.click_event.is_dead == 0
+    assert result.click_event.is_rage == 0
+
+
+def test_parse_multiclick_event_missing_node() -> None:
+    """Test parse_multiclick_event returns None when node is missing or invalid."""
+    payload1 = {
+        "timestamp": 1.1,
+        "type": "default",
+        "category": "ui.multiClick",
+        "message": "div#test-button.btn.primary",
+        "data": {
+            "nodeId": 1,
+            "clickCount": 3,
+            # Missing "node" field
+        },
+    }
+    assert parse_multiclick_event(payload1) is None
+
+    payload2 = {
+        "timestamp": 1.1,
+        "type": "default",
+        "category": "ui.multiClick",
+        "message": "div#test-button.btn.primary",
+        "data": {
+            "nodeId": 1,
+            "clickCount": 3,
+            "node": {
+                "id": -1,  # Invalid negative ID
+                "tagName": "div",
+                "attributes": {"id": "test-button"},
+                "textContent": "Click me!",
+            },
+        },
+    }
+    assert parse_multiclick_event(payload2) is None
+
+    payload3 = {
+        "timestamp": 1.1,
+        "type": "default",
+        "category": "ui.multiClick",
+        "message": "div#test-button.btn.primary",
+        "data": {
+            "nodeId": 1,
+            "clickCount": 3,
+            "node": "not-a-dict",  # Invalid node type
+        },
+    }
+    assert parse_multiclick_event(payload3) is None
+
+
 def test_emit_click_negative_node_id() -> None:
     event = {
         "type": 5,
@@ -615,6 +811,25 @@ def test_which() -> None:
         },
     }
     assert which(event) == EventType.RAGE_CLICK
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "category": "ui.multiClick",
+                "data": {
+                    "clickCount": 7,
+                    "metric": True,
+                    "node": {"tagName": "button"},
+                    "nodeId": 59,
+                    "url": "http://sentry-test.io/index.html",
+                },
+            },
+        },
+    }
+    assert which(event) == EventType.MULTI_CLICK
 
     event = {
         "type": 5,
@@ -1356,6 +1571,7 @@ def test_as_trace_item_context_returns_none_for_unsupported_events() -> None:
     assert as_trace_item_context(EventType.UNKNOWN, event) is None
     assert as_trace_item_context(EventType.CANVAS, event) is None
     assert as_trace_item_context(EventType.FEEDBACK, event) is None
+    assert as_trace_item_context(EventType.MULTI_CLICK, event) is None
 
 
 def test_as_trace_item() -> None:
@@ -1550,7 +1766,7 @@ def test_parse_events_disabled(options_get: mock.MagicMock) -> None:
     assert len(parsed.click_events) == 1
 
 
-def test_set_if():
+def test_set_if() -> None:
     assert set_if(["a", "b"], {"a": 1}, str) == {"a": "1"}
     assert set_if(["a", "b"], {"b": 2}, str) == {"b": "2"}
     assert set_if(["a", "b"], {}, str) == {}

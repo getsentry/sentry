@@ -1,16 +1,13 @@
 from sentry import analytics
 
 
+@analytics.eventclass("issue.archived")
 class IssueArchivedEvent(analytics.Event):
-    type = "issue.archived"
-
-    attributes = (
-        analytics.Attribute("user_id", type=int, required=False),
-        analytics.Attribute("default_user_id", type=int),
-        analytics.Attribute("organization_id", type=int),
-        analytics.Attribute("group_id"),
-        analytics.Attribute("until_escalating", type=bool, required=False),
-    )
+    user_id: int | None = None
+    default_user_id: int | str | None = None
+    organization_id: int
+    group_id: int
+    until_escalating: bool | None = None
 
 
 analytics.register(IssueArchivedEvent)

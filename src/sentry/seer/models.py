@@ -62,3 +62,20 @@ class PageWebVitalsInsight(SpanInsight):
 class SummarizePageWebVitalsResponse(BaseModel):
     trace_ids: list[str]
     suggested_investigations: list[PageWebVitalsInsight]
+
+
+class SeerApiError(Exception):
+    def __init__(self, message: str, status: int):
+        self.message = message
+        self.status = status
+
+    def __str__(self):
+        return f"Seer API error: {self.message} (status: {self.status})"
+
+
+class SeerPermissionError(Exception):
+    def __init__(self, message: str):
+        self.message = message
+
+    def __str__(self):
+        return f"Seer permission error: {self.message}"

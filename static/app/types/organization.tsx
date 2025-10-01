@@ -102,7 +102,6 @@ export interface Organization extends OrganizationSummary {
     | null;
   defaultSeerScannerAutomation?: boolean;
   desiredSampleRate?: number | null;
-  effectiveSampleRate?: number | null;
   enableSeerCoding?: boolean;
   enableSeerEnhancedAlerts?: boolean;
   enabledConsolePlatforms?: string[];
@@ -400,6 +399,7 @@ export enum SessionStatus {
   HEALTHY = 'healthy',
   ABNORMAL = 'abnormal',
   ERRORED = 'errored',
+  UNHANDLED = 'unhandled',
   CRASHED = 'crashed',
 }
 

@@ -6,7 +6,6 @@ import kebabCase from 'lodash/kebabCase';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {IconChevron} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -127,7 +126,15 @@ function folderOrSearchScoreFirst(
   return a[0].localeCompare(b[0]);
 }
 
-const order: StoryCategory[] = ['foundations', 'typography', 'layout', 'core', 'shared'];
+const order: StoryCategory[] = [
+  'foundations',
+  'principles',
+  'typography',
+  'layout',
+  'core',
+  'product',
+  'shared',
+];
 function rootCategorySort(
   a: [StoryCategory | string, StoryTreeNode],
   b: [StoryCategory | string, StoryTreeNode]
@@ -164,11 +171,22 @@ function normalizeFilename(filename: string) {
   );
 }
 
-export type StoryCategory = 'foundations' | 'core' | 'shared' | 'typography' | 'layout';
+export type StoryCategory =
+  | 'foundations'
+  | 'principles'
+  | 'core'
+  | 'product'
+  | 'typography'
+  | 'layout'
+  | 'shared';
 
 export function inferFileCategory(path: string): StoryCategory {
   if (isFoundationFile(path)) {
     return 'foundations';
+  }
+
+  if (isPrinciplesFile(path)) {
+    return 'principles';
   }
 
   if (isTypographyFile(path)) {
@@ -182,6 +200,10 @@ export function inferFileCategory(path: string): StoryCategory {
   // Leave core at the end, as both typography and layout are considered core components
   if (isCoreFile(path)) {
     return 'core';
+  }
+
+  if (isProductFile(path)) {
+    return 'product';
   }
 
   return 'shared';
@@ -201,6 +223,26 @@ function isTypographyFile(file: string) {
 
 function isLayoutFile(file: string) {
   return file.includes('components/core/layout');
+}
+
+function isPrinciplesFile(file: string) {
+  return file.includes('components/core/principles');
+}
+
+function isProductFile(path: string): boolean {
+  if (path.includes('/views/insights/')) {
+    return true;
+  }
+
+  return false;
+}
+
+function inferProductVertical(path: string): string | null {
+  if (path.includes('/views/insights/')) {
+    return 'Insights';
+  }
+
+  return null;
 }
 
 function inferComponentName(path: string): string {
@@ -272,13 +314,26 @@ export function useStoryTree(
         const type = inferFileCategory(file);
         const path = inferComponentPath(file);
         const name = inferComponentName(file);
+        const vertical = inferProductVertical(file);
 
         if (!root.children[type]) {
           root.children[type] = new StoryTreeNode(type, type, file);
         }
 
-        let parent = root;
-        const parts = path.split('/');
+        let parent = root.children[type];
+        let parts = path.split('/');
+
+        // If 'app' is present in parts, insert the vertical after 'app'
+        const appIndex = parts.indexOf('app');
+        if (appIndex !== -1 && vertical) {
+          if (parts[appIndex + 1] !== vertical) {
+            parts = [
+              ...parts.slice(0, appIndex + 1),
+              vertical,
+              ...parts.slice(appIndex + 1),
+            ];
+          }
+        }
 
         for (let i = 0; i < parts.length; i++) {
           const part = parts[i];
@@ -287,7 +342,7 @@ export function useStoryTree(
           }
 
           if (i === parts.length - 1) {
-            parent.children[name] = new StoryTreeNode(name, type, file);
+            parent.children[name] = new StoryTreeNode(formatName(name), type, file);
             break;
           }
 
@@ -403,6 +458,7 @@ export function useStoryTree(
 
     return Object.values(root.children);
   }, [tree, options.query, options.representation]);
+
   const result = useMemo(() => {
     if (options.type === 'flat') {
       return nodes.flatMap(node => node.flat(), 1);
@@ -411,6 +467,17 @@ export function useStoryTree(
   }, [nodes, options.type]);
 
   return result;
+}
+
+function formatName(name: string) {
+  return name
+    .split('-')
+    .map(word =>
+      word === 'and' || word === 'or'
+        ? word
+        : word.charAt(0).toUpperCase() + word.slice(1)
+    )
+    .join(' ');
 }
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
@@ -518,7 +585,7 @@ function File(props: {node: StoryTreeNode}) {
 
 const StoryList = styled('ul')`
   list-style-type: none;
-  padding-left: 16px;
+  padding-left: ${p => p.theme.space.xl};
 
   &:first-child {
     padding-left: 0;
@@ -528,8 +595,9 @@ const StoryList = styled('ul')`
 const FolderName = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.75)};
-  padding: ${space(1)} ${space(2)} ${space(1)} ${space(1)};
+  gap: ${p => p.theme.space.sm};
+  padding: ${p => p.theme.space.md};
+  padding-right: ${p => p.theme.space.xl};
   color: ${p => p.theme.tokens.content.muted};
   cursor: pointer;
   position: relative;
@@ -537,7 +605,7 @@ const FolderName = styled('div')`
   &:before {
     background: ${p => p.theme.gray100};
     content: '';
-    inset: 0 ${space(0.25)} 0 -${space(0.25)};
+    inset: 0 ${p => p.theme.space['2xs']} 0 -${p => p.theme.space['2xs']};
     position: absolute;
     z-index: -1;
     border-radius: ${p => p.theme.borderRadius};
@@ -557,10 +625,11 @@ const FolderLink = styled(Link, {
 })<{active: boolean}>`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   color: ${p =>
     p.active ? p.theme.tokens.content.accent : p.theme.tokens.content.muted};
-  padding: ${space(1)} ${space(1)} ${space(1)} ${space(0.75)};
+  padding: ${p => p.theme.space.md};
+  padding-left: ${p => p.theme.space.sm};
   position: relative;
   transition: none;
 
@@ -568,7 +637,7 @@ const FolderLink = styled(Link, {
     background: ${p =>
       p.theme.isChonk ? (p.theme as any).colors.blue100 : p.theme.blue100};
     content: '';
-    inset: 0 ${space(1)} 0 -${space(0.25)};
+    inset: 0 ${p => p.theme.space.md} 0 -${p => p.theme.space['2xs']};
     position: absolute;
     z-index: -1;
     border-radius: ${p => p.theme.borderRadius};

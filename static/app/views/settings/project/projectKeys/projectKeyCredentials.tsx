@@ -14,7 +14,8 @@ type Props = {
   showDsn?: boolean;
   showDsnPublic?: boolean;
   showMinidump?: boolean;
-  showOtlp?: boolean;
+  showOtlpLogs?: boolean;
+  showOtlpTraces?: boolean;
   showProjectId?: boolean;
   showPublicKey?: boolean;
   showSecretKey?: boolean;
@@ -31,7 +32,8 @@ function ProjectKeyCredentials({
   showProjectId = false,
   showPublicKey = false,
   showSecretKey = false,
-  showOtlp = false,
+  showOtlpTraces = false,
+  showOtlpLogs = false,
   showSecurityEndpoint = true,
   showUnreal = true,
 }: Props) {
@@ -82,11 +84,51 @@ function ProjectKeyCredentials({
         </FieldGroup>
       )}
 
-      {showOtlp && (
+      {showOtlpLogs && (
+        <Fragment>
+          <FieldGroup
+            label={t('OTLP Logs Endpoint')}
+            help={tct(
+              `Set this URL as your OTLP exporter's log endpoint. [link:Learn more]`,
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/concepts/otlp/#opentelemetry-logs" />
+                ),
+              }
+            )}
+            inline={false}
+            flexibleControlStateSize
+          >
+            <TextCopyInput aria-label={t('OTLP Logs Endpoint')}>
+              {data.dsn.otlp_logs}
+            </TextCopyInput>
+          </FieldGroup>
+
+          <FieldGroup
+            label={t('OTLP Logs Endpoint Headers')}
+            help={t(`Set these security headers when configuring your OTLP exporter.`)}
+            inline={false}
+            flexibleControlStateSize
+          >
+            <TextCopyInput aria-label={t('OTLP Logs Endpoint Headers')}>
+              {`x-sentry-auth=sentry sentry_key=${data.public}`}
+            </TextCopyInput>
+          </FieldGroup>
+        </Fragment>
+      )}
+
+      {showOtlpTraces && (
         <Fragment>
           <FieldGroup
             label={t('OTLP Traces Endpoint')}
-            help={t(`Set this URL as your OTLP exporter's trace endpoint.`)}
+            help={tct(
+              `Set this URL as your OTLP exporter's trace endpoint. [link:Learn more]`,
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/concepts/otlp/#opentelemetry-traces" />
+                ),
+              }
+            )}
             inline={false}
             flexibleControlStateSize
           >

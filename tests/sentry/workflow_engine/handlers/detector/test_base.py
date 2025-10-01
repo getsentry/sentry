@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Any
 from unittest import mock
 
@@ -201,6 +200,14 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             condition_result=DetectorPriorityLevel.HIGH,
             condition_group=detector.workflow_condition_group,
         )
+
+        # add a default resolution case
+        self.create_data_condition(
+            type=Condition.LESS_OR_EQUAL,
+            comparison=5,
+            condition_result=DetectorPriorityLevel.OK,
+            condition_group=detector.workflow_condition_group,
+        )
         return detector, data_condition
 
     def build_handler(
@@ -247,7 +254,6 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
         group_key: DetectorGroupKey,
         value: int,
         priority: DetectorPriorityLevel,
-        detection_time: datetime,
         occurrence_id: str,
     ) -> tuple[IssueOccurrence, dict[str, Any]]:
         fingerprint = [f"{detector.id}{':' + group_key if group_key is not None else ''}"]
@@ -260,7 +266,6 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             occurrence_id=occurrence_id,
             project_id=detector.project_id,
             status=priority,
-            detection_time=detection_time,
             additional_evidence_data=evidence_data,
             fingerprint=fingerprint,
         )
@@ -270,10 +275,10 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                 detector_occurrence.event_data.copy() if detector_occurrence.event_data else {}
             )
         event_data["environment"] = detector.config.get("environment")
-        event_data["timestamp"] = detection_time
+        event_data["timestamp"] = issue_occurrence.detection_time
         event_data["project_id"] = detector.project_id
         event_data["event_id"] = occurrence_id
         event_data.setdefault("platform", "python")
-        event_data.setdefault("received", detection_time)
+        event_data.setdefault("received", issue_occurrence.detection_time)
         event_data.setdefault("tags", {})
         return issue_occurrence, event_data

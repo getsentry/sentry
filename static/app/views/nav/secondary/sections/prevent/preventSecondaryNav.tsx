@@ -48,7 +48,7 @@ function PreventSecondaryNav() {
               {t('Coverage')}
             </SecondaryNav.Item>
           </Feature>
-          <Feature features={['codecov-ui']}>
+          <Feature features={['prevent-test-analytics']}>
             <SecondaryNav.Item to={testsPathname} activeTo={testsPathname}>
               {t('Tests')}
             </SecondaryNav.Item>
@@ -57,10 +57,10 @@ function PreventSecondaryNav() {
             to={`${preventAIPathName}new/`}
             activeTo={`${preventAIPathName}new/`}
           >
-            {t('Prevent AI')}
+            {t('AI Code Review')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
-        <Feature features={['codecov-ui']}>
+        <Feature features={['prevent-test-analytics']}>
           <SecondaryNav.Section id="prevent-configure" title={t('Configure')}>
             <SecondaryNav.Item to={`${tokensPathName}`} activeTo={tokensPathName}>
               {t('Tokens')}

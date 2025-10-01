@@ -290,13 +290,12 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             return serialized
 
         render_pre_built_dashboard = True
-        if (
-            filter_by
-            and filter_by in {"onlyFavorites", "owned"}
-            or pin_by
-            and pin_by == "favorites"
-        ):
+        if filter_by and filter_by in {"onlyFavorites", "owned"}:
             render_pre_built_dashboard = False
+        elif pin_by and pin_by == "favorites":
+            # Only hide prebuilt dashboard when pinning favorites if there are actual dashboards to show
+            # This allows the prebuilt dashboard to appear when users have no dashboards yet
+            render_pre_built_dashboard = not dashboards.exists()
 
         return self.paginate(
             request=request,
@@ -328,15 +327,13 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):
             return Response(status=404)
 
-        if features.has("organizations:dashboards-plan-limits", organization, actor=request.user):
-            dashboard_count = Dashboard.objects.filter(organization=organization).count()
-            dashboard_limit = quotas.backend.get_dashboard_limit(organization.id)
-
-            if dashboard_limit >= 0 and dashboard_count >= dashboard_limit:
-                return Response(
-                    f"You may not exceed {dashboard_limit} dashboards on your current plan.",
-                    status=400,
-                )
+        dashboard_count = Dashboard.objects.filter(organization=organization).count()
+        dashboard_limit = quotas.backend.get_dashboard_limit(organization.id)
+        if dashboard_limit >= 0 and dashboard_count >= dashboard_limit:
+            return Response(
+                f"You may not exceed {dashboard_limit} dashboards on your current plan.",
+                status=400,
+            )
 
         serializer = DashboardSerializer(
             data=request.data,

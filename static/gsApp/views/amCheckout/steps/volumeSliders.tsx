@@ -11,6 +11,7 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconLightning, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
+import {defined} from 'sentry/utils';
 
 import {PlanTier} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
@@ -27,50 +28,8 @@ import * as utils from 'getsentry/views/amCheckout/utils';
 
 const ATTACHMENT_DIGITS = 2;
 
-function VolumeSliders({
-  checkoutTier,
-  activePlan,
-  organization,
-  onUpdate,
-  formData,
-  subscription,
-  isLegacy,
-  isNewCheckout,
-}: Pick<
-  StepProps,
-  | 'activePlan'
-  | 'checkoutTier'
-  | 'organization'
-  | 'onUpdate'
-  | 'formData'
-  | 'subscription'
-  | 'isNewCheckout'
-> & {
-  isLegacy: boolean;
-}) {
-  const handleReservedChange = (value: number, category: DataCategory) => {
-    onUpdate({reserved: {...formData.reserved, [category]: value}});
-
-    if (organization) {
-      trackGetsentryAnalytics('checkout.data_slider_changed', {
-        organization,
-        data_type: category,
-        quantity: value,
-      });
-    }
-  };
-
-  const renderPerformanceUnitDecoration = () => (
-    <PerformanceUnits>
-      <PerformanceTag>
-        <IconLightning size="sm" />
-        {t('Sentry Performance')}
-      </PerformanceTag>
-      {!isNewCheckout && t('Total Units')}
-    </PerformanceUnits>
-  );
-
-  const renderHovercardBody = () => (
+function renderHovercardBody() {
+  return (
     <Fragment>
       <UnitTypeItem
         unitName={t('Transactions')}
@@ -88,8 +47,10 @@ function VolumeSliders({
       />
     </Fragment>
   );
+}
 
-  const renderPerformanceHovercard = () => (
+export function renderPerformanceHovercard() {
+  return (
     <StyledHovercard
       position="top"
       header={<div>{t('Performance Event Types')}</div>}
@@ -99,6 +60,54 @@ function VolumeSliders({
         <IconQuestion size="xs" color="subText" />
       </IconContainer>
     </StyledHovercard>
+  );
+}
+
+function VolumeSliders({
+  checkoutTier,
+  activePlan,
+  organization,
+  onUpdate,
+  formData,
+  subscription,
+  isLegacy,
+  isNewCheckout,
+  onReservedChange,
+}: Pick<
+  StepProps,
+  | 'activePlan'
+  | 'checkoutTier'
+  | 'organization'
+  | 'onUpdate'
+  | 'formData'
+  | 'subscription'
+  | 'isNewCheckout'
+> & {
+  isLegacy: boolean;
+  onReservedChange?: (value: number, category: DataCategory) => void;
+}) {
+  // TODO(checkout v3): Remove this once we've GA'd, the changes are handled in the parent component
+  const handleReservedChange = (value: number, category: DataCategory) => {
+    onUpdate({reserved: {...formData.reserved, [category]: value}});
+
+    if (organization) {
+      trackGetsentryAnalytics('checkout.data_slider_changed', {
+        organization,
+        data_type: category,
+        quantity: value,
+        isNewCheckout: !!isNewCheckout,
+      });
+    }
+  };
+
+  const renderPerformanceUnitDecoration = () => (
+    <PerformanceUnits>
+      <PerformanceTag>
+        <IconLightning size="sm" />
+        {t('Sentry Performance')}
+      </PerformanceTag>
+      {!isNewCheckout && t('Total Units')}
+    </PerformanceUnits>
   );
 
   return (
@@ -170,15 +179,6 @@ function VolumeSliders({
                     {showPerformanceUnits && renderPerformanceUnitDecoration()}
                     <Title htmlFor={sliderId} isNewCheckout={!!isNewCheckout}>
                       <div>{getPlanCategoryName({plan: activePlan, category})}</div>
-                      {showPerformanceUnits
-                        ? renderPerformanceHovercard()
-                        : categoryInfo?.reservedVolumeTooltip && (
-                            <QuestionTooltip
-                              title={categoryInfo.reservedVolumeTooltip}
-                              position="top"
-                              size="xs"
-                            />
-                          )}
                     </Title>
                     {eventBucket.price !== 0 && (
                       <Description isNewCheckout={!!isNewCheckout}>
@@ -230,7 +230,13 @@ function VolumeSliders({
                       id={sliderId}
                       value={formData.reserved[category] ?? ''}
                       allowedValues={allowedValues}
-                      onChange={value => value && handleReservedChange(value, category)}
+                      onChange={value =>
+                        defined(value) && typeof value === 'number'
+                          ? onReservedChange
+                            ? onReservedChange(value, category)
+                            : handleReservedChange(value, category)
+                          : undefined
+                      }
                     />
                     <MinMax isNewCheckout={!!isNewCheckout}>
                       <div>
@@ -260,9 +266,9 @@ function VolumeSliders({
                         <div>{getPlanCategoryName({plan: activePlan, category})}</div>
                         {showPerformanceUnits
                           ? renderPerformanceHovercard()
-                          : categoryInfo?.reservedVolumeTooltip && (
+                          : categoryInfo?.checkoutTooltip && (
                               <QuestionTooltip
-                                title={categoryInfo.reservedVolumeTooltip}
+                                title={categoryInfo.checkoutTooltip}
                                 position="top"
                                 size="xs"
                               />

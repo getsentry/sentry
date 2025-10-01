@@ -1,10 +1,18 @@
 import moment from 'moment-timezone';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
+import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
@@ -22,17 +30,18 @@ describe('Cart', () => {
   const billingConfig = BillingConfigFixture(PlanTier.AM3);
   const props = {
     ...routerProps,
+    navigate: jest.fn(),
     isNewCheckout: true,
   };
-  const businessPlan = PlanDetailsLookupFixture('am3_business');
-  const teamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf');
-  const legacyTeamPlan = PlanDetailsLookupFixture('am2_team');
+  const businessPlan = PlanDetailsLookupFixture('am3_business')!;
+  const teamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf')!;
+  const legacyTeamPlan = PlanDetailsLookupFixture('am2_team')!;
 
   const defaultFormData: CheckoutFormData = {
     plan: 'am3_business',
     reserved: {
       ...Object.fromEntries(
-        Object.entries(businessPlan!.planCategories).map(([category, buckets]) => [
+        Object.entries(businessPlan.planCategories).map(([category, buckets]) => [
           category,
           buckets[0]!.events,
         ])
@@ -72,11 +81,24 @@ describe('Cart', () => {
         invoiceItems: [],
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+      body: BillingDetailsFixture(),
+    });
   });
 
   afterEach(() => {
     resetMockDate();
   });
+
+  function getFormDataForPreview(formData: CheckoutFormData) {
+    return {
+      ...formData,
+      onDemandMaxSpend: undefined,
+      onDemandBudget: undefined,
+    };
+  }
 
   it('renders with default selections', async () => {
     render(
@@ -89,9 +111,9 @@ describe('Cart', () => {
     );
     const cart = await screen.findByTestId('cart');
     expect(cart).toHaveTextContent('Business Plan');
-    expect(cart).toHaveTextContent('Pay-as-you-go spend cap$0-$300/mo');
+    expect(cart).toHaveTextContent('Pay-as-you-go spend limitup to $300/mo');
     expect(cart).toHaveTextContent('Plan Total$89/mo');
-    expect(within(cart).getByRole('button', {name: 'Confirm and pay'})).toBeEnabled();
+    expect(cart).toHaveTextContent('Default Amount');
   });
 
   it('renders form data', async () => {
@@ -115,11 +137,12 @@ describe('Cart', () => {
 
     render(
       <Cart
-        activePlan={teamPlanAnnual!}
+        activePlan={teamPlanAnnual}
         formData={formData}
-        hasCompleteBillingDetails
+        formDataForPreview={getFormDataForPreview(formData)}
         organization={organization}
         subscription={subscription}
+        onSuccess={jest.fn()}
       />
     );
 
@@ -129,15 +152,25 @@ describe('Cart', () => {
     expect(planItem).toHaveTextContent('25 GB attachments');
     expect(planItem).toHaveTextContent('$65/yr');
 
+    // PAYG-only categories are also shown for paid plans
+    expect(planItem).toHaveTextContent('Continuous profile hours');
+    expect(planItem).toHaveTextContent('Available');
+
     const seerItem = screen.getByTestId('summary-item-product-seer');
-    expect(seerItem).toHaveTextContent('Seer AI Agent');
+    expect(seerItem).toHaveTextContent('Seer');
     expect(seerItem).toHaveTextContent('$216/yr');
 
-    const spendCapItem = screen.getByTestId('summary-item-spend-cap');
-    expect(spendCapItem).toHaveTextContent('$0-$50/mo');
+    const spendCapItem = screen.getByTestId('summary-item-spend-limit');
+    expect(spendCapItem).toHaveTextContent('up to $50/mo');
+
+    expect(screen.queryByTestId('cart-diff')).not.toBeInTheDocument(); // changes aren't shown for free plan
+
+    // immediate changes are shown for free plan
+    expect(screen.getByRole('button', {name: 'Confirm and pay'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Confirm'})).not.toBeInTheDocument();
   });
 
-  it('renders per-category spend caps', async () => {
+  it('renders per-category spend limits', async () => {
     const formData: CheckoutFormData = {
       plan: 'am2_team',
       reserved: {
@@ -165,32 +198,62 @@ describe('Cart', () => {
 
     render(
       <Cart
-        activePlan={legacyTeamPlan!}
+        activePlan={legacyTeamPlan}
         formData={formData}
-        hasCompleteBillingDetails
+        formDataForPreview={getFormDataForPreview(formData)}
         organization={organization}
         subscription={subscription}
+        onSuccess={jest.fn()}
       />
     );
 
-    const spendCapItems = await screen.findAllByTestId(/summary-item-spend-cap/);
+    const spendCapItems = await screen.findAllByTestId(/summary-item-spend-limit/);
     expect(spendCapItems).toHaveLength(4);
-    expect(screen.getByTestId('summary-item-spend-cap-errors')).toHaveTextContent(
-      '$0-$10/mo'
+    expect(screen.getByTestId('summary-item-spend-limit-errors')).toHaveTextContent(
+      'up to $10/mo'
     );
-    expect(screen.getByTestId('summary-item-spend-cap-transactions')).toHaveTextContent(
-      '$0-$5/mo'
+    expect(screen.getByTestId('summary-item-spend-limit-transactions')).toHaveTextContent(
+      'up to $5/mo'
     );
-    expect(screen.getByTestId('summary-item-spend-cap-attachments')).toHaveTextContent(
-      '$0-$20/mo'
+    expect(screen.getByTestId('summary-item-spend-limit-attachments')).toHaveTextContent(
+      'up to $20/mo'
     );
-    expect(screen.getByTestId('summary-item-spend-cap-replays')).toHaveTextContent(
-      '$0-$15/mo'
+    expect(screen.getByTestId('summary-item-spend-limit-replays')).toHaveTextContent(
+      'up to $15/mo'
     );
   });
 
-  it('renders preview data', async () => {
+  it('does not fetch preview data if billing info is incomplete', async () => {
+    const mockResponse = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+      body: {
+        invoiceItems: [],
+      },
+    });
     MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
+
+    render(
+      <Cart
+        activePlan={businessPlan}
+        formData={defaultFormData}
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
+        organization={organization}
+        subscription={subscription}
+        onSuccess={jest.fn()}
+      />
+    );
+
+    expect(await screen.findByRole('button', {name: 'Confirm and pay'})).toBeDisabled();
+    expect(mockResponse).not.toHaveBeenCalled();
+    expect(screen.getByText('Plan renews monthly.')).toBeInTheDocument(); // no renewal date specified
+  });
+
+  it('renders preview data', async () => {
+    const mockResponse = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
       body: {
@@ -216,16 +279,20 @@ describe('Cart', () => {
 
     render(
       <Cart
-        activePlan={businessPlan!}
+        activePlan={businessPlan}
         formData={defaultFormData}
-        hasCompleteBillingDetails
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
         organization={organization}
         subscription={subscription}
+        onSuccess={jest.fn()}
       />
     );
 
     const dueToday = await screen.findByTestId('summary-item-due-today');
-    expect(dueToday).toHaveTextContent('$91'); // original price
+    expect(mockResponse).toHaveBeenCalled();
+
+    // wait for preview to be loaded
+    await waitFor(() => expect(dueToday).toHaveTextContent('$91')); // original price
     expect(dueToday).toHaveTextContent('$80'); // price after credits + additional fees
     expect(screen.getByTestId('summary-item-plan-total')).toHaveTextContent('$89');
     expect(screen.getByTestId('summary-item-sales_tax')).toHaveTextContent('$2');
@@ -234,7 +301,7 @@ describe('Cart', () => {
     expect(screen.queryByText(/Your changes will apply/)).not.toBeInTheDocument();
   });
 
-  it('renders warning and no total for pending changes', async () => {
+  it('renders future total for pending changes', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
@@ -255,32 +322,188 @@ describe('Cart', () => {
 
     render(
       <Cart
-        activePlan={businessPlan!}
+        activePlan={businessPlan}
         formData={defaultFormData}
-        hasCompleteBillingDetails
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
         organization={organization}
         subscription={subscription}
+        onSuccess={jest.fn()}
       />
     );
 
-    expect(await screen.findByTestId('summary-item-due-today')).toHaveTextContent('$0');
+    // wait for preview to be loaded
+    await waitFor(() =>
+      expect(screen.getByTestId('summary-item-due-today')).toHaveTextContent(
+        'Due on Jun 7, 2023'
+      )
+    );
+    expect(screen.getByTestId('summary-item-due-today')).toHaveTextContent('$89 USD');
     expect(screen.getByTestId('summary-item-plan-total')).toHaveTextContent('$89');
     expect(screen.getByText('Renews Jun 7, 2024')).toBeInTheDocument();
     expect(
       screen.getByText(/Your changes will apply on Jun 7, 2023/)
     ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Confirm'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Confirm and pay'})
+    ).not.toBeInTheDocument();
   });
 
-  it('disables confirm and pay button for incomplete billing details', async () => {
+  it('renders buttons and subtext for migrating partner customers', async () => {
+    const partnerOrg = OrganizationFixture({features: ['partner-billing-migration']});
+    const partnerSub = SubscriptionFixture({
+      organization: partnerOrg,
+      partner: {
+        externalId: 'whateva',
+        isActive: true,
+        partnership: {
+          displayName: 'Partner',
+          id: '123',
+          supportNote: 'Support note',
+        },
+        name: 'partner',
+      },
+      contractPeriodEnd: moment(MOCK_TODAY).add(7, 'days').toISOString(),
+    });
+
     render(
       <Cart
-        activePlan={businessPlan!}
+        activePlan={businessPlan}
         formData={defaultFormData}
-        hasCompleteBillingDetails={false}
-        organization={organization}
-        subscription={subscription}
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
+        organization={partnerOrg}
+        subscription={partnerSub}
+        onSuccess={jest.fn()}
       />
     );
-    expect(await screen.findByRole('button', {name: 'Confirm and pay'})).toBeDisabled();
+
+    expect(await screen.findByRole('button', {name: 'Migrate Now'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Schedule changes'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Confirm and pay'})
+    ).not.toBeInTheDocument();
+    // wait for preview to be loaded
+    await screen.findByText(
+      /These changes will take effect at the end of your current Partner sponsored plan on Jun 14, 2022/
+    );
+    expect(screen.queryByTestId('cart-diff')).not.toBeInTheDocument(); // changes aren't shown for migrating partner customers
+  });
+
+  it('renders subtext for self-serve partner customers', async () => {
+    const partnerSub = SubscriptionFixture({
+      organization,
+      isSelfServePartner: true,
+      partner: {
+        externalId: 'whateva',
+        isActive: true,
+        partnership: {
+          displayName: 'Partner',
+          id: '123',
+          supportNote: 'Support note',
+        },
+        name: 'partner',
+      },
+    });
+
+    render(
+      <Cart
+        activePlan={businessPlan}
+        formData={defaultFormData}
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
+        organization={organization}
+        subscription={partnerSub}
+        onSuccess={jest.fn()}
+      />
+    );
+
+    // wait for preview to be loaded
+    await screen.findByText(/you will be billed by Partner/);
+    expect(screen.getByRole('button', {name: 'Confirm and pay'})).toBeInTheDocument();
+  });
+
+  it('renders changes for returning customers', async () => {
+    const paidSub = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      isFree: false,
+    });
+    SubscriptionStore.set(organization.slug, paidSub);
+
+    const formData: CheckoutFormData = {
+      plan: 'am3_team_auf',
+      reserved: {
+        ...defaultFormData.reserved,
+        attachments: 25,
+        spans: 20_000_000,
+      },
+      onDemandBudget: {
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: 1_00,
+      },
+      selectedProducts: {
+        [SelectableProduct.SEER]: {
+          enabled: true,
+        },
+      },
+    };
+
+    render(
+      <Cart
+        activePlan={teamPlanAnnual}
+        formData={formData}
+        formDataForPreview={getFormDataForPreview(formData)}
+        organization={organization}
+        subscription={paidSub}
+        onSuccess={jest.fn()}
+      />
+    );
+
+    const changes = await screen.findByTestId('cart-diff');
+    expect(changes).toHaveTextContent('Changes (6)');
+    const planChanges = within(changes).getByTestId('plan-diff');
+    expect(planChanges).toHaveTextContent('Plan');
+
+    const reservedChanges = within(changes).getByTestId('reserved-diff');
+    expect(reservedChanges).toHaveTextContent('Reserved volume');
+
+    const sharedSpendCapChanges = within(changes).getByTestId('shared-spend-limit-diff');
+    expect(sharedSpendCapChanges).toHaveTextContent('PAYG spend limit');
+  });
+
+  it('can toggle changes and plan summary', async () => {
+    const paidSub = SubscriptionFixture({
+      organization,
+      plan: 'am3_business_auf',
+      isFree: false,
+    });
+    SubscriptionStore.set(organization.slug, paidSub);
+
+    render(
+      <Cart
+        activePlan={businessPlan}
+        formData={defaultFormData}
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
+        organization={organization}
+        subscription={paidSub}
+        onSuccess={jest.fn()}
+      />
+    );
+
+    const changes = await screen.findByTestId('cart-diff');
+    expect(within(changes).getByText('Plan')).toBeInTheDocument();
+
+    const planSummary = await screen.findByTestId('plan-summary');
+    expect(within(planSummary).getByText('Business Plan')).toBeInTheDocument();
+
+    const changesButton = await screen.findByRole('button', {name: 'Hide changes'});
+    const planSummaryButton = await screen.findByRole('button', {
+      name: 'Hide plan summary',
+    });
+
+    await userEvent.click(changesButton);
+    expect(within(changes).queryByText('Plan')).not.toBeInTheDocument();
+
+    await userEvent.click(planSummaryButton);
+    expect(within(planSummary).queryByText('Business Plan')).not.toBeInTheDocument();
   });
 });

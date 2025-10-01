@@ -127,7 +127,10 @@ class SearchResolver:
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
     ]:
-        """Given a query string in the public search syntax eg. `span.description:foo` construct the TraceItemFilter"""
+        """Given a query string in the public search syntax eg. `span.description:foo` construct the TraceItemFilter
+
+        This is the public interface to resolver the query, for the logic see __resolve_query, this is because we
+        also append the environment before returning the final TraceItemFilter"""
         environment_query = self.__resolve_environment_query()
         where, having, contexts = self.__resolve_query(querystring)
         span = sentry_sdk.get_current_span()
@@ -448,33 +451,51 @@ class SearchResolver:
             if term.value.is_wildcard():
                 # Avoiding this for now, but we could theoretically do a wildcard search on the resolved contexts
                 raise InvalidSearchQuery(f"Cannot use wildcards with {term.key.name}")
-            if (
-                isinstance(value, str)
-                or isinstance(value, list)
-                and all(isinstance(iter_value, str) for iter_value in value)
-            ):
-                value = self.resolve_virtual_context_term(
-                    term.key.name,
-                    value,
-                    resolved_column,
-                    context_definition,
-                )
-            else:
-                raise InvalidSearchQuery(f"{value} not a valid term for {term.key.name}")
-            if context_definition.term_resolver:
-                value = context_definition.term_resolver(value)
-            if context_definition.filter_column is not None:
-                resolved_column, _ = self.resolve_attribute(context_definition.filter_column)
 
         if term.value.is_wildcard():
+            is_list = False
             if term.operator == "=":
                 operator = ComparisonFilter.OP_LIKE
             elif term.operator == "!=":
                 operator = ComparisonFilter.OP_NOT_LIKE
+            elif term.operator == "IN":
+                operator = ComparisonFilter.OP_LIKE
+                is_list = True
+            elif term.operator == "NOT IN":
+                operator = ComparisonFilter.OP_NOT_LIKE
+                is_list = True
             else:
-                raise InvalidSearchQuery(f"Cannot use a wildcard with a {term.operator} filter")
-            value = str(term.value.raw_value)
-            value = event_search.translate_wildcard_as_clickhouse_pattern(value)
+                raise InvalidSearchQuery(f"Cannot use operator: {term.operator} with wildcards")
+
+            if is_list:
+                raw_value = cast(list[str], term.value.raw_value)
+                filters = [
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=resolved_column.proto_definition,
+                            op=operator,
+                            value=self._resolve_search_value(
+                                resolved_column,
+                                (
+                                    "=" if operator == ComparisonFilter.OP_LIKE else "!="
+                                ),  # tell this function the single operator since its being ORed
+                                event_search.translate_wildcard_as_clickhouse_pattern(str(value)),
+                            ),
+                        )
+                    )
+                    for value in raw_value
+                ]
+                return (
+                    (
+                        TraceItemFilter(or_filter=OrFilter(filters=filters))
+                        if term.operator == "IN"
+                        else TraceItemFilter(and_filter=AndFilter(filters=filters))
+                    ),
+                    context_definition,
+                )
+            else:
+                value = str(term.value.raw_value)
+                value = event_search.translate_wildcard_as_clickhouse_pattern(value)
         elif term.operator in constants.OPERATOR_MAP:
             operator = constants.OPERATOR_MAP[term.operator]
         else:
@@ -545,6 +566,8 @@ class SearchResolver:
                     key=resolved_column.proto_definition,
                     op=operator,
                     value=self._resolve_search_value(resolved_column, term.operator, value),
+                    ignore_case=self.params.case_insensitive
+                    and resolved_column.search_type == "string",
                 )
             ),
             context_definition,
@@ -797,7 +820,7 @@ class SearchResolver:
     def resolve_column(
         self,
         column: str,
-        match: Match | None = None,
+        match: Match[str] | None = None,
         public_alias_override: str | None = None,
     ) -> tuple[
         ResolvedAttribute | ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula,
@@ -920,7 +943,7 @@ class SearchResolver:
     def resolve_function(
         self,
         column: str,
-        match: Match | None = None,
+        match: Match[str] | None = None,
         public_alias_override: str | None = None,
     ) -> tuple[
         ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate,
@@ -1025,10 +1048,10 @@ class SearchResolver:
                 resolved_argument = parsed_arg.proto_definition
             resolved_arguments.append(resolved_argument)
 
-        # We assume the first argument contains the resolved search_type as this is always the case for now
         if len(parsed_args) == 0 or not isinstance(parsed_args[0], ResolvedAttribute):
             search_type = function_definition.default_search_type
         else:
+            # unless infer_search_type_from_arguments is passed we assume the first argument is the search_type
             search_type = (
                 parsed_args[0].search_type
                 if function_definition.infer_search_type_from_arguments

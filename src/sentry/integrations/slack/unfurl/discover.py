@@ -20,7 +20,8 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.slack.analytics import SlackIntegrationChartUnfurl
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.types import Handler, UnfurlableUrl, UnfurledUrl
@@ -29,6 +30,7 @@ from sentry.models.organization import Organization
 from sentry.search.events.filter import to_list
 from sentry.snuba.referrer import Referrer
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.utils.dates import (
     get_interval_from_range,
     parse_stats_period,
@@ -117,9 +119,9 @@ def is_aggregate(field: str) -> bool:
 
 def unfurl_discover(
     request: HttpRequest,
-    integration: Integration,
+    integration: Integration | RpcIntegration,
     links: list[UnfurlableUrl],
-    user: User | None = None,
+    user: User | RpcUser | None = None,
 ) -> UnfurledUrl:
     event = MessagingInteractionEvent(
         MessagingInteractionType.UNFURL_DISCOVER, SlackMessagingSpec(), user=user
@@ -129,9 +131,9 @@ def unfurl_discover(
 
 
 def _unfurl_discover(
-    integration: Integration,
+    integration: Integration | RpcIntegration,
     links: list[UnfurlableUrl],
-    user: User | None = None,
+    user: User | RpcUser | None = None,
 ) -> UnfurledUrl:
     org_integrations = integration_service.get_organization_integrations(
         integration_id=integration.id
@@ -298,10 +300,11 @@ def _unfurl_discover(
     first_org_integration = org_integrations[0] if len(org_integrations) > 0 else None
     if first_org_integration is not None and hasattr(first_org_integration, "id"):
         analytics.record(
-            "integrations.slack.chart_unfurl",
-            organization_id=first_org_integration.organization_id,
-            user_id=user.id if user else None,
-            unfurls_count=len(unfurls),
+            SlackIntegrationChartUnfurl(
+                organization_id=first_org_integration.organization_id,
+                user_id=user.id if user else None,
+                unfurls_count=len(unfurls),
+            )
         )
 
     return unfurls

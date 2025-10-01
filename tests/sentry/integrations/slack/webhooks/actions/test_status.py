@@ -29,6 +29,8 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -51,6 +53,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "event_id": "a" * 32,
             "message": "IntegrationError",
             "fingerprint": ["group-1"],
+            "timestamp": before_now(minutes=10).isoformat(),
             "exception": {
                 "values": [
                     {
@@ -109,7 +112,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "text": {"type": "plain_text", "text": "Archive", "emoji": True},
             "value": "archive_dialog",
             "type": "button",
-            "action_ts": "1702424387.108033",
+            "action_ts": before_now(minutes=7).timestamp(),
         }
 
     def get_assign_status_action(self, type, text, id):
@@ -122,7 +125,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
                 "value": f"{type}:{id}",
             },
             "placeholder": {"type": "plain_text", "text": "Select Assignee...", "emoji": True},
-            "action_ts": "1702499909.524144",
+            "action_ts": before_now(minutes=5).timestamp(),
         }
 
     def get_resolve_status_action(self):
@@ -132,7 +135,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "text": {"type": "plain_text", "text": "Resolve", "emoji": True},
             "value": "resolve_dialog",
             "type": "button",
-            "action_ts": "1702502121.403007",
+            "action_ts": before_now(minutes=3).timestamp(),
         }
 
     def get_mark_ongoing_action(self):
@@ -142,7 +145,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "text": {"type": "plain_text", "text": "Mark as Ongoing", "emoji": True},
             "value": "unresolved:ongoing",
             "type": "button",
-            "action_ts": "1702502122.304116",
+            "action_ts": before_now(minutes=1).timestamp(),
         }
 
     def archive_issue(self, original_message, selected_option, payload_data=None):
@@ -261,7 +264,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.notification_text in blocks[1]["text"]["text"]
         assert blocks[2]["text"]["text"].endswith(expect_status)
         assert "via" not in blocks[4]["elements"][0]["text"]
-        assert "white_circle" in blocks[0]["elements"][0]["elements"][0]["name"]
+        assert ":white_circle:" in blocks[0]["text"]["text"]
 
         assert len(mock_record.mock_calls) == 4
         start_1, success_1, start_2, success_2 = mock_record.mock_calls
@@ -486,7 +489,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
         assert self.notification_text in blocks[1]["text"]["text"]
         assert blocks[2]["text"]["text"].endswith(expect_status), text
-        assert "white_circle" in blocks[0]["elements"][0]["elements"][0]["name"]
+        assert ":white_circle:" in blocks[0]["text"]["text"]
 
         # Assign to team
         self.assign_issue(original_message, self.team)
@@ -498,7 +501,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
         assert self.notification_text in blocks[1]["text"]["text"]
         assert blocks[2]["text"]["text"].endswith(expect_status), text
-        assert "white_circle" in blocks[0]["elements"][0]["elements"][0]["name"]
+        assert ":white_circle:" in blocks[0]["text"]["text"]
 
         # Assert group assignment activity recorded
         group_activity = list(Activity.objects.filter(group=self.group))
@@ -541,7 +544,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
         assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
-        assert "white_circle" in resp.data["blocks"][0]["elements"][0]["elements"][0]["name"]
+        assert ":white_circle:" in resp.data["blocks"][0]["text"]["text"]
 
         # Assert group assignment activity recorded
         group_activity = list(Activity.objects.filter(group=self.group))
@@ -733,7 +736,29 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert self.notification_text in blocks[1]["text"]["text"]
         assert blocks[2]["text"]["text"] == expect_status
-        assert "white_circle" in blocks[0]["elements"][0]["elements"][0]["name"]
+        assert ":white_circle:" in blocks[0]["text"]["text"]
+
+    @with_feature("organizations:workflow-engine-single-process-workflows")
+    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
+    def test_resolve_issue_during_aci_rollout(
+        self, mock_tags: MagicMock, mock_record: MagicMock
+    ) -> None:
+        original_message = self.get_original_message(self.group.id)
+        self.resolve_issue(original_message, "resolved", mock_record)
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.RESOLVED
+        assert not GroupResolution.objects.filter(group=self.group)
+
+        blocks = self.mock_post.call_args.kwargs["blocks"]
+        assert mock_tags.call_args.kwargs["tags"] == self.tags
+
+        expect_status = f"*Issue resolved by <@{self.external_id}>*"
+        assert self.notification_text in blocks[1]["text"]["text"]
+        assert blocks[2]["text"]["text"] == expect_status
+        assert ":white_circle:" in blocks[0]["text"]["text"]
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
@@ -767,8 +792,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             in blocks[2]["text"]["text"]
         )
         assert blocks[3]["text"]["text"] == expect_status
-        assert "white_circle" in blocks[0]["elements"][0]["elements"][0]["name"]
-        assert "chart_with_upwards_trend" in blocks[0]["elements"][0]["elements"][2]["name"]
+        assert ":white_circle: :chart_with_upwards_trend:" in blocks[0]["text"]["text"]
 
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
     def test_resolve_issue_through_unfurl(self, mock_tags: MagicMock) -> None:

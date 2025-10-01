@@ -17,13 +17,11 @@ import {
   LogsPageDataProvider,
   useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
-import {
-  LogsPageParamsProvider,
-  useLogsSearch,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
+import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -37,12 +35,16 @@ export function OurlogsSection({
   group: Group;
   project: Project;
 }) {
+  const traceId = event.contexts?.trace?.trace_id;
   return (
-    <LogsQueryParamsProvider source="state">
+    <LogsQueryParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+      source="state"
+      freeze={traceId ? {traceId} : undefined}
+    >
       <LogsPageParamsProvider
         analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
         isTableFrozen
-        limitToTraceId={event.contexts?.trace?.trace_id}
       >
         <LogsPageDataProvider>
           <OurlogsSectionContent event={event} group={group} project={project} />
@@ -64,13 +66,13 @@ function OurlogsSectionContent({
   const organization = useOrganization();
   const feature = organization.features.includes('ourlogs-enabled');
   const tableData = useLogsPageDataQueryResult();
-  const logsSearch = useLogsSearch();
+  const logsSearch = useQueryParamsSearch();
   const abbreviatedTableData = (tableData.data ?? []).slice(0, 5);
   const {openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const limitToTraceId = event.contexts?.trace?.trace_id;
+  const traceId = event.contexts?.trace?.trace_id;
   const onOpenLogsDrawer = useCallback(
     (e: React.MouseEvent, expandedLogId?: string) => {
       e.stopPropagation();
@@ -79,11 +81,14 @@ function OurlogsSectionContent({
       });
       openDrawer(
         () => (
-          <LogsQueryParamsProvider source="state">
+          <LogsQueryParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+            source="state"
+            freeze={traceId ? {traceId} : undefined}
+          >
             <LogsPageParamsProvider
               analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
               isTableFrozen
-              limitToTraceId={limitToTraceId}
             >
               <LogsPageDataProvider>
                 <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
@@ -111,7 +116,7 @@ function OurlogsSectionContent({
         }
       );
     },
-    [group, event, project, openDrawer, organization, limitToTraceId]
+    [group, event, project, openDrawer, organization, traceId]
   );
 
   const onEmbeddedRowClick = useCallback(
@@ -123,7 +128,7 @@ function OurlogsSectionContent({
   if (!feature) {
     return null;
   }
-  if (!limitToTraceId) {
+  if (!traceId) {
     // If there isn't a traceId (eg. profiling issue), we shouldn't show logs since they are trace specific.
     // We may change this in the future if we have a trace-group or we generate trace sids for these issue types.
     return null;

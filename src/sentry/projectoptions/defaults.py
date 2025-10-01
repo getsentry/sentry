@@ -5,7 +5,7 @@ from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project
-LATEST_EPOCH = 14
+LATEST_EPOCH = 15
 
 register(key="sentry:grouping_config", default=DEFAULT_GROUPING_CONFIG)
 register(key="sentry:grouping_enhancements", default="")
@@ -30,8 +30,7 @@ register(key="sentry:similarity_backfill_completed", default=None)
 # version is set on a project's DSN.
 register(
     key="sentry:default_loader_version",
-    # TODO(andreiborza): Make v10 loader default
-    epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x", 13: "8.x", 14: "9.x"},
+    epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x", 13: "8.x", 14: "9.x", 15: "10.x"},
 )
 
 # Default symbol sources.  The ios source does not exist by default and
@@ -85,6 +84,8 @@ register(key="filters:filtered-transaction", default="1")
 # extracted performance metrics.
 register(key="sentry:transaction_metrics_custom_tags", epoch_defaults={1: []})
 
+# c.f. set_default_disabled_detectors, which can disable detectors on project creation
+# for specific platforms
 DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "uncompressed_assets_detection_enabled": True,
     "consecutive_http_spans_detection_enabled": True,
@@ -99,7 +100,7 @@ DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "http_overhead_detection_enabled": True,
     "transaction_duration_regression_detection_enabled": True,
     "function_duration_regression_detection_enabled": True,
-    "db_query_injection_detection_enabled": True,
+    "db_query_injection_detection_enabled": False,
 }
 
 DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS = {

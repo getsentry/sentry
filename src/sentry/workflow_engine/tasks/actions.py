@@ -16,7 +16,7 @@ from sentry.workflow_engine.tasks.utils import (
     build_workflow_event_data_from_event,
 )
 from sentry.workflow_engine.types import WorkflowEventData
-from sentry.workflow_engine.utils import log_context
+from sentry.workflow_engine.utils import log_context, timeout_grouping_context
 
 logger = log_context.get_logger(__name__)
 
@@ -74,7 +74,7 @@ def build_trigger_action_task_params(
         ),
     ),
 )
-@retry(timeouts=True)
+@retry(timeouts=True, raise_on_no_retries=False, ignore_and_capture=Action.DoesNotExist)
 def trigger_action(
     action_id: int,
     detector_id: int,
@@ -137,7 +137,10 @@ def trigger_action(
     )
 
     if should_trigger_actions:
-        action.trigger(event_data, detector)
+        # Set up a timeout grouping context because we want to make sure any Sentry timeout reporting
+        # in this scope is grouped properly.
+        with timeout_grouping_context(action.type):
+            action.trigger(event_data, detector)
     else:
         logger.info(
             "workflow_engine.triggered_actions.dry-run",

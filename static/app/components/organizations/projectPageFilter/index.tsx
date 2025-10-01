@@ -5,21 +5,18 @@ import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
-import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {
   SelectOption,
   SelectOptionOrSection,
 } from 'sentry/components/core/compactSelect';
-import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {HybridFilterProps} from 'sentry/components/organizations/hybridFilter';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
 import {DesyncedFilterMessage} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {IconOpen, IconSettings} from 'sentry/icons';
+import {IconAdd, IconOpen, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -32,7 +29,6 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-import {ProjectPageFilterMenuFooter} from './menuFooter';
 import {ProjectPageFilterTrigger} from './trigger';
 
 export interface ProjectPageFilterProps
@@ -107,8 +103,6 @@ export function ProjectPageFilter({
   const routes = useRoutes();
   const organization = useOrganization();
 
-  const allowMultiple = organization.features.includes('global-views');
-
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const [memberProjects, otherProjects] = useMemo(
     () => partition(projects, project => project.isMember),
@@ -178,14 +172,12 @@ export function ProjectPageFilter({
 
       // "My Projects"
       if (!val.length) {
-        return allowMultiple
-          ? memberProjects.map(p => parseInt(p.id, 10))
-          : [parseInt(memberProjects[0]?.id!, 10)];
+        return memberProjects.map(p => parseInt(p.id, 10));
       }
 
-      return allowMultiple ? val : [val[0]!];
+      return val;
     },
-    [memberProjects, allowMultiple]
+    [memberProjects]
   );
 
   const value = useMemo<number[]>(
@@ -210,7 +202,7 @@ export function ProjectPageFilter({
         count: newValue.length,
         path: getRouteStringFromRoutes(routes),
         organization,
-        multi: allowMultiple,
+        multi: true,
       });
 
       // Wait for the menu to close before calling onChange
@@ -227,7 +219,6 @@ export function ProjectPageFilter({
       value,
       resetParamsOnChange,
       router,
-      allowMultiple,
       organization,
       routes,
       onChange,
@@ -329,7 +320,7 @@ export function ProjectPageFilter({
             key: 'my-projects',
             label: t('My Projects'),
             options: sortBy(memberProjects, listSort).map(getProjectItem),
-            showToggleAllButton: allowMultiple,
+            showToggleAllButton: true,
           },
           {
             key: 'no-membership-header',
@@ -341,7 +332,6 @@ export function ProjectPageFilter({
       : sortBy(memberProjects, listSort).map(getProjectItem);
   }, [
     organization,
-    allowMultiple,
     memberProjects,
     nonMemberProjects,
     mapURLValueToNormalValue,
@@ -397,7 +387,7 @@ export function ProjectPageFilter({
       {...selectProps}
       searchable
       checkboxPosition="trailing"
-      multiple={allowMultiple}
+      multiple
       options={options}
       value={value}
       defaultValue={defaultValue}
@@ -416,10 +406,14 @@ export function ProjectPageFilter({
       menuBody={desynced && <DesyncedFilterMessage />}
       menuFooter={
         hasProjectWrite && (
-          <ProjectPageFilterMenuFooter
-            handleChange={handleChange}
-            showNonMemberProjects={showNonMemberProjects}
-          />
+          <LinkButton
+            size="xs"
+            aria-label={t('Add Project')}
+            to={makeProjectsPathname({path: '/new/', organization})}
+            icon={<IconAdd isCircled />}
+          >
+            {t('Project')}
+          </LinkButton>
         )
       }
       menuFooterMessage={menuFooterMessage}
@@ -438,7 +432,6 @@ export function ProjectPageFilter({
           />
         ))
       }
-      checkboxWrapper={checkboxWrapper}
       shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
     />
   );
@@ -451,33 +444,6 @@ function shouldCloseOnInteractOutside(target: Element) {
     '[data-test-id="disabled-feature-hovercard"]'
   );
   return !powerHovercard && !disabledFeatureHovercard;
-}
-
-function checkboxWrapper(
-  renderCheckbox: Parameters<NonNullable<HybridFilterProps<number>['checkboxWrapper']>>[0]
-) {
-  return (
-    <Feature
-      features="organizations:global-views"
-      hookName="feature-disabled:project-selector-checkbox"
-      renderDisabled={props => (
-        <Hovercard
-          body={
-            <FeatureDisabled
-              features={props.features}
-              hideHelpToggle
-              featureName={t('Multiple Project Selection')}
-            />
-          }
-          data-test-id="disabled-feature-hovercard"
-        >
-          {typeof props.children === 'function' ? props.children(props) : props.children}
-        </Hovercard>
-      )}
-    >
-      {({hasFeature}) => renderCheckbox({disabled: !hasFeature})}
-    </Feature>
-  );
 }
 
 const TrailingButton = styled(LinkButton)<{visible: boolean}>`

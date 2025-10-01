@@ -79,7 +79,7 @@ LEVELS = itertools.cycle(["error", "error", "error", "fatal", "warning"])
 
 ENVIRONMENTS = itertools.cycle(["production", "production", "staging", "alpha", "beta", ""])
 
-MONITOR_NAMES = itertools.cycle(settings.CELERYBEAT_SCHEDULE.keys())
+MONITOR_NAMES = itertools.cycle(settings.TASKWORKER_SCHEDULES.keys())
 
 MONITOR_SCHEDULES = itertools.cycle(["* * * * *", "0 * * * *", "0 0 * * *"])
 
@@ -534,7 +534,7 @@ def populate_release(
 
             CommitFileChange.objects.get_or_create(
                 organization_id=project.organization_id,
-                commit=commit,
+                commit_id=commit.id,
                 filename=file[0],
                 type=file[1],
             )

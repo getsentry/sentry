@@ -55,13 +55,11 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
-import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
-
-export type ValidationError = {
+type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
 };
 
-export type FlatValidationError = {
+type FlatValidationError = {
   [key: string]: string | FlatValidationError[] | FlatValidationError;
 };
 
@@ -118,10 +116,6 @@ export function getThresholdUnitSelectOptions(
   }
 
   return [];
-}
-
-export function hasThresholdMaxValue(thresholdsConfig: ThresholdsConfig): boolean {
-  return Object.keys(thresholdsConfig.max_values).length > 0;
 }
 
 export function normalizeUnit(value: number, unit: string, dataType: string): number {
@@ -407,27 +401,6 @@ export function getNumEquations(possibleEquations: string[]) {
 const DEFINED_MEASUREMENTS = new Set(Object.keys(getMeasurements()));
 export function isCustomMeasurement(field: string) {
   return !DEFINED_MEASUREMENTS.has(field) && isMeasurement(field);
-}
-
-export function isCustomMeasurementWidget(widget: Widget) {
-  return (
-    widget.widgetType === WidgetType.DISCOVER &&
-    widget.queries.some(({aggregates, columns, fields}) => {
-      const aggregateArgs = aggregates.reduce((acc: string[], aggregate) => {
-        // Should be ok to use getAggregateArg. getAggregateArg only returns the first arg
-        // but there aren't any custom measurement aggregates that use custom measurements
-        // outside of the first arg.
-        const aggregateArg = getAggregateArg(aggregate);
-        if (aggregateArg) {
-          acc.push(aggregateArg);
-        }
-        return acc;
-      }, []);
-      return [...aggregateArgs, ...columns, ...(fields ?? [])].some(field =>
-        isCustomMeasurement(field)
-      );
-    })
-  );
 }
 
 export function isWidgetUsingTransactionName(widget: Widget) {

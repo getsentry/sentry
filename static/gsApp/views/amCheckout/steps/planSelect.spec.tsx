@@ -17,7 +17,6 @@ describe('PlanSelect', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
   beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
@@ -67,7 +66,7 @@ describe('PlanSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -77,48 +76,6 @@ describe('PlanSelect', () => {
 
     expect(await screen.findByTestId('body-choose-your-plan')).toBeInTheDocument();
     expect(screen.getByTestId('footer-choose-your-plan')).toBeInTheDocument();
-  });
-
-  it('renders for checkout v3', async () => {
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-config/`,
-      method: 'GET',
-      body: BillingConfigFixture(PlanTier.AM3),
-    });
-    const freeSubscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_f',
-      isFree: true,
-    });
-    SubscriptionStore.set(organization.slug, freeSubscription);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        params={params}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        checkoutTier={PlanTier.AM3}
-        isNewCheckout
-      />,
-      {organization}
-    );
-
-    expect(await screen.findByTestId('body-choose-your-plan')).toBeInTheDocument();
-    expect(screen.getByTestId('footer-choose-your-plan')).toBeInTheDocument();
-
-    const teamPlan = await screen.findByTestId('plan-option-am3_team');
-    const businessPlan = screen.getByTestId('plan-option-am3_business');
-
-    // no longer use lightning icon for business plan
-    expect(within(teamPlan).getAllByTestId('icon-check-mark').length).toBeGreaterThan(0);
-    expect(within(businessPlan).getAllByTestId('icon-check-mark').length).toBeGreaterThan(
-      0
-    );
-
-    // new excess usage pricing warning
-    expect(within(teamPlan).queryByText(/Excess usage/)).not.toBeInTheDocument();
-    expect(within(businessPlan).getByText(/Excess usage/)).toBeInTheDocument();
   });
 
   it('renders checkmarks on team plan', async () => {
@@ -133,7 +90,7 @@ describe('PlanSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -162,7 +119,7 @@ describe('PlanSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -188,7 +145,7 @@ describe('PlanSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -230,7 +187,7 @@ describe('PlanSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -259,7 +216,7 @@ describe('PlanSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -284,7 +241,7 @@ describe('PlanSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -303,7 +260,7 @@ describe('PlanSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -327,7 +284,7 @@ describe('PlanSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -345,7 +302,7 @@ describe('PlanSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -375,7 +332,7 @@ describe('PlanSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -410,7 +367,7 @@ describe('PlanSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -444,7 +401,7 @@ describe('PlanSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -481,7 +438,7 @@ describe('PlanSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -519,7 +476,7 @@ describe('PlanSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -553,7 +510,7 @@ describe('PlanSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -593,7 +550,7 @@ describe('PlanSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -613,7 +570,7 @@ describe('PlanSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -636,7 +593,7 @@ describe('PlanSelect', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}

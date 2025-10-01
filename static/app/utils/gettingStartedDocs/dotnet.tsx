@@ -95,7 +95,6 @@ export const getDotnetProfilingOnboarding = ({
       ),
       configurations: [
         {
-          partialLoading: params.sourcePackageRegistries.isLoading,
           code: [
             {
               language: 'shell',
@@ -170,5 +169,12 @@ export const getDotnetProfilingOnboarding = ({
       ),
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'Verify that profiling is working correctly by simply using your application.'
+      ),
+    },
+  ],
 });

@@ -161,12 +161,12 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                         },
                       });
                     }}
-                    triggerLabel={
-                      period === defaultStatsPeriod && !defaultStatsPeriod.isMaxRetention
-                        ? t('Since First Seen')
-                        : undefined
-                    }
                     triggerProps={{
+                      children:
+                        period === defaultStatsPeriod &&
+                        !defaultStatsPeriod.isMaxRetention
+                          ? t('Since First Seen')
+                          : undefined,
                       style: {
                         padding: `${theme.space.md} ${theme.space.lg}`,
                       },
@@ -197,7 +197,12 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
         {issueTypeConfig.header.graph.enabled && (
           <GraphSection>
             {issueTypeConfig.header.graph.type === 'discover-events' && (
-              <EventGraph event={event} group={group} style={{flex: 1}} />
+              <EventGraph
+                event={event}
+                group={group}
+                showReleasesAs="bubble"
+                style={{flex: 1}}
+              />
             )}
             {issueTypeConfig.header.graph.type === 'detector-history' && (
               <MetricIssueChart group={group} project={project} />

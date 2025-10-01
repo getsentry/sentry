@@ -13,30 +13,32 @@ describe('getStacktraceBody', () => {
   const eventThreads = EventStacktraceThreadsFixture({platform: 'python'});
 
   it('formats with an exception', () => {
-    const result = getStacktraceBody(eventException);
+    const result = getStacktraceBody({event: eventException});
     expect(result).toEqual([
-      `Error: an error occurred
+      `Traceback (most recent call last):
   File "application", line 1, in main
-  File "application", line 2, in doThing`,
+  File "application", line 2, in doThing
+Error: an error occurred`,
     ]);
   });
 
   it('formats with a message', () => {
-    const result = getStacktraceBody(eventMessage);
+    const result = getStacktraceBody({event: eventMessage});
     expect(result).toEqual(['Something is broken']);
   });
 
   it('formats with a thread', () => {
-    const result = getStacktraceBody(eventThreads);
+    const result = getStacktraceBody({event: eventThreads});
     expect(result).toEqual([
-      `Error: an error occurred
+      `Traceback (most recent call last):
   File "application", line 1, in main
-  File "application", line 2, in doThing`,
+  File "application", line 2, in doThing
+Error: an error occurred`,
     ]);
   });
 
   it('returns empty array for empty event entries', () => {
-    const result = getStacktraceBody(EventFixture({entries: []}));
+    const result = getStacktraceBody({event: EventFixture({entries: []})});
     expect(result).toEqual([]);
   });
 });

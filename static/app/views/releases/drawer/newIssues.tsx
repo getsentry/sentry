@@ -52,6 +52,7 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
       renderEmptyMessage={renderEmptyMessage}
       withPagination
       source="release-drawer"
+      numPlaceholderRows={3}
     />
   );
 }

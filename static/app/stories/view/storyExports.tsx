@@ -1,14 +1,15 @@
 import React, {Fragment, useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex, Grid} from 'sentry/components/core/layout';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {Heading, Text} from 'sentry/components/core/text';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
 
 import {StoryFooter} from './storyFooter';
 import {storyMdxComponents} from './storyMdxComponent';
@@ -56,10 +57,11 @@ function StoryLayout() {
 }
 
 export function makeStorybookDocumentTitle(title: string | undefined): string {
-  return title ? `${title} — Sentry UI` : 'Sentry UI';
+  return title ? `${title} — Scraps` : 'Scraps';
 }
 
 function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
+  const theme = useTheme();
   const title = props.story.exports.frontmatter?.title;
   const description = props.story.exports.frontmatter?.description;
 
@@ -70,7 +72,7 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
   return (
     <StoryHeader>
       <StoryGrid>
-        <StoryContainer style={{gap: space(3)}}>
+        <StoryContainer style={{gap: theme.space['2xl']}}>
           <Flex
             direction="column"
             gap="xl"
@@ -80,7 +82,24 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
                 : undefined
             }
           >
-            <Heading as="h1">{title}</Heading>
+            <Flex direction="row" gap="sm" align="center">
+              <Heading as="h1">{title}</Heading>
+              {props.story.exports.frontmatter?.status ? (
+                props.story.exports.frontmatter.status === 'stable' ? null : (
+                  <Tag
+                    type={
+                      props.story.exports.frontmatter.status === 'in-progress'
+                        ? 'warning'
+                        : 'promotion'
+                    }
+                  >
+                    {props.story.exports.frontmatter.status === 'in-progress'
+                      ? 'In Progress'
+                      : 'Experimental'}
+                  </Tag>
+                )
+              ) : null}
+            </Flex>
             {description && (
               <Text as="p" density="comfortable">
                 {description}
@@ -215,7 +234,7 @@ function StoryAPI() {
 
 const StoryHeader = styled('header')`
   background: ${p => p.theme.tokens.background.secondary};
-  padding: 32px 0 0 0;
+  padding: ${p => p.theme.space['3xl']} 0 0 0;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   grid-area: story-head;
 `;
@@ -235,8 +254,8 @@ const StoryContainer = styled('div')`
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: ${space(4)};
-  padding-inline: ${space(2)};
+  gap: ${p => p.theme.space['3xl']};
+  padding-inline: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     max-width: 832px;

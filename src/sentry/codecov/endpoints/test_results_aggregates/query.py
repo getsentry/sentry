@@ -1,6 +1,7 @@
 query = """query GetTestResultsAggregates(
     $owner: String!
     $repo: String!
+    $branch: String
     $interval: MeasurementInterval
 ) {
     owner(username: $owner) {
@@ -8,7 +9,7 @@ query = """query GetTestResultsAggregates(
             __typename
             ... on Repository {
                 testAnalytics {
-                    testResultsAggregates(interval: $interval) {
+                    testResultsAggregates(branch: $branch, interval: $interval) {
                         totalDuration
                         totalDurationPercentChange
                         slowestTestsDuration
@@ -20,7 +21,7 @@ query = """query GetTestResultsAggregates(
                         totalSkips
                         totalSkipsPercentChange
                     }
-                    flakeAggregates(interval: $interval) {
+                    flakeAggregates(branch: $branch, interval: $interval) {
                         flakeCount
                         flakeCountPercentChange
                         flakeRate

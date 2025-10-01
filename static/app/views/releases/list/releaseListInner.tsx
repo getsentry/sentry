@@ -17,7 +17,6 @@ import type {Project} from 'sentry/types/project';
 import {HealthStatsPeriodOption, type Release} from 'sentry/types/release';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 import ReleaseCard from 'sentry/views/releases/list/releaseCard';
 import ReleasesAdoptionChart from 'sentry/views/releases/list/releasesAdoptionChart';
 import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
@@ -51,7 +50,6 @@ function ReleaseListInner({
   shouldShowQuickstart,
   showReleaseAdoptionStages,
 }: Props) {
-  const router = useRouter();
   const location = useLocation();
   const hasReleasesSetup = selectedProject?.features.includes('releases');
 
@@ -80,7 +78,7 @@ function ReleaseListInner({
       releasesReloading={reloading}
       healthStatsPeriod={
         typeof location.query.healthStatsPeriod === 'string'
-          ? HealthStatsPeriodOption.TWENTY_FOUR_HOURS
+          ? location.query.healthStatsPeriod === HealthStatsPeriodOption.TWENTY_FOUR_HOURS
             ? HealthStatsPeriodOption.TWENTY_FOUR_HOURS
             : HealthStatsPeriodOption.AUTO
           : undefined
@@ -102,7 +100,6 @@ function ReleaseListInner({
                 organization={organization}
                 selection={selection}
                 location={location}
-                router={router}
                 activeDisplay={activeDisplay}
               />
             )}

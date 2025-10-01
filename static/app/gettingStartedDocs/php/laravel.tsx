@@ -9,7 +9,7 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
-  getCrashReportSDKInstallFirstStep,
+  getCrashReportSDKInstallFirstBlocks,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {
   feedbackOnboardingJsLoader,
@@ -231,14 +231,18 @@ const crashReportOnboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      configurations: [
-        getCrashReportSDKInstallFirstStep(params),
+      content: [
+        ...getCrashReportSDKInstallFirstBlocks(params),
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'Next, create [code:resources/views/errors/500.blade.php], and embed the feedback code:',
             {code: <code />}
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'HTML',
               value: 'html',
@@ -260,18 +264,22 @@ const crashReportOnboarding: OnboardingConfig = {
           ],
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'For Laravel 5 up to 5.4 there is some extra work needed. You need to open up [codeApp:App/Exceptions/Handler.php] and extend the [codeRender:render] method to make sure the 500 error is rendered as a view correctly, in 5.5+ this step is not required anymore.',
             {code: <code />}
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'PHP',
               value: 'php',
               language: 'php',
               code: `<?php
 
-use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\\Component\\HttpKernel\\Exception\\HttpException;
 
 class Handler extends ExceptionHandler
 {
@@ -307,9 +315,14 @@ class Handler extends ExceptionHandler
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/php/guides/laravel/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/php/guides/laravel/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],
@@ -387,7 +400,6 @@ const profilingOnboarding: OnboardingConfig = {
       description: t(
         'Verify that profiling is working correctly by simply using your application.'
       ),
-      configurations: [],
     },
   ],
   nextSteps: () => [],
@@ -517,7 +529,7 @@ SENTRY_ENABLE_LOGS=true
         {
           type: 'code',
           language: 'php',
-          code: `use Illuminate\Support\Facades\Log;
+          code: `use Illuminate\\Support\\Facades\\Log;
 
 // Log to all channels in the stack (including Sentry)
 Log::info('This is an info message');
