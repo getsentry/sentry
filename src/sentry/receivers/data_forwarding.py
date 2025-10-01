@@ -14,11 +14,9 @@ def enroll_project_in_data_forwarding(project: Project, **kwargs):
 
     with transaction.atomic(router.db_for_write(DataForwarderProject)):
         for data_forwarder in data_forwarders:
-            DataForwarderProject.objects.get_or_create(
+            DataForwarderProject.objects.create(
                 data_forwarder=data_forwarder,
                 project=project,
-                defaults={
-                    "is_enabled": True,
-                    "overrides": {},
-                },
+                is_enabled=True,
+                overrides={},
             )
