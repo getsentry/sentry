@@ -13,13 +13,14 @@ export function parseGroupBy(
   const groupKeys = fields;
   const groupValues = groupName.split(',');
 
-  // The number of keys and values should be the same in all cases, if they're
-  // not, something went majorly wrong, and we should bail
-  if (groupKeys.length !== groupValues.length) {
-    return undefined;
-  }
-
-  return zipWith(groupKeys, groupValues, (key, value) => {
-    return {key, value};
+  const groupBys = zipWith(groupKeys, groupValues, (key, value) => {
+    return {
+      key: key ?? '',
+      value: value ?? '',
+    };
+  }).filter(groupBy => {
+    return groupBy.key || groupBy.value;
   });
+
+  return groupBys.length > 0 ? groupBys : undefined;
 }
