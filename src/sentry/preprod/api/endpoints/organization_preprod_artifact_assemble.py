@@ -182,7 +182,10 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
 
             if artifact is None:
                 return Response(
-                    {"error": "Failed to create preprod artifact row."},
+                    {
+                        "state": ChunkFileState.ERROR,
+                        "detail": "Failed to create preprod artifact row.",
+                    },
                     status=500,
                 )
 
