@@ -146,7 +146,7 @@ type AddOn = AddOnCategoryInfo & {
   enabled: boolean;
 };
 
-export type AddOns = Partial<Record<AddOnCategory, AddOn>>;
+type AddOns = Partial<Record<AddOnCategory, AddOn>>;
 
 // how addons are represented in the checkout form data
 export type CheckoutAddOns = Partial<Record<AddOnCategory, Pick<AddOn, 'enabled'>>>;
