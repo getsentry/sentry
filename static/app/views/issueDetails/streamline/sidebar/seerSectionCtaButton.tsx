@@ -197,6 +197,8 @@ export function SeerSectionCtaButton({
     <StyledButton
       to={seerLink}
       onClick={handleOpenDrawer}
+      replace
+      preventScrollReset
       analyticsEventKey="issue_details.seer_opened"
       analyticsEventName="Issue Details: Seer Opened"
       analyticsParams={{

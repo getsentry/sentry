@@ -25,7 +25,7 @@ describe('Charts > OptionSelector (Multiple)', () => {
       <OptionSelector
         multiple
         isOpen
-        title={'Y-Axis'}
+        title="Y-Axis"
         selected={currentSelected}
         options={yAxisOptions}
         onChange={newSelected => {

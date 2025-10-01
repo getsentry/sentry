@@ -4,7 +4,7 @@ from django.core.mail import EmailMultiAlternatives
 
 from sentry import options
 from sentry.notifications.platform.email.provider import EmailNotificationProvider, EmailRenderer
-from sentry.notifications.platform.target import GenericNotificationTarget, prepare_targets
+from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
@@ -61,7 +61,6 @@ class EmailNotificationProviderTest(TestCase):
             resource_type=NotificationTargetResourceType.EMAIL,
             resource_id=self.email,
         )
-        prepare_targets([self.target])
 
     def test_provider_configuration(self) -> None:
         assert self.provider.key == NotificationProviderKey.EMAIL

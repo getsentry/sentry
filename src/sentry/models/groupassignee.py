@@ -84,21 +84,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         if not previous_assignee:
             return
 
-        if (
-            features.has("organizations:team-workflow-notifications", group.organization)
-            and previous_assignee.team
-        ):
-            GroupSubscription.objects.filter(
-                group=group,
-                project=group.project,
-                team=previous_assignee.team,
-                reason=GroupSubscriptionReason.assigned,
-            ).delete()
-            logger.info(
-                "groupassignee.remove",
-                extra={"group_id": group.id, "team_id": previous_assignee.team.id},
-            )
-        elif previous_assignee.team:
+        if previous_assignee.team:
             team_members = list(previous_assignee.team.member_set.values_list("user_id", flat=True))
             if (
                 new_assignee is not None

@@ -203,7 +203,7 @@ export function AutomationsTableActions({
                   '%s automations on this page selected.',
                   selected.size
                 )}
-                <Button priority={'link'} onClick={() => setAllInQuerySelected(true)}>
+                <Button priority="link" onClick={() => setAllInQuerySelected(true)}>
                   {tct('Select all [count] automations that match this search query.', {
                     count: queryCount,
                   })}
