@@ -17,7 +17,6 @@ import {
   LogsPageDataProvider,
   useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
@@ -42,14 +41,9 @@ export function OurlogsSection({
       source="state"
       freeze={traceId ? {traceId} : undefined}
     >
-      <LogsPageParamsProvider
-        analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-        isTableFrozen
-      >
-        <LogsPageDataProvider>
-          <OurlogsSectionContent event={event} group={group} project={project} />
-        </LogsPageDataProvider>
-      </LogsPageParamsProvider>
+      <LogsPageDataProvider>
+        <OurlogsSectionContent event={event} group={group} project={project} />
+      </LogsPageDataProvider>
     </LogsQueryParamsProvider>
   );
 }
@@ -86,23 +80,18 @@ function OurlogsSectionContent({
             source="state"
             freeze={traceId ? {traceId} : undefined}
           >
-            <LogsPageParamsProvider
-              analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-              isTableFrozen
-            >
-              <LogsPageDataProvider>
-                <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-                  <OurlogsDrawer
-                    group={group}
-                    event={event}
-                    project={project}
-                    embeddedOptions={
-                      expandedLogId ? {openWithExpandedIds: [expandedLogId]} : undefined
-                    }
-                  />
-                </TraceItemAttributeProvider>
-              </LogsPageDataProvider>
-            </LogsPageParamsProvider>
+            <LogsPageDataProvider>
+              <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+                <OurlogsDrawer
+                  group={group}
+                  event={event}
+                  project={project}
+                  embeddedOptions={
+                    expandedLogId ? {openWithExpandedIds: [expandedLogId]} : undefined
+                  }
+                />
+              </TraceItemAttributeProvider>
+            </LogsPageDataProvider>
           </LogsQueryParamsProvider>
         ),
         {

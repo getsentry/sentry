@@ -14,7 +14,6 @@ import {
   LogsPageDataProvider,
   useLogsPageData,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {logsTimestampAscendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
 import {
   TraceItemAttributeProvider,
@@ -62,16 +61,11 @@ export default function OurLogs() {
         fields: rearrangedLogsReplayFields(defaultLogFields()),
       }}
     >
-      <LogsPageParamsProvider
-        analyticsPageSource={LogsAnalyticsPageSource.REPLAY_DETAILS}
-        isTableFrozen
-      >
-        <LogsPageDataProvider>
-          <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-            <OurLogsContent startTimestampMs={startTimestampMs} replayId={replayId} />
-          </TraceItemAttributeProvider>
-        </LogsPageDataProvider>
-      </LogsPageParamsProvider>
+      <LogsPageDataProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+          <OurLogsContent startTimestampMs={startTimestampMs} replayId={replayId} />
+        </TraceItemAttributeProvider>
+      </LogsPageDataProvider>
     </LogsQueryParamsProvider>
   );
 }

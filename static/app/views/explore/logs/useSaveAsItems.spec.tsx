@@ -14,7 +14,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
@@ -50,11 +49,7 @@ describe('useSaveAsItems', () => {
               analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
               source="location"
             >
-              <LogsPageParamsProvider
-                analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-              >
-                {children}
-              </LogsPageParamsProvider>
+              {children}
             </LogsQueryParamsProvider>
           </QueryClientProvider>
         </OrganizationContext.Provider>

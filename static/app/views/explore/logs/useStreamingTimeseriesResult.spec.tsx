@@ -11,10 +11,7 @@ import {
   LOGS_AUTO_REFRESH_KEY,
   type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {
-  LOGS_GROUP_BY_KEY,
-  LogsPageParamsProvider,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_GROUP_BY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
@@ -73,11 +70,7 @@ describe('useStreamingTimeseriesResult', () => {
             analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
             source="location"
           >
-            <LogsPageParamsProvider
-              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-            >
-              {children}
-            </LogsPageParamsProvider>
+            {children}
           </LogsQueryParamsProvider>
         </OrganizationContext.Provider>
       );

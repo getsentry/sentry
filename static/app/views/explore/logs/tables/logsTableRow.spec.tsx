@@ -9,10 +9,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {
-  LOGS_FIELDS_KEY,
-  LogsPageParamsProvider,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_FIELDS_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {type TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
@@ -26,11 +23,9 @@ function ProviderWrapper({children}: {children?: React.ReactNode}) {
       analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
       source="location"
     >
-      <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
-        <table>
-          <tbody>{children}</tbody>
-        </table>
-      </LogsPageParamsProvider>
+      <table>
+        <tbody>{children}</tbody>
+      </table>
     </LogsQueryParamsProvider>
   );
 }
