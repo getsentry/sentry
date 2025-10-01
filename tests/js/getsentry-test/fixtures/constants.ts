@@ -12,7 +12,6 @@ export const AM_ADD_ON_CATEGORIES = {
     billingFlag: 'seer-billing',
     order: 1,
     productName: 'Seer',
-    billingFlag: 'seer-billing',
   },
   [AddOnCategory.PREVENT]: {
     apiName: AddOnCategory.PREVENT,
@@ -21,6 +20,5 @@ export const AM_ADD_ON_CATEGORIES = {
     billingFlag: 'prevent-billing',
     order: 2,
     productName: 'prevent',
-    billingFlag: 'prevent-billing',
   },
 } satisfies Record<AddOnCategory, AddOnCategoryInfo>;
