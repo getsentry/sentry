@@ -10,6 +10,7 @@ import {
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import FeedbackCategories from 'sentry/components/feedback/summaryCategories/feedbackCategories';
+import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -23,7 +24,10 @@ const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseOrganizationSeerSetup = jest.mocked(useOrganizationSeerSetup);
 
 describe('FeedbackCategories', () => {
-  const mockOrganization = OrganizationFixture({slug: 'org-slug'});
+  const mockOrganization = OrganizationFixture({
+    slug: 'org-slug',
+    features: ['search-query-builder-wildcard-operators'],
+  });
 
   const mockCategories = [
     {
@@ -197,8 +201,7 @@ describe('FeedbackCategories', () => {
     it('removes filter when selected category is clicked again', async () => {
       const locationWithFilter = LocationFixture({
         query: {
-          query:
-            'ai_categorization.labels:["*\\"Design\\"*","*\\"UI\\"*","*\\"User Interface\\"*"]',
+          query: `ai_categorization.labels:${WildcardOperators.CONTAINS}["\\"Design\\"","\\"UI\\"","\\"User Interface\\""]`,
         },
       });
 
@@ -266,7 +269,7 @@ describe('FeedbackCategories', () => {
       const queryString = navigateCall.query.query;
 
       expect(queryString).toBe(
-        'ai_categorization.labels:["*\\"Design\\"*","*\\"UI\\"*","*\\"User Interface\\"*"]'
+        `ai_categorization.labels:${WildcardOperators.CONTAINS}["\\"Design\\"","\\"UI\\"","\\"User Interface\\""]`
       );
     });
   });
@@ -487,8 +490,7 @@ describe('FeedbackCategories', () => {
       const navigateCall = mockNavigate.mock.calls[0][0];
       const queryString = navigateCall.query.query;
 
-      const expectedQuery =
-        'ai_categorization.labels:["*\\"Another \\\\\\"Label\\\\\\"\\"*","*\\"Associated\\* \\\\\\"Label\\\\\\"\\"*","*\\"Test\\* \\\\\\"Category\\\\\\"\\"*"]';
+      const expectedQuery = `ai_categorization.labels:${WildcardOperators.CONTAINS}["\\"Another \\\\\\"Label\\\\\\"\\"","\\"Associated\\* \\\\\\"Label\\\\\\"\\"","\\"Test\\* \\\\\\"Category\\\\\\"\\""]`;
 
       expect(queryString).toBe(expectedQuery);
     });
