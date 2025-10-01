@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from time import time
 from typing import Any
 from unittest.mock import ANY, MagicMock, patch
+
+from django.utils import timezone
 
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata_if_needed
@@ -357,9 +360,6 @@ class GroupHashMetadataTest(TestCase):
 
     def test_updates_event_id_when_date_updated_older_than_90_days(self) -> None:
         """Test that event_id is updated when date_updated is older than 90 days."""
-        from datetime import timedelta
-
-        from django.utils import timezone
 
         # Create an event and grouphash with metadata
         event1 = save_new_event({"message": "Dogs are great!"}, self.project)
@@ -386,8 +386,6 @@ class GroupHashMetadataTest(TestCase):
 
     def test_does_not_update_event_id_when_date_updated_newer_than_90_days(self) -> None:
         """Test that event_id is not updated when date_updated is newwer than 90 days."""
-
-        from django.utils import timezone
 
         # Create an event and grouphash with metadata
         event1 = save_new_event({"message": "Dogs are great!"}, self.project)
