@@ -11,6 +11,7 @@ from django.urls import reverse
 from sentry import quotas
 from sentry.constants import ObjectStatus
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
+from sentry.quotas.base import RETENTIONS_CONFIG_MAPPING
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import safe
@@ -109,6 +110,13 @@ def test_internal_relays_should_receive_full_configs(
     assert safe.get_path(
         cfg, "config", "downsampledEventRetention"
     ) == quotas.backend.get_downsampled_event_retention(default_project.organization)
+
+    retentions = quotas.backend.get_retentions(default_project.organization)
+    assert safe.get_path(cfg, "config", "retentions") == {
+        RETENTIONS_CONFIG_MAPPING[c]: v.to_object()
+        for c, v in retentions.items()
+        if c in RETENTIONS_CONFIG_MAPPING
+    }
 
 
 @django_db_all

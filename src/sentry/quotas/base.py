@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from enum import IntEnum, unique
 from typing import TYPE_CHECKING, Any, Literal
@@ -55,6 +55,23 @@ class AbuseQuota:
     # Old Sentry option name still used for compatibility reasons,
     # takes precedence over `option`.
     compat_option_sentry: str | None = None
+
+
+@dataclass
+class RetentionSettings:
+    standard: int
+    downsampled: int
+
+    def to_object(self) -> Mapping[str, Any]:
+        return {
+            "standard": self.standard,
+            "downsampled": self.downsampled,
+        }
+
+
+# This mirrors the Retentions struct in relay
+# https://github.com/getsentry/relay/blob/641e7f20cd/relay-dynamic-config/src/project.rs#L34-L45
+RETENTIONS_CONFIG_MAPPING = {DataCategory.SPAN: "span", DataCategory.LOG_BYTE: "log"}
 
 
 def build_metric_abuse_quotas() -> list[AbuseQuota]:
@@ -388,21 +405,30 @@ class Quota(Service):
                           attachment in bytes.
         """
 
-    def get_event_retention(self, organization):
+    def get_event_retention(self, organization, category: DataCategory | None = None, **kwargs):
         """
         Returns the retention for events in the given organization in days.
         Returns ``None`` if events are to be stored indefinitely.
 
         :param organization: The organization model.
+        :param category: Return the retention policy for this data category.
+                         If this is not given, return the org-level policy.
         """
         return _limit_from_settings(options.get("system.event-retention-days"))
 
-    def get_downsampled_event_retention(self, organization):
+    def get_downsampled_event_retention(
+        self, organization, category: DataCategory | None = None, **kwargs
+    ):
         """
         Returns the retention for downsampled events in the given organization in days.
         Returning ``0`` means downsampled event retention will default to the value of ``get_event_retention``.
         """
         return 0
+
+    def get_retentions(
+        self, organization: Organization, **kwargs
+    ) -> Mapping[DataCategory, RetentionSettings]:
+        return {}
 
     def validate(self):
         """
