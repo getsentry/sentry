@@ -139,7 +139,7 @@ describe('DetectorEdit', () => {
                 thresholdPeriod: 1,
               },
               dataSource: {
-                aggregate: 'avg(span.duration)',
+                aggregate: 'count(span.duration)',
                 dataset: 'events_analytics_platform',
                 eventTypes: ['trace_item_span'],
                 query: '',
