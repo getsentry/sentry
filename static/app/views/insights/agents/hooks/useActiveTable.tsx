@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {clearQueryCursors} from 'sentry/views/insights/agents/utils/clearQueryCursors';
 
 export enum TableType {
   TRACES = 'traces',
@@ -44,12 +45,12 @@ export function useActiveTable() {
       updateQuery({
         view,
         // Clear table cursors and sort order
-        tableCursor: undefined,
+        ...clearQueryCursors(location.query),
         field: undefined,
         order: undefined,
       });
     },
-    [updateQuery]
+    [updateQuery, location.query]
   );
 
   return {activeTable, onActiveTableChange};
