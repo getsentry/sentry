@@ -210,7 +210,7 @@ jobs:
           workflow: jest-balance.yml
           # If no workflow is set and workflow_search set to true, then the most recent workflow matching
           # all other criteria will be looked up instead of using the current workflow
-          workflow_search: false
+          # workflow_search: false
           # Optional, the status or conclusion of a completed workflow to search for
           # Can be one of a workflow conclusion:
           #   "failure", "success", "neutral", "cancelled", "skipped", "timed_out", "action_required"
@@ -223,7 +223,7 @@ jobs:
           # Optional, no need to specify if PR is
           # commit: ${{github.event.pull_request.head.sha}}
           # Optional, will use the specified branch. Defaults to all branches
-          branch: master
+          # branch: master
           # Optional, branch/tag/commit ID to reference. This can supersede both
           # branch and commit above.
           # ref: master
