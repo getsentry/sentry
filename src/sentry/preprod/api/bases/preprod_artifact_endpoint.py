@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.exceptions import APIException
 from rest_framework.request import Request
 
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.preprod.models import PreprodArtifact
 
 
@@ -16,6 +16,16 @@ class HeadPreprodArtifactResourceDoesNotExist(APIException):
 class BasePreprodArtifactResourceDoesNotExist(APIException):
     status_code = status.HTTP_404_NOT_FOUND
     default_detail = "The requested base preprod artifact does not exist"
+
+
+class ProjectPreprodArtifactPermission(ProjectPermission):
+    scope_map = {
+        "GET": ["project:read", "project:write", "project:admin"],
+        # Some simple actions, like triggering comparisons, should be allowed
+        "POST": ["project:read", "project:write", "project:admin"],
+        "PUT": ["project:read", "project:write", "project:admin"],
+        "DELETE": ["project:admin"],
+    }
 
 
 class PreprodArtifactEndpoint(ProjectEndpoint):
