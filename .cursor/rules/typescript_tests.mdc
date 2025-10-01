@@ -1,19 +1,12 @@
 ---
-description: Rules and guidelines for running *.spec.tsx tests and writing React tests
+description: React Testing Library syntax and query patterns for *.spec.tsx files
 globs: *.spec.tsx
 alwaysApply: false
 ---
-# Sentry React Testing Guidelines
 
-## Running Tests
+# React Testing Library Standards
 
-Always run React tests with the CI flag to use non-interactive mode:
-
-```bash
-CI=true pnpm test <file_path>
-```
-
-## Imports
+## Required Imports
 
 **Always** import from `sentry-test/reactTestingLibrary`, not directly from `@testing-library/react`:
 
@@ -26,11 +19,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 ```
-## Testing Philosophy
-
-- **User-centric testing**: Write tests that resemble how users interact with the app.
-- **Avoid implementation details**: Focus on behavior, not internal component structure.
-- **Do not share state between tests**: Behavior should not be influenced by other tests in the test suite.
 
 ## Query Priority (in order of preference)
 
@@ -56,66 +44,7 @@ import {
    screen.getByTestId('custom-component')
    ```
 
-## Best Practices
-
-### Avoid mocking hooks, functions, or components
-
-Do not use `jest.mocked()`.
-
-```tsx
-// ❌ Don't mock hooks
-jest.mocked(useDataFetchingHook)
-
-// ✅ Set the response data
-MockApiClient.addMockResponse({
-    url: '/data/',
-    body: DataFixture(),
-})
-
-// ❌ Don't mock contexts
-jest.mocked(useOrganization)
-
-// ✅ Use the provided organization config on render()
-render(<Component />, {organization: OrganizationFixture({...})})
-
-// ❌ Don't mock router hooks
-jest.mocked(useLocation)
-
-// ✅ Use the provided router config
-render(<TestComponent />, {
-  initialRouterConfig: {
-    location: {
-      pathname: "/foo/",
-    },
-  },
-});
-
-// ❌ Don't mock page filters hook
-jest.mocked(usePageFilters)
-
-// ✅ Update the corresponding data store with your data
-PageFiltersStore.onInitializeUrlState(
-    PageFiltersFixture({ projects: [1]}),
-    new Set()
-)
-```
-
-### Use fixtures
-
-Sentry fixtures are located in tests/js/fixtures/ while GetSentry fixtures are located in tests/js/getsentry-test/fixtures/.
-
-```tsx
-
-// ❌ Don't import type and initialize it
-import type {Project} from 'sentry/types/project';
-const project: Project = {...}
-
-// ✅ Import a fixture instead
-import {ProjectFixture} from 'sentry-fixture/project';
-
-const project = ProjectFixture(partialProject)
-
-```
+## Syntax Standards
 
 ### Use `screen` instead of destructuring
 ```tsx
@@ -141,7 +70,7 @@ expect(screen.getByRole('alert')).toBeInTheDocument();
 expect(screen.queryByRole('button')).not.toBeInTheDocument();
 ```
 
-### Async testing
+### Async testing patterns
 ```tsx
 // ❌ Don't use waitFor for appearance
 await waitFor(() => {
@@ -155,7 +84,7 @@ expect(await screen.findByRole('alert')).toBeInTheDocument();
 await waitForElementToBeRemoved(() => screen.getByRole('alert'));
 ```
 
-### User interactions
+### User interaction syntax
 ```tsx
 // ❌ Don't use fireEvent
 fireEvent.change(input, { target: { value: 'text' } });
@@ -165,7 +94,7 @@ await userEvent.click(input);
 await userEvent.keyboard('text');
 ```
 
-### Testing routing
+### Router testing syntax
 ```tsx
 const { router } = render(<TestComponent />, {
   initialRouterConfig: {
@@ -175,38 +104,21 @@ const { router } = render(<TestComponent />, {
     },
   },
 });
-// Uses passes in config to set initial location
+
+// Check current route
 expect(router.location.pathname).toBe("/foo");
 expect(router.location.query.page).toBe("1");
-// Clicking links goes to the correct location
+
+// Test navigation
 await userEvent.click(screen.getByRole("link", { name: "Go to /bar/" }));
-// Can check current route on the returned router
 expect(router.location.pathname).toBe("/bar/");
-// Can test manual route changes with router.navigate
+
+// Manual navigation
 router.navigate("/new/path/");
-router.navigate(-1); // Simulates clicking the back button
+router.navigate(-1); // Back button
 ```
 
-If the component uses `useParams()`, the `route` property can be used:
-
-```tsx
-function TestComponent() {
-  const { id } = useParams();
-  return <div>{id}</div>;
-}
-const { router } = render(<TestComponent />, {
-  initialRouterConfig: {
-    location: {
-      pathname: "/foo/123/",
-    },
-    route: "/foo/:id/",
-  },
-});
-expect(screen.getByText("123")).toBeInTheDocument();
-```
-
-### Testing components that make network requests
-
+### Mock API request syntax
 ```tsx
 // Simple GET request
 MockApiClient.addMockResponse({
@@ -214,14 +126,7 @@ MockApiClient.addMockResponse({
   body: [{ id: 1, name: "my project" }],
 });
 
-// POST request
-MockApiClient.addMockResponse({
-  url: "/projects/",
-  method: "POST",
-  body: { id: 1, name: "my project" },
-});
-
-// Complex matching with query params and request body
+// POST with matching
 MockApiClient.addMockResponse({
   url: "/projects/",
   method: "POST",
@@ -235,54 +140,7 @@ MockApiClient.addMockResponse({
 // Error responses
 MockApiClient.addMockResponse({
   url: "/projects/",
-  body: {
-    detail: "Internal Error",
-  },
+  body: { detail: "Internal Error" },
   statusCode: 500,
-});
-```
-
-#### Always Await Async Assertions
-
-Network requests are asynchronous. Always use `findBy` queries or properly await assertions:
-
-```tsx
-// ❌ Wrong - will fail intermittently
-expect(screen.getByText('Loaded Data')).toBeInTheDocument();
-
-// ✅ Correct - waits for element to appear
-expect(await screen.findByText('Loaded Data')).toBeInTheDocument();
-```
-
-#### Handle Refetches in Mutations
-
-When testing mutations that trigger data refetches, update mocks before the refetch occurs:
-
-```tsx
-it('adds item and updates list', async () => {
-  // Initial empty state
-  MockApiClient.addMockResponse({
-    url: '/items/',
-    body: [],
-  });
-
-  const createRequest = MockApiClient.addMockResponse({
-    url: '/items/',
-    method: 'POST',
-    body: {id: 1, name: 'New Item'},
-  });
-
-  render(<ItemList />);
-
-  await userEvent.click(screen.getByRole('button', {name: 'Add Item'}));
-
-  // CRITICAL: Override mock before refetch happens
-  MockApiClient.addMockResponse({
-    url: '/items/',
-    body: [{id: 1, name: 'New Item'}],
-  });
-
-  await waitFor(() => expect(createRequest).toHaveBeenCalled());
-  expect(await screen.findByText('New Item')).toBeInTheDocument();
 });
 ```
