@@ -7,6 +7,9 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.utils import json
 
+# Default request type for webhook details
+DEFAULT_REQUEST_TYPE = "webhook_sentry_github"
+
 
 @dataclass
 class OrganizationSummary:
@@ -37,6 +40,7 @@ class WebhookDetails:
     webhook_body: dict[str, Any]
     integration_provider: str
     region: str
+    request_type: str = DEFAULT_REQUEST_TYPE
 
     def to_json(self) -> str:
         return json.dumps(asdict(self))
