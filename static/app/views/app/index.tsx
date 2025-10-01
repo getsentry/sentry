@@ -6,7 +6,6 @@ import {
   displayExperimentalSpaAlert,
 } from 'sentry/actionCreators/developmentAlerts';
 import {fetchGuides} from 'sentry/actionCreators/guides';
-import {openCommandPalette} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -14,6 +13,7 @@ import GlobalModal from 'sentry/components/globalModal';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
+import {openOmniSearch} from 'sentry/components/omniSearch';
 import {UserTimezoneProvider} from 'sentry/components/timezoneProvider';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
 import AlertStore from 'sentry/stores/alertStore';
@@ -68,7 +68,7 @@ function App({children, params}: Props) {
       : [
           {
             match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
-            callback: () => openCommandPalette(),
+            callback: () => openOmniSearch(),
           },
         ]
   );

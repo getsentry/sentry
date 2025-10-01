@@ -5,6 +5,7 @@ import {ReactQueryDevtools} from '@tanstack/react-query-devtools';
 
 import {AppQueryClientProvider} from 'sentry/appQueryClient';
 import {FrontendVersionProvider} from 'sentry/components/frontendVersionContext';
+import {OmniSearchProvider} from 'sentry/components/omniSearch/provider';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {SENTRY_RELEASE_VERSION, USE_REACT_QUERY_DEVTOOL} from 'sentry/constants';
@@ -29,7 +30,9 @@ function Main() {
         <ThemeAndStyleProvider>
           <OnboardingContextProvider>
             <SentryTrackingProvider>
-              <RouterProvider router={router} />
+              <OmniSearchProvider>
+                <RouterProvider router={router} />
+              </OmniSearchProvider>
             </SentryTrackingProvider>
           </OnboardingContextProvider>
           {USE_REACT_QUERY_DEVTOOL && (

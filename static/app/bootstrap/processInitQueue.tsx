@@ -4,6 +4,7 @@ import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import throttle from 'lodash/throttle';
 
 import {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
+import {OmniSearchProvider} from 'sentry/components/omniSearch/provider';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import type {OnSentryInitConfiguration} from 'sentry/types/system';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
@@ -79,7 +80,9 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
            */
           <QueryClientProvider client={queryClient}>
             <ThemeAndStyleProvider>
-              <PasswordStrength value={e.target.value} />
+              <OmniSearchProvider>
+                <PasswordStrength value={e.target.value} />
+              </OmniSearchProvider>
             </ThemeAndStyleProvider>
           </QueryClientProvider>
         );

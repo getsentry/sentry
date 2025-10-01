@@ -34,13 +34,6 @@ interface ListBoxProps
       | 'autoFocus'
     > {
   /**
-   * Keyboard event handler, to be attached to the list (`ul`) element, to seamlessly
-   * move focus from one composite list to another when an arrow key is pressed. Returns
-   * a boolean indicating whether the keyboard event was intercepted. If yes, then no
-   * further callback function should be run.
-   */
-  keyDownHandler: (e: React.KeyboardEvent<HTMLUListElement>) => boolean;
-  /**
    * Object containing the selection state and focus position, needed for
    * `useListBox()`.
    */
@@ -55,6 +48,13 @@ interface ListBoxProps
    * Set of keys that are hidden from the user (e.g. because not matching search query)
    */
   hiddenOptions?: Set<SelectKey>;
+  /**
+   * Keyboard event handler, to be attached to the list (`ul`) element, to seamlessly
+   * move focus from one composite list to another when an arrow key is pressed. Returns
+   * a boolean indicating whether the keyboard event was intercepted. If yes, then no
+   * further callback function should be run.
+   */
+  keyDownHandler?: (e: React.KeyboardEvent<HTMLUListElement>) => boolean;
   /**
    * Text label to be rendered as heading on top of grid list.
    */
@@ -92,6 +92,7 @@ interface ListBoxProps
 }
 
 const EMPTY_SET = new Set<never>();
+const NOOP = () => true;
 
 /**
  * A list box with accessibile behaviors & attributes.
@@ -111,7 +112,7 @@ export function ListBox({
   shouldFocusOnHover = true,
   onSectionToggle,
   sizeLimitMessage,
-  keyDownHandler,
+  keyDownHandler = NOOP,
   label,
   hiddenOptions = EMPTY_SET,
   hasSearch,
