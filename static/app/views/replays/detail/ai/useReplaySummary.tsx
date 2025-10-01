@@ -109,7 +109,7 @@ export function useReplaySummary(
   });
 
   // Start initial timeouts in case auto-start request is not made.
-  // The callbacks are stable so this should only run on mount.
+  // Should only run on mount. startSummaryRequest will cancel and restart the timeouts.
   useEffect(() => {
     startStartTimeout();
     startTotalTimeout();
@@ -118,7 +118,8 @@ export function useReplaySummary(
       cancelTotalTimeout();
       cancelStartTimeout();
     };
-  }, [startStartTimeout, startTotalTimeout, cancelStartTimeout, cancelTotalTimeout]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const {
     mutate: startSummaryRequestMutate,
