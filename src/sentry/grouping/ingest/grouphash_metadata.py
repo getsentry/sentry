@@ -216,7 +216,9 @@ def create_or_update_grouphash_metadata_if_needed(
             updated_data.update(
                 get_grouphash_metadata_data(event, project, variants, grouping_config_id)
             )
-            db_hit_metadata.update({"reason": "stale"})
+            db_hit_metadata.update(
+                {"reason": ("stale" if not db_hit_metadata.get("reason") else "stale_and_schema")}
+            )
 
         # Only hit the DB if there's something to change
         if updated_data:
