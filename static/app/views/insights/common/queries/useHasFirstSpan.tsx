@@ -8,7 +8,6 @@ const excludedModuleNames = [
   ModuleName.OTHER,
   ModuleName.MOBILE_UI,
   ModuleName.SESSIONS,
-  ModuleName.AGENTS,
 ] as const;
 
 type ExcludedModuleNames = (typeof excludedModuleNames)[number];
@@ -23,6 +22,7 @@ const modulePropertyMap: Record<
   [ModuleName.VITAL]: 'hasInsightsVitals',
   [ModuleName.QUEUE]: 'hasInsightsQueues',
   [ModuleName.SCREEN_LOAD]: 'hasInsightsScreenLoad',
+  [ModuleName.AGENTS]: 'hasInsightsAgentMonitoring',
   [ModuleName.APP_START]: 'hasInsightsAppStart',
   [ModuleName.MCP]: 'hasInsightsMCP',
   // Renamed resource to assets
