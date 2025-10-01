@@ -6,8 +6,8 @@ import type {PreventAIConfig, Sensitivity} from 'sentry/views/prevent/preventAI/
 interface UpdateFeatureParams {
   enabled: boolean;
   feature: 'vanilla' | 'test_generation' | 'bug_prediction';
-  triggers?: Record<string, boolean>;
   sensitivity?: Sensitivity;
+  triggers?: Record<string, boolean>;
 }
 
 interface UpdateFeatureResult {

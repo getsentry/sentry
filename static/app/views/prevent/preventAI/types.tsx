@@ -20,9 +20,9 @@ type Trigger = 'on_command_phrase' | 'on_ready_for_review';
 export type Sensitivity = 'low' | 'medium' | 'high' | 'critical';
 
 export interface SensitivityOption {
-  value: Sensitivity;
-  label: string;
   details: string;
+  label: string;
+  value: Sensitivity;
 }
 
 export interface PreventAIConfig {

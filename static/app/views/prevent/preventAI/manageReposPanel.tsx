@@ -100,7 +100,9 @@ function ManageReposPanel({
   }, [config?.features?.vanilla?.sensitivity]);
   useEffect(() => {
     setBugPredictionSensitivity(
-      sensitivityOptions.some(opt => opt.value === config?.features?.bug_prediction?.sensitivity)
+      sensitivityOptions.some(
+        opt => opt.value === config?.features?.bug_prediction?.sensitivity
+      )
         ? config?.features?.bug_prediction?.sensitivity
         : DEFAULT_SENSITIVITY
     );
