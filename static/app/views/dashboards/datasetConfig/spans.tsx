@@ -13,6 +13,7 @@ import type {
   Organization,
 } from 'sentry/types/organization';
 import toArray from 'sentry/utils/array/toArray';
+import type {ComponentScopedLimiter} from 'sentry/utils/concurrentRequestLimiter';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventData} from 'sentry/utils/discover/eventView';
@@ -213,7 +214,8 @@ export const SpansConfig: DatasetConfig<
     cursor?: string,
     referrer?: string,
     _mepSetting?: MEPState | null,
-    samplingMode?: SamplingMode
+    samplingMode?: SamplingMode,
+    limiter?: ComponentScopedLimiter
   ) => {
     return getEventsRequest(
       api,
@@ -225,7 +227,8 @@ export const SpansConfig: DatasetConfig<
       referrer,
       undefined,
       undefined,
-      samplingMode
+      samplingMode,
+      limiter
     );
   },
   getSeriesRequest,
@@ -328,7 +331,8 @@ function getEventsRequest(
   referrer?: string,
   _mepSetting?: MEPState | null,
   queryExtras?: DiscoverQueryExtras,
-  samplingMode?: SamplingMode
+  samplingMode?: SamplingMode,
+  limiter?: ComponentScopedLimiter
 ) {
   const url = `/organizations/${organization.slug}/events/`;
   const eventView = eventViewFromWidget('', query, pageFilters);
@@ -370,6 +374,7 @@ function getEventsRequest(
         statusCodes: [429],
         tries: 3,
       },
+      limiter,
     }
   );
 }

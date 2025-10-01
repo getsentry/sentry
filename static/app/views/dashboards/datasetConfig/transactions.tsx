@@ -9,6 +9,7 @@ import type {
   Organization,
 } from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import type {ComponentScopedLimiter} from 'sentry/utils/concurrentRequestLimiter';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {
@@ -171,7 +172,8 @@ function getEventsRequest(
   cursor?: string,
   referrer?: string,
   mepSetting?: MEPState | null,
-  queryExtras?: DiscoverQueryExtras
+  queryExtras?: DiscoverQueryExtras,
+  limiter?: ComponentScopedLimiter
 ) {
   const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
   const url = `/organizations/${organization.slug}/events/`;
@@ -219,6 +221,7 @@ function getEventsRequest(
         statusCodes: [429],
         tries: 3,
       },
+      limiter,
     }
   );
 }

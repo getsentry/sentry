@@ -6,6 +6,7 @@ import type {EventQuery} from 'sentry/actionCreators/events';
 import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
+import type {ComponentScopedLimiter} from 'sentry/utils/concurrentRequestLimiter';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {ImmutableEventView, LocationQuery} from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
@@ -326,11 +327,12 @@ export async function doDiscoverQuery<T>(
   url: string,
   params: DiscoverQueryRequestParams,
   options: {
+    limiter?: ComponentScopedLimiter;
     retry?: RetryOptions;
     skipAbort?: boolean;
   } = {}
 ): Promise<[T, string | undefined, ResponseMeta<T> | undefined]> {
-  const {retry, skipAbort} = options;
+  const {retry, skipAbort, limiter} = options;
 
   const baseTimeout = retry?.baseTimeout ?? BASE_TIMEOUT;
   const timeoutMultiplier = retry?.timeoutMultiplier ?? TIMEOUT_MULTIPLIER;
@@ -347,15 +349,21 @@ export async function doDiscoverQuery<T>(
     }
 
     try {
-      return api.requestPromise(url, {
-        method: 'GET',
-        includeAllArgs: true,
-        query: {
-          // marking params as any so as to not cause typescript errors
-          ...(params as any),
-        },
-        skipAbort,
-      });
+      const makeRequest = () =>
+        api.requestPromise(url, {
+          method: 'GET',
+          includeAllArgs: true,
+          query: {
+            // marking params as any so as to not cause typescript errors
+            ...(params as any),
+          },
+          skipAbort,
+        });
+
+      // Use limiter if provided, otherwise make request directly
+      const response = limiter ? await limiter.execute(makeRequest) : await makeRequest();
+
+      return response;
     } catch (err) {
       error = err;
       tries++;

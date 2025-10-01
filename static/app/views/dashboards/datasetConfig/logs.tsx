@@ -11,6 +11,7 @@ import type {
   Organization,
 } from 'sentry/types/organization';
 import toArray from 'sentry/utils/array/toArray';
+import type {ComponentScopedLimiter} from 'sentry/utils/concurrentRequestLimiter';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -332,7 +333,8 @@ function getEventsRequest(
   referrer?: string,
   _mepSetting?: MEPState | null,
   queryExtras?: DiscoverQueryExtras,
-  samplingMode?: SamplingMode
+  samplingMode?: SamplingMode,
+  limiter?: ComponentScopedLimiter
 ) {
   const url = `/organizations/${organization.slug}/events/`;
   const eventView = eventViewFromWidget('', query, pageFilters);
@@ -363,6 +365,7 @@ function getEventsRequest(
         statusCodes: [429],
         tries: 3,
       },
+      limiter,
     }
   );
 }

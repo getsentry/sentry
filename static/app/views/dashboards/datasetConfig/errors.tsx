@@ -8,6 +8,7 @@ import type {
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
+import type {ComponentScopedLimiter} from 'sentry/utils/concurrentRequestLimiter';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
@@ -201,7 +202,8 @@ function getEventsRequest(
   pageFilters: PageFilters,
   limit?: number,
   cursor?: string,
-  referrer?: string
+  referrer?: string,
+  limiter?: ComponentScopedLimiter
 ) {
   const url = `/organizations/${organization.slug}/events/`;
   const eventView = eventViewFromWidget('', query, pageFilters);
@@ -230,6 +232,7 @@ function getEventsRequest(
         statusCodes: [429],
         tries: 3,
       },
+      limiter,
     }
   );
 }

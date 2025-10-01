@@ -265,20 +265,19 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           );
         }
 
-        return this.requestLimiter.execute(() =>
-          requestCreator(
-            api,
-            widget,
-            query,
-            organization,
-            selection,
-            onDemandControlContext,
-            requestLimit,
-            cursor,
-            getReferrer(widget.displayType),
-            mepSetting,
-            samplingMode
-          )
+        return requestCreator(
+          api,
+          widget,
+          query,
+          organization,
+          selection,
+          onDemandControlContext,
+          requestLimit,
+          cursor,
+          getReferrer(widget.displayType),
+          mepSetting,
+          samplingMode,
+          this.requestLimiter
         );
       })
     );
@@ -334,18 +333,16 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
     const responses = await Promise.all(
       widget.queries.map((_query, index) => {
-        return this.requestLimiter.execute(() =>
-          config.getSeriesRequest!(
-            api,
-            widget,
-            index,
-            organization,
-            selection,
-            onDemandControlContext,
-            getReferrer(widget.displayType),
-            mepSetting,
-            samplingMode
-          )
+        return config.getSeriesRequest!(
+          api,
+          widget,
+          index,
+          organization,
+          selection,
+          onDemandControlContext,
+          getReferrer(widget.displayType),
+          mepSetting,
+          samplingMode
         );
       })
     );

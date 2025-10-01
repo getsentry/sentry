@@ -6,6 +6,7 @@ import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import type {ComponentScopedLimiter} from 'sentry/utils/concurrentRequestLimiter';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -205,7 +206,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     cursor?: string,
     referrer?: string,
     mepSetting?: MEPState | null,
-    samplingMode?: SamplingMode
+    samplingMode?: SamplingMode,
+    limiter?: ComponentScopedLimiter
   ) => Promise<[TableResponse, string | undefined, ResponseMeta | undefined]>;
   /**
    * Generate the list of sort options for table
