@@ -75,7 +75,7 @@ function ChartContextMenu({
       const alertsUrls = visualizeYAxes.map((visualizeYAxis, index) => ({
         key: `${visualizeYAxis.yAxis}-${index}`,
         label: visualizeYAxis.yAxis,
-        disabled: isVisualizeEquation(visualizeYAxes[0]!),
+        disabled: isVisualizeEquation(visualizeYAxis),
         to: getAlertsUrl({
           project,
           query,
