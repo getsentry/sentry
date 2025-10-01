@@ -223,8 +223,10 @@ export function useReplaySummary(
       summaryData &&
       summaryData.status !== ReplaySummaryStatus.NOT_STARTED &&
       (!summaryData.created_at || // note created_at should exist for started statuses
-        new Date(summaryData.created_at).getTime() > startSummaryRequestTime.current)
+        new Date(summaryData.created_at).getTime() >
+          startSummaryRequestTime.current - TOTAL_TIMEOUT_MS)
     ) {
+      // Date condition is loose because a previously started task may be in-progress.
       cancelStartTimeout();
     }
   }, [cancelStartTimeout, summaryData]);
