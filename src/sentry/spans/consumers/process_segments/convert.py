@@ -18,6 +18,7 @@ FIELD_TO_ATTRIBUTE = {
     "is_remote": "sentry.is_remote",
     "is_segment": "sentry.is_segment",
     "kind": "sentry.kind",
+    "name": "sentry.name",
     "origin": "sentry.origin",
     "parent_span_id": "sentry.parent_span_id",
     "received": "sentry.received",
