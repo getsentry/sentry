@@ -13,7 +13,7 @@ const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 4;
  * Local z-index stacking context
  * https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Positioning/Understanding_z_index/The_stacking_context
  */
-const Z_INDEX_STICKY_HEADER = 1;
+const Z_INDEX_STICKY_HEADER = 2;
 
 // Parent context is GridHeadCell
 const Z_INDEX_GRID_RESIZER = 1;
@@ -185,11 +185,15 @@ export const GridHeadCellStatic = styled('th')`
 /**
  * GridBody are the collection of elements that contains and display the data
  * of the Grid. They are rather simple.
+ *
+ * If the header is sticky, the body should be layered underneath it.
  */
-export const GridBody = styled('tbody')`
+export const GridBody = styled('tbody')<{stickyHeader?: boolean}>`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1/-1;
+
+  ${p => (p.stickyHeader ? `z-index: ${Z_INDEX_STICKY_HEADER - 1}` : '')}
 `;
 
 export const GridRow = styled('tr')`

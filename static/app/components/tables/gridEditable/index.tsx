@@ -500,7 +500,7 @@ class GridEditable<
               fit={fit}
             >
               <GridHead sticky={stickyHeader}>{this.renderGridHead()}</GridHead>
-              <GridBody>{this.renderGridBody()}</GridBody>
+              <GridBody stickyHeader={stickyHeader}>{this.renderGridBody()}</GridBody>
             </Grid>
           </Body>
         </Profiler>
