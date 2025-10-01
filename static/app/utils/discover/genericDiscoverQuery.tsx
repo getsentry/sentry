@@ -6,7 +6,6 @@ import type {EventQuery} from 'sentry/actionCreators/events';
 import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {dashboardRequestLimiter} from 'sentry/utils/concurrentRequestLimiter';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {ImmutableEventView, LocationQuery} from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
@@ -318,7 +317,7 @@ type RetryOptions = {
   timeoutMultiplier?: number;
 };
 
-const BASE_TIMEOUT = 1000;
+const BASE_TIMEOUT = 200;
 const TIMEOUT_MULTIPLIER = 2;
 const wait = (duration: any) => new Promise(resolve => setTimeout(resolve, duration));
 
@@ -344,28 +343,19 @@ export async function doDiscoverQuery<T>(
     if (tries !== 0) {
       // Apply exponential backoff for retries (fixed calculation)
       const timeout = baseTimeout * timeoutMultiplier ** (tries - 1);
-      console.log('timeout', timeout);
       await wait(timeout);
     }
 
     try {
-      console.log('attempting request', dashboardRequestLimiter.getStats());
-      // Use the global concurrent request limiter to ensure max 15 requests
-      const response = await dashboardRequestLimiter.execute(async () =>
-        api.requestPromise(url, {
-          method: 'GET',
-          includeAllArgs: true,
-          query: {
-            // marking params as any so as to not cause typescript errors
-            ...(params as any),
-          },
-          skipAbort,
-        })
-      );
-
-      console.log('response', response);
-
-      return response;
+      return api.requestPromise(url, {
+        method: 'GET',
+        includeAllArgs: true,
+        query: {
+          // marking params as any so as to not cause typescript errors
+          ...(params as any),
+        },
+        skipAbort,
+      });
     } catch (err) {
       error = err;
       tries++;

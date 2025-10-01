@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Confidence, Organization} from 'sentry/types/organization';
+import {dashboardRequestLimiter} from 'sentry/utils/concurrentRequestLimiter';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -261,18 +262,20 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           );
         }
 
-        return requestCreator(
-          api,
-          widget,
-          query,
-          organization,
-          selection,
-          onDemandControlContext,
-          requestLimit,
-          cursor,
-          getReferrer(widget.displayType),
-          mepSetting,
-          samplingMode
+        return dashboardRequestLimiter.execute(() =>
+          requestCreator(
+            api,
+            widget,
+            query,
+            organization,
+            selection,
+            onDemandControlContext,
+            requestLimit,
+            cursor,
+            getReferrer(widget.displayType),
+            mepSetting,
+            samplingMode
+          )
         );
       })
     );
@@ -328,16 +331,18 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
     const responses = await Promise.all(
       widget.queries.map((_query, index) => {
-        return config.getSeriesRequest!(
-          api,
-          widget,
-          index,
-          organization,
-          selection,
-          onDemandControlContext,
-          getReferrer(widget.displayType),
-          mepSetting,
-          samplingMode
+        return dashboardRequestLimiter.execute(() =>
+          config.getSeriesRequest!(
+            api,
+            widget,
+            index,
+            organization,
+            selection,
+            onDemandControlContext,
+            getReferrer(widget.displayType),
+            mepSetting,
+            samplingMode
+          )
         );
       })
     );
