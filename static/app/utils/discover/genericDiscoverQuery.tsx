@@ -349,8 +349,8 @@ export async function doDiscoverQuery<T>(
     }
 
     try {
-      const makeRequest = () =>
-        api.requestPromise(url, {
+      const makeRequest = async () =>
+        await api.requestPromise(url, {
           method: 'GET',
           includeAllArgs: true,
           query: {
