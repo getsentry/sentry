@@ -30,7 +30,7 @@ import {useSendTestNotification} from 'sentry/views/automations/hooks';
 import {findConflictingConditions} from 'sentry/views/automations/hooks/utils';
 
 export default function AutomationBuilder() {
-  const {state, actions} = useAutomationBuilderContext();
+  const {state, actions, showTriggerLogicTypeSelector} = useAutomationBuilderContext();
   const {mutationErrors} = useAutomationBuilderErrorContext();
   const organization = useOrganization();
   const api = useApi();
@@ -49,10 +49,9 @@ export default function AutomationBuilder() {
       <Flex direction="column" gap="md">
         <Step>
           <StepLead>
-            {/* TODO: Only make this a selector of "all" is originally selected */}
             {tct('[when:When] [selector] of the following occur', {
               when: <ConditionBadge />,
-              selector: (
+              selector: showTriggerLogicTypeSelector ? (
                 <EmbeddedWrapper>
                   <EmbeddedSelectField
                     styles={{
@@ -76,6 +75,8 @@ export default function AutomationBuilder() {
                     size="xs"
                   />
                 </EmbeddedWrapper>
+              ) : (
+                t('any')
               ),
             })}
           </StepLead>
