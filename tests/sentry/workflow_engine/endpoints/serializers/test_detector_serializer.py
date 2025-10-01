@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest import mock
 
 from sentry.api.serializers import serialize
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.models.group import GroupStatus
@@ -51,6 +52,42 @@ class TestDetectorSerializer(TestCase):
             "latestGroup": None,
             "openIssues": 0,
         }
+
+    def test_serialize_error(self) -> None:
+        detector = self.create_detector(
+            project_id=self.project.id, name="Test Detector", type=ErrorGroupType.slug
+        )
+        # Resolved group.
+        self.create_group(
+            project=self.project, status=GroupStatus.RESOLVED, last_seen=before_now(seconds=10)
+        )
+        # Unresolved group that is newer.
+        group = self.create_group(
+            project=self.project, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW
+        )
+        # Look, no DetectorGroup.
+        result = serialize(detector)
+
+        assert result == {
+            "id": str(detector.id),
+            "projectId": str(detector.project_id),
+            "name": "Test Detector",
+            "type": ErrorGroupType.slug,
+            "createdBy": None,
+            "dateCreated": detector.date_added,
+            "dateUpdated": detector.date_updated,
+            "dataSources": None,
+            "conditionGroup": None,
+            "workflowIds": [],
+            "config": {},
+            "owner": None,
+            "enabled": detector.enabled,
+            "alertRuleId": None,
+            "ruleId": None,
+            "latestGroup": mock.ANY,
+            "openIssues": 1,
+        }
+        assert result["latestGroup"]["id"] == str(group.id)
 
     def test_serialize_full(self) -> None:
         condition_group = self.create_data_condition_group(
