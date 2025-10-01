@@ -6,7 +6,7 @@ import type {EventQuery} from 'sentry/actionCreators/events';
 import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {discoverRequestLimiter} from 'sentry/utils/concurrentRequestLimiter';
+import {dashboardRequestLimiter} from 'sentry/utils/concurrentRequestLimiter';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {ImmutableEventView, LocationQuery} from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
@@ -341,45 +341,28 @@ export async function doDiscoverQuery<T>(
   let error: any;
 
   while (tries < maxTries && (!error || statusCodes.includes(error.status))) {
-    if (error) {
-      console.log(statusCodes, error, error?.status, typeof error?.status);
-    }
-
     if (tries !== 0) {
-      console.log('tries', tries);
       // Apply exponential backoff for retries (fixed calculation)
       const timeout = baseTimeout * timeoutMultiplier ** (tries - 1);
-      console.log('waiting for timeout', timeout);
       await wait(timeout);
-    }
-
-    if (tries !== 0) {
-      console.log('trying', tries, params);
     }
 
     try {
       // Use the global concurrent request limiter to ensure max 15 requests
-      const response = await discoverRequestLimiter.execute(async () => {
-        console.log(
-          `Starting request (active: ${discoverRequestLimiter.getActiveCount()}, queued: ${discoverRequestLimiter.getQueueLength()})`
-        );
-
-        return api.requestPromise(url, {
+      const response = await dashboardRequestLimiter.execute(async () =>
+        api.requestPromise(url, {
           method: 'GET',
           includeAllArgs: true,
           query: {
             // marking params as any so as to not cause typescript errors
             ...(params as any),
-            referrer: `test-${tries}`,
           },
           skipAbort,
-        });
-      });
+        })
+      );
 
-      console.log('request', response);
       return response;
     } catch (err) {
-      console.log('error', err);
       error = err;
       tries++;
     }

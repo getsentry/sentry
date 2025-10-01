@@ -1,65 +1,92 @@
-/**
- * Global concurrent request limiter to prevent overwhelming the server
- * with too many simultaneous requests.
- */
+import {uniqueId} from 'sentry/utils/guid';
 
 interface QueuedRequest<T> {
-  execute: () => Promise<T>;
-  id: string;
-  reject: (error: any) => void;
-  resolve: (value: T) => void;
+  readonly execute: () => Promise<T>;
+  readonly id: string;
+  readonly reject: (error: unknown) => void;
+  readonly resolve: (value: T) => void;
 }
 
-class ConcurrentRequestLimiter {
-  private activeRequests = new Set<string>();
-  private queue: Array<QueuedRequest<any>> = [];
-  private maxConcurrent: number;
+interface LimiterStats {
+  readonly active: number;
+  readonly maxConcurrent: number;
+  readonly queued: number;
+}
+
+/**
+ * A concurrent request limiter that queues requests when a maximum
+ * number of concurrent requests is reached.
+ *
+ * This is useful for situations where a page conducts many requests at once,
+ * such as a custom dashboard. Implementing exponential backoff may not be
+ * sufficient without this class because we require that in-flight requests
+ * complete before the next request is executed.
+ */
+export class ConcurrentRequestLimiter {
+  private readonly activeRequests = new Set<string>();
+  private readonly queue: Array<QueuedRequest<unknown>> = [];
+  private readonly maxConcurrent: number;
 
   constructor(maxConcurrent = 15) {
+    if (maxConcurrent <= 0) {
+      throw new Error('maxConcurrent must be greater than 0');
+    }
     this.maxConcurrent = maxConcurrent;
   }
 
   /**
    * Execute a request function with concurrent limiting.
-   * If the limit is reached, the request will be queued.
+   * If the limit is reached, the request will be queued and executed
+   * when a slot becomes available.
+   *
+   * @param requestFn - The async function to execute
+   * @returns Promise that resolves with the result of requestFn
    */
   async execute<T>(requestFn: () => Promise<T>): Promise<T> {
-    const requestId = Math.random().toString(36).substring(2, 15);
-
     return new Promise<T>((resolve, reject) => {
       const request: QueuedRequest<T> = {
-        id: requestId,
+        id: uniqueId(),
         execute: requestFn,
         resolve,
         reject,
       };
 
-      if (this.activeRequests.size < this.maxConcurrent) {
-        this.executeRequest(request);
+      if (this.hasAvailableSlot()) {
+        void this.executeRequest(request);
       } else {
-        this.queue.push(request);
+        this.enqueueRequest(request);
       }
     });
   }
 
-  private async executeRequest<T>(request: QueuedRequest<T>) {
+  private hasAvailableSlot(): boolean {
+    return this.activeRequests.size < this.maxConcurrent;
+  }
+
+  private enqueueRequest<T>(request: QueuedRequest<T>): void {
+    this.queue.push(request as QueuedRequest<unknown>);
+  }
+
+  private async executeRequest<T>(request: QueuedRequest<T>): Promise<void> {
     this.activeRequests.add(request.id);
 
     try {
       const result = await request.execute();
       request.resolve(result);
-    } catch (error) {
+    } catch (error: unknown) {
       request.reject(error);
     } finally {
       this.activeRequests.delete(request.id);
-      this.processQueue();
+      this.processNextInQueue();
     }
   }
 
-  private processQueue() {
-    if (this.queue.length > 0 && this.activeRequests.size < this.maxConcurrent) {
-      const nextRequest = this.queue.shift()!;
-      this.executeRequest(nextRequest);
+  private processNextInQueue(): void {
+    if (this.queue.length > 0 && this.hasAvailableSlot()) {
+      const nextRequest = this.queue.shift();
+      if (nextRequest) {
+        void this.executeRequest(nextRequest);
+      }
     }
   }
 
@@ -78,16 +105,16 @@ class ConcurrentRequestLimiter {
   }
 
   /**
-   * Get stats for debugging
+   * Get comprehensive stats for debugging
    */
-  getStats() {
+  getStats(): LimiterStats {
     return {
       active: this.activeRequests.size,
       queued: this.queue.length,
       maxConcurrent: this.maxConcurrent,
-    };
+    } as const;
   }
 }
 
-// Global instance for discover queries
-export const discoverRequestLimiter = new ConcurrentRequestLimiter(15);
+// Global instance for dashboard queries
+export const dashboardRequestLimiter = new ConcurrentRequestLimiter(15);
