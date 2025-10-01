@@ -25,7 +25,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {capitalize} from 'sentry/utils/string/capitalize';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -198,9 +197,9 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
           )}
         </AlertLink>
         {hasBillingPerms ? (
-          isPending ? (
+          isPending || !notificationThresholds || !backendThresholds ? (
             <LoadingIndicator />
-          ) : isError || !notificationThresholds || !backendThresholds ? (
+          ) : isError ? (
             <LoadingError onRetry={refetch} />
           ) : (
             <Container border="primary" radius="md" padding="md 0 md md">
@@ -235,8 +234,7 @@ function GenericConsumptionGroup(props: GenericConsumptionGroupProps) {
     undefined
   );
 
-  const availableOptions = OPTIONS.filter(option => !thresholds.includes(option.value));
-  const availableThresholdValues = availableOptions.map(option => option.value);
+  const availableThresholdValues = OPTIONS.map(option => option.value);
 
   useEffect(() => {
     if (
@@ -253,9 +251,10 @@ function GenericConsumptionGroup(props: GenericConsumptionGroupProps) {
       help={help}
     >
       <Select
+        aria-label={t('Update %s spend notification thresholds', label.toLowerCase())}
         clearable
         multiple
-        defaultValue={thresholds.map(value => ({label: `${value}%`, value}))}
+        value={thresholds}
         options={availableThresholdValues.map(value => ({label: `${value}%`, value}))}
         onChange={(option: Array<{label: string; value: number}>) => {
           updateThresholds(option.map(o => o.value));
@@ -300,13 +299,16 @@ function ThresholdInputs({
       {onDemandEnabled && (
         <GenericConsumptionGroup
           isNewBillingUI={isNewBillingUI}
-          label={t('%s consumption', capitalize(subscription.planDetails.budgetTerm))}
+          label={t(
+            '%s consumption',
+            displayBudgetName(subscription.planDetails, {title: true})
+          )}
           help={
             isNewBillingUI
               ? '% ' +
                 t(
                   'of %s usage, up to your set limit',
-                  subscription.planDetails.budgetTerm
+                  displayBudgetName(subscription.planDetails)
                 )
               : t(
                   "Receive notifications when your organization's usage exceeds a threshold (%% of monthly %s)",
