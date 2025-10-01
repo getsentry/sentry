@@ -4,6 +4,8 @@ import {
   FilterType,
   Token as ParserToken,
   parseSearch,
+  TermOperator,
+  WildcardOperators,
   type ParseResult,
   type TokenResult,
 } from './parser';
@@ -32,7 +34,16 @@ enum TokenType {
   OPERATOR = 0,
   FILTER = 1,
   FREE_TEXT = 2,
+  CONTAINS_FILTER = 3,
+  STARTS_WITH_FILTER = 4,
+  ENDS_WITH_FILTER = 5,
 }
+
+type TokenFilterTypes =
+  | TokenType.FILTER
+  | TokenType.CONTAINS_FILTER
+  | TokenType.STARTS_WITH_FILTER
+  | TokenType.ENDS_WITH_FILTER;
 
 interface BaseToken {
   text: string;
@@ -50,7 +61,7 @@ interface FilterToken extends BaseToken {
    * Otherwise it is the concrete key returned by getKeyName().
    */
   key: string;
-  type: TokenType.FILTER;
+  type: TokenFilterTypes;
   /**
    * When the filter value is a list (e.g. [a,b]) capture the parsed items using the AST.
    * This enables getFilterValues() to return individual values instead of the raw bracket text.
@@ -86,6 +97,15 @@ function isParen(token: Token, character: '(' | ')') {
 
 function isSpaceOnly(s: string) {
   return s.trim() === '';
+}
+
+function isFilterToken(token: Token): token is FilterToken {
+  return (
+    token.type === TokenType.FILTER ||
+    token.type === TokenType.CONTAINS_FILTER ||
+    token.type === TokenType.STARTS_WITH_FILTER ||
+    token.type === TokenType.ENDS_WITH_FILTER
+  );
 }
 
 function formatQuery(query: string) {
@@ -207,13 +227,16 @@ function parseToFlatTokens(query: string): Token[] {
           text = `${keyName}:${op}${rawVal}`;
         }
 
-        tokens.push({
-          type: TokenType.FILTER,
-          key: keyName,
-          value: lookupValue,
-          listValues,
-          text,
-        });
+        let type = TokenType.FILTER;
+        if (t.operator === TermOperator.CONTAINS) {
+          type = TokenType.CONTAINS_FILTER;
+        } else if (t.operator === TermOperator.STARTS_WITH) {
+          type = TokenType.STARTS_WITH_FILTER;
+        } else if (t.operator === TermOperator.ENDS_WITH) {
+          type = TokenType.ENDS_WITH_FILTER;
+        }
+
+        tokens.push({type, key: keyName, value: lookupValue, listValues, text});
         break;
       }
       default:
@@ -248,7 +271,7 @@ function consolidateUnquotedValues(tokens: Token[]): Token[] {
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i]!;
 
-    if (token.type === TokenType.FILTER) {
+    if (isFilterToken(token)) {
       const freeTextTokens: FreeTextToken[] = [];
       let j = i + 1;
 
@@ -314,7 +337,7 @@ function consolidateUnquotedValues(tokens: Token[]): Token[] {
           }
 
           result.push({
-            type: TokenType.FILTER,
+            type: token.type,
             key: token.key,
             value: completeValue,
             text: newText,
@@ -428,10 +451,10 @@ export class MutableSearch {
 
   /**
    * Adds a string filter to the current MutableSearch query. The filter should follow
-   * the format key:value.
+   * the format key:value or key:\uf00dContains\uf00dvalue or key:\uf00dStartsWith\uf00dvalue or key:\uf00dEndsWith\uf00dvalue.
    */
   addStringFilter(filter: string): this {
-    const parsed = parseToFlatTokens(filter).filter(t => t.type === TokenType.FILTER);
+    const parsed = parseToFlatTokens(filter).filter(t => isFilterToken(t));
     if (parsed.length === 0) {
       return this;
     }
@@ -448,11 +471,37 @@ export class MutableSearch {
     return this;
   }
 
-  /**
-   * Adds the filter values separated by OR operators. This is in contrast to
-   * addFilterValues, which implicitly separates each filter value with an AND operator.
-   */
-  addDisjunctionFilterValues(key: string, values: string[], shouldEscape = true): this {
+  addContainsFilterValues(key: string, values: string[], shouldEscape = true): this {
+    for (const value of values) {
+      this.addContainsFilterValue(key, value, shouldEscape);
+    }
+    return this;
+  }
+
+  addStartsWithFilterValues(key: string, values: string[], shouldEscape = true): this {
+    for (const value of values) {
+      this.addStartsWithFilterValue(key, value, shouldEscape);
+    }
+    return this;
+  }
+
+  addEndsWithFilterValues(key: string, values: string[], shouldEscape = true): this {
+    for (const value of values) {
+      this.addEndsWithFilterValue(key, value, shouldEscape);
+    }
+    return this;
+  }
+
+  private _addDisjunctionFilterValues(
+    key: string,
+    values: string[],
+    shouldEscape = true,
+    addFilterValue:
+      | 'addFilterValue'
+      | 'addContainsFilterValue'
+      | 'addStartsWithFilterValue'
+      | 'addEndsWithFilterValue'
+  ): this {
     if (values.length === 0) {
       return this;
     }
@@ -461,13 +510,70 @@ export class MutableSearch {
       if (i > 0) {
         this.addOp('OR');
       }
-      this.addFilterValue(key, values[i]!, shouldEscape);
+      this[addFilterValue](key, values[i]!, shouldEscape);
     }
     this.addOp(')');
     return this;
   }
 
-  addFilterValue(key: string, value: string, shouldEscape = true): this {
+  /**
+   * Adds the filter values separated by OR operators. This is in contrast to
+   * addFilterValues, which implicitly separates each filter value with an AND operator.
+   */
+  addDisjunctionFilterValues(key: string, values: string[], shouldEscape = true): this {
+    return this._addDisjunctionFilterValues(key, values, shouldEscape, 'addFilterValue');
+  }
+
+  addDisjunctionContainsFilterValues(
+    key: string,
+    values: string[],
+    shouldEscape = true
+  ): this {
+    return this._addDisjunctionFilterValues(
+      key,
+      values,
+      shouldEscape,
+      'addContainsFilterValue'
+    );
+  }
+
+  addDisjunctionStartsWithFilterValues(
+    key: string,
+    values: string[],
+    shouldEscape = true
+  ): this {
+    return this._addDisjunctionFilterValues(
+      key,
+      values,
+      shouldEscape,
+      'addStartsWithFilterValue'
+    );
+  }
+
+  addDisjunctionEndsWithFilterValues(
+    key: string,
+    values: string[],
+    shouldEscape = true
+  ): this {
+    return this._addDisjunctionFilterValues(
+      key,
+      values,
+      shouldEscape,
+      'addEndsWithFilterValue'
+    );
+  }
+
+  private _addFilterValue(
+    key: string,
+    value: string,
+    shouldEscape = true,
+    operator:
+      | ''
+      | WildcardOperators.CONTAINS
+      | WildcardOperators.STARTS_WITH
+      | WildcardOperators.ENDS_WITH,
+    type: TokenFilterTypes
+  ): this {
     if (key === 'has' || key === '!has') {
       this.tokens.push({type: TokenType.FILTER, key, value, text: `${key}:${value}`});
       return this;
@@ -476,17 +582,70 @@ export class MutableSearch {
     const escaped = shouldEscape ? escapeFilterValue(value) : value;
     const valueText = quoteIfNeeded(escaped);
     this.tokens.push({
-      type: TokenType.FILTER,
+      type,
       key,
       value: escaped,
-      text: `${key}:${valueText}`,
+      text: `${key}:${operator}${valueText}`,
     });
+
     return this;
+  }
+
+  addFilterValue(key: string, value: string, shouldEscape = true): this {
+    return this._addFilterValue(key, value, shouldEscape, '', TokenType.FILTER);
+  }
+
+  addContainsFilterValue(key: string, value: string, shouldEscape = true): this {
+    return this._addFilterValue(
+      key,
+      value,
+      shouldEscape,
+      WildcardOperators.CONTAINS,
+      TokenType.CONTAINS_FILTER
+    );
+  }
+
+  addStartsWithFilterValue(key: string, value: string, shouldEscape = true): this {
+    return this._addFilterValue(
+      key,
+      value,
+      shouldEscape,
+      WildcardOperators.STARTS_WITH,
+      TokenType.STARTS_WITH_FILTER
+    );
+  }
+
+  addEndsWithFilterValue(key: string, value: string, shouldEscape = true): this {
+    return this._addFilterValue(
+      key,
+      value,
+      shouldEscape,
+      WildcardOperators.ENDS_WITH,
+      TokenType.ENDS_WITH_FILTER
+    );
   }
 
   setFilterValues(key: string, values: string[], shouldEscape = true): this {
     this.removeFilter(key);
     this.addFilterValues(key, values, shouldEscape);
+    return this;
+  }
+
+  setContainsFilterValues(key: string, values: string[], shouldEscape = true): this {
+    this.removeFilter(key);
+    this.addContainsFilterValues(key, values, shouldEscape);
+    return this;
+  }
+
+  setStartsWithFilterValues(key: string, values: string[], shouldEscape = true): this {
+    this.removeFilter(key);
+    this.addStartsWithFilterValues(key, values, shouldEscape);
+    return this;
+  }
+
+  setEndsWithFilterValues(key: string, values: string[], shouldEscape = true): this {
+    this.removeFilter(key);
+    this.addEndsWithFilterValues(key, values, shouldEscape);
     return this;
   }
 
@@ -504,7 +663,7 @@ export class MutableSearch {
 
   getFilterValues(key: string): string[] {
     return this.tokens
-      .filter((t): t is FilterToken => t.type === TokenType.FILTER && t.key === key)
+      .filter((t): t is FilterToken => isFilterToken(t) && t.key === key)
       .flatMap(t =>
         t.listValues && t.listValues.length > 0 ? t.listValues : [t.value ?? '']
       );
@@ -513,7 +672,7 @@ export class MutableSearch {
   getFilterKeys(): string[] {
     const keys = new Set<string>();
     for (const t of this.tokens) {
-      if (t.type === TokenType.FILTER) {
+      if (isFilterToken(t)) {
         keys.add(t.key);
       }
     }
@@ -521,7 +680,7 @@ export class MutableSearch {
   }
 
   getTokenKeys(): Array<string | undefined> {
-    return this.tokens.map(t => (t.type === TokenType.FILTER ? t.key : undefined));
+    return this.tokens.map(t => (isFilterToken(t) ? t.key : undefined));
   }
 
   getFreeText(): string[] {
@@ -529,7 +688,7 @@ export class MutableSearch {
   }
 
   hasFilter(key: string): boolean {
-    return this.tokens.some(t => t.type === TokenType.FILTER && t.key === key);
+    return this.tokens.some(t => isFilterToken(t) && t.key === key);
   }
 
   removeFilter(key: string): this {
@@ -564,9 +723,7 @@ export class MutableSearch {
       } while (toRemove >= 0);
     };
 
-    this.tokens = this.tokens.filter(
-      t => !(t.type === TokenType.FILTER && t.key === key)
-    );
+    this.tokens = this.tokens.filter(t => !(isFilterToken(t) && t.key === key));
 
     // Remove any AND/OR operators that have become erroneous due to filtering out tokens
     removeErroneousAndOrOps();
