@@ -159,7 +159,11 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
             {props.appInfo.is_installable ? (
               <InstallableLink onClick={handleInstallClick}>Installable</InstallableLink>
             ) : (
-              'Not Installable'
+              <Tooltip
+                title={t('Code signature must be valid for this app to be installed.')}
+              >
+                Not Installable
+              </Tooltip>
             )}
           </Text>
         </Flex>
