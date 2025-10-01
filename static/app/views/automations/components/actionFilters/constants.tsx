@@ -148,7 +148,8 @@ export const MODEL_AGE_CHOICES = [
 
 export const LEVEL_MATCH_CHOICES = [
   {value: MatchType.EQUAL, label: t('equals')},
-  {value: MatchType.NOT_EQUAL, label: t('does not equal')},
+  {value: MatchType.GREATER_OR_EQUAL, label: t('greater than or equal')},
+  {value: MatchType.LESS_OR_EQUAL, label: t('less than or equal')},
 ];
 
 export const LEVEL_CHOICES = [
