@@ -174,7 +174,10 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
         orgSlug={organization.slug}
       />
       <SettingsPageHeader
-        title={t('Manage spend notifications')}
+        title={t('Manage Spend Notifications')}
+        subtitle={t(
+          "Receive notifications when your organization's usage exceeds a threshold"
+        )}
         action={
           <NotificationButtons
             backendThresholds={backendThresholds}
@@ -185,9 +188,6 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
         }
       />
       <Flex direction="column" gap="2xl">
-        <Text variant="muted">
-          {t("Receive notifications when your organization's usage exceeds a threshold")}
-        </Text>
         <AlertLink
           to="/settings/account/notifications/quota/"
           type="info"
