@@ -93,15 +93,6 @@ class PreprodArtifactApiSizeAnalysisCompareRunGetEvent(analytics.Event):
     base_artifact_id: str
 
 
-@analytics.eventclass("preprod_artifact.api.size_analysis_compare.post")
-class PreprodArtifactApiSizeAnalysisComparePostEvent(analytics.Event):
-    organization_id: int
-    project_id: int
-    user_id: int | None = None
-    head_artifact_id: str
-    base_artifact_id: str
-
-
 @analytics.eventclass("preprod_artifact.api.install_details")
 class PreprodArtifactApiInstallDetailsEvent(analytics.Event):
     organization_id: int
@@ -132,5 +123,4 @@ analytics.register(PreprodArtifactApiAdminBatchDeleteEvent)
 analytics.register(PreprodArtifactApiDeleteEvent)
 analytics.register(PreprodArtifactApiSizeAnalysisCompareGetEvent)
 analytics.register(PreprodArtifactApiSizeAnalysisCompareRunGetEvent)
-analytics.register(PreprodArtifactApiSizeAnalysisComparePostEvent)
 analytics.register(PreprodArtifactApiSizeAnalysisCompareDownloadEvent)
