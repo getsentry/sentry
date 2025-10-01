@@ -317,7 +317,7 @@ type RetryOptions = {
   timeoutMultiplier?: number;
 };
 
-const BASE_TIMEOUT = 400;
+const BASE_TIMEOUT = 1000;
 const TIMEOUT_MULTIPLIER = 2;
 const wait = (duration: any) => new Promise(resolve => setTimeout(resolve, duration));
 
