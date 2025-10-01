@@ -991,7 +991,7 @@ class JiraIntegration(IssueSyncIntegration):
                 "sentry.jira.raise_error.api_invalid_request_error",
                 extra={
                     "exception_type": type(exc).__name__,
-                    "request_body": str(exc.text),
+                    "request_body": str(exc.json),
                 },
             )
             raise IntegrationConfigurationError(exc.text) from exc
