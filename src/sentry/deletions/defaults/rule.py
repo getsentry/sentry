@@ -20,10 +20,8 @@ class RuleDeletionTask(ModelDeletionTask[Rule]):
             ModelRelation(AlertRuleWorkflow, {"rule_id": instance.id}),
         ]
 
-        alert_rule_workflow = AlertRuleWorkflow.objects.filter(rule_id=instance.id).first()
-
-        if alert_rule_workflow:
-            model_relations.append(ModelRelation(Workflow, {"id": alert_rule_workflow.workflow.id}))
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=instance.id)
+        model_relations.append(ModelRelation(Workflow, {"id": alert_rule_workflow.workflow_id}))
 
         return model_relations
 
