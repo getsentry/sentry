@@ -349,7 +349,7 @@ export async function doDiscoverQuery<T>(
     }
 
     try {
-      console.log('attempting request');
+      console.log('attempting request', dashboardRequestLimiter.getStats());
       // Use the global concurrent request limiter to ensure max 15 requests
       const response = await dashboardRequestLimiter.execute(async () =>
         api.requestPromise(url, {
