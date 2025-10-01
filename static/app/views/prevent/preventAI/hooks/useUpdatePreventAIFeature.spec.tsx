@@ -1,8 +1,7 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import localStorageWrapper from 'sentry/utils/localStorage';
-import type {PreventAIConfig} from 'sentry/views/prevent/preventAI/types';
-import type {Sensitivity} from 'sentry/views/prevent/preventAI/types';
+import type {PreventAIConfig, Sensitivity} from 'sentry/views/prevent/preventAI/types';
 
 import {useUpdatePreventAIFeature} from './useUpdatePreventAIFeature';
 

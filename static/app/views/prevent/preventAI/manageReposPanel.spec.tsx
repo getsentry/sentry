@@ -269,7 +269,9 @@ describe('ManageReposPanel', () => {
       render(<ManageReposPanel {...defaultProps} />);
 
       // Toggle the "Auto Run on Opened Pull Requests" switch
-      const autoRunToggle = await screen.findByLabelText(/Auto Run on Opened Pull Requests/i);
+      const autoRunToggle = await screen.findByLabelText(
+        /Auto Run on Opened Pull Requests/i
+      );
       await userEvent.click(autoRunToggle);
 
       await waitFor(() => {
@@ -302,16 +304,26 @@ describe('ManageReposPanel', () => {
 
       // Check all options are present with correct details
       expect(await screen.findByText('Low')).toBeInTheDocument();
-      expect(screen.getByText('Post all potential issues for maximum breadth.')).toBeInTheDocument();
+      expect(
+        screen.getByText('Post all potential issues for maximum breadth.')
+      ).toBeInTheDocument();
 
       expect(screen.getByText('Medium')).toBeInTheDocument();
-      expect(screen.getByText('Post likely issues for a balance of thoroughness and noise')).toBeInTheDocument();
+      expect(
+        screen.getByText('Post likely issues for a balance of thoroughness and noise')
+      ).toBeInTheDocument();
 
       expect(screen.getByText('High')).toBeInTheDocument();
-      expect(screen.getByText('Post only major issues to highlight most impactful findings.')).toBeInTheDocument();
+      expect(
+        screen.getByText('Post only major issues to highlight most impactful findings.')
+      ).toBeInTheDocument();
 
       expect(screen.getByText('Critical')).toBeInTheDocument();
-      expect(screen.getByText('Post only high-impact, high-sensitivity issues for maximum focus.')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Post only high-impact, high-sensitivity issues for maximum focus.'
+        )
+      ).toBeInTheDocument();
     });
 
     it('synchronizes state when config changes externally', async () => {
@@ -379,7 +391,9 @@ describe('ManageReposPanel', () => {
 
       render(<ManageReposPanel {...defaultProps} />);
 
-      expect(await screen.findByText('Set the sensitivity level for PR review analysis.')).toBeInTheDocument();
+      expect(
+        await screen.findByText('Set the sensitivity level for PR review analysis.')
+      ).toBeInTheDocument();
     });
 
     it('handles both features with sensitivity independently', async () => {
