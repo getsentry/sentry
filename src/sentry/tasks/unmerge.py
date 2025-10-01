@@ -460,7 +460,10 @@ def repair_denormalizations(caches, project, events):
     repair_group_release_data(caches, project, events)
     repair_tsdb_data(caches, project, events)
 
+    # Cache the project on each event to prevent N+1 queries when
+    # similarity.record accesses event.project
     for event in events:
+        event.project = project
         similarity.record(project, [event])
 
 
