@@ -6,7 +6,7 @@ import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import type {IntervalPeriod, PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import toArray from 'sentry/utils/array/toArray';
-import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import {getUserTimezone, getUtcToLocalDateObject} from 'sentry/utils/dates';
 
 import type {PageFiltersState} from './types';
 
@@ -317,6 +317,13 @@ export function getStateFromQuery(
     end: end || null,
     utc: typeof utc === 'undefined' ? null : utc === 'true',
   };
+
+  // If UTC parameter is not explicitly set, determine it from user's timezone preference
+  if (state.utc === null) {
+    const userTimezone = getUserTimezone();
+    // Set utc to true only if user's timezone is UTC, otherwise false
+    state.utc = userTimezone === 'UTC' || userTimezone === 'Etc/UTC';
+  }
 
   return state;
 }
