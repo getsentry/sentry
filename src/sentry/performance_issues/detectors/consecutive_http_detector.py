@@ -35,7 +35,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
 
         self.consecutive_http_spans: list[Span] = []
         self.lcp = None
-        self.gen_ai_chat_spans: list[Span] = []
+        self.gen_ai_chat_spans: list[str] = []
 
         lcp_value = get_path(self.event(), "measurements", "lcp", "value")
         lcp_unit = get_path(self.event(), "measurements", "lcp", "unit")
