@@ -320,7 +320,6 @@ class EventUser:
         projects = Project.objects.filter(id=project_id)
         result = {}
 
-        # If we have too many values, batch them to avoid query size limits
         if len(values) <= MAX_TAG_VALUES_BATCH_SIZE:
             # Process normally for small batches
             return cls._process_tag_batch(projects, values)
