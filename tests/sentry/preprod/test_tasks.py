@@ -483,7 +483,6 @@ class CreatePreprodArtifactValidationTest(TestCase):
             pr_number=123,
         )
 
-        # Should succeed
         assert artifact is not None
         assert artifact.commit_comparison is not None
 
@@ -498,7 +497,6 @@ class CreatePreprodArtifactValidationTest(TestCase):
             checksum=total_checksum,
         )
 
-        # Should succeed
         assert artifact is not None
         assert artifact.commit_comparison is None
 
