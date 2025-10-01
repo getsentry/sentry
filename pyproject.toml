@@ -641,6 +641,7 @@ module = [
     "sentry.utils.event",
     "sentry.utils.event_frames",
     "sentry.utils.event_tracker",
+    "sentry.utils.eventuser",
     "sentry.utils.forms",
     "sentry.utils.function_cache",
     "sentry.utils.geo",

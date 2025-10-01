@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property
@@ -65,7 +65,7 @@ OVERFETCH_FACTOR = 10
 MAX_FETCH_SIZE = 10_000
 
 
-def get_ip_address_conditions(ip_addresses: list[str]) -> list[Condition]:
+def get_ip_address_conditions(ip_addresses: Sequence[str]) -> list[Condition]:
     """
     Returns a list of Snuba Conditions for filtering a list of mixed IPv4/IPv6 addresses.
     Silently ignores invalid IP addresses, and applies `Op.IN` to the `ip_address_v4` and/or `ip_address_v6` columns.
@@ -109,7 +109,7 @@ class EventUser:
     user_ident: int | str | None
     id: int | None = None  # EventUser model id
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.hash)
 
     @staticmethod
@@ -124,14 +124,14 @@ class EventUser:
             user_ident=event.data.get("user", {}).get("id") if event else None,
         )
 
-    def get_display_name(self):
+    def get_display_name(self) -> str | None:
         return self.name or self.email or self.username
 
     @classmethod
     def for_projects(
-        self,
+        cls: type[EventUser],
         projects: QuerySet[Project] | Sequence[Project],
-        keyword_filters: Mapping[str, list[Any]],
+        keyword_filters: Mapping[str, Sequence[Any]],
         filter_boolean: BooleanOp = BooleanOp.AND,
         result_offset: int = 0,
         result_limit: int | None = None,
@@ -228,7 +228,7 @@ class EventUser:
             )
             data_results = raw_snql_query(request, referrer=REFERRER)["data"]
 
-            unique_event_users, seen_eventuser_tags = self._find_unique(
+            unique_event_users, seen_eventuser_tags = cls._find_unique(
                 data_results, seen_eventuser_tags
             )
             full_results.extend(unique_event_users)
@@ -277,7 +277,9 @@ class EventUser:
             return full_results[result_offset:]
 
     @staticmethod
-    def _find_unique(data_results: list[dict[str, Any]], seen_eventuser_tags: set[str]):
+    def _find_unique(
+        data_results: Sequence[dict[str, Any]], seen_eventuser_tags: set[str]
+    ) -> tuple[list[EventUser], set[str]]:
         """
         Return the first instance of an EventUser object
         with a unique tag_value from the Snuba results.
@@ -287,6 +289,8 @@ class EventUser:
 
         for euser in [EventUser.from_snuba(item) for item in data_results]:
             tag_value = euser.tag_value
+            if tag_value is None:
+                continue
             if tag_value not in unique_tag_values:
                 unique_event_users.append(euser)
                 unique_tag_values.add(tag_value)
@@ -309,7 +313,9 @@ class EventUser:
         )
 
     @classmethod
-    def for_tags(cls, project_id: int, values: list[str]) -> dict[str, EventUser]:
+    def for_tags(
+        cls: type[EventUser], project_id: int, values: Sequence[str]
+    ) -> dict[str, EventUser]:
         """
         Finds matching EventUser objects from a list of tag values.
 
@@ -340,7 +346,7 @@ class EventUser:
         return result
 
     @property
-    def tag_value(self):
+    def tag_value(self) -> str | None:
         """
         Return the identifier used with tags to link this user.
         """
@@ -348,7 +354,9 @@ class EventUser:
             if value:
                 return f"{KEYWORD_MAP[key]}:{value}"
 
-    def iter_attributes(self):
+        return None
+
+    def iter_attributes(self) -> Iterator[tuple[str, str | int | None]]:
         """
         Iterate over key/value pairs for this EventUser in priority order.
         """
@@ -366,7 +374,9 @@ class EventUser:
         }
 
     @cached_property
-    def hash(self):
-        for key, value in self.iter_attributes():
+    def hash(self) -> str | None:
+        for _, value in self.iter_attributes():
             if value:
                 return md5_text(value).hexdigest()
+
+        return None
