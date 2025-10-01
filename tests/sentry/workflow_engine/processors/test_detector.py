@@ -1041,7 +1041,7 @@ class TestAssociateNewGroupWithDetector(TestCase):
         group = self.create_group(project=self.project, type=ErrorGroupType.type_id)
 
         with self.options({"workflow_engine.associate_error_detectors": False}):
-            assert associate_new_group_with_detector(group)
+            assert not associate_new_group_with_detector(group)
             assert not DetectorGroup.objects.filter(group_id=group.id).exists()
 
     def test_error_group_with_feature_enabled(self) -> None:
@@ -1055,5 +1055,5 @@ class TestAssociateNewGroupWithDetector(TestCase):
 
     def test_feedback_group_returns_false(self) -> None:
         group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
-        assert associate_new_group_with_detector(group)
+        assert not associate_new_group_with_detector(group)
         assert not DetectorGroup.objects.filter(group_id=group.id).exists()
