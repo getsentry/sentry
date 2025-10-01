@@ -66,8 +66,14 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
         provided_build_number = request.GET.get("build_number")
         provided_build_configuration_name = request.GET.get("build_configuration")
 
-        if not app_id or not platform or not provided_build_version or not main_binary_identifier:
+        if not app_id or not platform or not provided_build_version:
             return Response({"error": "Missing required parameters"}, status=400)
+
+        if not main_binary_identifier and not provided_build_number:
+            return Response(
+                {"error": "Either main_binary_identifier or build_number must be provided"},
+                status=400,
+            )
 
         provided_build_configuration = None
         if provided_build_configuration_name:
@@ -104,10 +110,13 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
             current_filter_kwargs = get_base_filters()
             current_filter_kwargs.update(
                 {
-                    "main_binary_identifier": main_binary_identifier,
                     "build_version": provided_build_version,
                 }
             )
+
+            # Add main_binary_identifier filter if provided
+            if main_binary_identifier:
+                current_filter_kwargs["main_binary_identifier"] = main_binary_identifier
 
             # Add build_number filter if provided
             if provided_build_number is not None:
