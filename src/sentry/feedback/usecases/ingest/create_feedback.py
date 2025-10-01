@@ -286,7 +286,7 @@ def create_feedback_issue(
             )
             logger.info(
                 "Seer spam detection result",
-                extra={"feedback_message": feedback_message, "is_spam": is_message_spam},
+                extra={"feedback_message": feedback_message[:20], "is_spam": is_message_spam},
             )
         else:
             try:
