@@ -254,3 +254,6 @@ export const BASE_FIELD_ALIASES: Partial<Record<SpanProperty, string>> = {
   'epm()': t('Requests Per Minute'),
   'cache_miss_rate()': t('Cache Miss Rate'),
 };
+
+// Values within 3% of average are considered "near average"
+export const NEAR_AVERAGE_THRESHOLD_PERCENTAGE = 3;

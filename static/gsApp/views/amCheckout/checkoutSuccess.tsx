@@ -7,11 +7,14 @@ import moment from 'moment-timezone';
 import Barcode from 'sentry-images/checkout/barcode.png';
 import SentryLogo from 'sentry-images/checkout/sentry-receipt-logo.png';
 
+import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
+import {IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
 import {GIGABYTE} from 'getsentry/constants';
 import {
@@ -362,12 +365,10 @@ function Receipt({
                         ? getSingularCategoryName({
                             plan,
                             category,
-                            title: true,
                           })
                         : getPlanCategoryName({
                             plan,
                             category,
-                            title: true,
                           });
                     return (
                       <ReceiptItem
@@ -506,7 +507,7 @@ function CheckoutSuccess({
   // are effective immediately but without an immediate charge
   const effectiveToday =
     isImmediateCharge ||
-    (effectiveDate && effectiveDate === moment().add(1, 'day').format('MMMM D, YYYY'));
+    (effectiveDate && moment(effectiveDate) <= moment().add(1, 'day'));
 
   const total = isImmediateCharge
     ? (invoice.amountBilled ?? invoice.amount)
@@ -539,6 +540,8 @@ function CheckoutSuccess({
           date: effectiveDate,
         });
 
+  const openFeedbackForm = useFeedbackForm();
+
   return (
     <Flex
       padding="2xl"
@@ -558,18 +561,37 @@ function CheckoutSuccess({
           </Description>
           <Flex gap="sm">
             <LinkButton
-              aria-label={t('Edit plan')}
-              to="/settings/billing/checkout/?referrer=checkout_success"
-            >
-              {t('Edit plan')}
-            </LinkButton>
-            <LinkButton
               priority="primary"
               aria-label={t('View your subscription')}
               to={`/settings/billing/overview/${viewSubscriptionQueryParams}`}
             >
               {t('View your subscription')}
             </LinkButton>
+            <LinkButton
+              aria-label={t('Edit plan')}
+              to="/settings/billing/checkout/?referrer=checkout_success"
+            >
+              {t('Edit plan')}
+            </LinkButton>
+            {openFeedbackForm ? (
+              <Button
+                icon={<IconMegaphone />}
+                onClick={() => {
+                  openFeedbackForm({
+                    formTitle: t('Give feedback'),
+                    messagePlaceholder: t(
+                      'How can we make the checkout experience better for you?'
+                    ),
+                    tags: {
+                      ['feedback.source']: 'checkout_success',
+                      ['feedback.owner']: 'billing',
+                    },
+                  });
+                }}
+              >
+                {t('Give feedback')}
+              </Button>
+            ) : null}
           </Flex>
         </Flex>
       </Flex>

@@ -95,6 +95,7 @@ function VolumeSliders({
         organization,
         data_type: category,
         quantity: value,
+        isNewCheckout: !!isNewCheckout,
       });
     }
   };

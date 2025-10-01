@@ -45,14 +45,16 @@ function BillingDetailsPanel({
   title,
   isNewBillingUI,
   analyticsEvent,
+  shouldExpandInitially,
 }: {
   organization: Organization;
   subscription: Subscription;
   analyticsEvent?: GetsentryEventKey;
   isNewBillingUI?: boolean;
+  shouldExpandInitially?: boolean;
   title?: string;
 }) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(!!shouldExpandInitially);
   const {
     data: billingDetails,
     isLoading,

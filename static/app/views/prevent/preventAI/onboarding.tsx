@@ -37,6 +37,70 @@ function OnboardingStep({step, title, description}: OnboardingStepProps) {
   );
 }
 
+export function FeatureOverview() {
+  return (
+    <Flex direction="column" gap="md" padding="xl" background="secondary" radius="md">
+      <Text variant="primary" size="md" bold>
+        {t('How to use AI Code Review')}
+      </Text>
+      <Text variant="muted" size="md">
+        {t('AI Code Review helps you ship better code with three features:')}
+      </Text>
+      <Container as="ul" style={{margin: 0, fontSize: '12px'}}>
+        <li>
+          <Text variant="muted" size="sm">
+            {tct(
+              'It reviews your code, suggesting broader fixes when you prompt [sentryCommand].',
+              {
+                sentryCommand: (
+                  <Text variant="accent" size="sm" bold>
+                    @sentry review
+                  </Text>
+                ),
+              }
+            )}
+          </Text>
+        </li>
+        <li>
+          <Text variant="muted" size="sm">
+            {tct(
+              'It predicts which errors your code will cause. This happens automatically when you mark a PR ready for review, and when you trigger a PR review with [sentryCommand].',
+              {
+                sentryCommand: (
+                  <Text variant="accent" size="sm" bold>
+                    @sentry review
+                  </Text>
+                ),
+              }
+            )}
+          </Text>
+        </li>
+        <li>
+          <Text variant="muted" size="sm">
+            {tct('It generates unit tests for your PR when you prompt [sentryCommand].', {
+              sentryCommand: (
+                <Text variant="accent" size="sm" bold>
+                  @sentry generate-test
+                </Text>
+              ),
+            })}
+          </Text>
+        </li>
+      </Container>
+      <Text variant="muted" size="xs">
+        {tct(
+          'Sentry Error Prediction works better with Sentry Issue Context. [link:Learn more] on how to set this up to get the most accurate error prediction we can offer.',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/" />
+            ),
+          }
+        )}
+      </Text>
+    </Flex>
+  );
+}
+
 export default function PreventAIOnboarding() {
   const organization = useOrganization();
   const theme = useTheme();
@@ -124,7 +188,12 @@ export default function PreventAIOnboarding() {
                     </Text>
                   ),
                   organizationSettingsLink: (
-                    <Link to={`/settings/${organization.slug}/#hideAiFeatures`} />
+                    <Link
+                      to={{
+                        pathname: `/settings/${organization.slug}/`,
+                        hash: 'hideAiFeatures',
+                      }}
+                    />
                   ),
                 }
               )}
@@ -155,74 +224,7 @@ export default function PreventAIOnboarding() {
               )}
             />
           </Flex>
-          <Flex
-            direction="column"
-            gap="md"
-            padding="xl"
-            background="secondary"
-            radius="md"
-          >
-            <Text variant="primary" size="md" bold>
-              {t('How to use AI Code Review')}
-            </Text>
-            <Text variant="muted" size="md">
-              {t('AI Code Review helps you ship better code with three features:')}
-            </Text>
-            <Container as="ul" style={{margin: 0, fontSize: '12px'}}>
-              <li>
-                <Text variant="muted" size="sm">
-                  {tct(
-                    'It reviews your code, suggesting broader fixes when you prompt [sentryCommand].',
-                    {
-                      sentryCommand: (
-                        <Text variant="accent" size="sm" bold>
-                          @sentry review
-                        </Text>
-                      ),
-                    }
-                  )}
-                </Text>
-              </li>
-              <li>
-                <Text variant="muted" size="sm">
-                  {tct(
-                    'It predicts which errors your code will cause. This happens automatically when you mark a PR ready for review, and when you trigger a PR review with [sentryCommand].',
-                    {
-                      sentryCommand: (
-                        <Text variant="accent" size="sm" bold>
-                          @sentry review
-                        </Text>
-                      ),
-                    }
-                  )}
-                </Text>
-              </li>
-              <li>
-                <Text variant="muted" size="sm">
-                  {tct(
-                    'It generates unit tests for your PR when you prompt [sentryCommand].',
-                    {
-                      sentryCommand: (
-                        <Text variant="accent" size="sm" bold>
-                          @sentry generate-test
-                        </Text>
-                      ),
-                    }
-                  )}
-                </Text>
-              </li>
-            </Container>
-            <Text variant="muted" size="xs">
-              {tct(
-                'Sentry Error Prediction works better with Sentry Issue Context. [link:Learn more] on how to set this up to get the most accurate error prediction we can offer.',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/sentry-prevent-ai/" />
-                  ),
-                }
-              )}
-            </Text>
-          </Flex>
+          <FeatureOverview />
           <Text variant="muted" size="xs">
             <Flex gap="sm" justify="center">
               <IconInfo size="xs" />

@@ -80,7 +80,6 @@ const onboarding: OnboardingConfig = {
       description: t('Add the Sentry dependency:'),
       configurations: [
         {
-          partialLoading: params.sourcePackageRegistries.isLoading,
           code: [
             {
               language: 'powershell',

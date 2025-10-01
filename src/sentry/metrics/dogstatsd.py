@@ -3,7 +3,6 @@ from typing import Any
 
 from datadog import initialize
 from datadog.dogstatsd.base import statsd
-from datadog.util.hostname import get_hostname
 
 from .base import MetricsBackend, Tags
 
@@ -25,10 +24,6 @@ class DogStatsdMetricsBackend(MetricsBackend):
     def __init__(self, prefix: str | None = None, **kwargs: Any) -> None:
         # TODO(dcramer): it'd be nice if the initialize call wasn't a global
         self.tags = kwargs.pop("tags", None)
-        if "host" in kwargs:
-            self.host = kwargs.pop("host")
-        else:
-            self.host = get_hostname(hostname_from_config=True)
         kwargs["statsd_disable_buffering"] = False
 
         initialize(**kwargs)

@@ -1,5 +1,5 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
-import {MetricDetectorFixture} from 'sentry-fixture/detectors';
+import {MetricDetectorFixture, UptimeDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -224,5 +224,127 @@ describe('DetectorEdit', () => {
         );
       });
     }, 10_000);
+  });
+
+  describe('Uptime Detector', () => {
+    const uptimeRouterConfig = {
+      ...initialRouterConfig,
+      location: {
+        ...initialRouterConfig.location,
+        query: {detectorType: 'uptime_domain_failure', project: project.id},
+      },
+    };
+
+    it('shows detect and resolve fields and submits default thresholds', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        method: 'POST',
+        body: UptimeDetectorFixture(),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: uptimeRouterConfig,
+      });
+
+      const title = await screen.findByText('New Monitor');
+      await userEvent.click(title);
+      await userEvent.keyboard('Uptime Monitor{enter}');
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'URL'}),
+        'https://uptime.example.com'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalled();
+      });
+
+      expect(mockCreateDetector).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/detectors/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            config: {
+              downtimeThreshold: 3,
+              environment: null,
+              mode: 1,
+              recoveryThreshold: 1,
+            },
+            dataSource: {
+              intervalSeconds: 60,
+              method: 'GET',
+              timeoutMs: 5000,
+              traceSampling: undefined,
+              url: 'https://uptime.example.com',
+            },
+            name: 'New MonitorUptime Monitor',
+            projectId: '2',
+            type: 'uptime_domain_failure',
+          }),
+        })
+      );
+    });
+
+    it('submits custom thresholds when changed', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        method: 'POST',
+        body: UptimeDetectorFixture(),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: uptimeRouterConfig,
+      });
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'URL'}),
+        'https://uptime-custom.example.com'
+      );
+
+      await userEvent.clear(screen.getByRole('spinbutton', {name: 'Failure Threshold'}));
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'Failure Threshold'}),
+        '5'
+      );
+
+      await userEvent.clear(screen.getByRole('spinbutton', {name: 'Recovery Threshold'}));
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'Recovery Threshold'}),
+        '4'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalled();
+      });
+
+      expect(mockCreateDetector).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/detectors/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            config: {
+              downtimeThreshold: '5',
+              environment: null,
+              mode: 1,
+              recoveryThreshold: '4',
+            },
+            dataSource: {
+              intervalSeconds: 60,
+              method: 'GET',
+              timeoutMs: 5000,
+              traceSampling: undefined,
+              url: 'https://uptime-custom.example.com',
+            },
+            name: 'New Monitor',
+            projectId: '2',
+            type: 'uptime_domain_failure',
+          }),
+        })
+      );
+    });
   });
 });

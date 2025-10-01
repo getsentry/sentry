@@ -1,11 +1,10 @@
 import {Fragment, useRef, useState} from 'react';
-import type {Theme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
 
-import {Button} from 'sentry/components/core/button';
+import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -326,3 +325,14 @@ const Container = styled('div')`
 `;
 
 Alert.Container = Container;
+
+type DistributiveOmit<TObject, TKey extends keyof TObject> = TObject extends unknown
+  ? Omit<TObject, TKey>
+  : never;
+
+function AlertButton(props: DistributiveOmit<ButtonProps, 'size'>) {
+  const theme = useTheme();
+  return <Button {...props} size={theme.isChonk ? 'zero' : 'sm'} />;
+}
+
+Alert.Button = AlertButton;

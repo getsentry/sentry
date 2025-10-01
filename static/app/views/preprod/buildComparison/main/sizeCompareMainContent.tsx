@@ -4,7 +4,9 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
+import {Switch} from 'sentry/components/core/switch';
 import {Heading, Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PercentChange} from 'sentry/components/percentChange';
@@ -15,6 +17,7 @@ import {
   IconDownload,
   IconFile,
   IconRefresh,
+  IconSearch,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
@@ -42,6 +45,8 @@ export function SizeCompareMainContent() {
   const navigate = useNavigate();
   const theme = useTheme();
   const [isFilesExpanded, setIsFilesExpanded] = useState(true);
+  const [hideSmallChanges, setHideSmallChanges] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const {baseArtifactId, headArtifactId, projectId} = useParams<{
     baseArtifactId: string;
     headArtifactId: string;
@@ -157,6 +162,28 @@ export function SizeCompareMainContent() {
     return metrics;
   }, [comparisonDataQuery.data]);
 
+  // Filter diff items based on the toggle and search query
+  const filteredDiffItems = useMemo(() => {
+    if (!comparisonDataQuery.data?.diff_items) {
+      return [];
+    }
+
+    let items = comparisonDataQuery.data.diff_items;
+
+    // Filter by size if hideSmallChanges is enabled
+    if (hideSmallChanges) {
+      items = items.filter(item => Math.abs(item.size_diff) >= 500);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase();
+      items = items.filter(item => item.path.toLowerCase().includes(query));
+    }
+
+    return items;
+  }, [comparisonDataQuery.data?.diff_items, hideSmallChanges, searchQuery]);
+
   if (sizeComparisonQuery.isLoading || comparisonDataQuery.isLoading || isComparing) {
     return (
       <Flex
@@ -184,23 +211,20 @@ export function SizeCompareMainContent() {
   if (!mainArtifactComparison) {
     return (
       <BuildError
-        title={t('Comparison data not found')}
-        message={t(
-          'Something went wrong and we weren’t able to find the correct comparison.'
-        )}
+        title={t('No comparison data available')}
+        message={t("We don't have any comparison data available yet for these builds.")}
       >
-        <Flex gap="sm">
-          <Button
-            priority="default"
-            onClick={() => {
-              navigate(
-                `/organizations/${organization.slug}/preprod/${projectId}/compare/${headArtifactId}/`
-              );
-            }}
-          >
-            {t('Back')}
-          </Button>
-        </Flex>
+        <Button
+          priority="primary"
+          onClick={() => {
+            triggerComparison({
+              baseArtifactId,
+              headArtifactId,
+            });
+          }}
+        >
+          {t('Trigger a comparison')}
+        </Button>
       </BuildError>
     );
   }
@@ -262,7 +286,7 @@ export function SizeCompareMainContent() {
       />
 
       {/* Metrics Grid */}
-      <Grid columns="repeat(3, 1fr)" gap="lg">
+      <Flex gap="lg" wrap="wrap">
         {processedMetrics.map((metric, index) => {
           let variant: 'danger' | 'success' | 'muted' = 'muted';
           let icon: React.ReactNode | undefined;
@@ -281,6 +305,8 @@ export function SizeCompareMainContent() {
               padding="xl"
               border="primary"
               key={index}
+              flex="1"
+              style={{minWidth: '250px'}}
             >
               <Flex direction="column" gap="md">
                 <Flex gap="sm">
@@ -289,73 +315,108 @@ export function SizeCompareMainContent() {
                     {metric.title}
                   </Text>
                 </Flex>
-                <Flex align="end" gap="sm">
-                  <Heading as="h3">{formatBytesBase10(metric.head)}</Heading>
-                  <InlineText variant={variant} size="sm">
-                    {icon}
-                    <Text variant={variant} size="sm">
-                      {metric.diff > 0 ? '+' : metric.diff < 0 ? '-' : ''}
-                      {formatBytesBase10(Math.abs(metric.diff))}
+                <Flex direction="column" gap="xs">
+                  <Flex align="end" gap="sm" wrap="wrap">
+                    <Heading as="h3">{formatBytesBase10(metric.head)}</Heading>
+                    <Flex align="center" gap="xs">
+                      {icon}
+                      <DiffText variant={variant} size="sm">
+                        {metric.diff > 0 ? '+' : metric.diff < 0 ? '-' : ''}
+                        {formatBytesBase10(Math.abs(metric.diff))}
+                        {metric.percentageChange && (
+                          <Text as="span" variant={variant}>
+                            {' ('}
+                            <PercentChange
+                              value={metric.percentageChange}
+                              minimumValue={0.001}
+                              preferredPolarity="-"
+                              colorize
+                            />
+                            {')'}
+                          </Text>
+                        )}
+                      </DiffText>
+                    </Flex>
+                  </Flex>
+                  <Flex gap="xs" wrap="wrap">
+                    <Text variant="muted" size="sm">
+                      {t('Comparison:')}
                     </Text>
-                    {metric.percentageChange && (
-                      <InlineText variant={variant} size="sm">
-                        {'('}
-                        <PercentChange
-                          value={metric.percentageChange}
-                          minimumValue={0.001}
-                          preferredPolarity="-"
-                          colorize
-                        />
-                        {')'}
-                      </InlineText>
-                    )}
-                  </InlineText>
-                </Flex>
-                <Flex gap="xs">
-                  <Text variant="muted" size="sm">
-                    {t('Comparison:')}
-                  </Text>
-                  <Text variant="muted" size="sm" bold>
-                    {metric.base === 0
-                      ? t('Not present')
-                      : formatBytesBase10(metric.base)}
-                  </Text>
+                    <Text variant="muted" size="sm" bold>
+                      {metric.base === 0
+                        ? t('Not present')
+                        : formatBytesBase10(metric.base)}
+                    </Text>
+                  </Flex>
                 </Flex>
               </Flex>
             </Container>
           );
         })}
-      </Grid>
+      </Flex>
 
-      {/* Files Changed Section */}
+      {/* Items Changed Section */}
       <Container background="primary" radius="lg" padding="0" border="primary">
         <Flex direction="column" gap="0">
           <Flex align="center" justify="between" padding="xl">
             <Flex align="center" gap="sm">
-              <Heading as="h2">{t('Files Changed:')}</Heading>
+              <Heading as="h2">{t('Items Changed:')}</Heading>
               <Heading as="h2" variant="muted">
-                {comparisonDataQuery.data?.diff_items.length}
+                {filteredDiffItems.length}
               </Heading>
             </Flex>
-            <Button
-              priority="transparent"
-              size="sm"
-              onClick={() => setIsFilesExpanded(!isFilesExpanded)}
-              aria-label={isFilesExpanded ? t('Collapse files') : t('Expand files')}
-            >
-              <IconChevron
-                direction={isFilesExpanded ? 'up' : 'down'}
+            <Flex align="center" gap="sm">
+              <Button
+                priority="transparent"
                 size="sm"
-                style={{
-                  transition: 'transform 0.2s ease',
-                }}
-              />
-            </Button>
+                onClick={() => setIsFilesExpanded(!isFilesExpanded)}
+                aria-label={isFilesExpanded ? t('Collapse items') : t('Expand items')}
+              >
+                <IconChevron
+                  direction={isFilesExpanded ? 'up' : 'down'}
+                  size="sm"
+                  style={{
+                    transition: 'transform 0.2s ease',
+                  }}
+                />
+              </Button>
+            </Flex>
           </Flex>
           {isFilesExpanded && (
-            <SizeCompareItemDiffTable
-              diffItems={comparisonDataQuery.data?.diff_items || []}
-            />
+            <Stack>
+              <Flex
+                align="center"
+                gap="xl"
+                paddingLeft="xl"
+                paddingRight="xl"
+                paddingBottom="xl"
+                wrap="wrap"
+              >
+                <InputGroup style={{width: '100%', minWidth: '200px'}}>
+                  <InputGroup.LeadingItems>
+                    <IconSearch />
+                  </InputGroup.LeadingItems>
+                  <InputGroup.Input
+                    placeholder={t('Search')}
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                  />
+                </InputGroup>
+                <Flex align="center" gap="lg" wrap="nowrap">
+                  <Text wrap="nowrap">{t('Hide small changes (< 500B)')}</Text>
+                  <Switch
+                    checked={hideSmallChanges}
+                    size="sm"
+                    title={t('Hide < 500B')}
+                    onChange={() => setHideSmallChanges(!hideSmallChanges)}
+                    aria-label={
+                      hideSmallChanges ? t('Show small changes') : t('Hide small changes')
+                    }
+                  />
+                </Flex>
+              </Flex>
+              <SizeCompareItemDiffTable diffItems={filteredDiffItems} />
+            </Stack>
           )}
         </Flex>
       </Container>
@@ -363,11 +424,15 @@ export function SizeCompareMainContent() {
   );
 }
 
-const InlineText = styled(Text)`
-  display: flex;
+const DiffText = styled(Text)`
+  display: inline-flex;
   align-items: center;
-  gap: ${p => p.theme.space.xs};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex-wrap: wrap;
+  gap: 0.25em;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+  }
 `;

@@ -31,7 +31,6 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {
-  useExploreFields,
   useExploreQuery,
   useExploreSortBys,
   useSetExploreSortBys,
@@ -44,6 +43,7 @@ import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopE
 import {
   useQueryParamsAggregateCursor,
   useQueryParamsAggregateFields,
+  useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
@@ -63,7 +63,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   const topEvents = useTopEvents();
   const aggregateFields = useQueryParamsAggregateFields();
-  const fields = useExploreFields();
+  const fields = useQueryParamsFields();
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
   const sorts = useExploreSortBys();

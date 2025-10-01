@@ -239,6 +239,7 @@ function spanDescriptionRenderFunc(projects: Record<string, Project>) {
                 avatarSize={16}
                 avatarProps={{hasTooltip: true, tooltip: project.slug}}
                 hideName
+                disableLink
               />
             )}
             <WrappingText>

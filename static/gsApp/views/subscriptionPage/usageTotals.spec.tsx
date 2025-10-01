@@ -1458,15 +1458,14 @@ describe('Subscription > CombinedUsageTotals', () => {
     expect(within(card).queryByText(/trial/)).not.toBeInTheDocument();
   });
 
-  it('does not render card for sponsored orgs', () => {
+  it('does renders card for sponsored orgs', async () => {
     const sponsoredSub = SubscriptionFixture({
       organization,
       plan: 'am2_sponsored_team_auf',
-      // in practice these plans shouldn't even have the zero'd out budgets, but this is for testing purposes
       reservedBudgets: [
         SeerReservedBudgetFixture({
-          id: '0',
-          reservedBudget: 0,
+          id: '1',
+          reservedBudget: 20_00,
         }),
       ],
       isSponsored: true,
@@ -1484,7 +1483,7 @@ describe('Subscription > CombinedUsageTotals', () => {
       />
     );
 
-    expect(screen.queryByTestId('usage-card-seer')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('usage-card-seer')).toBeInTheDocument();
   });
 
   it('renders PAYG legend with per-category', () => {

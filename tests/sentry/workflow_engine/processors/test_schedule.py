@@ -37,23 +37,41 @@ class CreateEventTestCase(TestCase):
 
 
 class ProcessBufferedWorkflowsTest(CreateEventTestCase):
-    @override_options({"delayed_workflow.rollout": True})
+    @override_options(
+        {"delayed_workflow.rollout": True, "workflow_engine.scheduler.use_conditional_delete": True}
+    )
     @patch("sentry.workflow_engine.processors.schedule.process_in_batches")
-    def test_fetches_from_buffer_and_executes(self, mock_process_in_batches: MagicMock) -> None:
+    def test_fetches_from_buffer_and_executes_with_conditional_delete(
+        self, mock_process_in_batches: MagicMock
+    ) -> None:
+        self._test_fetches_from_buffer_and_executes(mock_process_in_batches)
+
+    @override_options(
+        {
+            "delayed_workflow.rollout": True,
+            "workflow_engine.scheduler.use_conditional_delete": False,
+        }
+    )
+    @patch("sentry.workflow_engine.processors.schedule.process_in_batches")
+    def test_fetches_from_buffer_and_executes_without_conditional_delete(
+        self, mock_process_in_batches: MagicMock
+    ) -> None:
+        self._test_fetches_from_buffer_and_executes(mock_process_in_batches)
+
+    def _test_fetches_from_buffer_and_executes(self, mock_process_in_batches: MagicMock) -> None:
         project = self.create_project()
         project_two = self.create_project()
         group = self.create_group(project)
         group_two = self.create_group(project_two)
-        rule = self.create_alert_rule()
 
         # Push data to buffer (need actual workflow data, not just rule data)
         self.batch_client.for_project(project.id).push_to_hash(
             batch_key=None,
-            data={f"{rule.id}:{group.id}": json.dumps({"event_id": "event-1"})},
+            data={f"345:{group.id}": json.dumps({"event_id": "event-1"})},
         )
         self.batch_client.for_project(project_two.id).push_to_hash(
             batch_key=None,
-            data={f"{rule.id}:{group_two.id}": json.dumps({"event_id": "event-2"})},
+            data={f"345:{group_two.id}": json.dumps({"event_id": "event-2"})},
         )
 
         # Add projects to sorted set

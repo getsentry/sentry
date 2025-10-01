@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:20:22.125429+00:00'
+created: '2025-09-24T22:53:03.783652+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -15,7 +15,7 @@ source: tests/sentry/grouping/test_grouping_info.py
           "contributes": false,
           "hint": "ignored because it contains no in-app frames",
           "id": "stacktrace",
-          "name": "stack-trace",
+          "name": "stacktrace",
           "values": [
             {
               "contributes": false,
@@ -76,12 +76,14 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "in-app",
     "hash": null,
+    "hint": null,
     "key": "app",
     "type": "component"
   },
   "fallback": {
     "description": "fallback",
     "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "hint": null,
     "key": "fallback",
     "type": "fallback"
   },
@@ -96,7 +98,7 @@ source: tests/sentry/grouping/test_grouping_info.py
           "contributes": false,
           "hint": "ignored because it contains no contributing frames",
           "id": "stacktrace",
-          "name": "stack-trace",
+          "name": "stacktrace",
           "values": [
             {
               "contributes": false,
@@ -157,6 +159,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "system",
     "hash": null,
+    "hint": null,
     "key": "system",
     "type": "component"
   }

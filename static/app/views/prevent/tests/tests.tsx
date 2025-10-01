@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Flex} from 'sentry/components/core/layout/flex';
+import {Grid} from 'sentry/components/core/layout/grid';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {BranchSelector} from 'sentry/components/prevent/branchSelector/branchSelector';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
@@ -20,6 +22,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import TestsPreOnboardingPage from 'sentry/views/prevent/tests/preOnboarding';
+import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
 import {
   useInfiniteTestResults,
   type UseInfiniteTestResultsResult,
@@ -57,19 +60,32 @@ export default function TestsPage() {
   const organization = useOrganization();
   const shouldDisplayContent = integratedOrgId && repository && preventPeriod;
 
+  const {data: integrations = [], isPending: isIntegrationsPending} =
+    useGetActiveIntegratedOrgs({organization});
   const regionData = getRegionDataFromOrganization(organization);
   const isUSStorage = regionData?.name === 'us';
 
+  let mainContent: React.ReactNode;
+  if (isIntegrationsPending) {
+    mainContent = <LoadingIndicator />;
+  } else if (integrations.length === 0) {
+    mainContent = <TestsPreOnboardingPage />;
+  } else if (shouldDisplayContent) {
+    mainContent = <Content response={response} />;
+  } else {
+    mainContent = <EmptySelectorsMessage />;
+  }
+
   if (!isUSStorage) {
     return (
-      <LayoutGap>
+      <Grid gap="xl">
         <TestsPreOnboardingPage />
-      </LayoutGap>
+      </Grid>
     );
   }
 
   return (
-    <LayoutGap>
+    <Grid gap="xl">
       <ControlsContainer>
         <PageFilterBar condensed>
           <IntegratedOrgSelector />
@@ -79,15 +95,10 @@ export default function TestsPage() {
         </PageFilterBar>
         {shouldDisplayTestSuiteDropdown && <TestSuiteDropdown />}
       </ControlsContainer>
-      {shouldDisplayContent ? <Content response={response} /> : <EmptySelectorsMessage />}
-    </LayoutGap>
+      {mainContent}
+    </Grid>
   );
 }
-
-const LayoutGap = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.xl};
-`;
 
 interface TestResultsContentData {
   response: UseInfiniteTestResultsResult;
@@ -97,16 +108,7 @@ function Content({response}: TestResultsContentData) {
   const location = useLocation();
   const navigate = useNavigate();
   const {branch: selectedBranch} = usePreventContext();
-  const {data: repoData, isSuccess} = useRepo();
-
-  useEffect(() => {
-    if (!repoData?.testAnalyticsEnabled && isSuccess) {
-      const queryString = getPreventParamsString(location);
-      navigate(`/prevent/tests/new${queryString ? `?${queryString}` : ''}`, {
-        replace: true,
-      });
-    }
-  }, [repoData?.testAnalyticsEnabled, navigate, isSuccess, location]);
+  const {data: repoData, isSuccess: isRepoSuccess} = useRepo();
 
   const sorts: [ValidSort] = [
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
@@ -144,29 +146,49 @@ function Content({response}: TestResultsContentData) {
     [navigate, response, location.query]
   );
 
+  const cameFromOnboardingRoute = location.state?.from === '/prevent/tests/new';
+
+  useEffect(() => {
+    if (!cameFromOnboardingRoute && !repoData?.testAnalyticsEnabled && isRepoSuccess) {
+      const queryString = getPreventParamsString(location);
+      navigate(`/prevent/tests/new${queryString ? `?${queryString}` : ''}`, {
+        state: {from: '/prevent/tests'},
+        replace: true,
+      });
+    }
+    // No `location` dependency as it causes infinite loop of redirect
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameFromOnboardingRoute, repoData?.testAnalyticsEnabled, isRepoSuccess, navigate]);
+
+  if (!cameFromOnboardingRoute && !repoData?.testAnalyticsEnabled && isRepoSuccess) {
+    return null;
+  }
+
   return (
     <Fragment>
       {shouldDisplaySummaries && <Summaries />}
       <TestSearchBar testCount={response.totalCount} />
-      <TestAnalyticsTable response={response} sort={sorts[0]} />
-      <Flex justify="right">
-        <ButtonBar merged gap="0">
-          <Button
-            icon={<IconChevron direction="left" />}
-            aria-label={t('Previous')}
-            size="sm"
-            disabled={!response.hasPreviousPage}
-            onClick={() => handleCursor(-1)}
-          />
-          <Button
-            icon={<IconChevron direction="right" />}
-            aria-label={t('Next')}
-            size="sm"
-            disabled={!response.hasNextPage}
-            onClick={() => handleCursor(1)}
-          />
-        </ButtonBar>
-      </Flex>
+      <div>
+        <TestAnalyticsTable response={response} sort={sorts[0]} />
+        <Flex justify="right">
+          <ButtonBar merged gap="0">
+            <Button
+              icon={<IconChevron direction="left" />}
+              aria-label={t('Previous')}
+              size="sm"
+              disabled={!response.hasPreviousPage}
+              onClick={() => handleCursor(-1)}
+            />
+            <Button
+              icon={<IconChevron direction="right" />}
+              aria-label={t('Next')}
+              size="sm"
+              disabled={!response.hasNextPage}
+              onClick={() => handleCursor(1)}
+            />
+          </ButtonBar>
+        </Flex>
+      </div>
     </Fragment>
   );
 }

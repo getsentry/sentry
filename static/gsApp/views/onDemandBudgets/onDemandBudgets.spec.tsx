@@ -720,4 +720,37 @@ describe('OnDemandBudgets', () => {
       )
     ).toBeInTheDocument();
   });
+
+  it('displays does not display contact support for education sponsored', () => {
+    const subscription = SubscriptionFixture({
+      plan: 'am3_sponsored_team_auf',
+      planTier: PlanTier.AM3,
+      sponsoredType: 'education',
+      isFree: false,
+      isTrial: false,
+      supportsOnDemand: true,
+      planDetails: {
+        ...PlanDetailsLookupFixture('am3_team_auf')!,
+      },
+      organization,
+      onDemandBudgets: {
+        enabled: false,
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: 0,
+        onDemandSpendUsed: 0,
+      },
+    });
+
+    render(
+      <OnDemandBudgets
+        {...defaultProps}
+        subscription={subscription}
+        organization={organization}
+        onDemandEnabled={false}
+        hasPaymentSource={false}
+      />
+    );
+
+    expect(screen.queryByText('Contact Support')).not.toBeInTheDocument();
+  });
 });

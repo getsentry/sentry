@@ -331,7 +331,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             fake_kms_client.return_value.get_public_key.side_effect = Exception("Test")
             with (
@@ -488,7 +488,7 @@ class UploadingCompleteTest(RelocationTaskTestCase):
         RelocationFile.objects.filter(relocation=self.relocation).delete()
         self.mock_message_builder(fake_message_builder)
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             uploading_complete(self.uuid)
 
@@ -615,7 +615,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             preprocessing_scan(self.uuid)
 
@@ -903,7 +903,7 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
         RelocationFile.objects.filter(relocation=self.relocation).delete()
         self.mock_message_builder(fake_message_builder)
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             preprocessing_transfer(self.uuid)
 
@@ -995,7 +995,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
         self.mock_kms_client(fake_kms_client)
         RelocationFile.objects.filter(relocation=self.relocation).delete()
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             fake_kms_client.return_value.get_public_key.side_effect = Exception("Test")
 
@@ -1098,7 +1098,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             fake_kms_client.return_value.get_public_key.side_effect = Exception("Test")
 
@@ -1190,7 +1190,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         self.relocation_storage.delete(f"runs/{self.uuid}/conf/cloudbuild.yaml")
         self.mock_message_builder(fake_message_builder)
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             preprocessing_complete(self.uuid)
 
@@ -1237,7 +1237,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         self.relocation_storage.delete(f"runs/{self.uuid}/conf/cloudbuild.zip")
         self.mock_message_builder(fake_message_builder)
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             preprocessing_complete(self.uuid)
 
@@ -1257,7 +1257,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         self.relocation_storage.delete(f"runs/{self.uuid}/in/filter-usernames.txt")
         self.mock_message_builder(fake_message_builder)
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             preprocessing_complete(self.uuid)
 
@@ -1277,7 +1277,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         self.relocation_storage.delete(f"runs/{self.uuid}/in/kms-config.json")
         self.mock_message_builder(fake_message_builder)
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             preprocessing_complete(self.uuid)
 
@@ -1363,7 +1363,7 @@ class ValidatingStartTest(RelocationTaskTestCase):
         self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(Build.Status.QUEUED))
         self.mock_message_builder(fake_message_builder)
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             fake_cloudbuild_client.return_value.create_build.side_effect = Exception("Test")
 
@@ -1595,7 +1595,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
         self.mock_message_builder(fake_message_builder)
         fake_cloudbuild_client.return_value.get_build.side_effect = Exception("Test")
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             validating_poll(self.uuid, str(self.relocation_validation_attempt.build_id))
 
@@ -1769,7 +1769,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 0
         assert importing_mock.call_count == 0
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             validating_complete(self.uuid, str(self.relocation_validation_attempt.build_id))
 
@@ -2114,7 +2114,7 @@ class PostprocessingTest(RelocationTaskTestCase):
         ]
         self.relocation.save()
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             postprocessing(self.uuid)
 
@@ -2356,7 +2356,7 @@ class NotifyingUsersTest(RelocationTaskTestCase):
         self.relocation.want_usernames = ["doesnotexist"]
         self.relocation.save()
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             notifying_users(self.uuid)
 
@@ -2467,7 +2467,7 @@ class NotifyingOwnerTest(RelocationTaskTestCase):
         self.mock_message_builder(fake_message_builder)
         fake_message_builder.return_value.send_async.side_effect = Exception("Test")
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             notifying_owner(self.uuid)
 

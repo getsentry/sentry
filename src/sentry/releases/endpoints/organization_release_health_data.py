@@ -9,6 +9,7 @@ from sentry.api.bases import OrganizationAndStaffPermission, OrganizationEndpoin
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.sentry_metrics.use_case_utils import get_use_case_id
 from sentry.snuba.metrics import DerivedMetricException, QueryDefinition, get_series
 from sentry.snuba.metrics.naming_layer import SessionMetricKey
@@ -41,13 +42,15 @@ class OrganizationReleaseHealthDataEndpoint(OrganizationEndpoint):
     # 60 req/s to allow for metric dashboard loading
     default_rate_limit = RateLimit(limit=60, window=1)
 
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: default_rate_limit,
-            RateLimitCategory.USER: default_rate_limit,
-            RateLimitCategory.ORGANIZATION: default_rate_limit,
-        },
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: default_rate_limit,
+                RateLimitCategory.USER: default_rate_limit,
+                RateLimitCategory.ORGANIZATION: default_rate_limit,
+            },
+        }
+    )
 
     # Number of groups returned for each page (applies to old endpoint).
     default_per_page = 50

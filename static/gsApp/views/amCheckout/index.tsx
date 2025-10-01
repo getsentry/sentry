@@ -9,9 +9,11 @@ import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex, Grid, Stack} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LogoSentry from 'sentry/components/logoSentry';
@@ -28,6 +30,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -137,11 +140,13 @@ class AMCheckout extends Component<Props, State> {
     ) {
       props.onToggleLegacy(props.subscription.planTier);
     }
-    // TODO(checkout v3): remove these checks once checkout v3 is GA'd
+    // TODO(checkout v3): remove these checks once checkout v3 is GA'd and we remove the legacy checkout route
     if (props.location?.pathname.includes('checkout-v3') && !props.isNewCheckout) {
-      props.navigate(`/settings/${props.organization.slug}/billing/checkout/`);
+      props.navigate(`/settings/${props.organization.slug}/billing/checkout/`, {
+        replace: true,
+      });
     } else if (!props.location?.pathname.includes('checkout-v3') && props.isNewCheckout) {
-      props.navigate(`/checkout-v3/`);
+      props.navigate(`/checkout-v3/`, {replace: true});
     }
     let step = 1;
     if (props.location?.hash) {
@@ -194,7 +199,7 @@ class AMCheckout extends Component<Props, State> {
   state: State;
 
   componentDidMount() {
-    const {subscription, organization} = this.props;
+    const {subscription, organization, isNewCheckout} = this.props;
     /**
      * Preload Stripe so it's ready when the subscription + cc form becomes
      * available. `loadStripe` ensures Stripe is not loaded multiple times
@@ -208,8 +213,13 @@ class AMCheckout extends Component<Props, State> {
     }
 
     if (organization) {
-      trackGetsentryAnalytics('am_checkout.viewed', {organization, subscription});
+      trackGetsentryAnalytics('am_checkout.viewed', {
+        organization,
+        subscription,
+        isNewCheckout: !!isNewCheckout,
+      });
     }
+    Sentry.getReplay()?.start();
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -256,7 +266,7 @@ class AMCheckout extends Component<Props, State> {
         data: {tier: checkoutTier},
       });
 
-      const planList = this.getPaidPlans(config);
+      const planList = this.getPlans(config);
       const billingConfig = {...config, planList};
       const formData = this.getInitialData(billingConfig);
 
@@ -275,19 +285,20 @@ class AMCheckout extends Component<Props, State> {
     this.setState({loading: false});
   }
 
-  getPaidPlans(billingConfig: BillingConfig) {
-    const paidPlans = billingConfig.planList.filter(
+  getPlans(billingConfig: BillingConfig) {
+    const plans = billingConfig.planList.filter(
       plan =>
-        plan.basePrice &&
-        plan.userSelectable &&
-        ((plan.billingInterval === MONTHLY && plan.contractInterval === MONTHLY) ||
-          (plan.billingInterval === ANNUAL && plan.contractInterval === ANNUAL))
+        plan.id === billingConfig.freePlan ||
+        (plan.basePrice &&
+          plan.userSelectable &&
+          ((plan.billingInterval === MONTHLY && plan.contractInterval === MONTHLY) ||
+            (plan.billingInterval === ANNUAL && plan.contractInterval === ANNUAL)))
     );
 
-    if (!paidPlans) {
+    if (plans.length === 0) {
       throw new Error('Cannot get plan options');
     }
-    return paidPlans;
+    return plans;
   }
 
   get checkoutSteps() {
@@ -297,6 +308,15 @@ class AMCheckout extends Component<Props, State> {
       : OnDemandSpend;
 
     if (isNewCheckout) {
+      // Do not include Payment Method and Billing Details sections for subscriptions billed through partners
+      if (subscription.isSelfServePartner) {
+        if (hasActiveVCFeature(organization)) {
+          // Don't allow VC customers to choose Annual plans
+          return [BuildYourPlan, SetSpendLimit];
+        }
+
+        return [BuildYourPlan, SetSpendLimit, ChooseYourBillingCycle];
+      }
       return [
         BuildYourPlan,
         SetSpendLimit,
@@ -403,11 +423,11 @@ class AMCheckout extends Component<Props, State> {
     const {subscription, checkoutTier} = this.props;
     const {planList, defaultPlan} = billingConfig;
     const initialPlan = planList.find(({id}) => id === subscription.plan);
+    const businessPlan = this.getBusinessPlan(billingConfig);
 
     if (this.shouldDefaultToBusiness()) {
-      const plan = this.getBusinessPlan(billingConfig);
-      if (plan) {
-        return plan;
+      if (businessPlan) {
+        return businessPlan;
       }
     }
 
@@ -437,7 +457,10 @@ class AMCheckout extends Component<Props, State> {
           contractInterval === subscription?.planDetails?.contractInterval
       );
 
-    return legacyInitialPlan || planList.find(({id}) => id === defaultPlan);
+    // if no legacy initial plan found, we fallback to the business plan, then the default plan (usually team)
+    return (
+      legacyInitialPlan || businessPlan || planList.find(({id}) => id === defaultPlan)
+    );
   }
 
   canComparePrices(initialPlan: Plan) {
@@ -614,7 +637,7 @@ class AMCheckout extends Component<Props, State> {
   };
 
   handleUpdate = (updatedData: any) => {
-    const {organization, subscription, checkoutTier} = this.props;
+    const {organization, subscription, checkoutTier, isNewCheckout} = this.props;
     const {formData, formDataForPreview} = this.state;
 
     const data = {...formData, ...updatedData};
@@ -636,18 +659,20 @@ class AMCheckout extends Component<Props, State> {
       plan: plan.id,
     };
 
-    if (this.state.currentStep === 1) {
-      trackGetsentryAnalytics('checkout.change_plan', analyticsParams);
-    } else if (
-      (checkoutTier === PlanTier.AM3 && this.state.currentStep === 2) ||
-      (checkoutTier !== PlanTier.AM3 && this.state.currentStep === 3)
-    ) {
-      trackGetsentryAnalytics('checkout.ondemand_changed', {
-        ...analyticsParams,
-        cents: validData.onDemandMaxSpend || 0,
-      });
-    } else if (this.state.currentStep === 4) {
-      trackGetsentryAnalytics('checkout.change_contract', analyticsParams);
+    if (!isNewCheckout) {
+      if (this.state.currentStep === 1) {
+        trackGetsentryAnalytics('checkout.change_plan', analyticsParams);
+      } else if (
+        (checkoutTier === PlanTier.AM3 && this.state.currentStep === 2) ||
+        (checkoutTier !== PlanTier.AM3 && this.state.currentStep === 3)
+      ) {
+        trackGetsentryAnalytics('checkout.ondemand_changed', {
+          ...analyticsParams,
+          cents: validData.onDemandMaxSpend || 0,
+        });
+      } else if (this.state.currentStep === 4) {
+        trackGetsentryAnalytics('checkout.change_contract', analyticsParams);
+      }
     }
 
     if (!isEqual(validData.reserved, data.reserved)) {
@@ -663,16 +688,18 @@ class AMCheckout extends Component<Props, State> {
    * Complete step and all previous steps
    */
   handleCompleteStep = (stepNumber: number) => {
-    const {organization, subscription} = this.props;
+    const {organization, subscription, isNewCheckout} = this.props;
     const previousSteps = Array.from({length: stepNumber}, (_, idx) => idx + 1);
 
-    trackGetsentryAnalytics('checkout.click_continue', {
-      organization,
-      subscription,
-      step_number: stepNumber,
-      plan: this.activePlan.id,
-      checkoutType: CheckoutType.STANDARD,
-    });
+    if (!isNewCheckout) {
+      trackGetsentryAnalytics('checkout.click_continue', {
+        organization,
+        subscription,
+        step_number: stepNumber,
+        plan: this.activePlan.id,
+        checkoutType: CheckoutType.STANDARD,
+      });
+    }
 
     this.setState(state => ({
       currentStep: state.currentStep + 1,
@@ -888,6 +915,12 @@ class AMCheckout extends Component<Props, State> {
             <BackButton
               aria-label={t('Back to Subscription Overview')}
               to={`/settings/${organization.slug}/billing/`}
+              onClick={() => {
+                trackGetsentryAnalytics('checkout.exit', {
+                  subscription,
+                  organization,
+                });
+              }}
             >
               <Flex gap="sm" align="center">
                 <IconArrow direction="left" />
@@ -926,16 +959,14 @@ class AMCheckout extends Component<Props, State> {
                   help: (
                     <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
                   ),
-                  contact: (
-                    <ZendeskLink
-                      subject="Billing Question"
-                      source="checkout"
-                      Component={({href, onClick}) => (
-                        <LinkButton href={href ?? ''} onClick={onClick}>
-                          {t('ask Support')}
-                        </LinkButton>
-                      )}
-                    />
+                  contact: hasZendesk() ? (
+                    <ZendeskButton borderless onClick={activateZendesk}>
+                      <Text variant="accent">{t('ask Support')}</Text>
+                    </ZendeskButton>
+                  ) : (
+                    <ZendeskLink subject="Billing Question" source="checkout">
+                      {t('ask Support')}
+                    </ZendeskLink>
                   ),
                 })}
               </TextOverflow>
@@ -969,7 +1000,7 @@ class AMCheckout extends Component<Props, State> {
 
     return this.renderParentComponent({
       children: (
-        <Flex width={'100%'} background={'secondary'} justify="center" padding="2xl">
+        <Flex width="100%" background="secondary" justify="center" padding="2xl">
           <SentryDocumentTitle
             title={t('Change Subscription')}
             orgSlug={organization.slug}
@@ -1104,6 +1135,11 @@ const CheckoutStepsContainer = styled('div')<{isNewCheckout: boolean}>`
         border-top: 2px dashed ${p.theme.border};
       }
     `}
+`;
+
+const ZendeskButton = styled(Button)`
+  padding: 0;
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 export default withPromotions(withApi(withOrganization(withSubscription(AMCheckout))));

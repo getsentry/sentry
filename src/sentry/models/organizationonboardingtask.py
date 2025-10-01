@@ -21,6 +21,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.utils import metrics
 
 
@@ -68,6 +69,13 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
             raise ValueError(
                 f"status={status} unsupported must be {OnboardingTaskStatus.COMPLETE}."
             )
+
+        if options.get("sentry:skip-record-onboarding-tasks-if-complete"):
+            onboarding_complete_option = OrganizationOption.objects.get_value(
+                organization_id, "onboarding:complete", None
+            )
+            if onboarding_complete_option:
+                return False
 
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
 

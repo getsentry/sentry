@@ -5,11 +5,10 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Config} from 'sentry/types/system';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+import {useParams} from 'sentry/utils/useParams';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.unmock('sentry/utils/recreateRoute');
 
@@ -24,9 +23,8 @@ const projectRoutes = [
 ];
 
 describe('withDomainRedirect', () => {
-  type Props = RouteComponentProps<{orgId: string}>;
-  function MyComponent(props: Props) {
-    const {params} = props;
+  function MyComponent() {
+    const params = useParams();
     return <div>Org slug: {params.orgId ?? 'no org slug'}</div>;
   }
   let configState: Config;
@@ -68,26 +66,16 @@ describe('withDomainRedirect', () => {
         sentryUrl: 'https://sentry.io',
       },
     });
-
-    const params = {
-      orgId: 'albertos-apples',
-    };
-    const {router} = initializeOrg({
-      router: {
-        params,
+    const WrappedComponent = withDomainRedirect(MyComponent);
+    render(<WrappedComponent />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/albertos-apples/issues/',
+          query: {q: '123'},
+        },
+        route: '/organizations/:orgId/issues/',
       },
     });
-    const WrappedComponent = withDomainRedirect(MyComponent);
-    render(
-      <WrappedComponent
-        router={router}
-        location={router.location}
-        params={params}
-        routes={router.routes}
-        routeParams={router.params}
-        route={{}}
-      />
-    );
 
     expect(screen.getByText('Org slug: albertos-apples')).toBeInTheDocument();
   });
@@ -96,30 +84,17 @@ describe('withDomainRedirect', () => {
     const organization = OrganizationFixture({
       slug: 'bobs-bagels',
     });
-
-    const params = {
-      orgId: 'albertos-apples',
-    };
-    const {router} = initializeOrg({
+    const WrappedComponent = withDomainRedirect(MyComponent);
+    const {container} = render(<WrappedComponent />, {
       organization,
-      router: {
-        params,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/albertos-apples/issues/',
+          query: {q: '123'},
+        },
+        route: '/organizations/:orgId/issues/',
       },
     });
-
-    const WrappedComponent = withDomainRedirect(MyComponent);
-    const {container} = render(
-      <OrganizationContext value={organization}>
-        <WrappedComponent
-          router={router}
-          location={router.location}
-          params={params}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-        />
-      </OrganizationContext>
-    );
 
     expect(container).toBeEmptyDOMElement();
     expect(testableWindowLocation.replace).toHaveBeenCalledTimes(1);
@@ -131,29 +106,17 @@ describe('withDomainRedirect', () => {
   it('redirects to sentryUrl on missing customer domain feature', () => {
     const organization = OrganizationFixture({slug: 'albertos-apples'});
 
-    const params = {
-      orgId: organization.slug,
-    };
-    const {router} = initializeOrg({
+    const WrappedComponent = withDomainRedirect(MyComponent);
+    const {container} = render(<WrappedComponent />, {
       organization,
-      router: {
-        params,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/albertos-apples/issues/',
+          query: {q: '123'},
+        },
+        route: '/organizations/:orgId/issues/',
       },
     });
-
-    const WrappedComponent = withDomainRedirect(MyComponent);
-    const {container} = render(
-      <OrganizationContext value={organization}>
-        <WrappedComponent
-          router={router}
-          location={router.location}
-          params={params}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-        />
-      </OrganizationContext>
-    );
 
     expect(container).toBeEmptyDOMElement();
     expect(testableWindowLocation.replace).toHaveBeenCalledTimes(1);
@@ -181,18 +144,11 @@ describe('withDomainRedirect', () => {
     });
 
     const WrappedComponent = withDomainRedirect(MyComponent);
-    const {container} = render(
-      <OrganizationContext value={organization}>
-        <WrappedComponent
-          router={router}
-          location={router.location}
-          params={params}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-        />
-      </OrganizationContext>
-    );
+    const {container} = render(<WrappedComponent />, {
+      organization,
+      deprecatedRouterMocks: true,
+      router,
+    });
 
     expect(container).toBeEmptyDOMElement();
     expect(router.replace).toHaveBeenCalledTimes(1);
@@ -205,40 +161,20 @@ describe('withDomainRedirect', () => {
       slug: 'albertos-apples',
     });
 
-    const params = {};
-
-    const {router} = initializeOrg({
+    const WrappedComponent = withDomainRedirect(MyComponent);
+    const {router} = render(<WrappedComponent />, {
       organization,
-      router: {
-        params,
-        // /settings/account/notifications/reports/
-        routes: [
-          {path: '/', childRoutes: []},
-          {childRoutes: []},
-          {path: '/settings/', name: 'Settings', indexRoute: {}, childRoutes: []},
-          {name: 'Account', path: 'account/', childRoutes: []},
-          {name: 'Notifications', path: 'notifications/', childRoutes: []},
-          {name: 'Reports', path: 'reports/'},
-        ],
+      initialRouterConfig: {
+        location: {
+          pathname: '/settings/account/notifications/reports/',
+        },
+        route: '/settings/account/notifications/reports/',
       },
     });
-
-    const WrappedComponent = withDomainRedirect(MyComponent);
-    render(
-      <OrganizationContext value={organization}>
-        <WrappedComponent
-          router={router}
-          location={router.location}
-          params={params}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-        />
-      </OrganizationContext>
-    );
+    const initialLocation = router.location.pathname;
 
     expect(screen.getByText('Org slug: no org slug')).toBeInTheDocument();
-    expect(router.replace).not.toHaveBeenCalled();
+    expect(initialLocation).toBe('/settings/account/notifications/reports/');
   });
 
   it('updates path when :orgId is present in the routes and there is no subdomain', () => {
@@ -264,18 +200,11 @@ describe('withDomainRedirect', () => {
     });
 
     const WrappedComponent = withDomainRedirect(MyComponent);
-    render(
-      <OrganizationContext value={organization}>
-        <WrappedComponent
-          router={router}
-          location={router.location}
-          params={params}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-        />
-      </OrganizationContext>
-    );
+    render(<WrappedComponent />, {
+      organization,
+      deprecatedRouterMocks: true,
+      router,
+    });
 
     expect(router.replace).toHaveBeenCalledTimes(1);
     expect(router.replace).toHaveBeenCalledWith('/settings/react/alerts/?q=123#hash');

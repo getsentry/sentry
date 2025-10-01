@@ -37,6 +37,7 @@ SPAN_KAFKA_MESSAGE = {
         "sentry.category": "http",
         "sentry.client_sample_rate": 0.1,
         "sentry.environment": "development",
+        "sentry.description": "/api/0/relays/projectconfigs/",
         "sentry.normalized_description": "normalized_description",
         "sentry.op": "http.server",
         "sentry.platform": "python",

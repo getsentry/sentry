@@ -573,7 +573,7 @@ def start_relocation_task(
 
 def fail_relocation(relocation: Relocation, task: OrderedTask, reason: str = "") -> None:
     """
-    Helper function that conveniently fails a relocation celery task in such a way that the failure
+    Helper function that conveniently fails a relocation task in such a way that the failure
     reason is recorded for the user and no further retries occur. It should be used like:
 
     >>> relocation = Relocation.objects.get(...)
@@ -617,7 +617,7 @@ def retry_task_or_fail_relocation(
 ) -> Generator[None]:
     """
     Catches all exceptions, and does one of two things: calls into `fail_relocation` if there are no
-    retry attempts forthcoming, or simply bubbles them up (thereby triggering a celery retry) if
+    retry attempts forthcoming, or simply bubbles them up (thereby triggering a retry) if
     there are.
 
     This function is ideal for transient failures, like networked service lag, where retrying at a

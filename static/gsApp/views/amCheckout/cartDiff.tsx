@@ -21,7 +21,10 @@ import {formatReservedWithUnits, isNewPayingCustomer} from 'getsentry/utils/bill
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
-import {parseOnDemandBudgetsFromSubscription} from 'getsentry/views/onDemandBudgets/utils';
+import {
+  getTotalBudget,
+  parseOnDemandBudgetsFromSubscription,
+} from 'getsentry/views/onDemandBudgets/utils';
 
 const DEFAULT_PAYG_BUDGET: SharedOnDemandBudget = {
   budgetMode: OnDemandBudgetMode.SHARED,
@@ -105,7 +108,12 @@ function PlanDiff({
           }
           let formattingFunction = (value: any) => value;
           if (key === 'plan' || key === 'contractInterval') {
-            formattingFunction = (value: any) => (value ? capitalize(value) : null);
+            formattingFunction = (value: any) =>
+              value === 'annual'
+                ? t('Yearly')
+                : value
+                  ? t('%s', capitalize(value))
+                  : null;
           } else {
             formattingFunction = (value: any) =>
               value
@@ -153,7 +161,6 @@ function ReservedDiff({
                   {getPlanCategoryName({
                     category: key,
                     plan: newValue === null ? currentPlan : newPlan,
-                    title: true,
                   })}
                 </ChangedCategory>
               }
@@ -236,7 +243,6 @@ function OnDemandDiff({
                       {getPlanCategoryName({
                         category: key,
                         plan: newValue === null ? currentPlan : newPlan,
-                        title: true,
                       })}
                     </ChangedCategory>
                   }
@@ -344,9 +350,11 @@ function CartDiff({
   const getCategoryChanges = ({
     currentValues,
     newValues,
+    shouldIncludeZero = true,
   }: {
     currentValues: Partial<Record<DataCategory, number>>;
     newValues: Partial<Record<DataCategory, number>>;
+    shouldIncludeZero?: boolean;
   }): ReservedChange[] | PerCategoryOnDemandChange[] => {
     const nodes: ReservedChange[] | PerCategoryOnDemandChange[] = [];
 
@@ -355,7 +363,10 @@ function CartDiff({
       if (category in currentValues) {
         currentValue = currentValues[category as DataCategory] ?? null;
       }
-      if (newValue !== currentValue) {
+      if (!shouldIncludeZero && currentValue === 0) {
+        currentValue = null;
+      }
+      if (newValue !== currentValue && (shouldIncludeZero || newValue !== 0)) {
         nodes.push({
           key: category as DataCategory,
           currentValue,
@@ -366,7 +377,7 @@ function CartDiff({
 
     // in case there are categories in the current plan that are not in the new plan
     Object.entries(currentValues).forEach(([category, currentValue]) => {
-      if (!(category in newValues)) {
+      if (!(category in newValues) && (shouldIncludeZero || currentValue !== 0)) {
         nodes.push({
           key: category as DataCategory,
           currentValue,
@@ -429,7 +440,9 @@ function CartDiff({
     if (
       isEqual(currentOnDemandBudget, newOnDemandBudget) ||
       (currentBudgetMode !== OnDemandBudgetMode.SHARED &&
-        newBudgetMode !== OnDemandBudgetMode.SHARED)
+        newBudgetMode !== OnDemandBudgetMode.SHARED) ||
+      (getTotalBudget(currentOnDemandBudget) === 0 &&
+        getTotalBudget(newOnDemandBudget) === 0)
     ) {
       return [];
     }
@@ -440,10 +453,18 @@ function CartDiff({
     ) {
       changes.push({
         key: 'sharedMaxBudget',
-        currentValue: currentOnDemandBudget.sharedMaxBudget,
+        currentValue:
+          // only show $0 PAYG changes if the budget is being changed to $0
+          currentOnDemandBudget.sharedMaxBudget === 0
+            ? null
+            : currentOnDemandBudget.sharedMaxBudget,
         newValue: newOnDemandBudget.sharedMaxBudget,
       });
-    } else if (currentBudgetMode === OnDemandBudgetMode.SHARED) {
+    } else if (
+      currentBudgetMode === OnDemandBudgetMode.SHARED &&
+      // only show $0 PAYG changes if the budget is being changed to $0
+      currentOnDemandBudget.sharedMaxBudget !== 0
+    ) {
       changes.push({
         key: 'sharedMaxBudget',
         currentValue: currentOnDemandBudget.sharedMaxBudget,
@@ -475,6 +496,7 @@ function CartDiff({
     return getCategoryChanges({
       currentValues: parsedCurrentOnDemandBudget,
       newValues: parsedNewOnDemandBudget,
+      shouldIncludeZero: currentBudgetMode === newBudgetMode,
     });
   }, [currentOnDemandBudget, newOnDemandBudget, currentBudgetMode, newBudgetMode]);
 
@@ -543,19 +565,19 @@ function CartDiff({
               cycleChanges={cycleChanges}
             />
           )}
-          {reservedChanges.length > 0 && (
-            <ReservedDiff
-              currentPlan={currentPlan}
-              newPlan={activePlan}
-              reservedChanges={reservedChanges}
-            />
-          )}
           {sharedOnDemandChanges.length + perCategoryOnDemandChanges.length > 0 && (
             <OnDemandDiff
               currentPlan={currentPlan}
               newPlan={activePlan}
               perCategoryOnDemandChanges={perCategoryOnDemandChanges}
               sharedOnDemandChanges={sharedOnDemandChanges}
+            />
+          )}
+          {reservedChanges.length > 0 && (
+            <ReservedDiff
+              currentPlan={currentPlan}
+              newPlan={activePlan}
+              reservedChanges={reservedChanges}
             />
           )}
         </ChangesContainer>

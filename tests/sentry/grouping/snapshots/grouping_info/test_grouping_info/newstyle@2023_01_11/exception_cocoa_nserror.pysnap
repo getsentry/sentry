@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:52:17.452681+00:00'
+created: '2025-09-24T22:53:02.632861+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -21,7 +21,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": false,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": []
             },
             {
@@ -72,7 +72,7 @@ source: tests/sentry/grouping/test_grouping_info.py
         },
         {
           "contributes": false,
-          "hint": "exception of app takes precedence",
+          "hint": "ignored because app exception takes precedence",
           "id": "threads",
           "name": "thread",
           "values": [
@@ -80,7 +80,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": false,
@@ -823,19 +823,20 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "in-app exception",
     "hash": "029f3b967068b1539f96957b7c0451d7",
+    "hint": null,
     "key": "app",
     "type": "component"
   },
   "system": {
     "component": {
       "contributes": false,
-      "hint": "exception of app takes precedence",
+      "hint": "ignored because app exception takes precedence",
       "id": "system",
       "name": null,
       "values": [
         {
           "contributes": false,
-          "hint": "exception of app takes precedence",
+          "hint": "ignored because app exception takes precedence",
           "id": "threads",
           "name": "thread",
           "values": [
@@ -843,7 +844,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": false,
@@ -1586,6 +1587,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "system",
     "hash": null,
+    "hint": "ignored because app exception takes precedence",
     "key": "system",
     "type": "component"
   }

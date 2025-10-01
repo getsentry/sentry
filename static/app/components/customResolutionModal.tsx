@@ -40,6 +40,9 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
         value: release.version,
         label: (
           <Fragment>
+            {release.versionInfo?.package && (
+              <Fragment>{release.versionInfo.package}@</Fragment>
+            )}
             <Version version={release.version} anchor={false} />{' '}
             {isVersionInfoSemver(release.versionInfo.version)
               ? t('(semver)')

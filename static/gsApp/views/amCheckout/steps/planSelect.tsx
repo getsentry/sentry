@@ -68,12 +68,13 @@ function getPlanOptions({
   activePlan,
 }: Pick<StepProps, 'billingConfig' | 'activePlan'>) {
   let plans = billingConfig.planList.filter(
-    ({billingInterval}) => billingInterval === activePlan.billingInterval
+    ({id, billingInterval}) =>
+      billingInterval === activePlan.billingInterval && id !== billingConfig.freePlan
   );
 
   plans = plans.sort((a, b) => b.basePrice - a.basePrice);
 
-  if (!plans) {
+  if (plans.length === 0) {
     throw new Error('Cannot get plan options by interval');
   }
   return plans;
@@ -245,6 +246,7 @@ function PlanSelect({
                       organization,
                       subscription,
                       source: 'checkout.plan_select',
+                      isNewCheckout: false,
                     });
                   }}
                 />

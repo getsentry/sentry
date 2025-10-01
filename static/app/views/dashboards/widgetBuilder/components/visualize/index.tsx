@@ -600,7 +600,7 @@ function Visualize({error, setError}: VisualizeProps) {
                               />
                             </RadioLineItem>
                           )}
-                        <FieldBar data-testid={'field-bar'}>
+                        <FieldBar data-testid="field-bar">
                           {field.kind === FieldValueKind.EQUATION ? (
                             state.dataset === WidgetType.SPANS ? (
                               <ExploreArithmeticBuilder

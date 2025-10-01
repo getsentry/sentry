@@ -100,9 +100,9 @@ def test_mep_to_eap_simple_query(input: str, expected: str) -> None:
             [],
         ),
         pytest.param(
-            ["count()", "avg(transaction.duration)"],
+            ["count()", "avg(transaction.duration)", "count_web_vitals(measurements.lcp,good)"],
             ["count(span.duration)", "avg(span.duration)"],
-            [],
+            ["count_web_vitals(measurements.lcp,good)"],
         ),
         pytest.param(
             ["avgIf(transaction.duration,greater,300)"],

@@ -158,7 +158,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       dataCondition: AgeComparisonNode,
       details: AgeComparisonDetails,
       defaultComparison: {
-        comparison_type: AgeComparison.OLDER,
+        comparisonType: AgeComparison.OLDER,
         value: 10,
         time: TimeUnit.MINUTES,
       },
@@ -220,8 +220,8 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       dataCondition: LatestAdoptedReleaseNode,
       details: LatestAdoptedReleaseDetails,
       defaultComparison: {
-        release_age_type: ModelAge.OLDEST,
-        age_comparison: AgeComparison.OLDER,
+        releaseAgeType: ModelAge.OLDEST,
+        ageComparison: AgeComparison.OLDER,
         environment: '',
       },
       validate: validateLatestAdoptedReleaseCondition,
@@ -303,7 +303,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       defaultComparison: {
         value: 100,
         interval: Interval.ONE_HOUR,
-        comparison_interval: Interval.ONE_WEEK,
+        comparisonInterval: Interval.ONE_WEEK,
       },
       validate: validateEventFrequencyCondition,
       warningMessage: OccurenceBasedMonitorsWarning,
@@ -338,7 +338,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       defaultComparison: {
         value: 100,
         interval: Interval.ONE_HOUR,
-        comparison_interval: Interval.ONE_WEEK,
+        comparisonInterval: Interval.ONE_WEEK,
       },
       validate: validateEventUniqueUserFrequencyCondition,
       warningMessage: OccurenceBasedMonitorsWarning,
@@ -373,7 +373,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       defaultComparison: {
         value: 100,
         interval: Interval.ONE_HOUR,
-        comparison_interval: Interval.ONE_WEEK,
+        comparisonInterval: Interval.ONE_WEEK,
       },
       validate: validatePercentSessionsCondition,
       warningMessage: OccurenceBasedMonitorsWarning,

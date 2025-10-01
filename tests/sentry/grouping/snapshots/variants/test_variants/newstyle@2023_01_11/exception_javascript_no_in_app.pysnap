@@ -1,26 +1,26 @@
 ---
-created: '2025-09-11T18:38:50.158076+00:00'
+created: '2025-09-24T20:27:06.390623+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   contributing component: null
-  component:
-    app (exception of system takes precedence)
+  root_component:
+    app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
             module*
               "app/components/modals/createTeamModal"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "createteammodal.jsx"
             context_line*
               "onError(err);"
           frame (marked out of app by the client)
             module*
               "app/views/settings/components/forms/form"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "form.jsx"
             function (ignored because sourcemap used and context line available)
               "onError"
@@ -34,21 +34,21 @@ app:
 system:
   hash: "26552f86ca2368e708afa1df6effc1c5"
   contributing component: exception
-  component:
+  root_component:
     system*
       exception*
         stacktrace*
           frame*
             module*
               "app/components/modals/createTeamModal"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "createteammodal.jsx"
             context_line*
               "onError(err);"
           frame*
             module*
               "app/views/settings/components/forms/form"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "form.jsx"
             function (ignored because sourcemap used and context line available)
               "onError"

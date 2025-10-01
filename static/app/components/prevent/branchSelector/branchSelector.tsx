@@ -97,12 +97,7 @@ export function BranchSelector() {
       return (
         <ResetButton
           onClick={() => {
-            changeContextValue({
-              integratedOrgId,
-              repository,
-              preventPeriod,
-              branch: null,
-            });
+            handleChange({value: ALL_BRANCHES});
             closeOverlay();
           }}
           size="zero"
@@ -112,7 +107,7 @@ export function BranchSelector() {
         </ResetButton>
       );
     },
-    [branch, integratedOrgId, preventPeriod, repository, changeContextValue]
+    [branch, handleChange]
   );
 
   function getEmptyMessage() {
@@ -136,6 +131,7 @@ export function BranchSelector() {
       onSearch={handleOnSearch}
       disableSearchFilter
       searchPlaceholder={t('search by branch name')}
+      menuTitle={t('Filter to branch')}
       options={options}
       value={branch ?? ALL_BRANCHES}
       onChange={handleChange}
@@ -162,7 +158,7 @@ export function BranchSelector() {
           </DropdownButton>
         );
       }}
-      menuWidth={'22em'}
+      menuWidth="22em"
     />
   );
 }
