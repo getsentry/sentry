@@ -5,7 +5,7 @@ from parsimonious import NodeVisitor
 
 from sentry.api.event_search import event_search_grammar
 from sentry.discover import arithmetic
-from sentry.search.eap.utils import SPAN_ATTRIBUTE_DEFINITIONS
+from sentry.search.eap.spans.attributes import SPAN_ATTRIBUTE_DEFINITIONS
 from sentry.search.events import fields
 from sentry.snuba.metrics import parse_mri
 from sentry.utils.snuba import get_measurement_name
