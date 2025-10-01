@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import type {Location} from 'history';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -6,8 +7,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import EventView from 'sentry/utils/discover/eventView';
-
-import {FieldRenderer} from './fieldRenderer';
+import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
+import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 
 const mockedEventData = {
   id: 'spanId',
@@ -17,6 +19,14 @@ const mockedEventData = {
   'transaction.id': 'transactionId',
   'transaction.span_id': 'transactionSpanId',
 };
+
+function Wrapper({children}: {children: ReactNode}) {
+  return (
+    <SpansQueryParamsProvider>
+      <PageParamsProvider>{children}</PageParamsProvider>
+    </SpansQueryParamsProvider>
+  );
+}
 
 describe('FieldRenderer tests', () => {
   const organization = OrganizationFixture();
@@ -43,11 +53,13 @@ describe('FieldRenderer tests', () => {
 
   it('renders span.op', () => {
     render(
-      <FieldRenderer
-        column={eventView.getColumns()[3]}
-        data={mockedEventData}
-        meta={{}}
-      />,
+      <Wrapper>
+        <FieldRenderer
+          column={eventView.getColumns()[3]}
+          data={mockedEventData}
+          meta={{}}
+        />
+      </Wrapper>,
       {organization}
     );
 
@@ -56,11 +68,13 @@ describe('FieldRenderer tests', () => {
 
   it('renders span id link to traceview', () => {
     render(
-      <FieldRenderer
-        column={eventView.getColumns()[0]}
-        data={mockedEventData}
-        meta={{}}
-      />,
+      <Wrapper>
+        <FieldRenderer
+          column={eventView.getColumns()[0]}
+          data={mockedEventData}
+          meta={{}}
+        />
+      </Wrapper>,
       {organization}
     );
 
@@ -73,11 +87,13 @@ describe('FieldRenderer tests', () => {
 
   it('renders transaction id link to traceview', () => {
     render(
-      <FieldRenderer
-        column={eventView.getColumns()[4]}
-        data={mockedEventData}
-        meta={{}}
-      />,
+      <Wrapper>
+        <FieldRenderer
+          column={eventView.getColumns()[4]}
+          data={mockedEventData}
+          meta={{}}
+        />
+      </Wrapper>,
       {organization}
     );
 
@@ -90,11 +106,13 @@ describe('FieldRenderer tests', () => {
 
   it('renders trace id link to traceview', () => {
     render(
-      <FieldRenderer
-        column={eventView.getColumns()[2]}
-        data={mockedEventData}
-        meta={{}}
-      />,
+      <Wrapper>
+        <FieldRenderer
+          column={eventView.getColumns()[2]}
+          data={mockedEventData}
+          meta={{}}
+        />
+      </Wrapper>,
       {organization}
     );
 
@@ -107,11 +125,13 @@ describe('FieldRenderer tests', () => {
 
   it('renders timestamp', () => {
     render(
-      <FieldRenderer
-        column={eventView.getColumns()[1]}
-        data={mockedEventData}
-        meta={{}}
-      />,
+      <Wrapper>
+        <FieldRenderer
+          column={eventView.getColumns()[1]}
+          data={mockedEventData}
+          meta={{}}
+        />
+      </Wrapper>,
       {organization}
     );
 

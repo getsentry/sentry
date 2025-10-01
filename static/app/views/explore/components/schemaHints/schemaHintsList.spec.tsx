@@ -6,6 +6,7 @@ import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaH
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 
 const mockStringTags: TagCollection = {
   stringTag1: {key: 'stringTag1', kind: FieldKind.TAG, name: 'stringTag1'},
@@ -45,9 +46,11 @@ function Subject(
     return <SchemaHintsList {...props} exploreQuery={query} />;
   }
   return (
-    <PageParamsProvider>
-      <Content />
-    </PageParamsProvider>
+    <SpansQueryParamsProvider>
+      <PageParamsProvider>
+        <Content />
+      </PageParamsProvider>
+    </SpansQueryParamsProvider>
   );
 }
 
