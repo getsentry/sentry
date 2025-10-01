@@ -41,7 +41,7 @@ When fixing errors or adding functionality, you MUST add test cases to existing 
 
 Notice that we prefix `tests/` to the path and prefix `test_` to the module name.
 
-**Exception**: Tests ensuring Snuba compatibility MUST be placed in `tests/snuba/` to run in Snuba's CI process. The tests in this folder will also run in Snuba's CI.
+**Exception**: Tests ensuring Snuba compatibility MUST be placed in `tests/snuba/`. The tests in this folder will also run in Snuba's CI.
 
 
 ## Use factories instead of directly calling `Model.objects.create`
@@ -84,6 +84,6 @@ For example, a diff that uses `pytest` instead of `unittest` would look like:
 These rules are MANDATORY for all Python development in the Sentry codebase. Violations will:
 - Cause CI failures
 - Require code review rejection
-- Must be fixed before merge approval
+- Must be fixed before merging the pull request
 
 Agents MUST follow these rules without exception to maintain code quality and consistency across the project.
