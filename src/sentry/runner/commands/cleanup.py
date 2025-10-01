@@ -270,7 +270,9 @@ def cleanup(
                     order_by=order_by,
                 )
 
-                for chunk in q.iterator(chunk_size=100, use_range_wrapper=use_range_wrapper):
+                for chunk in q.iterator(
+                    chunk_size=100, batch_size=10000, use_range_wrapper=use_range_wrapper
+                ):
                     task_queue.put((imp, chunk))
 
                 task_queue.join()
