@@ -207,12 +207,22 @@ def list_integrations(organization_slug: str | None, provider: str) -> None:
     from sentry.integrations.types import IntegrationProviderSlug
     from sentry.models.organizationmapping import OrganizationMapping
 
+    try:
+        provider = IntegrationProviderSlug(provider)
+    except ValueError:
+        click.echo(f"Invalid provider: {provider}")
+        return
+
     if organization_slug:
-        organization = OrganizationMapping.objects.get(slug=organization_slug)
+        try:
+            organization = OrganizationMapping.objects.get(slug=organization_slug)
+        except OrganizationMapping.DoesNotExist:
+            click.echo(f"Organization {organization_slug} not found!")
+            return
 
         # Get organization integrations that belong to this organization and match our provider
         organization_integrations = OrganizationIntegration.objects.filter(
-            integration__provider=IntegrationProviderSlug(provider),
+            integration__provider=provider,
             integration__status=ObjectStatus.ACTIVE,
             organization_id=organization.organization_id,
         ).select_related("integration")
@@ -227,7 +237,7 @@ def list_integrations(organization_slug: str | None, provider: str) -> None:
 
     else:
         organization_integrations = OrganizationIntegration.objects.filter(
-            integration__provider=IntegrationProviderSlug(provider),
+            integration__provider=provider,
             integration__status=ObjectStatus.ACTIVE,
         ).select_related("integration")
 
