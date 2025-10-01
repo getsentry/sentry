@@ -291,7 +291,7 @@ describe('ConcurrentRequestLimiter', () => {
         jest.fn().mockResolvedValue(i)
       );
 
-      const promises = fastRequests.map((fn, i) => limiter.execute(() => fn()));
+      const promises = fastRequests.map(fn => limiter.execute(() => fn()));
       const results = await Promise.all(promises);
 
       expect(results).toEqual(Array.from({length: 100}, (_, i) => i));
