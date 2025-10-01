@@ -260,17 +260,10 @@ export function PreprodOnboarding({
               </Heading>
               <Text as="p" size="md">
                 {tct(
-                  'You need a Sentry organization auth token to upload builds. [link:Generate one here] and set it as [code:SENTRY_AUTH_TOKEN] in your environment. For further details, see the [detailsLink:configuration guide].',
+                  'You need a Sentry organization auth token to upload builds. [link:Generate one here] and set it as [code:SENTRY_AUTH_TOKEN] in your environment.',
                   {
                     link: <Link to={`/settings/${organizationSlug}/auth-tokens/`} />,
                     code: <code />,
-                    detailsLink: (
-                      <ExternalLink
-                        href="https://docs.sentry.io/platforms/android/configuration/gradle/#configure"
-                        target="_blank"
-                        rel="noreferrer"
-                      />
-                    ),
                   }
                 )}
               </Text>
