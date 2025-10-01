@@ -24,6 +24,15 @@ Change the directory to the top of the source code and type `source .venv/bin/ac
 
 Run pytest with these parameters: `pytest -svv --reuse-db`
 
+## How to determine where to add new test cases
+
+When you try to fix and error, do not place test cases in a new file but do your best to find an existing test file associated to the module.
+
+We normally follow this pattern. Given the code is in `src/sentry/foo/bar.py`, it is most likely you will find the tests for that module in `tests/sentry/foo/test_bar.py`. Notice that we prefix `tests/` to the path and prefix `test_` to the module name.
+
+An exception to the pattern above is when we need to ensure that changes on Snuba will not break Sentry by placing tests in `tests/snuba/`.
+
+
 ## Use factories instead of directly calling `Model.objects.create`
 
 In Sentry Python tests, prefer using factory methods from `sentry.testutils.factories.Factories` @factories.py or fixture methods (e.g., `self.create_model`) provided by base classes like `sentry.testutils.fixtures.Fixtures` @fixtures.py  instead of directly calling `Model.objects.create`. This promotes consistency, reduces boilerplate, and leverages shared test setup logic defined in the factories.
