@@ -24,6 +24,7 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.runner import configure
+from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 configure()
@@ -52,18 +53,23 @@ RECORDING_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_R
 @click.option("--project-id", type=int, required=True, help="Project ID")
 def main(organization_id: int, project_id: int) -> None:
     """Produce a mock uptime result message to the INGEST_REPLAYS_RECORDINGS topic."""
+    timestamp = int(time.time())
+    replay_id = uuid.uuid4().hex
+    replay_event = {"type": "replay_event", "replay_id": replay_id, "timestamp": timestamp}
+
     message: ReplayRecording = {
         "key_id": None,
         "org_id": organization_id,
         "payload": b'{"segment_id":0}\n[]',
         "project_id": project_id,
-        "received": int(time.time()),
-        "replay_event": None,
-        "replay_id": uuid.uuid4().hex,
+        "received": timestamp,
+        "replay_event": json.dumps(replay_event).encode(),
+        "replay_id": replay_id,
         "replay_video": None,
         "retention_days": 30,
         "type": "replay_recording_not_chunked",
         "version": 1,
+        "relay_snuba_publish_disabled": True,
     }
 
     producer = get_producer()
@@ -73,7 +79,7 @@ def main(organization_id: int, project_id: int) -> None:
     producer.produce(ArroyoTopic(topic), payload)
     producer.close()
 
-    logger.info("Successfully produced message to %s", topic)
+    logger.info("Successfully produced %s to %s", replay_id, topic)
 
 
 if __name__ == "__main__":
