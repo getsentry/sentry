@@ -44,6 +44,7 @@ function useSuspectAttributes({
   const organization = useOrganization();
   const dataset = useExploreDataset();
   const {selection: pageFilters} = usePageFilters();
+  const aggregateExtrapolation = location.query.extrapolate ?? '1';
 
   const enableQuery = boxSelectOptions.boxCoordRange !== null;
   const {
@@ -81,8 +82,9 @@ function useSuspectAttributes({
       function: chartInfo.yAxis,
       above: 1,
       sampling: SAMPLING_MODE.NORMAL,
+      aggregateExtrapolation,
     };
-  }, [query1, query2, pageFilters, dataset, chartInfo.yAxis]);
+  }, [query1, query2, pageFilters, dataset, chartInfo.yAxis, aggregateExtrapolation]);
 
   return useApiQuery<SuspectAttributesResult>(
     [

@@ -116,7 +116,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
 
     def get_subcomponent(
         self, id: str, recursive: bool = False, only_contributing: bool = False
-    ) -> str | int | BaseGroupingComponent[Any] | None:
+    ) -> BaseGroupingComponent[Any] | None:
         """
         Looks up a subcomponent by id and returns the first instance found, or `None` if no
         instances are found.
@@ -125,7 +125,9 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         are checked.
 
         By default, any matching result will be returned. To filter out non-contributing components,
-        pass `only_contributing=True`.
+        pass `only_contributing=True`. (Note that if a component has `contributes = True` but has a
+        non-contributing ancestor, the component is not considered contributing for purposes of this
+        method.)
         """
         return next(
             self.iter_subcomponents(
@@ -136,7 +138,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
 
     def iter_subcomponents(
         self, id: str, recursive: bool = False, only_contributing: bool = False
-    ) -> Iterator[str | int | BaseGroupingComponent[Any] | None]:
+    ) -> Iterator[BaseGroupingComponent[Any] | None]:
         """Finds all subcomponents matching an id, optionally recursively."""
         for value in self.values:
             if isinstance(value, BaseGroupingComponent):
@@ -431,44 +433,6 @@ class TemplateGroupingComponent(
     id: str = "template"
 
 
-# Wrapper components used to link component trees to variants
-
-
-class DefaultGroupingComponent(
-    BaseGroupingComponent[
-        CSPGroupingComponent
-        | ExpectCTGroupingComponent
-        | ExpectStapleGroupingComponent
-        | HPKPGroupingComponent
-        | MessageGroupingComponent
-        | TemplateGroupingComponent
-    ]
-):
-    id: str = "default"
-
-
-class AppGroupingComponent(
-    BaseGroupingComponent[
-        ChainedExceptionGroupingComponent
-        | ExceptionGroupingComponent
-        | StacktraceGroupingComponent
-        | ThreadsGroupingComponent
-    ]
-):
-    id: str = "app"
-
-
-class SystemGroupingComponent(
-    BaseGroupingComponent[
-        ChainedExceptionGroupingComponent
-        | ExceptionGroupingComponent
-        | StacktraceGroupingComponent
-        | ThreadsGroupingComponent
-    ]
-):
-    id: str = "system"
-
-
 ContributingComponent = (
     ChainedExceptionGroupingComponent
     | ExceptionGroupingComponent
@@ -481,3 +445,27 @@ ContributingComponent = (
     | MessageGroupingComponent
     | TemplateGroupingComponent
 )
+
+
+# Wrapper component used to link component trees to variants
+class RootGroupingComponent(BaseGroupingComponent[ContributingComponent]):
+
+    def __init__(
+        self,
+        variant_name: str,
+        hint: str | None = None,
+        contributes: bool | None = None,
+        values: Sequence[ContributingComponent] | None = None,
+    ):
+        super().__init__(hint, contributes, values)
+        self.variant_name = variant_name
+
+    @property
+    def id(self) -> str:
+        return self.variant_name
+
+    def __repr__(self) -> str:
+        base_repr = super().__repr__()
+        # Fake the class name so that instead of showing as `RootGroupingComponent` in the repr it
+        # shows as `AppGroupingComponent`/`SystemGroupingComponent`/`DefaultGroupingComponent`
+        return base_repr.replace("Root", self.id.title())

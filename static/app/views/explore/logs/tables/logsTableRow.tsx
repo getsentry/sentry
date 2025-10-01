@@ -33,7 +33,6 @@ import {
   useLogsAutoRefreshEnabled,
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {useLogsAnalyticsPageSource} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useFetchTraceItemDetailsOnHover} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
@@ -49,6 +48,7 @@ import {
   SeverityCircleRenderer,
 } from 'sentry/views/explore/logs/fieldRenderers';
 import {useLogsFrozenIsFrozen} from 'sentry/views/explore/logs/logsFrozenContext';
+import {useLogsAnalyticsPageSource} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {
   DetailsBody,
   DetailsContent,
@@ -320,7 +320,7 @@ export const LogRowContent = memo(function LogRowContent({
           }
         }}
       >
-        <LogsTableBodyFirstCell key={'first'}>
+        <LogsTableBodyFirstCell key="first">
           <LogFirstCellContent>
             {blockRowExpanding ? null : shouldRenderHoverElements ? (
               <StyledChevronButton

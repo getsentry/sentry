@@ -28,7 +28,7 @@ RELAY_OPTIONS: list[str] = [
     "relay.span-normalization.allowed_hosts",
     "relay.drop-transaction-attachments",
     "replay.relay-snuba-publishing-disabled.sample-rate",
-    "relay.kafka.span-v2.sample-rate",
+    "relay.session.processing.rollout",
 ]
 
 

@@ -495,6 +495,7 @@ def unlock_hashes(project_id, locked_primary_hashes):
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=issues_tasks,
+        processing_deadline_duration=60,
     ),
 )
 def unmerge(*posargs, **kwargs):

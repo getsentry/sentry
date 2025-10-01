@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 
 from django.db import router
 
-from sentry import features, options
+from sentry import options
 from sentry.models.commit import Commit as OldCommit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange as OldCommitFileChange
@@ -37,14 +37,8 @@ def get_dual_write_start_date() -> datetime | None:
         return None
 
 
-def _dual_write_commit(
-    organization: Organization,
-    old_commit: OldCommit,
-) -> Commit | None:
+def _dual_write_commit(old_commit: OldCommit) -> Commit:
     """Helper to create or ensure a commit exists in the new table if dual write is enabled."""
-    if not features.has("organizations:commit-retention-dual-writing", organization):
-        return None
-
     commit_data = {
         "organization_id": old_commit.organization_id,
         "repository_id": old_commit.repository_id,
@@ -61,7 +55,6 @@ def _dual_write_commit(
         logger.info(
             "dual_write_commit_created",
             extra={
-                "organization_id": organization.id,
                 "commit_id": old_commit.id,
                 "commit_key": old_commit.key,
             },
@@ -76,7 +69,7 @@ def create_commit(
     message: str | None = None,
     author: CommitAuthor | None = None,
     date_added: datetime | None = None,
-) -> tuple[OldCommit, Commit | None]:
+) -> tuple[OldCommit, Commit]:
     with atomic_transaction(
         using=(
             router.db_for_write(OldCommit),
@@ -95,7 +88,7 @@ def create_commit(
             message=message,
             **commit_kwargs,
         )
-        new_commit = _dual_write_commit(organization, old_commit)
+        new_commit = _dual_write_commit(old_commit)
     return old_commit, new_commit
 
 
@@ -106,7 +99,7 @@ def get_or_create_commit(
     message: str | None = None,
     author: CommitAuthor | None = None,
     date_added: datetime | None = None,
-) -> tuple[OldCommit, Commit | None, bool]:
+) -> tuple[OldCommit, Commit, bool]:
     """
     Gets or creates a commit with dual write support.
     """
@@ -130,17 +123,13 @@ def get_or_create_commit(
             defaults=defaults,
         )
 
-        new_commit = _dual_write_commit(organization, old_commit)
+        new_commit = _dual_write_commit(old_commit)
 
     return old_commit, new_commit, created
 
 
-def update_commit(old_commit: OldCommit, new_commit: Commit | None, **fields) -> None:
+def update_commit(old_commit: OldCommit, new_commit: Commit, **fields) -> None:
     """Update a commit in both tables if dual write is enabled."""
-    if new_commit is None:
-        old_commit.update(**fields)
-        return
-
     with atomic_transaction(
         using=(
             router.db_for_write(OldCommit),
@@ -152,14 +141,13 @@ def update_commit(old_commit: OldCommit, new_commit: Commit | None, **fields) ->
 
 
 def bulk_create_commit_file_changes(
-    organization: Organization,
     file_changes: list[OldCommitFileChange],
-) -> tuple[list[OldCommitFileChange], list[CommitFileChange] | None]:
+) -> tuple[list[OldCommitFileChange], list[CommitFileChange]]:
     """
     Bulk creates commit file changes with dual write support.
     """
     if not file_changes:
-        return [], None
+        return [], []
 
     with atomic_transaction(
         using=(
@@ -172,40 +160,38 @@ def bulk_create_commit_file_changes(
             ignore_conflicts=True,
             batch_size=100,
         )
-        new_file_changes = None
-        if features.has("organizations:commit-retention-dual-writing", organization):
-            # Since ignore_conflicts doesn't return IDs, fetch all file changes for the commits
-            # and match them up by filename and type
-            commit_ids = {fc.commit_id for fc in file_changes}
+        new_file_changes = []
+        # Since ignore_conflicts doesn't return IDs, fetch all file changes for the commits
+        # and match them up by filename and type
+        commit_ids = {fc.commit_id for fc in file_changes}
 
-            existing_old_fcs = OldCommitFileChange.objects.filter(
-                commit_id__in=commit_ids,
-            )
-            existing_lookup = {
-                (old_fc.commit_id, old_fc.filename, old_fc.type): old_fc
-                for old_fc in existing_old_fcs
-            }
+        existing_old_fcs = OldCommitFileChange.objects.filter(
+            commit_id__in=commit_ids,
+        )
+        existing_lookup = {
+            (old_fc.commit_id, old_fc.filename, old_fc.type): old_fc for old_fc in existing_old_fcs
+        }
 
-            new_file_change_objects = []
-            for fc in file_changes:
-                key = (fc.commit_id, fc.filename, fc.type)
-                if key in existing_lookup:
-                    old_fc = existing_lookup[key]
-                    new_file_change_objects.append(
-                        CommitFileChange(
-                            id=old_fc.id,
-                            organization_id=old_fc.organization_id,
-                            commit_id=old_fc.commit_id,
-                            filename=old_fc.filename,
-                            type=old_fc.type,
-                        )
+        new_file_change_objects = []
+        for fc in file_changes:
+            key = (fc.commit_id, fc.filename, fc.type)
+            if key in existing_lookup:
+                old_fc = existing_lookup[key]
+                new_file_change_objects.append(
+                    CommitFileChange(
+                        id=old_fc.id,
+                        organization_id=old_fc.organization_id,
+                        commit_id=old_fc.commit_id,
+                        filename=old_fc.filename,
+                        type=old_fc.type,
                     )
-
-            if new_file_change_objects:
-                new_file_changes = CommitFileChange.objects.bulk_create(
-                    new_file_change_objects,
-                    ignore_conflicts=True,
-                    batch_size=100,
                 )
+
+        if new_file_change_objects:
+            new_file_changes = CommitFileChange.objects.bulk_create(
+                new_file_change_objects,
+                ignore_conflicts=True,
+                batch_size=100,
+            )
 
     return old_file_changes, new_file_changes
