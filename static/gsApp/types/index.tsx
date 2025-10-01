@@ -305,17 +305,20 @@ export type Subscription = {
   billingInterval: 'monthly' | 'annual';
   // billingPeriod varies between 1-12 months. if you're looking for the monthly usage interval, use onDemandPeriodStart
   billingPeriodEnd: string;
+
   billingPeriodStart: string;
   canCancel: boolean;
   canGracePeriod: boolean;
   canSelfServe: boolean;
   canTrial: boolean;
+
   cancelAtPeriodEnd: boolean;
   /**
    * Current history per data category
    */
   categories: Partial<Record<DataCategory, BillingMetricHistory>>;
   contractInterval: 'monthly' | 'annual';
+
   contractPeriodEnd: string;
   contractPeriodStart: string;
   customPrice: number | null;
@@ -335,23 +338,27 @@ export type Subscription = {
   hasSoftCap: boolean;
   id: string;
   isBundleEligible: boolean;
+
   // Added by SubscriptionStore to show/hide a UI element
   isEnterpriseTrial: boolean;
   // was the trial forced on to the org to rectify access to premium features
   isExemptFromForcedTrial: boolean;
   isForcedTrial: boolean;
   isFree: boolean;
+
   // Subscription flags
   isGracePeriod: boolean;
   isHeroku: boolean;
   isManaged: boolean;
   isOverMemberLimit: boolean;
+
   isPartner: boolean;
   isPastDue: boolean;
   isPerformancePlanTrial: boolean;
   isSelfServePartner: boolean;
   isSponsored: boolean;
   isSuspended: boolean;
+
   isTrial: boolean;
   lastTrialEnd: string | null;
   membersDeactivatedFromLimit: number;
