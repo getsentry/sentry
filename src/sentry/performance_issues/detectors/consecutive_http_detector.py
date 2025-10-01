@@ -35,6 +35,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
 
         self.consecutive_http_spans: list[Span] = []
         self.lcp = None
+        self.gen_ai_chat_spans: list[Span] = []
 
         lcp_value = get_path(self.event(), "measurements", "lcp", "value")
         lcp_unit = get_path(self.event(), "measurements", "lcp", "unit")
@@ -47,7 +48,15 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
 
     def visit_span(self, span: Span) -> None:
         span_id = span.get("span_id", None)
-        if not span_id or not self._is_eligible_http_span(span):
+        op = span.get("op", "")
+
+        if not span_id:
+            return
+
+        if op == "gen_ai.chat":
+            self.gen_ai_chat_spans.append(span_id)
+
+        if not self._is_eligible_http_span(span):
             return
 
         span_duration = get_span_duration(span).total_seconds() * 1000
@@ -155,6 +164,9 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             return False
 
         if not op.startswith("http.client"):
+            return False
+
+        if span.get("parent_span_id") in self.gen_ai_chat_spans:
             return False
 
         if (
