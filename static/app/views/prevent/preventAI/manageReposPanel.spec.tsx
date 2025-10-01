@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ManageReposPanel from 'sentry/views/prevent/preventAI/manageReposPanel';
 
@@ -19,6 +19,7 @@ const getMockConfig = (overrides = {}) => ({
       test_generation: {enabled: false},
       bug_prediction: {
         enabled: true,
+        sensitivity: 'medium',
         triggers: {on_ready_for_review: false, on_command_phrase: true},
       },
       ...(overrides as any).features,
@@ -114,5 +115,343 @@ describe('ManageReposPanel', () => {
       enabled: false, // Toggle from true to false
     });
     expect(mockRefetch).toHaveBeenCalled();
+  });
+
+  describe('Sensitivity Controls', () => {
+    beforeEach(() => {
+      mockUpdatePreventAIFeatureReturn = {
+        enableFeature: jest.fn().mockResolvedValue({success: true}),
+        isLoading: false,
+        error: null,
+      };
+    });
+
+    it('shows sensitivity dropdown for vanilla PR review when enabled', async () => {
+      mockPreventAIConfigReturn = getMockConfig({
+        data: {
+          features: {
+            vanilla: {enabled: true, sensitivity: 'medium'},
+          },
+        },
+      });
+
+      render(<ManageReposPanel {...defaultProps} />);
+
+      expect(await screen.findByText('Sensitivity')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Medium/})).toBeInTheDocument();
+    });
+
+    it('hides sensitivity dropdown for vanilla PR review when disabled', async () => {
+      mockPreventAIConfigReturn = getMockConfig({
+        data: {
+          features: {
+            vanilla: {enabled: false},
+          },
+        },
+      });
+
+      render(<ManageReposPanel {...defaultProps} />);
+
+      expect(screen.queryByText('Sensitivity')).not.toBeInTheDocument();
+    });
+
+    it('shows sensitivity dropdown for bug prediction when enabled', async () => {
+      mockPreventAIConfigReturn = getMockConfig({
+        data: {
+          features: {
+            bug_prediction: {
+              enabled: true,
+              sensitivity: 'high',
+              triggers: {on_ready_for_review: false, on_command_phrase: true},
+            },
+          },
+        },
+      });
+
+      render(<ManageReposPanel {...defaultProps} />);
+
+      const sensitivityLabels = await screen.findAllByText('Sensitivity');
+      expect(sensitivityLabels).toHaveLength(1);
+      expect(screen.getByRole('button', {name: /High/})).toBeInTheDocument();
+    });
+
+    it('uses default sensitivity when config sensitivity is invalid', async () => {
+      mockPreventAIConfigReturn = getMockConfig({
+        data: {
+          features: {
+            vanilla: {enabled: true, sensitivity: 'invalid_value'},
+          },
+        },
+      });
+
+      render(<ManageReposPanel {...defaultProps} />);
+
+      expect(await screen.findByRole('button', {name: /Medium/})).toBeInTheDocument();
+    });
+
+    it('calls enableFeature with sensitivity when vanilla sensitivity changes', async () => {
+      mockPreventAIConfigReturn = getMockConfig({
+        data: {
+          features: {
+            vanilla: {enabled: true, sensitivity: 'medium'},
+          },
+        },
+      });
+
+      render(<ManageReposPanel {...defaultProps} />);
+
+      // Click the sensitivity dropdown
+      const sensitivityButton = await screen.findByRole('button', {name: /Medium/});
+      await userEvent.click(sensitivityButton);
+
+      // Select "High" option
+      const highOption = await screen.findByText('High');
+      await userEvent.click(highOption);
+
+      await waitFor(() => {
+        expect(mockUpdatePreventAIFeatureReturn.enableFeature).toHaveBeenCalledWith({
+          feature: 'vanilla',
+          enabled: true,
+          sensitivity: 'high',
+        });
+      });
+    });
+
+    it('calls enableFeature with sensitivity when bug prediction sensitivity changes', async () => {
+      mockPreventAIConfigReturn = getMockConfig({
+        data: {
+          features: {
+            bug_prediction: {
+              enabled: true,
+              sensitivity: 'low',
+              triggers: {on_ready_for_review: true, on_command_phrase: false},
+            },
+          },
+        },
+      });
+
+      render(<ManageReposPanel {...defaultProps} />);
+
+      // Click the sensitivity dropdown
+      const sensitivityButton = await screen.findByRole('button', {name: /Low/});
+      await userEvent.click(sensitivityButton);
+
+      // Select "Critical" option
+      const criticalOption = await screen.findByText('Critical');
+      await userEvent.click(criticalOption);
+
+      await waitFor(() => {
+        expect(mockUpdatePreventAIFeatureReturn.enableFeature).toHaveBeenCalledWith({
+          feature: 'bug_prediction',
+          enabled: true,
+          sensitivity: 'critical',
+          triggers: {
+            on_ready_for_review: true,
+            on_command_phrase: false,
+          },
+        });
+      });
+    });
+
+    it('includes sensitivity when updating bug prediction triggers', async () => {
+      mockPreventAIConfigReturn = getMockConfig({
+        data: {
+          features: {
+            bug_prediction: {
+              enabled: true,
+              sensitivity: 'high',
+              triggers: {on_ready_for_review: false, on_command_phrase: true},
+            },
+          },
+        },
+      });
+
+      render(<ManageReposPanel {...defaultProps} />);
+
+      // Toggle the "Auto Run on Opened Pull Requests" switch
+      const autoRunToggle = await screen.findByLabelText(/Auto Run on Opened Pull Requests/i);
+      await userEvent.click(autoRunToggle);
+
+      await waitFor(() => {
+        expect(mockUpdatePreventAIFeatureReturn.enableFeature).toHaveBeenCalledWith({
+          feature: 'bug_prediction',
+          enabled: true,
+          triggers: {
+            on_ready_for_review: true,
+            on_command_phrase: true,
+          },
+          sensitivity: 'high',
+        });
+      });
+    });
+
+    it('displays all sensitivity options with correct labels and details', async () => {
+      mockPreventAIConfigReturn = getMockConfig({
+        data: {
+          features: {
+            vanilla: {enabled: true, sensitivity: 'medium'},
+          },
+        },
+      });
+
+      render(<ManageReposPanel {...defaultProps} />);
+
+      // Click the sensitivity dropdown
+      const sensitivityButton = await screen.findByRole('button', {name: /Medium/});
+      await userEvent.click(sensitivityButton);
+
+      // Check all options are present with correct details
+      expect(await screen.findByText('Low')).toBeInTheDocument();
+      expect(screen.getByText('Post all potential issues for maximum breadth.')).toBeInTheDocument();
+
+      expect(screen.getByText('Medium')).toBeInTheDocument();
+      expect(screen.getByText('Post likely issues for a balance of thoroughness and noise')).toBeInTheDocument();
+
+      expect(screen.getByText('High')).toBeInTheDocument();
+      expect(screen.getByText('Post only major issues to highlight most impactful findings.')).toBeInTheDocument();
+
+      expect(screen.getByText('Critical')).toBeInTheDocument();
+      expect(screen.getByText('Post only high-impact, high-sensitivity issues for maximum focus.')).toBeInTheDocument();
+    });
+
+    it('synchronizes state when config changes externally', async () => {
+      const initialConfig = getMockConfig({
+        data: {
+          features: {
+            vanilla: {enabled: true, sensitivity: 'low'},
+          },
+        },
+      });
+      mockPreventAIConfigReturn = initialConfig;
+
+      const {rerender} = render(<ManageReposPanel {...defaultProps} />);
+
+      expect(await screen.findByRole('button', {name: /Low/})).toBeInTheDocument();
+
+      // Update the config externally
+      const updatedConfig = getMockConfig({
+        data: {
+          features: {
+            vanilla: {enabled: true, sensitivity: 'critical'},
+          },
+        },
+      });
+      mockPreventAIConfigReturn = updatedConfig;
+
+      rerender(<ManageReposPanel {...defaultProps} />);
+
+      expect(await screen.findByRole('button', {name: /Critical/})).toBeInTheDocument();
+    });
+
+    it('calls refetch after sensitivity change', async () => {
+      const mockRefetch = jest.fn();
+      mockPreventAIConfigReturn = getMockConfig({
+        data: {
+          features: {
+            vanilla: {enabled: true, sensitivity: 'medium'},
+          },
+        },
+        refetch: mockRefetch,
+      });
+
+      render(<ManageReposPanel {...defaultProps} />);
+
+      // Click the sensitivity dropdown and change value
+      const sensitivityButton = await screen.findByRole('button', {name: /Medium/});
+      await userEvent.click(sensitivityButton);
+
+      const highOption = await screen.findByText('High');
+      await userEvent.click(highOption);
+
+      await waitFor(() => {
+        expect(mockRefetch).toHaveBeenCalled();
+      });
+    });
+
+    it('shows sensitivity help text', async () => {
+      mockPreventAIConfigReturn = getMockConfig({
+        data: {
+          features: {
+            vanilla: {enabled: true, sensitivity: 'medium'},
+          },
+        },
+      });
+
+      render(<ManageReposPanel {...defaultProps} />);
+
+      expect(await screen.findByText('Set the sensitivity level for PR review analysis.')).toBeInTheDocument();
+    });
+
+    it('handles both features with sensitivity independently', async () => {
+      mockPreventAIConfigReturn = getMockConfig({
+        data: {
+          features: {
+            vanilla: {enabled: true, sensitivity: 'low'},
+            bug_prediction: {
+              enabled: true,
+              sensitivity: 'high',
+              triggers: {on_ready_for_review: false, on_command_phrase: true},
+            },
+          },
+        },
+      });
+
+      render(<ManageReposPanel {...defaultProps} />);
+
+      // Both sensitivity controls should be present but show different values
+      expect(await screen.findByRole('button', {name: /Low/})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /High/})).toBeInTheDocument();
+    });
+
+    it('handles missing sensitivity gracefully with default', async () => {
+      mockPreventAIConfigReturn = getMockConfig({
+        data: {
+          features: {
+            vanilla: {enabled: true}, // No sensitivity field
+          },
+        },
+      });
+
+      render(<ManageReposPanel {...defaultProps} />);
+
+      // Should default to medium
+      expect(await screen.findByRole('button', {name: /Medium/})).toBeInTheDocument();
+    });
+
+    it('handles undefined config gracefully', async () => {
+      mockPreventAIConfigReturn = getMockConfig({
+        data: undefined,
+      });
+
+      render(<ManageReposPanel {...defaultProps} />);
+
+      // Should not crash and not show sensitivity controls
+      expect(screen.queryByText('Sensitivity')).not.toBeInTheDocument();
+    });
+
+    it('uses medium as default sensitivity for new features', async () => {
+      mockPreventAIConfigReturn = getMockConfig({
+        data: {
+          features: {
+            vanilla: {enabled: false},
+          },
+        },
+      });
+
+      render(<ManageReposPanel {...defaultProps} />);
+
+      // Enable vanilla PR review
+      const prReviewToggle = await screen.findByLabelText(/PR Review/i);
+      await userEvent.click(prReviewToggle);
+
+      // Should use default sensitivity when enabling
+      await waitFor(() => {
+        expect(mockUpdatePreventAIFeatureReturn.enableFeature).toHaveBeenCalledWith({
+          feature: 'vanilla',
+          enabled: true,
+          sensitivity: 'medium',
+        });
+      });
+    });
   });
 });
