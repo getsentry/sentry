@@ -16,10 +16,15 @@ import {
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {InvoiceItemType, OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {
+  AddOnCategory,
+  InvoiceItemType,
+  OnDemandBudgetMode,
+  PlanTier,
+} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 import Cart from 'getsentry/views/amCheckout/cart';
-import {SelectableProduct, type CheckoutFormData} from 'getsentry/views/amCheckout/types';
+import {type CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
 // Jun 06 2022 - with milliseconds
 const MOCK_TODAY = 1654492173000;
@@ -128,8 +133,8 @@ describe('Cart', () => {
         sharedMaxBudget: 50_00,
       },
       onDemandMaxSpend: 50_00,
-      selectedProducts: {
-        [SelectableProduct.SEER]: {
+      addOns: {
+        [AddOnCategory.SEER]: {
           enabled: true,
         },
       },
@@ -440,8 +445,8 @@ describe('Cart', () => {
         budgetMode: OnDemandBudgetMode.SHARED,
         sharedMaxBudget: 1_00,
       },
-      selectedProducts: {
-        [SelectableProduct.SEER]: {
+      addOns: {
+        [AddOnCategory.SEER]: {
           enabled: true,
         },
       },

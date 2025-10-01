@@ -13,10 +13,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
+import {AddOnCategory, PlanTier} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import AMCheckout from 'getsentry/views/amCheckout/';
-import {SelectableProduct} from 'getsentry/views/amCheckout/types';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 
 import ReviewAndConfirm from './reviewAndConfirm';
@@ -243,8 +242,8 @@ describe('AmCheckout > ReviewAndConfirm', () => {
     const updatedData = {
       ...formData,
       reserved: {...formData.reserved, errors: reservedErrors},
-      selectedProducts: {
-        [SelectableProduct.SEER]: {
+      addOns: {
+        [AddOnCategory.SEER]: {
           enabled: true,
         },
       },

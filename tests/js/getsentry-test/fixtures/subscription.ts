@@ -53,6 +53,14 @@ export function SubscriptionFixture(props: Props): TSubscription {
     }
   }
 
+  const addOns: TSubscription['addOns'] = {};
+  Object.values(planDetails.addOnCategories).forEach(addOnCategory => {
+    addOns[addOnCategory.apiName] = {
+      ...addOnCategory,
+      enabled: isTrial,
+    };
+  });
+
   return {
     customPrice: null,
     customPricePcss: null,
@@ -140,6 +148,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     vatID: null,
     msaUpdatedForDataConsent: false,
     dataRetention: null,
+    addOns,
     reservedBudgets,
     categories: {
       errors: MetricHistoryFixture({

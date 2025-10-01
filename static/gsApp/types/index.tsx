@@ -135,11 +135,21 @@ export enum AddOnCategory {
 
 type AddOnCategoryInfo = {
   apiName: AddOnCategory;
+  billingFlag: string | null;
   dataCategories: DataCategory[];
   name: string;
   order: number;
   productName: string;
 };
+
+type AddOn = AddOnCategoryInfo & {
+  enabled: boolean;
+};
+
+export type AddOns = Partial<Record<AddOnCategory, AddOn>>;
+
+// how addons are represented in the checkout form data
+export type CheckoutAddOns = Partial<Record<AddOnCategory, Pick<AddOn, 'enabled'>>>;
 
 export type Plan = {
   addOnCategories: Partial<Record<AddOnCategory, AddOnCategoryInfo>>;
@@ -291,23 +301,24 @@ export type ProductTrial = {
 
 export type Subscription = {
   accountBalance: number;
+  addOns: AddOns;
   billingInterval: 'monthly' | 'annual';
+
   // billingPeriod varies between 1-12 months. if you're looking for the monthly usage interval, use onDemandPeriodStart
   billingPeriodEnd: string;
-
   billingPeriodStart: string;
   canCancel: boolean;
   canGracePeriod: boolean;
   canSelfServe: boolean;
-  canTrial: boolean;
 
+  canTrial: boolean;
   cancelAtPeriodEnd: boolean;
   /**
    * Current history per data category
    */
   categories: Partial<Record<DataCategory, BillingMetricHistory>>;
-  contractInterval: 'monthly' | 'annual';
 
+  contractInterval: 'monthly' | 'annual';
   contractPeriodEnd: string;
   contractPeriodStart: string;
   customPrice: number | null;
@@ -326,28 +337,28 @@ export type Subscription = {
   hasRestrictedIntegration: boolean | null;
   hasSoftCap: boolean;
   id: string;
-  isBundleEligible: boolean;
 
+  isBundleEligible: boolean;
   // Added by SubscriptionStore to show/hide a UI element
   isEnterpriseTrial: boolean;
   // was the trial forced on to the org to rectify access to premium features
   isExemptFromForcedTrial: boolean;
   isForcedTrial: boolean;
-  isFree: boolean;
 
+  isFree: boolean;
   // Subscription flags
   isGracePeriod: boolean;
   isHeroku: boolean;
   isManaged: boolean;
-  isOverMemberLimit: boolean;
 
+  isOverMemberLimit: boolean;
   isPartner: boolean;
   isPastDue: boolean;
   isPerformancePlanTrial: boolean;
   isSelfServePartner: boolean;
   isSponsored: boolean;
-  isSuspended: boolean;
 
+  isSuspended: boolean;
   isTrial: boolean;
   lastTrialEnd: string | null;
   membersDeactivatedFromLimit: number;
@@ -403,20 +414,20 @@ export type Subscription = {
    */
   companyName?: string | null;
   contactInfo?: string | null;
+
   countryCode?: string | null;
 
   // Refetch usage data if Subscription is updated
   isDeleted?: boolean;
-
   isTrialStarted?: boolean;
   msaUpdatedForDataConsent?: boolean;
   onDemandBudgets?: SubscriptionOnDemandBudgets;
   onDemandInvoicedManual?: boolean | null;
+
   orgStatus?: {
     id: string;
     name: string;
   };
-
   owner?: {email: string; name: string};
   previousPaidPlans?: string[];
   productTrials?: ProductTrial[];
@@ -670,6 +681,7 @@ export enum InvoiceItemType {
   RESERVED_SEER_AUTOFIX = 'reserved_seer_autofix',
   RESERVED_SEER_SCANNER = 'reserved_seer_scanner',
   RESERVED_SEER_BUDGET = 'reserved_seer_budget',
+  RESERVED_PREVENT_USERS = 'reserved_prevent_users',
   RESERVED_LOG_BYTES = 'reserved_log_bytes',
 }
 

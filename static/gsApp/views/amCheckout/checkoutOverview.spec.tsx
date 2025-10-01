@@ -7,10 +7,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {AddOnCategory, OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 import CheckoutOverview from 'getsentry/views/amCheckout/checkoutOverview';
-import {SelectableProduct, type CheckoutFormData} from 'getsentry/views/amCheckout/types';
+import {type CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
 describe('CheckoutOverview', () => {
   const api = new MockApiClient();
@@ -179,8 +179,8 @@ describe('CheckoutOverview', () => {
     const formData: CheckoutFormData = {
       plan: 'am2_team',
       reserved: {errors: 100000, transactions: 500000, attachments: 25},
-      selectedProducts: {
-        [SelectableProduct.SEER]: {
+      addOns: {
+        [AddOnCategory.SEER]: {
           enabled: true,
         },
       },
@@ -206,8 +206,8 @@ describe('CheckoutOverview', () => {
     const formData: CheckoutFormData = {
       plan: 'am2_team',
       reserved: {errors: 100000, transactions: 500000, attachments: 25},
-      selectedProducts: {
-        [SelectableProduct.SEER]: {
+      addOns: {
+        [AddOnCategory.SEER]: {
           enabled: false,
         },
       },

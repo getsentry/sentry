@@ -4,9 +4,14 @@ import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLooku
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {OnDemandBudgetMode, type Plan, type Subscription} from 'getsentry/types';
+import {
+  AddOnCategory,
+  OnDemandBudgetMode,
+  type Plan,
+  type Subscription,
+} from 'getsentry/types';
 import CartDiff from 'getsentry/views/amCheckout/cartDiff';
-import {SelectableProduct, type CheckoutFormData} from 'getsentry/views/amCheckout/types';
+import {type CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
 describe('CartDiff', () => {
   const bizPlan = PlanDetailsLookupFixture('am3_business')!;
@@ -61,8 +66,8 @@ describe('CartDiff', () => {
         budgetMode: OnDemandBudgetMode.SHARED,
         sharedMaxBudget: 100_00,
       },
-      selectedProducts: {
-        [SelectableProduct.SEER]: {
+      addOns: {
+        [AddOnCategory.SEER]: {
           enabled: true,
         },
       },
