@@ -13,6 +13,7 @@ import {
   IssueDetailsTour,
   IssueDetailsTourContext,
 } from 'sentry/views/issueDetails/issueDetailsTour';
+import {GroupContentSkeleton} from 'sentry/views/issueDetails/skeletons/groupContentSkeleton';
 import {
   IssueDetailsContextProvider,
   useIssueDetails,
@@ -88,7 +89,10 @@ export function GroupDetailsLayout({
                   {!hasFilterBar && <ToggleSidebar size="sm" />}
                 </NavigationSidebarWrapper>
               )}
-              <ContentPadding>{children}</ContentPadding>
+              <ContentPadding>
+                {/* Show skeleton for content if event is missing */}
+                {event ? children : <GroupContentSkeleton hasGroup hasEvent={false} />}
+              </ContentPadding>
             </GroupContent>
           </SharedTourElement>
         </div>

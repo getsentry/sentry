@@ -72,5 +72,13 @@ export function useGroupEvent({
     staleTime: hasStreamlinedUI ? streamlineStaleTime : staleTime,
     enabled: options?.enabled && !!eventId,
     retry: false,
+    // Enable placeholder data to keep showing previous event while loading new data
+    placeholderData: (previousData, previousQuery) => {
+      // For latest/recommended events, keep showing previous data while loading
+      if (previousData && isLatestOrRecommendedEvent) {
+        return previousData;
+      }
+      return undefined;
+    },
   });
 }
