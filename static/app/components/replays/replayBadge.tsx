@@ -7,6 +7,7 @@ import {Grid} from 'sentry/components/core/layout';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Text} from 'sentry/components/core/text';
 import {DateTime} from 'sentry/components/dateTime';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -86,7 +87,9 @@ export default function ReplayBadge({replay}: Props) {
               {timestampType === 'absolute' ? (
                 <DateTime year timeZone date={replay.started_at} />
               ) : (
-                <TimeSince date={replay.started_at} />
+                <ErrorBoundary customComponent={() => 'invalid date'}>
+                  <TimeSince date={replay.started_at} />
+                </ErrorBoundary>
               )}
             </Text>
           </Flex>

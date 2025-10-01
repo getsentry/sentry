@@ -69,10 +69,10 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ])
   );
 
-  const startedAt = new Date(apiResponse.started_at);
-  invariant(isValidDate(startedAt), 'replay.started_at is invalid');
-  const finishedAt = new Date(apiResponse.finished_at);
-  invariant(isValidDate(finishedAt), 'replay.finished_at is invalid');
+  const startedAt = new Date(NaN);
+  // invariant(isValidDate(startedAt), 'replay.started_at is invalid');
+  const finishedAt = new Date(NaN);
+  // invariant(isValidDate(finishedAt), 'replay.finished_at is invalid');
   return {
     ...defaultValues,
     ...apiResponse,
