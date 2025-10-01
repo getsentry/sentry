@@ -71,11 +71,26 @@ class DashboardWidgetResponse(TypedDict):
     widgetType: str
     layout: dict[str, int] | None
     datasetSource: str | None
+    exploreUrls: list[str] | None
 
 
 class DashboardPermissionsResponse(TypedDict):
     isEditableByEveryone: bool
     teamsWithEditAccess: list[int]
+
+
+class ExploreQuery(TypedDict):
+    mode: str
+    aggregateField: list[dict[str, str | list[str]]]
+    field: list[str]
+    query: str
+    orderby: str
+    interval: str
+    projects: list[int]
+    environment: list[str]
+    start: str
+    end: str
+    statsPeriod: str
 
 
 @register(DashboardWidget)
@@ -134,7 +149,7 @@ class DashboardWidgetSerializer(Serializer):
 
             display_type = obj.display_type
 
-            explore_query = {}
+            explore_query: ExploreQuery = {}
             if (
                 display_type == DashboardWidgetDisplayTypes.TABLE
                 or display_type == DashboardWidgetDisplayTypes.BIG_NUMBER

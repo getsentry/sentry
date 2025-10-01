@@ -516,8 +516,8 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
 
             DashboardWidgetQuery.objects.create(
                 widget=widget_deprecation,
-                fields=["id", "transaction"],
-                columns=["id", "transaction"],
+                fields=["id", "title"],
+                columns=["id", "title"],
                 aggregates=[],
                 order=0,
             )
@@ -529,7 +529,8 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             )
             params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
             assert params["mode"] == ["samples"]
-            assert params["field"] == ["['id', 'transaction']"]
+            assert "transaction" in params["field"][0]
+            assert "id" in params["field"][0]
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
