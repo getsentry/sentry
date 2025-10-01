@@ -651,7 +651,7 @@ export class MutableSearch {
 
   getFilters(): Record<string, string[]> {
     return this.tokens.reduce<Record<string, string[]>>((acc, t) => {
-      if (t.type !== TokenType.FILTER) {
+      if (!isFilterToken(t)) {
         return acc;
       }
       const values =
