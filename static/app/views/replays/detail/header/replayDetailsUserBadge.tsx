@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
@@ -77,7 +78,17 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                 isTooltipHoverable
                 unitStyle="regular"
               />
-              {replay?.getIsLive() ? <Live /> : null}
+              {replay?.getIsLive() ? (
+                <Tooltip
+                  showUnderline
+                  underlineColor="success"
+                  title={t(
+                    'This replay is still updating. Refresh to see the latest updates.'
+                  )}
+                >
+                  <Live />
+                </Tooltip>
+              ) : null}
             </TimeContainer>
           ) : null}
         </DisplayHeader>
