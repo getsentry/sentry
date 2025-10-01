@@ -70,8 +70,6 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {checkUserHasEditAccess} from 'sentry/views/dashboards/detail';
-import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import type {
   DashboardFilters,
   DashboardPermissions,
@@ -86,10 +84,10 @@ import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
-  hasDatasetSelector,
   isUsingPerformanceScore,
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
+import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {
   SESSION_DURATION_ALERT,
@@ -131,7 +129,6 @@ export interface WidgetViewerModalOptions {
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
   onEdit?: () => void;
-  onMetricWidgetEdit?: (widget: Widget) => void;
   pageLinks?: string;
   sampleCount?: number;
   seriesData?: Series[];
@@ -217,8 +214,6 @@ function WidgetViewerModal(props: Props) {
   const location = useLocation();
   const {projects} = useProjects();
   const navigate = useNavigate();
-  // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
-  // let widgetContentLoadingStatus: boolean | undefined = undefined;
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
@@ -574,8 +569,6 @@ function WidgetViewerModal(props: Props) {
         }
         return (
           <ReleaseWidgetQueries
-            api={api}
-            organization={organization}
             widget={tableWidget}
             selection={modalSelection}
             limit={
@@ -613,9 +606,6 @@ function WidgetViewerModal(props: Props) {
             dashboardFilters={dashboardFilters}
           >
             {({tableResults, loading, pageLinks}) => {
-              // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
-              // small hack that improves the concurrency render of the warning triangle
-              // widgetContentLoadingStatus = loading;
               return renderTable({tableResults, loading, pageLinks});
             }}
           </WidgetQueries>
@@ -809,7 +799,6 @@ function WidgetViewerModal(props: Props) {
                   <WidgetHeader>
                     <WidgetTitleRow>
                       <h3>{widget.title}</h3>
-                      <DiscoverSplitAlert widget={widget} />
                     </WidgetTitleRow>
                     {widget.description && (
                       <Tooltip
@@ -930,23 +919,12 @@ function OpenButton({
       break;
   }
 
-  const buttonDisabled =
-    hasDatasetSelector(organization) && widget.widgetType === WidgetType.DISCOVER;
-
   return (
-    <Tooltip
-      title={
-        disabledTooltip ??
-        t(
-          'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
-        )
-      }
-      disabled={defined(disabled) ? !disabled : !buttonDisabled}
-    >
+    <Tooltip title={disabledTooltip} disabled={!disabled}>
       <LinkButton
         to={path}
         priority="primary"
-        disabled={disabled || buttonDisabled}
+        disabled={disabled}
         onClick={() => {
           trackAnalytics('dashboards_views.widget_viewer.open_source', {
             organization,

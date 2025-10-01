@@ -1,77 +1,74 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import {
-  SummaryEntries,
-  SummaryEntry,
-  SummaryEntryLabel,
-  SummaryEntryValue,
-  SummaryEntryValueLink,
-} from 'sentry/components/prevent/summary';
+import {Flex} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
+import {SummaryCard, SummaryCardGroup} from 'sentry/components/prevent/summary';
 import {t} from 'sentry/locale';
 import {formatPercentRate} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 function FlakyTestsTooltip() {
   return (
-    <Fragment>
-      <p>
-        <ToolTipTitle>What is it:</ToolTipTitle>
-        The number of tests that transition from fail to pass or pass to fail.
-      </p>
-    </Fragment>
+    <Flex direction="column" gap="sm">
+      {props => (
+        <Text {...props} align="left">
+          <Heading as="h5">{t('What is it:')}</Heading>
+          <Text>
+            {t('The number of tests that transition from fail to pass or pass to fail.')}
+          </Text>
+        </Text>
+      )}
+    </Flex>
   );
 }
 
 function AverageFlakeTooltip() {
   return (
-    <Fragment>
-      <p>
-        <ToolTipTitle>Impact:</ToolTipTitle>
-        The average flake rate on your default branch.
-      </p>
-      <p>
-        <ToolTipTitle>What is it:</ToolTipTitle>
-        The percentage of tests that flake, based on how many times a test transitions
-        from fail to pass or pass to fail on a given branch and commit.
-      </p>
-    </Fragment>
+    <Flex direction="column" gap="sm">
+      {props => (
+        <Text {...props} align="left">
+          <Heading as="h5">{t('Impact:')}</Heading>
+          <Text>{t('The average flake rate on your selected branch.')}</Text>
+          <Heading as="h5">{t('What is it:')}</Heading>
+          <Text>
+            {t(
+              'The percentage of tests that flake, based on how many times a test transitions from fail to pass or pass to fail on a given branch and commit.'
+            )}
+          </Text>
+        </Text>
+      )}
+    </Flex>
   );
 }
 
 function CumulativeFailuresTooltip() {
   return (
-    <Fragment>
-      <p>
-        <ToolTipTitle>Impact:</ToolTipTitle>
-        The number of test failures on your default branch.
-      </p>
-      <p>
-        <ToolTipTitle>What is it:</ToolTipTitle>
-        The number of individual runs of tests that failed.
-      </p>
-    </Fragment>
+    <Flex direction="column" gap="sm">
+      {props => (
+        <Text {...props} align="left">
+          <Heading as="h5">{t('Impact:')}</Heading>
+          <Text>{t('The number of test failures on your default branch.')}</Text>
+          <Heading as="h5">{t('What is it:')}</Heading>
+          <Text>{t('The number of individual runs of tests that failed.')}</Text>
+        </Text>
+      )}
+    </Flex>
   );
 }
 
 function SkippedTestsTooltip() {
   return (
-    <Fragment>
-      <p>
-        <ToolTipTitle>What is it:</ToolTipTitle>
-        The number of individual runs of tests that were skipped.
-      </p>
-    </Fragment>
+    <Flex direction="column" gap="sm">
+      {props => (
+        <Text {...props} align="left">
+          <Heading as="h5">{t('What is it:')}</Heading>
+          <Text>{t('The number of individual runs of tests that were skipped.')}</Text>
+        </Text>
+      )}
+    </Flex>
   );
 }
-
-const ToolTipTitle = styled('strong')`
-  display: block;
-`;
 
 interface TestPerformanceBodyProps {
   averageFlakeRate?: number;
@@ -95,79 +92,63 @@ function TestPerformanceBody({
   skippedTestsChange,
 }: TestPerformanceBodyProps) {
   return (
-    <SummaryEntries largeColumnSpan={15} smallColumnSpan={1}>
-      <SummaryEntry columns={4}>
-        <SummaryEntryLabel showUnderline body={<FlakyTestsTooltip />}>
-          {t('Flaky Tests')}
-        </SummaryEntryLabel>
-        {flakyTests === undefined ? (
-          <SummaryEntryValue>-</SummaryEntryValue>
-        ) : (
-          <SummaryEntryValue>
-            <SummaryEntryValueLink filterBy="flakyTests">
-              {flakyTests}
-            </SummaryEntryValueLink>
-            {typeof flakyTestsChange === 'number' && flakyTestsChange !== 0 && (
-              <Tag type={flakyTestsChange > 0 ? 'error' : 'success'}>
-                {formatPercentRate(flakyTestsChange)}
-              </Tag>
-            )}
-          </SummaryEntryValue>
-        )}
-      </SummaryEntry>
-      <SummaryEntry columns={4}>
-        <SummaryEntryLabel showUnderline body={<AverageFlakeTooltip />}>
-          {t('Avg. Flake Rate')}
-        </SummaryEntryLabel>
-        <SummaryEntryValue>
-          {averageFlakeRate === undefined ? '-' : `${averageFlakeRate?.toFixed(2)}%`}
-          {typeof averageFlakeRateChange === 'number' && averageFlakeRateChange !== 0 && (
-            <Tag type={averageFlakeRateChange > 0 ? 'error' : 'success'}>
-              {formatPercentRate(averageFlakeRateChange)}
+    <Fragment>
+      <SummaryCard
+        label={t('Flaky Tests')}
+        tooltip={<FlakyTestsTooltip />}
+        value={flakyTests?.toLocaleString()}
+        filterBy="flakyTests"
+        extra={
+          flakyTestsChange ? (
+            <Tag type={flakyTestsChange > 0 ? 'error' : 'success'}>
+              {formatPercentRate(flakyTestsChange, {minimumValue: 0.01})}
             </Tag>
-          )}
-        </SummaryEntryValue>
-      </SummaryEntry>
-      <SummaryEntry columns={4}>
-        <SummaryEntryLabel showUnderline body={<CumulativeFailuresTooltip />}>
-          {t('Cumulative Failures')}
-        </SummaryEntryLabel>
-        {cumulativeFailures === undefined ? (
-          <SummaryEntryValue>-</SummaryEntryValue>
-        ) : (
-          <SummaryEntryValue>
-            <SummaryEntryValueLink filterBy="failedTests">
-              {cumulativeFailures}
-            </SummaryEntryValueLink>
-            {typeof cumulativeFailuresChange === 'number' &&
-              cumulativeFailuresChange !== 0 && (
-                <Tag type={cumulativeFailuresChange > 0 ? 'error' : 'success'}>
-                  {formatPercentRate(cumulativeFailuresChange)}
-                </Tag>
-              )}
-          </SummaryEntryValue>
-        )}
-      </SummaryEntry>
-      <SummaryEntry columns={3}>
-        <SummaryEntryLabel showUnderline body={<SkippedTestsTooltip />}>
-          {t('Skipped Tests')}
-        </SummaryEntryLabel>
-        {skippedTests === undefined ? (
-          <SummaryEntryValue>-</SummaryEntryValue>
-        ) : (
-          <SummaryEntryValue>
-            <SummaryEntryValueLink filterBy="skippedTests">
-              {skippedTests}
-            </SummaryEntryValueLink>
-            {typeof skippedTestsChange === 'number' && skippedTestsChange !== 0 && (
-              <Tag type={skippedTestsChange > 0 ? 'error' : 'success'}>
-                {formatPercentRate(skippedTestsChange)}
-              </Tag>
-            )}
-          </SummaryEntryValue>
-        )}
-      </SummaryEntry>
-    </SummaryEntries>
+          ) : undefined
+        }
+      />
+      <SummaryCard
+        label={t('Avg. Flake Rate')}
+        tooltip={<AverageFlakeTooltip />}
+        value={
+          averageFlakeRate === undefined
+            ? undefined
+            : formatPercentage(averageFlakeRate / 100, 2, {minimumValue: 0.0001})
+        }
+        extra={
+          averageFlakeRateChange ? (
+            <Tag type={averageFlakeRateChange > 0 ? 'error' : 'success'}>
+              {formatPercentRate(averageFlakeRateChange, {minimumValue: 0.01})}
+            </Tag>
+          ) : undefined
+        }
+      />
+      <SummaryCard
+        label={t('Cumulative Failures')}
+        tooltip={<CumulativeFailuresTooltip />}
+        value={cumulativeFailures?.toLocaleString()}
+        filterBy="failedTests"
+        extra={
+          cumulativeFailuresChange ? (
+            <Tag type={cumulativeFailuresChange > 0 ? 'error' : 'success'}>
+              {formatPercentRate(cumulativeFailuresChange, {minimumValue: 0.01})}
+            </Tag>
+          ) : undefined
+        }
+      />
+      <SummaryCard
+        label={t('Skipped Tests')}
+        tooltip={<SkippedTestsTooltip />}
+        value={skippedTests?.toLocaleString()}
+        filterBy="skippedTests"
+        extra={
+          skippedTestsChange ? (
+            <Tag type={skippedTestsChange > 0 ? 'error' : 'success'}>
+              {formatPercentRate(skippedTestsChange, {minimumValue: 0.01})}
+            </Tag>
+          ) : undefined
+        }
+      />
+    </Fragment>
   );
 }
 
@@ -177,19 +158,12 @@ interface TestPerformanceProps extends TestPerformanceBodyProps {
 
 export function TestPerformance({isLoading, ...bodyProps}: TestPerformanceProps) {
   return (
-    <TestPerformancePanel>
-      <PanelHeader>{t('Test Performance')}</PanelHeader>
-      <PanelBody>
-        {isLoading ? <LoadingIndicator /> : <TestPerformanceBody {...bodyProps} />}
-      </PanelBody>
-    </TestPerformancePanel>
+    <SummaryCardGroup
+      title={t('Test Performance')}
+      isLoading={isLoading}
+      placeholderCount={4}
+    >
+      <TestPerformanceBody {...bodyProps} />
+    </SummaryCardGroup>
   );
 }
-
-const TestPerformancePanel = styled(Panel)`
-  grid-column: span 24;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-column: span 15;
-  }
-`;

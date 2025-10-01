@@ -1,20 +1,26 @@
 import uuid
+from datetime import timedelta
 from typing import Any
 from unittest.mock import patch
 
 from django.utils import timezone
 
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.models.incident import Incident, IncidentActivity
+from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrenceData
-from sentry.models.group import GroupStatus
-from sentry.models.groupopenperiod import GroupOpenPeriod, create_open_period
+from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
+@with_feature("organizations:workflow-engine-single-process-metric-issues")
 class IncidentGroupOpenPeriodTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -37,6 +43,23 @@ class IncidentGroupOpenPeriodTest(TestCase):
         self.group.type = MetricIssue.type_id
         self.group.save()
 
+        with self.tasks():
+            self.snuba_query = create_snuba_query(
+                query_type=SnubaQuery.Type.ERROR,
+                dataset=Dataset.Events,
+                query="hello",
+                aggregate="count()",
+                time_window=timedelta(minutes=1),
+                resolution=timedelta(minutes=1),
+                environment=self.environment,
+                event_types=[SnubaQueryEventType.EventType.ERROR],
+            )
+            self.query_subscription = create_snuba_subscription(
+                project=self.detector.project,
+                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+                snuba_query=self.snuba_query,
+            )
+
     def save_issue_occurrence(self, include_alert_id: bool = True) -> tuple[Any, GroupOpenPeriod]:
         event = self.store_event(
             data={"timestamp": timezone.now().isoformat()}, project_id=self.project.id
@@ -50,7 +73,14 @@ class IncidentGroupOpenPeriodTest(TestCase):
             "issue_title": "Test Issue",
             "subtitle": "Test Subtitle",
             "resource_id": None,
-            "evidence_data": {"detector_id": self.detector.id} if include_alert_id else {},
+            "evidence_data": (
+                {
+                    "detector_id": self.detector.id,
+                    "data_packet_source_id": str(self.query_subscription.id),
+                }
+                if include_alert_id
+                else {}
+            ),
             "evidence_display": [
                 {"name": "Test Evidence", "value": "Test Value", "important": True}
             ],
@@ -58,6 +88,7 @@ class IncidentGroupOpenPeriodTest(TestCase):
             "detection_time": timezone.now().timestamp(),
             "level": "error",
             "culprit": "test-culprit",
+            "priority": DetectorPriorityLevel.HIGH,
         }
 
         with patch("sentry.issues.ingest.eventstream") as _:
@@ -73,37 +104,18 @@ class IncidentGroupOpenPeriodTest(TestCase):
         assert open_period.date_ended is None
         return occurrence, open_period
 
-    @with_feature("organizations:issue-open-periods")
-    def test_create_from_occurrence_with_existing_incident(self) -> None:
-        """Test creating relationship when incident exists"""
+    def test_create_from_occurrence(self) -> None:
+        """Test creating relationship and incident"""
         occurrence, open_period = self.save_issue_occurrence()
-
-        incident = self.create_incident(
-            organization=self.organization,
-            title="Test Incident",
-            date_started=timezone.now(),
-            alert_rule=self.alert_rule,
-        )
 
         result = IncidentGroupOpenPeriod.create_from_occurrence(occurrence, self.group, open_period)
 
         assert result is not None
-        assert result.incident_id == incident.id
-        assert result.incident_identifier == incident.identifier
+        incident = Incident.objects.get(id=result.incident_id)
+        activity = IncidentActivity.objects.filter(incident_id=incident.id)
+        assert len(activity) == 3  # detected, created, status change
         assert result.group_open_period == open_period
 
-    @with_feature("organizations:issue-open-periods")
-    def test_create_from_occurrence_without_incident(self) -> None:
-        """Test creating placeholder when incident doesn't exist"""
-        occurrence, open_period = self.save_issue_occurrence()
-
-        result = IncidentGroupOpenPeriod.create_from_occurrence(occurrence, self.group, open_period)
-
-        assert result is None
-        open_period.refresh_from_db()
-        assert open_period.data["pending_incident_detector_id"] == self.detector.id
-
-    @with_feature("organizations:issue-open-periods")
     def test_create_from_occurrence_no_alert_id(self) -> None:
         """Test handling when no alert_id in evidence_data"""
         with patch("sentry.issues.ingest.eventstream") as _:
@@ -117,121 +129,3 @@ class IncidentGroupOpenPeriodTest(TestCase):
         )
 
         assert result is None
-
-    @with_feature("organizations:issue-open-periods")
-    def test_create_relationship_new(self) -> None:
-        """Test creating a new relationship"""
-        occurrence, open_period = self.save_issue_occurrence()
-
-        incident = self.create_incident(
-            organization=self.organization,
-            title="Test Incident",
-            date_started=timezone.now(),
-            alert_rule=self.alert_rule,
-        )
-
-        result = IncidentGroupOpenPeriod.create_relationship(incident, open_period)
-
-        assert result is not None
-        assert result.incident_id == incident.id
-        assert result.incident_identifier == incident.identifier
-        assert result.group_open_period == open_period
-
-    @with_feature("organizations:issue-open-periods")
-    def test_create_second_relationship(self) -> None:
-        """Test creating a second relationship for a new incident"""
-        _, open_period = self.save_issue_occurrence()
-
-        incident1 = self.create_incident(
-            organization=self.organization,
-            title="Test Incident 1",
-            date_started=timezone.now(),
-            alert_rule=self.alert_rule,
-        )
-
-        # Create initial relationship
-        relationship = IncidentGroupOpenPeriod.create_relationship(incident1, open_period)
-        assert relationship.incident_id == incident1.id
-        assert relationship.group_open_period == open_period
-
-        incident1.status = IncidentStatus.CLOSED.value
-        incident1.save()
-
-        open_period.group.update(status=GroupStatus.RESOLVED)
-        open_period.update(date_ended=timezone.now())
-        create_open_period(open_period.group, timezone.now())
-        open_period_2 = (
-            GroupOpenPeriod.objects.filter(group=open_period.group)
-            .order_by("-date_started")
-            .first()
-        )
-
-        # Create new incident and new relationship
-        incident2 = self.create_incident(
-            organization=self.organization,
-            title="Test Incident 2",
-            date_started=timezone.now(),
-            alert_rule=self.alert_rule,
-        )
-
-        result = IncidentGroupOpenPeriod.create_relationship(incident2, open_period_2)
-        assert result is not None
-        assert result.incident_id == incident2.id
-        assert result.incident_identifier == incident2.identifier
-        assert result.group_open_period == open_period_2
-
-    @with_feature("organizations:issue-open-periods")
-    def test_create_placeholder_relationship(self) -> None:
-        """Test creating a placeholder relationship"""
-        occurrence, open_period = self.save_issue_occurrence()
-
-        result = IncidentGroupOpenPeriod.create_placeholder_relationship(
-            self.detector.id, open_period, self.project
-        )
-
-        assert result is None
-        open_period.refresh_from_db()
-        assert open_period.data["pending_incident_detector_id"] == self.detector.id
-
-    @with_feature("organizations:issue-open-periods")
-    def test_create_pending_relationships_for_incident(self) -> None:
-        """Test creating relationships for pending open periods"""
-        occurrence, open_period = self.save_issue_occurrence()
-
-        # Create a placeholder relationship
-        open_period.data = {"pending_incident_detector_id": self.detector.id}
-        open_period.save()
-
-        incident = self.create_incident(
-            organization=self.organization,
-            title="Test Incident",
-            date_started=timezone.now(),
-            alert_rule=self.alert_rule,
-        )
-
-        IncidentGroupOpenPeriod.create_pending_relationships_for_incident(incident, self.alert_rule)
-
-        # Check that relationship was created
-        relationship = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
-        assert relationship.incident_id == incident.id
-        assert relationship.incident_identifier == incident.identifier
-
-        # Check that placeholder was cleaned up
-        open_period.refresh_from_db()
-        assert "pending_incident_detector_id" not in open_period.data
-
-    @with_feature("organizations:issue-open-periods")
-    def test_create_pending_relationships_for_incident_no_pending(self) -> None:
-        """Test creating relationships when no pending relationships exist"""
-        incident = self.create_incident(
-            organization=self.organization,
-            title="Test Incident",
-            date_started=timezone.now(),
-            alert_rule=self.alert_rule,
-        )
-
-        # Should not raise any errors
-        IncidentGroupOpenPeriod.create_pending_relationships_for_incident(incident, self.alert_rule)
-
-        # No relationships should be created
-        assert IncidentGroupOpenPeriod.objects.filter(incident_id=incident.id).count() == 0

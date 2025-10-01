@@ -4,6 +4,7 @@ import type {OnboardingRecentCreatedProject} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useProjects from 'sentry/utils/useProjects';
 
 // Refetch the data every second
 const DEFAULT_POLL_INTERVAL_MS = 1000;
@@ -28,12 +29,23 @@ function isProjectActive(project: Project) {
 }
 
 // This hook will fetch the project details endpoint until a firstEvent (issue) is received
+// It uses useProjects() to leverage already loaded data while also fetching for updates
 export function useRecentCreatedProject({
   orgSlug,
   projectSlug,
   pollUntilFirstEvent,
 }: Props): OnboardingRecentCreatedProject {
-  const {isPending: isProjectLoading, data: project} = useApiQuery<Project>(
+  const {projects, initiallyLoaded} = useProjects({
+    slugs: projectSlug ? [projectSlug] : undefined,
+    orgId: orgSlug,
+  });
+
+  const project =
+    projectSlug && initiallyLoaded
+      ? projects.find(p => p.slug === projectSlug)
+      : undefined;
+
+  const {isPending: isProjectLoading, data: freshProject} = useApiQuery<Project>(
     [`/projects/${orgSlug}/${projectSlug}/overview/`],
     {
       staleTime: 0,
@@ -52,17 +64,15 @@ export function useRecentCreatedProject({
     }
   );
 
-  if (isProjectLoading || !project) {
+  if (isProjectLoading || !freshProject) {
     return {
-      isProjectActive: false,
-      project: undefined,
+      isProjectActive: project ? isProjectActive(project) : false,
+      project,
     };
   }
 
-  const isActive = isProjectActive(project);
-
   return {
-    project,
-    isProjectActive: isActive,
+    isProjectActive: isProjectActive(freshProject),
+    project: freshProject,
   };
 }

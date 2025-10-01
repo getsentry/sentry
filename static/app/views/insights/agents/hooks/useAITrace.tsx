@@ -6,7 +6,6 @@ import {getIsAiNode} from 'sentry/views/insights/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
-import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
   isEAPSpanNode,
   isSpanNode,
@@ -33,7 +32,6 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
   const organization = useOrganization();
   const queryParams = useTraceQueryParams();
 
-  const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
   const trace = useTrace({
     traceSlug,
     timestamp: queryParams.timestamp,
@@ -50,9 +48,9 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
   });
 
   useEffect(() => {
-    if (trace.status !== 'success' || !trace.data || !meta.data) {
-      setError(trace.status === 'error' || meta.status === 'error');
-      setIsLoading(trace.status === 'pending' || meta.status === 'pending' || !meta.data);
+    if (trace.status !== 'success' || !trace.data) {
+      setError(trace.status === 'error');
+      setIsLoading(trace.status === 'pending');
       return;
     }
 
@@ -63,7 +61,7 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
 
       try {
         const tree = TraceTree.FromTrace(trace.data, {
-          meta: meta.data,
+          meta: null,
           replay: null,
           preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
           organization,
@@ -114,7 +112,7 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
     };
 
     loadAllSpans();
-  }, [trace.status, trace.data, meta.data, meta.status, organization, api]);
+  }, [trace.status, trace.data, organization, api]);
 
   return {
     nodes,

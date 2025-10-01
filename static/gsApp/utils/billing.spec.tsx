@@ -215,12 +215,12 @@ describe('formatReservedWithUnits', () => {
       formatReservedWithUnits(0.1234, DataCategory.LOG_BYTE, {
         isAbbreviated: true,
       })
-    ).toBe('0 GB');
+    ).toBe('0.1 GB');
     expect(
       formatReservedWithUnits(1.234, DataCategory.LOG_BYTE, {
         isAbbreviated: true,
       })
-    ).toBe('1 GB');
+    ).toBe('1.2 GB');
     expect(
       formatReservedWithUnits(0.1, DataCategory.LOG_BYTE, {
         useUnitScaling: true,
@@ -251,6 +251,32 @@ describe('formatReservedWithUnits', () => {
         useUnitScaling: true,
       })
     ).toBe(UNLIMITED);
+
+    expect(
+      formatReservedWithUnits(1234, DataCategory.LOG_BYTE, {
+        isAbbreviated: true,
+      })
+    ).toBe('1,234 GB');
+    expect(
+      formatReservedWithUnits(MILLION, DataCategory.LOG_BYTE, {
+        isAbbreviated: true,
+      })
+    ).toBe('1,000,000 GB');
+    expect(
+      formatReservedWithUnits(1.234 * MILLION, DataCategory.LOG_BYTE, {
+        isAbbreviated: true,
+      })
+    ).toBe('1,234,000 GB');
+    expect(
+      formatReservedWithUnits(BILLION, DataCategory.LOG_BYTE, {
+        isAbbreviated: true,
+      })
+    ).toBe('1,000,000,000 GB');
+    expect(
+      formatReservedWithUnits(1.234 * BILLION, DataCategory.LOG_BYTE, {
+        isAbbreviated: true,
+      })
+    ).toBe('1,234,000,000 GB');
   });
 });
 

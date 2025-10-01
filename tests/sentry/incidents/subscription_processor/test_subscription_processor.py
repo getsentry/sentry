@@ -359,6 +359,18 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             "incidents.alert_rules.ignore_update_missing_incidents_performance"
         )
 
+    def test_no_feature_on_demand(self) -> None:
+        self.sub.snuba_query.dataset = "generic_metrics"
+        message = self.build_subscription_update(self.sub)
+        with (
+            self.feature("organizations:incidents"),
+            self.feature("organizations:performance-view"),
+        ):
+            SubscriptionProcessor(self.sub).process_update(message)
+        self.metrics.incr.assert_called_once_with(
+            "incidents.alert_rules.ignore_update_missing_on_demand"
+        )
+
     def test_skip_already_processed_update(self) -> None:
         self.send_update(self.rule, self.trigger.alert_threshold)
         self.metrics.incr.reset_mock()
@@ -503,11 +515,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             [
                 call(
                     "incidents.alert_rules.hit_rate_limit",
-                    tags={
-                        "last_incident_id": original_incident.id,
-                        "project_id": self.sub.project.id,
-                        "trigger_id": trigger.id,
-                    },
                 ),
             ],
             any_order=True,

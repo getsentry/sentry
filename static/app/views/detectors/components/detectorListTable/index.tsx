@@ -1,7 +1,9 @@
 import {useCallback, useMemo, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -88,7 +90,8 @@ function DetectorListTable({
       setSelected(new Set<string>());
     }
   };
-  const pageSelected = detectorIds.difference(selected).size === 0;
+  const pageSelected = !isPending && detectorIds.difference(selected).size === 0;
+  const anySelected = selected.size > 0;
 
   const handleSelect = useCallback(
     (id: string) => {
@@ -121,7 +124,13 @@ function DetectorListTable({
         {selected.size === 0 ? (
           <SimpleTable.Header>
             <HeaderCell sortKey="name" sort={sort}>
-              <NamePadding>{t('Name')}</NamePadding>
+              <Flex gap="md" align="center">
+                <SelectAllHeaderCheckbox
+                  checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+                  onChange={checked => togglePageSelected(checked)}
+                />
+                <span>{t('Name')}</span>
+              </Flex>
             </HeaderCell>
             <HeaderCell data-column-name="type" divider sortKey="type" sort={sort}>
               {t('Type')}
@@ -183,10 +192,6 @@ const Container = styled('div')`
   container-type: inline-size;
 `;
 
-const NamePadding = styled('div')`
-  padding-left: 28px;
-`;
-
 const DetectorListSimpleTable = styled(SimpleTable)`
   grid-template-columns: 1fr;
 
@@ -208,7 +213,7 @@ const DetectorListSimpleTable = styled(SimpleTable)`
   }
 
   @container (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
+    grid-template-columns: 3fr 0.8fr 1.5fr;
 
     [data-column-name='last-issue'] {
       display: flex;
@@ -224,7 +229,7 @@ const DetectorListSimpleTable = styled(SimpleTable)`
   }
 
   @container (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 2fr;
+    grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 1.1fr;
 
     [data-column-name='connected-automations'] {
       display: flex;

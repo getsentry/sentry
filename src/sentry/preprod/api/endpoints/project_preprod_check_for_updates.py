@@ -14,6 +14,7 @@ from sentry.preprod.build_distribution_utils import (
     is_installable_artifact,
 )
 from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,7 @@ class InstallableBuildDetails(BaseModel):
     id: str
     build_version: str
     build_number: int
+    release_notes: str | None
     download_url: str
     app_name: str
     created_date: str
@@ -42,13 +44,15 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.ORGANIZATION: RateLimit(
-                limit=100, window=60
-            ),  # 100 requests per minute per org
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.ORGANIZATION: RateLimit(
+                    limit=100, window=60
+                ),  # 100 requests per minute per org
+            }
         }
-    }
+    )
 
     def get(self, request: Request, project) -> Response:
         """
@@ -58,10 +62,11 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
         app_id = request.GET.get("app_id")
 
         platform = request.GET.get("platform")
-        provided_version = request.GET.get("version")
+        provided_build_version = request.GET.get("build_version")
+        provided_build_number = request.GET.get("build_number")
         provided_build_configuration_name = request.GET.get("build_configuration")
 
-        if not app_id or not platform or not provided_version or not main_binary_identifier:
+        if not app_id or not platform or not provided_build_version or not main_binary_identifier:
             return Response({"error": "Missing required parameters"}, status=400)
 
         provided_build_configuration = None
@@ -100,9 +105,16 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
             current_filter_kwargs.update(
                 {
                     "main_binary_identifier": main_binary_identifier,
-                    "build_version": provided_version,
+                    "build_version": provided_build_version,
                 }
             )
+
+            # Add build_number filter if provided
+            if provided_build_number is not None:
+                try:
+                    current_filter_kwargs["build_number"] = int(provided_build_number)
+                except ValueError:
+                    return Response({"error": "Invalid build_number format"}, status=400)
 
             if provided_build_configuration:
                 current_filter_kwargs["build_configuration"] = provided_build_configuration
@@ -112,7 +124,7 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
             )
         except PreprodArtifact.DoesNotExist:
             logger.warning(
-                "No artifact found for binary identifier with version %s", provided_version
+                "No artifact found for binary identifier with version %s", provided_build_version
             )
 
         if preprod_artifact and preprod_artifact.build_version and preprod_artifact.build_number:
@@ -120,8 +132,13 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
                 id=str(preprod_artifact.id),
                 build_version=preprod_artifact.build_version,
                 build_number=preprod_artifact.build_number,
+                release_notes=(
+                    preprod_artifact.extras.get("release_notes")
+                    if preprod_artifact.extras
+                    else None
+                ),
                 app_name=preprod_artifact.app_name,
-                download_url=get_download_url_for_artifact(preprod_artifact, request),
+                download_url=get_download_url_for_artifact(preprod_artifact),
                 created_date=preprod_artifact.date_added.isoformat(),
             )
 
@@ -169,8 +186,13 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
                             id=str(best_artifact.id),
                             build_version=best_artifact.build_version,
                             build_number=best_artifact.build_number,
+                            release_notes=(
+                                best_artifact.extras.get("release_notes")
+                                if best_artifact.extras
+                                else None
+                            ),
                             app_name=best_artifact.app_name,
-                            download_url=get_download_url_for_artifact(best_artifact, request),
+                            download_url=get_download_url_for_artifact(best_artifact),
                             created_date=best_artifact.date_added.isoformat(),
                         )
 

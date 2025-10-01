@@ -20,7 +20,7 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {WidgetTitleProps} from 'sentry/views/dashboards/widgets/widget/widgetTitle';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/types';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/styles';
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
@@ -103,7 +103,7 @@ export default function ChartWithIssues(props: Props) {
     <FooterIssues>
       {recentIssues.map(group => (
         <GroupWrapper canSelect key={group.id}>
-          <EventOrGroupHeader data={group} source={'session-health'} />
+          <EventOrGroupHeader data={group} source="session-health" />
           <EventOrGroupExtraDetails data={group} showLifetime={false} />
         </GroupWrapper>
       ))}

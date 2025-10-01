@@ -119,15 +119,6 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
         # Verify no webhook tasks were queued
         mock_send_webhook.delay.assert_not_called()
 
-        # Verify error log was written
-        mock_logger.error.assert_called_once_with(
-            "sentry_app.webhook_no_installations_subscribed",
-            extra={
-                "resource_name": "issue",
-                "organization_id": self.organization.id,
-            },
-        )
-
     @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_invalid_event_type_raises_error(self, mock_installations):
         """Test that invalid event types raise SentryAppSentryError."""
@@ -147,104 +138,6 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
             )
 
         assert "Invalid event type: invalid_resource.invalid_event" in str(exc_info.value.message)
-
-    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
-    @patch("sentry.sentry_apps.tasks.sentry_apps.logger")
-    def test_broadcast_logs_invalid_event_type(
-        self, mock_logger, mock_installations, mock_send_webhook
-    ):
-        """Test that invalid event types are logged before raising exception."""
-        from sentry.sentry_apps.utils.errors import SentryAppSentryError
-
-        mock_installations.return_value = []
-
-        payload = {"event": "data"}
-
-        # Invalid event types should raise SentryAppSentryError but also log
-        with pytest.raises(SentryAppSentryError):
-            broadcast_webhooks_for_organization(
-                resource_name="invalid_resource",
-                event_name="invalid_event",
-                organization_id=self.organization.id,
-                payload=payload,
-            )
-
-        # Verify exception was logged
-        mock_logger.exception.assert_called_once_with(
-            "sentry_app.webhook_invalid_event_type",
-            extra={"event_type": "invalid_resource.invalid_event"},
-        )
-
-    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
-    @patch("sentry.sentry_apps.tasks.sentry_apps.logger")
-    def test_broadcast_with_none_installation_logs_error(
-        self, mock_logger, mock_installations, mock_send_webhook
-    ):
-        """Test that None installations log an error instead of raising exception."""
-        # Create a mock installation that will pass the filter
-        mock_installation = Mock()
-        mock_installation.sentry_app.events = ["issue.created"]
-        mock_installation.id = self.installation_1.id
-
-        # Mock consolidate_events to return empty list for None installation filter
-        with patch("sentry.sentry_apps.logic.consolidate_events") as mock_consolidate:
-
-            def consolidate_side_effect(events):
-                if events == ["issue.created"]:
-                    return ["issue"]
-                return []
-
-            mock_consolidate.side_effect = consolidate_side_effect
-
-            # Return installations that include None - but None won't pass the filter
-            # because consolidate_events won't be called on None.sentry_app.events
-            mock_installations.return_value = [mock_installation]
-
-            payload = {"event": "data"}
-
-            broadcast_webhooks_for_organization(
-                resource_name="issue",
-                event_name="created",
-                organization_id=self.organization.id,
-                payload=payload,
-            )
-
-            # Verify webhook was queued for the valid installation
-            mock_send_webhook.delay.assert_called_once_with(
-                mock_installation.id, "issue.created", payload
-            )
-
-            # Verify info log was called for successful webhook
-            mock_logger.info.assert_called_with(
-                "sentry_app.webhook_queued",
-                extra={"event_type": "issue.created", "installation_id": mock_installation.id},
-            )
-
-    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
-    @patch("sentry.sentry_apps.tasks.sentry_apps.logger")
-    def test_broadcast_logs_queued_webhooks(
-        self, mock_logger, mock_installations, mock_send_webhook
-    ):
-        """Test that queued webhooks are logged."""
-        mock_installations.return_value = [self.installation_1]
-
-        payload = {"event": "data"}
-
-        broadcast_webhooks_for_organization(
-            resource_name="issue",
-            event_name="created",
-            organization_id=self.organization.id,
-            payload=payload,
-        )
-
-        # Verify webhook queuing was logged
-        mock_logger.info.assert_called_once_with(
-            "sentry_app.webhook_queued",
-            extra={"event_type": "issue.created", "installation_id": self.installation_1.id},
-        )
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
     @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
@@ -623,7 +516,7 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
     @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
     @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_queues_tasks_asynchronously(self, mock_installations, mock_send_webhook):
-        """Test that webhook sending is queued as Celery tasks, not executed synchronously."""
+        """Test that webhook sending is queued as tasks, not executed synchronously."""
         mock_installations.return_value = [self.installation_1, self.installation_2]
 
         payload = {"test": "data"}

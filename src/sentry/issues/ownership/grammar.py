@@ -533,7 +533,6 @@ def add_owner_ids_to_schema(rules: list[dict[str, Any]], owners_id: dict[str, in
 def create_schema_from_issue_owners(
     project_id: int,
     issue_owners: str | None,
-    add_owner_ids: bool = False,
     remove_deleted_owners: bool = False,
 ) -> dict[str, Any] | None:
     if issue_owners is None:
@@ -560,7 +559,7 @@ def create_schema_from_issue_owners(
                 bad_actors.append(owner.identifier)
             elif owner.type == "team":
                 bad_actors.append(f"#{owner.identifier}")
-        elif add_owner_ids:
+        else:
             owners_id[owner.identifier] = actor.id
 
     if bad_actors and remove_deleted_owners:
@@ -569,7 +568,6 @@ def create_schema_from_issue_owners(
         bad_actors.sort()
         raise ValidationError({"raw": "Invalid rule owners: {}".format(", ".join(bad_actors))})
 
-    if add_owner_ids:
-        add_owner_ids_to_schema(schema["rules"], owners_id)
+    add_owner_ids_to_schema(schema["rules"], owners_id)
 
     return schema

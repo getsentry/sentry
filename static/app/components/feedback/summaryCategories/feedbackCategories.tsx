@@ -1,13 +1,16 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import useFeedbackCategories from 'sentry/components/feedback/list/useFeedbackCategories';
 import Placeholder from 'sentry/components/placeholder';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 
 function getSearchTermForLabel(label: string) {
   /**
@@ -37,9 +40,48 @@ function getSearchTermForLabelList(labels: string[]) {
 
 export default function FeedbackCategories() {
   const {isError, isPending, categories, tooFewFeedbacks} = useFeedbackCategories();
+  // if we are showing this component, gen-ai-features must be true
+  // and org.hideAiFeatures must be false,
+  // but we still need to check that their seer acknowledgement exists
+  const {setupAcknowledgement, isPending: isOrgSeerSetupPending} =
+    useOrganizationSeerSetup();
 
   const location = useLocation();
   const navigate = useNavigate();
+  const organization = useOrganization();
+
+  useEffect(() => {
+    // Analytics for the rendered state. Should match the conditions below.
+    if (isPending || isOrgSeerSetupPending) {
+      return;
+    }
+    if (isError) {
+      trackAnalytics('feedback.summary.categories-error', {
+        organization,
+      });
+    } else if (tooFewFeedbacks) {
+      trackAnalytics('feedback.summary.categories-too-few-feedbacks', {
+        organization,
+      });
+    } else if (!categories || categories.length === 0) {
+      trackAnalytics('feedback.summary.categories-empty', {
+        organization,
+      });
+    } else if (setupAcknowledgement.orgHasAcknowledged) {
+      trackAnalytics('feedback.summary.categories-rendered', {
+        organization,
+        num_categories: categories.length,
+      });
+    }
+  }, [
+    organization,
+    isError,
+    tooFewFeedbacks,
+    categories,
+    setupAcknowledgement.orgHasAcknowledged,
+    isPending,
+    isOrgSeerSetupPending,
+  ]);
 
   const currentQuery = useMemo(
     () => decodeScalar(location.query.query, ''),
@@ -47,12 +89,19 @@ export default function FeedbackCategories() {
   );
   const searchConditions = useMemo(() => new MutableSearch(currentQuery), [currentQuery]);
 
-  if (isPending) {
+  if (isPending || isOrgSeerSetupPending) {
     return <LoadingPlaceholder />;
   }
 
-  // The assumption is that if categories are enabled, then summaries are definitely enabled, so we won't just be showing nothing in the summary section if there is an error/too few feedbacks/etc.
-  if (isError || tooFewFeedbacks || !categories || categories.length === 0) {
+  // The assumption is that if categories are enabled, then summaries are definitely enabled.
+  // Both are wrapped in a parent component. Summary has its own states for these cases, so we can just return null.
+  if (
+    isError ||
+    tooFewFeedbacks ||
+    !categories ||
+    categories.length === 0 ||
+    !setupAcknowledgement.orgHasAcknowledged
+  ) {
     return null;
   }
 
@@ -79,6 +128,11 @@ export default function FeedbackCategories() {
         exactSearchTerm,
         false
       );
+
+      trackAnalytics('feedback.summary.category-selected', {
+        organization,
+        category: category.primaryLabel,
+      });
     }
 
     navigate({

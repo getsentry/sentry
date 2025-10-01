@@ -20,6 +20,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.replays.usecases.replay_counts import get_replay_counts
 from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -48,13 +49,15 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
     }
 
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=20, window=1),
-            RateLimitCategory.USER: RateLimit(limit=20, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=20, window=1),
+                RateLimitCategory.USER: RateLimit(limit=20, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1),
+            }
         }
-    }
+    )
 
     @extend_schema(
         examples=ReplayExamples.GET_REPLAY_COUNTS,
@@ -83,7 +86,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response({})
 

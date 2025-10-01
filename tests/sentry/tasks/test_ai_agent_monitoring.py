@@ -190,10 +190,6 @@ class FetchAIModelCostsTest(TestCase):
 
         models = cached_data.get("models")
         assert models is not None
-        # Should have OpenRouter models + unique models.dev models
-        assert (
-            len(models) == 5
-        )  # gpt-4, gpt-5 from OpenRouter + gpt-4.1-mini, gemini-2.5-pro, gemini-2.0-flash-001 from models.dev
 
         # Check OpenRouter models
         gpt4_model = models["gpt-4"]
@@ -248,7 +244,6 @@ class FetchAIModelCostsTest(TestCase):
 
         models = cached_data.get("models")
         assert models is not None
-        assert len(models) == 2
 
         # Check first model with only input and output pricing
         gpt4_model = models["gpt-4"]
@@ -316,7 +311,6 @@ class FetchAIModelCostsTest(TestCase):
         assert cached_data is not None
         models = cached_data.get("models")
         assert models is not None
-        assert len(models) == 4  # 3 from OpenRouter + 1 valid from models.dev
 
         # Check valid model
         gpt4_model = models["gpt-4"]
@@ -486,3 +480,177 @@ class FetchAIModelCostsTest(TestCase):
 
         # Non-existent mapping should not create a new model
         assert "nonexistent-mapping" not in models
+
+    @responses.activate
+    def test_fetch_ai_model_costs_with_glob_model_names(self) -> None:
+        """Test that glob versions of model names are added correctly"""
+        # Mock responses with models that should generate glob patterns
+        mock_openrouter_response = {
+            "data": [
+                {
+                    "id": "openai/gpt-4o-mini-20250522",
+                    "pricing": {
+                        "prompt": "0.0000003",
+                        "completion": "0.00000165",
+                    },
+                },
+                {
+                    "id": "openai/claude-3-5-sonnet-20241022",
+                    "pricing": {
+                        "prompt": "0.00000015",
+                        "completion": "0.00000075",
+                    },
+                },
+                {
+                    "id": "openai/gpt-4",  # No date/version, should not generate glob
+                    "pricing": {
+                        "prompt": "0.0000003",
+                        "completion": "0.00000165",
+                    },
+                },
+            ]
+        }
+
+        mock_models_dev_response = {
+            "anthropic": {
+                "models": {
+                    "claude-3-5-haiku@20241022": {
+                        "cost": {
+                            "input": 0.25 * 1000000,
+                            "output": 1.25 * 1000000,
+                        }
+                    },
+                    "o3-pro-2025-06-10": {
+                        "cost": {
+                            "input": 0.5 * 1000000,
+                            "output": 2.5 * 1000000,
+                        }
+                    },
+                }
+            }
+        }
+
+        self._mock_openrouter_api_response(mock_openrouter_response)
+        self._mock_models_dev_api_response(mock_models_dev_response)
+
+        fetch_ai_model_costs()
+
+        # Verify the data was cached correctly
+        cached_data = _get_ai_model_costs_from_cache()
+        assert cached_data is not None
+        models = cached_data.get("models")
+        assert models is not None
+
+        # Check original models exist
+        assert "gpt-4o-mini-20250522" in models
+        assert "claude-3-5-sonnet-20241022" in models
+        assert "gpt-4" in models
+        assert "claude-3-5-haiku@20241022" in models
+        assert "o3-pro-2025-06-10" in models
+
+        # Check suffix glob versions were added
+        assert "gpt-4o-mini-*" in models
+        assert "claude-3-5-sonnet-*" in models
+        assert "claude-3-5-haiku@*" in models
+        assert "o3-pro-*" in models
+
+        # Check prefix glob versions were added
+        assert "*gpt-4o-mini-20250522" in models
+        assert "*claude-3-5-sonnet-20241022" in models
+        assert "*gpt-4" in models
+        assert "*claude-3-5-haiku@20241022" in models
+        assert "*o3-pro-2025-06-10" in models
+
+        # Check prefix-suffix glob versions were added (only for models with suffix globs)
+        assert "*gpt-4o-mini-*" in models
+        assert "*claude-3-5-sonnet-*" in models
+        assert "*claude-3-5-haiku@*" in models
+        assert "*o3-pro-*" in models
+
+        # Verify glob versions have same pricing as original models
+        gpt4o_mini_original = models["gpt-4o-mini-20250522"]
+        gpt4o_mini_glob = models["gpt-4o-mini-*"]
+        assert gpt4o_mini_original.get("inputPerToken") == gpt4o_mini_glob.get("inputPerToken")
+        assert gpt4o_mini_original.get("outputPerToken") == gpt4o_mini_glob.get("outputPerToken")
+
+        claude_sonnet_original = models["claude-3-5-sonnet-20241022"]
+        claude_sonnet_glob = models["claude-3-5-sonnet-*"]
+        assert claude_sonnet_original.get("inputPerToken") == claude_sonnet_glob.get(
+            "inputPerToken"
+        )
+        assert claude_sonnet_original.get("outputPerToken") == claude_sonnet_glob.get(
+            "outputPerToken"
+        )
+
+        claude_haiku_original = models["claude-3-5-haiku@20241022"]
+        claude_haiku_glob = models["claude-3-5-haiku@*"]
+        assert claude_haiku_original.get("inputPerToken") == claude_haiku_glob.get("inputPerToken")
+        assert claude_haiku_original.get("outputPerToken") == claude_haiku_glob.get(
+            "outputPerToken"
+        )
+
+        o3_pro_original = models["o3-pro-2025-06-10"]
+        o3_pro_glob = models["o3-pro-*"]
+        assert o3_pro_original.get("inputPerToken") == o3_pro_glob.get("inputPerToken")
+        assert o3_pro_original.get("outputPerToken") == o3_pro_glob.get("outputPerToken")
+
+        # Verify gpt-4 (no date/version) doesn't have a suffix glob version
+        assert "gpt-4*" not in models
+
+        # Verify prefix glob versions have same pricing as original models
+        gpt4_original = models["gpt-4"]
+        gpt4_prefix_glob = models["*gpt-4"]
+        assert gpt4_original.get("inputPerToken") == gpt4_prefix_glob.get("inputPerToken")
+        assert gpt4_original.get("outputPerToken") == gpt4_prefix_glob.get("outputPerToken")
+
+        # Verify prefix-suffix glob versions have same pricing as original models
+        gpt4o_mini_prefix_suffix_glob = models["*gpt-4o-mini-*"]
+        assert gpt4o_mini_original.get("inputPerToken") == gpt4o_mini_prefix_suffix_glob.get(
+            "inputPerToken"
+        )
+        assert gpt4o_mini_original.get("outputPerToken") == gpt4o_mini_prefix_suffix_glob.get(
+            "outputPerToken"
+        )
+
+    @responses.activate
+    def test_create_suffix_glob_model_name_various_formats(self) -> None:
+        """Test suffix glob generation with various date and version formats"""
+        from sentry.tasks.ai_agent_monitoring import _create_suffix_glob_model_name
+
+        # Test cases with expected outputs
+        test_cases = [
+            ("model-20250522", "model-*"),  # YYYYMMDD -> *
+            ("model-2025-06-10", "model-*"),  # YYYY-MM-DD -> *
+            ("model-2025/06/10", "model-*"),  # YYYY/MM/DD -> *
+            ("model-2025.06.10", "model-*"),  # YYYY.MM.DD -> *
+            ("model-v1.0", "model-*"),  # v1.0 -> *
+            ("model-v2.1.0", "model-*"),  # v2.1.0 -> *
+            ("model@20241022", "model@*"),  # @YYYYMMDD -> @*
+            ("model-v1:0", "model-*"),  # v1:0 -> *
+            ("model-20250610-v1:0", "model-*"),  # YYYYMMDD-v1:0 -> *
+            ("model@20250610-v1:0", "model@*"),  # @YYYYMMDD-v1:0 -> @*
+        ]
+
+        for model_id, expected_glob in test_cases:
+            actual_glob = _create_suffix_glob_model_name(model_id)
+            assert (
+                actual_glob == expected_glob
+            ), f"Expected {expected_glob} for {model_id}, got {actual_glob}"
+
+    @responses.activate
+    def test_create_prefix_glob_model_name(self) -> None:
+        """Test prefix glob generation for model names"""
+        from sentry.tasks.ai_agent_monitoring import _create_prefix_glob_model_name
+
+        # Test cases with expected outputs
+        test_cases = [
+            ("gpt-4", "*gpt-4"),
+            ("gpt-4o-mini-*", "*gpt-4o-mini-*"),
+            ("", "*"),
+        ]
+
+        for model_id, expected_glob in test_cases:
+            actual_glob = _create_prefix_glob_model_name(model_id)
+            assert (
+                actual_glob == expected_glob
+            ), f"Expected {expected_glob} for {model_id}, got {actual_glob}"

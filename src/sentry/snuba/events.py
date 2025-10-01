@@ -876,7 +876,7 @@ class Columns(Enum):
         event_name="timestamp_ms",
         transaction_name=None,
         discover_name="timestamp_ms",
-        issue_platform_name=None,
+        issue_platform_name="timestamp_ms",
         alias="timestamp_ms",
     )
 

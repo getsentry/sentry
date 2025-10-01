@@ -73,6 +73,8 @@ interface CrontabConfig extends BaseConfig {
   schedule_type: ScheduleType.CRONTAB | LegacyDefaultSchedule;
 }
 
+export type MonitorIntervalUnit = 'year' | 'month' | 'week' | 'day' | 'hour' | 'minute';
+
 /**
  * The configuration object used when the schedule is an INTERVAL
  */
@@ -80,10 +82,7 @@ export interface IntervalConfig extends BaseConfig {
   /**
    * The interval style schedule
    */
-  schedule: [
-    value: number,
-    interval: 'year' | 'month' | 'week' | 'day' | 'hour' | 'minute',
-  ];
+  schedule: [value: number, interval: MonitorIntervalUnit];
   schedule_type: ScheduleType.INTERVAL;
 }
 
@@ -329,6 +328,7 @@ export type CheckInCellKey =
   | 'started'
   | 'completed'
   | 'duration'
+  | 'checkInId'
   | 'issues'
   | 'environment'
   | 'expectedAt';

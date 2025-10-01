@@ -3,8 +3,9 @@ import {createContext, useContext} from 'react';
 export type PreventContextData = {
   changeContextValue: (value: Partial<PreventContextDataParams>) => void;
   preventPeriod: string;
-  branch?: string;
+  branch?: string | null;
   integratedOrgId?: string;
+  integratedOrgName?: string;
   lastVisitedOrgId?: string;
   repository?: string;
 };

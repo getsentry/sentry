@@ -1,14 +1,7 @@
 import {t} from 'sentry/locale';
-import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
-import type {MultiSeriesEventsStats} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {
-  PRIMARY_RELEASE_COLOR,
-  SECONDARY_RELEASE_COLOR,
-} from 'sentry/views/insights/colors';
 // TODO(release-drawer): Only used in mobile/appStarts/components/
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
@@ -29,32 +22,6 @@ const WARM_START_CONDITIONS = [
   'span.op:app.start.warm',
   'span.description:["Warm Start","Warm App Start"]',
 ];
-
-export function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
-  const transformedSeries: Record<string, Series> = {};
-
-  if (defined(data)) {
-    Object.keys(data).forEach(releaseName => {
-      transformedSeries[releaseName] = {
-        seriesName: releaseName,
-        data:
-          data[releaseName]?.data?.map(datum => {
-            return {
-              name: datum[0] * 1000,
-              value: datum[1][0]!.count,
-            } as SeriesDataUnit;
-          }) ?? [],
-        ...(primaryRelease === releaseName
-          ? {color: PRIMARY_RELEASE_COLOR}
-          : {
-              color: SECONDARY_RELEASE_COLOR,
-              lineStyle: {type: 'dashed'},
-            }),
-      };
-    });
-  }
-  return transformedSeries;
-}
 
 interface Props {
   additionalFilters?: string[];

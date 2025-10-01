@@ -258,6 +258,16 @@ def convert_seer_actionability_value(
     return results
 
 
+def convert_detector_value(
+    value: Iterable[str],
+    projects: Sequence[Project],
+    user: User,
+    environments: Sequence[Environment] | None,
+) -> list[str]:
+    """Convert detector ID(s) to a list of strings for consistent handling"""
+    return list(value)
+
+
 value_converters: Mapping[str, ValueConverter] = {
     "assigned_or_suggested": convert_actor_or_none_value,
     "assigned_to": convert_actor_or_none_value,
@@ -273,6 +283,7 @@ value_converters: Mapping[str, ValueConverter] = {
     "device.class": convert_device_class_value,
     "substatus": convert_substatus_value,
     "issue.seer_actionability": convert_seer_actionability_value,
+    "detector": convert_detector_value,
 }
 
 

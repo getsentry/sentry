@@ -10,7 +10,7 @@ from rest_framework.exceptions import ValidationError
 from sentry import analytics
 from sentry.analytics.events.codeowners_max_length_exceeded import CodeOwnersMaxLengthExceeded
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.api.validators.project_codeowners import validate_codeowners_associations
+from sentry.api.validators.project_codeowners import build_codeowners_associations
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.ownership.grammar import (
     convert_codeowners_syntax,
@@ -66,7 +66,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer[ProjectCodeOwners]):
 
         # Ignore association errors and continue parsing CODEOWNERS for valid lines.
         # Allow users to incrementally fix association errors; for CODEOWNERS with many external mappings.
-        associations, _ = validate_codeowners_associations(attrs["raw"], self.context["project"])
+        associations, _ = build_codeowners_associations(attrs["raw"], self.context["project"])
 
         issue_owner_rules = convert_codeowners_syntax(
             attrs["raw"], associations, attrs["code_mapping_id"]
@@ -77,7 +77,6 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer[ProjectCodeOwners]):
             validated_data = create_schema_from_issue_owners(
                 issue_owners=issue_owner_rules,
                 project_id=self.context["project"].id,
-                add_owner_ids=True,
             )
             return {
                 **attrs,

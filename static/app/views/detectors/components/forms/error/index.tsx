@@ -49,7 +49,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
         <Section title={t('Assign')}>
           <Text as="p">
             {tct(
-              'Sentry will attempt to autotmatically assign new issues based on [link:Ownership Rules].',
+              'Sentry will attempt to automatically assign new issues based on [link:Ownership Rules].',
               {
                 link: (
                   <Link
@@ -116,7 +116,7 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
     formDataToEndpointPayload: (data: ErrorDetectorFormData) => ({
       type: 'error',
       name: detector.name,
-      owner: detector.owner,
+      owner: detector.owner ? `${detector.owner?.type}:${detector.owner?.id}` : '',
       projectId: detector.projectId,
       workflowIds: data.workflowIds,
       dataSource: {},

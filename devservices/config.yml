@@ -80,8 +80,6 @@ x-sentry-service-config:
         branch: main
         repo_link: https://github.com/getsentry/taskbroker.git
         mode: containerized
-    rabbitmq:
-      description: Messaging and streaming broker
     memcached:
       description: Memcached used for caching
     spotlight:
@@ -116,6 +114,8 @@ x-sentry-service-config:
       description: Kafka consumer for processing issue occurrences
     ingest-feedback-events:
       description: Kafka consumer for processing user feedback events
+    ingest-replay-recordings:
+      description: Kafka consumer for processing ingested replay recordings
     # Monitor-related services
     monitors-clock-tick:
       description: Kafka consumer for monitor clock ticks
@@ -152,20 +152,18 @@ x-sentry-service-config:
     # Uptime monitoring
     uptime-results:
       description: Kafka consumer for uptime monitoring results
-    worker:
-      description: Worker that processes tasks from celery
 
   modes:
     default: [snuba, postgres, relay, spotlight]
     migrations: [postgres, redis]
     acceptance-ci: [postgres, snuba, chartcuterie]
     chartcuterie: [postgres, snuba, chartcuterie, spotlight]
-    launchpad: [snuba, postgres, relay, spotlight, launchpad]
+    launchpad: [snuba, postgres, relay, spotlight, launchpad, taskbroker, taskworker]
     objectstore: [snuba, postgres, relay, spotlight, objectstore]
-    taskbroker:
+    taskbroker: [snuba, postgres, relay, spotlight, taskbroker]
+    taskworker:
       [snuba, postgres, relay, taskbroker, spotlight, taskworker, taskworker-scheduler]
     backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
-    rabbitmq: [postgres, snuba, rabbitmq, spotlight]
     symbolicator: [postgres, snuba, symbolicator, spotlight]
     memcached: [postgres, snuba, memcached, spotlight]
     tracing:
@@ -188,7 +186,8 @@ x-sentry-service-config:
         process-spans,
         ingest-occurrences,
         process-segments,
-        worker,
+        taskbroker,
+        taskworker,
       ]
     crons:
       [
@@ -200,7 +199,8 @@ x-sentry-service-config:
         monitors-clock-tick,
         monitors-clock-tasks,
         monitors-incident-occurrences,
-        worker,
+        taskbroker,
+        taskworker,
       ]
     profiling:
       [
@@ -213,9 +213,22 @@ x-sentry-service-config:
         ingest-transactions,
         ingest-profiles,
         ingest-occurrences,
-        worker,
+        taskbroker,
+        taskworker,
         post-process-forwarder-errors,
         post-process-forwarder-transactions,
+      ]
+    replay:
+      [
+        postgres,
+        snuba,
+        relay,
+        spotlight,
+        ingest-replay-recordings,
+        ingest-events,
+        ingest-transactions,
+        taskbroker,
+        taskworker,
       ]
     ingest:
       [
@@ -223,7 +236,8 @@ x-sentry-service-config:
         postgres,
         relay,
         spotlight,
-        worker,
+        taskbroker,
+        taskworker,
         ingest-events,
         ingest-transactions,
         ingest-attachments,
@@ -244,6 +258,7 @@ x-sentry-service-config:
         ingest-occurrences,
         ingest-profiles,
         ingest-transactions,
+        ingest-replay-recordings,
         monitors-clock-tasks,
         monitors-clock-tick,
         monitors-incident-occurrences,
@@ -254,9 +269,11 @@ x-sentry-service-config:
         process-segments,
         process-spans,
         relay,
+        symbolicator,
         snuba,
         spotlight,
-        worker,
+        taskbroker,
+        taskworker,
         vroom,
       ]
     full:
@@ -264,6 +281,7 @@ x-sentry-service-config:
         snuba,
         postgres,
         relay,
+        symbolicator,
         spotlight,
         vroom,
         ingest-events,
@@ -271,6 +289,7 @@ x-sentry-service-config:
         ingest-transactions,
         ingest-monitors,
         ingest-feedback-events,
+        ingest-replay-recordings,
         monitors-clock-tick,
         monitors-clock-tasks,
         monitors-incident-occurrences,
@@ -286,9 +305,9 @@ x-sentry-service-config:
         post-process-forwarder-errors,
         post-process-forwarder-transactions,
         post-process-forwarder-issue-platform,
+        taskbroker,
         taskworker,
         taskworker-scheduler,
-        worker,
       ]
 
 x-programs:
@@ -336,14 +355,14 @@ x-programs:
     command: sentry run consumer post-process-forwarder-issue-platform --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   ingest-feedback-events:
     command: sentry run consumer ingest-feedback-events --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-replay-recordings:
+    command: sentry run consumer ingest-replay-recordings --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   subscription-results-eap-items:
     command: sentry run consumer subscription-results-eap-items --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   metrics-subscription-results:
     command: sentry run consumer metrics-subscription-results --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   generic-metrics-subscription-results:
     command: sentry run consumer generic-metrics-subscription-results --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
-  worker:
-    command: sentry run worker -c 1 --autoreload
 
 services:
   postgres:
@@ -404,19 +423,6 @@ services:
       - IP=0.0.0.0
     labels:
       - orchestrator=devservices
-  rabbitmq:
-    image: ghcr.io/getsentry/image-mirror-library-rabbitmq:3-management
-    ports:
-      - '127.0.0.1:5672:5672'
-      - '127.0.0.1:15672:15672'
-    networks:
-      - devservices
-    extra_hosts:
-      - host.docker.internal:host-gateway
-    environment:
-      - IP=0.0.0.0
-    labels:
-      - orchestrator=devservices
   memcached:
     image: ghcr.io/getsentry/image-mirror-library-memcached:1.5-alpine
     ports:
@@ -428,7 +434,7 @@ services:
     labels:
       - orchestrator=devservices
   spotlight:
-    image: ghcr.io/getsentry/spotlight:latest
+    image: ghcr.io/getsentry/spotlight:7640f9ff4be79a934e5cac8b255d2a2055ceeb28
     healthcheck:
       interval: 1s
       timeout: 1s

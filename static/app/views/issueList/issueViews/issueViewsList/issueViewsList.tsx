@@ -9,7 +9,6 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
-import Redirect from 'sentry/components/redirect';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconMegaphone, IconSort} from 'sentry/icons';
@@ -45,8 +44,6 @@ import {
   type GroupSearchView,
 } from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-import useDefaultProject from 'sentry/views/nav/secondary/sections/issues/issueViews/useDefaultProject';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 type IssueViewSectionProps = {
   createdBy: GroupSearchViewCreatedBy;
@@ -233,7 +230,7 @@ function NoViewsBanner({
         )}
       </BannerText>
       <Feature
-        features={'organizations:issue-views'}
+        features="organizations:issue-views"
         hookName="feature-disabled:issue-views"
         renderDisabled={props => (
           <Hovercard
@@ -332,19 +329,13 @@ export default function IssueViewsList() {
   const openFeedbackForm = useFeedbackForm();
   const {mutate: createGroupSearchView, isPending: isCreatingView} =
     useCreateGroupSearchView();
-  const defaultProject = useDefaultProject();
-  const prefersStackedNav = usePrefersStackedNav();
-
-  if (!prefersStackedNav) {
-    return <Redirect to={`/organizations/${organization.slug}/issues/`} />;
-  }
 
   const handleCreateView = () => {
     createGroupSearchView(
       {
         name: t('New View'),
         query: 'is:unresolved',
-        projects: defaultProject,
+        projects: [],
         environments: DEFAULT_ENVIRONMENTS,
         timeFilters: DEFAULT_TIME_FILTERS,
         querySort: IssueSortOptions.DATE,
@@ -397,7 +388,7 @@ export default function IssueViewsList() {
               ) : null}
 
               <Feature
-                features={'organizations:issue-views'}
+                features="organizations:issue-views"
                 hookName="feature-disabled:issue-views"
                 renderDisabled={props => (
                   <Hovercard

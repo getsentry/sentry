@@ -14,7 +14,6 @@ import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/token
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
-import {space} from 'sentry/styles/space';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -36,22 +35,23 @@ export function StorySearch() {
   const {
     foundations: foundationsTree,
     core: coreTree,
-    shared: sharedTree,
+    product: productTree,
     typography: typographyTree,
     layout: layoutTree,
+    shared: sharedTree,
   } = useStoryBookFilesByCategory();
   const foundations = useMemo(
     () => foundationsTree.flatMap(tree => tree.flat()),
     [foundationsTree]
   );
   const core = useMemo(() => coreTree.flatMap(tree => tree.flat()), [coreTree]);
-  const shared = useMemo(() => sharedTree.flatMap(tree => tree.flat()), [sharedTree]);
+  const product = useMemo(() => productTree.flatMap(tree => tree.flat()), [productTree]);
   const typography = useMemo(
     () => typographyTree.flatMap(tree => tree.flat()),
     [typographyTree]
   );
   const layout = useMemo(() => layoutTree.flatMap(tree => tree.flat()), [layoutTree]);
-
+  const shared = useMemo(() => sharedTree.flatMap(tree => tree.flat()), [sharedTree]);
   useHotkeys([{match: '/', callback: () => inputRef.current?.focus()}]);
 
   const sectionedItems = useMemo(() => {
@@ -89,16 +89,24 @@ export function StorySearch() {
       });
     }
 
+    if (product.length > 0) {
+      sections.push({
+        key: 'product',
+        label: 'Product',
+        options: product,
+      });
+    }
+
     if (shared.length > 0) {
       sections.push({
         key: 'shared',
-        label: 'Product',
+        label: 'Shared',
         options: shared,
       });
     }
 
     return sections;
-  }, [foundations, core, shared, layout, typography]);
+  }, [foundations, core, product, layout, typography, shared]);
 
   return (
     <SearchComboBox
@@ -238,17 +246,18 @@ const StorySearchContainer = styled('div')`
   width: 320px;
   flex-grow: 1;
   z-index: ${p => p.theme.zIndex.header};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   padding-right: 0;
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  margin-left: -${p => p.theme.space['2xl']};
 `;
 
 const StyledOverlay = styled(Overlay)`
   position: fixed;
   top: 48px;
-  left: 108px;
+  left: 256px;
   width: 320px;
   max-height: calc(100dvh - 128px);
   overflow-y: auto;

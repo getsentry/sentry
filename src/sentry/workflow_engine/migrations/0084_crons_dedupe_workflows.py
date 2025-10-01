@@ -17,10 +17,18 @@ def dedupe_cron_shadow_workflows(apps: StateApps, schema_editor: BaseDatabaseSch
     DataSourceDetector = apps.get_model("workflow_engine", "DataSourceDetector")
     DetectorWorkflow = apps.get_model("workflow_engine", "DetectorWorkflow")
     rules_by_org = defaultdict(list)
-    for rule in Rule.objects.filter(source=1).select_related("project"):
+    for rule in Rule.objects.filter(source=1):
         rules_by_org[rule.project.organization_id].append(rule)
 
     for organization_id, rules in rules_by_org.items():
+        links = AlertRuleWorkflow.objects.filter(rule_id__in=[r.id for r in rules]).select_related(
+            "workflow"
+        )
+        rule_workflows = {link.rule_id: link.workflow for link in links}
+        # We filter out rules with no links here - if we re-run the script, we don't need to reprocess rules that
+        # have already been de-duped
+        rules = [r for r in rules if r.id in rule_workflows]
+
         monitors = Monitor.objects.filter(organization_id=organization_id)
         rule_monitors = {
             int(m.config["alert_rule_id"]): m for m in monitors if "alert_rule_id" in m.config
@@ -32,10 +40,6 @@ def dedupe_cron_shadow_workflows(apps: StateApps, schema_editor: BaseDatabaseSch
         monitor_id_to_detector = {
             int(dsl.data_source.source_id): dsl.detector for dsl in data_source_links
         }
-        links = AlertRuleWorkflow.objects.filter(rule_id__in=[r.id for r in rules]).select_related(
-            "workflow"
-        )
-        rule_workflows = {link.rule_id: link.workflow for link in links}
         rule_hashes = defaultdict(list)
         for rule in rules:
             data = deepcopy(rule.data)
@@ -63,13 +67,15 @@ def dedupe_cron_shadow_workflows(apps: StateApps, schema_editor: BaseDatabaseSch
                 primary_workflow = rule_workflows[rule_ids[0]]
                 rule_ids_to_remove = rule_ids[1:]
                 for rule_id_to_remove in rule_ids_to_remove:
-                    rule_workflows[rule_id_to_remove].delete()
+                    if rule_id_to_remove in rule_workflows:
+                        rule_workflows[rule_id_to_remove].delete()
 
                 for rule_id in rule_ids:
-                    detector = monitor_id_to_detector[rule_monitors[rule_id].id]
-                    DetectorWorkflow.objects.get_or_create(
-                        detector=detector, workflow=primary_workflow
-                    )
+                    if rule_id in rule_monitors:
+                        detector = monitor_id_to_detector[rule_monitors[rule_id].id]
+                        DetectorWorkflow.objects.get_or_create(
+                            detector=detector, workflow=primary_workflow
+                        )
 
 
 class Migration(CheckedMigration):
@@ -89,6 +95,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("workflow_engine", "0083_add_status_to_action"),
+        ("monitors", "0009_backfill_monitor_detectors"),
     ]
 
     operations = [

@@ -58,5 +58,5 @@ Sentry is the debugging platform that helps every developer detect, trace, and f
 - [Contributing](https://docs.sentry.io/internal/contributing/)
 - [Bug Tracker](https://github.com/getsentry/sentry/issues)
 - [Code](https://github.com/getsentry/sentry)
-- [Transifex](https://www.transifex.com/getsentry/sentry/) (Translate
+- [Transifex](https://explore.transifex.com/getsentry/sentry/) (Translate
   Sentry\!)

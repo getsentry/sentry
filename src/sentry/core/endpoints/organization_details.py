@@ -72,7 +72,6 @@ from sentry.constants import (
     ObjectStatus,
 )
 from sentry.core.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
-from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects_of_org_with_query,
@@ -103,6 +102,7 @@ from sentry.organizations.services.organization.model import (
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,
 )
+from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
@@ -418,16 +418,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def validate_trustedRelays(self, value):
-        from sentry import features
-
-        organization = self.context["organization"]
-        request = self.context["request"]
-        has_relays = features.has("organizations:relay", organization, actor=request.user)
-        if not has_relays:
-            raise serializers.ValidationError(
-                "Organization does not have the relay feature enabled"
-            )
-
         # make sure we don't have multiple instances of one public key
         public_keys = set()
         if value is not None:

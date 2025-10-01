@@ -22,17 +22,10 @@ export const getDetectorDataset = (
       return DetectorDataset.TRANSACTIONS;
     }
     case Dataset.EVENTS_ANALYTICS_PLATFORM: {
-      // Spans and logs use the same dataset
-      if (eventTypes.includes(EventTypes.TRACE_ITEM_SPAN)) {
-        return DetectorDataset.SPANS;
-      }
       if (eventTypes.includes(EventTypes.TRACE_ITEM_LOG)) {
         return DetectorDataset.LOGS;
       }
-      if (eventTypes.includes(EventTypes.TRANSACTION)) {
-        return DetectorDataset.TRANSACTIONS;
-      }
-      throw new Error(`Unsupported event types`);
+      return DetectorDataset.SPANS;
     }
     case Dataset.METRICS:
     case Dataset.SESSIONS:

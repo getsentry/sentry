@@ -49,7 +49,7 @@ describe('ProfileContext', () => {
         subject: 'Profile ID',
         value: PROFILE_ID,
         action: {
-          link: `/organizations/${organization.slug}/profiling/profile/${project.slug}/${PROFILE_ID}/flamegraph/`,
+          link: `/organizations/${organization.slug}/explore/profiling/profile/${project.slug}/${PROFILE_ID}/flamegraph/`,
         },
       },
       {
@@ -58,7 +58,7 @@ describe('ProfileContext', () => {
         value: PROFILER_ID,
         action: {
           link: {
-            pathname: `/organizations/${organization.slug}/profiling/profile/${project.slug}/flamegraph/`,
+            pathname: `/organizations/${organization.slug}/explore/profiling/profile/${project.slug}/flamegraph/`,
             query: {
               profilerId: PROFILER_ID,
               eventId: event.id,
@@ -91,8 +91,8 @@ describe('ProfileContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'default'}
-        alias={'profile'}
+        type="default"
+        alias="profile"
         project={project}
         value={{...MOCK_PROFILE_CONTEXT, extra_data: ''}}
       />,

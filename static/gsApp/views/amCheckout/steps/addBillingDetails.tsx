@@ -16,7 +16,7 @@ import {space} from 'sentry/styles/space';
 import useApi from 'sentry/utils/useApi';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import BillingDetailsForm from 'getsentry/components/billingDetailsForm';
+import BillingDetailsForm from 'getsentry/components/billingDetails/form';
 import type {BillingDetails} from 'getsentry/types';
 import {AddressType} from 'getsentry/types';
 import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
@@ -150,8 +150,9 @@ function AddBillingDetails({
           onSubmitSuccess={() => onCompleteStep(stepNumber)}
           onSubmitError={err => setState({...state, submitError: err})}
           submitLabel={t('Continue')}
-          fieldProps={fieldProps}
           footerStyle={footerStyle}
+          fieldProps={fieldProps}
+          analyticsEvent="checkout.updated_billing_details"
         />
       </FormWrapper>
     );

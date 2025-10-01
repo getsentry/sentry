@@ -110,7 +110,6 @@ export const INSIGHTS_BASE_URL = 'insights';
 export const DEFAULT_INTERVAL = '10m';
 
 export const QUERY_DATE_RANGE_LIMIT = 30; // Maximum number of days that can be queried for, enabled by the `insights-query-date-range-limit` feature flag
-export const OLD_QUERY_DATE_RANGE_LIMIT = 7;
 
 export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.DB]: DB_MODULE_TITLE,
@@ -238,12 +237,13 @@ export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
 export const MODULES_CONSIDERED_NEW: Set<ModuleName> = new Set([
   ModuleName.MOBILE_VITALS,
   ModuleName.SESSIONS,
+  ModuleName.MCP,
 ]);
 
 /**
  * Modules that are in beta, e.g. used to show a badge on the tab.
  */
-export const MODULES_CONSIDERED_BETA: Set<ModuleName> = new Set([ModuleName.MCP]);
+export const MODULES_CONSIDERED_BETA: Set<ModuleName> = new Set();
 
 export const INGESTION_DELAY = 90;
 
@@ -254,3 +254,6 @@ export const BASE_FIELD_ALIASES: Partial<Record<SpanProperty, string>> = {
   'epm()': t('Requests Per Minute'),
   'cache_miss_rate()': t('Cache Miss Rate'),
 };
+
+// Values within 3% of average are considered "near average"
+export const NEAR_AVERAGE_THRESHOLD_PERCENTAGE = 3;

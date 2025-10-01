@@ -8,6 +8,7 @@ import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -241,20 +242,29 @@ export function SpanOperationTable({
     });
   };
 
+  const gridColumnOrder = [
+    String(SPAN_OP),
+    String(SPAN_DESCRIPTION),
+    `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
+    `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
+    `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
+  ].map(col => ({
+    key: col,
+    name: columnNameMap[col] ?? col,
+    width: COL_WIDTH_UNDEFINED,
+  }));
+
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: gridColumnOrder,
+    location,
+  });
+
   return (
     <Fragment>
       <GridEditable
         isLoading={isPending}
         data={data}
-        columnOrder={[
-          String(SPAN_OP),
-          String(SPAN_DESCRIPTION),
-          `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
-          `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
-          `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
-        ].map(col => {
-          return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};
-        })}
+        columnOrder={columns}
         columnSortBy={[
           {
             key: sort.field,
@@ -264,6 +274,7 @@ export function SpanOperationTable({
         grid={{
           renderHeadCell: column => renderHeadCell(column, meta),
           renderBodyCell,
+          onResizeColumn: handleResizeColumn,
         }}
       />
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />

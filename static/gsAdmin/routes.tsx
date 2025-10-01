@@ -246,7 +246,6 @@ function buildRoutes() {
       {
         path: 'data-requests/',
         component: DataRequests,
-        deprecatedRouteProps: true,
       },
       {
         path: 'billingadmins/',

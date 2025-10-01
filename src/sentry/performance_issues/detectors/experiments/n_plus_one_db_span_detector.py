@@ -3,13 +3,13 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-from sentry.issues.grouptype import PerformanceNPlusOneExperimentalGroupType
+from sentry import features
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.performance_issues.base import (
-    DetectorType,
-    PerformanceDetector,
+from sentry.performance_issues.base import DetectorType, PerformanceDetector
+from sentry.performance_issues.detectors.utils import (
     get_notification_attachment_body,
     get_span_evidence_value,
     total_span_time,
@@ -75,7 +75,9 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
         return True
 
     def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        return True  # This detector is fully rolled out
+        return features.has(
+            "organizations:experimental-n-plus-one-db-detector-rollout", organization
+        )
 
     def is_creation_allowed_for_project(self, project: Project | None) -> bool:
         return self.settings["detection_enabled"]
@@ -202,7 +204,7 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
                 fingerprint=fingerprint,
                 op="db",
                 desc=first_span_description,
-                type=PerformanceNPlusOneExperimentalGroupType,
+                type=PerformanceNPlusOneGroupType,
                 parent_span_ids=[parent_span_id],
                 cause_span_ids=[self.source_span["span_id"]],
                 offender_span_ids=offender_span_ids,
@@ -253,7 +255,7 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
     def _fingerprint(self, parent_op: str, parent_hash: str, source_hash: str, n_hash: str) -> str:
         # XXX: this has to be a hardcoded string otherwise grouping will break
         # For the experiment, we also need to modify the hardcoded string so that after re-GA, new groups send notifications.
-        problem_class = "GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES_EXPERIMENTAL"
+        problem_class = "GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES"
         full_fingerprint = hashlib.sha1(
             (str(parent_op) + str(parent_hash) + str(source_hash) + str(n_hash)).encode("utf8"),
         ).hexdigest()

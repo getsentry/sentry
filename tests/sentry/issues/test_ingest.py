@@ -10,7 +10,7 @@ from django.utils import timezone
 from sentry.api.helpers.group_index.update import handle_priority
 from sentry.constants import LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.incidents.grouptype import MetricIssueDetectorHandler
+from sentry.incidents.grouptype import MetricIssue, MetricIssueDetectorHandler
 from sentry.incidents.utils.types import AnomalyDetectionUpdate, ProcessedSubscriptionUpdate
 from sentry.issues.grouptype import (
     FeedbackGroup,
@@ -34,6 +34,7 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupopenperiod import get_latest_open_period
+from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
@@ -44,7 +45,6 @@ from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
 from sentry.utils import json
@@ -642,7 +642,6 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert group_info is not None
         assert group_info.group.priority == PriorityLevel.HIGH
 
-    @with_feature("organizations:issue-open-periods")
     def test_update_open_period(self) -> None:
         fingerprint = ["some-fingerprint"]
         occurrence = self.build_occurrence(
@@ -693,6 +692,106 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         group.refresh_from_db()
         assert group.priority == PriorityLevel.LOW
         assert group.priority_locked_at is not None
+
+    def test_create_open_period_activity_entry(self) -> None:
+        fingerprint = ["some-fingerprint"]
+        occurrence = self.build_occurrence(
+            initial_issue_priority=PriorityLevel.MEDIUM,
+            fingerprint=fingerprint,
+            type=MetricIssue.type_id,
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        group = group_info.group
+
+        open_period = get_latest_open_period(group)
+        assert open_period is not None
+        activity_updates = GroupOpenPeriodActivity.objects.filter(group_open_period=open_period)
+
+        assert len(activity_updates) == 1
+        assert activity_updates[0].type == OpenPeriodActivityType.OPENED
+        assert activity_updates[0].value == PriorityLevel.MEDIUM
+
+    def test_update_group_priority_open_period_activity_entry(self) -> None:
+        fingerprint = ["some-fingerprint"]
+        occurrence = self.build_occurrence(
+            initial_issue_priority=PriorityLevel.MEDIUM,
+            fingerprint=fingerprint,
+            type=MetricIssue.type_id,
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        group = group_info.group
+        assert group.priority == PriorityLevel.MEDIUM
+
+        new_event = self.store_event(data={}, project_id=self.project.id)
+        new_occurrence = self.build_occurrence(
+            fingerprint=["some-fingerprint"],
+            type=MetricIssue.type_id,
+            initial_issue_priority=PriorityLevel.HIGH,
+        )
+        with self.tasks():
+            updated_group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
+        assert updated_group_info is not None
+        group.refresh_from_db()
+        assert group.priority == PriorityLevel.HIGH
+
+        open_period = get_latest_open_period(group)
+        assert open_period is not None
+        activity_updates = GroupOpenPeriodActivity.objects.filter(group_open_period=open_period)
+
+        assert len(activity_updates) == 2
+        assert activity_updates[0].type == OpenPeriodActivityType.OPENED
+        assert activity_updates[0].value == PriorityLevel.MEDIUM
+
+        assert activity_updates[1].type == OpenPeriodActivityType.STATUS_CHANGE
+        assert activity_updates[1].value == PriorityLevel.HIGH
+
+    @mock.patch("sentry.issues.ingest._process_existing_aggregate")
+    def test_update_group_priority_and_unresolve(self, mock_is_regression: mock.MagicMock) -> None:
+        # set up the group opening entry
+        fingerprint = ["some-fingerprint"]
+        occurrence = self.build_occurrence(
+            initial_issue_priority=PriorityLevel.MEDIUM,
+            fingerprint=fingerprint,
+            type=MetricIssue.type_id,
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        group = group_info.group
+
+        open_period = get_latest_open_period(group)
+        assert open_period is not None
+        activity_updates = GroupOpenPeriodActivity.objects.filter(group_open_period=open_period)
+
+        assert len(activity_updates) == 1
+        assert activity_updates[0].type == OpenPeriodActivityType.OPENED
+        assert activity_updates[0].value == PriorityLevel.MEDIUM
+
+        mock_is_regression.return_value = True
+
+        # mock a regression with priority change
+        new_event = self.store_event(data={}, project_id=self.project.id)
+        new_occurrence = self.build_occurrence(
+            fingerprint=["some-fingerprint"],
+            type=MetricIssue.type_id,
+            initial_issue_priority=PriorityLevel.HIGH,
+        )
+        with self.tasks():
+            updated_group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
+        assert updated_group_info is not None
+        group.refresh_from_db()
+        assert group.priority == PriorityLevel.HIGH
+        mock_is_regression.assert_called()
+
+        activity_updates = GroupOpenPeriodActivity.objects.filter(group_open_period=open_period)
+
+        assert len(activity_updates) == 1
+        assert activity_updates[0].type == OpenPeriodActivityType.OPENED
+        assert activity_updates[0].value == PriorityLevel.HIGH
 
 
 class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):

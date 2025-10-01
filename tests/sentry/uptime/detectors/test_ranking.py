@@ -17,7 +17,6 @@ from sentry.uptime.detectors.ranking import (
     should_detect_for_organization,
     should_detect_for_project,
 )
-from sentry.uptime.models import get_detector
 
 
 class AddBaseUrlToRankTest(UptimeTestCase):
@@ -139,7 +138,7 @@ class GetCandidateUrlsForProjectTest(UptimeTestCase):
         with mock.patch("sentry.uptime.subscriptions.subscriptions.MAX_MONITORS_PER_DOMAIN", 1):
             other_proj = self.create_project()
             url_1 = "https://sentry.io"
-            self.create_project_uptime_subscription(
+            self.create_uptime_detector(
                 project=other_proj, uptime_subscription=self.create_uptime_subscription(url=url_1)
             )
             url_2 = "https://sentry.sentry.io"
@@ -203,9 +202,7 @@ class ShouldDetectForOrgTest(UptimeTestCase):
 
     def test_quota(self) -> None:
         assert should_detect_for_organization(self.organization)
-        uptime_monitor = self.create_project_uptime_subscription()
+        detector = self.create_uptime_detector()
         assert not should_detect_for_organization(self.organization)
-        detector = get_detector(uptime_monitor.uptime_subscription)
         detector.delete()
-        uptime_monitor.delete()
         assert should_detect_for_organization(self.organization)

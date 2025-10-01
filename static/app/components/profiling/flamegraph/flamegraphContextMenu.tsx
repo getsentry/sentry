@@ -20,6 +20,11 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import type {
+  AggregateProfileSource,
+  ProfileSource,
+} from 'sentry/utils/analytics/profilingAnalyticsEvents';
 import {getShortEventId} from 'sentry/utils/events';
 import type {
   FlamegraphColorCodings,
@@ -68,6 +73,7 @@ export interface FlamegraphContextMenuProps {
   onCopyFunctionSource: () => void;
   onHighlightAllOccurrencesClick: () => void;
   profileGroup: ProfileGroup | null;
+  profileType: ProfileSource | AggregateProfileSource;
   disableCallOrderSort?: boolean;
   disableColorCoding?: boolean;
 }
@@ -139,6 +145,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
               <ProfileIdsSubMenu
                 contextMenu={props.contextMenu}
                 profileIds={props.hoveredNode.profileIds}
+                profileType={props.profileType}
                 frameName={props.hoveredNode.frame.name}
                 framePackage={props.hoveredNode.frame.package}
                 organization={organization}
@@ -148,7 +155,16 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
             )}
             <ProfilingContextMenuItemCheckbox
               {...props.contextMenu.getMenuItemProps({
-                onClick: props.onHighlightAllOccurrencesClick,
+                onClick: () => {
+                  trackAnalytics(
+                    'profiling_views.flamegraph.click.highlight_all_occurrences',
+                    {
+                      organization,
+                      profile_type: props.profileType,
+                    }
+                  );
+                  props.onHighlightAllOccurrencesClick();
+                },
               })}
               checked={props.isHighlightingAllOccurrences}
             >
@@ -159,6 +175,10 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
               disabled={!(props.hoveredNode.frame.file ?? props.hoveredNode.frame.path)}
               {...props.contextMenu.getMenuItemProps({
                 onClick: () => {
+                  trackAnalytics('profiling_views.flamegraph.click.copy_function_name', {
+                    organization,
+                    profile_type: props.profileType,
+                  });
                   props.onCopyFunctionNameClick();
                   // This is a button, so close the context menu.
                   props.contextMenu.setOpen(false);
@@ -171,6 +191,13 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
             <ProfilingContextMenuItemButton
               {...props.contextMenu.getMenuItemProps({
                 onClick: () => {
+                  trackAnalytics(
+                    'profiling_views.flamegraph.click.copy_function_source',
+                    {
+                      organization,
+                      profile_type: props.profileType,
+                    }
+                  );
                   props.onCopyFunctionSource();
                   // This is a button, so close the context menu.
                   props.contextMenu.setOpen(false);
@@ -363,6 +390,11 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
       return;
     }
 
+    trackAnalytics('profiling_views.flamegraph.click.open_in', {
+      organization,
+      profile_type: props.profileType,
+    });
+
     // make a best effort to link to the exact line if we can
     const url =
       defined(props.hoveredNode) && defined(props.hoveredNode.frame.line)
@@ -370,7 +402,7 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
         : sourceCodeLink.data.sourceUrl;
 
     window.open(url, '_blank', 'noopener,noreferrer');
-  }, [props.hoveredNode, sourceCodeLink]);
+  }, [organization, props.profileType, props.hoveredNode, sourceCodeLink]);
 
   return props.contextMenu.open ? (
     <Fragment>
@@ -391,6 +423,7 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
               <ProfileIdsSubMenu
                 contextMenu={props.contextMenu}
                 profileIds={props.hoveredNode.profileIds}
+                profileType={props.profileType}
                 frameName={props.hoveredNode.frame.name}
                 framePackage={props.hoveredNode.frame.package}
                 organization={organization}
@@ -542,6 +575,7 @@ function ProfileIdsSubMenu(props: {
   framePackage: string | undefined;
   organization: Organization;
   profileIds: Profiling.ProfileReference[];
+  profileType: ProfileSource | AggregateProfileSource;
   projectSlug: string | undefined;
   subMenuPortalRef: HTMLElement | null;
 }) {
@@ -649,6 +683,12 @@ function ProfileIdsSubMenu(props: {
                     {...props.contextMenu.getMenuItemProps({})}
                   >
                     <Link
+                      onClick={() => {
+                        trackAnalytics('profiling_views.flamegraph.click.profile', {
+                          organization: props.organization,
+                          profile_type: props.profileType,
+                        });
+                      }}
                       to={to}
                       css={css`
                         color: unset;

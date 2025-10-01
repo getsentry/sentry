@@ -43,9 +43,9 @@ from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
     ApiUnauthorized,
+    IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
-    IntegrationInstallationConfigurationError,
 )
 from sentry.silo.base import all_silo_function
 from sentry.users.models.identity import Identity
@@ -995,7 +995,7 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         issue_type_meta = client.get_issue_fields(jira_project, issue_type)
         if not issue_type_meta:
-            raise IntegrationInstallationConfigurationError(
+            raise IntegrationConfigurationError(
                 "Could not fetch issue create configuration from Jira."
             )
 
@@ -1287,7 +1287,7 @@ class JiraServerIntegration(IssueSyncIntegration):
                     **logging_context,
                 },
             )
-            raise IntegrationInstallationConfigurationError(
+            raise IntegrationConfigurationError(
                 "Insufficient permissions to assign user to Jira Server issue"
             ) from e
         except ApiError as e:

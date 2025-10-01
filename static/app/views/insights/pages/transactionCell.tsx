@@ -47,7 +47,7 @@ export function TransactionCell({project, transaction, transactionMethod}: Props
 
   return (
     <OverflowEllipsisTextContainer>
-      <Link to={`${pathname}/?${qs.stringify(query)}`}>{transaction}</Link>
+      <Link to={`${pathname}?${qs.stringify(query)}`}>{transaction}</Link>
     </OverflowEllipsisTextContainer>
   );
 }

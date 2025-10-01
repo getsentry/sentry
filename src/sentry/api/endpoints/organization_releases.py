@@ -11,14 +11,19 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
-from sentry import analytics, release_health
+from sentry import analytics, features, release_health
 from sentry.analytics.events.release_created import ReleaseCreatedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ConflictError, InvalidRepository
-from sentry.api.paginator import MergingOffsetPaginator, OffsetPaginator
+from sentry.api.paginator import (
+    MAX_LIMIT,
+    BadPaginationError,
+    MergingOffsetPaginator,
+    OffsetPaginator,
+)
 from sentry.api.release_search import FINALIZED_KEY, RELEASE_FREE_TEXT_KEY, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
@@ -32,10 +37,17 @@ from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.models.project import Project
-from sentry.models.release import Release, ReleaseStatus
+from sentry.models.release import (
+    Release,
+    ReleaseStatus,
+    filter_releases_by_environments,
+    filter_releases_by_projects,
+)
 from sentry.models.releases.exceptions import ReleaseCommitError
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.releases.util import SemverFilter
+from sentry.ratelimits.config import RateLimitConfig
+from sentry.releases.use_cases.release import serialize as release_serializer
 from sentry.search.events.constants import (
     OPERATOR_TO_DJANGO,
     RELEASE_ALIAS,
@@ -51,6 +63,7 @@ from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cache import cache
+from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.sdk import bind_organization_context
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
@@ -164,6 +177,7 @@ class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
     refs = ListField(child=ReleaseHeadCommitSerializer(), required=False, allow_null=False)
 
 
+@sentry_sdk.trace
 def debounce_update_release_health_data(organization, project_ids: list[int]):
     """This causes a flush of snuba health data to the postgres tables once
     per minute for the given projects.
@@ -189,13 +203,31 @@ def debounce_update_release_health_data(organization, project_ids: list[int]):
         should_update.keys()
     )
 
-    # Check which we already have rows for.
-    existing = set(
+    # Pre-flight query which was broken out of the release-project query below. By running this
+    # in a separate query we can utilize the index on (organization, version) and remove a join.
+    # The total cost of the two queries is significantly less than a single query.
+    release_ids_and_versions = dict(
+        Release.objects.filter(
+            organization_id=organization.id,
+            version__in=[x[1] for x in project_releases],
+        ).values_list("id", "version")
+    )
+
+    release_ids_and_project_ids = list(
         ReleaseProject.objects.filter(
             project_id__in=[x[0] for x in project_releases],
-            release__version__in=[x[1] for x in project_releases],
-        ).values_list("project_id", "release__version")
+            release_id__in=release_ids_and_versions.keys(),
+        ).values_list("release_id", "project_id")
     )
+
+    # I'm zipping the results of the two queries above to emulate the results of the old query
+    # which was removed. I'm not changing the existing semantics of the code. I'm only performance
+    # optimizing database access. Feel free to change.
+    existing = {
+        (project_id, release_ids_and_versions[release_id])
+        for release_id, project_id in release_ids_and_project_ids
+    }
+
     to_upsert = []
     for key in project_releases:
         if key not in existing:
@@ -237,18 +269,20 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         "POST": ApiPublishStatus.UNKNOWN,
     }
 
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=40, window=1),
-            RateLimitCategory.USER: RateLimit(limit=40, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
-        },
-        "POST": {
-            RateLimitCategory.IP: RateLimit(limit=40, window=1),
-            RateLimitCategory.USER: RateLimit(limit=40, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
-        },
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=40, window=1),
+                RateLimitCategory.USER: RateLimit(limit=40, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
+            },
+            "POST": {
+                RateLimitCategory.IP: RateLimit(limit=40, window=1),
+                RateLimitCategory.USER: RateLimit(limit=40, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
+            },
+        }
+    )
 
     SESSION_SORTS = frozenset(
         [
@@ -271,6 +305,176 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         )
 
     def get(self, request: Request, organization: Organization) -> Response:
+        if (
+            features.has("organizations:releases-serializer-v2", organization, actor=request.user)
+            or request.headers.get("X-Performance-Optimizations") == "enabled"
+        ):
+            return self.__get_new(request, organization)
+        else:
+            return self.__get_old(request, organization)
+
+    def __get_new(self, request: Request, organization: Organization) -> Response:
+        """
+        List an Organization's Releases
+        ```````````````````````````````
+        Return a list of releases for a given organization.
+
+        :pparam string organization_id_or_slug: the id or slug of the organization
+        :qparam string query: this parameter can be used to create a
+                              "starts with" filter for the version.
+        """
+        query = request.GET.get("query")
+        status_filter = request.GET.get("status", "open")
+        flatten = request.GET.get("flatten") == "1"
+        sort = request.GET.get("sort") or "date"
+        summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
+
+        if summary_stats_period not in STATS_PERIODS:
+            raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
+
+        paginator_cls = OffsetPaginator
+        paginator_kwargs = {}
+
+        try:
+            filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
+        except NoProjects:
+            return Response([])
+
+        # This should get us all the projects into postgres that have received
+        # health data in the last 24 hours.
+        debounce_update_release_health_data(organization, filter_params["project_id"])
+
+        queryset = Release.objects.filter(organization_id=organization.id)
+        queryset = filter_releases_by_environments(
+            queryset,
+            filter_params["project_id"],
+            [e.id for e in filter_params.get("environment_objects", [])],
+        )
+        queryset = queryset.annotate(date=F("date_added"))
+
+        if status_filter:
+            try:
+                status_int = ReleaseStatus.from_string(status_filter)
+            except ValueError:
+                raise ParseError(detail="invalid value for status")
+
+            if status_int == ReleaseStatus.OPEN:
+                queryset = queryset.filter(Q(status=status_int) | Q(status=None))
+            else:
+                queryset = queryset.filter(status=status_int)
+
+        if query:
+            try:
+                queryset = _filter_releases_by_query(queryset, organization, query, filter_params)
+            except InvalidSearchQuery as e:
+                return Response(
+                    {"detail": str(e)},
+                    status=400,
+                )
+
+        queryset = filter_releases_by_projects(queryset, filter_params["project_id"])
+
+        if sort == "date":
+            queryset = queryset.order_by("-date")
+            paginator_kwargs["order_by"] = "-date"
+        elif sort == "build":
+            queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
+            paginator_kwargs["order_by"] = "-build_number"
+        elif sort == "semver":
+            queryset = queryset.annotate_prerelease_column()
+
+            order_by = [F(col).desc(nulls_last=True) for col in Release.SEMVER_COLS]
+            # TODO: Adding this extra sort order breaks index usage. Index usage is already broken
+            # when we filter by status, so when we fix that we should also consider the best way to
+            # make this work as expected.
+            order_by.append(F("date_added").desc())
+            paginator_kwargs["order_by"] = order_by
+        elif sort == "adoption":
+            # sort by adoption date (most recently adopted first)
+            order_by = F("releaseprojectenvironment__adopted").desc(nulls_last=True)
+            queryset = queryset.order_by(order_by)
+            paginator_kwargs["order_by"] = order_by
+        elif sort in self.SESSION_SORTS:
+            if not flatten:
+                return Response(
+                    {"detail": "sorting by crash statistics requires flattening (flatten=1)"},
+                    status=400,
+                )
+
+            def qs_load_func(queryset, total_offset, qs_offset, limit):
+                # We want to fetch at least total_offset + limit releases to check, to make sure
+                # we're not fetching only releases that were on previous pages.
+                release_versions = list(
+                    queryset.order_by_recent().values_list("version", flat=True)[
+                        : total_offset + limit
+                    ]
+                )
+                releases_with_session_data = release_health.backend.check_releases_have_health_data(
+                    organization.id,
+                    filter_params["project_id"],
+                    release_versions,
+                    (
+                        filter_params["start"]
+                        if filter_params["start"]
+                        else datetime.utcnow() - timedelta(days=90)
+                    ),
+                    filter_params["end"] if filter_params["end"] else datetime.utcnow(),
+                )
+                valid_versions = [
+                    rv for rv in release_versions if rv not in releases_with_session_data
+                ]
+
+                results = list(
+                    Release.objects.filter(
+                        organization_id=organization.id,
+                        version__in=valid_versions,
+                    ).order_by_recent()[qs_offset : qs_offset + limit]
+                )
+                return results
+
+            paginator_cls = ReleasesMergingOffsetPaginator
+            paginator_kwargs.update(
+                data_load_func=lambda offset, limit: release_health.backend.get_project_releases_by_stability(
+                    project_ids=filter_params["project_id"],
+                    environments=filter_params.get("environment"),
+                    scope=sort,
+                    offset=offset,
+                    stats_period=summary_stats_period,
+                    limit=limit,
+                ),
+                data_count_func=lambda: release_health.backend.get_project_releases_count(
+                    organization_id=organization.id,
+                    project_ids=filter_params["project_id"],
+                    environments=filter_params.get("environment"),
+                    scope=sort,
+                    stats_period=summary_stats_period,
+                ),
+                apply_to_queryset=lambda queryset, rows: queryset.filter(
+                    version__in=list(x[1] for x in rows)
+                ),
+                queryset_load_func=qs_load_func,
+                project_ids=filter_params["project_id"],
+            )
+        else:
+            return Response({"detail": "invalid sort"}, status=400)
+
+        queryset = add_date_filter_to_queryset(queryset, filter_params)
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            paginator_cls=paginator_cls,
+            on_results=lambda releases: release_serializer(
+                releases,
+                request.user,
+                organization_id=organization.id,
+                environment_ids=[e.id for e in filter_params.get("environment_objects", [])],
+                projects=filter_params["project_objects"],
+            ),
+            **paginator_kwargs,
+        )
+
+    def __get_old(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Releases
         ```````````````````````````````
@@ -702,3 +906,90 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
             max_limit=1000,
             order_by="-date",
         )
+
+
+class ReleasesMergingOffsetPaginator(OffsetPaginator):
+    """
+    Copied from the default MergingOffsetPaginator. Modified with some release's specific flair.
+    """
+
+    def __init__(
+        self,
+        queryset,
+        data_load_func,
+        apply_to_queryset,
+        project_ids: list[int],
+        key_from_data=None,
+        max_limit=MAX_LIMIT,
+        on_results=None,
+        data_count_func=None,
+        queryset_load_func=None,
+    ):
+        super().__init__(queryset, max_limit=max_limit, on_results=on_results)
+        self.data_load_func = data_load_func
+        self.apply_to_queryset = apply_to_queryset
+        self.key_from_data = key_from_data or (lambda x: x)
+        self.data_count_func = data_count_func
+        self.queryset_load_func = queryset_load_func
+        self.project_ids = project_ids
+
+    def get_result(self, limit=100, cursor=None):
+        if cursor is None:
+            cursor = Cursor(0, 0, 0)
+
+        limit = min(limit, self.max_limit)
+
+        page = cursor.offset
+        offset = cursor.offset * cursor.value
+        limit = cursor.value or limit
+
+        if self.max_offset is not None and offset >= self.max_offset:
+            raise BadPaginationError("Pagination offset too large")
+        if offset < 0:
+            raise BadPaginationError("Pagination offset cannot be negative")
+
+        primary_results = self.data_load_func(offset=offset, limit=self.max_limit + 1)
+
+        # This is the reason we defined our own merging paginator. We need to look up the
+        # project_id since it doesn't exist on the model. This was previously accomplished with a
+        # join (and a distinct clause for other reasons) but it was horribly slow.
+        queryset = self.apply_to_queryset(self.queryset, primary_results)
+        releases = list(queryset)
+        releases_projects = list(
+            ReleaseProject.objects.filter(
+                project_id__in=self.project_ids, release_id__in=[r.id for r in releases]
+            ).values_list("release_id", "project_id")
+        )
+
+        rmap = {r.id: r for r in releases}
+        mapping = {(pid, rmap[rid].version): rmap[rid] for rid, pid in releases_projects}
+
+        results = []
+        for row in primary_results:
+            model = mapping.get(self.key_from_data(row))
+            if model is not None:
+                results.append(model)
+
+        if self.queryset_load_func and self.data_count_func and len(results) < limit:
+            # If we hit the end of the results from the data load func, check whether there are
+            # any additional results in the queryset_load_func, if one is provided.
+            extra_limit = limit - len(results) + 1
+            total_data_count = self.data_count_func()
+            total_offset = offset + len(results)
+            qs_offset = max(0, total_offset - total_data_count)
+            qs_results = self.queryset_load_func(
+                self.queryset, total_offset, qs_offset, extra_limit
+            )
+            results.extend(qs_results)
+            has_more = len(qs_results) == extra_limit
+        else:
+            has_more = len(primary_results) > limit
+
+        results = results[:limit]
+        next_cursor = Cursor(limit, page + 1, False, has_more)
+        prev_cursor = Cursor(limit, page - 1, True, page > 0)
+
+        if self.on_results:
+            results = self.on_results(results)
+
+        return CursorResult(results=results, next=next_cursor, prev=prev_cursor)

@@ -5,15 +5,13 @@ from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from itertools import islice
-from typing import ClassVar
-
-from celery import Task
+from typing import Any, ClassVar, Protocol
 
 from sentry import options
-from sentry.buffer.base import Buffer, BufferField
+from sentry.buffer.base import BufferField
 from sentry.db import models
+from sentry.taskworker.task import Task
 from sentry.utils import metrics
-from sentry.utils.lazy_service_wrapper import LazyServiceWrapper
 from sentry.utils.registry import NoRegistrationExistsError, Registry
 
 logger = logging.getLogger("sentry.delayed_processing")
@@ -28,6 +26,37 @@ class FilterKeys:
 class BufferHashKeys:
     model: type[models.Model]
     filters: FilterKeys
+
+
+class BufferProtocol(Protocol):
+
+    def get_hash(self, model: type[models.Model], field: dict[str, Any]) -> dict[str, str]: ...
+
+    def get_hash_length(self, model: type[models.Model], field: dict[str, Any]) -> int: ...
+
+    def push_to_hash_bulk(
+        self, model: type[models.Model], filters: dict[str, Any], data: dict[str, str]
+    ) -> None: ...
+
+    def push_to_hash(
+        self, model: type[models.Model], filters: dict[str, Any], field: str, value: str
+    ) -> None: ...
+
+    def delete_hash(
+        self, model: type[models.Model], filters: dict[str, Any], fields: list[str]
+    ) -> None: ...
+
+    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, float]]: ...
+
+    def push_to_sorted_set(self, key: str, value: list[int] | int) -> None: ...
+
+    def bulk_get_sorted_set(
+        self, keys: list[str], min: float, max: float
+    ) -> dict[int, list[float]]: ...
+
+    def delete_key(self, key: str, min: float, max: float) -> None: ...
+
+    def delete_keys(self, keys: list[str], min: float, max: float) -> None: ...
 
 
 class DelayedProcessingBase(ABC):
@@ -57,7 +86,7 @@ class DelayedProcessingBase(ABC):
         ]
 
     @staticmethod
-    def buffer_backend() -> LazyServiceWrapper[Buffer]:
+    def buffer_backend() -> BufferProtocol:
         raise NotImplementedError
 
 
@@ -65,7 +94,7 @@ delayed_processing_registry = Registry[type[DelayedProcessingBase]]()
 
 
 def fetch_group_to_event_data(
-    buffer: LazyServiceWrapper[Buffer],
+    buffer: BufferProtocol,
     project_id: int,
     model: type[models.Model],
     batch_key: str | None = None,
@@ -87,9 +116,7 @@ def bucket_num_groups(num_groups: int) -> str:
     return "1"
 
 
-def process_in_batches(
-    buffer: LazyServiceWrapper[Buffer], project_id: int, processing_type: str
-) -> None:
+def process_in_batches(buffer: BufferProtocol, project_id: int, processing_type: str) -> None:
     """
     This will check the number of alertgroup_to_event_data items in the Redis buffer for a project.
 
@@ -98,7 +125,7 @@ def process_in_batches(
     The batches are replicated into a new redis hash with a unique filter (a uuid) to identify the batch.
     We need to use a UUID because these batches can be created in multiple processes and we need to ensure
     uniqueness across all of them for the centralized redis buffer. The batches are stored in redis because
-    we shouldn't pass objects that need to be pickled and 10k items could be problematic in the celery tasks
+    we shouldn't pass objects that need to be pickled and 10k items could be problematic in tasks
     as arguments could be problematic. Finally, we can't use a pagination system on the data because
     redis doesn't maintain the sort order of the hash keys.
 
@@ -159,45 +186,55 @@ def process_in_batches(
             )
 
 
-def process_buffer() -> None:
+def process_buffer_for_type(processing_type: str, handler: type[DelayedProcessingBase]) -> None:
+    """
+    Process buffers for a specific processing type and handler.
+    """
     should_emit_logs = options.get("delayed_processing.emit_logs")
 
+    if handler.option and not options.get(handler.option):
+        log_name = f"{processing_type}.disabled"
+        logger.info(log_name, extra={"option": handler.option})
+        return
+
+    buffer = handler.buffer_backend()
+
+    with metrics.timer(f"{processing_type}.process_all_conditions.duration"):
+        # We need to use a very fresh timestamp here; project scores (timestamps) are
+        # updated with each relevant event, and some can be updated every few milliseconds.
+        # The staler this timestamp, the more likely it'll miss some recently updated projects,
+        # and the more likely we'll have frequently updated projects that are never actually
+        # retrieved and processed here.
+        fetch_time = datetime.now(tz=timezone.utc).timestamp()
+        buffer_keys = handler.get_buffer_keys()
+        all_project_ids_and_timestamps = buffer.bulk_get_sorted_set(
+            buffer_keys,
+            min=0,
+            max=fetch_time,
+        )
+
+        if should_emit_logs:
+            log_str = ", ".join(
+                f"{project_id}: {timestamps}"
+                for project_id, timestamps in all_project_ids_and_timestamps.items()
+            )
+            log_name = f"{processing_type}.project_id_list"
+            logger.info(log_name, extra={"project_ids": log_str})
+
+        project_ids = list(all_project_ids_and_timestamps.keys())
+        for project_id in project_ids:
+            process_in_batches(buffer, project_id, processing_type)
+
+        buffer.delete_keys(
+            buffer_keys,
+            min=0,
+            max=fetch_time,
+        )
+
+
+def process_buffer() -> None:
+    """
+    Process all registered delayed processing types.
+    """
     for processing_type, handler in delayed_processing_registry.registrations.items():
-        if handler.option and not options.get(handler.option):
-            log_name = f"{processing_type}.disabled"
-            logger.info(log_name, extra={"option": handler.option})
-            continue
-
-        buffer = handler.buffer_backend()
-
-        with metrics.timer(f"{processing_type}.process_all_conditions.duration"):
-            # We need to use a very fresh timestamp here; project scores (timestamps) are
-            # updated with each relevant event, and some can be updated every few milliseconds.
-            # The staler this timestamp, the more likely it'll miss some recently updated projects,
-            # and the more likely we'll have frequently updated projects that are never actually
-            # retrieved and processed here.
-            fetch_time = datetime.now(tz=timezone.utc).timestamp()
-            buffer_keys = handler.get_buffer_keys()
-            all_project_ids_and_timestamps = buffer.bulk_get_sorted_set(
-                buffer_keys,
-                min=0,
-                max=fetch_time,
-            )
-
-            if should_emit_logs:
-                log_str = ", ".join(
-                    f"{project_id}: {timestamps}"
-                    for project_id, timestamps in all_project_ids_and_timestamps.items()
-                )
-                log_name = f"{processing_type}.project_id_list"
-                logger.info(log_name, extra={"project_ids": log_str})
-
-            project_ids = list(all_project_ids_and_timestamps.keys())
-            for project_id in project_ids:
-                process_in_batches(buffer, project_id, processing_type)
-
-            buffer.delete_keys(
-                buffer_keys,
-                min=0,
-                max=fetch_time,
-            )
+        process_buffer_for_type(processing_type, handler)

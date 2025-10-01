@@ -15,10 +15,15 @@ from sentry.services import eventstore
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_kafka, requires_snuba
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.batching_kafka_consumer import create_topics
 from sentry.utils.kafka_config import get_topic_definition
 
-pytestmark = [requires_snuba, requires_kafka]
+pytestmark = [
+    requires_snuba,
+    requires_kafka,
+    thread_leak_allowlist(reason="ingest consumers", issue=97037),
+]
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +79,7 @@ def random_group_id() -> str:
 
 
 @django_db_all(transaction=True)
-def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
+def test_ingest_consumer_reads_from_topic_and_calls_task(
     task_runner,
     kafka_producer,
     kafka_admin,

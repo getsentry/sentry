@@ -22,10 +22,8 @@ class ProjectInstallablePreprodArtifactDownloadEndpointTest(TestCase):
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
             installable_app_file_id=self.file.id,
             build_version="1.2.3",
-            extras={
-                "bundle_identifier": "com.example.TestApp",
-                "app_name": "TestApp",
-            },
+            app_id="com.example.TestApp",
+            app_name="TestApp",
         )
 
         self.installable = InstallablePreprodArtifact.objects.create(
@@ -42,7 +40,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpointTest(TestCase):
         return f"/api/0/projects/{org}/{proj}/files/installablepreprodartifact/{path}/"
 
     def test_download_ipa_success(self) -> None:
-        url = self._get_url()
+        url = self._get_url() + "?response_format=ipa"
         response = self.client.get(url)
 
         assert response.status_code == 200

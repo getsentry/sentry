@@ -996,9 +996,7 @@ class RuleProcessorTestFilters(TestCase):
         mock_post.assert_called_once()
         assert (
             "notification_uuid"
-            in json.loads(mock_post.call_args.kwargs["blocks"])[0]["elements"][0]["elements"][-1][
-                "url"
-            ]
+            in json.loads(mock_post.call_args.kwargs["blocks"])[0]["text"]["text"]
         )
 
     @patch("sentry.shared_integrations.client.base.BaseApiClient.post")
@@ -1043,7 +1041,7 @@ class RuleProcessorTestFilters(TestCase):
             in mock_post.call_args[1]["data"]["attachments"][0]["content"]["body"][0]["text"]
         )
 
-    @patch("sentry.integrations.discord.message_builder.base.DiscordMessageBuilder._build")
+    @patch("sentry.integrations.discord.message_builder.base.base.DiscordMessageBuilder._build")
     def test_discord_title_link_notification_uuid(self, mock_build: MagicMock) -> None:
         integration = self.create_integration(
             organization=self.organization,

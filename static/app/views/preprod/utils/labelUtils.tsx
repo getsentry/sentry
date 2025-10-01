@@ -1,4 +1,9 @@
-import {BuildDetailsArtifactType} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import {
+  BuildDetailsArtifactType,
+  isSizeInfoCompleted,
+  type BuildDetailsApiResponse,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 
 // Mapping of Launchpad platform to PlatformIcon platform
@@ -16,8 +21,12 @@ export function getPlatformIconFromPlatform(platform: Platform): 'apple' | 'andr
 }
 
 export function getReadableArtifactTypeLabel(
-  artifactType: BuildDetailsArtifactType
+  artifactType: BuildDetailsArtifactType | null
 ): string {
+  if (artifactType === null) {
+    return 'Unknown';
+  }
+
   switch (artifactType) {
     case BuildDetailsArtifactType.XCARCHIVE:
       return 'XCArchive';
@@ -25,6 +34,25 @@ export function getReadableArtifactTypeLabel(
       return 'AAB';
     case BuildDetailsArtifactType.APK:
       return 'APK';
+    default:
+      throw new Error(`Unknown artifact type: ${artifactType}`);
+  }
+}
+
+export function getReadableArtifactTypeTooltip(
+  artifactType: BuildDetailsArtifactType | null
+): string {
+  if (artifactType === null) {
+    return 'Unknown';
+  }
+
+  switch (artifactType) {
+    case BuildDetailsArtifactType.XCARCHIVE:
+      return 'XCode application archive';
+    case BuildDetailsArtifactType.AAB:
+      return 'Android app bundle';
+    case BuildDetailsArtifactType.APK:
+      return 'Android application package';
     default:
       throw new Error(`Unknown artifact type: ${artifactType}`);
   }
@@ -41,4 +69,18 @@ export function getReadablePlatformLabel(platform: Platform): string {
     default:
       throw new Error(`Unknown platform: ${platform}`);
   }
+}
+
+export function formattedInstallSize(build: BuildDetailsApiResponse): string {
+  if (isSizeInfoCompleted(build?.size_info)) {
+    return formatBytesBase10(build.size_info.install_size_bytes);
+  }
+  return '-';
+}
+
+export function formattedDownloadSize(build: BuildDetailsApiResponse): string {
+  if (isSizeInfoCompleted(build?.size_info)) {
+    return formatBytesBase10(build.size_info.download_size_bytes);
+  }
+  return '-';
 }

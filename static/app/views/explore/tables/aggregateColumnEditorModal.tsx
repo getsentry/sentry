@@ -34,11 +34,7 @@ import {
 } from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
-import type {
-  AggregateField,
-  BaseAggregateField,
-  GroupBy,
-} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
+import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {
   isGroupBy,
   isVisualize,
@@ -46,18 +42,27 @@ import {
 import {
   DEFAULT_VISUALIZATION,
   updateVisualizeAggregate,
-  Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
+import type {
+  AggregateField,
+  WritableAggregateField,
+} from 'sentry/views/explore/queryParams/aggregateField';
+import {
+  isVisualizeEquation,
+  Visualize,
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface AggregateColumnEditorModalProps extends ModalRenderProps {
   columns: AggregateField[];
   numberTags: TagCollection;
-  onColumnsChange: (columns: BaseAggregateField[]) => void;
+  onColumnsChange: (columns: WritableAggregateField[]) => void;
   stringTags: TagCollection;
 }
 
@@ -82,7 +87,17 @@ export function AggregateColumnEditorModal({
   }, [columns]);
 
   const handleApply = useCallback(() => {
-    onColumnsChange(tempColumns.map(col => (isVisualize(col) ? col.toJSON() : col)));
+    const newColumns: WritableAggregateField[] = [];
+
+    for (const col of tempColumns) {
+      if (isGroupBy(col)) {
+        newColumns.push(col);
+      } else if (isVisualize(col)) {
+        newColumns.push(col.serialize());
+      }
+    }
+
+    onColumnsChange(newColumns);
     closeModal();
   }, [closeModal, onColumnsChange, tempColumns]);
 
@@ -128,7 +143,8 @@ export function AggregateColumnEditorModal({
                     key: 'add-visualize',
                     label: t('Visualize / Function'),
                     details: t('ex. p50(span.duration)'),
-                    onAction: () => insertColumn(new Visualize(DEFAULT_VISUALIZATION)),
+                    onAction: () =>
+                      insertColumn(new VisualizeFunction(DEFAULT_VISUALIZATION)),
                   },
                   ...(organization.features.includes('visibility-explore-equations')
                     ? [
@@ -136,7 +152,8 @@ export function AggregateColumnEditorModal({
                           key: 'add-equation',
                           label: t('Equation'),
                           details: t('ex. p50(span.duration) / 2'),
-                          onAction: () => insertColumn(new Visualize(EQUATION_PREFIX)),
+                          onAction: () =>
+                            insertColumn(new VisualizeEquation(EQUATION_PREFIX)),
                         },
                       ]
                     : []),
@@ -280,11 +297,11 @@ function GroupBySelector({
     <SingleWidthCompactSelect
       data-test-id="editor-groupby"
       options={options}
-      triggerLabel={label}
       value={groupBy.groupBy}
       onChange={handleChange}
       searchable
       triggerProps={{
+        children: label,
         prefix: t('Group By'),
         style: {
           width: '100%',
@@ -303,7 +320,7 @@ interface VisualizeSelectorProps {
 }
 
 function VisualizeSelector(props: VisualizeSelectorProps) {
-  if (props.visualize.isEquation) {
+  if (isVisualizeEquation(props.visualize)) {
     return <EquationSelector {...props} />;
   }
 

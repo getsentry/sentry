@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import * as qs from 'query-string';
 
 import type {TraceTree} from './traceModels/traceTree';
@@ -37,15 +37,22 @@ export function getScrollToPath(): UseTraceScrollToPath {
   return null;
 }
 
-export function useTraceScrollToPath(): React.MutableRefObject<UseTraceScrollToPath> {
+export function useTraceScrollToPath({
+  traceSlug,
+}: {
+  traceSlug: string;
+}): React.MutableRefObject<UseTraceScrollToPath> {
   const scrollQueueRef = useRef<
     {eventId?: string; path?: TraceTree.NodePath[]} | null | undefined
   >(undefined);
 
-  // If we havent decoded anything yet, then decode the path
-  if (scrollQueueRef.current === undefined) {
+  useEffect(() => {
     scrollQueueRef.current = getScrollToPath();
-  }
+
+    // Only re-run this effect when the traceSlug changes, not on every render since we manage
+    // scroll internally in the traceWaterfall component, and only update the url for state consistency across
+    // subsequent loads
+  }, [traceSlug]);
 
   return scrollQueueRef;
 }

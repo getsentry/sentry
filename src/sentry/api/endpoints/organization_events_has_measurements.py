@@ -61,11 +61,7 @@ class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase
 
         with sentry_sdk.start_span(op="discover.endpoint", name="parse params"):
             try:
-                # This endpoint only allows for a single project + transaction, so no need
-                # to check `global-views`.
-                snuba_params = self.get_snuba_params(
-                    request, organization, check_global_views=False
-                )
+                snuba_params = self.get_snuba_params(request, organization)
 
                 # Once an transaction begins containing measurement data, it is unlikely
                 # it will stop. So it makes more sense to always query the latest data.

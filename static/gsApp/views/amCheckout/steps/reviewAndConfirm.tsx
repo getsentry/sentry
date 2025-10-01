@@ -11,15 +11,14 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import withApi from 'sentry/utils/withApi';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
+import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 import type {PreviewData, Subscription} from 'getsentry/types';
 import {InvoiceItemType} from 'getsentry/types';
 import {hasPartnerMigrationFeature} from 'getsentry/utils/billing';
-import {loadStripe} from 'getsentry/utils/stripe';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {StepPropsWithApi} from 'getsentry/views/amCheckout/types';
 import type {IntentDetails} from 'getsentry/views/amCheckout/utils';
@@ -62,7 +61,7 @@ function ReviewAndConfirm({
     submitting: false,
   });
   const title = t('Review & Confirm');
-  const [stripe, setStripe] = useState<stripe.Stripe>();
+  const stripe = useStripeInstance();
   const isMigratingPartner = hasPartnerMigrationFeature(organization);
 
   const fetchPreview = useCallback(async () => {
@@ -98,14 +97,6 @@ function ReviewAndConfirm({
       fetchPreview();
     }
   }, [isActive, formData, fetchPreview]);
-
-  useEffect(() => {
-    loadStripe(Stripe => {
-      const apiKey = ConfigStore.get('getsentry.stripePublishKey');
-      const instance = Stripe(apiKey);
-      setStripe(instance);
-    });
-  }, []);
 
   function handleConfirm(applyNow?: boolean) {
     if (applyNow) {
@@ -347,7 +338,7 @@ function ReviewAndConfirmBody({
 
 function MigrateNowBody({cardActionError, handleComplete, previewData, submitting}: any) {
   return (
-    <MigrateNowAlert type="info" data-test-id={'migrate-now-body'}>
+    <MigrateNowAlert type="info" data-test-id="migrate-now-body">
       <MigrateNowAlertContext>
         <div>{t('Why wait? Apply these changes immediately.')}</div>
         <MigrateNowButton

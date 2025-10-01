@@ -12,7 +12,6 @@ from sentry import features, tagstore, tsdb
 from sentry.api import client
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environment_func, get_environments
 from sentry.api.helpers.group_index import (
     delete_group_list,
@@ -23,23 +22,22 @@ from sentry.api.helpers.group_index import (
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
 from sentry.api.serializers.models.plugin import PluginSerializer
-from sentry.api.serializers.models.team import TeamSerializer
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.constants import get_issue_tsdb_group_model
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import get_open_periods_for_group
 from sentry.models.groupowner import get_owner_details
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsubscription import GroupSubscriptionManager
-from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.plugins.base import plugins
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer,
 )
@@ -50,7 +48,6 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 delete_logger = logging.getLogger("sentry.deletions.api")
-OPEN_PERIOD_LIMIT = 50
 
 
 def get_group_global_count(group: Group) -> str:
@@ -66,23 +63,25 @@ class GroupDetailsEndpoint(GroupEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=5, window=1),
-            RateLimitCategory.USER: RateLimit(limit=5, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
-        },
-        "PUT": {
-            RateLimitCategory.IP: RateLimit(limit=5, window=1),
-            RateLimitCategory.USER: RateLimit(limit=5, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
-        },
-        "DELETE": {
-            RateLimitCategory.IP: RateLimit(limit=5, window=5),
-            RateLimitCategory.USER: RateLimit(limit=5, window=5),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=5),
-        },
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=5, window=1),
+                RateLimitCategory.USER: RateLimit(limit=5, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+            },
+            "PUT": {
+                RateLimitCategory.IP: RateLimit(limit=5, window=1),
+                RateLimitCategory.USER: RateLimit(limit=5, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+            },
+            "DELETE": {
+                RateLimitCategory.IP: RateLimit(limit=5, window=5),
+                RateLimitCategory.USER: RateLimit(limit=5, window=5),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=5),
+            },
+        }
+    )
 
     def _get_seen_by(self, request: Request, group: Group) -> list[dict[str, Any]]:
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
@@ -165,7 +164,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
             # TODO: these probably should be another endpoint
             activity = Activity.objects.get_activities_for_group(group, 100)
-            open_periods = get_open_periods_for_group(group, limit=OPEN_PERIOD_LIMIT)
             seen_by = self._get_seen_by(request, group)
 
             if "release" not in collapse:
@@ -271,7 +269,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
             data.update(
                 {
                     "activity": serialize(activity, request.user),
-                    "openPeriods": [open_period.to_dict() for open_period in open_periods],
                     "seenBy": seen_by,
                     "pluginActions": get_actions(group),
                     "pluginIssues": get_available_issue_plugins(group),
@@ -289,20 +286,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
             for participant in participants:
                 participant["type"] = "user"
-
-            if features.has("organizations:team-workflow-notifications", group.organization):
-                team_ids = GroupSubscriptionManager.get_participating_team_ids(group)
-
-                teams = Team.objects.filter(id__in=team_ids)
-                team_serializer = TeamSerializer()
-
-                serialized_teams = []
-                for team in teams:
-                    serialized_team = serialize(team, request.user, team_serializer)
-                    serialized_team["type"] = "team"
-                    serialized_teams.append(serialized_team)
-
-                participants.extend(serialized_teams)
 
             data.update({"participants": participants})
 

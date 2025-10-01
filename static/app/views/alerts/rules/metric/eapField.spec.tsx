@@ -23,7 +23,7 @@ describe('EAPField', () => {
     render(
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
         <EAPField
-          aggregate={'count(span.duration)'}
+          aggregate="count(span.duration)"
           onChange={() => {}}
           eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
         />
@@ -56,7 +56,7 @@ describe('EAPField', () => {
     render(
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
         <EAPField
-          aggregate={'epm()'}
+          aggregate="epm()"
           onChange={() => {}}
           eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
         />
@@ -83,7 +83,7 @@ describe('EAPField', () => {
     render(
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
         <EAPField
-          aggregate={'failure_rate()'}
+          aggregate="failure_rate()"
           onChange={() => {}}
           eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
         />
@@ -117,7 +117,7 @@ describe('EAPField', () => {
     render(
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
         <EAPField
-          aggregate={'count(span.duration)'}
+          aggregate="count(span.duration)"
           onChange={onChange}
           eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
         />
@@ -214,7 +214,7 @@ describe('EAPField', () => {
     render(
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
         <EAPField
-          aggregate={'count(message)'}
+          aggregate="count(message)"
           onChange={() => {}}
           eventTypes={[EventTypes.TRACE_ITEM_LOG]}
         />

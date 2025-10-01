@@ -2,12 +2,16 @@ import styled from '@emotion/styled';
 
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 
 const ICON_SIZE = 20;
 
-const StyledPluginIcon = styled(PluginIcon)`
+const StyledPluginIcon = styled(({className, ...props}: PluginIconProps) => (
+  <div className={className}>
+    <PluginIcon {...props} />
+  </div>
+))`
   display: inline-block;
   vertical-align: middle;
 `;
@@ -21,7 +25,7 @@ export const ActionMetadata: Partial<
   },
   [ActionType.DISCORD]: {
     name: t('Discord'),
-    icon: <StyledPluginIcon pluginId={'discord'} size={ICON_SIZE} />,
+    icon: <StyledPluginIcon pluginId="discord" size={ICON_SIZE} />,
   },
   [ActionType.EMAIL]: {name: t('Email'), icon: <IconMail size="md" />},
   [ActionType.GITHUB]: {

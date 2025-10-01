@@ -98,8 +98,7 @@ export default function GroupedDurationWidget(props: GroupedDurationWidgetProps)
         plottables: timeSeries.map(
           (ts, index) =>
             new Line(convertSeriesToTimeseries(ts), {
-              color:
-                ts.seriesName === 'Other' ? theme.chart.neutral : colorPalette[index],
+              color: ts.seriesName === 'Other' ? theme.chartOther : colorPalette[index],
               alias: ts.seriesName,
             })
         ),
@@ -142,7 +141,7 @@ export default function GroupedDurationWidget(props: GroupedDurationWidgetProps)
               mode: Mode.AGGREGATE,
               visualize: [
                 {
-                  chartType: ChartType.BAR,
+                  chartType: ChartType.LINE,
                   yAxes: ['avg(span.duration)'],
                 },
               ],

@@ -6,11 +6,6 @@ import type {
   PatternObject,
 } from 'echarts';
 import type EChartsReact from 'echarts-for-react';
-import type {
-  Dictionary,
-  OptionDataItemObject,
-  OptionDataValue,
-} from 'echarts/types/src/util/types';
 
 import type {Confidence} from 'sentry/types/organization';
 
@@ -72,6 +67,18 @@ export type EChartHighlightHandler = EChartEventHandler<EChartsHighlightEventPar
 
 export type EChartDownplayHandler = EChartEventHandler<EChartsHighlightEventParam>;
 
+/**
+ * Incomplete type for the "legendselectchanged" event handler in ECharts. This is extracted from types we were using in the app at one time.
+ */
+interface EChartsLegendSelectChangeEventParam {
+  name: string;
+  selected: Record<string, boolean>;
+  type: 'legendselectchanged';
+}
+
+export type EChartLegendSelectChangeHandler =
+  EChartEventHandler<EChartsLegendSelectChangeEventParam>;
+
 type EChartMouseEventData = string | number | Record<string, any>;
 /**
  * XXX: These are incomplete types and can also vary depending on the component type
@@ -92,13 +99,7 @@ interface EChartMouseEventParam<T = EChartMouseEventData> {
   // data name, category name
   name: string;
   // incoming data value
-  value:
-    | number
-    | string
-    | OptionDataValue[]
-    | Date
-    | Dictionary<OptionDataValue>
-    | OptionDataItemObject<OptionDataValue>;
+  value: number | number[];
   // color of component (make sense when componentType is 'series')
   color?: Color;
 

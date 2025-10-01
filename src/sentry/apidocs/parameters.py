@@ -459,6 +459,15 @@ Prefix with `-` to sort in descending order.
         many=True,
     )
 
+    TYPE = OpenApiParameter(
+        name="type",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        description="Filter by detector type(s). Can be specified multiple times.",
+    )
+
 
 class WorkflowParams:
     WORKFLOW_ID = OpenApiParameter(
@@ -650,11 +659,11 @@ class MonitorParams:
 
 class UptimeParams:
     UPTIME_ALERT_ID = OpenApiParameter(
-        name="uptime_project_subscription_id",
+        name="uptime_detector_id",
         location="path",
         required=True,
         type=int,
-        description="The ID of the uptime alert rule you'd like to query. Can be either a project uptime subscription ID (default) or a detector ID (when useDetectorId=1 query parameter is provided).",
+        description="The ID of the uptime alert rule you'd like to query.",
     )
     OWNER = OpenApiParameter(
         name="owner",
@@ -1066,7 +1075,7 @@ Available fields are:
         location="query",
         required=False,
         type=str,
-        description="""The branch to search for results by. If not specified, the default is `main`.
+        description="""The branch to search for results by. If not specified, the default is all branches.
         """,
     )
     TEST_RESULTS_FILTER_BY = OpenApiParameter(
@@ -1088,14 +1097,14 @@ Available fields are:
         location="query",
         required=False,
         type=str,
-        description="""The property to sort results by. If not specified, the default is `COMMITS_WHERE_FAIL` in descending order. Use `-`
+        description="""The property to sort results by. If not specified, the default is `TOTAL_FAIL_COUNT` in descending order. Use `-`
         for descending order.
 
 Available fields are:
 - `AVG_DURATION`
 - `FLAKE_RATE`
 - `FAILURE_RATE`
-- `COMMITS_WHERE_FAIL`
+- `TOTAL_FAIL_COUNT`
 - `UPDATED_AT`
         """,
     )

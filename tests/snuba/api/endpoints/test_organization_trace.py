@@ -372,6 +372,7 @@ class OrganizationEventsTraceEndpointTest(
         assert len(child["occurrences"]) == 1
         error_event = child["occurrences"][0]
         assert error_event is not None
+        assert error_event["event_id"] == self.root_event.event_id
         assert error_event["description"] == "File IO on Main Thread"
         assert error_event["project_slug"] == self.project.slug
         assert error_event["level"] == "info"

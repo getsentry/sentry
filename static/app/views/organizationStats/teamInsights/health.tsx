@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -7,13 +6,14 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {TeamWithProjects} from 'sentry/types/project';
 import localStorage from 'sentry/utils/localStorage';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import Header from 'sentry/views/organizationStats/header';
 
 import TeamStatsControls from './controls';
@@ -24,12 +24,11 @@ import TeamReleases from './teamReleases';
 import TeamStability from './teamStability';
 import {dataDatetime} from './utils';
 
-type Props = RouteComponentProps;
-
-function TeamStatsHealth({location, router}: Props) {
+export default function TeamStatsHealth() {
+  const router = useRouter();
+  const location = useLocation();
   const organization = useOrganization();
   const {teams, isLoading, isError} = useUserTeams();
-  const prefersStackedNav = usePrefersStackedNav();
 
   useRouteAnalyticsEventNames('team_insights.viewed', 'Team Insights: Viewed');
 
@@ -37,7 +36,7 @@ function TeamStatsHealth({location, router}: Props) {
   const localStorageKey = `teamInsightsSelectedTeamId:${organization.slug}`;
 
   let localTeamId: string | null | undefined =
-    query.team ?? localStorage.getItem(localStorageKey);
+    decodeScalar(query.team) ?? localStorage.getItem(localStorageKey);
   if (localTeamId && !teams.some(team => team.id === localTeamId)) {
     localTeamId = null;
   }
@@ -59,14 +58,12 @@ function TeamStatsHealth({location, router}: Props) {
     return <LoadingError />;
   }
 
-  const BodyWrapper = prefersStackedNav ? NewLayoutBody : Body;
-
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Project Health')} orgSlug={organization.slug} />
       <Header organization={organization} activeTab="health" />
 
-      <BodyWrapper>
+      <div>
         <TeamStatsControls
           location={location}
           router={router}
@@ -139,17 +136,7 @@ function TeamStatsHealth({location, router}: Props) {
             </DescriptionCard>
           </Layout.Main>
         )}
-      </BodyWrapper>
+      </div>
     </Fragment>
   );
 }
-
-export default TeamStatsHealth;
-
-const Body = styled(Layout.Body)`
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    display: block;
-  }
-`;
-
-const NewLayoutBody = styled('div')``;

@@ -74,7 +74,7 @@ export function OtherPlatformsInfo({
           </ListItem>
           <ListItem>
             <ExternalLink href="https://docs.sentry.io/platforms/java/">
-              JAVA
+              Java
             </ExternalLink>
           </ListItem>
         </List>

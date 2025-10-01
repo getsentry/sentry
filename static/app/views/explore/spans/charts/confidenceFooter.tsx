@@ -10,6 +10,7 @@ import usePrevious from 'sentry/utils/usePrevious';
 type Props = {
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
+  extrapolate?: boolean;
   isLoading?: boolean;
   isSampled?: boolean | null;
   sampleCount?: number;
@@ -23,12 +24,28 @@ export function ConfidenceFooter(props: Props) {
   );
 }
 
-function confidenceMessage({sampleCount, confidence, topEvents, isSampled}: Props) {
+function confidenceMessage({
+  extrapolate,
+  sampleCount,
+  confidence,
+  topEvents,
+  isSampled,
+}: Props) {
   const isTopN = defined(topEvents) && topEvents > 1;
+
+  if (defined(extrapolate) && !extrapolate) {
+    if (!defined(sampleCount)) {
+      return t('Span Count: \u2026');
+    }
+    return tct('Span Count: [sampleCountComponent]', {
+      sampleCountComponent: <Count value={sampleCount} />,
+    });
+  }
+
   if (!defined(sampleCount)) {
     return isTopN
-      ? t('* Top %s groups extrapolated based on \u2026', topEvents)
-      : t('* Extrapolated based on \u2026');
+      ? t('* Top %s groups extrapolated from \u2026', topEvents)
+      : t('* Extrapolated from \u2026');
   }
 
   const noSampling = defined(isSampled) && !isSampled;
@@ -38,7 +55,7 @@ function confidenceMessage({sampleCount, confidence, topEvents, isSampled}: Prop
   if (confidence === 'low') {
     if (isTopN) {
       return tct(
-        'Top [topEvents] groups extrapolated based on [tooltip:[sampleCountComponent] span samples]',
+        'Top [topEvents] groups extrapolated from [tooltip:[sampleCountComponent] span samples]',
         {
           topEvents,
           tooltip: lowAccuracyFullSampleCount,
@@ -47,7 +64,7 @@ function confidenceMessage({sampleCount, confidence, topEvents, isSampled}: Prop
       );
     }
 
-    return tct('Extrapolated based on [tooltip:[sampleCountComponent] span samples]', {
+    return tct('Extrapolated from [tooltip:[sampleCountComponent] span samples]', {
       tooltip: lowAccuracyFullSampleCount,
       sampleCountComponent,
     });
@@ -55,7 +72,7 @@ function confidenceMessage({sampleCount, confidence, topEvents, isSampled}: Prop
 
   if (isTopN) {
     return tct(
-      'Top [topEvents] groups extrapolated based on [sampleCountComponent] span samples',
+      'Top [topEvents] groups extrapolated from [sampleCountComponent] span samples',
       {
         topEvents,
         sampleCountComponent,
@@ -63,7 +80,7 @@ function confidenceMessage({sampleCount, confidence, topEvents, isSampled}: Prop
     );
   }
 
-  return tct('Extrapolated based on [sampleCountComponent] span samples', {
+  return tct('Extrapolated from [sampleCountComponent] span samples', {
     sampleCountComponent,
   });
 }

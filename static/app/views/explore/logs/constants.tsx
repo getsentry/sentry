@@ -32,6 +32,7 @@ export const AlwaysPresentLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.TIMESTAMP,
   OurLogKnownFieldKey.TIMESTAMP_PRECISE,
   OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE,
+  OurLogKnownFieldKey.TEMPLATE,
 ] as const;
 
 const AlwaysHiddenLogFields: OurLogFieldKey[] = [
@@ -39,7 +40,6 @@ const AlwaysHiddenLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.ORGANIZATION_ID,
   OurLogKnownFieldKey.SEVERITY_NUMBER,
   OurLogKnownFieldKey.ITEM_TYPE,
-  OurLogKnownFieldKey.PROJECT,
   OurLogKnownFieldKey.TIMESTAMP_PRECISE,
   'project.id',
   'project_id', // these are both aliases that might show up
@@ -82,3 +82,5 @@ export const VIRTUAL_STREAMED_INTERVAL_MS = 250;
 export const MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS = 1000;
 
 export const LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD = 50; // Items from bottom of table to trigger table fetch.
+
+export const QUANTIZE_MINUTES = 120;

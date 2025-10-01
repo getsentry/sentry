@@ -15,12 +15,12 @@ import {
   SectionLabelSecondary,
 } from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
-import {DETECTOR_DATASET_TO_DISCOVER_DATASET_MAP} from 'sentry/views/detectors/datasetConfig/utils/discoverDatasetMap';
 
 export function DetectorQueryFilterBuilder() {
   const currentQuery = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
   const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
+  const environment = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.environment);
   const formContext = useContext(FormContext);
 
   const datasetConfig = useMemo(() => getDatasetConfig(dataset), [dataset]);
@@ -56,7 +56,8 @@ export function DetectorQueryFilterBuilder() {
           projectIds={projectIds}
           onClose={handleQueryChange}
           onSearch={handleQueryChange}
-          dataset={DETECTOR_DATASET_TO_DISCOVER_DATASET_MAP[dataset]}
+          dataset={datasetConfig.getDiscoverDataset()}
+          environment={environment}
         />
       </QueryFieldRowWrapper>
     </Flex>

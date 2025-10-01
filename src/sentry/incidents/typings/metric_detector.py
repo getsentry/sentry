@@ -86,7 +86,11 @@ class AlertContext:
     def from_alert_rule_incident(
         cls, alert_rule: AlertRule, alert_rule_threshold: float | None = None
     ) -> AlertContext:
-        resolve_threshold = alert_rule.resolve_threshold
+        resolve_threshold = (
+            alert_rule.resolve_threshold
+            if alert_rule.resolve_threshold is not None
+            else alert_rule_threshold
+        )
 
         if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
             alert_rule_threshold = 0
@@ -242,6 +246,11 @@ class MetricIssueContext:
 
         subscription = cls._get_subscription(evidence_data)
         snuba_query = subscription.snuba_query
+        metric_value = (
+            evidence_data.value["value"]
+            if type(evidence_data.value) is dict
+            else evidence_data.value
+        )
 
         return cls(
             id=group.id,
@@ -249,7 +258,7 @@ class MetricIssueContext:
             snuba_query=snuba_query,
             subscription=subscription,
             new_status=cls._get_new_status(group, detector_priority_level),
-            metric_value=evidence_data.value,
+            metric_value=metric_value,
             group=group,
             title=group.title,
         )

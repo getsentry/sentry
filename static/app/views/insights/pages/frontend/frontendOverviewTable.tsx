@@ -5,6 +5,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -22,6 +23,7 @@ import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParam
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {StyledIconStar} from 'sentry/views/insights/pages/backend/backendTable';
 import {SPAN_OP_QUERY_PARAM} from 'sentry/views/insights/pages/frontend/settings';
+import {getSpanOpFromQuery} from 'sentry/views/insights/pages/frontend/utils/pageSpanOp';
 import {TransactionCell} from 'sentry/views/insights/pages/transactionCell';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
@@ -155,11 +157,14 @@ export function FrontendOverviewTable({displayPerfScore, response, sort}: Props)
       query: {...query, [QueryParameterNames.PAGES_CURSOR]: newCursor},
     });
   };
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: [...COLUMN_ORDER],
+    location,
+  });
 
-  let column_order = [...COLUMN_ORDER];
-
+  let filteredColumns = [...columns];
   if (!displayPerfScore) {
-    column_order = column_order.filter(
+    filteredColumns = filteredColumns.filter(
       col => col.key !== 'performance_score(measurements.score.total)'
     );
   }
@@ -175,7 +180,7 @@ export function FrontendOverviewTable({displayPerfScore, response, sort}: Props)
         isLoading={isLoading}
         error={response.error}
         data={data}
-        columnOrder={column_order}
+        columnOrder={filteredColumns}
         columnSortBy={[
           {
             key: sort.field,
@@ -193,6 +198,7 @@ export function FrontendOverviewTable({displayPerfScore, response, sort}: Props)
             }),
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, organization, theme),
+          onResizeColumn: handleResizeColumn,
         }}
       />
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
@@ -226,7 +232,8 @@ function renderBodyCell(
   organization: Organization,
   theme: Theme
 ) {
-  const spanOp = decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM]);
+  const spanOp = getSpanOpFromQuery(decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM]));
+
   if (!meta?.fields) {
     return row[column.key];
   }
@@ -236,7 +243,7 @@ function renderBodyCell(
       <TransactionCell
         project={row.project}
         transaction={row.transaction}
-        transactionMethod={spanOp}
+        transactionMethod={spanOp === 'all' ? undefined : spanOp}
       />
     );
   }

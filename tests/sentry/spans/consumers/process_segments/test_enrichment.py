@@ -1,4 +1,5 @@
-from sentry.spans.consumers.process_segments.enrichment import Enricher, compute_breakdowns
+from sentry.spans.consumers.process_segments.enrichment import TreeEnricher, compute_breakdowns
+from sentry.spans.consumers.process_segments.shim import make_compatible
 from tests.sentry.spans.consumers.process import build_mock_span
 
 # Tests ported from Relay
@@ -36,9 +37,10 @@ def test_childless_spans() -> None:
         ),
     ]
 
-    _, enriched = Enricher.enrich_spans(spans)
+    _, enriched = TreeEnricher.enrich_spans(spans)
+    enriched = [make_compatible(span) for span in enriched]
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
+    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 1123.0,
         "bbbbbbbbbbbbbbbb": 3000.0,
@@ -79,9 +81,9 @@ def test_nested_spans() -> None:
         ),
     ]
 
-    _, enriched = Enricher.enrich_spans(spans)
+    _, enriched = TreeEnricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
+    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 400.0,
@@ -122,9 +124,9 @@ def test_overlapping_child_spans() -> None:
         ),
     ]
 
-    _, enriched = Enricher.enrich_spans(spans)
+    _, enriched = TreeEnricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
+    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 400.0,
@@ -165,9 +167,9 @@ def test_child_spans_dont_intersect_parent() -> None:
         ),
     ]
 
-    _, enriched = Enricher.enrich_spans(spans)
+    _, enriched = TreeEnricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
+    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 1000.0,
@@ -208,9 +210,9 @@ def test_child_spans_extend_beyond_parent() -> None:
         ),
     ]
 
-    _, enriched = Enricher.enrich_spans(spans)
+    _, enriched = TreeEnricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
+    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 200.0,
@@ -251,9 +253,9 @@ def test_child_spans_consumes_all_of_parent() -> None:
         ),
     ]
 
-    _, enriched = Enricher.enrich_spans(spans)
+    _, enriched = TreeEnricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
+    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 0.0,
@@ -294,9 +296,9 @@ def test_only_immediate_child_spans_affect_calculation() -> None:
         ),
     ]
 
-    _, enriched = Enricher.enrich_spans(spans)
+    _, enriched = TreeEnricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
+    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 600.0,
@@ -364,15 +366,83 @@ def test_emit_ops_breakdown() -> None:
     }
 
     # Compute breakdowns for the segment span
-    _ = Enricher.enrich_spans(spans)
+    _ = TreeEnricher.enrich_spans(spans)
     updates = compute_breakdowns(spans, breakdowns_config)
 
-    assert updates["span_ops.ops.http"]["value"] == 3600000.0
-    assert updates["span_ops.ops.db"]["value"] == 7200000.0
-    assert updates["span_ops_2.ops.http"]["value"] == 3600000.0
-    assert updates["span_ops_2.ops.db"]["value"] == 7200000.0
+    assert updates["span_ops.ops.http"] == 3600000.0
+    assert updates["span_ops.ops.db"] == 7200000.0
+    assert updates["span_ops_2.ops.http"] == 3600000.0
+    assert updates["span_ops_2.ops.db"] == 7200000.0
 
     # NOTE: Relay used to extract a total.time breakdown, which is no longer
     # included in span breakdowns.
     # assert updates["span_ops.total.time"]["value"] == 14400000.01
     # assert updates["span_ops_2.total.time"]["value"] == 14400000.01
+
+
+def test_write_tags_for_performance_issue_detection():
+    segment_span = _mock_performance_issue_span(
+        is_segment=True,
+        span_id="ffffffffffffffff",
+        data={
+            "sentry.sdk.name": "sentry.php.laravel",
+            "sentry.environment": "production",
+            "sentry.release": "1.0.0",
+            "sentry.platform": "php",
+        },
+    )
+
+    spans = [
+        _mock_performance_issue_span(
+            is_segment=False,
+            data={
+                "sentry.system": "mongodb",
+                "sentry.normalized_description": '{"filter":{"productid":{"buffer":"?"}},"find":"reviews"}',
+            },
+        ),
+        segment_span,
+    ]
+
+    _, spans = TreeEnricher.enrich_spans(spans)
+    spans = [make_compatible(span) for span in spans]
+
+    child_span, segment_span = spans
+
+    assert segment_span["sentry_tags"] == {
+        "sdk.name": "sentry.php.laravel",
+        "environment": "production",
+        "release": "1.0.0",
+        "platform": "php",
+    }
+
+    assert child_span["sentry_tags"] == {
+        "system": "mongodb",
+        "description": '{"filter":{"productid":{"buffer":"?"}},"find":"reviews"}',
+        "sdk.name": "sentry.php.laravel",
+        "environment": "production",
+        "release": "1.0.0",
+        "platform": "php",
+    }
+
+
+def _mock_performance_issue_span(is_segment, data, **fields):
+    return {
+        "description": "OrganizationNPlusOne",
+        "duration_ms": 107,
+        "is_segment": is_segment,
+        "is_remote": is_segment,
+        "parent_span_id": None,
+        "profile_id": "dbae2b82559649a1a34a2878134a007b",
+        "project_id": 1,
+        "organization_id": 1,
+        "received": 1707953019.044972,
+        "retention_days": 90,
+        "segment_id": "a49b42af9fb69da0",
+        "data": data,
+        "span_id": "a49b42af9fb69da0",
+        "start_timestamp_ms": 1707953018865,
+        "start_timestamp_precise": 1707953018.865,
+        "end_timestamp_precise": 1707953018.972,
+        "trace_id": "94576097f3a64b68b85a59c7d4e3ee2a",
+        **fields,
+    }

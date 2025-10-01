@@ -102,7 +102,7 @@ export function addUndoableFormChangeMessage(
             showChangeText
               ? tct('Restored [fieldName] from [oldValue] to [newValue]', tctArgsRestored)
               : tct('Restored [fieldName]', tctArgsRestored),
-            'undo',
+            'success',
             {
               duration: DEFAULT_TOAST_DURATION,
             }

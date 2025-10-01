@@ -86,6 +86,15 @@ def test_clusterer_doesnt_generate_invalid_rules() -> None:
     clusterer.add_input(scheme_stars)
     assert clusterer.get_rules() == []
 
+    clusterer = TreeClusterer(merge_threshold=2)
+    transaction_names = [
+        "GET /a/b1/c/",
+        "GET /b/b2/c/",
+        "GET /c/b3/c/",
+    ]
+    clusterer.add_input(transaction_names)
+    assert clusterer.get_rules() == []
+
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 5)
 def test_collection() -> None:

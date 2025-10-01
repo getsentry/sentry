@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
         ),
     ),
 )
-def check_autofix_status(run_id: int) -> None:
-    state = get_autofix_state(run_id=run_id)
+def check_autofix_status(run_id: int, organization_id: int) -> None:
+    state = get_autofix_state(run_id=run_id, organization_id=organization_id)
 
     if (
         state

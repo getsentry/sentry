@@ -44,7 +44,7 @@ export function IntegrationReposAddRepository({
   const query = useQuery({
     queryKey: [
       `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
-      {method: 'GET', query: {search: debouncedSearch, installableOnly: true}},
+      {method: 'GET', query: {search: debouncedSearch, installableOnly: false}},
     ] as const,
     queryFn: async context => {
       try {
@@ -93,18 +93,13 @@ export function IntegrationReposAddRepository({
   };
 
   const dropdownItems = useMemo(() => {
-    const repositories = new Set(
-      currentRepositories.filter(item => item.integrationId).map(i => i.externalSlug)
-    );
-    const repositoryOptions = searchResult.repos.filter(
-      repo => !repositories.has(repo.identifier)
-    );
-    return repositoryOptions.map(repo => ({
+    return searchResult.repos.map(repo => ({
       value: repo.identifier,
-      label: repo.name,
+      label: repo.isInstalled ? `${repo.name} (Already Added)` : repo.name,
       textValue: repo.name,
+      disabled: repo.isInstalled,
     }));
-  }, [currentRepositories, searchResult]);
+  }, [searchResult]);
 
   if (
     !['github', 'gitlab'].includes(integration.provider.key) &&
@@ -132,7 +127,6 @@ export function IntegrationReposAddRepository({
       onChange={addRepo}
       disabled={false}
       menuTitle={t('Repositories')}
-      triggerLabel={t('Add Repository')}
       emptyMessage={
         query.isFetching
           ? t('Searching\u2026')
@@ -148,6 +142,7 @@ export function IntegrationReposAddRepository({
       onSearch={setSearch}
       triggerProps={{
         busy: adding,
+        children: t('Add Repository'),
       }}
       disableSearchFilter
     />
