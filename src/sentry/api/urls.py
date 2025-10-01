@@ -419,6 +419,10 @@ from sentry.notifications.api.endpoints.user_notification_settings_providers imp
     UserNotificationSettingsProvidersEndpoint,
 )
 from sentry.notifications.platform.api.endpoints import urls as notification_platform_urls
+from sentry.overwatch.endpoints.overwatch_rpc import (
+    PreventPrReviewResolvedConfigsEndpoint,
+    PreventPrReviewSentryOrgEndpoint,
+)
 from sentry.preprod.api.endpoints import urls as preprod_urls
 from sentry.releases.endpoints.organization_release_assemble import (
     OrganizationReleaseAssembleEndpoint,
@@ -643,7 +647,6 @@ from .endpoints.internal import (
     InternalMailEndpoint,
     InternalPackagesEndpoint,
     InternalQueueTasksEndpoint,
-    InternalQuotasEndpoint,
     InternalRpcServiceEndpoint,
     InternalStatsEndpoint,
     InternalWarningsEndpoint,
@@ -3347,11 +3350,6 @@ INTERNAL_URLS = [
         name="sentry-api-0-internal-frontend-version",
     ),
     re_path(
-        r"^quotas/$",
-        InternalQuotasEndpoint.as_view(),
-        name="sentry-api-0-internal-quotas",
-    ),
-    re_path(
         r"^queue/tasks/$",
         InternalQueueTasksEndpoint.as_view(),
         name="sentry-api-0-internal-queue-tasks",
@@ -3401,6 +3399,17 @@ INTERNAL_URLS = [
         r"^seer-rpc/(?P<method_name>\w+)/$",
         SeerRpcServiceEndpoint.as_view(),
         name="sentry-api-0-seer-rpc-service",
+    ),
+    # Prevent AI (Overwatch) endpoints
+    re_path(
+        r"^prevent/pr-review/configs/resolved/$",
+        PreventPrReviewResolvedConfigsEndpoint.as_view(),
+        name="sentry-api-0-prevent-pr-review-configs-resolved",
+    ),
+    re_path(
+        r"^prevent/pr-review/github/sentry-org/$",
+        PreventPrReviewSentryOrgEndpoint.as_view(),
+        name="sentry-api-0-prevent-pr-review-github-sentry-org",
     ),
     re_path(
         r"^check-am2-compatibility/$",

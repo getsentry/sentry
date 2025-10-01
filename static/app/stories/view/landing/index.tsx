@@ -13,7 +13,6 @@ import {Link} from 'sentry/components/core/link';
 import {IconOpen} from 'sentry/icons';
 import {Acronym} from 'sentry/stories/view/landing/acronym';
 import {StoryDarkModeProvider} from 'sentry/stories/view/useStoriesDarkMode';
-import {space} from 'sentry/styles/space';
 
 import {Colors, Icons, Typography} from './figures';
 
@@ -142,7 +141,7 @@ const TitleEmphasis = styled('em')`
 
 const Hero = styled('div')`
   padding: 48px 0;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
   display: flex;
   align-items: center;
   background: ${p => p.theme.tokens.background.secondary};
@@ -151,7 +150,7 @@ const Hero = styled('div')`
 
   h1 {
     font-size: 36px;
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space.md};
   }
 
   p {
@@ -174,9 +173,9 @@ const Container = styled('div')`
   margin-inline: auto;
   display: flex;
   flex-direction: column;
-  gap: ${space(4)};
-  padding-inline: ${space(2)};
-  padding-block: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
+  padding-inline: ${p => p.theme.space.xl};
+  padding-block: ${p => p.theme.space['3xl']};
   align-items: center;
   justify-content: center;
 
@@ -188,7 +187,7 @@ const Container = styled('div')`
 const CardGrid = styled('div')`
   display: flex;
   flex-flow: row wrap;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 interface CardProps {
@@ -211,7 +210,7 @@ const CardLink = styled(Link)`
   flex-grow: 1;
   width: calc(100% * 3 / 5);
   aspect-ratio: 2/1;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   border: 1px solid ${p => p.theme.tokens.border.muted};
   border-radius: ${p => p.theme.borderRadius};
   transition: all 80ms ease-out;
@@ -239,8 +238,8 @@ const CardLink = styled(Link)`
 const CardTitle = styled('span')`
   margin: 0;
   margin-top: auto;
-  margin-bottom: ${space(2)};
-  padding: ${space(1)} ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   width: 100%;
   height: 24px;
   font-size: 24px;

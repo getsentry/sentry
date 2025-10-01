@@ -16,6 +16,7 @@ from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
+from sentry.utils.query import RangeQuerySetWrapper
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 from ..manager import DeletionTaskManager
@@ -24,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 GROUP_CHUNK_SIZE = 100
 EVENT_CHUNK_SIZE = 10000
+GROUP_HASH_ITERATIONS = 10000
 
 # Group models that relate only to groups and not to events. We assume those to
 # be safe to delete/mutate within a single transaction for user-triggered
@@ -210,23 +212,33 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         ).update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
 
 
+def delete_project_group_hashes(project_id: int) -> None:
+    groups = []
+    for group in RangeQuerySetWrapper(
+        Group.objects.filter(project_id=project_id), step=GROUP_CHUNK_SIZE
+    ):
+        groups.append(group)
+
+    error_groups, issue_platform_groups = separate_by_group_category(groups)
+    error_group_ids = [group.id for group in error_groups]
+    delete_group_hashes(project_id, error_group_ids, seer_deletion=True)
+
+    issue_platform_group_ids = [group.id for group in issue_platform_groups]
+    delete_group_hashes(project_id, issue_platform_group_ids)
+
+
 def delete_group_hashes(
     project_id: int,
     group_ids: Sequence[int],
     seer_deletion: bool = False,
 ) -> None:
-    hashes_batch_size = options.get("deletions.group-hashes-batch-size")
-
     # Validate batch size to ensure it's at least 1 to avoid ValueError in range()
-    hashes_batch_size = max(1, hashes_batch_size)
+    hashes_batch_size = max(1, options.get("deletions.group-hashes-batch-size"))
 
     # Set a reasonable upper bound on iterations to prevent infinite loops.
-    # This replaces the expensive COUNT(*) query that was causing database timeouts.
     # The loop will naturally terminate when no more hashes are found.
-    max_iterations = 10000
     iterations = 0
-
-    while iterations < max_iterations:
+    while iterations < GROUP_HASH_ITERATIONS:
         qs = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).values_list(
             "id", "hash"
         )[:hashes_batch_size]

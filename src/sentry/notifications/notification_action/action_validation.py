@@ -6,21 +6,22 @@ from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifySe
 from sentry.integrations.jira.actions.form import JiraNotifyServiceForm
 from sentry.integrations.jira_server.actions.form import JiraServerNotifyServiceForm
 from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
+from sentry.integrations.opsgenie.actions.form import OpsgenieNotifyTeamForm
 from sentry.integrations.pagerduty.actions.form import PagerDutyNotifyServiceForm
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
+from sentry.models.organization import Organization
 from sentry.notifications.notification_action.registry import action_validator_registry
 from sentry.rules.actions.integrations.create_ticket.form import IntegrationNotifyServiceForm
+from sentry.rules.actions.notify_event_service import NotifyEventServiceForm
+from sentry.rules.actions.sentry_apps.utils import validate_sentry_app_action
+from sentry.sentry_apps.services.app.service import app_service
+from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.workflow_engine.models.action import Action
+from sentry.workflow_engine.processors.action import get_notification_plugins_for_org
+from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 from .types import BaseActionValidatorHandler
-
-
-# TODO: move this to the base or refactor to use for integration actions only
-def _get_integration_id(validated_data: dict[str, Any], provider: str) -> str:
-    if not (integration_id := validated_data.get("integration_id")):
-        raise ValidationError(f"Integration ID is required for {provider} action")
-    return integration_id
 
 
 @action_validator_registry.register(Action.Type.SLACK)
@@ -29,10 +30,8 @@ class SlackActionValidatorHandler(BaseActionValidatorHandler):
     notify_action_form = SlackNotifyServiceForm
 
     def generate_action_form_data(self) -> dict[str, Any]:
-        integration_id = _get_integration_id(self.validated_data, self.provider)
-
         return {
-            "workspace": integration_id,
+            "workspace": self.validated_data["integration_id"],
             "channel": self.validated_data["config"]["target_display"],
             "channel_id": self.validated_data["config"].get("target_identifier"),
             "tags": self.validated_data["data"].get("tags"),
@@ -54,10 +53,8 @@ class MSTeamsActionValidatorHandler(BaseActionValidatorHandler):
     notify_action_form = MsTeamsNotifyServiceForm
 
     def generate_action_form_data(self) -> dict[str, Any]:
-        integration_id = _get_integration_id(self.validated_data, self.provider)
-
         return {
-            "team": integration_id,
+            "team": self.validated_data["integration_id"],
             "channel": self.validated_data["config"]["target_display"],
         }
 
@@ -77,10 +74,8 @@ class DiscordActionValidatorHandler(BaseActionValidatorHandler):
     notify_action_form = DiscordNotifyServiceForm
 
     def generate_action_form_data(self) -> dict[str, Any]:
-        integration_id = _get_integration_id(self.validated_data, self.provider)
-
         return {
-            "server": integration_id,
+            "server": self.validated_data["integration_id"],
             "channel_id": self.validated_data["config"]["target_identifier"],
             "tags": self.validated_data["data"].get("tags"),
         }
@@ -98,10 +93,8 @@ class TicketingActionValidatorHandler(BaseActionValidatorHandler):
     notify_action_form = IntegrationNotifyServiceForm
 
     def generate_action_form_data(self) -> dict[str, Any]:
-        integration_id = _get_integration_id(self.validated_data, self.provider)
-
         return {
-            "integration": integration_id,
+            "integration": self.validated_data["integration_id"],
         }
 
     def update_action_data(self, cleaned_data: dict[str, Any]) -> dict[str, Any]:
@@ -159,10 +152,100 @@ class PagerdutyActionValidatorHandler(BaseActionValidatorHandler):
         }
 
     def generate_action_form_data(self) -> dict[str, Any]:
-        integration_id = _get_integration_id(self.validated_data, self.provider)
+        return {
+            "account": self.validated_data["integration_id"],
+            "service": self.validated_data["config"]["target_identifier"],
+        }
+
+    def update_action_data(self, cleaned_data: dict[str, Any]) -> dict[str, Any]:
+        return self.validated_data
+
+
+@action_validator_registry.register(Action.Type.OPSGENIE)
+class OpsgenieActionValidatorHandler(BaseActionValidatorHandler):
+    provider = Action.Type.OPSGENIE
+    notify_action_form = OpsgenieNotifyTeamForm
+
+    def _get_teams(self) -> list[tuple[int, str]]:
+        organization_integrations = integration_service.get_organization_integrations(
+            providers=[Action.Type.OPSGENIE], organization_id=self.organization.id
+        )
+
+        teams = []
+        for oi in organization_integrations:
+            team_table = oi.config.get("team_table")
+            if team_table:
+                teams += [(team["id"], team["team"]) for team in team_table]
+        return teams
+
+    def generate_action_form_payload(self) -> dict[str, Any]:
+        payload = super().generate_action_form_payload()
 
         return {
-            "account": integration_id,
+            **payload,
+            "org_id": self.organization.id,
+            "teams": self._get_teams(),
+        }
+
+    def generate_action_form_data(self) -> dict[str, Any]:
+        return {
+            "account": self.validated_data["integration_id"],
+            "team": self.validated_data["config"]["target_identifier"],
+        }
+
+    def update_action_data(self, cleaned_data: dict[str, Any]) -> dict[str, Any]:
+        return self.validated_data
+
+
+@action_validator_registry.register(Action.Type.SENTRY_APP)
+class SentryAppActionValidatorHandler:
+    provider = Action.Type.SENTRY_APP
+
+    def __init__(self, validated_data: dict[str, Any], organization: Organization) -> None:
+        self.validated_data = validated_data
+        self.organization = organization
+
+    def clean_data(self) -> dict[str, Any]:
+        is_sentry_app_installation = (
+            SentryAppIdentifier(self.validated_data["config"]["sentry_app_identifier"])
+            == SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
+        )
+        action = {
+            "settings": self.validated_data["data"]["settings"],
+            "sentryAppInstallationUuid": (
+                self.validated_data["config"]["target_identifier"]
+                if is_sentry_app_installation
+                else None
+            ),
+        }
+        try:
+            validate_sentry_app_action(action)
+            return self.validated_data
+        except SentryAppBaseError as e:
+            raise ValidationError(e.message) from e
+
+
+@action_validator_registry.register(Action.Type.WEBHOOK)
+class WebhookActionValidatorHandler(BaseActionValidatorHandler):
+    provider = Action.Type.WEBHOOK
+    notify_action_form = NotifyEventServiceForm
+
+    def _get_services(self) -> list[Any]:
+        plugins = get_notification_plugins_for_org(self.organization)
+        sentry_apps = app_service.find_alertable_services(organization_id=self.organization.id)
+        return [
+            *plugins,
+            *sentry_apps,
+        ]
+
+    def generate_action_form_payload(self) -> dict[str, Any]:
+        return {
+            "services": self._get_services(),
+            "data": self.generate_action_form_data(),
+        }
+
+    def generate_action_form_data(self) -> dict[str, Any]:
+        return {
             "service": self.validated_data["config"]["target_identifier"],
         }
 

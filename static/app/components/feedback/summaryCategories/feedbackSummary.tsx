@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Link} from 'sentry/components/core/link';
@@ -5,6 +6,7 @@ import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrga
 import useFeedbackSummary from 'sentry/components/feedback/list/useFeedbackSummary';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export default function FeedbackSummary() {
@@ -16,6 +18,37 @@ export default function FeedbackSummary() {
   const {setupAcknowledgement, isPending: isOrgSeerSetupPending} =
     useOrganizationSeerSetup();
   const organization = useOrganization();
+
+  useEffect(() => {
+    // Analytics for the rendered state. Should match the conditions below.
+    if (isPending || isOrgSeerSetupPending) {
+      return;
+    }
+    if (!setupAcknowledgement.orgHasAcknowledged) {
+      trackAnalytics('feedback.summary.seer-cta-rendered', {
+        organization,
+      });
+    } else if (isError) {
+      trackAnalytics('feedback.summary.summary-error', {
+        organization,
+      });
+    } else if (tooFewFeedbacks) {
+      trackAnalytics('feedback.summary.summary-too-few-feedbacks', {
+        organization,
+      });
+    } else {
+      trackAnalytics('feedback.summary.summary-rendered', {
+        organization,
+      });
+    }
+  }, [
+    organization,
+    isError,
+    tooFewFeedbacks,
+    setupAcknowledgement.orgHasAcknowledged,
+    isPending,
+    isOrgSeerSetupPending,
+  ]);
 
   if (isPending || isOrgSeerSetupPending) {
     return <LoadingPlaceholder />;

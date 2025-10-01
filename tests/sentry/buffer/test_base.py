@@ -2,7 +2,6 @@ from datetime import timedelta
 from unittest import mock
 
 from django.utils import timezone
-from pytest import raises
 
 from sentry.buffer.base import Buffer, BufferField
 from sentry.models.group import Group
@@ -83,9 +82,3 @@ class BufferTest(TestCase):
         self.buf.process(Group, columns, filters, {"last_seen": the_date}, signal_only=True)
         group.refresh_from_db()
         assert group.times_seen == prev_times_seen
-
-    def test_push_to_hash_bulk(self) -> None:
-        raises(NotImplementedError, self.buf.push_to_hash_bulk, Group, {"id": 1}, {"foo": "bar"})
-
-    def test_get_hash_length(self) -> None:
-        raises(NotImplementedError, self.buf.get_hash_length, Group, {"id": 1})

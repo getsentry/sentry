@@ -55,7 +55,8 @@ class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
                 NotificationRenderedAction(label="Assign to Me", link="https://example.com/assign"),
             ],
             chart=NotificationRenderedImage(
-                url="https://example.com/chart", alt_text="Error occurrence chart"
+                url="https://github.com/knobiknows/all-the-bufo/blob/main/all-the-bufo/all-the-bufo.png?raw=true",
+                alt_text="Error occurrence chart",
             ),
             footer="This alert was triggered by your error monitoring rules.",
         )
@@ -194,7 +195,8 @@ class PerformanceAlertNotificationTemplate(NotificationTemplate[PerformanceAlert
                 )
             ],
             chart=NotificationRenderedImage(
-                url="https://example.com/chart", alt_text="Performance metrics chart"
+                url="https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/buff-bufo.png",
+                alt_text="Performance metrics chart",
             ),
         )
 

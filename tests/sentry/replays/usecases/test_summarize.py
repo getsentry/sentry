@@ -1,16 +1,28 @@
+import uuid
+import zlib
 from collections.abc import Generator
+from datetime import UTC, datetime, timedelta
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+import requests
+from django.conf import settings
 
+from sentry.feedback.lib.utils import FeedbackCreationSource
+from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
+from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
+from sentry.replays.testutils import mock_replay
 from sentry.replays.usecases.ingest.event_parser import get_timestamp_unit, which
 from sentry.replays.usecases.summarize import (
     EventDict,
     _parse_iso_timestamp_to_ms,
     as_log_message,
     get_summary_logs,
+    rpc_get_replay_summary_logs,
 )
+from sentry.testutils.cases import SnubaTestCase, TransactionTestCase
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
 """
@@ -19,7 +31,7 @@ Tests for event types that do not return None for the log message
 
 
 @patch("sentry.replays.usecases.summarize.fetch_feedback_details")
-def test_get_summary_logs(mock_fetch_feedback_details: Mock) -> None:
+def test_get_summary_logs_from_segments(mock_fetch_feedback_details: Mock) -> None:
 
     def _mock_fetch_feedback(feedback_id: str | None, _project_id: int) -> EventDict | None:
         if feedback_id == "12345678123456781234567812345678":
@@ -834,3 +846,409 @@ def test_parse_iso_timestamp_to_ms() -> None:
     assert _parse_iso_timestamp_to_ms("invalid timestamp") == 0.0
     assert _parse_iso_timestamp_to_ms("") == 0.0
     assert _parse_iso_timestamp_to_ms("2023-13-01T12:00:00Z") == 0.0
+
+
+@requires_snuba
+class RpcGetReplaySummaryLogsTestCase(
+    TransactionTestCase,
+    SnubaTestCase,
+):
+    def setUp(self) -> None:
+        super().setUp()
+        self.replay_id = uuid.uuid4().hex
+
+    def store_replay(self, dt: datetime | None = None, **kwargs: Any) -> None:
+        replay = mock_replay(dt or datetime.now(UTC), self.project.id, self.replay_id, **kwargs)
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay]
+        )
+        assert response.status_code == 200
+
+    def save_recording_segment(
+        self, segment_id: int, data: bytes, compressed: bool = True, is_archived: bool = False
+    ) -> None:
+        metadata = RecordingSegmentStorageMeta(
+            project_id=self.project.id,
+            replay_id=self.replay_id,
+            segment_id=segment_id,
+            retention_days=30,
+            file_id=None,
+        )
+        FilestoreBlob().set(metadata, zlib.compress(data) if compressed else data)
+
+    def test_rpc_simple(self) -> None:
+        data = [
+            {
+                "type": 5,
+                "timestamp": 0.0,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "hello"},
+                },
+            },
+            {
+                "type": 5,
+                "timestamp": 0.0,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "world"},
+                },
+            },
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+        self.save_recording_segment(1, json.dumps([]).encode())
+        self.store_replay()
+
+        response = rpc_get_replay_summary_logs(
+            self.project.id,
+            self.replay_id,
+            2,
+        )
+
+        assert response == {"logs": ["Logged: 'hello' at 0.0", "Logged: 'world' at 0.0"]}
+
+    def test_rpc_with_both_direct_and_trace_connected_errors(self) -> None:
+        """Test handling of breadcrumbs with both direct and trace connected errors. Error logs should not be duplicated."""
+        now = datetime.now(UTC)
+        trace_id = uuid.uuid4().hex
+        span_id = "1" + uuid.uuid4().hex[:15]
+
+        # Create a direct error event that is not trace connected.
+        direct_event_id = uuid.uuid4().hex
+        direct_error_timestamp = now.timestamp() - 2
+        self.store_event(
+            data={
+                "event_id": direct_event_id,
+                "timestamp": direct_error_timestamp,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ZeroDivisionError",
+                            "value": "division by zero",
+                        }
+                    ]
+                },
+                "contexts": {
+                    "replay": {"replay_id": self.replay_id},
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": uuid.uuid4().hex,
+                        "span_id": span_id,
+                    },
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        # Create a trace connected error event
+        connected_event_id = uuid.uuid4().hex
+        connected_error_timestamp = now.timestamp() - 1
+        project_2 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": connected_event_id,
+                "timestamp": connected_error_timestamp,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ConnectionError",
+                            "value": "Failed to connect to database",
+                        }
+                    ]
+                },
+                "contexts": {
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": span_id,
+                    }
+                },
+            },
+            project_id=project_2.id,
+        )
+
+        # Store the replay with both error IDs and trace IDs
+        self.store_replay(
+            error_ids=[direct_event_id],
+            trace_ids=[trace_id],
+        )
+
+        data = [
+            {
+                "type": 5,
+                "timestamp": float(now.timestamp()),
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "hello"},
+                },
+            }
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        response = rpc_get_replay_summary_logs(
+            self.project.id,
+            self.replay_id,
+            1,
+        )
+
+        logs = response["logs"]
+        assert len(logs) == 3
+        assert any("ZeroDivisionError" in log for log in logs)
+        assert any("division by zero" in log for log in logs)
+        assert any("ConnectionError" in log for log in logs)
+        assert any("Failed to connect to database" in log for log in logs)
+
+    def test_rpc_with_feedback_breadcrumb(self) -> None:
+        """Test handling of a feedback breadcrumb when the feedback
+        is in nodestore, but hasn't reached Snuba yet.
+        If the feedback is in Snuba (guaranteed for SDK v8.0.0+),
+        it should be de-duped like in the duplicate_feedback test below."""
+
+        now = datetime.now(UTC)
+        feedback_event_id = uuid.uuid4().hex
+
+        self.store_event(
+            data={
+                "type": "feedback",
+                "event_id": feedback_event_id,
+                "timestamp": now.timestamp(),
+                "contexts": {
+                    "feedback": {
+                        "contact_email": "josh.ferge@sentry.io",
+                        "name": "Josh Ferge",
+                        "message": "Great website!",
+                        "replay_id": self.replay_id,
+                        "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
+                    },
+                },
+            },
+            project_id=self.project.id,
+        )
+        self.store_replay()
+
+        data = [
+            {
+                "type": 5,
+                "timestamp": float(now.timestamp()),
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {
+                        "category": "sentry.feedback",
+                        "data": {"feedbackId": feedback_event_id},
+                    },
+                },
+            },
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        response = rpc_get_replay_summary_logs(
+            self.project.id,
+            self.replay_id,
+            1,
+        )
+
+        logs = response["logs"]
+        assert len(logs) == 1
+        assert "User submitted feedback: 'Great website!'" in logs[0]
+
+    def test_rpc_with_trace_errors_both_datasets(self) -> None:
+        """Test that trace connected error snuba query works correctly with both datasets."""
+
+        now = datetime.now(UTC)
+        project_1 = self.create_project()
+        project_2 = self.create_project()
+
+        # Create regular error event - errors dataset
+        event_id_1 = uuid.uuid4().hex
+        trace_id_1 = uuid.uuid4().hex
+        timestamp_1 = (now - timedelta(minutes=2)).timestamp()
+        self.store_event(
+            data={
+                "event_id": event_id_1,
+                "timestamp": timestamp_1,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": "Invalid input",
+                        }
+                    ]
+                },
+                "contexts": {
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id_1,
+                        "span_id": "1" + uuid.uuid4().hex[:15],
+                    }
+                },
+            },
+            project_id=project_1.id,
+        )
+
+        # Create feedback event - issuePlatform dataset
+        event_id_2 = uuid.uuid4().hex
+        trace_id_2 = uuid.uuid4().hex
+        timestamp_2 = (now - timedelta(minutes=5)).timestamp()
+
+        feedback_data = {
+            "type": "feedback",
+            "event_id": event_id_2,
+            "timestamp": timestamp_2,
+            "contexts": {
+                "feedback": {
+                    "contact_email": "test@example.com",
+                    "name": "Test User",
+                    "message": "Great website",
+                    "replay_id": self.replay_id,
+                    "url": "https://example.com",
+                },
+                "trace": {
+                    "type": "trace",
+                    "trace_id": trace_id_2,
+                    "span_id": "2" + uuid.uuid4().hex[:15],
+                },
+            },
+        }
+
+        create_feedback_issue(
+            feedback_data, project_2, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
+
+        # Store the replay with all trace IDs
+        self.store_replay(trace_ids=[trace_id_1, trace_id_2])
+
+        data = [
+            {
+                "type": 5,
+                "timestamp": 0.0,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "hello"},
+                },
+            },
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        response = rpc_get_replay_summary_logs(
+            self.project.id,
+            self.replay_id,
+            1,
+        )
+
+        logs = response["logs"]
+        assert len(logs) == 3
+
+        # Verify that feedback event is included
+        assert "Great website" in logs[1]
+        assert "User submitted feedback" in logs[1]
+
+        # Verify that regular error event is included
+        assert "ValueError" in logs[2]
+        assert "Invalid input" in logs[2]
+        assert "User experienced an error" in logs[2]
+
+    @patch("sentry.replays.usecases.summarize.fetch_feedback_details")
+    def test_rpc_with_trace_errors_duplicate_feedback(
+        self, mock_fetch_feedback_details: MagicMock
+    ) -> None:
+        """Test that duplicate feedback events are filtered.
+        Duplicates may happen when the replay has a feedback breadcrumb,
+        and the feedback is also returned from the Snuba query for trace-connected errors."""
+
+        now = datetime.now(UTC)
+        feedback_event_id = uuid.uuid4().hex
+        feedback_event_id_2 = uuid.uuid4().hex
+        trace_id = uuid.uuid4().hex
+        trace_id_2 = uuid.uuid4().hex
+
+        # Create feedback event - issuePlatform dataset
+        feedback_data: dict[str, Any] = {
+            "type": "feedback",
+            "event_id": feedback_event_id,
+            "timestamp": (now - timedelta(minutes=3)).timestamp(),
+            "contexts": {
+                "feedback": {
+                    "contact_email": "test@example.com",
+                    "name": "Test User",
+                    "message": "Great website",
+                    "replay_id": self.replay_id,
+                    "url": "https://example.com",
+                },
+                "trace": {
+                    "type": "trace",
+                    "trace_id": trace_id,
+                    "span_id": "1" + uuid.uuid4().hex[:15],
+                },
+            },
+        }
+
+        # Create another feedback event - issuePlatform dataset
+        feedback_data_2: dict[str, Any] = {
+            "type": "feedback",
+            "event_id": feedback_event_id_2,
+            "timestamp": (now - timedelta(minutes=2)).timestamp(),
+            "contexts": {
+                "feedback": {
+                    "contact_email": "test2@example.com",
+                    "name": "Test User 2",
+                    "message": "Broken website",
+                    "replay_id": self.replay_id,
+                    "url": "https://example.com",
+                },
+                "trace": {
+                    "type": "trace",
+                    "trace_id": trace_id_2,
+                    "span_id": "1" + uuid.uuid4().hex[:15],
+                },
+            },
+        }
+
+        create_feedback_issue(
+            feedback_data, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
+        create_feedback_issue(
+            feedback_data_2, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
+
+        self.store_replay(trace_ids=[trace_id, trace_id_2])
+
+        # mock SDK feedback event with same event_id as the first feedback event
+        data = [
+            {
+                "type": 5,
+                "timestamp": float((now - timedelta(minutes=3)).timestamp()),
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {
+                        "category": "sentry.feedback",
+                        "data": {"feedbackId": feedback_event_id},
+                    },
+                },
+            },
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        # Mock fetch_feedback_details to return a dup of the first feedback event.
+        # In prod this is from nodestore. We had difficulties writing to nodestore in tests.
+        mock_fetch_feedback_details.return_value = EventDict(
+            id=feedback_event_id,
+            title="User Feedback",
+            message=feedback_data["contexts"]["feedback"]["message"],
+            timestamp=float(feedback_data["timestamp"]),
+            category="feedback",
+        )
+
+        response = rpc_get_replay_summary_logs(
+            self.project.id,
+            self.replay_id,
+            1,
+        )
+
+        logs = response["logs"]
+
+        # Verify that only the unique feedback logs are included
+        assert len(logs) == 2
+        assert "User submitted feedback" in logs[0]
+        assert "Great website" in logs[0]
+        assert "User submitted feedback" in logs[1]
+        assert "Broken website" in logs[1]

@@ -25,7 +25,7 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
-import {hasAccessToSubscriptionOverview, hasNewBillingUI} from 'getsentry/utils/billing';
+import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   isPartOfReservedBudget,
@@ -321,11 +321,9 @@ function Overview({location, subscription, promotionData}: Props) {
     );
   }
 
-  const isNewBillingUI = hasNewBillingUI(organization);
-
   if (isPending) {
     return (
-      <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
+      <Container>
         <SubscriptionHeader subscription={subscription} organization={organization} />
         <LoadingIndicator />
       </Container>
@@ -360,7 +358,11 @@ function Overview({location, subscription, promotionData}: Props) {
         <RecurringCredits displayType="data" planDetails={planDetails} />
         <OnDemandDisabled subscription={subscription} />
         <UsageAlert subscription={subscription} usage={usageData} />
-        <DisplayModeToggle subscription={subscription} displayMode={displayMode} />
+        <DisplayModeToggle
+          subscription={subscription}
+          displayMode={displayMode}
+          organization={organization}
+        />
         {renderUsageChart(usageData)}
         {renderUsageCards(usageData)}
         <OnDemandSettings organization={organization} subscription={subscription} />
@@ -382,7 +384,7 @@ function Overview({location, subscription, promotionData}: Props) {
   }
 
   return (
-    <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
+    <Container>
       <SubscriptionHeader organization={organization} subscription={subscription} />
       <div>
         {hasBillingPerms

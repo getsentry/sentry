@@ -1,5 +1,6 @@
 import uuid
 from hashlib import md5
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -7,7 +8,7 @@ import pytest
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.models.environment import Environment
 from sentry.models.release import Release
-from sentry.spans.consumers.process_segments.message import process_segment
+from sentry.spans.consumers.process_segments.message import _verify_compatibility, process_segment
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.performance_issues.experiments import exclude_experimental_detectors
@@ -236,3 +237,21 @@ class TestSpansTask(TestCase):
 
         signals = [args[0][1] for args in mock_track.call_args_list]
         assert signals == ["has_transactions", "has_insights_http"]
+
+
+def test_verify_compatibility():
+    spans: list[dict[str, Any]] = [
+        # regular span:
+        {"data": {"foo": 1}},
+        # valid compat span:
+        {"data": {"foo": 1}, "attributes": {"foo": {"value": 1}}},
+        # invalid compat spans:
+        {"data": {"foo": 1}, "attributes": {"value": {"foo": "2"}}},
+        {"data": {"bar": 1}, "attributes": None},
+        {"data": {"baz": 1}, "attributes": {}},
+        {"data": {"zap": 1}, "attributes": {"zap": {"no_value": "1"}}},
+        {"data": {"abc": 1}, "attributes": {"abc": None}},
+    ]
+    result = _verify_compatibility(spans)
+    assert len(result) == len(spans)
+    assert [v is None for v in result] == [True, True, False, False, False, False, False]

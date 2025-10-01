@@ -20,6 +20,7 @@ import {
 } from 'getsentry/constants';
 import type {
   BillingConfig,
+  BillingDetails,
   BillingMetricHistory,
   BillingStatTotal,
   EventBucket,
@@ -311,9 +312,11 @@ export const hasPartnerMigrationFeature = (organization: Organization) =>
 export const hasActiveVCFeature = (organization: Organization) =>
   organization.features.includes('vc-marketplace-active-customer');
 
+// TODO(isabella): clean this up after GA
 export const hasNewBillingUI = (organization: Organization) =>
-  organization.features.includes('checkout-v3');
+  organization.features.includes('subscriptions-v3');
 
+// TODO(isabella): clean this up after GA
 export const hasStripeComponentsFeature = (organization: Organization) =>
   organization.features.includes('stripe-components');
 
@@ -710,4 +713,22 @@ export function partnerPlanEndingModalIsDismissed(
     default:
       return true;
   }
+}
+
+/**
+ * Returns true if some billing details are set.
+ */
+export function hasSomeBillingDetails(billingDetails: BillingDetails | undefined) {
+  if (!billingDetails) {
+    return false;
+  }
+  return (
+    billingDetails &&
+    Object.entries(billingDetails)
+      .filter(
+        ([key, _]) =>
+          key !== 'billingEmail' && key !== 'companyName' && key !== 'taxNumber'
+      )
+      .some(([_, value]) => defined(value))
+  );
 }

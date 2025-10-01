@@ -185,13 +185,12 @@ def _get_status_check_client(
     Returns None for expected failure cases (missing repo, integration, etc).
     Raises exceptions for unexpected errors that should be handled upstream.
     """
-    try:
-        repository = Repository.objects.get(
-            organization_id=project.organization_id,
-            name=commit_comparison.head_repo_name,
-            provider=f"integrations:{commit_comparison.provider}",
-        )
-    except Repository.DoesNotExist:
+    repository = Repository.objects.filter(
+        organization_id=project.organization_id,
+        name=commit_comparison.head_repo_name,
+        provider=f"integrations:{commit_comparison.provider}",
+    ).first()
+    if not repository:
         logger.info(
             "preprod.status_checks.create.no_repository",
             extra={

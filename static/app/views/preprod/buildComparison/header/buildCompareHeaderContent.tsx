@@ -6,11 +6,17 @@ import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {Heading} from 'sentry/components/core/text/heading';
-import {IconCode, IconDownload, IconJson} from 'sentry/icons';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {IconCode, IconDownload, IconJson, IconMobile} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
+  isSizeInfoCompleted,
+  type BuildDetailsApiResponse,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
+  formattedDownloadSize,
+  formattedInstallSize,
   getPlatformIconFromPlatform,
   getReadablePlatformLabel,
 } from 'sentry/views/preprod/utils/labelUtils';
@@ -43,7 +49,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
     <Flex direction="column" gap="lg" style={{padding: `0 0 ${theme.space.lg} 0`}}>
       <Breadcrumbs crumbs={breadcrumbs} />
       <Heading as="h1">Build comparison</Heading>
-      <Flex gap="lg">
+      <Flex gap="lg" wrap="wrap" align="center">
         <Flex gap="sm" align="center">
           <AppIcon>
             <AppIconPlaceholder>
@@ -72,16 +78,24 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
           </InfoIcon>
           <Text>{buildDetails.app_info.app_id}</Text>
         </Flex>
-        {buildDetails.size_info?.download_size_bytes && (
+        {buildDetails.app_info.build_configuration && (
           <Flex gap="sm" align="center">
-            <IconDownload size="sm" color="gray300" />
-            <Text>{formatBytesBase10(buildDetails.size_info.download_size_bytes)}</Text>
+            <IconMobile size="sm" color="gray300" />
+            <Tooltip title={t('Build configuration')}>
+              <Text monospace>{buildDetails.app_info.build_configuration}</Text>
+            </Tooltip>
           </Flex>
         )}
-        {buildDetails.size_info?.install_size_bytes && (
+        {isSizeInfoCompleted(buildDetails.size_info) && (
+          <Flex gap="sm" align="center">
+            <IconDownload size="sm" color="gray300" />
+            <Text>{formattedDownloadSize(buildDetails)}</Text>
+          </Flex>
+        )}
+        {isSizeInfoCompleted(buildDetails.size_info) && (
           <Flex gap="sm" align="center">
             <IconCode size="sm" color="gray300" />
-            <Text>{formatBytesBase10(buildDetails.size_info.install_size_bytes)}</Text>
+            <Text>{formattedInstallSize(buildDetails)}</Text>
           </Flex>
         )}
       </Flex>

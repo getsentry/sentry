@@ -11,10 +11,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {useLogsSearch} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   useExploreDataset,
-  useExploreFields,
   useExploreQuery,
   useExploreTitle,
 } from 'sentry/views/explore/contexts/pageParamsContext';
@@ -29,6 +27,8 @@ import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogs
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   useQueryParamsFields,
+  useQueryParamsQuery,
+  useQueryParamsSearch,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
@@ -44,7 +44,7 @@ const {info, fmt} = Sentry.logger;
 interface UseTrackAnalyticsProps {
   aggregatesTableResult: AggregatesTableResult;
   dataset: DiscoverDatasets;
-  fields: string[];
+  fields: readonly string[];
   interval: string;
   isTopN: boolean;
   page_source: 'explore' | 'compare';
@@ -137,12 +137,14 @@ function useTrackAnalytics({
       page_source,
       interval,
       gave_seer_consent: gaveSeerConsent,
+      version: 2,
     });
 
     /* eslint-disable @typescript-eslint/no-base-to-string */
     info(
       fmt`trace.explorer.metadata:
       organization: ${organization.slug}
+      dataScanned: ${dataScanned}
       dataset: ${dataset}
       query: [omitted]
       visualizes: ${visualizes.map(v => v.chartType).join(', ')}
@@ -225,10 +227,12 @@ function useTrackAnalytics({
       page_source,
       interval,
       gave_seer_consent: gaveSeerConsent,
+      version: 2,
     });
 
     info(fmt`trace.explorer.metadata:
       organization: ${organization.slug}
+      dataScanned: ${dataScanned}
       dataset: ${dataset}
       query: ${query}
       visualizes: ${visualizes.map(v => v.chartType).join(', ')}
@@ -321,6 +325,7 @@ function useTrackAnalytics({
       page_source,
       interval,
       gave_seer_consent: gaveSeerConsent,
+      version: 2,
     });
   }, [
     dataset,
@@ -364,7 +369,7 @@ export function useAnalytics({
   const dataset = useExploreDataset();
   const title = useExploreTitle();
   const query = useExploreQuery();
-  const fields = useExploreFields();
+  const fields = useQueryParamsFields();
   const visualizes = useQueryParamsVisualizes();
   const topEvents = useTopEvents();
   const isTopN = topEvents ? topEvents > 0 : false;
@@ -462,8 +467,8 @@ export function useLogAnalytics({
 
   const dataset = DiscoverDatasets.OURLOGS;
   const dataScanned = logsTableResult.meta?.dataScanned ?? '';
-  const search = useLogsSearch();
-  const query = search.formatString();
+  const search = useQueryParamsSearch();
+  const query = useQueryParamsQuery();
   const fields = useQueryParamsFields();
   const page_source = source;
 
@@ -541,6 +546,7 @@ export function useLogAnalytics({
     info(
       fmt`log.explorer.metadata:
       organization: ${organization.slug}
+      dataScanned: ${dataScanned}
       dataset: ${dataset}
       query: ${query}
       fields: ${fieldsBox.current}
@@ -615,6 +621,7 @@ export function useLogAnalytics({
     info(
       fmt`log.explorer.metadata:
       organization: ${organization.slug}
+      dataScanned: ${dataScanned}
       dataset: ${dataset}
       query: ${query}
       fields: ${fieldsBox.current}

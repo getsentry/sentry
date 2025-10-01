@@ -22,7 +22,6 @@ import {
   LogsPageDataProvider,
   useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {
   useTraceItemDetails,
@@ -230,6 +229,7 @@ export function SpanNodeDetails(
             traceID={profileId ?? profilerId ?? ''}
           >
             <LogsQueryParamsProvider
+              analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
               source="state"
               freeze={{
                 span: {
@@ -239,12 +239,7 @@ export function SpanNodeDetails(
                 },
               }}
             >
-              <LogsPageParamsProvider
-                isTableFrozen
-                analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
-              >
-                <LogsPageDataProvider>{content}</LogsPageDataProvider>
-              </LogsPageParamsProvider>
+              <LogsPageDataProvider>{content}</LogsPageDataProvider>
             </LogsQueryParamsProvider>
           </ProfileGroupProvider>
         )}

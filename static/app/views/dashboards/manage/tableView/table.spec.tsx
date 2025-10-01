@@ -63,7 +63,7 @@ describe('DashboardTable', () => {
         ]}
         cursorKey="test"
         isLoading={false}
-        title={''}
+        title=""
       />
     );
 
@@ -113,7 +113,7 @@ describe('DashboardTable', () => {
         dashboards={[DashboardListItemFixture({filters: {release: ['1.0.0']}})]}
         cursorKey="test"
         isLoading={false}
-        title={''}
+        title=""
       />
     );
 

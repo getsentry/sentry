@@ -6,7 +6,6 @@ import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {
   EAPSpanSearchQueryBuilder,
@@ -44,6 +43,7 @@ import {AIInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
 import {TwoColumnWidgetGrid, WidgetGrid} from 'sentry/views/insights/agents/views/styles';
+import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -52,6 +52,7 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget';
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
 import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -75,6 +76,7 @@ function AgentsOverviewPage() {
   const showOnboarding = useShowOnboarding();
   const datePageFilterProps = limitMaxPickableDays(organization);
   const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
+  useDefaultToAllProjects();
 
   const {activeTable, onActiveTableChange} = useActiveTable();
 
@@ -105,9 +107,6 @@ function AgentsOverviewPage() {
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
   );
-  const hasMatchKeySuggestions = organization.features.includes(
-    'search-query-builder-match-key-suggestions'
-  );
 
   const eapSpanSearchQueryBuilderProps = useMemo(
     () => ({
@@ -121,15 +120,12 @@ function AgentsOverviewPage() {
       numberSecondaryAliases,
       stringSecondaryAliases,
       replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
-      matchKeySuggestions: hasMatchKeySuggestions
-        ? [
-            {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
-            {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
-          ]
-        : undefined,
+      matchKeySuggestions: [
+        {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
+        {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+      ],
     }),
     [
-      hasMatchKeySuggestions,
       hasRawSearchReplacement,
       numberSecondaryAliases,
       numberTags,
@@ -174,7 +170,7 @@ function AgentsOverviewPage() {
                 <ToolRibbon>
                   <PageFilterBar condensed>
                     <InsightsProjectSelector />
-                    <EnvironmentPageFilter />
+                    <InsightsEnvironmentSelector />
                     <DatePageFilter {...datePageFilterProps} />
                   </PageFilterBar>
                   {!showOnboarding && (

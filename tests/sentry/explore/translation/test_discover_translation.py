@@ -78,7 +78,6 @@ class DiscoverToExploreTranslationTest(TestCase):
         assert new_explore_query.is_multi_query is False
         assert new_explore_query.organization == self.org
         assert new_explore_query.created_by_id == self.user.id
-        assert new_explore_query.name == "Simple query"
 
         base_query = new_explore_query.query
         assert base_query["environment"] == []
@@ -87,11 +86,8 @@ class DiscoverToExploreTranslationTest(TestCase):
         query = base_query["query"][0]
         assert query["fields"] == ["id", "transaction", "timestamp"]
         assert query["query"] == "(is_transaction:1) AND is_transaction:1"
-        assert query["mode"] == "aggregate"
+        assert query["mode"] == "samples"
         assert query["aggregateField"] == [
-            {"groupBy": "id"},
-            {"groupBy": "transaction"},
-            {"groupBy": "timestamp"},
             {"yAxes": ["count(span.duration)"], "chartType": 2},
         ]
         assert query["aggregateOrderby"] is None
@@ -119,11 +115,8 @@ class DiscoverToExploreTranslationTest(TestCase):
         query = new_explore_query.query["query"][0]
         assert query["fields"] == ["id", "transaction", "timestamp"]
         assert query["query"] == "is_transaction:1"
-        assert query["mode"] == "aggregate"
+        assert query["mode"] == "samples"
         assert query["aggregateField"] == [
-            {"groupBy": "id"},
-            {"groupBy": "transaction"},
-            {"groupBy": "timestamp"},
             {"yAxes": ["p50(span.duration)"], "chartType": 2},
             {"yAxes": ["count(span.duration)"], "chartType": 2},
         ]
@@ -153,11 +146,8 @@ class DiscoverToExploreTranslationTest(TestCase):
         query = new_explore_query.query["query"][0]
         assert query["fields"] == ["id", "transaction", "timestamp"]
         assert query["query"] == "is_transaction:1"
-        assert query["mode"] == "aggregate"
+        assert query["mode"] == "samples"
         assert query["aggregateField"] == [
-            {"groupBy": "id"},
-            {"groupBy": "transaction"},
-            {"groupBy": "timestamp"},
             {"yAxes": ["p50(span.duration)"], "chartType": 2},
             {"yAxes": ["count(span.duration)"], "chartType": 2},
         ]
@@ -171,7 +161,7 @@ class DiscoverToExploreTranslationTest(TestCase):
             "yAxis": ["count()"],
             "fields": ["id", "timestamp"],
             "orderby": "-timestamp",
-            "display": "default",
+            "display": "bar",
             "environment": [],
         }
         self.filter_swap_saved_query = self.create_discover_query(
@@ -187,11 +177,9 @@ class DiscoverToExploreTranslationTest(TestCase):
             query["query"]
             == "(user.geo.country_code:CA AND user.geo.city:Toronto) AND is_transaction:1"
         )
-        assert query["mode"] == "aggregate"
+        assert query["mode"] == "samples"
         assert query["aggregateField"] == [
-            {"groupBy": "id"},
-            {"groupBy": "timestamp"},
-            {"yAxes": ["count(span.duration)"], "chartType": 2},
+            {"yAxes": ["count(span.duration)"], "chartType": 0},
         ]
         assert query["aggregateOrderby"] is None
         assert query["orderby"] == "-timestamp"
@@ -209,10 +197,9 @@ class DiscoverToExploreTranslationTest(TestCase):
                 "apdex()",
                 "count_miserable(users)",
                 "max(measurements.cls)",
-                "timestamp",
             ],
             "orderby": "-count_miserable_users",
-            "display": "default",
+            "display": "top5",
             "environment": [],
         }
         self.drop_swap_function_field_orderby_filter_saved_query = self.create_discover_query(
@@ -237,18 +224,16 @@ class DiscoverToExploreTranslationTest(TestCase):
         ]
 
         query = new_explore_query.query["query"][0]
-        assert query["fields"] == ["id", "transaction", "request.url", "timestamp"]
+        assert query["fields"] == ["id", "transaction", "request.url"]
         assert (
             query["query"]
             == "(platform:python AND count_miserable(users):>100) AND is_transaction:1"
         )
         assert query["mode"] == "aggregate"
         assert query["aggregateField"] == [
-            {"groupBy": "id"},
             {"groupBy": "transaction"},
             {"groupBy": "request.url"},
-            {"groupBy": "timestamp"},
-            {"yAxes": ["apdex(span.duration,300)"], "chartType": 2},
+            {"yAxes": ["equation|apdex(span.duration,300)"], "chartType": 2},
             {"yAxes": ["max(measurements.cls)"], "chartType": 2},
         ]
         assert query["aggregateOrderby"] is None
@@ -277,10 +262,8 @@ class DiscoverToExploreTranslationTest(TestCase):
         query = new_explore_query.query["query"][0]
         assert query["fields"] == ["id", "timestamp"]
         assert query["query"] == "is_transaction:1"
-        assert query["mode"] == "aggregate"
+        assert query["mode"] == "samples"
         assert query["aggregateField"] == [
-            {"groupBy": "id"},
-            {"groupBy": "timestamp"},
             {"yAxes": ["count(span.duration)"], "chartType": 0},
         ]
         assert query["aggregateOrderby"] is None
@@ -358,10 +341,32 @@ class DiscoverToExploreTranslationTest(TestCase):
         assert query["fields"] == ["id", "transaction", "timestamp"]
         assert query["query"] == "(is_transaction:1) AND is_transaction:1"
         assert query["aggregateField"] == [
-            {"groupBy": "id"},
-            {"groupBy": "transaction"},
-            {"groupBy": "timestamp"},
             {"yAxes": ["count(span.duration)"], "chartType": 2},
         ]
         assert query["aggregateOrderby"] is None
         assert query["orderby"] == "-timestamp"
+
+    def test_translate_dicover_query_with_count_web_vitals_orderby(self):
+        self.count_web_vitals_query = {
+            "query": "",
+            "range": "14d",
+            "yAxis": ["count_web_vitals(measurements.lcp,good)"],
+            "fields": ["title", "project", "timestamp", "count_web_vitals(measurements.lcp,good)"],
+            "orderby": "-count_web_vitals_measurements_lcp_good",
+            "display": "default",
+        }
+        self.count_web_vitals_saved_query = self.create_discover_query(
+            "Count web vitals query", self.count_web_vitals_query
+        )
+
+        new_explore_query = translate_discover_query_to_explore_query(
+            self.count_web_vitals_saved_query
+        )
+        assert new_explore_query.name == "Count web vitals query"
+
+        query = new_explore_query.query["query"][0]
+        assert query["fields"] == ["id", "transaction", "project", "timestamp"]
+        assert query["query"] == "is_transaction:1"
+        assert query["mode"] == "samples"
+        assert query["aggregateOrderby"] is None
+        assert query["orderby"] is None

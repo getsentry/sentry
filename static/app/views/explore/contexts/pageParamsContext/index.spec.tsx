@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render} from 'sentry-test/reactTestingLibrary';
@@ -6,15 +7,10 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   PageParamsProvider,
   useExplorePageParams,
-  useSetExploreFields,
-  useSetExploreGroupBys,
-  useSetExploreId,
   useSetExploreMode,
   useSetExplorePageParams,
   useSetExploreQuery,
   useSetExploreSortBys,
-  useSetExploreTitle,
-  useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
@@ -23,7 +19,21 @@ import {
   DEFAULT_VISUALIZATION_FIELD,
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {
+  useSetQueryParamsFields,
+  useSetQueryParamsGroupBys,
+  useSetQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+function Wrapper({children}: {children: ReactNode}) {
+  return (
+    <SpansQueryParamsProvider>
+      <PageParamsProvider>{children}</PageParamsProvider>
+    </SpansQueryParamsProvider>
+  );
+}
 
 describe('defaults', () => {
   it('default', () => {
@@ -42,34 +52,30 @@ describe('defaults', () => {
 describe('PageParamsProvider', () => {
   let pageParams: ReturnType<typeof useExplorePageParams>;
   let setPageParams: ReturnType<typeof useSetExplorePageParams>;
-  let setFields: ReturnType<typeof useSetExploreFields>;
-  let setGroupBys: ReturnType<typeof useSetExploreGroupBys>;
+  let setFields: ReturnType<typeof useSetQueryParamsFields>;
+  let setGroupBys: ReturnType<typeof useSetQueryParamsGroupBys>;
   let setMode: ReturnType<typeof useSetExploreMode>;
   let setQuery: ReturnType<typeof useSetExploreQuery>;
   let setSortBys: ReturnType<typeof useSetExploreSortBys>;
-  let setVisualizes: ReturnType<typeof useSetExploreVisualizes>;
-  let setId: ReturnType<typeof useSetExploreId>;
-  let setTitle: ReturnType<typeof useSetExploreTitle>;
+  let setVisualizes: ReturnType<typeof useSetQueryParamsVisualizes>;
 
   function Component() {
     pageParams = useExplorePageParams();
     setPageParams = useSetExplorePageParams();
-    setFields = useSetExploreFields();
-    setGroupBys = useSetExploreGroupBys();
+    setFields = useSetQueryParamsFields();
+    setGroupBys = useSetQueryParamsGroupBys();
     setMode = useSetExploreMode();
     setQuery = useSetExploreQuery();
     setSortBys = useSetExploreSortBys();
-    setVisualizes = useSetExploreVisualizes();
-    setId = useSetExploreId();
-    setTitle = useSetExploreTitle();
+    setVisualizes = useSetQueryParamsVisualizes();
     return <br />;
   }
 
   function renderTestComponent(defaultPageParams?: any) {
     render(
-      <PageParamsProvider>
+      <Wrapper>
         <Component />
-      </PageParamsProvider>
+      </Wrapper>
     );
 
     act(() =>
@@ -94,9 +100,9 @@ describe('PageParamsProvider', () => {
 
   it('has expected default', () => {
     render(
-      <PageParamsProvider>
+      <Wrapper>
         <Component />
-      </PageParamsProvider>
+      </Wrapper>
     );
 
     expect(pageParams).toEqual(
@@ -528,7 +534,7 @@ describe('PageParamsProvider', () => {
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp'],
+        fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
         sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
@@ -576,18 +582,6 @@ describe('PageParamsProvider', () => {
         ],
       })
     );
-  });
-
-  it('correctly updates id', () => {
-    renderTestComponent();
-    act(() => setId('123'));
-    expect(pageParams).toEqual(expect.objectContaining({id: '123'}));
-  });
-
-  it('correctly updates title', () => {
-    renderTestComponent();
-    act(() => setTitle('My Query'));
-    expect(pageParams).toEqual(expect.objectContaining({title: 'My Query'}));
   });
 
   it('manages inserting and deleting a column when added/removed', () => {
@@ -739,9 +733,9 @@ describe('PageParamsProvider', () => {
     });
 
     render(
-      <PageParamsProvider>
+      <Wrapper>
         <Component />
-      </PageParamsProvider>,
+      </Wrapper>,
       {organization}
     );
 

@@ -1,12 +1,12 @@
 ---
-created: '2025-09-11T18:38:53.254274+00:00'
+created: '2025-09-24T20:27:09.071278+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 default:
   hash: "1f5bdebe3c9f414c7dbb4296a8353245"
   contributing component: template
-  component:
+  root_component:
     default*
       template*
         filename*

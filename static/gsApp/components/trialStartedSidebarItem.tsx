@@ -13,7 +13,6 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import testableTransition from 'sentry/utils/testableTransition';
 import withApi from 'sentry/utils/withApi';
-import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 import TrialRequestedActions from 'getsentry/actions/trialRequestedActions';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
@@ -105,15 +104,8 @@ function TrialStartedSidebarItem({
   };
 
   const renderWithHovercard = (hovercardBody: React.ReactNode) => {
-    const prefersNewNav = prefersStackedNav(organization);
-
     return (
-      <StyledHovercard
-        forceVisible
-        position="right"
-        body={hovercardBody}
-        prefersNewNav={prefersNewNav}
-      >
+      <StyledHovercard forceVisible position="right" body={hovercardBody}>
         {children}
       </StyledHovercard>
     );
@@ -140,9 +132,7 @@ function TrialStartedSidebarItem({
     }
   }
 
-  const prefersNewNav = prefersStackedNav(organization);
-
-  const content = (
+  return (
     <Wrapper
       className={className}
       initial={animate}
@@ -176,12 +166,6 @@ function TrialStartedSidebarItem({
       {wrappedChildren}
     </Wrapper>
   );
-
-  if (prefersNewNav) {
-    return content;
-  }
-
-  return <BoxShadowHider>{content}</BoxShadowHider>;
 }
 
 const startedStyle = (theme: Theme) => css`
@@ -215,22 +199,11 @@ const Wrapper = styled(motion.div)`
   }
 `;
 
-const BoxShadowHider = styled('div')`
-  margin: -20px;
-  padding: 20px;
-  overflow: hidden;
-`;
-
 // We specifically set the z-index lower than the modal here, since it will be
 // common to start a trial with the upsell modal open.
-const StyledHovercard = styled(Hovercard)<{prefersNewNav: boolean}>`
+const StyledHovercard = styled(Hovercard)`
   width: 310px;
   z-index: ${p => p.theme.zIndex.modal - 1};
-  ${p =>
-    !p.prefersNewNav &&
-    css`
-      margin-left: 30px;
-    `}
 `;
 
 const HovercardBody = styled('div')`

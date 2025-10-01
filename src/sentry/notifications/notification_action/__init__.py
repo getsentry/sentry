@@ -34,6 +34,9 @@ __all__ = [
     "GithubActionValidatorHandler",
     "GithubEnterpriseActionValidatorHandler",
     "PagerdutyActionValidatorHandler",
+    "OpsgenieActionValidatorHandler",
+    "SentryAppActionValidatorHandler",
+    "WebhookActionValidatorHandler",
 ]
 
 from .action_handler_registry import (
@@ -49,8 +52,11 @@ from .action_validation import (
     JiraActionValidatorHandler,
     JiraServerActionValidatorHandler,
     MSTeamsActionValidatorHandler,
+    OpsgenieActionValidatorHandler,
     PagerdutyActionValidatorHandler,
+    SentryAppActionValidatorHandler,
     SlackActionValidatorHandler,
+    WebhookActionValidatorHandler,
 )
 from .group_type_notification_registry import IssueAlertRegistryHandler, MetricAlertRegistryHandler
 from .grouptype import SendTestNotification

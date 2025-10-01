@@ -34,6 +34,10 @@ describe('Uptime Alert Form', () => {
     return screen.getByRole('textbox', {name});
   }
 
+  function numberInput(name: string) {
+    return screen.getByRole('spinbutton', {name});
+  }
+
   it('can create a new rule', async () => {
     render(<UptimeAlertForm organization={organization} project={project} />, {
       organization,
@@ -58,6 +62,18 @@ describe('Uptime Alert Form', () => {
     await userEvent.type(input('Value of X-Something'), 'Header Value');
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Allow Sampling'}));
+
+    // Test threshold fields - should be empty with placeholders
+    expect(numberInput('Failure Tolerance')).toHaveValue(null);
+    expect(numberInput('Recovery Tolerance')).toHaveValue(null);
+    expect(numberInput('Failure Tolerance')).toHaveAttribute(
+      'placeholder',
+      'Defaults to 3'
+    );
+    expect(numberInput('Recovery Tolerance')).toHaveAttribute(
+      'placeholder',
+      'Defaults to 1'
+    );
 
     const name = input('Uptime rule name');
     await userEvent.clear(name);
@@ -91,6 +107,45 @@ describe('Uptime Alert Form', () => {
     );
   });
 
+  it('can create a new rule with custom thresholds', async () => {
+    render(<UptimeAlertForm organization={organization} project={project} />, {
+      organization,
+    });
+    await screen.findByText('Configure Request');
+
+    await selectEvent.select(input('Environment'), 'prod');
+    await userEvent.clear(input('URL'));
+    await userEvent.type(input('URL'), 'http://example.com');
+
+    const name = input('Uptime rule name');
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Rule with Custom Thresholds');
+
+    // Set custom threshold values
+    await userEvent.type(numberInput('Failure Tolerance'), '5');
+    await userEvent.type(numberInput('Recovery Tolerance'), '2');
+
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/uptime/`,
+      method: 'POST',
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Rule'}));
+
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          environment: 'prod',
+          name: 'Rule with Custom Thresholds',
+          url: 'http://example.com',
+          downtimeThreshold: '5',
+          recoveryThreshold: '2',
+        }),
+      })
+    );
+  });
+
   it('renders existing rule', async () => {
     const rule = UptimeRuleFixture({
       name: 'Existing Rule',
@@ -106,6 +161,8 @@ describe('Uptime Alert Form', () => {
       traceSampling: true,
       timeoutMs: 7500,
       owner: ActorFixture(),
+      downtimeThreshold: 4,
+      recoveryThreshold: 2,
     });
     render(
       <UptimeAlertForm organization={organization} project={project} rule={rule} />,
@@ -126,6 +183,8 @@ describe('Uptime Alert Form', () => {
     expect(screen.getByRole('menuitemradio', {name: 'prod'})).toBeChecked();
     expect(screen.getByRole('checkbox', {name: 'Allow Sampling'})).toBeChecked();
     expect(screen.getByRole('slider', {name: 'Timeout'})).toHaveValue('7500');
+    expect(numberInput('Failure Tolerance')).toHaveValue(4);
+    expect(numberInput('Recovery Tolerance')).toHaveValue(2);
   });
 
   it('handles simple edits', async () => {
@@ -175,6 +234,8 @@ describe('Uptime Alert Form', () => {
       url: 'https://existing-url.com',
       owner: ActorFixture(),
       traceSampling: false,
+      downtimeThreshold: 4,
+      recoveryThreshold: 2,
     });
     render(
       <UptimeAlertForm organization={organization} project={project} rule={rule} />,
@@ -204,6 +265,12 @@ describe('Uptime Alert Form', () => {
     await userEvent.type(input('Value of X-Another'), 'Second Value');
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Allow Sampling'}));
+
+    // Update threshold values
+    await userEvent.clear(numberInput('Failure Tolerance'));
+    await userEvent.type(numberInput('Failure Tolerance'), '6');
+    await userEvent.clear(numberInput('Recovery Tolerance'));
+    await userEvent.type(numberInput('Recovery Tolerance'), '3');
 
     const name = input('Uptime rule name');
     await userEvent.clear(name);
@@ -235,6 +302,8 @@ describe('Uptime Alert Form', () => {
           intervalSeconds: 60 * 10,
           traceSampling: true,
           timeoutMs: 7500,
+          downtimeThreshold: '6',
+          recoveryThreshold: '3',
         }),
       })
     );

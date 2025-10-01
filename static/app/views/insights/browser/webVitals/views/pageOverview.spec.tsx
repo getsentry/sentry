@@ -65,7 +65,7 @@ describe('PageOverview', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       body: {},
     });
     MockApiClient.addMockResponse({

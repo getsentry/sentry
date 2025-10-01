@@ -10,7 +10,7 @@ from typing import Any
 from django.db import router, transaction
 from django.db.models.base import Model
 
-from sentry import analytics, eventstore, features, similarity, tsdb
+from sentry import analytics, eventstore, similarity, tsdb
 from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.culprit import generate_culprit
@@ -34,7 +34,7 @@ from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.unmerge import InitialUnmergeArgs, SuccessiveUnmergeArgs, UnmergeArgs, UnmergeArgsBase
 from sentry.utils.eventuser import EventUser
-from sentry.utils.query import celery_run_batch_query
+from sentry.utils.query import task_run_batch_query
 
 logger = logging.getLogger(__name__)
 
@@ -254,9 +254,6 @@ def migrate_events(
 
 
 def update_open_periods(source: Group, destination: Group) -> None:
-    if not features.has("organizations:issue-open-periods", destination.project.organization):
-        return
-
     # For groups that are not resolved, the open period created on group creation should have the necessary information
     if destination.status != GroupStatus.RESOLVED:
         return
@@ -498,6 +495,7 @@ def unlock_hashes(project_id, locked_primary_hashes):
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=issues_tasks,
+        processing_deadline_duration=60,
     ),
 )
 def unmerge(*posargs, **kwargs):
@@ -522,7 +520,7 @@ def unmerge(*posargs, **kwargs):
         last_event = args.last_event
         locked_primary_hashes = args.locked_primary_hashes
 
-    last_event, events = celery_run_batch_query(
+    last_event, events = task_run_batch_query(
         filter=eventstore.Filter(project_ids=[args.project_id], group_ids=[source.id]),
         batch_size=args.batch_size,
         state=last_event,

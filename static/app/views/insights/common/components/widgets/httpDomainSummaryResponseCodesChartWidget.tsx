@@ -12,6 +12,7 @@ import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/i
 import {useHttpDomainSummaryChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpDomainSummaryChartFilter';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+import type {AddToSpanDashboardOptions} from 'sentry/views/insights/common/utils/useAddToSpanDashboard';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {Referrer} from 'sentry/views/insights/http/referrers';
@@ -44,20 +45,21 @@ export default function HttpDomainSummaryResponseCodesChartWidget(
 
   const responseRateField = 'tags[http.response.status_code,number]';
   const stringifiedSearch = search.formatString();
+  const yAxis = 'count()';
 
   const queries = [
     {
-      yAxes: ['count()'],
+      yAxes: [yAxis],
       label: '3xx',
       query: `${stringifiedSearch} ${responseRateField}:>=300 ${responseRateField}:<=399`,
     },
     {
-      yAxes: ['count()'],
+      yAxes: [yAxis],
       label: '4xx',
       query: `${stringifiedSearch} ${responseRateField}:>=400 ${responseRateField}:<=499`,
     },
     {
-      yAxes: ['count()'],
+      yAxes: [yAxis],
       label: '5xx',
       query: `${stringifiedSearch} ${responseRateField}:>=500 ${responseRateField}:<=599`,
     },
@@ -74,10 +76,19 @@ export default function HttpDomainSummaryResponseCodesChartWidget(
     referrer,
   });
 
+  const addToDashboardOptions: AddToSpanDashboardOptions[] = queries.map(query => ({
+    chartType: ChartType.LINE,
+    yAxes: query.yAxes,
+    widgetName: query.label,
+    groupBy: [],
+    search: new MutableSearch(query.query),
+  }));
+
   const extraActions = [
     <BaseChartActionDropdown
       key="http response chart widget"
       exploreUrl={exploreUrl}
+      addToDashboardOptions={addToDashboardOptions}
       referrer={referrer}
       alertMenuOptions={queries.map(query => ({
         key: query.label,

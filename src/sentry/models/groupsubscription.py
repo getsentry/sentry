@@ -76,19 +76,15 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
         actor: Team | User | RpcUser,
         reason: int = GroupSubscriptionReason.unknown,
     ) -> bool | None:
-        from sentry import features
         from sentry.models.team import Team
         from sentry.users.models.user import User
 
         if isinstance(actor, (RpcUser, User)):
             return self.subscribe(group, actor, reason)
         if isinstance(actor, Team):
-            if features.has("organizations:team-workflow-notifications", group.organization):
-                return self.subscribe(group, actor, reason)
-            else:
-                # subscribe the members of the team
-                team_users_ids = list(actor.member_set.values_list("user_id", flat=True))
-                return self.bulk_subscribe(group=group, user_ids=team_users_ids, reason=reason)
+            # subscribe the members of the team
+            team_users_ids = list(actor.member_set.values_list("user_id", flat=True))
+            return self.bulk_subscribe(group=group, user_ids=team_users_ids, reason=reason)
 
         raise NotImplementedError("Unknown actor type: %r" % type(actor))
 
@@ -103,7 +99,6 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
         Subscribe a list of user ids and/or teams to an issue, but only if the users/teams are not explicitly
         unsubscribed.
         """
-        from sentry import features
 
         # Unique the IDs.
         user_ids = set(user_ids) if user_ids else set()
@@ -131,26 +126,6 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
                 for user_id in user_ids.difference(existing_subscriptions)
             ]
 
-            if features.has("organizations:team-workflow-notifications", group.organization):
-                existing_team_subscriptions = set(
-                    GroupSubscription.objects.filter(
-                        team_id__in=team_ids, group=group, project=group.project
-                    ).values_list("team_id", flat=True)
-                )
-
-                subscriptions.extend(
-                    [
-                        GroupSubscription(
-                            team_id=team_id,
-                            group=group,
-                            project=group.project,
-                            is_active=True,
-                            reason=reason,
-                        )
-                        for team_id in team_ids.difference(existing_team_subscriptions)
-                    ]
-                )
-
             try:
                 with transaction.atomic(router.db_for_write(GroupSubscription)):
                     self.bulk_create(subscriptions)
@@ -165,7 +140,6 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
         Identify all users who are participating with a given issue.
         :param group: Group object
         """
-        from sentry import features
         from sentry.notifications.utils.participants import ParticipantMap
 
         all_possible_actors = Actor.many_from_object(group.project.get_members_as_rpc_users())
@@ -175,17 +149,6 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
         subscriptions_by_user_id = {
             subscription.user_id: subscription for subscription in active_and_disabled_subscriptions
         }
-
-        has_team_workflow = features.has(
-            "organizations:team-workflow-notifications", group.project.organization
-        )
-
-        if has_team_workflow:
-            possible_team_actors = self.get_possible_team_actors(group)
-            all_possible_actors += possible_team_actors
-            subscriptions_by_team_id = self.get_subscriptions_by_team_id(
-                group, possible_team_actors
-            )
 
         if not all_possible_actors:  # no actors, no notifications
             return ParticipantMap()
@@ -202,8 +165,6 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
                 continue
 
             subscription_option = subscriptions_by_user_id.get(user.id)
-            if not subscription_option and has_team_workflow:
-                subscription_option = subscriptions_by_team_id.get(user.id)
 
             for provider_str, val in providers_by_recipient[user.id].items():
                 value = NotificationSettingsOptionEnum(val)

@@ -39,8 +39,15 @@ class BaseActionValidator(CamelSnakeSerializer):
         return value
 
     def validate_config(self, value) -> ActionConfig:
-        config_schema = self._get_action_handler().config_schema
-        return validate_json_schema(value, config_schema)
+        action_handler = self._get_action_handler()
+        config_transformer = action_handler.get_config_transformer()
+
+        if config_transformer is not None:
+            # Transform from API format (transformer handles API schema validation)
+            return config_transformer.from_api(value)
+        else:
+            # No transformer, validate directly against config schema
+            return validate_json_schema(value, action_handler.config_schema)
 
     def validate_type(self, value) -> Any:
         try:
@@ -64,15 +71,26 @@ class BaseActionValidator(CamelSnakeSerializer):
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         from sentry.notifications.notification_action.registry import action_validator_registry
 
-        attrs = super().validate(attrs)
-
         if not (organization := self.context.get("organization")):
             raise serializers.ValidationError("Organization is required in the context")
+
+        attrs = super().validate(attrs)
+
+        is_integration = Action.Type(attrs["type"]).is_integration()
+        has_integration_id = attrs.get("integration_id") is not None
+
+        if not is_integration and has_integration_id:
+            raise serializers.ValidationError(
+                f"Integration ID is not allowed for action type {attrs["type"]}"
+            )
+        if is_integration and not has_integration_id:
+            raise serializers.ValidationError(
+                f"Integration ID is required for action type {attrs["type"]}"
+            )
 
         try:
             handler = action_validator_registry.get(attrs["type"])
         except NoRegistrationExistsError:
-            # TODO: remove try/catch when all existing action types are registered
             return attrs
 
         return handler(attrs, organization).clean_data()

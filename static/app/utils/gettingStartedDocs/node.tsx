@@ -328,9 +328,7 @@ Sentry.profiler.stopProfiler();
                   'If you need more fine grained control over which spans are profiled, you can do so by [link:enabling manual lifecycle profiling].',
                   {
                     link: (
-                      <ExternalLink
-                        href={`https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/#enabling-manual-lifecycle-profiling`}
-                      />
+                      <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/#enabling-manual-lifecycle-profiling" />
                     ),
                   }
                 )
@@ -341,9 +339,7 @@ Sentry.profiler.stopProfiler();
             'For more detailed information on profiling, see the [link:profiling documentation].',
             {
               link: (
-                <ExternalLink
-                  href={`https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/`}
-                />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/" />
               ),
             }
           ),
@@ -363,8 +359,10 @@ Sentry.profiler.stopProfiler();
 
 export const getNodeAgentMonitoringOnboarding = ({
   basePackage = 'node',
+  configFileName,
 }: {
   basePackage?: string;
+  configFileName?: string;
 } = {}): OnboardingConfig => ({
   install: params => [
     {
@@ -398,17 +396,14 @@ export const getNodeAgentMonitoringOnboarding = ({
         type: 'code',
         tabs: [
           {
-            label:
-              params.platformKey === 'javascript-nextjs'
-                ? 'config.server.ts'
-                : 'JavaScript',
+            label: configFileName ? configFileName : 'JavaScript',
             language: 'javascript',
             code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [
-    // Add the Vercel AI SDK integration ${basePackage === 'nextjs' ? 'to config.server.(js/ts)' : ''}
+    // Add the Vercel AI SDK integration ${configFileName ? `to ${configFileName}` : ''}
     Sentry.vercelAIIntegration({
       recordInputs: true,
       recordOutputs: true,

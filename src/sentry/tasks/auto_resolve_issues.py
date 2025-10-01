@@ -20,7 +20,6 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.signals import issue_resolved
 from sentry.silo.base import SiloMode
-from sentry.tasks.auto_ongoing_issues import log_error_if_queue_has_items
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
@@ -40,7 +39,6 @@ ONE_HOUR = 3600
         processing_deadline_duration=75,
     ),
 )
-@log_error_if_queue_has_items
 def schedule_auto_resolution():
     options_qs = ProjectOption.objects.filter(
         key__in=["sentry:resolve_age", "sentry:_last_auto_resolve"]
@@ -79,7 +77,6 @@ def schedule_auto_resolution():
         processing_deadline_duration=90,
     ),
 )
-@log_error_if_queue_has_items
 def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwargs):
     project = Project.objects.get_from_cache(id=project_id)
     age = project.get_option("sentry:resolve_age", None)

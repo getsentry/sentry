@@ -23,7 +23,7 @@ describe('ExploreCharts', () => {
           <ExploreCharts
             extrapolate
             confidences={[]}
-            query={''}
+            query=""
             timeseriesResult={mockTimeseriesResult}
             visualizes={defaultVisualizes()}
             setVisualizes={() => {}}

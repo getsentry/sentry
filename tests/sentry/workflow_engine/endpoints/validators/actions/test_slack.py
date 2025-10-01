@@ -4,7 +4,6 @@ from django.core.exceptions import ValidationError
 from rest_framework.serializers import ErrorDetail
 
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
@@ -24,7 +23,7 @@ class TestSlackActionValidator(TestCase):
 
         self.valid_data = {
             "type": Action.Type.SLACK,
-            "config": {"targetDisplay": "cathy-sentry", "targetType": ActionTarget.SPECIFIC.value},
+            "config": {"targetDisplay": "cathy-sentry", "targetType": "specific"},
             "data": {"tags": "asdf"},
             "integrationId": self.integration.id,
         }
@@ -44,21 +43,6 @@ class TestSlackActionValidator(TestCase):
         assert result is True
         validator.save()
 
-    def test_validate__missing_integration_id(self):
-        del self.valid_data["integrationId"]
-        validator = BaseActionValidator(
-            data={**self.valid_data},
-            context={"organization": self.organization},
-        )
-
-        result = validator.is_valid()
-        assert result is False
-        assert validator.errors == {
-            "nonFieldErrors": [
-                ErrorDetail(string="Integration ID is required for slack action", code="invalid")
-            ]
-        }
-
     @mock.patch("sentry.integrations.slack.actions.form.validate_slack_entity_id")
     def test_validate__invalid_channel_id(self, mock_validate_slack_entity_id):
         mock_validate_slack_entity_id.side_effect = ValidationError("Invalid channel id")
@@ -67,7 +51,7 @@ class TestSlackActionValidator(TestCase):
             data={
                 **self.valid_data,
                 "config": {
-                    "targetType": ActionTarget.SPECIFIC.value,
+                    "targetType": "specific",
                     "targetIdentifier": "C1234567890",
                     "targetDisplay": "asdf",
                 },
@@ -88,7 +72,7 @@ class TestSlackActionValidator(TestCase):
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
-                "config": {"targetType": ActionTarget.SPECIFIC.value, "targetDisplay": "asdf"},
+                "config": {"targetType": "specific", "targetDisplay": "asdf"},
             },
             context={"organization": self.organization},
         )

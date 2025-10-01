@@ -3,7 +3,6 @@ from unittest import mock
 from django.core.exceptions import ValidationError
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
@@ -24,7 +23,7 @@ class TestDiscordActionValidator(TestCase):
             "type": Action.Type.DISCORD,
             "config": {
                 "targetIdentifier": "1234567890",
-                "targetType": ActionTarget.SPECIFIC.value,
+                "targetType": "specific",
             },
             "data": {"tags": "asdf"},
             "integrationId": self.integration.id,
@@ -43,27 +42,12 @@ class TestDiscordActionValidator(TestCase):
         assert result is True
         validator.save()
 
-    def test_validate__missing_integration_id(self):
-        del self.valid_data["integrationId"]
-        validator = BaseActionValidator(
-            data={**self.valid_data},
-            context={"organization": self.organization},
-        )
-
-        result = validator.is_valid()
-        assert result is False
-        assert validator.errors == {
-            "nonFieldErrors": [
-                ErrorDetail(string="Integration ID is required for discord action", code="invalid")
-            ]
-        }
-
     def test_validate__empty_server(self):
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
                 "config": {
-                    "targetType": ActionTarget.SPECIFIC.value,
+                    "targetType": "specific",
                     "targetIdentifier": "",
                 },
             },

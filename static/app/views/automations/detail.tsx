@@ -1,4 +1,5 @@
 import {Fragment, useCallback} from 'react';
+import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -134,7 +135,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                       AUTOMATION_DETECTORS_LIMIT
                     )}
                   />
-                  <Pagination
+                  <StyledPagination
                     pageLinks={getResponseHeader?.('Link')}
                     onCursor={cursor => {
                       navigate({
@@ -261,3 +262,7 @@ function Actions({automation}: {automation: Automation}) {
     </Fragment>
   );
 }
+
+const StyledPagination = styled(Pagination)`
+  margin: 0;
+`;

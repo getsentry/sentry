@@ -101,9 +101,9 @@ def schedule_build_project_config(public_key):
 def validate_args(organization_id=None, project_id=None, public_key=None):
     """Validates arguments for the tasks and sets sentry scope.
 
-    The tasks should be invoked for only one of these arguments, however because of Celery
-    we want to use primitive types for the arguments.  This is the common validation to make
-    sure only one is provided.
+    The tasks should be invoked for only one of these arguments, however because tasks
+    only support JSON encodable types we want to use primitive types for the arguments.
+    This is the common validation to make sure only one is provided.
     """
     if [bool(organization_id), bool(project_id), bool(public_key)].count(True) != 1:
         raise TypeError("Must provide exactly one of organzation_id, project_id or public_key")

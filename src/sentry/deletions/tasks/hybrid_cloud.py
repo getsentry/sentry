@@ -17,7 +17,6 @@ from typing import Any
 from uuid import uuid4
 
 import sentry_sdk
-from celery import Task
 from django.apps import apps
 from django.db import connections, router
 from django.db.models import Max, Min
@@ -32,6 +31,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import deletion_control_tasks, deletion_tasks
+from sentry.taskworker.task import Task
 from sentry.utils import json, metrics, redis
 
 
@@ -145,7 +145,7 @@ def schedule_hybrid_cloud_foreign_key_jobs() -> None:
     )
 
 
-def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task) -> None:
+def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task[Any, Any]) -> None:
     for app, app_models in apps.all_models.items():
         for model in app_models.values():
             if not hasattr(model._meta, "silo_limit"):
@@ -212,7 +212,11 @@ def process_hybrid_cloud_foreign_key_cascade_batch(
 
 
 def _process_hybrid_cloud_foreign_key_cascade(
-    app_name: str, model_name: str, field_name: str, process_task: Task, silo_mode: SiloMode
+    app_name: str,
+    model_name: str,
+    field_name: str,
+    process_task: Task[Any, Any],
+    silo_mode: SiloMode,
 ) -> None:
     """
     Called by the silo bound tasks above.

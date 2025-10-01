@@ -2,8 +2,10 @@ import {useCallback, useMemo, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {Flex} from 'sentry/components/core/layout';
 import LoadingError from 'sentry/components/loadingError';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
@@ -94,7 +96,8 @@ function AutomationListTable({
     setSelected(newSelected);
   };
   const automationIds = new Set(automations.map(a => a.id));
-  const pageSelected = automationIds.difference(selected).size === 0;
+  const pageSelected = !isPending && automationIds.difference(selected).size === 0;
+  const anySelected = selected.size > 0;
 
   const canEnable = useMemo(
     () =>
@@ -125,7 +128,13 @@ function AutomationListTable({
       {canEditAutomations && selected.size === 0 ? (
         <SimpleTable.Header key="header">
           <HeaderCell sort={sort} sortKey="name">
-            <NamePadding>{t('Name')}</NamePadding>
+            <Flex gap="md" align="center">
+              <SelectAllHeaderCheckbox
+                checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+                onChange={checked => togglePageSelected(checked)}
+              />
+              <span>{t('Name')}</span>
+            </Flex>
           </HeaderCell>
           <HeaderCell
             data-column-name="last-triggered"
@@ -221,10 +230,6 @@ const AutomationsSimpleTable = styled(SimpleTable)`
       display: flex;
     }
   }
-`;
-
-const NamePadding = styled('div')`
-  padding-left: 28px;
 `;
 
 export default AutomationListTable;

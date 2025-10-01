@@ -24,10 +24,13 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   handleOrderByReset,
   type DatasetConfig,
+  type SearchBarData,
+  type SearchBarDataProviderProps,
   type WidgetBuilderSearchBarProps,
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {
@@ -42,9 +45,16 @@ import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/tra
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
-import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {
+  TraceItemSearchQueryBuilder,
+  useSearchQueryBuilderProps,
+} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {
+  TraceItemAttributeProvider,
+  useTraceItemAttributes,
+} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {LOG_AGGREGATES} from 'sentry/views/explore/logs/logsToolbar';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -105,6 +115,17 @@ const EAP_AGGREGATIONS = LOG_AGGREGATES.map(
   {} as Record<AggregationKey, Aggregation>
 );
 
+function LogsSearchBarDataProviderWrapper({children}: {children: React.ReactNode}) {
+  const organization = useOrganization();
+  const enabled = isLogsEnabled(organization);
+
+  return (
+    <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled={enabled}>
+      {children}
+    </TraceItemAttributeProvider>
+  );
+}
+
 function LogsSearchBar({
   widgetQuery,
   onSearch,
@@ -140,6 +161,30 @@ function LogsSearchBar({
   );
 }
 
+function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
+  const {pageFilters, widgetQuery} = props;
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemAttributes('string');
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemAttributes('number');
+
+  const {filterKeys, filterKeySections, getTagValues} = useSearchQueryBuilderProps({
+    itemType: TraceItemDataset.LOGS,
+    numberAttributes,
+    stringAttributes,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
+    searchSource: 'dashboards',
+    initialQuery: widgetQuery?.conditions ?? '',
+    projects: pageFilters.projects,
+  });
+  return {
+    getFilterKeySections: () => filterKeySections,
+    getFilterKeys: () => filterKeys,
+    getTagValues,
+  };
+}
+
 export const LogsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
@@ -148,6 +193,8 @@ export const LogsConfig: DatasetConfig<
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
   SearchBar: LogsSearchBar,
+  useSearchBarDataProvider: useLogsSearchBarDataProvider,
+  SearchBarDataProviderWrapper: LogsSearchBarDataProviderWrapper,
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,
   filterSeriesSortOptions,
@@ -314,7 +361,7 @@ function getEventsRequest(
     {
       retry: {
         statusCodes: [429],
-        tries: 3,
+        tries: 10,
       },
     }
   );

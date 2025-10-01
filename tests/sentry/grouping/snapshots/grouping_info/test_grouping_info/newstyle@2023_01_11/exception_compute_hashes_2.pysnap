@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:20:20.633877+00:00'
+created: '2025-09-24T22:53:02.653190+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -21,7 +21,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": true,
@@ -98,15 +98,16 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app exception stack-trace",
+    "description": "in-app exception stacktrace",
     "hash": "9509e122c6175606d52862fa4f64853c",
+    "hint": null,
     "key": "app",
     "type": "component"
   },
   "system": {
     "component": {
       "contributes": false,
-      "hint": "exception of app takes precedence",
+      "hint": "ignored because app exception takes precedence",
       "id": "system",
       "name": null,
       "values": [
@@ -120,7 +121,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": true,
@@ -199,6 +200,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "system",
     "hash": null,
+    "hint": "ignored because app exception takes precedence",
     "key": "system",
     "type": "component"
   }

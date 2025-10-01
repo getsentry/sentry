@@ -1,12 +1,12 @@
 ---
-created: '2025-04-25T21:22:15.234636+00:00'
+created: '2025-09-24T20:27:09.089493+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "1a11687556cf74559f0ae90b1c87e2fd"
   contributing component: threads
-  component:
+  root_component:
     app*
       threads*
         stacktrace*
@@ -19,8 +19,8 @@ app:
 system:
   hash: null
   contributing component: null
-  component:
-    system (threads of app take precedence)
+  root_component:
+    system (ignored because app threads take precedence)
       threads (ignored because hash matches app variant)
         stacktrace*
           frame*

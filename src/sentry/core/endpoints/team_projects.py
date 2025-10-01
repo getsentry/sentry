@@ -7,7 +7,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -44,8 +44,7 @@ def apply_default_project_settings(organization: Organization, project: Project)
     if project.platform and project.platform.startswith("javascript"):
         set_default_inbound_filters(project, organization)
 
-    if features.has("organizations:disable-detectors-on-project-creation", organization):
-        set_default_disabled_detectors(project)
+    set_default_disabled_detectors(project)
 
     set_default_symbol_sources(project)
 
@@ -193,11 +192,12 @@ class TeamProjectsEndpoint(TeamEndpoint):
             409: OpenApiResponse(description="A project with this slug already exists."),
         },
         examples=ProjectExamples.CREATE_PROJECT,
+        description="""Create a new project bound to a team.
+
+        Note: If your organization has disabled member project creation, the `org:write` or `team:admin` scope is required.
+        """,
     )
     def post(self, request: Request, team: Team) -> Response:
-        """
-        Create a new project bound to a team.
-        """
         from sentry.core.endpoints.organization_projects_experiment import (
             DISABLED_FEATURE_ERROR_STRING,
         )

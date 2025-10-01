@@ -2,7 +2,6 @@ import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
-import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
@@ -16,7 +15,7 @@ type ConfigParams = {
 export function getOrganizationNavigationConfiguration({
   organization: incomingOrganization,
 }: ConfigParams): NavigationSection[] {
-  if (incomingOrganization && prefersStackedNav(incomingOrganization)) {
+  if (incomingOrganization) {
     return getUserOrgNavigationConfiguration();
   }
 
@@ -90,13 +89,6 @@ export function getOrganizationNavigationConfiguration({
           id: 'audit-log',
         },
         {
-          path: `${organizationSettingsPathPrefix}/rate-limits/`,
-          title: t('Rate Limits'),
-          show: ({features}) => features!.has('legacy-rate-limits'),
-          description: t('Configure rate limits for all projects in the organization'),
-          id: 'rate-limits',
-        },
-        {
           path: `${organizationSettingsPathPrefix}/relay/`,
           title: t('Relay'),
           description: t('Manage relays connected to the organization'),
@@ -153,7 +145,7 @@ export function getOrganizationNavigationConfiguration({
           title: t('Stats & Usage'),
           description: t('View organization stats and usage'),
           id: 'stats',
-          show: ({organization}) => !!organization && prefersStackedNav(organization),
+          show: ({organization}) => !!organization,
         },
       ],
     },

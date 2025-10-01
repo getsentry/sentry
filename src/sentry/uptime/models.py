@@ -94,8 +94,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False, db_default=False)
     # Tracks the current status of this subscription. This is possibly going
-    # to be replaced in the future with open-periods as we replace
-    # ProjectUptimeSubscription with Detectors.
+    # to be replaced in the future with open-periods
     uptime_status = models.PositiveSmallIntegerField(db_default=UptimeStatus.OK.value)
     # (Likely) temporary column to keep track of the current uptime status of this monitor
     uptime_status_update_date = models.DateTimeField(db_default=Now())

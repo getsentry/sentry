@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:20:20.086630+00:00'
+created: '2025-09-24T22:53:02.388409+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -28,7 +28,7 @@ source: tests/sentry/grouping/test_grouping_info.py
             },
             {
               "contributes": false,
-              "hint": "not a local script violation",
+              "hint": "ignored because it's not a local script violation",
               "id": "violation",
               "name": "violation",
               "values": []
@@ -68,6 +68,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "URL",
     "hash": "4e6f2bce9d121aa89f4dc5e5da08afb5",
+    "hint": null,
     "key": "default",
     "type": "component"
   }
