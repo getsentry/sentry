@@ -1506,7 +1506,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     def test_prevent_ai_config_github_validation_missing_fields(self) -> None:
         """Test that missing required fields are rejected"""
         # Missing org_defaults
-        data: dict[str, dict[str, dict]] = {
+        data: dict[str, dict[str, Any]] = {
             "preventAiConfigGithub": {"schema_version": "v1", "repo_overrides": {}}
         }
         response = self.get_error_response(self.organization.slug, status_code=400, **data)
