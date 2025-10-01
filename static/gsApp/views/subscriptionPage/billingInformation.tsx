@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 import type {Location} from 'history';
 
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Flex} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -12,6 +12,7 @@ import withSubscription from 'getsentry/components/withSubscription';
 import {FTCConsentLocation, type Subscription} from 'getsentry/types';
 import {hasNewBillingUI} from 'getsentry/utils/billing';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 import RecurringCredits from 'getsentry/views/subscriptionPage/recurringCredits';
 
 import SubscriptionHeader from './subscriptionHeader';
@@ -46,7 +47,7 @@ function BillingInformation({organization, subscription, location}: Props) {
 
   if (!isNewBillingUI) {
     return (
-      <Container>
+      <SubscriptionPageContainer background="primary" organization={organization}>
         <SubscriptionHeader organization={organization} subscription={subscription} />
         <RecurringCredits displayType="discount" planDetails={subscription.planDetails} />
         <CreditCardPanel
@@ -62,12 +63,12 @@ function BillingInformation({organization, subscription, location}: Props) {
           subscription={subscription}
           isNewBillingUI={isNewBillingUI}
         />
-      </Container>
+      </SubscriptionPageContainer>
     );
   }
 
   return (
-    <Container>
+    <SubscriptionPageContainer background="primary" organization={organization}>
       <SubscriptionHeader organization={organization} subscription={subscription} />
       <RecurringCredits displayType="discount" planDetails={subscription.planDetails} />
       <Flex direction="column" gap="xl">
@@ -85,7 +86,7 @@ function BillingInformation({organization, subscription, location}: Props) {
           isNewBillingUI={isNewBillingUI}
         />
       </Flex>
-    </Container>
+    </SubscriptionPageContainer>
   );
 }
 

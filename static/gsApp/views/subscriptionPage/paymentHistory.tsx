@@ -22,6 +22,7 @@ import type {InvoiceBase, Subscription} from 'getsentry/types';
 import {InvoiceStatus} from 'getsentry/types';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import SubscriptionHeader from './subscriptionHeader';
 import {trackSubscriptionView} from './utils';
@@ -79,7 +80,7 @@ function PaymentHistory({organization, subscription}: Props) {
   }
 
   return (
-    <Container>
+    <SubscriptionPageContainer background="primary" organization={organization}>
       <SubscriptionHeader organization={organization} subscription={subscription} />
       <div className="ref-payment-list" data-test-id="payment-list">
         <PanelTable
@@ -133,7 +134,7 @@ function PaymentHistory({organization, subscription}: Props) {
 
         {paymentsPageLinks && <Pagination pageLinks={paymentsPageLinks} />}
       </div>
-    </Container>
+    </SubscriptionPageContainer>
   );
 }
 

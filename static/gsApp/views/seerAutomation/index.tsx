@@ -14,6 +14,7 @@ import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/noti
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import AiSetupDataConsent from 'getsentry/components/ai/AiSetupDataConsent';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import {SeerAutomationDefault} from './seerAutomationDefault';
 import {SeerAutomationProjectList} from './seerAutomationProjectList';
@@ -50,16 +51,16 @@ function SeerAutomationRoot() {
   // Show setup screen if needed
   if (needsSetup) {
     return (
-      <Fragment>
+      <SubscriptionPageContainer background="secondary" organization={organization}>
         <SentryDocumentTitle title={t('Seer Automation')} orgSlug={organization.slug} />
         <AiSetupDataConsent />
-      </Fragment>
+      </SubscriptionPageContainer>
     );
   }
 
   // Show the regular settings page
   return (
-    <Fragment>
+    <SubscriptionPageContainer background="secondary" organization={organization}>
       <SentryDocumentTitle title={t('Seer Automation')} orgSlug={organization.slug} />
       <SettingsPageHeader
         title={t('Seer Automation')}
@@ -89,7 +90,7 @@ function SeerAutomationRoot() {
         <br />
         <SeerAutomationDefault />
       </NoProjectMessage>
-    </Fragment>
+    </SubscriptionPageContainer>
   );
 }
 
