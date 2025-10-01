@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from typing import Any
+
 import click
 
 
@@ -11,13 +13,13 @@ def notifications() -> None:
 
 
 @notifications.group("send")
-def send() -> None:
+def send_cmd() -> None:
     """
     Send debugging notification through a provider.
     """
 
 
-@send.command("email")
+@send_cmd.command("email")
 @click.option(
     "-s",
     "--source",
@@ -65,7 +67,7 @@ def send_email(source: str, target: str) -> None:
     click.echo(f"Example '{source}' email sent to {target}.")
 
 
-@send.command("slack")
+@send_cmd.command("slack")
 @click.option(
     "-s",
     "--source",
@@ -130,7 +132,7 @@ def send_slack(source: str, integration_name: str, organization_slug: str, chann
     click.echo(f"Example '{source}' slack message sent to {integration.name}.")
 
 
-@send.command("msteams")
+@send_cmd.command("msteams")
 def send_msteams() -> None:
     """
     Send a Microsoft Teams notification.
@@ -138,12 +140,43 @@ def send_msteams() -> None:
     click.echo("Not implemented yet!")
 
 
-@send.command("discord")
+@send_cmd.command("discord")
 def send_discord() -> None:
     """
     Send a Discord notification.
     """
     click.echo("Not implemented yet!")
+
+
+@notifications.command("list")
+def list_cmd() -> None:
+    """
+    Lists registered notification data.
+    """
+    from sentry.runner import configure
+
+    configure()
+
+    from sentry.notifications.platform.registry import provider_registry, template_registry
+    from sentry.notifications.platform.types import NotificationCategory
+
+    click.echo("\nRegistered notification providers:")
+    for provider_key, provider_cls in provider_registry.registrations.items():
+        click.echo(f"• key: {provider_key}, class: {provider_cls.__name__}")
+
+    click.echo("\nRegistered notification templates:")
+    # XXX: For some reason, using a defaultdict(list) here causes the command to interpret
+    # the .append() as new arguments, causing an early exit and error.
+    category_to_sources: dict[NotificationCategory, Any] = {}
+    for source, template_cls in template_registry.registrations.items():
+        category = template_cls.category
+        if category not in category_to_sources:
+            category_to_sources[category] = []
+        category_to_sources[category].append({"source": source, "class": template_cls.__name__})
+    for category, sources in category_to_sources.items():
+        click.echo(f"• category: {category}")
+        for source in sources:
+            click.echo(f"  ◦ source: {source['source']}, class: {source['class']}")
 
 
 @click.option(
@@ -202,33 +235,3 @@ def list_integrations(organization_slug: str | None, provider: str) -> None:
             org = organizations.get(oi.organization_id)
             org_slug = org.slug if org else "Unknown"
             click.echo(f"{org_slug} | {oi.integration.name} | {oi.integration.id}")
-
-
-@notifications.command("list")
-def list() -> None:
-    """
-    Lists registered notification data.
-    """
-    from sentry.runner import configure
-
-    configure()
-
-    from sentry.notifications.platform.registry import provider_registry, template_registry
-
-    click.echo("\nRegistered notification providers:")
-    for provider_key, provider_cls in provider_registry.registrations.items():
-        click.echo(f"• key: {provider_key}, class: {provider_cls.__name__}")
-
-    click.echo("\nRegistered notification templates:")
-    # XXX: For some reason, using a defaultdict(list) here causes the command to interpret
-    # the .append() as new arguments, causing an early exit and error.
-    category_to_sources = {}
-    for source, template_cls in template_registry.registrations.items():
-        category = template_cls.category
-        if category not in category_to_sources:
-            category_to_sources[category] = []
-        category_to_sources[category].append({"source": source, "class": template_cls.__name__})
-    for category, sources in category_to_sources.items():
-        click.echo(f"• category: {category}")
-        for source in sources:
-            click.echo(f"  ◦ source: {source['source']}, class: {source['class']}")

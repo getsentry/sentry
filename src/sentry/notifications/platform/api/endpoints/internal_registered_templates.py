@@ -53,7 +53,9 @@ def serialize_rendered_example(rendered_template: NotificationRenderedTemplate) 
     return response
 
 
-def serialize_email_preview(template: NotificationTemplate[NotificationData]) -> dict[str, Any]:
+def serialize_email_preview[T: NotificationData](
+    template: NotificationTemplate[T],
+) -> dict[str, Any]:
     data = template.example_data
     rendered_template = template.render_example()
     email = EmailRenderer.render(data=data, rendered_template=rendered_template)
@@ -71,14 +73,11 @@ def serialize_slack_preview[T: NotificationData](
     rendered_template = template.render_example()
     message = SlackRenderer.render(data=data, rendered_template=rendered_template)
 
-    # Convert Slack Block objects to dictionaries for JSON serialization
     serialized_blocks = []
     for block in message.get("blocks", []):
         serialized_blocks.append(block.to_dict())
 
-    return {
-        "blocks": serialized_blocks,
-    }
+    return {"blocks": serialized_blocks}
 
 
 def serialize_template[T: NotificationData](

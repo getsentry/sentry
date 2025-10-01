@@ -49,7 +49,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
     <Flex direction="column" gap="lg" style={{padding: `0 0 ${theme.space.lg} 0`}}>
       <Breadcrumbs crumbs={breadcrumbs} />
       <Heading as="h1">Build comparison</Heading>
-      <Flex gap="lg" wrap="wrap" align="start">
+      <Flex gap="lg" wrap="wrap" align="center">
         <Flex gap="sm" align="center">
           <AppIcon>
             <AppIconPlaceholder>
