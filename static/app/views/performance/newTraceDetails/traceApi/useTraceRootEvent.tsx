@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import type {EventTransaction} from 'sentry/types/event';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -52,6 +54,8 @@ export function useTraceRootEvent({
   const isEAPQueryEnabled =
     !isRepEventError && // Errors are not supported in EAP yet
     (isEAPTraceEnabled || (!treeIsLoading && hasOnlyLogs));
+
+  Sentry.setTag('referrer', 'trace-details-summary');
 
   const legacyRootEvent = useApiQuery<EventTransaction>(
     [

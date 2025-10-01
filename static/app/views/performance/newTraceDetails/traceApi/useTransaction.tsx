@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -9,12 +11,14 @@ interface UseTransactionProps {
 }
 
 export function useTransaction(props: UseTransactionProps) {
+  Sentry.setTag('referrer', 'trace-view');
+
   return useApiQuery<EventTransaction>(
     [
       `/organizations/${props.organization.slug}/events/${props.project_slug}:${props.event_id}/`,
       {
         query: {
-          referrer: 'trace-details-summary',
+          referrer: 'trace-view',
         },
       },
     ],
