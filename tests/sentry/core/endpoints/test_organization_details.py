@@ -15,7 +15,6 @@ from django.utils import timezone
 from rest_framework import status
 
 from sentry import audit_log
-from sentry import options as sentry_options
 from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.api.utils import generate_region_url
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
@@ -28,7 +27,6 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.deletedorganization import DeletedOrganization
-from sentry.models.options import ControlOption
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
@@ -173,10 +171,6 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             teams=[self.team],
             status=ObjectStatus.PENDING_DELETION,
         )
-
-        # make sure options are not cached the first time to get predictable number of database queries
-        with assume_test_silo_mode_of(ControlOption):
-            sentry_options.delete("system.rate-limit")
 
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
         # TODO(hybrid-cloud): put this back in
@@ -1101,31 +1095,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         actual = get_trusted_relay_value(self.organization)
         assert len(actual) == 0
         assert len(response_data) == 0
-
-    def test_setting_legacy_rate_limits(self) -> None:
-        data = {"accountRateLimit": 1000}
-        self.get_error_response(self.organization.slug, status_code=400, **data)
-
-        data = {"projectRateLimit": 1000}
-        self.get_error_response(self.organization.slug, status_code=400, **data)
-
-        OrganizationOption.objects.set_value(self.organization, "sentry:project-rate-limit", 1)
-
-        data = {"projectRateLimit": 100}
-        self.get_success_response(self.organization.slug, **data)
-
-        assert (
-            OrganizationOption.objects.get_value(self.organization, "sentry:project-rate-limit")
-            == 100
-        )
-
-        data = {"accountRateLimit": 50}
-        self.get_success_response(self.organization.slug, **data)
-
-        assert (
-            OrganizationOption.objects.get_value(self.organization, "sentry:account-rate-limit")
-            == 50
-        )
 
     def test_safe_fields_as_string_regression(self) -> None:
         data = {"safeFields": "email"}

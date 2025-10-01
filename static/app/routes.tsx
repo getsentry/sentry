@@ -2672,11 +2672,6 @@ function buildRoutes(): RouteObject[] {
       deprecatedRouteProps: true,
     },
     {
-      path: 'quotas/',
-      component: make(() => import('sentry/views/admin/adminQuotas')),
-      deprecatedRouteProps: true,
-    },
-    {
       path: 'settings/',
       component: make(() => import('sentry/views/admin/adminSettings')),
       deprecatedRouteProps: true,
