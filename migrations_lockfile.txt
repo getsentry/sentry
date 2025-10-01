@@ -29,7 +29,7 @@ releases: 0001_release_models
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0994_add_groupreaction_table
+sentry: 0995_add_date_updated_to_grouphash_metadata
 
 social_auth: 0003_social_auth_json_field
 
