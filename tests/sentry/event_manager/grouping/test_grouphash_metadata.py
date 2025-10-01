@@ -370,7 +370,7 @@ class GroupHashMetadataTest(TestCase):
 
         # Set the date_updated to be older than 90 days
         old_date = timezone.now() - timedelta(days=91)
-        grouphash.metadata.update(date_updated=old_date, event_id="old_event_id")
+        grouphash.metadata.update(date_updated=old_date)
 
         # Create a new event with the same hash
         event2 = save_new_event({"message": "Dogs are great!"}, self.project)
