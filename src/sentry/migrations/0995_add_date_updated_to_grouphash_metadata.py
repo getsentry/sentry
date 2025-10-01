@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0993_add_event_id_to_grouphash_metadata"),
+        ("sentry", "0994_add_groupreaction_table"),
     ]
 
     operations = [
