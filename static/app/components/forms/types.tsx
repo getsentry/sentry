@@ -1,8 +1,5 @@
 import type {AlertProps} from 'sentry/components/core/alert';
-import type {
-  createFilter,
-  MenuPlacement,
-} from 'sentry/components/forms/controls/reactSelectWrapper';
+import type {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
 import type {SelectAsyncFieldProps} from 'sentry/components/forms/fields/selectAsyncField';
 import type FormModel from 'sentry/components/forms/model';
@@ -122,7 +119,6 @@ type SelectControlType = {type: 'choice' | 'select'} & {
   // for new select
   defaultOptions?: Array<{label: string; value: any}> | boolean;
   filterOption?: ReturnType<typeof createFilter>;
-  menuPlacement?: MenuPlacement;
   multiple?: boolean;
   noOptionsMessage?: () => string;
   options?: Array<SelectValue<any>>;

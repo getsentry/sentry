@@ -100,7 +100,6 @@ const formGroups: JsonFormObject[] = [
             value,
             formatStoreCrashReports(value, organization.storeCrashReports),
           ]),
-        menuPlacement: 'auto',
       },
     ],
   },
