@@ -37,7 +37,6 @@ def compare_size_analysis(
         head_elements = head_files.get(path, [])
         base_elements = base_files.get(path, [])
 
-        # Match elements intelligently when there are duplicates
         matched_pairs, unmatched_head, unmatched_base = _match_elements(
             head_elements, base_elements
         )
