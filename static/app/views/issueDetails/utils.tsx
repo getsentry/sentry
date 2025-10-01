@@ -197,7 +197,45 @@ export function useEnvironmentsFromUrl(): string[] {
   return envsArray;
 }
 
-// merged into getGroupEventQueryKey
+function getGroupEventDetailsQueryData({
+  environments,
+  query,
+  start,
+  end,
+  statsPeriod,
+}: {
+  query: string | undefined;
+  end?: string;
+  environments?: string[];
+  start?: string;
+  statsPeriod?: string;
+}): Record<string, string | string[]> {
+  const params: Record<string, string | string[]> = {
+    collapse: ['fullRelease'],
+  };
+
+  if (query) {
+    params.query = query;
+  }
+
+  if (environments && environments.length > 0) {
+    params.environment = environments;
+  }
+
+  if (start) {
+    params.start = start;
+  }
+
+  if (end) {
+    params.end = end;
+  }
+
+  if (statsPeriod) {
+    params.statsPeriod = statsPeriod;
+  }
+
+  return params;
+}
 
 export function getGroupEventQueryKey({
   orgSlug,
@@ -221,27 +259,13 @@ export function getGroupEventQueryKey({
   return [
     `/organizations/${orgSlug}/issues/${groupId}/events/${eventId}/`,
     {
-      query: (function () {
-        const params: Record<string, string | string[]> = {
-          collapse: ['fullRelease'],
-        };
-        if (query) {
-          params.query = query;
-        }
-        if (environments && environments.length > 0) {
-          params.environment = environments;
-        }
-        if (start) {
-          params.start = start;
-        }
-        if (end) {
-          params.end = end;
-        }
-        if (statsPeriod) {
-          params.statsPeriod = statsPeriod;
-        }
-        return params;
-      })(),
+      query: getGroupEventDetailsQueryData({
+        environments,
+        query,
+        start,
+        end,
+        statsPeriod,
+      }),
     },
   ];
 }
