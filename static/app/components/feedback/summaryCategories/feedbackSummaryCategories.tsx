@@ -34,7 +34,7 @@ export default function FeedbackSummaryCategories() {
         aria-label={t('Give feedback on the AI-powered summary')}
         icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
         title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
-        size={'xs'}
+        size="xs"
         onClick={() =>
           openForm({
             messagePlaceholder:

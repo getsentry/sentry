@@ -14,10 +14,6 @@ import {
   getLogFieldsFromLocation,
 } from 'sentry/views/explore/contexts/logs/fields';
 import {
-  LogsAutoRefreshProvider,
-  type AutoRefreshState,
-} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {
   getLogAggregateSortBysFromLocation,
   getLogSortBysFromLocation,
   logsTimestampDescendingSortBy,
@@ -96,10 +92,6 @@ const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
 interface LogsPageParamsProviderProps {
   analyticsPageSource: LogsAnalyticsPageSource;
   children: React.ReactNode;
-  _testContext?: Partial<LogsPageParams> & {
-    autoRefresh?: AutoRefreshState;
-    refreshInterval?: number;
-  };
   isTableFrozen?: boolean;
 }
 
@@ -107,7 +99,6 @@ export function LogsPageParamsProvider({
   children,
   isTableFrozen,
   analyticsPageSource,
-  _testContext,
 }: LogsPageParamsProviderProps) {
   const location = useLocation();
   const logsQuery = decodeLogsQuery(location);
@@ -169,12 +160,9 @@ export function LogsPageParamsProvider({
         aggregateFn,
         aggregateParam,
         mode,
-        ..._testContext,
       }}
     >
-      <LogsAutoRefreshProvider isTableFrozen={isTableFrozen} _testContext={_testContext}>
-        {children}
-      </LogsAutoRefreshProvider>
+      {children}
     </LogsPageParamsContext>
   );
 }

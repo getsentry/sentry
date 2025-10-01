@@ -249,11 +249,6 @@ export function useExploreDataset(): DiscoverDatasets {
   return DiscoverDatasets.SPANS;
 }
 
-export function useExploreFields(): string[] {
-  const pageParams = useExplorePageParams();
-  return pageParams.fields;
-}
-
 export function useExploreQuery(): string {
   const pageParams = useExplorePageParams();
   return pageParams.query;
@@ -505,16 +500,6 @@ export function useSetExplorePageParams(): (
       navigate(target);
     },
     [location, navigate, readablePageParams, managedFields, setManagedFields]
-  );
-}
-
-export function useSetExploreFields() {
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (fields: string[]) => {
-      setPageParams({fields});
-    },
-    [setPageParams]
   );
 }
 

@@ -146,14 +146,12 @@ interface LooseImagesInsightResult extends GroupsInsightResult {}
 interface MainBinaryExportMetadataResult extends FilesInsightResult {}
 
 export interface OptimizableImageFile {
-  best_optimization_type: 'convert_to_heic' | 'minify' | 'none';
   conversion_savings: number;
   current_size: number;
   file_path: string;
   heic_size: number | null;
   minified_size: number | null;
   minify_savings: number;
-  potential_savings: number;
 }
 
 interface ImageOptimizationInsightResult extends BaseInsightResult {

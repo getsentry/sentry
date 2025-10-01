@@ -186,7 +186,7 @@ export function DetectorsTableActions({
           )}
           {showDisable && (
             <Tooltip
-              title={'You do not have permission to modify the selected monitors.'}
+              title="You do not have permission to modify the selected monitors."
               disabled={canEdit}
             >
               <Button
@@ -227,7 +227,7 @@ export function DetectorsTableActions({
                   '%s monitors on this page selected.',
                   selected.size
                 )}
-                <Button priority={'link'} onClick={() => setAllInQuerySelected(true)}>
+                <Button priority="link" onClick={() => setAllInQuerySelected(true)}>
                   {tct('Select all [count] monitors that match this search query.', {
                     count: queryCount,
                   })}

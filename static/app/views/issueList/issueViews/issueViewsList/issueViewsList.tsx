@@ -230,7 +230,7 @@ function NoViewsBanner({
         )}
       </BannerText>
       <Feature
-        features={'organizations:issue-views'}
+        features="organizations:issue-views"
         hookName="feature-disabled:issue-views"
         renderDisabled={props => (
           <Hovercard
@@ -388,7 +388,7 @@ export default function IssueViewsList() {
               ) : null}
 
               <Feature
-                features={'organizations:issue-views'}
+                features="organizations:issue-views"
                 hookName="feature-disabled:issue-views"
                 renderDisabled={props => (
                   <Hovercard
