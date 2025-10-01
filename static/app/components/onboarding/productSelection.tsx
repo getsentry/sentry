@@ -323,12 +323,6 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
   ],
-  'react-native': [
-    ProductSolution.PERFORMANCE_MONITORING,
-    ProductSolution.PROFILING,
-    ProductSolution.SESSION_REPLAY,
-    ProductSolution.LOGS,
-  ],
   ruby: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
