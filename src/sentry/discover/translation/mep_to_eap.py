@@ -5,8 +5,10 @@ from parsimonious import NodeVisitor
 
 from sentry.api.event_search import event_search_grammar
 from sentry.discover import arithmetic
+from sentry.search.eap.utils import SPAN_ATTRIBUTE_DEFINITIONS
 from sentry.search.events import fields
 from sentry.snuba.metrics import parse_mri
+from sentry.utils.snuba import get_measurement_name
 
 APDEX_USER_MISERY_PATTERN = r"(apdex|user_misery)\((\d+)\)"
 
@@ -115,6 +117,10 @@ def column_switcheroo(term):
     parsed_mri = parse_mri(term)
     if parsed_mri:
         term = parsed_mri.name
+
+    measurement_name = get_measurement_name(term)
+    if measurement_name is not None and term not in SPAN_ATTRIBUTE_DEFINITIONS:
+        return f"tags[{measurement_name},number]", True
 
     column_swap_map = {
         "transaction.duration": "span.duration",
