@@ -1,6 +1,6 @@
 import {expectTypeOf} from 'expect-type';
 
-import {getApiUrl} from './getApiUrl';
+import getApiUrl from './getApiUrl';
 
 describe('getApiUrl', () => {
   test('should replace path parameters with their values', () => {

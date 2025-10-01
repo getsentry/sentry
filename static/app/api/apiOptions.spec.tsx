@@ -4,13 +4,12 @@ import {expectTypeOf} from 'expect-type';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResult} from 'sentry/api';
+import {apiOptions, selectWithHeaders} from 'sentry/api/apiOptions';
 import {
   DEFAULT_QUERY_CLIENT_CONFIG,
   QueryClient,
   QueryClientProvider,
 } from 'sentry/utils/queryClient';
-
-import {apiOptions, selectWithHeaders} from './apiOptions';
 
 type Promisable<T> = T | Promise<T>;
 type QueryFunctionResult<T> = Promisable<ApiResult<T>>;
@@ -27,13 +26,12 @@ describe('apiOptions', () => {
   });
   test('should encode path parameters correctly', () => {
     const options = apiOptions.as<unknown>()(
-      '/projects/$orgSlug/$projectSlug/releases/$releaseVersion/',
+      '/organizations/$organizationIdOrSlug/releases/$version/',
       {
         staleTime: 0,
         path: {
-          orgSlug: 'my-org',
-          projectSlug: 'my-project',
-          releaseVersion: 'v 1.0.0',
+          organizationIdOrSlug: 'my-org',
+          version: 'v 1.0.0',
         },
       }
     );

@@ -163,7 +163,7 @@ if __name__ == "__main__":
 
     from sentry.api.urls import urlpatterns
 
-    route_patterns = set(sorted(urls_to_routes("/", urlpatterns)))
+    route_patterns = sorted(set(urls_to_routes("/", urlpatterns)))
 
     command = len(sys.argv) > 1 and sys.argv[1]
     if command == "list":
@@ -178,12 +178,7 @@ if __name__ == "__main__":
                     " * To update it run `python3 -m tools.api_urls_to_typescript`\n",
                     " */\n",
                     "\n",
-                    "type KnownApiUrls = [\n",
-                ]
-                + [f"  '{route_pattern}',\n" for route_pattern in route_patterns]
-                + [
-                    "];\n",
-                    "\n",
-                    "export type MaybeApiPath = KnownApiUrls[number] | (string & {});\n",
+                    "export type KnownApiUrls =\n",
+                    "\n".join([f"  | '{r}'" for r in route_patterns]) + ";\n",
                 ]
             )

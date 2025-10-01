@@ -29,6 +29,11 @@ from tools.api_urls_to_typescript import regexp_to_routes
             r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<event_id>(?:\d+|[A-Fa-f0-9]{32}))/$",
             ["$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/"],
         ),
+        # Multiple named groups per url segment
+        (
+            r"^(?P<organization_id_or_slug>[^/]+)/events/(?P<project_id_or_slug>[^/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+            ["$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/"],
+        ),
     ),
 )
 def test_regexp_to_route(input_regexp, expected) -> None:
