@@ -10,7 +10,7 @@ from typing import Any, cast
 
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import _SentryExtractedTags
 
-from sentry.performance_issues.types import SentryTags as PerformanceIssuesSentryTags
+from sentry.issue_detection.types import SentryTags as PerformanceIssuesSentryTags
 from sentry.spans.consumers.process_segments.types import CompatibleSpan, EnrichedSpan, get_span_op
 from sentry.utils.dates import to_datetime
 

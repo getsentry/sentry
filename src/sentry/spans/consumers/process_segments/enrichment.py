@@ -4,7 +4,7 @@ from typing import Any
 
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 
-from sentry.performance_issues.types import SentryTags as PerformanceIssuesSentryTags
+from sentry.issue_detection.types import SentryTags as PerformanceIssuesSentryTags
 from sentry.spans.consumers.process_segments.types import EnrichedSpan, get_span_op
 
 # Keys of shared sentry attributes that are shared across all spans in a segment. This list
