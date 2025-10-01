@@ -223,7 +223,7 @@ jobs:
           # Optional, no need to specify if PR is
           # commit: ${{github.event.pull_request.head.sha}}
           # Optional, will use the specified branch. Defaults to all branches
-          # branch: master
+          branch: master
           # Optional, branch/tag/commit ID to reference. This can supersede both
           # branch and commit above.
           # ref: master
