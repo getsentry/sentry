@@ -78,6 +78,8 @@ class GroupHashMetadata(Model):
     # When the grouphash was created. Will be null for grouphashes created before we started
     # collecting metadata.
     date_added = models.DateTimeField(default=timezone.now, null=True)
+    # The date the metadata was last updated.
+    date_updated = models.DateTimeField(default=timezone.now, null=True)
     # The version of the metadata schema which produced the data. Useful for backfilling when we add
     # to or change the data we collect and want to update existing records.
     schema_version = models.CharField(null=True)
@@ -85,12 +87,8 @@ class GroupHashMetadata(Model):
     # platform, as event platforms are normalized to a handful of known values, whereas project
     # platforms are all over the place.
     platform = models.CharField(null=True)
-
     # The event ID of the event which generated the metadata.
     event_id = models.CharField(max_length=32, null=True)
-
-    # The date the metadata was last updated.
-    date_updated = models.DateTimeField(default=timezone.now, null=True)
 
     # HASHING
 
