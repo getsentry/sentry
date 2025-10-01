@@ -210,7 +210,7 @@ class SaltedComponentVariant(ComponentVariant):
     ) -> Self:
         return cls(
             fingerprint=fingerprint,
-            component=component_variant.root_component,
+            root_component=component_variant.root_component,
             contributing_component=component_variant.contributing_component,
             strategy_config=component_variant.config,
             fingerprint_info=fingerprint_info,
@@ -220,7 +220,7 @@ class SaltedComponentVariant(ComponentVariant):
         self,
         fingerprint: list[str],
         # The root of the component tree
-        component: RootGroupingComponent,
+        root_component: RootGroupingComponent,
         # The highest non-root contributing component in the tree, representing the overall grouping
         # method (exception, threads, message, etc.). For non-contributing variants, this will be
         # None.
@@ -228,7 +228,7 @@ class SaltedComponentVariant(ComponentVariant):
         strategy_config: StrategyConfiguration,
         fingerprint_info: FingerprintInfo,
     ):
-        super().__init__(component, contributing_component, strategy_config)
+        super().__init__(root_component, contributing_component, strategy_config)
         self.values = fingerprint
         self.fingerprint_info = fingerprint_info
 
