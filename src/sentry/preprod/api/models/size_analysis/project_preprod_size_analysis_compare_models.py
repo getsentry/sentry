@@ -30,9 +30,3 @@ class SizeAnalysisComparePOSTResponse(BaseModel):
     status: str
     message: str
     existing_comparisons: list[SizeAnalysisComparison] | None
-
-
-class SizeAnalysisCompareRunGETResponse(BaseModel):
-    status: str
-    message: str
-    existing_comparisons: list[SizeAnalysisComparison] | None
