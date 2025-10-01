@@ -133,7 +133,7 @@ export enum AddOnCategory {
   PREVENT = 'prevent',
 }
 
-export type AddOnCategoryInfo = {
+type AddOnCategoryInfo = {
   apiName: AddOnCategory;
   billingFlag: string | null;
   dataCategories: DataCategory[];
