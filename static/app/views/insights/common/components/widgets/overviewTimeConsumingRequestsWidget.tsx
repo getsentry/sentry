@@ -140,7 +140,7 @@ export default function OverviewTimeConsumingRequestsWidget(
           <TimeSpentCell
             percentage={item['time_spent_percentage()']}
             total={item[totalTimeField]}
-            op={'http.client'}
+            op="http.client"
           />
         </Fragment>
       ))}

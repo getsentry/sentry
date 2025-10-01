@@ -89,8 +89,8 @@ describe('GPUContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'gpu'}
-        alias={'gpu'}
+        type="gpu"
+        alias="gpu"
         value={{...MOCK_GPU_CONTEXT, api_type: ''}}
       />
     );

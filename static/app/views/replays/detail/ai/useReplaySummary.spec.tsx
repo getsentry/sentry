@@ -67,8 +67,8 @@ describe('useReplaySummary', () => {
       expect(mockRequest).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle GET errors gracefully', async () => {
-      MockApiClient.addMockResponse({
+    it('should handle GET error gracefully, and keep pending/polling', async () => {
+      const mockGet = MockApiClient.addMockResponse({
         url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
         statusCode: 500,
         body: {detail: 'Internal server error'},
@@ -78,9 +78,10 @@ describe('useReplaySummary', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.isError).toBe(true);
+        expect(mockGet).toHaveBeenCalledTimes(1);
       });
-      expect(result.current.isPending).toBe(false);
+      expect(result.current.isError).toBe(false);
+      expect(result.current.isPending).toBe(true);
     });
   });
 
@@ -130,44 +131,30 @@ describe('useReplaySummary', () => {
       expect(result.current.isError).toBe(false);
     });
 
-    it('should be pending when summary data is undefined and startSummaryRequest is pending', async () => {
-      // Mock the initial query to return undefined data
-      const initialQuery = MockApiClient.addMockResponse({
-        url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
-        body: undefined,
+    it('should be pending when summary data is pending', async () => {
+      // Mock the GET to hang
+      let resolveResponse: (value?: any) => void;
+      const responsePromise = new Promise(resolve => {
+        resolveResponse = resolve;
       });
-
-      // Mock the POST request for starting the summary request - make it hang
-      let resolveStartSummaryRequest: (value?: any) => void;
-      const startSummaryRequestPromise = new Promise(resolve => {
-        resolveStartSummaryRequest = resolve;
-      });
-
-      const startSummaryRequest = MockApiClient.addMockResponse({
+      const mockGet = MockApiClient.addMockResponse({
         url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
-        method: 'POST',
-        body: startSummaryRequestPromise,
+        body: responsePromise,
       });
 
       const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
         organization: mockOrganization,
       });
 
-      // Start the summary mutation
-      result.current.startSummaryRequest();
-
-      // Wait for the mutation to be in pending state
+      // Wait for the return value to be in pending state
       await waitFor(() => {
-        expect(result.current.isStartSummaryRequestPending).toBe(true);
+        expect(result.current.isPending).toBe(true);
       });
-
-      expect(result.current.summaryData).toBeUndefined();
-      expect(result.current.isPending).toBe(true);
-      expect(initialQuery).toHaveBeenCalledTimes(1);
-      expect(startSummaryRequest).toHaveBeenCalledTimes(1);
+      expect(result.current.isError).toBe(false);
+      expect(mockGet).toHaveBeenCalledTimes(1);
 
       // Resolve the promise to clean up
-      resolveStartSummaryRequest!();
+      resolveResponse!();
     });
   });
 

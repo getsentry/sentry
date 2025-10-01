@@ -116,8 +116,7 @@ function VitalsContent(props: Props) {
                         });
                         handleFilterChange(opt.value);
                       }}
-                      triggerProps={{prefix: t('Outliers')}}
-                      triggerLabel={activeFilter.label}
+                      triggerProps={{prefix: t('Outliers'), children: activeFilter.label}}
                     />
                     <Button
                       onClick={() => {
