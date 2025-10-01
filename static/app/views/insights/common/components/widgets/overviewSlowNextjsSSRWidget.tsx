@@ -55,7 +55,7 @@ export default function OverviewSlowNextjsSSRWidget(props: LoadableChartWidgetPr
     {
       ...pageFilterChartParams,
       query: `span.group:[${spansRequest.data?.map(item => `"${item['span.group']}"`).join(',')}]`,
-      groupBy: [SpanFields.SPAN_GROUP],
+      groupBy: [SpanFields.SPAN_DESCRIPTION],
       yAxis: ['avg(span.duration)'],
       sort: {field: 'avg(span.duration)', kind: 'desc'},
       topEvents: 4,
