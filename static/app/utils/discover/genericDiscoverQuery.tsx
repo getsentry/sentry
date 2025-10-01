@@ -340,11 +340,11 @@ export async function doDiscoverQuery<T>(
   let timeout = 0;
   let error: any;
 
-  if (error) {
-    console.log(statusCodes, error, error?.status, typeof error?.status);
-  }
-
   while (tries < maxTries && (!error || statusCodes.includes(error.status))) {
+    if (error) {
+      console.log(statusCodes, error, error?.status, typeof error?.status);
+    }
+
     if (tries !== 0) {
       console.log('tries', tries);
     }
@@ -353,10 +353,9 @@ export async function doDiscoverQuery<T>(
       await wait(timeout);
     }
     if (tries !== 0) {
-      console.log('trying');
+      console.log('trying', tries, params);
     }
     try {
-      tries++;
       const response = await api.requestPromise(url, {
         method: 'GET',
         includeAllArgs: true,
@@ -373,6 +372,7 @@ export async function doDiscoverQuery<T>(
       console.log('error', err);
       error = err;
       timeout = baseTimeout * timeoutMultiplier ** (tries - 1);
+      tries++;
     }
   }
   throw error;
