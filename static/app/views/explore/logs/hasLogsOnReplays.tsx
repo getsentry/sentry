@@ -15,8 +15,8 @@ export function hasLogsOnReplays(
   }
 
   if (!replay) {
-    return true;
+    return false;
   }
 
-  return isLogsUnsupportedBySDK(replay.sdk?.name);
+  return !isLogsUnsupportedBySDK(replay.sdk?.name);
 }
