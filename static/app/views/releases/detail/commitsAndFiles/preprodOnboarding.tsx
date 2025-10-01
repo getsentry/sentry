@@ -140,7 +140,7 @@ function CliMethod({
 
       <Container>
         <Text as="p" size="md">
-          Upload your build using the CLI's build upload command:
+          {t("Upload your build using the CLI's build upload command:")}
         </Text>
         <OnboardingCodeSnippet language="bash">
           {`sentry-cli build upload <path-to-apk|aab|xcarchive> \\
