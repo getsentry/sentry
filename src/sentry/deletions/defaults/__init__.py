@@ -22,6 +22,7 @@ from .project import *  # noqa: F401,F403
 from .pullrequest import *  # noqa: F401,F403
 from .querysubscription import *  # noqa: F401,F403
 from .release import *  # noqa: F401,F403
+from .releasefile import *  # noqa: F401,F403
 from .repository import *  # noqa: F401,F403
 from .repositoryprojectpathconfig import *  # noqa: F401,F403
 from .rule import *  # noqa: F401,F403
