@@ -209,7 +209,7 @@ export function transformToSeriesMap(
     }
   }
 
-  // Multiple series, _and_ grouped. The top level keys are groups, the lower-level are are the axes
+  // Multiple series, _and_ grouped. The top level keys are groups, the lower-level are the axes
   if (isGroupedMultiSeriesEventsStats(result)) {
     Object.keys(result).forEach(groupName => {
       const groupData = result[groupName] as MultiSeriesEventsStats;
