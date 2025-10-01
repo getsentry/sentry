@@ -539,7 +539,7 @@ function InnerSpendLimitSettings({
   } else {
     inputs = (
       <Fragment>
-        <Flex direction={'column'} gap="lg">
+        <Flex direction="column" gap="lg">
           <SpendLimitInput
             activePlan={activePlan}
             budgetMode={OnDemandBudgetMode.SHARED}

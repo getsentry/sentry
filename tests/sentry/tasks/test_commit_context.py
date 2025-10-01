@@ -33,6 +33,7 @@ from sentry.models.pullrequest import (
     PullRequestCommit,
 )
 from sentry.models.repository import Repository
+from sentry.releases.commits import _dual_write_commit
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.commit_context import PR_COMMENT_WINDOW, process_commit_context
@@ -219,6 +220,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                 author=self.commit_author,
                 key="existing-commit",
             )
+            _dual_write_commit(existing_commit)
             existing_commit.update(message="")
             assert Commit.objects.count() == 2
             event_frames = get_frame_paths(self.event)
@@ -286,6 +288,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                 key="existing-commit",
             )
             existing_commit.update(message="")
+            _dual_write_commit(existing_commit)
             assert Commit.objects.count() == 2
             event_frames = get_frame_paths(self.event)
             process_commit_context(
@@ -743,6 +746,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             key="existing-commit",
         )
         existing_commit.update(message="")
+        _dual_write_commit(existing_commit)
 
         # Map blame names to actual blame objects
         blame_mapping = {

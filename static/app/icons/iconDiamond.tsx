@@ -10,7 +10,7 @@ export function IconDiamond(props: SVGIconProps) {
   const theme = useTheme();
 
   return (
-    <SvgIcon {...props} kind={'path'}>
+    <SvgIcon {...props} kind="path">
       <g
         style={
           theme.isChonk ? {transform: 'rotate(45deg)', transformOrigin: 'center'} : {}

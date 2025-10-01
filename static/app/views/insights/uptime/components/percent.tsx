@@ -34,7 +34,7 @@ export function UptimePercent({summary, note, size}: UptimePercentProps) {
   const tooltip = (
     <Flex direction="column" gap="md" style={{textAlign: 'left'}}>
       {note}
-      <Grid columns={'max-content max-content max-content'} gap="xs md">
+      <Grid columns="max-content max-content max-content" gap="xs md">
         <span>
           <CheckIndicator status={CheckStatus.SUCCESS} width={8} />
         </span>
