@@ -371,8 +371,8 @@ export async function doDiscoverQuery<T>(
     } catch (err) {
       console.log('error', err);
       error = err;
-      timeout = baseTimeout * timeoutMultiplier ** (tries - 1);
       tries++;
+      timeout = baseTimeout * timeoutMultiplier ** (tries - 1);
     }
   }
   throw error;
