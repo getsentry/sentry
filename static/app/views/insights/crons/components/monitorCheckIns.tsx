@@ -27,15 +27,21 @@ export function MonitorCheckIns({monitorSlug, monitorEnvs, project}: Props) {
     getResponseHeader,
     isPending,
     isError,
-  } = useMonitorCheckIns({
-    orgSlug: organization.slug,
-    projectSlug: project.slug,
-    monitorIdOrSlug: monitorSlug,
-    limit: PER_PAGE,
-    expand: 'groups',
-    environment: monitorEnvs.map(e => e.name),
-    queryParams: {...location.query},
-  });
+  } = useMonitorCheckIns(
+    {
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+      monitorIdOrSlug: monitorSlug,
+      limit: PER_PAGE,
+      expand: 'groups',
+      environment: monitorEnvs.map(e => e.name),
+      queryParams: {...location.query},
+    },
+    {
+      refetchOnWindowFocus: true,
+      refetchInterval: 60_000,
+    }
+  );
 
   if (isError) {
     return <LoadingError />;

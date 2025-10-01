@@ -54,10 +54,16 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
     {...location.query}
   );
 
-  const {data: monitorStats} = useMonitorStats({
-    monitors: [monitor.id],
-    timeWindowConfig,
-  });
+  const {data: monitorStats} = useMonitorStats(
+    {
+      monitors: [monitor.id],
+      timeWindowConfig,
+    },
+    {
+      refetchOnWindowFocus: true,
+      refetchInterval: 60_000,
+    }
+  );
 
   useEffect(
     () => monitorStats?.[monitor.id] && onStatsLoaded?.(monitorStats[monitor.id]!),
