@@ -54,6 +54,7 @@ export class ConcurrentRequestLimiter {
         reject,
         createdAt: Date.now(),
       };
+      console.log('request execute', request);
 
       if (this.hasAvailableSlot()) {
         void this.executeRequest(request);

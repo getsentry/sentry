@@ -344,10 +344,12 @@ export async function doDiscoverQuery<T>(
     if (tries !== 0) {
       // Apply exponential backoff for retries (fixed calculation)
       const timeout = baseTimeout * timeoutMultiplier ** (tries - 1);
+      console.log('timeout', timeout);
       await wait(timeout);
     }
 
     try {
+      console.log('attempting request');
       // Use the global concurrent request limiter to ensure max 15 requests
       const response = await dashboardRequestLimiter.execute(async () =>
         api.requestPromise(url, {
@@ -360,6 +362,8 @@ export async function doDiscoverQuery<T>(
           skipAbort,
         })
       );
+
+      console.log('response', response);
 
       return response;
     } catch (err) {
