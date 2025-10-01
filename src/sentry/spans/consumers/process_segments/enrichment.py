@@ -87,14 +87,16 @@ class TreeEnricher:
             segment_attrs = self._segment_span.get("attributes", {})
             shared_attrs = {k: v for k, v in segment_attrs.items() if k in SHARED_SENTRY_ATTRIBUTES}
 
-            is_mobile = attribute_value(span, "sentry.mobile") == "true"
+            is_mobile = attribute_value(self._segment_span, "sentry.mobile") == "true"
             mobile_start_type = _get_mobile_start_type(self._segment_span)
 
             if is_mobile:
                 # NOTE: Like in Relay's implementation, shared tags are added at the
                 # very end. This does not have access to the shared tag value. We
                 # keep behavior consistent, although this should be revisited.
-                if attributes.get("sentry.thread.name") == MOBILE_MAIN_THREAD_NAME:
+                if (attributes.get("sentry.thread.name") or {}).get(
+                    "value"
+                ) == MOBILE_MAIN_THREAD_NAME:
                     attributes["sentry.main_thread"] = {"type": "string", "value": "true"}
                 if not attributes.get("sentry.app_start_type") and mobile_start_type:
                     attributes["sentry.app_start_type"] = {

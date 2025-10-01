@@ -432,10 +432,16 @@ class SpansBuffer:
                 span = orjson.loads(payload)
 
                 if not attribute_value(span, "sentry.segment.id"):
-                    span.setdefault("attributes", {})["sentry.segment.id"] = segment_span_id
+                    span.setdefault("attributes", {})["sentry.segment.id"] = {
+                        "type": "string",
+                        "value": segment_span_id,
+                    }
 
                 is_segment = segment_span_id == span["span_id"]
-                span.setdefault("attributes", {})["sentry.is_segment"] = is_segment
+                span.setdefault("attributes", {})["sentry.is_segment"] = {
+                    "type": "boolean",
+                    "value": is_segment,
+                }
                 if is_segment:
                     has_root_span = True
 
