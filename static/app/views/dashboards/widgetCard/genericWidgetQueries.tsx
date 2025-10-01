@@ -9,7 +9,10 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Confidence, Organization} from 'sentry/types/organization';
-import {dashboardRequestLimiter} from 'sentry/utils/concurrentRequestLimiter';
+import {
+  ComponentScopedLimiter,
+  dashboardRequestLimiter,
+} from 'sentry/utils/concurrentRequestLimiter';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -210,9 +213,12 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
   componentWillUnmount() {
     this._isMounted = false;
+    // Clean up all requests
+    this.requestLimiter.destroy();
   }
 
   private _isMounted = false;
+  private requestLimiter = new ComponentScopedLimiter(dashboardRequestLimiter);
 
   applyDashboardFilters(widget: Widget): Widget {
     const {dashboardFilters, skipDashboardFilterParens} = this.props;
@@ -262,7 +268,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           );
         }
 
-        return dashboardRequestLimiter.execute(() =>
+        return this.requestLimiter.execute(() =>
           requestCreator(
             api,
             widget,
@@ -331,7 +337,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
     const responses = await Promise.all(
       widget.queries.map((_query, index) => {
-        return dashboardRequestLimiter.execute(() =>
+        return this.requestLimiter.execute(() =>
           config.getSeriesRequest!(
             api,
             widget,
@@ -390,6 +396,9 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
   async fetchData() {
     const {widget, onDataFetchStart} = this.props;
+
+    // Cancel any existing requests before starting new ones
+    this.requestLimiter.cancelAll();
 
     const queryFetchID = Symbol('queryFetchID');
     this.setState({

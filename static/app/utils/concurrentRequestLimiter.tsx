@@ -14,6 +14,12 @@ interface LimiterStats {
   readonly queued: number;
 }
 
+interface CancellableRequest<T> {
+  readonly cancel: () => void;
+  readonly id: string;
+  readonly promise: Promise<T>;
+}
+
 /**
  * A concurrent request limiter that queues requests when a maximum
  * number of concurrent requests is reached.
@@ -62,6 +68,83 @@ export class ConcurrentRequestLimiter {
         this.enqueueRequest(request);
       }
     });
+  }
+
+  /**
+   * Execute a request function with cancellation support.
+   * Returns a cancellable request object that can be cancelled before completion.
+   *
+   * @param requestFn - The async function to execute
+   * @returns CancellableRequest with promise, cancel function, and id
+   */
+  executeCancellable<T>(requestFn: () => Promise<T>): CancellableRequest<T> {
+    let isCancelled = false;
+    const requestId = uniqueId();
+
+    const promise = new Promise<T>((resolve, reject) => {
+      const request: QueuedRequest<T> = {
+        id: requestId,
+        execute: async () => {
+          if (isCancelled) {
+            throw new Error('Request was cancelled');
+          }
+          return requestFn();
+        },
+        resolve: (value: T) => {
+          if (!isCancelled) {
+            resolve(value);
+          }
+        },
+        reject: (error: unknown) => {
+          if (!isCancelled) {
+            reject(error);
+          }
+        },
+        createdAt: Date.now(),
+      };
+
+      if (this.hasAvailableSlot()) {
+        void this.executeRequest(request);
+      } else {
+        this.enqueueRequest(request);
+      }
+    });
+
+    const cancel = () => {
+      isCancelled = true;
+      this.cancelRequest(requestId);
+    };
+
+    return {promise, cancel, id: requestId};
+  }
+
+  /**
+   * Cancel a specific request by ID.
+   * Removes the request from active or queued state.
+   *
+   * @param requestId - The ID of the request to cancel
+   * @returns true if request was found and cancelled, false otherwise
+   */
+  cancelRequest(requestId: string): boolean {
+    // Cancel if active
+    if (this.activeRequests.has(requestId)) {
+      this.activeRequests.delete(requestId);
+      this.processNextInQueue();
+      return true;
+    }
+
+    // Cancel if queued
+    const queueIndex = this.queue.findIndex(req => req.id === requestId);
+    if (queueIndex !== -1) {
+      const request = this.queue[queueIndex];
+      if (request) {
+        request.reject(new Error('Request cancelled'));
+        this.queue.splice(queueIndex, 1);
+      }
+      return true;
+    }
+
+    return false;
   }
 
   private hasAvailableSlot(): boolean {
@@ -165,6 +248,61 @@ export class ConcurrentRequestLimiter {
       queued: this.queue.length,
       maxConcurrent: this.maxConcurrent,
     } as const;
+  }
+}
+
+/**
+ * Component-scoped limiter that automatically handles request lifecycle
+ * without requiring manual state management in components.
+ */
+export class ComponentScopedLimiter {
+  private readonly requests = new Map<string, () => void>(); // requestId -> cancel function
+  private readonly limiter: ConcurrentRequestLimiter;
+
+  constructor(limiter: ConcurrentRequestLimiter) {
+    this.limiter = limiter;
+  }
+
+  /**
+   * Execute a request with automatic tracking and cleanup.
+   * The request will be automatically cancelled if the component is destroyed.
+   */
+  async execute<T>(requestFn: () => Promise<T>): Promise<T> {
+    const cancellableRequest = this.limiter.executeCancellable(requestFn);
+
+    // Auto-track with cleanup function
+    this.requests.set(cancellableRequest.id, cancellableRequest.cancel);
+
+    try {
+      const result = await cancellableRequest.promise;
+      return result;
+    } finally {
+      // Clean up tracking when request completes
+      this.requests.delete(cancellableRequest.id);
+    }
+  }
+
+  /**
+   * Cancel all active requests managed by this component limiter.
+   */
+  cancelAll(): void {
+    this.requests.forEach(cancel => cancel());
+    this.requests.clear();
+  }
+
+  /**
+   * Destroy the component limiter and cancel all requests.
+   * Should be called in componentWillUnmount or cleanup.
+   */
+  destroy(): void {
+    this.cancelAll();
+  }
+
+  /**
+   * Get the number of active requests for this component.
+   */
+  getActiveCount(): number {
+    return this.requests.size;
   }
 }
 
