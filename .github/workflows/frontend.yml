@@ -190,12 +190,21 @@ jobs:
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
         run: pnpm install --frozen-lockfile
 
+      - uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
+        id: token
+        continue-on-error: true
+        with:
+          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
       - name: Download jest-balance.json
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # 5.0.0
+        continue-on-error: false
         with:
           name: jest-balance.json
           path: tests/js/test-balancer/jest-balance.json
           run-id: ''
+          github-token: ${{ steps.token.outputs.token }}
 
       - name: jest
         env:
