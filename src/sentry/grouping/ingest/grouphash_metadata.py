@@ -8,7 +8,7 @@ the `GroupHash` model file, so that existing records will get updated with the n
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, TypeIs, cast
 
 from django.utils import timezone
@@ -207,6 +207,10 @@ def create_or_update_grouphash_metadata_if_needed(
                     "new_version": GROUPHASH_METADATA_SCHEMA_VERSION,
                 }
             )
+
+        # If metadata is older than 90 days, update the event id
+        if grouphash.metadata.date_updated < timezone.now() - timedelta(days=90):
+            updated_data["event_id"] = event.event_id
 
         # Only hit the DB if there's something to change
         if updated_data:

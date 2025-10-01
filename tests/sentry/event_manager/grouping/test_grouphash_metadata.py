@@ -354,3 +354,60 @@ class GroupHashMetadataTest(TestCase):
                 )
 
             mock_metrics_incr.reset_mock()
+
+    def test_updates_event_id_when_date_updated_older_than_90_days(self) -> None:
+        """Test that event_id is updated when date_updated is older than 90 days."""
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        # Create an event and grouphash with metadata
+        event1 = save_new_event({"message": "Dogs are great!"}, self.project)
+        grouphash = GroupHash.objects.filter(
+            project=self.project, hash=event1.get_primary_hash()
+        ).first()
+        assert grouphash and grouphash.metadata
+
+        # Set the date_updated to be older than 90 days
+        old_date = timezone.now() - timedelta(days=91)
+        grouphash.metadata.update(date_updated=old_date, event_id="old_event_id")
+
+        # Create a new event with the same hash
+        event2 = save_new_event({"message": "Dogs are great!"}, self.project)
+        assert event2.get_primary_hash() == event1.get_primary_hash()
+
+        # Refresh the grouphash to get updated metadata
+        grouphash.refresh_from_db()
+
+        # Verify that the event_id was updated to the new event's ID
+        assert grouphash.metadata.event_id == event2.event_id
+        # Verify that date_updated was also updated
+        assert grouphash.metadata.date_updated > old_date
+
+    def test_no_updates_event_id_when_date_updated_newer_than_90_days(self) -> None:
+        """Test that event_id is not updated when date_updated is newwer than 90 days."""
+
+        from django.utils import timezone
+
+        # Create an event and grouphash with metadata
+        event1 = save_new_event({"message": "Dogs are great!"}, self.project)
+        grouphash = GroupHash.objects.filter(
+            project=self.project, hash=event1.get_primary_hash()
+        ).first()
+        assert grouphash and grouphash.metadata
+
+        # Set the date_updated to be new
+        now = timezone.now()
+        grouphash.metadata.update(date_updated=now, event_id="old_event_id")
+
+        # Create a new event with the same hash
+        event2 = save_new_event({"message": "Dogs are great!"}, self.project)
+        assert event2.get_primary_hash() == event1.get_primary_hash()
+
+        # Refresh the grouphash to get updated metadata
+        grouphash.refresh_from_db()
+
+        # Verify that the event_id was updated to the new event's ID
+        assert grouphash.metadata.event_id == event2.event_id
+        # Verify that date_updated was also updated
+        assert grouphash.metadata.date_updated == now
