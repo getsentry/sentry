@@ -291,7 +291,7 @@ export function convertEventsStatsToTimeSeriesData(
   };
 
   if (defined(order)) {
-    serie.meta.order = seriesData.order;
+    serie.meta.order = order;
   }
 
   return [serie.meta.order ?? 0, serie];
