@@ -202,7 +202,7 @@ jobs:
         continue-on-error: false
         with:
           name: jest-balance.json
-          path: tests/js/test-balancer/jest-balance.json
+          path: tests/js/test-balancer/
           run-id: ''
           github-token: ${{ steps.token.outputs.token }}
 
