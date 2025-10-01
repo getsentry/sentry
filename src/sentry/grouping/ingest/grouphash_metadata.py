@@ -209,7 +209,10 @@ def create_or_update_grouphash_metadata_if_needed(
             )
 
         # If metadata is older than 90 days, update the event id
-        if grouphash.metadata.date_updated < timezone.now() - timedelta(days=90):
+        if (
+            not grouphash.metadata.date_updated
+            or grouphash.metadata.date_updated < timezone.now() - timedelta(days=90)
+        ):
             updated_data["event_id"] = event.event_id
 
         # Only hit the DB if there's something to change
