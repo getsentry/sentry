@@ -240,7 +240,7 @@ function Chart({
       </Tooltip>
       <ChartContextMenu
         key="context"
-        visualizeYAxes={[visualize.yAxis]}
+        visualizeYAxes={[visualize]}
         query={query}
         interval={interval}
         visualizeIndex={index}
