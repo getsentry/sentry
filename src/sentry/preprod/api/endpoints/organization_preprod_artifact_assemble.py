@@ -130,6 +130,24 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             checksum = data.get("checksum")
             chunks = data.get("chunks", [])
 
+            # Validate VCS parameters - if any are provided, all required ones must be present
+            vcs_params = {
+                "head_sha": data.get("head_sha"),
+                "head_repo_name": data.get("head_repo_name"),
+                "provider": data.get("provider"),
+                "head_ref": data.get("head_ref"),
+            }
+            provided_params = {k: v for k, v in vcs_params.items() if v}
+
+            if provided_params and len(provided_params) != len(vcs_params):
+                missing_params = [k for k, v in vcs_params.items() if not v]
+                return Response(
+                    {
+                        "error": f"All required VCS parameters must be provided when using VCS features. Missing parameters: {', '.join(missing_params)}"
+                    },
+                    status=400,
+                )
+
             # Check if all requested chunks have been uploaded
             missing_chunks = find_missing_chunks(project.organization_id, set(chunks))
             if missing_chunks:
@@ -167,6 +185,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                     {
                         "state": ChunkFileState.ERROR,
                         "detail": "Failed to create preprod artifact row.",
+                        "missingChunks": [],
                     }
                 )
 
