@@ -111,16 +111,6 @@ function GradleMethod({projectPlatform}: {projectPlatform: PlatformKey | null}) 
 }`}
         </OnboardingCodeSnippet>
       </Container>
-
-      <Container>
-        <Text as="p" size="md">
-          Set environment variables in GitHub Actions:
-        </Text>
-        <OnboardingCodeSnippet language="yaml">
-          {`env:
-  SENTRY_AUTH_TOKEN: \${{ secrets.SENTRY_AUTH_TOKEN }}`}
-        </OnboardingCodeSnippet>
-      </Container>
     </Flex>
   );
 }
