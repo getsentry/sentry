@@ -116,7 +116,7 @@ describe('useVirtualStreaming', () => {
       }),
     ]);
 
-    const {result} = renderHook(() => useVirtualStreaming(mockData), {
+    const {result} = renderHook(() => useVirtualStreaming({data: mockData}), {
       wrapper: createWrapper({autoRefresh: 'enabled'}),
     });
 
@@ -140,7 +140,7 @@ describe('useVirtualStreaming', () => {
       }),
     ]);
 
-    const {result} = renderHook(() => useVirtualStreaming(mockData), {
+    const {result} = renderHook(() => useVirtualStreaming({data: mockData}), {
       wrapper: createWrapper({autoRefresh: 'idle'}),
     });
 
@@ -157,7 +157,7 @@ describe('useVirtualStreaming', () => {
       }),
     ]);
 
-    renderHook(() => useVirtualStreaming(mockData), {
+    renderHook(() => useVirtualStreaming({data: mockData}), {
       wrapper: createWrapper({autoRefresh: 'enabled'}),
     });
 
@@ -176,7 +176,7 @@ describe('useVirtualStreaming', () => {
       }),
     ]);
 
-    const {unmount} = renderHook(() => useVirtualStreaming(mockData), {
+    const {unmount} = renderHook(() => useVirtualStreaming({data: mockData}), {
       wrapper: createWrapper({autoRefresh: 'enabled'}),
     });
 
@@ -187,7 +187,7 @@ describe('useVirtualStreaming', () => {
     unmount();
 
     // Re-render with disabled autorefresh
-    renderHook(() => useVirtualStreaming(mockData), {
+    renderHook(() => useVirtualStreaming({data: mockData}), {
       wrapper: createWrapper({autoRefresh: 'idle'}),
     });
 

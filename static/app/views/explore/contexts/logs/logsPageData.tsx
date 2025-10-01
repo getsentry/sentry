@@ -24,8 +24,10 @@ export function LogsPageDataProvider({
 }) {
   const organization = useOrganization();
   const feature = isLogsEnabled(organization);
+  const highFidelity = organization.features.includes('ourlogs-high-fidelity');
   const infiniteLogsQueryResult = useInfiniteLogsQuery({
     disabled: !feature,
+    highFidelity,
   });
   const value = useMemo(() => {
     return {
