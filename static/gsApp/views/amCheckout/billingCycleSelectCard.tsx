@@ -9,6 +9,7 @@ import {t, tct} from 'sentry/locale';
 
 import {ANNUAL} from 'getsentry/constants';
 import type {Plan, Subscription} from 'getsentry/types';
+import {isDeveloperPlan} from 'getsentry/utils/billing';
 import CheckoutOption from 'getsentry/views/amCheckout/checkoutOption';
 import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
@@ -36,10 +37,15 @@ function BillingCycleSelectCard({
   const isPartnerMigration = !!subscription.partner?.partnership.id;
 
   const isCotermUpgrade = priceAfterDiscount >= subscription.planDetails.totalPrice;
+  const isCurrentUsageCycle = subscription.contractInterval === plan.contractInterval;
+  // the billing day would only change for billing cycle changes or for any upgrade from developer plan
+  const shouldApplyToExistingPeriod =
+    isCotermUpgrade && isCurrentUsageCycle && !isDeveloperPlan(subscription.planDetails);
   const today = moment();
-  const contractStartDate = isCotermUpgrade
-    ? today
-    : moment(subscription.contractPeriodEnd).add(1, 'day');
+  const contractStartDate =
+    !shouldApplyToExistingPeriod && isCotermUpgrade
+      ? today
+      : moment(subscription.contractPeriodEnd).add(1, 'day');
 
   const onCycleSelect = () => {
     const data: Partial<CheckoutFormData> = {

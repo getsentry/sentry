@@ -90,7 +90,7 @@ describe('AddBillingInformation', () => {
     expect(await screen.findByText('Edit billing information')).toBeInTheDocument();
     expect(screen.getByText('Business address')).toBeInTheDocument();
     expect(screen.getByText('Payment method')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Confirm and pay'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Confirm'})).toBeEnabled();
     expect(
       screen.getByRole('button', {name: 'Edit business address'})
     ).toBeInTheDocument();
@@ -115,7 +115,7 @@ describe('AddBillingInformation', () => {
     expect(await screen.findByText('Edit billing information')).toBeInTheDocument();
     expect(screen.getByText('Business address')).toBeInTheDocument();
     expect(screen.getByText('Payment method')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Confirm and pay'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled();
     expect(
       screen.queryByRole('button', {name: 'Edit business address'})
     ).not.toBeInTheDocument();
@@ -146,7 +146,7 @@ describe('AddBillingInformation', () => {
     expect(await screen.findByText('Add billing information')).toBeInTheDocument();
     expect(screen.getByText('Business address')).toBeInTheDocument();
     expect(screen.getByText('Payment method')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Confirm and pay'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled();
     expect(
       screen.queryByRole('button', {name: 'Edit business address'})
     ).not.toBeInTheDocument();

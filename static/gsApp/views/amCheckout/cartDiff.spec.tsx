@@ -86,7 +86,7 @@ describe('CartDiff', () => {
     expect(reservedDiff).not.toHaveTextContent('Replays'); // doesn't show any other categories if there are no changes
 
     expect(paygDiff).toHaveTextContent('PAYG spend limit');
-    expect(paygDiff).toHaveTextContent('$0$100');
+    expect(paygDiff).toHaveTextContent('$100');
   });
 
   it('does not render for returning customers with no changes', () => {
@@ -104,6 +104,17 @@ describe('CartDiff', () => {
   });
 
   it('renders shared to per-category spend limits', async () => {
+    const sharedOdSub = SubscriptionFixture({
+      organization: org,
+      plan: teamAnnualPlan.id,
+      onDemandBudgets: {
+        budgetMode: OnDemandBudgetMode.SHARED,
+        enabled: true,
+        sharedMaxBudget: 10_00,
+        onDemandSpendUsed: 0,
+      },
+      isFree: false,
+    });
     const formData: CheckoutFormData = {
       ...defaultFormData,
       onDemandBudget: {
@@ -114,12 +125,12 @@ describe('CartDiff', () => {
       },
     };
 
-    renderCartDiff({formData});
+    renderCartDiff({formData, subscription: sharedOdSub});
 
     expect(await screen.findByText('Changes (2)')).toBeInTheDocument();
     const paygDiff = await screen.findByTestId('shared-spend-limit-diff');
     expect(paygDiff).toHaveTextContent('PAYG spend limit');
-    expect(paygDiff).toHaveTextContent('$0');
+    expect(paygDiff).toHaveTextContent('$10');
 
     const perCategoryDiff = await screen.findByTestId('per-category-spend-limit-diff');
     expect(perCategoryDiff).toHaveTextContent('Per-category spend limits');
@@ -176,7 +187,71 @@ describe('CartDiff', () => {
     };
 
     renderCartDiff({formData});
-
     expect(screen.queryByTestId('cart-diff')).not.toBeInTheDocument();
+  });
+
+  it('renders unset to set shared budget as single change', async () => {
+    const formData: CheckoutFormData = {
+      ...defaultFormData,
+      onDemandBudget: {
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: 10_00,
+      },
+    };
+
+    renderCartDiff({formData});
+    expect(await screen.findByText('Changes (1)')).toBeInTheDocument();
+    const paygDiff = await screen.findByTestId('shared-spend-limit-diff');
+    expect(paygDiff).toHaveTextContent('PAYG spend limit');
+    expect(paygDiff).toHaveTextContent('$10');
+    expect(paygDiff).not.toHaveTextContent('$0');
+  });
+
+  it('renders unset to set two per-category budget as two changes', async () => {
+    const formData: CheckoutFormData = {
+      ...defaultFormData,
+      onDemandBudget: {
+        budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+        budgets: {
+          errors: 10_00,
+          replays: 20_00,
+        },
+      },
+    };
+
+    renderCartDiff({formData});
+    expect(await screen.findByText('Changes (2)')).toBeInTheDocument();
+    const perCategoryDiff = await screen.findByTestId('per-category-spend-limit-diff');
+    expect(perCategoryDiff).toHaveTextContent('Per-category spend limits');
+    expect(perCategoryDiff).toHaveTextContent('Errors$10');
+    expect(perCategoryDiff).toHaveTextContent('Replays$20');
+    expect(perCategoryDiff).not.toHaveTextContent('$0');
+    expect(screen.queryByTestId('shared-spend-limit-diff')).not.toBeInTheDocument();
+  });
+
+  it('renders set to unset PAYG budget', async () => {
+    const subWithBudget = SubscriptionFixture({
+      organization: org,
+      plan: teamAnnualPlan.id,
+      onDemandBudgets: {
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: 10_00,
+        enabled: true,
+        onDemandSpendUsed: 0,
+      },
+      isFree: false,
+    });
+    const formData: CheckoutFormData = {
+      ...defaultFormData,
+      onDemandBudget: {
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: 0,
+      },
+    };
+    renderCartDiff({formData, subscription: subWithBudget});
+    expect(await screen.findByText('Changes (1)')).toBeInTheDocument();
+    const paygDiff = await screen.findByTestId('shared-spend-limit-diff');
+    expect(paygDiff).toHaveTextContent('PAYG spend limit');
+    expect(paygDiff).toHaveTextContent('$10$0');
   });
 });
