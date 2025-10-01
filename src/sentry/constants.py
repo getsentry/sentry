@@ -264,6 +264,7 @@ DEFAULT_ALERT_GROUP_THRESHOLD = (1000, 25)  # 1000%, 25 events
 # Default sort option for the group stream
 DEFAULT_SORT_OPTION = "date"
 
+
 # Setup languages for only available locales
 _language_map = dict(settings.LANGUAGES)
 LANGUAGES = [(k, _language_map[k]) for k in get_all_languages() if k in _language_map]
