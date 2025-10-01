@@ -355,7 +355,7 @@ class OrganizationMember(ReplicatedRegionModel):
         }
 
         msg = MessageBuilder(
-            subject="Join %s in using Sentry" % self.organization.name,
+            subject=f"Join {self.organization.name} in using Sentry",
             template="sentry/emails/member-invite.txt",
             html_template="sentry/emails/member-invite.html",
             type="organization.invite",

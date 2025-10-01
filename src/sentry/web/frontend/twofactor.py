@@ -156,10 +156,9 @@ class TwoFactorAuthView(BaseView):
             "recover_url": absolute_uri(recover_uri),
         }
 
-        subject = "Suspicious Activity Detected"
         template = "mfa-too-many-attempts"
         msg = MessageBuilder(
-            subject="{}{}".format(options.get("mail.subject-prefix"), subject),
+            subject="Suspicious Activity Detected",
             template=f"sentry/emails/{template}.txt",
             html_template=f"sentry/emails/{template}.html",
             type="user.mfa-too-many-attempts",
