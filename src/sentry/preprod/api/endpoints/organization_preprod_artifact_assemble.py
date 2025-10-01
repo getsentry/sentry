@@ -137,9 +137,8 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                 "provider": data.get("provider"),
                 "head_ref": data.get("head_ref"),
             }
-            provided_params = {k: v for k, v in vcs_params.items() if v}
 
-            if provided_params and len(provided_params) != len(vcs_params):
+            if any(vcs_params.values()) and any(not v for v in vcs_params.values()):
                 missing_params = [k for k, v in vcs_params.items() if not v]
                 return Response(
                     {
