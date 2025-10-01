@@ -45,6 +45,8 @@ SUPPORTED_DATASETS = {
 
 logger = logging.getLogger(__name__)
 
+LOGGING_PREFIX = "DataExport:"
+
 
 class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
     query_type = serializers.ChoiceField(choices=ExportQueryType.as_str_choices(), required=True)
@@ -268,10 +270,13 @@ class DataExportEndpoint(OrganizationEndpoint):
         Create a new asynchronous file export task, and
         email user upon completion,
         """
-        logger.info(
-            "DataExport: POST Request started",
-            extra={"organization_id": organization.id},
-        )
+        query_info: dict[str, Any] = {} if not request.data else request.data.get("query_info", {})
+        extra = {
+            "organization_id": organization.id,
+            "project_id": query_info.get("project_id", ""),
+            "user": request.user,
+        }
+        logger.info("%s API Request started", LOGGING_PREFIX, extra=extra)
 
         # The data export feature is only available alongside `discover-query`.
         # So to export issue tags, they must have have `discover-query`
@@ -332,10 +337,16 @@ class DataExportEndpoint(OrganizationEndpoint):
                     data_export_id=data_export.id, export_limit=limit, environment_id=environment_id
                 )
                 status = 201
+            # This value can be used to find the schedule task in the GCP logs
+            extra["data_export_id"] = data_export.id
+            extra["status"] = "done" if status == 200 else "assemble_download.task_scheduled"
         except ValidationError as e:
             # This will handle invalid JSON requests
             metrics.incr(
                 "dataexport.invalid", tags={"query_type": data.get("query_type")}, sample_rate=1.0
             )
+            logger.exception("%s API Request failed", LOGGING_PREFIX, extra=extra)
             return Response({"detail": str(e)}, status=400)
+
+        logger.info("%s API Request completed", LOGGING_PREFIX, extra=extra)
         return Response(serialize(data_export, request.user), status=status)
