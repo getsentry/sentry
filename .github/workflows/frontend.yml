@@ -207,7 +207,7 @@ jobs:
           # github_token: ${{secrets.GITHUB_TOKEN}}
           # Optional, workflow file name or ID
           # If not specified, will be inferred from run_id (if run_id is specified), or will be the current workflow
-          workflow: jest-balance.yml
+          # workflow: jest%20balancer
           # If no workflow is set and workflow_search set to true, then the most recent workflow matching
           # all other criteria will be looked up instead of using the current workflow
           # workflow_search: false
