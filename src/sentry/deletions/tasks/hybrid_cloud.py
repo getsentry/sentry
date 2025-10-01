@@ -290,7 +290,7 @@ def _process_tombstone_reconciliation(
                 transaction_id=watermark_batch.transaction_id,
             )
 
-            if task.chunk():
+            if task.chunk()[0]:
                 has_more = True  # The current batch is not complete, rerun this task again
             else:
                 set_watermark(prefix, field, watermark_batch.up, watermark_batch.transaction_id)

@@ -69,4 +69,4 @@ def delete_groups_for_project(
     task = deletions.get(model=Group, query={"id__in": object_ids}, transaction_id=transaction_id)
     has_more = True
     while has_more:
-        has_more = task.chunk()
+        has_more, _ = task.chunk()

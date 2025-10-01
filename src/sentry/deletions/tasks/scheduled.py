@@ -197,7 +197,7 @@ def _run_deletion(
         pending_delete.send(sender=type(instance), instance=instance, actor=actor)
 
     try:
-        has_more = task.chunk()
+        has_more, _ = task.chunk()
         if has_more:
             process_task.delay(deletion_id=deletion_id, first_pass=False)
         else:

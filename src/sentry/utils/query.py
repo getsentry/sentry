@@ -260,7 +260,7 @@ def bulk_delete_objects(
     transaction_id: str | None = None,
     logger: logging.Logger | None = None,
     **filters: Any,
-) -> bool:
+) -> tuple[bool, int]:
     qs = model.objects.filter(**filters).values_list("id")[:limit]
 
     delete_query = DeleteQuery(model)
@@ -268,7 +268,8 @@ def bulk_delete_objects(
     n = delete_query.get_compiler(router.db_for_write(model)).execute_sql(ROW_COUNT)
 
     # `n` will be `None` if `qs` is an empty queryset
-    has_more = n is not None and n > 0
+    count = n if n is not None else 0
+    has_more = count > 0
 
     if has_more and logger is not None and _leaf_re.search(model.__name__) is None:
         logger.info(
@@ -276,4 +277,4 @@ def bulk_delete_objects(
             extra=dict(filters, model=model.__name__, transaction_id=transaction_id),
         )
 
-    return has_more
+    return has_more, count
