@@ -465,7 +465,7 @@ class ExhaustiveFixtures(Fixtures):
                     )
 
         OrganizationOption.objects.create(
-            organization=org, key="sentry:account-rate-limit", value=0
+            organization=org, key="sentry:scrape_javascript", value=True
         )
 
         # Team
