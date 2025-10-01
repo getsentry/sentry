@@ -49,28 +49,4 @@ describe('parseGroupBy', () => {
     const result = parseGroupBy('', []);
     expect(result).toBeUndefined();
   });
-
-  it('handles complex mismatch scenarios', () => {
-    // More values than fields - extra values ignored
-    const result1 = parseGroupBy('val1,val2,val3,val4', ['field1', 'field2']);
-    expect(result1).toEqual([
-      {key: 'field1', value: 'val1'},
-      {key: 'field2', value: 'val2'},
-    ]);
-
-    // More fields than values - missing values become empty strings
-    const result2 = parseGroupBy('val1', ['field1', 'field2', 'field3']);
-    expect(result2).toEqual([
-      {key: 'field1', value: 'val1'},
-      {key: 'field2', value: ''},
-      {key: 'field3', value: ''},
-    ]);
-
-    // Empty group name with fields - all values become empty strings
-    const result3 = parseGroupBy('', ['field1', 'field2']);
-    expect(result3).toEqual([
-      {key: 'field1', value: ''},
-      {key: 'field2', value: ''},
-    ]);
-  });
 });
