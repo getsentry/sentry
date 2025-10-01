@@ -22,13 +22,13 @@ logger = logging.getLogger(__name__)
 # TODO: add error handling / retries / logging
 
 
-BATCH_SIZE = 1000  # Events per batch
+BATCH_SIZE = 10000  # Events per batch
 UPLOAD_QUEUE_SIZE = 50  # Buffer uploads to prevent blocking
 REFERRER = "sentry.internal.eu-compliance-data-export.errors"
 
 
 def upload_to_gcs(compressed_data: bytes, file_counter: int, bucket: Bucket, gcs_prefix: str):
-    # TODO: filename might need to be something else to be unique
+    # TODO: we might want the blob name to be something else
     blob_name = f"{gcs_prefix}/events_{file_counter:06d}.jsonl.gz"
     blob = bucket.blob(blob_name)
     blob.upload_from_string(
@@ -39,6 +39,7 @@ def upload_to_gcs(compressed_data: bytes, file_counter: int, bucket: Bucket, gcs
     )
 
 
+# TODO: uploader will probably change
 def background_uploader(upload_queue: Queue, destination_bucket: str, gcs_prefix: str):
     file_counter = 0
     storage_client = storage.Client()
@@ -93,7 +94,6 @@ def process_event_batches(
     upload_thread = threading.Thread(
         target=background_uploader,
         args=(upload_queue, destination_bucket, gcs_prefix),
-        daemon=True,
     )
     upload_thread.start()
 
@@ -134,7 +134,7 @@ def get_event_batches(
 def export_project_errors_async(
     project_id: int, organization_id: int, destination_bucket: str, gcs_prefix: str
 ):
-    # Export all events within retention
+    # Export all events within retention for this project
     event_filter = eventstore.Filter(
         project_ids=[project_id],
         start=None,
