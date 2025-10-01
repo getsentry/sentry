@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {PreventAIProvider} from 'sentry/views/prevent/preventAI/types';
+import type {PreventAIProvider} from 'sentry/types/prevent';
 
 import ManageReposPage from './manageRepos';
 

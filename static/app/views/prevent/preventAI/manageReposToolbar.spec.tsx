@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {PreventAIOrg, PreventAIProvider} from 'sentry/types/prevent';
 import ManageReposToolbar from 'sentry/views/prevent/preventAI/manageReposToolbar';
-import type {PreventAIOrg, PreventAIProvider} from 'sentry/views/prevent/preventAI/types';
 
 describe('ManageReposToolbar', () => {
   const github: PreventAIProvider = 'github';

@@ -1,111 +1,74 @@
-import {useCallback, useState} from 'react';
+import {updateOrganization} from 'sentry/actionCreators/organizations';
+import type {
+  PreventAIConfig,
+  PreventAIFeatureTriggers,
+  PreventAIOrgConfig,
+} from 'sentry/types/prevent';
+import {useMutation} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
-import localStorageWrapper from 'sentry/utils/localStorage';
-import type {PreventAIConfig} from 'sentry/views/prevent/preventAI/types';
-
-interface UpdateFeatureParams {
+interface UpdatePreventAIFeatureParams {
   enabled: boolean;
   feature: 'vanilla' | 'test_generation' | 'bug_prediction';
-  triggers?: Record<string, boolean>;
+  orgName: string;
+  repoName?: string;
+  trigger?: Partial<PreventAIFeatureTriggers>;
 }
 
-interface UpdateFeatureResult {
-  enabled: boolean;
-  feature: string;
-  success: boolean;
-  triggers?: Record<string, boolean>;
-}
+export function useUpdatePreventAIFeature() {
+  const api = useApi();
+  const organization = useOrganization();
 
-export function useUpdatePreventAIFeature(orgName?: string, repoName?: string) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // TODO: Hook up to real API - PUT `/organizations/${organization.slug}/prevent/ai/config/features/${feature}`
-
-  const enableFeature = useCallback(
-    async (params: UpdateFeatureParams): Promise<UpdateFeatureResult> => {
-      setIsLoading(true);
-      setError(null);
-
-      // TODO: Below reads/writes from localstorage until real apis hooked up
-      try {
-        // Generate storage key based on org and repo
-        const getStorageKey = () => {
-          if (!orgName || !repoName) {
-            return 'prevent-ai-config-default';
-          }
-          return `prevent-ai-config-${orgName}-${repoName}`;
-        };
-
-        // Load current config from localStorage
-        const currentConfig: PreventAIConfig = (() => {
-          try {
-            const storageKey = getStorageKey();
-            const stored = localStorageWrapper.getItem(storageKey);
-            if (stored) {
-              return JSON.parse(stored);
-            }
-          } catch (err) {
-            // Silently handle localStorage errors
-          }
-          // Return default config if nothing stored
-          return {
-            features: {
-              vanilla: {enabled: false},
-              test_generation: {enabled: false},
-              bug_prediction: {
-                enabled: false,
-                triggers: {
-                  on_command_phrase: false,
-                  on_ready_for_review: false,
-                },
-              },
-            },
-          };
-        })();
-
-        // Update the specific feature
-        const updatedConfig: PreventAIConfig = {
-          ...currentConfig,
-          features: {
-            ...currentConfig.features,
-            [params.feature]: {
-              enabled: params.enabled,
-              triggers: params.triggers,
-            },
-          },
-        };
-
-        // Save to localStorage
-        const storageKey = getStorageKey();
-        localStorageWrapper.setItem(storageKey, JSON.stringify(updatedConfig));
-
-        // Simulate API delay for realistic UX
-        await new Promise(resolve => setTimeout(resolve, 300));
-
-        const result = {
-          success: true,
-          feature: params.feature,
-          enabled: params.enabled,
-          triggers: params.triggers,
-        };
-
-        return result;
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to update feature';
-        setError(errorMessage);
-        throw err;
-      } finally {
-        setIsLoading(false);
-      }
+  const tempPatch: PreventAIConfig = {
+    github_organizations: {
+      'org-1': organization.preventAiConfigGithub as unknown as PreventAIOrgConfig,
+      'org-2': organization.preventAiConfigGithub as unknown as PreventAIOrgConfig,
     },
-    [orgName, repoName]
-  );
+    default_org_config:
+      organization.preventAiConfigGithub as unknown as PreventAIOrgConfig,
+  };
+  const patchedOrganization = {...organization, preventAiConfigGithub: tempPatch};
+
+  const {mutateAsync, isPending, error} = useMutation({
+    mutationFn: async (params: UpdatePreventAIFeatureParams) => {
+      if (!organization.preventAiConfigGithub) {
+        throw new Error('Organization has no prevent AI config');
+      }
+      const editableConfig = structuredClone(patchedOrganization.preventAiConfigGithub);
+
+      const editableOrgConfig =
+        editableConfig.github_organizations[params.orgName] ??
+        structuredClone(editableConfig.default_org_config);
+      editableConfig.github_organizations[params.orgName] = editableOrgConfig;
+
+      let editableFeatureConfig = editableOrgConfig.org_defaults;
+      if (params.repoName) {
+        const overrides = editableOrgConfig.repo_overrides[params.repoName];
+        if (overrides) {
+          editableFeatureConfig = overrides;
+        }
+      }
+
+      editableFeatureConfig[params.feature] = {
+        enabled: params.enabled,
+        triggers: {...editableFeatureConfig[params.feature].triggers, ...params.trigger},
+        sensitivity: editableFeatureConfig[params.feature].sensitivity,
+      };
+
+      const tempPatched = editableConfig.github_organizations['org-1'];
+
+      return api.requestPromise(`/organizations/${organization.slug}/`, {
+        method: 'PUT',
+        data: {preventAiConfigGithub: tempPatched},
+      });
+    },
+    onSuccess: updateOrganization,
+  });
 
   return {
-    enableFeature,
-    isLoading,
-    error,
+    enableFeature: mutateAsync,
+    isLoading: isPending,
+    error: error?.message,
   };
 }

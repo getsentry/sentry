@@ -12,9 +12,9 @@ import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {PreventAIOrg} from 'sentry/types/prevent';
 import ManageReposPanel from 'sentry/views/prevent/preventAI/manageReposPanel';
 import ManageReposToolbar from 'sentry/views/prevent/preventAI/manageReposToolbar';
-import type {PreventAIOrg} from 'sentry/views/prevent/preventAI/types';
 
 import {FeatureOverview} from './onboarding';
 
@@ -40,7 +40,6 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
   useEffect(() => {
     const org = installedOrgs.find(o => o.id === selectedOrg);
     if (org && !org.repos.some(repo => repo.id === selectedRepo)) {
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setSelectedRepo(org.repos[0]?.id ?? '');
     }
   }, [selectedOrg, installedOrgs, selectedRepo]);
