@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, TypedDict
+from typing import Any
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
@@ -29,6 +29,7 @@ from sentry.models.group import Group
 from sentry.models.repository import Repository
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix import trigger_autofix
+from sentry.seer.autofix.types import AutofixPostResponse, AutofixStateResponse
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_autofix_state
 from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -54,18 +55,6 @@ class AutofixRequestSerializer(CamelSnakeSerializer):
         choices=["root_cause", "solution", "code_changes", "open_pr"],
         help_text="Where the issue fix process should stop. If not provided, will run to root cause.",
     )
-
-
-class AutofixResponse(TypedDict):
-    """Response type for the POST endpoint"""
-
-    run_id: int
-
-
-class AutofixStateResponse(TypedDict):
-    """Response type for the GET endpoint"""
-
-    autofix: dict[str, Any] | None
 
 
 @region_silo_endpoint
@@ -101,7 +90,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         ],
         request=AutofixRequestSerializer,
         responses={
-            202: inline_sentry_response_serializer("AutofixResponse", AutofixResponse),
+            202: inline_sentry_response_serializer("AutofixPostResponse", AutofixPostResponse),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
