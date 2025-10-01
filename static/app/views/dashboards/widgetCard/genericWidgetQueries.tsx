@@ -9,10 +9,7 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Confidence, Organization} from 'sentry/types/organization';
-import {
-  ComponentScopedLimiter,
-  dashboardRequestLimiter,
-} from 'sentry/utils/concurrentRequestLimiter';
+import {createComponentLimiter} from 'sentry/utils/concurrentRequestLimiter';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -218,7 +215,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
   }
 
   private _isMounted = false;
-  private requestLimiter = new ComponentScopedLimiter(dashboardRequestLimiter);
+  private requestLimiter = createComponentLimiter();
 
   applyDashboardFilters(widget: Widget): Widget {
     const {dashboardFilters, skipDashboardFilterParens} = this.props;

@@ -309,6 +309,13 @@ export class ComponentScopedLimiter {
 // Global instance for dashboard queries
 export const dashboardRequestLimiter = new ConcurrentRequestLimiter(15);
 
+/**
+ * Factory function to create a component-scoped limiter.
+ */
+export function createComponentLimiter(): ComponentScopedLimiter {
+  return new ComponentScopedLimiter(dashboardRequestLimiter);
+}
+
 // Cleanup on page unload to prevent memory leaks
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', () => {
