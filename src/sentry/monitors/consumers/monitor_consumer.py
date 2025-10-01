@@ -58,6 +58,7 @@ from sentry.monitors.processing_errors.errors import (
     MonitorEnvironmentLimitExceeded,
     MonitorInvalidConfig,
     MonitorInvalidEnvironment,
+    MonitorInvalidOwner,
     MonitorLimitExceeded,
     MonitorNotFound,
     MonitorOverQuota,
@@ -92,7 +93,7 @@ def _ensure_monitor_with_config(
     project: Project,
     monitor_slug: str,
     config: dict[str, Any] | None,
-) -> Monitor | None:
+) -> tuple[Monitor | None, list[ProcessingError]]:
     try:
         monitor = Monitor.objects.get(
             slug=monitor_slug,
@@ -108,16 +109,17 @@ def _ensure_monitor_with_config(
         monitor.update(is_upserting=False)
 
     if not config:
-        return monitor
+        return monitor, []
 
     # The upsert payload doesn't quite match the api one. Pop out the owner here since
     # it's not part of the monitor config
     owner = config.pop("owner", None)
     owner_user_id = None
     owner_team_id = None
+    owner_processing_errors = []
     try:
         owner_actor = parse_and_validate_actor(owner, project.organization_id)
-    except Exception:
+    except Exception as e:
         logger.exception(
             "Error attempting to resolve owner",
             extra={
@@ -125,6 +127,12 @@ def _ensure_monitor_with_config(
                 "owner": owner,
             },
         )
+        # Create a processing error for the invalid owner
+        owner_error: MonitorInvalidOwner = {
+            "type": ProcessingErrorType.MONITOR_INVALID_OWNER,
+            "reason": f"Could not resolve owner '{owner}': {str(e)}",
+        }
+        owner_processing_errors.append(owner_error)
     else:
         if owner_actor and owner_actor.is_user:
             owner_user_id = owner_actor.id
@@ -146,7 +154,7 @@ def _ensure_monitor_with_config(
                 "errors": validator.errors,
             }
             raise ProcessingErrorsException([error])
-        return monitor
+        return monitor, owner_processing_errors
 
     validated_config = validator.validated_data
     created = False
@@ -181,7 +189,7 @@ def _ensure_monitor_with_config(
         ):
             monitor.update(owner_user_id=owner_user_id, owner_team_id=owner_team_id)
 
-    return monitor
+    return monitor, owner_processing_errors
 
 
 def check_killswitch(
@@ -622,11 +630,12 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
     # 01
     # Retrieve or upsert monitor for this check-in
     try:
-        monitor = _ensure_monitor_with_config(
+        monitor, owner_errors = _ensure_monitor_with_config(
             project,
             monitor_slug,
             monitor_config,
         )
+        ensure_config_errors.extend(owner_errors)
     except ProcessingErrorsException as e:
         ensure_config_errors = list(e.processing_errors)
     except MonitorLimitsExceeded as e:
@@ -970,6 +979,12 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
                     mark_failed(check_in, failed_at=start_time, received=start_time)
             else:
                 mark_ok(check_in, start_time)
+
+            # 05
+            # If we have any owner processing errors, raise them now so they are stored
+            # but don't prevent the check-in from being processed successfully
+            if ensure_config_errors:
+                raise ProcessingErrorsException(ensure_config_errors, monitor)
 
             # track how much time it took for the message to make it through
             # relay into kafka. This should help us understand when missed
