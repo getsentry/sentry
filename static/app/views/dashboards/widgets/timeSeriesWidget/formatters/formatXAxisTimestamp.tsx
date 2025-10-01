@@ -38,7 +38,7 @@ export function formatXAxisTimestamp(
     // Start of a year
     format = 'MMM Do YYYY';
   } else if (
-    boundaryTime.date() === 1 &&
+    boundaryTime.day() === 1 &&
     boundaryTime.hour() === 0 &&
     boundaryTime.minute() === 0 &&
     boundaryTime.second() === 0
