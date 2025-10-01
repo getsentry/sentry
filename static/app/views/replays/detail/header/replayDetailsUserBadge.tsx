@@ -1,3 +1,4 @@
+import {useCallback, useEffect, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -25,6 +26,31 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const organization = useOrganization();
   const replayRecord = readerResult.replayRecord;
   const replay = readerResult.replay;
+
+  const [isLive, setIsLive] = useState(replay?.getIsLive());
+
+  const computeIsLive = useCallback(() => replay?.getIsLive(), [replay]);
+
+  useEffect(() => {
+    // Immediately update if props change
+    setIsLive(computeIsLive());
+
+    let tickerRef: number | undefined = undefined;
+
+    // If the replay is live, start the ticker
+    if (computeIsLive()) {
+      const ONE_MINUTE_INTERVAL = 60 * 1000;
+      tickerRef = window.setInterval(() => {
+        const computedIsLive = computeIsLive();
+        setIsLive(computedIsLive);
+        if (!computedIsLive) {
+          window.clearInterval(tickerRef);
+        }
+      }, ONE_MINUTE_INTERVAL);
+    }
+
+    return () => window.clearInterval(tickerRef);
+  }, [computeIsLive]);
 
   // Generate search query based on available user data
   const getUserSearchQuery = () => {
@@ -78,7 +104,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                 isTooltipHoverable
                 unitStyle="regular"
               />
-              {replay?.getIsLive() ? (
+              {isLive ? (
                 <Tooltip
                   showUnderline
                   underlineColor="success"
