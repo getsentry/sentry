@@ -18,6 +18,9 @@ function SubscriptionPageContainer({
 }) {
   const isNewBillingUI = hasNewBillingUI(organization);
   if (!isNewBillingUI) {
+    if (dataTestId) {
+      return <Container data-test-id={dataTestId}>{children}</Container>;
+    }
     return <Fragment>{children}</Fragment>;
   }
   return (
