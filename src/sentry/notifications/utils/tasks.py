@@ -140,29 +140,3 @@ def _send_notification(notification_class_name: str, arg_list: Iterable[Mapping[
         else:
             output_args.append(arg["value"])
     NotificationClass(*output_args, **output_kwargs).send()
-
-
-example_rule = {
-    "filter_match": "all",
-    "action_match": "any",
-    "actions": [
-        {
-            "workspace": "20",
-            "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-            "channel": "general",
-            "channel_id": "C0242QGTVG9",
-            "uuid": "152b0a81-4c7e-4fde-b298-2d60acfdaf4b",
-            "tags": "",
-        },
-        {
-            "workspace": "20",
-            "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-            "channel": "#christina-notification-platform-test",
-            "channel_id": "C09HLLCNW8Y",
-            "tags": "",
-            "uuid": "ced6e3e3-3281-4423-a832-96890d95a408",
-        },
-    ],
-    "conditions": [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}],
-    "frequency": 1440,
-}
