@@ -663,3 +663,23 @@ class DataExportTest(APITestCase):
         data_export = ExportedData.objects.get(id=response.data["id"])
         query_info = data_export.query_info
         assert query_info["sort"] == ["-timestamp"]
+
+    def test_issues_by_tag_string_group_id_conversion(self) -> None:
+        """
+        Ensures that string group IDs in Issues-by-Tag exports are converted to integers
+        """
+        group = self.create_group(project=self.project)
+        payload = self.make_payload("issue", {"group": str(group.id), "key": "user"})
+        response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        # The group ID should be converted from string to integer
+        # assert isinstance(data_export.query_info["group"], int)
+        assert data_export.query_info["group"] == group.id
+
+    def test_issues_by_tag_invalid_group_id_rejection(self) -> None:
+        """
+        Ensures that invalid group IDs in Issues-by-Tag exports are properly rejected
+        """
+        payload = self.make_payload("issue", {"group": "invalid_group_id", "key": "user"})
+        response = self.get_error_response(self.org.slug, status_code=400, **payload)
+        assert response.data == {"non_field_errors": ["Invalid group ID"]}

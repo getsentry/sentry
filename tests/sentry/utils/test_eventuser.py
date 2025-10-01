@@ -479,3 +479,25 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
             "id:myminion": EventUser.from_event(self.event_3),
             "id:2": EventUser.from_event(self.event_2),
         }
+
+    def test_for_tags_large_batch(self) -> None:
+        """Test that for_tags handles large batches without query size errors."""
+        # Create a large list of tag values that would normally cause query size issues
+        tag_values = []
+
+        # Add the existing known values first
+        tag_values.extend(["id:myminion", "id:2"])
+
+        # Add many non-existent values to simulate a large batch
+        for i in range(200):  # More than MAX_TAG_VALUES_BATCH_SIZE (100)
+            tag_values.append(f"id:nonexistent{i}")
+
+        # This should work without raising SnubaError about query size
+        result = EventUser.for_tags(self.project.id, tag_values)
+
+        # We should get the existing users and empty results for non-existent ones
+        expected = {
+            "id:myminion": EventUser.from_event(self.event_3),
+            "id:2": EventUser.from_event(self.event_2),
+        }
+        assert result == expected
