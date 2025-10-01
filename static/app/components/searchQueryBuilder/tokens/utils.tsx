@@ -7,7 +7,11 @@ import type {
   SelectOptionOrSectionWithKey,
   SelectSectionWithKey,
 } from 'sentry/components/core/compactSelect/types';
-import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
+import {
+  FilterType,
+  WildcardOperators,
+  type ParseResultToken,
+} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 
@@ -113,7 +117,8 @@ function getInitialValueType(fieldDefinition: FieldDefinition | null) {
 
 export function getInitialFilterText(
   key: string,
-  fieldDefinition: FieldDefinition | null
+  fieldDefinition: FieldDefinition | null,
+  defaultToContains = false
 ) {
   const defaultValue = getDefaultFilterValue({fieldDefinition});
 
@@ -127,7 +132,21 @@ export function getInitialFilterText(
     case FieldValueType.SIZE:
     case FieldValueType.PERCENTAGE:
       return `${keyText}:>${defaultValue}`;
+    // handle string and unknowns
     case FieldValueType.STRING:
+      if (keyText === FilterType.IS || keyText === FilterType.HAS) {
+        return `${keyText}:${defaultValue}`;
+      }
+
+      return defaultToContains
+        ? `${keyText}:${WildcardOperators.CONTAINS}${defaultValue}`
+        : `${keyText}:${defaultValue}`;
+    case FieldValueType.DATE:
+    case FieldValueType.BOOLEAN:
+    case FieldValueType.CURRENCY:
+    case FieldValueType.RATE:
+    case FieldValueType.SCORE:
+    case FieldValueType.PERCENT_CHANGE:
     default:
       return `${keyText}:${defaultValue}`;
   }
