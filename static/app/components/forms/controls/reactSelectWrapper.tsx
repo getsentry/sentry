@@ -33,4 +33,5 @@ export type {
   OptionsType,
   OptionTypeBase,
   ValueType,
+  MenuPlacement,
 } from 'react-select';
