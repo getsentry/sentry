@@ -1,4 +1,5 @@
 import {
+  PREVENT_USER_TIERS,
   SEER_TIERS,
   SEER_TIERS_ANNUAL,
   SEER_TIERS_DEVELOPER,
@@ -31,7 +32,7 @@ const AM2_ONDEMAND_CATEGORIES = [
   'seerScanner',
 ] as DataCategory[];
 
-const AM2_CATEGORIES = [...AM2_ONDEMAND_CATEGORIES] as DataCategory[];
+const AM2_CATEGORIES = [...AM2_ONDEMAND_CATEGORIES, 'preventUsers'] as DataCategory[];
 
 const AM2_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
@@ -48,6 +49,7 @@ const AM2_CATEGORY_DISPLAY_NAMES = {
   logBytes: {singular: 'log', plural: 'logs'},
   seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
+  preventUsers: {singular: 'prevent user', plural: 'prevent users'},
 };
 
 const AM2_AVAILABLE_RESERVED_BUDGET_TYPES = {
@@ -63,6 +65,7 @@ const AM2_FREE_FEATURES = [
   'session-replay',
   'monitor-seat-billing',
   'event-attachments',
+  'prevent-billing',
 ];
 
 const AM2_TEAM_FEATURES = [
@@ -843,6 +846,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS,
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -933,6 +937,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS_DEVELOPER,
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: 10,
     metricDetectorLimit: 20,
@@ -1655,6 +1660,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS,
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: 20,
     metricDetectorLimit: 20,
@@ -1745,6 +1751,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: 20,
     metricDetectorLimit: 20,
@@ -2430,6 +2437,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS_ANNUAL,
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: 20,
     metricDetectorLimit: 20,
@@ -3115,6 +3123,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS_ANNUAL,
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -3151,6 +3160,7 @@ const AM2_PLANS: Record<string, Plan> = {
       profileDuration: [{events: 0, unitPrice: 0, price: 0}],
       profileDurationUI: [{events: 0, unitPrice: 0, price: 0}],
       logBytes: [{events: 5, unitPrice: 0.5, price: 0}],
+      ...PREVENT_USER_TIERS,
     },
     availableReservedBudgetTypes: {},
     addOnCategories: {},
@@ -3188,6 +3198,7 @@ const AM2_PLANS: Record<string, Plan> = {
       profileDuration: [{events: 0, unitPrice: 0, price: 0}],
       profileDurationUI: [{events: 0, unitPrice: 0, price: 0}],
       logBytes: [{events: 5, unitPrice: 0.5, price: 0}],
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: 20,
     metricDetectorLimit: 20,
@@ -3685,6 +3696,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS,
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -4230,6 +4242,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS,
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -4790,6 +4803,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS,
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: 20,
     metricDetectorLimit: 20,
@@ -4879,6 +4893,7 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
@@ -4970,6 +4985,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,

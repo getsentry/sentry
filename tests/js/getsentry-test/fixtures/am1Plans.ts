@@ -1,4 +1,5 @@
 import {
+  PREVENT_USER_TIERS,
   SEER_TIERS,
   SEER_TIERS_ANNUAL,
   SEER_TIERS_DEVELOPER,
@@ -27,7 +28,7 @@ const AM1_ONDEMAND_CATEGORIES = [
   'seerScanner',
 ] as DataCategory[];
 
-const AM1_CATEGORIES = [...AM1_ONDEMAND_CATEGORIES] as DataCategory[];
+const AM1_CATEGORIES = [...AM1_ONDEMAND_CATEGORIES, 'preventUsers'] as DataCategory[];
 
 const AM1_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
@@ -38,6 +39,7 @@ const AM1_CATEGORY_DISPLAY_NAMES = {
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
   seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
+  preventUsers: {singular: 'prevent user', plural: 'prevent users'},
 };
 
 const AM1_AVAILABLE_RESERVED_BUDGET_TYPES = {
@@ -52,6 +54,7 @@ const AM1_FREE_FEATURES = [
   'session-replay',
   'monitor-seat-billing',
   'uptime',
+  'prevent-billing',
 ];
 
 const AM1_TEAM_FEATURES = [
@@ -176,6 +179,7 @@ const AM1_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS_DEVELOPER,
+      ...PREVENT_USER_TIERS,
     },
     features: AM1_FREE_FEATURES,
     dashboardLimit: 10,
@@ -244,6 +248,7 @@ const AM1_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...PREVENT_USER_TIERS,
     },
     features: AM1_TRIAL_FEATURES,
     dashboardLimit: 10,
@@ -822,6 +827,7 @@ const AM1_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS,
+      ...PREVENT_USER_TIERS,
     },
     features: AM1_TEAM_FEATURES,
     dashboardLimit: 20,
@@ -1400,6 +1406,7 @@ const AM1_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS_ANNUAL,
+      ...PREVENT_USER_TIERS,
     },
     features: AM1_TEAM_FEATURES,
     dashboardLimit: 20,
@@ -1978,6 +1985,7 @@ const AM1_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS,
+      ...PREVENT_USER_TIERS,
     },
     features: AM1_BUSINESS_FEATURES,
     dashboardLimit: -1,
@@ -2556,6 +2564,7 @@ const AM1_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS,
+      ...PREVENT_USER_TIERS,
     },
     features: AM1_BUSINESS_FEATURES,
     dashboardLimit: -1,
@@ -2632,6 +2641,7 @@ const AM1_PLANS: Record<string, Plan> = {
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...PREVENT_USER_TIERS,
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
