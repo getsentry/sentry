@@ -160,6 +160,73 @@ describe('DetectorEdit', () => {
       });
     });
 
+    it('prefills from URL query params and submits', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '123'}),
+      });
+
+      const prefilledRouterConfig = {
+        ...metricRouterConfig,
+        location: {
+          ...metricRouterConfig.location,
+          query: {
+            ...metricRouterConfig.location.query,
+            dataset: 'spans',
+            aggregate: 'avg(span.duration)',
+            query: 'span.op:queue.publish',
+            environment: 'prod',
+            name: 'My Monitor',
+          },
+        },
+      } as const;
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: prefilledRouterConfig,
+      });
+
+      await userEvent.type(screen.getByRole('spinbutton', {name: 'Threshold'}), '100');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              name: 'My Monitor',
+              type: 'metric_issue',
+              projectId: project.id,
+              owner: null,
+              workflowIds: [],
+              conditionGroup: {
+                conditions: [
+                  {
+                    comparison: 100,
+                    conditionResult: 75,
+                    type: 'gt',
+                  },
+                ],
+                logicType: 'any',
+              },
+              config: {detectionType: 'static', thresholdPeriod: 1},
+              dataSource: expect.objectContaining({
+                // aggregate is validated in a unit test for initial form data; here we validate other prefilled fields
+                dataset: 'events_analytics_platform',
+                eventTypes: ['trace_item_span'],
+                query: 'span.op:queue.publish',
+                queryType: 1,
+                timeWindow: 3600,
+                environment: 'prod',
+              }),
+            }),
+          })
+        );
+      });
+    }, 10000);
+
     it('can submit a new metric detector with event.type:error', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/`,
