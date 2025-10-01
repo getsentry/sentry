@@ -384,7 +384,7 @@ class GroupHashMetadataTest(TestCase):
         # Verify that date_updated was also updated
         assert grouphash.metadata.date_updated and grouphash.metadata.date_updated > old_date
 
-    def test_no_updates_event_id_when_date_updated_newer_than_90_days(self) -> None:
+    def test_does_not_update_event_id_when_date_updated_newer_than_90_days(self) -> None:
         """Test that event_id is not updated when date_updated is newwer than 90 days."""
 
         from django.utils import timezone
