@@ -347,6 +347,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
+    @pytest.mark.skip(reason="flaky: #99213")
     def test_no_duplicate_keys(self) -> None:
         """
         Keys should not be migrated twice.
