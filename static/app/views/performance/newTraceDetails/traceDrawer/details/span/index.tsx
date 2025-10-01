@@ -377,11 +377,7 @@ function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
   const transaction_event_id =
     node.value.transaction_id ??
     TraceTree.ParentEAPTransaction(node)?.value.transaction_id;
-  const {
-    data: eventTransaction,
-    isLoading: isEventTransactionLoading,
-    isError: isEventTransactionError,
-  } = useTransaction({
+  const {data: eventTransaction, isLoading: isEventTransactionLoading} = useTransaction({
     event_id: transaction_event_id,
     project_slug: node.value.project_slug,
     organization,
@@ -393,7 +389,7 @@ function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
     return <LoadingIndicator />;
   }
 
-  if (isTraceItemError || isEventTransactionError) {
+  if (isTraceItemError) {
     return <LoadingError message={t('Failed to fetch span details')} />;
   }
 
