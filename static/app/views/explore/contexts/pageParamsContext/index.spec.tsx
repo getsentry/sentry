@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import {setGroup} from '@amplitude/analytics-browser';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render} from 'sentry-test/reactTestingLibrary';
