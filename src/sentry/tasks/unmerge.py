@@ -527,6 +527,11 @@ def unmerge(*posargs, **kwargs):
         referrer="unmerge",
         tenant_ids={"organization_id": source.project.organization_id},
     )
+
+    # Cache project on each event to prevent N+1 queries during unmerge processing
+    for event in events:
+        event._project_cache = project
+
     # Log info related to this unmerge
     logger.info(
         "unmerge.check",
