@@ -1,10 +1,10 @@
 import {DataCategory} from 'sentry/types/core';
 
-import {AddOnCategory, type AddOnCategoryInfo} from 'getsentry/types';
+import {AddOnCategory} from 'getsentry/types';
 
 // TODO(isabella): update this with other common constants in the fixtures
 
-export const AM_ADD_ON_CATEGORIES: Record<AddOnCategory, AddOnCategoryInfo> = {
+export const AM_ADD_ON_CATEGORIES = {
   [AddOnCategory.SEER]: {
     apiName: AddOnCategory.SEER,
     dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
