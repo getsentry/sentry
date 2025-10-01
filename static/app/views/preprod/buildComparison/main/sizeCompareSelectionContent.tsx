@@ -98,13 +98,15 @@ export function SizeCompareSelectionContent({
   >({
     mutationFn: ({headArtifactId, baseArtifactId}) => {
       return api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
+        `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/run/`,
         {
-          method: 'POST',
+          method: 'GET',
         }
       );
     },
     onSuccess: () => {
+      // Always navigate to the comparison page on success
+      // The backend handles whether it's a new comparison or existing one
       navigate(
         `/organizations/${organization.slug}/preprod/${projectId}/compare/${headBuildDetails.id}/${selectedBaseBuild?.id}/`
       );
