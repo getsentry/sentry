@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from time import timezone
 from typing import Any, TypeIs, cast
+
+from django.utils import timezone
 
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.component import (
