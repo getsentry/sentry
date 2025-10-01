@@ -175,17 +175,15 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
                         />
                       )}
                     </ReservedItem>
-                    {reservedBudgetCategory && (
-                      <Title>
-                        {utils.displayPrice({
-                          cents: utils.getReservedPriceForReservedBudgetCategory({
-                            plan: activePlan,
-                            reservedBudgetCategory,
-                          }),
-                        })}
-                        /{shortInterval}
-                      </Title>
-                    )}
+                    <Title>
+                      {utils.displayPrice({
+                        cents: utils.getPrepaidPriceForAddOn({
+                          plan: activePlan,
+                          addOnCategory: apiName,
+                        }),
+                      })}
+                      /{shortInterval}
+                    </Title>
                   </SpaceBetweenRow>
                 );
               }

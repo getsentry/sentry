@@ -308,7 +308,7 @@ function ProductSelect({
         return (
           <ProductOption
             key={apiName}
-            aria-label={isSelected ? t('Add ') + productName : t('Remove ') + productName}
+            aria-label={isSelected ? t('Remove ') + productName : t('Add ') + productName}
             data-test-id={`product-option-${apiName}`}
             onClick={toggleProductOption}
           >
