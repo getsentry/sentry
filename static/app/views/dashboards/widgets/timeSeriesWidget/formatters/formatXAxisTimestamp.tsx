@@ -1,4 +1,6 @@
-import {getParser, getTimeFormat} from 'sentry/utils/dates';
+import moment from 'moment-timezone';
+
+import {getParser, getTimeFormat, getUserTimezone} from 'sentry/utils/dates';
 
 /**
  * A "cascading" formatter, based on the recommendations in [ECharts documentation](https://echarts.apache.org/en/option.html#xAxis.axisLabel.formatter). Given a timestamp of an X axis of type `"time"`, return a formatted string, to show under the axis tick.
@@ -20,6 +22,22 @@ export function formatXAxisTimestamp(
   options: {utc?: boolean} = {utc: false}
 ): string {
   const parsed = getParser(!options.utc)(value);
+
+  // let parsed: moment.Moment;
+
+  // if (options.utc) {
+  //   // Use UTC parsing
+  //   parsed = moment.utc(value);
+  // } else {
+  //   // Use user's configured timezone, not system timezone
+  //   const userTimezone = getUserTimezone();
+  //   if (userTimezone) {
+  //     parsed = moment.tz(value, userTimezone);
+  //   } else {
+  //     // Fallback to system timezone if no user timezone is configured
+  //     parsed = moment(value);
+  //   }
+  // }
 
   // Granularity-aware parsing, adjusts the format based on the
   // granularity of the object This works well with ECharts since the

@@ -466,9 +466,16 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         axisLabel: {
           padding: [0, 10, 0, 10],
           width: 60,
-          formatter: (value: number) => {
-            return formatXAxisTimestamp(value, {utc: utc ?? undefined});
-          },
+          // formatter: (value: number) => {
+          //   const formatted = formatXAxisTimestamp(value, {utc: utc ?? undefined});
+          //   console.log('🎯 TimeSeriesWidget X-axis formatter called:', {
+          //     value,
+          //     timestamp: new Date(value).toISOString(),
+          //     formatted,
+          //     utc: utc ?? undefined,
+          //   });
+          //   return formatted;
+          // },
         },
         splitNumber: 5,
         ...releaseBubbleXAxis,

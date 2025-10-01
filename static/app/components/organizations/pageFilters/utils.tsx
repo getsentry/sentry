@@ -7,16 +7,20 @@ import pickBy from 'lodash/pickBy';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import type {PageFilters} from 'sentry/types/core';
+import {getUserTimezone} from 'sentry/utils/dates';
 
 /**
  * Make a default page filters object
  */
 export function getDefaultSelection(): PageFilters {
+  // const userTimezone = getUserTimezone();
   const datetime = {
     start: null,
     end: null,
     period: DEFAULT_STATS_PERIOD,
     utc: null,
+    // // Set utc based on user's timezone preference instead of defaulting to null
+    // utc: userTimezone === 'UTC' || userTimezone === 'Etc/UTC',
   };
 
   return {
