@@ -299,8 +299,8 @@ class Strategy(Generic[ConcreteInterface]):
             final_components_by_variant[variant_name] = component
 
         # Mark any non-priority duplicates of priority hashes as non-contributing
-        for variant_name in non_priority_contributing_variants:
-            component = final_components_by_variant[variant_name]
+        for non_priority_variant_name in non_priority_contributing_variants:
+            component = final_components_by_variant[non_priority_variant_name]
             hash_value = component.get_hash()
             duplicate_of = priority_contributing_variants_by_hash.get(hash_value)
             if duplicate_of is not None:
