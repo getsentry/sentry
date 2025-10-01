@@ -358,7 +358,7 @@ function consolidateUnquotedValues(tokens: Token[]): Token[] {
 }
 
 function quoteIfNeeded(value: string): string {
-  if (value === '' || value === null) {
+  if (value === '') {
     return '""';
   }
   if (VALUE_IS_LIST_RE.test(value) || VALUE_IS_QUOTED_RE.test(value)) {
