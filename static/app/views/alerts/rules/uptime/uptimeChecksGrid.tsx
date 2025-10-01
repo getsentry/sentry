@@ -348,6 +348,9 @@ function CheckInBodyCell({
       );
     }
     default:
+      if (check[column] === undefined) {
+        return <Cell />;
+      }
       return <Cell>{check[column]}</Cell>;
   }
 }
