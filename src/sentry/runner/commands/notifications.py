@@ -66,11 +66,61 @@ def send_email(source: str, target: str) -> None:
 
 
 @send.command("slack")
-def send_slack() -> None:
+@click.option(
+    "-s",
+    "--source",
+    help="Registered template source (see `sentry notifications list`)",
+    default="error-alert-service",
+)
+@click.option(
+    "-w", "--integration_name", help="Integration name", default="sentry-ecosystem"
+)  # default is sentry-ecosystem
+@click.option("-o", "--organization_slug", help="Organization slug", default="post-db-wipe")
+@click.option("-c", "--channel", help="Channel name", default="C09HLLCNW8Y")
+def send_slack(source: str, integration_name: str, organization_slug: str, channel: str) -> None:
     """
     Send a Slack notification
+    - Default sends to sentry-ecosystem organization and #general channel
+
     """
-    click.echo("Not implemented yet!")
+    from sentry.runner import configure
+
+    configure()
+
+    from sentry.constants import ObjectStatus
+    from sentry.integrations.models.integration import Integration
+    from sentry.integrations.types import IntegrationProviderSlug
+    from sentry.notifications.platform.registry import template_registry
+    from sentry.notifications.platform.service import NotificationService
+    from sentry.notifications.platform.target import IntegrationNotificationTarget
+    from sentry.notifications.platform.types import (
+        NotificationProviderKey,
+        NotificationTargetResourceType,
+    )
+    from sentry.organizations.services.organization.service import organization_service
+
+    organization_context = organization_service.get_organization_by_slug(
+        slug=organization_slug, only_visible=True
+    )
+    if organization_context is None:
+        click.echo(f"Organization {organization_slug} not found!")
+        return
+
+    integration = Integration.objects.get(
+        name=integration_name, provider=IntegrationProviderSlug.SLACK, status=ObjectStatus.ACTIVE
+    )
+
+    slack_target = IntegrationNotificationTarget(
+        provider_key=NotificationProviderKey.SLACK,
+        resource_type=NotificationTargetResourceType.CHANNEL,
+        integration_id=integration.id,
+        resource_id=channel,
+        organization_id=organization_context.organization.id,
+    )
+    template_cls = template_registry.get(source)
+    NotificationService(data=template_cls.example_data).notify(targets=[slack_target])
+
+    click.echo(f"Example '{source}' slack message sent to {integration.name}.")
 
 
 @send.command("msteams")
@@ -87,6 +137,57 @@ def send_discord() -> None:
     Send a Discord notification.
     """
     click.echo("Not implemented yet!")
+
+
+@click.option(
+    "-p", "--provider", help="the integration provider e.g. slack, discord, msteams", required=True
+)
+@click.option("-o", "--organization_slug", help="Organization slug", required=False)
+@notifications.command("list-integrations")
+def list_integrations(organization_slug: str | None, provider: str) -> None:
+    """
+    List all integrations available for a given provider
+    """
+    from sentry.runner import configure
+
+    configure()
+
+    from sentry.constants import ObjectStatus
+    from sentry.integrations.models.organization_integration import OrganizationIntegration
+    from sentry.integrations.types import IntegrationProviderSlug
+    from sentry.models.organization import Organization
+
+    if organization_slug:
+        organization = Organization.objects.get(slug=organization_slug)
+
+        # Get organization integrations that belong to this organization and match our provider
+        organization_integrations = OrganizationIntegration.objects.filter(
+            integration__provider=IntegrationProviderSlug(provider),
+            integration__status=ObjectStatus.ACTIVE,
+            organization_id=organization.id,
+        ).select_related("integration")
+
+        click.echo(
+            f"All integrations for organization {organization_slug} with provider {provider}"
+            f"Integration Name | Integration ID"
+            f"-------------------------------------------------"
+        )
+        for oi in organization_integrations:
+            click.echo(f"{oi.integration.name} | {oi.integration.id}")
+
+    else:
+        # When no organization is specified, get all integrations for the provider
+        organization_integrations = OrganizationIntegration.objects.filter(
+            integration__provider=IntegrationProviderSlug(provider),
+            integration__status=ObjectStatus.ACTIVE,
+        ).select_related("integration")
+
+        click.echo(f"All integrations for provider {provider}")
+        click.echo("Organization Slug | Integration Name | Integration ID")
+        click.echo("-------------------------------------------------")
+
+        for oi in organization_integrations:
+            click.echo(f"{organization_slug} | {oi.integration.name} | {oi.integration.id}")
 
 
 @notifications.command("list")
