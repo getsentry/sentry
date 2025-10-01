@@ -18,6 +18,7 @@ export const WEB_VITALS_OPS = [
   'ui.interaction.drag',
   'ui.interaction.press',
   'ui.webvital.cls',
+  'ui.webvital.lcp',
   'ui.webvital.fcp',
   'pageload',
 ];
