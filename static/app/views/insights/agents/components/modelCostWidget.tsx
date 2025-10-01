@@ -18,6 +18,8 @@ import {getAIGenerationsFilter} from 'sentry/views/insights/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
+import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {
@@ -49,20 +51,20 @@ export default function ModelCostWidget() {
     Referrer.MODEL_COST_WIDGET
   );
 
-  const timeSeriesRequest = useFetchSpanTimeSeries(
+  const timeSeriesRequest = useTopNSpanSeries(
     {
       ...pageFilterChartParams,
-      query: fullQuery,
-      groupBy: [SpanFields.GEN_AI_REQUEST_MODEL],
+      search: fullQuery,
+      fields: [SpanFields.GEN_AI_REQUEST_MODEL, 'sum(gen_ai.usage.total_cost)'],
       yAxis: ['sum(gen_ai.usage.total_cost)'],
       sort: {field: 'sum(gen_ai.usage.total_cost)', kind: 'desc'},
-      topEvents: 3,
+      topN: 3,
       enabled: !!tokensRequest.data,
     },
     Referrer.MODEL_COST_WIDGET
   );
 
-  const timeSeries = timeSeriesRequest.data?.timeSeries || [];
+  const timeSeries = timeSeriesRequest.data;
 
   const isLoading = timeSeriesRequest.isLoading || tokensRequest.isLoading;
   const error = timeSeriesRequest.error || tokensRequest.error;
@@ -97,8 +99,10 @@ export default function ModelCostWidget() {
         showLegend: 'never',
         plottables: timeSeries.map(
           (ts, index) =>
-            new Bars(ts, {
-              color: ts.meta.isOther ? theme.chart.neutral : colorPalette[index],
+            new Bars(convertSeriesToTimeseries(ts), {
+              color:
+                ts.seriesName === 'Other' ? theme.chart.neutral : colorPalette[index],
+              alias: ts.seriesName, // Ensures that the tooltip shows the full series name
               stack: 'stack',
             })
         ),
