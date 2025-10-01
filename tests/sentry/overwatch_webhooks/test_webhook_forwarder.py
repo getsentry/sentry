@@ -4,7 +4,11 @@ from django.db import router, transaction
 
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.overwatch_webhooks.models import OrganizationSummary, WebhookDetails
+from sentry.overwatch_webhooks.models import (
+    DEFAULT_REQUEST_TYPE,
+    OrganizationSummary,
+    WebhookDetails,
+)
 from sentry.overwatch_webhooks.webhook_forwarder import (
     GITHUB_EVENTS_TO_FORWARD_OVERWATCH,
     OverwatchGithubWebhookForwarder,
@@ -272,6 +276,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
                 webhook_body=event,
                 integration_provider="github",
                 region="us",
+                request_type=DEFAULT_REQUEST_TYPE,
             )
             .to_json()
             .encode("utf-8"),
@@ -292,6 +297,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
                 webhook_body=event,
                 integration_provider="github",
                 region="de",
+                request_type=DEFAULT_REQUEST_TYPE,
             )
             .to_json()
             .encode("utf-8"),
@@ -333,6 +339,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
                 webhook_body=event,
                 integration_provider="github",
                 region="us",
+                request_type=DEFAULT_REQUEST_TYPE,
             )
             .to_json()
             .encode("utf-8"),
