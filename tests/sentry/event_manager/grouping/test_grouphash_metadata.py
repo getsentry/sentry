@@ -407,8 +407,6 @@ class GroupHashMetadataTest(TestCase):
         # Refresh the grouphash to get updated metadata
         grouphash.refresh_from_db()
 
-        # Verify that the event_id was NOT updated (should still be old_event_id)
-        assert grouphash.metadata.event_id == "old_event_id"
-        # Verify that date_updated was also updated
-        assert grouphash.metadata.date_updated is not None
-        assert grouphash.metadata.date_updated == now
+        # Verify that neither the event_id or the update timestamp were changed
+        assert grouphash.metadata.event_id == event1.event_id
+        assert grouphash.metadata.date_updated == current_date_updated
