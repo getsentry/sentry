@@ -94,11 +94,17 @@
   // Avoid relative imports
   "typescript.preferences.importModuleSpecifier": "non-relative",
   "editor.tabSize": 4,
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
   "python.testing.pytestEnabled": true,
   "python.testing.unittestEnabled": false,
   "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
   "python.testing.pytestArgs": ["tests"],
   "python.analysis.autoImportCompletions": true,
+  "python.analysis.extraPaths": ["${workspaceFolder}/src"],
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingImports": "none"
+  },
+  "python.languageServer": "Pylance",
   "prettier.configPath": "prettier.config.mjs",
   "biome.enabled": false,
   "cursorpyright.analysis.autoImportCompletions": true
