@@ -6,8 +6,8 @@ import type {EventQuery} from 'sentry/actionCreators/events';
 import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {ImmutableEventView, LocationQuery} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
+import type {ImmutableEventView, LocationQuery} from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import type {UseQueryOptions} from 'sentry/utils/queryClient';
@@ -340,22 +340,37 @@ export async function doDiscoverQuery<T>(
   let timeout = 0;
   let error: any;
 
+  if (error) {
+    console.log(statusCodes, error, error?.status);
+  }
+
   while (tries < maxTries && (!error || statusCodes.includes(error.status))) {
+    if (tries !== 0) {
+      console.log('tries', tries);
+    }
     if (timeout > 0) {
+      console.log('waiting for timeout', timeout);
       await wait(timeout);
+    }
+    if (tries !== 0) {
+      console.log('trying');
     }
     try {
       tries++;
-      return await api.requestPromise(url, {
+      const response = await api.requestPromise(url, {
         method: 'GET',
         includeAllArgs: true,
         query: {
           // marking params as any so as to not cause typescript errors
           ...(params as any),
+          referrer: `test-${tries}`,
         },
         skipAbort,
       });
+      console.log('request', response);
+      return response;
     } catch (err) {
+      console.log('error', err);
       error = err;
       timeout = baseTimeout * timeoutMultiplier ** (tries - 1);
     }
