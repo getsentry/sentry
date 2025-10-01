@@ -131,6 +131,8 @@ jobs:
       # it reduces large coverage fluctuations
       - name: Handle artifacts
         if: ${{ always() }}
+        continue-on-error: true
+        timeout-minutes: 5
         uses: ./.github/actions/artifacts
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -168,6 +170,8 @@ jobs:
       # it reduces large coverage fluctuations
       - name: Handle artifacts
         if: ${{ always() }}
+        continue-on-error: true
+        timeout-minutes: 5
         uses: ./.github/actions/artifacts
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -314,6 +318,8 @@ jobs:
       # it reduces large coverage fluctuations
       - name: Handle artifacts
         if: ${{ always() }}
+        continue-on-error: true
+        timeout-minutes: 5
         uses: ./.github/actions/artifacts
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
