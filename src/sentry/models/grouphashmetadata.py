@@ -26,7 +26,8 @@ from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 # 7 -> add platform (2025-02-11)
 # 8 -> add schema version (2025-02-24)
 # 9 -> add event id (2025-09-29)
-GROUPHASH_METADATA_SCHEMA_VERSION = "9"
+# 10 -> add date updated (2025-10-01)
+GROUPHASH_METADATA_SCHEMA_VERSION = "10"
 
 
 # The overall grouping method used
