@@ -20,12 +20,6 @@ class DataExportNotificationsEndpoint(Endpoint):
     publish_status = {"POST": ApiPublishStatus.PRIVATE}
     permission_classes = (SentryIsAuthenticated,)
 
-    def post(self, request: Request, service: str) -> Response:
-        if service == "google-cloud":
-            retry_transfer_job_run(request.data, request_run_transfer_job)
-        else:
-            logger.error("Service has not been implemented.", extra={"service": service})
-
-        # We always return 200 because this is an programmatic request issued by a service
-        # provider. We don't want to process the same message multiple times.
+    def post(self, request: Request) -> Response:
+        retry_transfer_job_run(request.data, request_run_transfer_job)
         return Response("", status=200)
