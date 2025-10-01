@@ -31,7 +31,7 @@ export type TracingEventParameters = {
     natural_language_query: string;
   };
   'trace.explorer.metadata': {
-    columns: string[];
+    columns: readonly string[];
     columns_count: number;
     confidences: string[];
     dataScanned: string;
