@@ -434,6 +434,8 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
     dotnet_options = _get_options(sdk_name=SdkName.Dotnet, has_organization_allowlist=True)
 
     if dotnet_options:
+        # Unity SDK contains .NET SDK, so the versions must match. 0.24.0 Unity release was
+        # based on 3.22.0 .NET release. From that point on SDK names and frames should be consistent.
         dotnet_min_sdk_version = "3.22.0"
         unity_min_sdk_version = "0.24.0"
 
@@ -462,6 +464,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 "sentry.unity": unity_min_sdk_version,
                 "sentry.unity.lite": unity_min_sdk_version,
             },
+            # Report fatal errors, since there are no crashes in Unity
             report_fatal_errors=True,
             ignore_mechanism_type=set(),
             allow_mechanism_type=set(),
