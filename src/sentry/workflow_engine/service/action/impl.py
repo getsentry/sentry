@@ -28,30 +28,28 @@ class DatabaseBackedActionService(ActionService):
             dataconditiongroupaction__condition_group__organization_id=organization_id,
         ).update(status=status)
 
-    def update_action_status_for_sentry_app(
+    def update_action_status_for_sentry_app_via_uuid(
         self,
         *,
         organization_id: int,
         status: int,
-        sentry_app_install_uuid: str | None = None,
-        sentry_app_id: int | None = None,
+        sentry_app_install_uuid: str,
     ) -> None:
-        if (not sentry_app_install_uuid and not sentry_app_id) or (
-            sentry_app_install_uuid and sentry_app_id
-        ):
-            raise ValueError("Either sentry_app_install_uuid or sentry_app_id must be provided")
-
-        sentry_app_identifier = (
-            SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
-            if sentry_app_install_uuid
-            else SentryAppIdentifier.SENTRY_APP_ID
-        )
-        target_identifier = (
-            sentry_app_install_uuid if sentry_app_install_uuid else str(sentry_app_id)
-        )
-
         Action.objects.filter(
             type=Action.Type.SENTRY_APP,
-            config__sentry_app_identifier=sentry_app_identifier,
-            config__target_identifier=target_identifier,
+            config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+            config__target_identifier=sentry_app_install_uuid,
+        ).update(status=status)
+
+    def update_action_status_for_sentry_app_via_sentry_app_id(
+        self,
+        *,
+        organization_id: int,
+        status: int,
+        sentry_app_id: int,
+    ) -> None:
+        Action.objects.filter(
+            type=Action.Type.SENTRY_APP,
+            config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_ID,
+            config__target_identifier=str(sentry_app_id),
         ).update(status=status)

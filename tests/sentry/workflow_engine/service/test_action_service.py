@@ -1,5 +1,3 @@
-import pytest
-
 from sentry.constants import ObjectStatus
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.silo.base import SiloMode
@@ -252,21 +250,6 @@ class TestActionService(TestCase):
             assert action is not None
             assert action.status == ObjectStatus.DISABLED
 
-    def test_update_action_status_for_sentry_app__invalid_params(self) -> None:
-        with pytest.raises(Exception):
-            action_service.update_action_status_for_sentry_app(
-                organization_id=self.organization.id,
-                sentry_app_install_uuid="asdf",
-                sentry_app_id=self.sentry_app.id,
-                status=ObjectStatus.DISABLED,
-            )
-
-        with pytest.raises(Exception):
-            action_service.update_action_status_for_sentry_app(
-                organization_id=self.organization.id,
-                status=ObjectStatus.DISABLED,
-            )
-
     def test_update_action_status_for_sentry_app__installation_uuid(self) -> None:
         sentry_app_installation = self.create_sentry_app_installation(
             slug=self.sentry_app.slug,
@@ -281,7 +264,7 @@ class TestActionService(TestCase):
             },
         )
 
-        action_service.update_action_status_for_sentry_app(
+        action_service.update_action_status_for_sentry_app_via_uuid(
             organization_id=self.organization.id,
             sentry_app_install_uuid=sentry_app_installation.uuid,
             status=ObjectStatus.DISABLED,
@@ -291,7 +274,7 @@ class TestActionService(TestCase):
             action.refresh_from_db()
             assert action.status == ObjectStatus.DISABLED
 
-    def test_update_action_status_for_sentry_app__id(self) -> None:
+    def test_update_action_status_for_sentry_app__via_sentry_app_id(self) -> None:
         action = self.create_action(
             type=Action.Type.SENTRY_APP,
             config={
@@ -300,7 +283,7 @@ class TestActionService(TestCase):
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
-        action_service.update_action_status_for_sentry_app(
+        action_service.update_action_status_for_sentry_app_via_sentry_app_id(
             organization_id=self.organization.id,
             sentry_app_id=self.sentry_app.id,
             status=ObjectStatus.DISABLED,
