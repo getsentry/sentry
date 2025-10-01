@@ -1,10 +1,11 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
+import {t, tct} from 'sentry/locale';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -205,12 +206,24 @@ export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
   const {Guide} = onboardingGuides[selectedGuide]!;
 
   return (
-    <Container>
+    <Flex gap="xl" direction="column">
+      <Text>
+        {tct(
+          'Select an integration method for your monitor. For in-depth instructions on integrating Crons, view [docsLink:our complete documentation].',
+          {
+            docsLink: (
+              <ExternalLink href="https://docs.sentry.io/product/crons/getting-started/" />
+            ),
+          }
+        )}
+      </Text>
       <CompactSelect
+        triggerProps={{prefix: t('Guide')}}
         searchable
         options={exampleOptions}
         value={selectedGuide}
         onChange={({value}) => setSelectedGuide(value)}
+        size="sm"
       />
       <Guide
         slug={monitorSlug}
@@ -220,12 +233,6 @@ export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
         cronsUrl={projectKeys?.[0]!.dsn.crons}
         dsnKey={projectKeys?.[0]!.dsn.public}
       />
-    </Container>
+    </Flex>
   );
 }
-
-const Container = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;

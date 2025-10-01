@@ -230,7 +230,9 @@ def get_merged_settings(project_id: int | None = None) -> dict[str | Any, Any]:
 # Gets the thresholds to perform performance detection.
 # Duration thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
-def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, dict[str, Any]]:
+def get_detection_settings(
+    project_id: int | None = None, organization: Organization | None = None
+) -> dict[DetectorType, dict[str, Any]]:
     settings = get_merged_settings(project_id)
 
     return {
@@ -326,6 +328,7 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
             "payload_size_threshold": settings["large_http_payload_size_threshold"],
             "detection_enabled": settings["large_http_payload_detection_enabled"],
             "minimum_span_duration": 100,  # ms
+            "organization": organization,
         },
         DetectorType.HTTP_OVERHEAD: {
             "http_request_delay_threshold": settings["http_request_delay_threshold"],
@@ -369,7 +372,7 @@ def _detect_performance_problems(
     organization = project.organization
 
     with sentry_sdk.start_span(op="function", name="get_detection_settings"):
-        detection_settings = get_detection_settings(project.id)
+        detection_settings = get_detection_settings(project.id, organization)
 
     if standalone or features.has("organizations:issue-detection-sort-spans", organization):
         # The performance detectors expect the span list to be ordered/flattened in the way they

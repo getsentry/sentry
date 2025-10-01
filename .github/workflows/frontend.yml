@@ -220,6 +220,8 @@ jobs:
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
         if: always()
+        continue-on-error: true
+        timeout-minutes: 5
         with:
           files: .artifacts/coverage/*
           type: frontend
