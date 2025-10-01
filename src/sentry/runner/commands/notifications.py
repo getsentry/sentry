@@ -74,9 +74,9 @@ def send_email(source: str, target: str) -> None:
 )
 @click.option(
     "-w", "--integration_name", help="Integration name", default="sentry-ecosystem"
-)  # default is sentry-ecosystem
-@click.option("-o", "--organization_slug", help="Organization slug", default="post-db-wipe")
-@click.option("-c", "--channel", help="Channel name", default="C09HLLCNW8Y")
+)  # default is sentry-ecosystem workspace
+@click.option("-o", "--organization_slug", help="Organization slug", default="default")
+@click.option("-c", "--channel", help="Channel name", default="general")
 def send_slack(source: str, integration_name: str, organization_slug: str, channel: str) -> None:
     """
     Send a Slack notification
@@ -89,6 +89,7 @@ def send_slack(source: str, integration_name: str, organization_slug: str, chann
 
     from sentry.constants import ObjectStatus
     from sentry.integrations.models.integration import Integration
+    from sentry.integrations.slack.utils.channel import get_channel_id
     from sentry.integrations.types import IntegrationProviderSlug
     from sentry.notifications.platform.registry import template_registry
     from sentry.notifications.platform.service import NotificationService
@@ -109,14 +110,20 @@ def send_slack(source: str, integration_name: str, organization_slug: str, chann
     integration = Integration.objects.get(
         name=integration_name, provider=IntegrationProviderSlug.SLACK, status=ObjectStatus.ACTIVE
     )
+    try:
+        channel_data = get_channel_id(integration=integration, channel_name=channel)
+    except Exception as e:
+        click.echo(f"Error getting channel id: {e}")
+        return
 
     slack_target = IntegrationNotificationTarget(
         provider_key=NotificationProviderKey.SLACK,
         resource_type=NotificationTargetResourceType.CHANNEL,
         integration_id=integration.id,
-        resource_id=channel,
+        resource_id=channel_data.channel_id,
         organization_id=organization_context.organization.id,
     )
+
     template_cls = template_registry.get(source)
     NotificationService(data=template_cls.example_data).notify(targets=[slack_target])
 
@@ -168,26 +175,33 @@ def list_integrations(organization_slug: str | None, provider: str) -> None:
         ).select_related("integration")
 
         click.echo(
-            f"All integrations for organization {organization_slug} with provider {provider}"
-            f"Integration Name | Integration ID"
-            f"-------------------------------------------------"
+            f"All integrations for organization {organization_slug} with provider {provider}\n"
+            f"Integration Name | Integration ID \n"
+            f"----------------------------------"
         )
         for oi in organization_integrations:
             click.echo(f"{oi.integration.name} | {oi.integration.id}")
 
     else:
-        # When no organization is specified, get all integrations for the provider
         organization_integrations = OrganizationIntegration.objects.filter(
             integration__provider=IntegrationProviderSlug(provider),
             integration__status=ObjectStatus.ACTIVE,
         ).select_related("integration")
 
-        click.echo(f"All integrations for provider {provider}")
-        click.echo("Organization Slug | Integration Name | Integration ID")
-        click.echo("-------------------------------------------------")
+        # Get organization IDs and fetch organizations in one query
+        org_ids = organization_integrations.values_list("organization_id", flat=True)
+        organizations = {org.id: org for org in Organization.objects.filter(id__in=org_ids)}
+
+        click.echo(
+            f"All integrations for provider {provider}\n"
+            f"Organization Slug | Integration Name | Integration ID\n"
+            f"-------------------------------------------------------"
+        )
 
         for oi in organization_integrations:
-            click.echo(f"{organization_slug} | {oi.integration.name} | {oi.integration.id}")
+            org = organizations.get(oi.organization_id)
+            org_slug = org.slug if org else "Unknown"
+            click.echo(f"{org_slug} | {oi.integration.name} | {oi.integration.id}")
 
 
 @notifications.command("list")
