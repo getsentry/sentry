@@ -98,12 +98,13 @@ function replaceFocusedWordWithFilter(
   value: string,
   cursorPosition: number,
   key: string,
-  getFieldDefinition: FieldDefinitionGetter
+  getFieldDefinition: FieldDefinitionGetter,
+  hasWildcardOperators: boolean
 ) {
   return replaceFocusedWord(
     value,
     cursorPosition,
-    getInitialFilterText(key, getFieldDefinition(key))
+    getInitialFilterText(key, getFieldDefinition(key), hasWildcardOperators)
   );
 }
 
@@ -248,6 +249,10 @@ function SearchQueryBuilderInputInternal({
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(trimmedTokenValue);
   const [selectionIndex, setSelectionIndex] = useState(0);
+
+  const defaultToContains =
+    organization.features.includes('search-query-builder-wildcard-operators') &&
+    organization.features.includes('search-query-builder-default-to-contains');
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
@@ -458,7 +463,8 @@ function SearchQueryBuilderInputInternal({
               inputValue,
               selectionIndex,
               value,
-              getFieldDefinition
+              getFieldDefinition,
+              defaultToContains
             ),
             focusOverride: calculateNextFocusForFilter(state, getFieldDefinition(value)),
             shouldCommitQuery: false,
@@ -556,7 +562,8 @@ function SearchQueryBuilderInputInternal({
                     inputValue,
                     selectionIndex,
                     filterValue,
-                    getFieldDefinition
+                    getFieldDefinition,
+                    defaultToContains
                   ),
                   focusOverride: calculateNextFocusForFilter(
                     state,
@@ -597,7 +604,8 @@ function SearchQueryBuilderInputInternal({
                 inputValue,
                 selectionIndex,
                 filterKey,
-                getFieldDefinition
+                getFieldDefinition,
+                defaultToContains
               ),
               focusOverride: calculateNextFocusForFilter(
                 state,
