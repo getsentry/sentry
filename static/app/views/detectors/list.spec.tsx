@@ -14,6 +14,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {
   DataConditionGroupLogicType,
@@ -25,7 +26,11 @@ import DetectorsList from 'sentry/views/detectors/list';
 
 describe('DetectorsList', () => {
   const organization = OrganizationFixture({
-    features: ['workflow-engine-ui'],
+    features: [
+      'workflow-engine-ui',
+      'search-query-builder-wildcard-operators',
+      'search-query-builder-default-to-contains',
+    ],
     access: ['org:write'],
   });
 
@@ -159,7 +164,9 @@ describe('DetectorsList', () => {
       const mockDetectorsRequestErrorType = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
         body: [ErrorDetectorFixture({name: 'Error Detector'})],
-        match: [MockApiClient.matchQuery({query: 'type:error'})],
+        match: [
+          MockApiClient.matchQuery({query: `type:${WildcardOperators.CONTAINS}error`}),
+        ],
       });
 
       render(<DetectorsList />, {organization});
@@ -190,7 +197,11 @@ describe('DetectorsList', () => {
             owner: ActorFixture({id: testUser.id, name: testUser.email, type: 'user'}),
           }),
         ],
-        match: [MockApiClient.matchQuery({query: 'assignee:test@example.com'})],
+        match: [
+          MockApiClient.matchQuery({
+            query: `assignee:${WildcardOperators.CONTAINS}test@example.com`,
+          }),
+        ],
       });
 
       render(<DetectorsList />, {organization});
@@ -490,7 +501,11 @@ describe('DetectorsList', () => {
         headers: {
           'X-Hits': '50',
         },
-        match: [MockApiClient.matchQuery({query: 'assignee:test@example.com'})],
+        match: [
+          MockApiClient.matchQuery({
+            query: `assignee:${WildcardOperators.CONTAINS}test@example.com`,
+          }),
+        ],
       });
 
       // Click through menus to select assignee
@@ -534,7 +549,11 @@ describe('DetectorsList', () => {
         expect(deleteRequest).toHaveBeenCalledWith(
           '/organizations/org-slug/detectors/',
           expect.objectContaining({
-            query: {id: undefined, query: 'assignee:test@example.com', project: [1]},
+            query: {
+              id: undefined,
+              query: `assignee:${WildcardOperators.CONTAINS}test@example.com`,
+              project: [1],
+            },
           })
         );
       });

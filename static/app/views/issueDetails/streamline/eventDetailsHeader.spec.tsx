@@ -8,6 +8,7 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
@@ -25,7 +26,12 @@ jest.mock('sentry/views/issueDetails/utils', () => ({
 }));
 
 describe('EventDetailsHeader', () => {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({
+    features: [
+      'search-query-builder-wildcard-operators',
+      'search-query-builder-default-to-contains',
+    ],
+  });
   const project = ProjectFixture({
     environments: ['production', 'staging', 'development'],
   });
@@ -118,18 +124,12 @@ describe('EventDetailsHeader', () => {
     const locationQuery = {
       query: {
         ...router.location.query,
-        query: `${tagKey}:${tagValue}`,
+        query: `${tagKey}:${WildcardOperators.CONTAINS}${tagValue}`,
       },
     };
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/tags/${tagKey}/values/`,
-      body: [
-        {
-          key: tagKey,
-          name: tagValue,
-          value: tagValue,
-        },
-      ],
+      body: [{key: tagKey, name: tagValue, value: tagValue}],
       method: 'GET',
     });
 

@@ -512,7 +512,15 @@ describe('SearchQueryBuilder', () => {
 
       it('can select from recently-used filter keys', async () => {
         render(
-          <SearchQueryBuilder {...defaultProps} recentSearches={SavedSearchType.ISSUE} />
+          <SearchQueryBuilder {...defaultProps} recentSearches={SavedSearchType.ISSUE} />,
+          {
+            organization: {
+              features: [
+                'search-query-builder-wildcard-operators',
+                'search-query-builder-default-to-contains',
+              ],
+            },
+          }
         );
 
         await userEvent.click(getLastInput());
@@ -527,7 +535,11 @@ describe('SearchQueryBuilder', () => {
         await userEvent.hover(recentFilterKeys[0]!);
         await userEvent.keyboard('{enter}{enter}');
 
-        expect(await screen.findByRole('row', {name: 'assigned:""'})).toBeInTheDocument();
+        expect(
+          await screen.findByRole('row', {
+            name: `assigned:${WildcardOperators.CONTAINS}""`,
+          })
+        ).toBeInTheDocument();
       });
 
       it('does not display filters present in the query', async () => {
@@ -784,7 +796,14 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('escapes values with spaces and reserved characters', async () => {
-      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
+        organization: {
+          features: [
+            'search-query-builder-wildcard-operators',
+            'search-query-builder-default-to-contains',
+          ],
+        },
+      });
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.type(
         screen.getByRole('combobox', {name: 'Add a search term'}),
@@ -792,7 +811,9 @@ describe('SearchQueryBuilder', () => {
       );
       // Value should be surrounded by quotes and escaped
       expect(
-        screen.getByRole('row', {name: 'assigned:"some\\" value"'})
+        screen.getByRole('row', {
+          name: `assigned:${WildcardOperators.CONTAINS}"some\\" value"`,
+        })
       ).toBeInTheDocument();
       // Display text should be display the original value
       expect(
@@ -911,7 +932,15 @@ describe('SearchQueryBuilder', () => {
     it('can add an unsupported filter key and value', async () => {
       const mockOnChange = jest.fn();
       render(
-        <SearchQueryBuilder {...defaultProps} onChange={mockOnChange} initialQuery="" />
+        <SearchQueryBuilder {...defaultProps} onChange={mockOnChange} initialQuery="" />,
+        {
+          organization: {
+            features: [
+              'search-query-builder-wildcard-operators',
+              'search-query-builder-default-to-contains',
+            ],
+          },
+        }
       );
       await userEvent.click(getLastInput());
 
@@ -921,10 +950,15 @@ describe('SearchQueryBuilder', () => {
         'foo a:b{enter}'
       );
       expect(screen.getByRole('row', {name: 'foo'})).toBeInTheDocument();
-      expect(screen.getByRole('row', {name: 'a:b'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('row', {name: `a:${WildcardOperators.CONTAINS}b`})
+      ).toBeInTheDocument();
 
       await waitFor(() => {
-        expect(mockOnChange).toHaveBeenCalledWith('foo a:b', expect.anything());
+        expect(mockOnChange).toHaveBeenCalledWith(
+          `foo a:${WildcardOperators.CONTAINS}b`,
+          expect.anything()
+        );
       });
 
       expect(mockOnChange).toHaveBeenCalledTimes(1);
@@ -971,25 +1005,38 @@ describe('SearchQueryBuilder', () => {
 
     it('can add a new token by clicking a key suggestion', async () => {
       const mockOnChange = jest.fn();
-      render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />);
+      render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />, {
+        organization: {
+          features: [
+            'search-query-builder-wildcard-operators',
+            'search-query-builder-default-to-contains',
+          ],
+        },
+      });
 
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
 
       // New token should be added with the correct key and default value
-      expect(screen.getByRole('row', {name: 'browser.name:""'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('row', {name: `browser.name:${WildcardOperators.CONTAINS}""`})
+      ).toBeInTheDocument();
       // onChange should not be called until exiting edit mode
       expect(mockOnChange).not.toHaveBeenCalled();
 
       await userEvent.click(await screen.findByRole('option', {name: 'Firefox'}));
 
       // New token should have a value
-      expect(screen.getByRole('row', {name: 'browser.name:Firefox'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('row', {
+          name: `browser.name:${WildcardOperators.CONTAINS}Firefox`,
+        })
+      ).toBeInTheDocument();
 
       // Now we call onChange
       expect(mockOnChange).toHaveBeenCalledTimes(1);
       expect(mockOnChange).toHaveBeenCalledWith(
-        'browser.name:Firefox',
+        `browser.name:${WildcardOperators.CONTAINS}Firefox`,
         expect.anything()
       );
     });
@@ -1010,7 +1057,14 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('can add a filter after some free text', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      render(<SearchQueryBuilder {...defaultProps} />, {
+        organization: {
+          features: [
+            'search-query-builder-wildcard-operators',
+            'search-query-builder-default-to-contains',
+          ],
+        },
+      });
 
       await userEvent.click(getLastInput());
 
@@ -1032,7 +1086,9 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
 
       // Should have a filter token "browser.name:foo"
-      expect(screen.getByRole('row', {name: 'browser.name:foo'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('row', {name: `browser.name:${WildcardOperators.CONTAINS}foo`})
+      ).toBeInTheDocument();
     });
 
     it('can add parens by typing', async () => {
@@ -1105,7 +1161,14 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('converts text to filter when typing <filter>:', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      render(<SearchQueryBuilder {...defaultProps} />, {
+        organization: {
+          features: [
+            'search-query-builder-wildcard-operators',
+            'search-query-builder-default-to-contains',
+          ],
+        },
+      });
       await userEvent.click(getLastInput());
 
       await userEvent.type(
@@ -1113,12 +1176,21 @@ describe('SearchQueryBuilder', () => {
         'browser.name:'
       );
 
-      const browserNameFilter = await screen.findByRole('row', {name: 'browser.name:""'});
+      const browserNameFilter = await screen.findByRole('row', {
+        name: `browser.name:${WildcardOperators.CONTAINS}""`,
+      });
       expect(browserNameFilter).toBeInTheDocument();
     });
 
     it('converts text to negated filter when typing !<filter>:', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      render(<SearchQueryBuilder {...defaultProps} />, {
+        organization: {
+          features: [
+            'search-query-builder-wildcard-operators',
+            'search-query-builder-default-to-contains',
+          ],
+        },
+      });
       await userEvent.click(getLastInput());
 
       await userEvent.type(
@@ -1127,13 +1199,20 @@ describe('SearchQueryBuilder', () => {
       );
 
       const browserNameFilter = await screen.findByRole('row', {
-        name: '!browser.name:""',
+        name: `!browser.name:${WildcardOperators.CONTAINS}""`,
       });
       expect(browserNameFilter).toBeInTheDocument();
     });
 
     it('selects [Filtered] from dropdown', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      render(<SearchQueryBuilder {...defaultProps} />, {
+        organization: {
+          features: [
+            'search-query-builder-wildcard-operators',
+            'search-query-builder-default-to-contains',
+          ],
+        },
+      });
       await userEvent.click(getLastInput());
 
       await userEvent.type(
@@ -1142,7 +1221,9 @@ describe('SearchQueryBuilder', () => {
       );
       await userEvent.click(screen.getByRole('option', {name: '[Filtered]'}));
       expect(
-        await screen.findByRole('row', {name: 'message:"[Filtered]"'})
+        await screen.findByRole('row', {
+          name: `message:${WildcardOperators.CONTAINS}"[Filtered]"`,
+        })
       ).toBeInTheDocument();
     });
   });
