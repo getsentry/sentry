@@ -64,7 +64,7 @@ export function getTraceNodeAttribute(
   node: TraceTreeNode<TraceTree.NodeValue>,
   event?: EventTransaction,
   attributes?: TraceItemResponseAttribute[]
-) {
+): string | number | boolean | undefined {
   const attributeObject = ensureAttributeObject(node, event, attributes);
   return attributeObject?.[name];
 }

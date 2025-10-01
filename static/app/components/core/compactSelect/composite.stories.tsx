@@ -82,7 +82,7 @@ export default Storybook.story('CompositeSelect', story => {
           trigger={triggerProps => (
             <Button
               {...triggerProps}
-              aria-label={'Select an Option'}
+              aria-label="Select an Option"
               size="sm"
               icon={<IconSentry />}
             >
@@ -91,20 +91,20 @@ export default Storybook.story('CompositeSelect', story => {
           )}
         >
           <CompositeSelect.Region
-            label={'Month'}
+            label="Month"
             value={month}
             onChange={selection => setMonth(selection.value)}
             options={MONTH_OPTIONS}
           />
           <CompositeSelect.Region
-            label={'Day'}
+            label="Day"
             value={day}
             onChange={selection => setDay(selection.value)}
             options={DAY_OPTIONS}
           />
           <CompositeSelect.Region
-            label={'I am...'}
-            aria-label={'Cool'}
+            label="I am..."
+            aria-label="Cool"
             multiple
             value={adjectives}
             onChange={selection => setAdjectives(selection.map(s => s.value))}
@@ -133,7 +133,7 @@ export default Storybook.story('CompositeSelect', story => {
             trigger={triggerProps => (
               <Button
                 {...triggerProps}
-                aria-label={'Composite Select'}
+                aria-label="Composite Select"
                 size="sm"
                 icon={<IconSentry />}
               >
@@ -142,13 +142,13 @@ export default Storybook.story('CompositeSelect', story => {
             )}
           >
             <CompositeSelect.Region
-              label={'Mains'}
+              label="Mains"
               value={main}
               onChange={selection => setMain(selection.value)}
               options={MAIN_OPTIONS}
             />
             <CompositeSelect.Region
-              label={'Sides'}
+              label="Sides"
               value={side}
               onChange={selection => setSide(selection.value)}
               options={SIDE_OPTIONS}
@@ -159,7 +159,7 @@ export default Storybook.story('CompositeSelect', story => {
             trigger={triggerProps => (
               <Button
                 {...triggerProps}
-                aria-label={'Compact Select'}
+                aria-label="Compact Select"
                 size="sm"
                 icon={<IconStar />}
               >
@@ -179,7 +179,7 @@ export default Storybook.story('CompositeSelect', story => {
             trigger={triggerProps => (
               <Button
                 {...triggerProps}
-                aria-label={'Compact Select'}
+                aria-label="Compact Select"
                 size="sm"
                 icon={<IconStar />}
               >

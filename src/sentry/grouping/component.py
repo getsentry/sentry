@@ -116,7 +116,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
 
     def get_subcomponent(
         self, id: str, recursive: bool = False, only_contributing: bool = False
-    ) -> str | int | BaseGroupingComponent[Any] | None:
+    ) -> BaseGroupingComponent[Any] | None:
         """
         Looks up a subcomponent by id and returns the first instance found, or `None` if no
         instances are found.
@@ -125,7 +125,9 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         are checked.
 
         By default, any matching result will be returned. To filter out non-contributing components,
-        pass `only_contributing=True`.
+        pass `only_contributing=True`. (Note that if a component has `contributes = True` but has a
+        non-contributing ancestor, the component is not considered contributing for purposes of this
+        method.)
         """
         return next(
             self.iter_subcomponents(
@@ -136,7 +138,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
 
     def iter_subcomponents(
         self, id: str, recursive: bool = False, only_contributing: bool = False
-    ) -> Iterator[str | int | BaseGroupingComponent[Any] | None]:
+    ) -> Iterator[BaseGroupingComponent[Any] | None]:
         """Finds all subcomponents matching an id, optionally recursively."""
         for value in self.values:
             if isinstance(value, BaseGroupingComponent):
@@ -265,7 +267,7 @@ class NSErrorGroupingComponent(
     id: str = "ns_error"
 
 
-FrameGroupingComponentChildren = (
+FrameGroupingComponentChild = (
     ContextLineGroupingComponent
     | FilenameGroupingComponent
     | FunctionGroupingComponent
@@ -273,13 +275,13 @@ FrameGroupingComponentChildren = (
 )
 
 
-class FrameGroupingComponent(BaseGroupingComponent[FrameGroupingComponentChildren]):
+class FrameGroupingComponent(BaseGroupingComponent[FrameGroupingComponentChild]):
     id: str = "frame"
     in_app: bool
 
     def __init__(
         self,
-        values: Sequence[FrameGroupingComponentChildren],
+        values: Sequence[FrameGroupingComponentChild],
         in_app: bool,
         hint: str | None = None,
         contributes: bool | None = None,

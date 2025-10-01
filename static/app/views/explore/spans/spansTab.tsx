@@ -50,7 +50,6 @@ import SchemaHintsList, {
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
-  useExploreFields,
   useExploreId,
   useExploreQuery,
   useSetExplorePageParams,
@@ -67,6 +66,7 @@ import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
   useQueryParamsExtrapolate,
+  useQueryParamsFields,
   useQueryParamsMode,
   useQueryParamsVisualizes,
   useSetQueryParamsVisualizes,
@@ -226,7 +226,7 @@ function SpansSearchBar({
 
 function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) {
   const mode = useQueryParamsMode();
-  const fields = useExploreFields();
+  const fields = useQueryParamsFields();
   const query = useExploreQuery();
   const setExplorePageParams = useSetExplorePageParams();
 

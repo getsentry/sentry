@@ -35,7 +35,7 @@ class SlackIntegrationChartUnfurl(analytics.Event):
 
 
 @analytics.eventclass("integrations.slack.chart_unfurl_action")
-class SlackIntegrationLinkIdentity(analytics.Event):
+class SlackIntegrationChartUnfurlAction(analytics.Event):
     organization_id: int
     action: str
 
@@ -57,6 +57,6 @@ analytics.register(SlackIntegrationAssign)
 analytics.register(SlackIntegrationStatus)
 analytics.register(SlackIntegrationIdentityLinked)
 analytics.register(SlackIntegrationChartUnfurl)
-analytics.register(SlackIntegrationLinkIdentity)
+analytics.register(SlackIntegrationChartUnfurlAction)
 analytics.register(SlackIntegrationApproveMemberInvitation)
 analytics.register(SlackIntegrationRejectMemberInvitation)

@@ -300,6 +300,7 @@ function useSelectionIndex({
 
   useEffect(() => {
     if (canSelectMultipleValues) {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setSelectionIndex(inputValue.length);
     }
   }, [canSelectMultipleValues, inputValue]);

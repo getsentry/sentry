@@ -527,7 +527,6 @@ export function stripeHandleCardAction(
     });
 }
 
-/** @internal exported for tests only */
 export function getCheckoutAPIData({
   formData,
   onDemandBudget,

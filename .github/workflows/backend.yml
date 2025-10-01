@@ -169,7 +169,7 @@ jobs:
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
       - name: Handle artifacts
-        if: ${{ always() }}
+        if: ${{ !cancelled() }}
         continue-on-error: true
         timeout-minutes: 5
         uses: ./.github/actions/artifacts

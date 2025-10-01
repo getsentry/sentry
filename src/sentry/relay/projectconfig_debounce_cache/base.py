@@ -4,8 +4,8 @@ from sentry.utils.services import Service
 class ProjectConfigDebounceCache(Service):
     """A cache for debouncing updates for the relay projectconfig cache.
 
-    Whenever a project or organization option changes, we schedule a celery
-    task that updates the relay configuration in the projectconfig cache.
+    Whenever a project or organization option changes, we schedule a task
+    that updates the relay configuration in the projectconfig cache.
     However, at the same time we want to debounce this task in case multiple
     option updates have been scheduled at the same time.
 

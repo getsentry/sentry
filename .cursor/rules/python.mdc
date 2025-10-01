@@ -1,0 +1,73 @@
+---
+description: Guidelines for Python development
+globs: src/**/*.py,tests/**/*.py,**/test_*.py
+alwaysApply: false
+---
+
+# Python Environment
+
+Whenever you attempt to run a Python command (e.g. `python -c`) or Python package (e.g. `pytest`, `mypy`), enable the virtualenv by activating it with `source .venv/bin/activate`.
+
+# Python typing
+
+## Recommended practices
+
+For function signatures, prefer to use abstract types (e.g. `Sequence` over `list`) for input parameters and use specific return types (e.g. `list` over `Sequence`).
+
+```python
+# Good: Abstract input types, specific return types
+def process_items(items: Sequence[Item]) -> list[ProcessedItem]:
+    return [process(item) for item in items]
+
+# Avoid: Specific input types, abstract return types
+def process_items(items: list[Item]) -> Sequence[ProcessedItem]:
+    return [process(item) for item in items]
+```
+
+Prefer to import a type from the module `collections.abc` rather than `typing` if it exists there (e.g. `from collections.abc import Sequence` rather than `from typing import Sequence`).
+
+# Python tests
+
+## Running tests
+
+Run pytest with these parameters: `pytest -svv --reuse-db`
+
+## How to determine where to add new test cases
+
+When you try to fix an error, do not place test cases in a new file but do your best to find an existing test file associated with the module.
+
+We normally follow this pattern. Given the code is in `src/sentry/foo/bar.py`, you will most likely find the tests for that module in `tests/sentry/foo/test_bar.py`. Notice that we prefix `tests/` to the path and prefix `test_` to the module name.
+
+An exception to the pattern above is when we need to ensure that changes on Snuba will not break Sentry by placing tests in `tests/snuba/`. The tests in this folder will run in Snuba's CI process as well.
+
+
+## Use factories instead of directly calling `Model.objects.create`
+
+In Sentry Python tests, prefer using factory methods from `sentry.testutils.factories.Factories` @factories.py or fixture methods (e.g., `self.create_model`) provided by base classes like `sentry.testutils.fixtures.Fixtures` @fixtures.py instead of directly calling `Model.objects.create`. This promotes consistency, reduces boilerplate, and leverages shared test setup logic defined in the factories.
+
+For example, a diff that uses a fixture instead of directly calling `Model.objects.create` would look like:
+
+```diff
+    -        direct_project = Project.objects.create(
+    -            organization=self.organization,
+    -            name="Directly Created",
+    -            slug="directly-created"
+    -        )
+    +        direct_project = self.create_project(
+    +            organization=self.organization,
+    +            name="Directly Created",
+    +            slug="directly-created" # Note: Ensure factory args match
+    +        )
+```
+
+## Use `pytest` instead of `unittest`
+
+In Sentry Python tests, prefer using `pytest` instead of `unittest`. This promotes consistency, reduces boilerplate, and leverages shared test setup logic defined in the factories.
+
+For example, a diff that uses `pytest` instead of `unittest` would look like:
+
+```diff
+    -        self.assertRaises(ValueError, EffectiveGrantStatus.from_cache, None)
+    +        with pytest.raises(ValueError):
+    +            EffectiveGrantStatus.from_cache(None)
+```

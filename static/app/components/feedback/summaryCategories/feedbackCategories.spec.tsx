@@ -8,6 +8,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import FeedbackCategories from 'sentry/components/feedback/summaryCategories/feedbackCategories';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -15,9 +16,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');
+jest.mock('sentry/components/events/autofix/useOrganizationSeerSetup');
 
 const mockUseLocation = jest.mocked(useLocation);
 const mockUseNavigate = jest.mocked(useNavigate);
+const mockUseOrganizationSeerSetup = jest.mocked(useOrganizationSeerSetup);
 
 describe('FeedbackCategories', () => {
   const mockOrganization = OrganizationFixture({slug: 'org-slug'});
@@ -53,6 +56,12 @@ describe('FeedbackCategories', () => {
     mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
     mockUseLocation.mockReturnValue(mockLocation);
+    mockUseOrganizationSeerSetup.mockReturnValue({
+      setupAcknowledgement: {
+        orgHasAcknowledged: true,
+      },
+      isPending: false,
+    } as any);
   });
 
   describe('Component Rendering', () => {
@@ -97,6 +106,34 @@ describe('FeedbackCategories', () => {
         body: {
           categories: [],
           numFeedbacksContext: 15,
+          success: true,
+        },
+        statusCode: 200,
+      });
+
+      const {container} = render(<FeedbackCategories />, {
+        organization: mockOrganization,
+      });
+
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-placeholder'));
+
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('renders empty state when org has not acknowledged', async () => {
+      mockUseOrganizationSeerSetup.mockReturnValue({
+        setupAcknowledgement: {
+          orgHasAcknowledged: false,
+        },
+        isPending: false,
+      } as any);
+
+      // Mock API to return categories
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/feedback-categories/',
+        body: {
+          categories: mockCategories,
+          numFeedbacksContext: 35,
           success: true,
         },
         statusCode: 200,

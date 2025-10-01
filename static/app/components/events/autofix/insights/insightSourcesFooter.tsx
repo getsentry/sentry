@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -11,7 +11,7 @@ import {
 } from 'sentry/components/events/autofix/insights/autofixInsightSources';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {
-  deduplicateSources,
+  deduplicateSourcesAndUpdateInsights,
   getExpandedInsightSources,
 } from 'sentry/components/events/autofix/utils/insightUtils';
 import {t} from 'sentry/locale';
@@ -44,16 +44,64 @@ export function InsightSourcesFooter({
   const {mutate: updateInsight} = useUpdateInsightCard({groupId, runId});
   const organization = useOrganization();
 
+  const {deduplicatedSources, updatedInsights} = useMemo(
+    () => deduplicateSourcesAndUpdateInsights(insights),
+    [insights]
+  );
+
+  const expandedSources = useMemo(
+    () => getExpandedInsightSources(updatedInsights, expandedCardIndex),
+    [updatedInsights, expandedCardIndex]
+  );
+
+  const sourceCards = useMemo(
+    () => generateSourceCards(deduplicatedSources, undefined, {location, navigate}),
+    [deduplicatedSources, location, navigate]
+  );
+
+  const expandedCards = useMemo(
+    () =>
+      expandedSources
+        ? generateSourceCards(expandedSources, undefined, {location, navigate})
+        : [],
+    [expandedSources, location, navigate]
+  );
+
+  const renderedSourceCards = useMemo(
+    () =>
+      sourceCards.map(sourceCard => {
+        // Check if this source should be primary (expanded insight contains it)
+        const shouldBePrimary = expandedCards.some(
+          expandedCard => expandedCard.key === sourceCard.key
+        );
+
+        return (
+          <motion.div
+            key={sourceCard.key}
+            {...cardAnimationProps}
+            transition={{
+              ...cardAnimationProps.transition,
+              delay: 0.1 * Math.min(sourceCards.indexOf(sourceCard), 5), // Stagger animations
+            }}
+          >
+            <SourceCard
+              size="xs"
+              priority={shouldBePrimary ? 'primary' : 'default'}
+              onClick={sourceCard.onClick}
+              icon={sourceCard.icon}
+              isHighlighted={shouldBePrimary}
+            >
+              {sourceCard.label}
+            </SourceCard>
+          </motion.div>
+        );
+      }),
+    [sourceCards, expandedCards]
+  );
+
   if (insights.length === 0) {
     return null;
   }
-
-  const deduplicatedSources = deduplicateSources(insights);
-  const expandedSources = getExpandedInsightSources(insights, expandedCardIndex);
-  const sourceCards = generateSourceCards(deduplicatedSources, undefined, {
-    location,
-    navigate,
-  }).sort((a, b) => a.label.localeCompare(b.label));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,41 +121,6 @@ export function InsightSourcesFooter({
       organization,
     });
   };
-
-  const renderedSourceCards = sourceCards.map(sourceCard => {
-    // Check if this source should be primary (expanded insight contains it)
-    let shouldBePrimary = false;
-    if (expandedSources) {
-      const expandedCards = generateSourceCards(expandedSources, undefined, {
-        location,
-        navigate,
-      });
-      shouldBePrimary = expandedCards.some(
-        expandedCard => expandedCard.key === sourceCard.key
-      );
-    }
-
-    return (
-      <motion.div
-        key={sourceCard.key}
-        {...cardAnimationProps}
-        transition={{
-          ...cardAnimationProps.transition,
-          delay: 0.1 * Math.min(sourceCards.indexOf(sourceCard), 5), // Stagger animations
-        }}
-      >
-        <SourceCard
-          size="xs"
-          priority={shouldBePrimary ? 'primary' : 'default'}
-          onClick={sourceCard.onClick}
-          icon={sourceCard.icon}
-          isHighlighted={shouldBePrimary}
-        >
-          {sourceCard.label}
-        </SourceCard>
-      </motion.div>
-    );
-  });
 
   return (
     <React.Fragment>

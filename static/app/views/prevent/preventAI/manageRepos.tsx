@@ -40,6 +40,7 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
   useEffect(() => {
     const org = installedOrgs.find(o => o.id === selectedOrg);
     if (org && !org.repos.some(repo => repo.id === selectedRepo)) {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setSelectedRepo(org.repos[0]?.id ?? '');
     }
   }, [selectedOrg, installedOrgs, selectedRepo]);
@@ -59,7 +60,7 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
         />
         <Flex style={{transform: 'translateY(-70px)'}}>
           <Tooltip
-            title={'Select an organization and repository to configure settings'}
+            title="Select an organization and repository to configure settings"
             disabled={isOrgSelected && isRepoSelected}
             position="left"
           >

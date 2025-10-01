@@ -23,7 +23,7 @@ def save_new_event(event_data: dict[str, Any], project: Project) -> Event:
     cloud silos, synchronously, so the results can be tested.
     """
     with (
-        # This makes async tasks synchronous, by setting `CELERY_ALWAYS_EAGER = True`.
+        # This makes async tasks synchronous, by setting `TASKWORKER_ALWAYS_EAGER = True`.
         TaskRunner(),
         # This does a similar thing for syncing the DB across silos
         outbox_runner(),

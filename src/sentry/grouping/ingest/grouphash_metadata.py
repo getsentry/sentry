@@ -11,6 +11,8 @@ import logging
 from datetime import datetime
 from typing import Any, TypeIs, cast
 
+from django.utils import timezone
+
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.component import (
     ChainedExceptionGroupingComponent,
@@ -208,6 +210,7 @@ def create_or_update_grouphash_metadata_if_needed(
 
         # Only hit the DB if there's something to change
         if updated_data:
+            updated_data["date_updated"] = timezone.now()
             grouphash.metadata.update(**updated_data)
 
     # If we did something, collect a metric
@@ -242,6 +245,7 @@ def get_grouphash_metadata_data(
             "schema_version": GROUPHASH_METADATA_SCHEMA_VERSION,
             "latest_grouping_config": grouping_config_id,
             "platform": event.platform or "unknown",
+            "event_id": event.event_id,
         }
         hashing_metadata: HashingMetadata = {}
 
