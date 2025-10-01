@@ -167,7 +167,7 @@ jobs:
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
       - name: Handle artifacts
-        if: ${{ always() }}
+        if: ${{ !cancelled() }}
         uses: ./.github/actions/artifacts
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
