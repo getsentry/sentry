@@ -71,7 +71,7 @@ class DashboardWidgetResponse(TypedDict):
     widgetType: str
     layout: dict[str, int] | None
     datasetSource: str | None
-    exploreUrls: list[str] | None
+    exploreUrls: NotRequired[list[str] | None]
 
 
 class DashboardPermissionsResponse(TypedDict):
@@ -79,7 +79,7 @@ class DashboardPermissionsResponse(TypedDict):
     teamsWithEditAccess: list[int]
 
 
-class ExploreQuery(TypedDict):
+class ExploreQuery(TypedDict, total=False):
     mode: str
     aggregateField: list[dict[str, str | list[str]]]
     field: list[str]
