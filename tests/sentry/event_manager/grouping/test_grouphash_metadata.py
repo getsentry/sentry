@@ -382,6 +382,7 @@ class GroupHashMetadataTest(TestCase):
         # Verify that the event_id was updated to the new event's ID
         assert grouphash.metadata.event_id == event2.event_id
         # Verify that date_updated was also updated
+        assert grouphash.metadata.date_updated is not None
         assert grouphash.metadata.date_updated > old_date
 
     def test_no_updates_event_id_when_date_updated_newer_than_90_days(self) -> None:
@@ -407,7 +408,8 @@ class GroupHashMetadataTest(TestCase):
         # Refresh the grouphash to get updated metadata
         grouphash.refresh_from_db()
 
-        # Verify that the event_id was updated to the new event's ID
-        assert grouphash.metadata.event_id == event2.event_id
+        # Verify that the event_id was NOT updated (should still be old_event_id)
+        assert grouphash.metadata.event_id == "old_event_id"
         # Verify that date_updated was also updated
+        assert grouphash.metadata.date_updated is not None
         assert grouphash.metadata.date_updated == now
