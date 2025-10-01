@@ -6,13 +6,13 @@ alwaysApply: false
 
 # Python Environment
 
-Whenever you attempt to run a Python command (e.g. `python -c`) or Python package (e.g. `pytest`, `mypy`), enable the virtualenv by activating it with `source .venv/bin/activate`.
+**ALWAYS activate the virtualenv before any Python operation**: Before running any Python command (e.g. `python -c`), Python package (e.g. `pytest`, `mypy`), or Python script, you MUST first activate the virtualenv with `source .venv/bin/activate`. This applies to ALL Python operations without exception.
 
 # Python typing
 
 ## Recommended practices
 
-For function signatures, prefer to use abstract types (e.g. `Sequence` over `list`) for input parameters and use specific return types (e.g. `list` over `Sequence`).
+For function signatures, always use abstract types (e.g. `Sequence` over `list`) for input parameters and use specific return types (e.g. `list` over `Sequence`).
 
 ```python
 # Good: Abstract input types, specific return types
@@ -24,26 +24,33 @@ def process_items(items: list[Item]) -> Sequence[ProcessedItem]:
     return [process(item) for item in items]
 ```
 
-Prefer to import a type from the module `collections.abc` rather than `typing` if it exists there (e.g. `from collections.abc import Sequence` rather than `from typing import Sequence`).
+Always import a type from the module `collections.abc` rather than the `typing` module if it is available (e.g. `from collections.abc import Sequence` rather than `from typing import Sequence`).
 
 # Python tests
 
 ## Running tests
 
-Run pytest with these parameters: `pytest -svv --reuse-db`
+Always run pytest with these parameters: `pytest -svv --reuse-db` since it is faster to execute.
 
 ## How to determine where to add new test cases
 
-When you try to fix an error, do not place test cases in a new file but do your best to find an existing test file associated with the module.
+When fixing errors or adding functionality, you MUST add test cases to existing test files rather than creating new test files. Follow this pattern to locate the correct test file:
 
-We normally follow this pattern. Given the code is in `src/sentry/foo/bar.py`, you will most likely find the tests for that module in `tests/sentry/foo/test_bar.py`. Notice that we prefix `tests/` to the path and prefix `test_` to the module name.
+- Code location: `src/sentry/foo/bar.py`
+- Test location: `tests/sentry/foo/test_bar.py`
 
-An exception to the pattern above is when we need to ensure that changes on Snuba will not break Sentry by placing tests in `tests/snuba/`. The tests in this folder will run in Snuba's CI process as well.
+Notice that we prefix `tests/` to the path and prefix `test_` to the module name.
+
+**Exception**: Tests ensuring Snuba compatibility MUST be placed in `tests/snuba/`. The tests in this folder will also run in Snuba's CI.
 
 
 ## Use factories instead of directly calling `Model.objects.create`
 
-In Sentry Python tests, prefer using factory methods from `sentry.testutils.factories.Factories` @factories.py or fixture methods (e.g., `self.create_model`) provided by base classes like `sentry.testutils.fixtures.Fixtures` @fixtures.py instead of directly calling `Model.objects.create`. This promotes consistency, reduces boilerplate, and leverages shared test setup logic defined in the factories.
+In Sentry Python tests, you MUST use factory methods in this priority order:
+1. Fixture methods (e.g., `self.create_model`) from base classes like `sentry.testutils.fixtures.Fixtures`
+2. Factory methods from `sentry.testutils.factories.Factories` when fixtures aren't available
+
+NEVER directly call `Model.objects.create` - this violates our testing standards and bypasses shared test setup logic.
 
 For example, a diff that uses a fixture instead of directly calling `Model.objects.create` would look like:
 
@@ -62,7 +69,7 @@ For example, a diff that uses a fixture instead of directly calling `Model.objec
 
 ## Use `pytest` instead of `unittest`
 
-In Sentry Python tests, prefer using `pytest` instead of `unittest`. This promotes consistency, reduces boilerplate, and leverages shared test setup logic defined in the factories.
+In Sentry Python tests, always use `pytest` instead of `unittest`. This promotes consistency, reduces boilerplate, and leverages shared test setup logic defined in the factories.
 
 For example, a diff that uses `pytest` instead of `unittest` would look like:
 
@@ -71,3 +78,12 @@ For example, a diff that uses `pytest` instead of `unittest` would look like:
     +        with pytest.raises(ValueError):
     +            EffectiveGrantStatus.from_cache(None)
 ```
+
+# Rule Enforcement
+
+These rules are MANDATORY for all Python development in the Sentry codebase. Violations will:
+- Cause CI failures
+- Require code review rejection
+- Must be fixed before merging the pull request
+
+Agents MUST follow these rules without exception to maintain code quality and consistency across the project.
