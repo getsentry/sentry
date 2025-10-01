@@ -108,6 +108,7 @@ interface ItemsSummaryProps extends BaseSummaryProps {}
 interface SubtotalSummaryProps extends BaseSummaryProps {
   previewDataLoading: boolean;
   renewalDate: Date | null;
+  subscription: Subscription;
 }
 
 interface TotalSummaryProps extends BaseSummaryProps {
@@ -309,6 +310,7 @@ function SubtotalSummary({
   previewDataLoading,
   renewalDate,
   formData,
+  subscription,
 }: SubtotalSummaryProps) {
   const shortInterval = utils.getShortInterval(activePlan.billingInterval);
   const recurringSubtotal = useMemo(() => {
@@ -324,6 +326,10 @@ function SubtotalSummary({
       : PAYG_TEAM_DEFAULT;
     return formData.onDemandMaxSpend === defaultAmount;
   }, [activePlan, formData.onDemandMaxSpend]);
+  const shouldShowDefaultPaygTag = useMemo(
+    () => isDefaultPaygAmount && isDeveloperPlan(subscription.planDetails),
+    [subscription.planDetails, isDefaultPaygAmount]
+  );
 
   return (
     <Container borderTop="primary">
@@ -370,7 +376,7 @@ function SubtotalSummary({
                     })}
                   </Text>
                   <AnimatePresence>
-                    {isDefaultPaygAmount && (
+                    {shouldShowDefaultPaygTag && (
                       <motion.div
                         initial={{opacity: 0, y: -10}}
                         animate={{opacity: 1, y: 0}}
@@ -528,7 +534,7 @@ function TotalSummary({
 
   const buttonText = isMigratingPartner
     ? t('Schedule changes')
-    : isDueToday
+    : isDueToday && billedTotal > 0
       ? t('Confirm and pay')
       : t('Confirm');
 
@@ -838,6 +844,7 @@ function Cart({
               formData={formData}
               previewDataLoading={previewState.isLoading}
               renewalDate={previewState.renewalDate}
+              subscription={subscription}
             />
           </Flex>
         )}

@@ -14,7 +14,6 @@ import {isAggregateField} from 'sentry/utils/discover/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import Layout from 'sentry/views/auth/layout';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -71,10 +70,11 @@ type OtherDownload = BaseDownload & {
 type Download = ExploreDownload | OtherDownload;
 
 function DataDownload() {
-  const organization = useOrganization();
-  const {dataExportId} = useParams<{dataExportId: string}>();
+  const {dataExportId, orgId: orgSlug} = useParams<{
+    dataExportId: string;
+    orgId: string;
+  }>();
 
-  const orgSlug = organization.slug;
   const {
     data: download,
     isPending,

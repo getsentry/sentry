@@ -169,11 +169,9 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
               <InfoIcon>
                 <IconMobile />
               </InfoIcon>
-              <Text monospace>
-                <InlineCodeSnippet data-render-inline>
-                  {props.appInfo.build_configuration}
-                </InlineCodeSnippet>
-              </Text>
+              <InlineCodeSnippet data-render-inline hideCopyButton>
+                {props.appInfo.build_configuration}
+              </InlineCodeSnippet>
             </Flex>
           </Tooltip>
         )}

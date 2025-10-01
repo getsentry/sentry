@@ -235,10 +235,14 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                     )
 
                 elif key == "id":
-                    queryset = queryset.filter(id__in=value)
+                    ids = [v for v in value if v.isdigit()]
+                    queryset = queryset.filter(id__in=ids) if ids else queryset.none()
 
                 elif key == "user.id":
-                    queryset = queryset.filter(user_id__in=value)
+                    user_ids = [v for v in value if v.isdigit()]
+                    queryset = (
+                        queryset.filter(user_id__in=user_ids) if user_ids else queryset.none()
+                    )
 
                 elif key == "scope":
                     queryset = queryset.filter(role__in=[r.id for r in roles.with_any_scope(value)])

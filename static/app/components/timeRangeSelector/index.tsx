@@ -371,7 +371,7 @@ export function TimeRangeSelector({
                 >
                   <TriggerLabelWrap>
                     <TriggerLabel>
-                      {selectProps.triggerLabel ?? defaultLabel}
+                      {selectProps.triggerProps?.children ?? defaultLabel}
                     </TriggerLabel>
                     {desynced && <DesyncedFilterIndicator />}
                   </TriggerLabelWrap>

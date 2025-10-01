@@ -44,11 +44,13 @@ describe('AppSizeInsightsSidebarRow', () => {
 
     // Check file savings are displayed with negative values
     expect(screen.getByText(/-\s*512\s*KB/i)).toBeInTheDocument();
-    // Only Icon.js has 256 KB savings (logo.png shows 128 KB for HEIC)
     expect(screen.getByText(/-\s*256\s*KB/i)).toBeInTheDocument();
+    // logo.png shows 128 KB in both main row and HEIC row
+    expect(screen.getAllByText(/-\s*128\s*KB/i)).toHaveLength(2);
     expect(screen.getByText('(-7.5%)')).toBeInTheDocument();
-    // Only Icon.js has (-4%) savings
     expect(screen.getByText('(-4%)')).toBeInTheDocument();
+    // logo.png has (-2%) savings (main and HEIC)
+    expect(screen.getAllByText('(-2%)')).toHaveLength(2);
   });
 
   it('calls onToggleExpanded when clicking the toggle button', async () => {
@@ -70,6 +72,8 @@ describe('AppSizeInsightsSidebarRow', () => {
           percentage: 10,
           data: {
             fileType: 'optimizable_image' as const,
+            minifyPercentage: 6.67, // 200000 / 3000000 * 100
+            conversionPercentage: 10, // 300000 / 3000000 * 100
             originalFile: {
               file_path: 'image.png',
               current_size: 1000000,
@@ -95,12 +99,13 @@ describe('AppSizeInsightsSidebarRow', () => {
 
     // Should show max savings in main row (300 KB appears twice: main row + HEIC row)
     expect(screen.getAllByText(/-300\s*KB/i)).toHaveLength(2);
-    expect(screen.getAllByText('(-30%)')).toHaveLength(2);
+    // (-10%) appears in main row and HEIC row
+    expect(screen.getAllByText('(-10%)')).toHaveLength(2);
 
-    // Should show both optimization options
+    // Should show both optimization options with app-relative percentages
     expect(screen.getByText('Optimize:')).toBeInTheDocument();
     expect(screen.getByText(/-200\s*KB/i)).toBeInTheDocument();
-    expect(screen.getByText('(-20%)')).toBeInTheDocument();
+    expect(screen.getByText('(-6.7%)')).toBeInTheDocument();
 
     expect(screen.getByText('Convert to HEIC:')).toBeInTheDocument();
   });
@@ -114,6 +119,8 @@ describe('AppSizeInsightsSidebarRow', () => {
           percentage: 10,
           data: {
             fileType: 'optimizable_image' as const,
+            minifyPercentage: 0,
+            conversionPercentage: 10,
             originalFile: {
               file_path: 'already-optimized.png',
               current_size: 802388,
@@ -149,6 +156,8 @@ describe('AppSizeInsightsSidebarRow', () => {
           percentage: 5,
           data: {
             fileType: 'optimizable_image' as const,
+            minifyPercentage: 5,
+            conversionPercentage: 0,
             originalFile: {
               file_path: 'no-heic.png',
               current_size: 505980,

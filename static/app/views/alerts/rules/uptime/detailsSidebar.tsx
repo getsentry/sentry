@@ -19,7 +19,7 @@ import {UptimePercent} from 'sentry/views/insights/uptime/components/percent';
 interface UptimeDetailsSidebarProps {
   showMissedLegend: boolean;
   uptimeDetector: UptimeDetector;
-  summary?: UptimeSummary;
+  summary?: UptimeSummary | null;
 }
 
 export function UptimeDetailsSidebar({
@@ -43,16 +43,18 @@ export function UptimeDetailsSidebar({
           <SectionHeading>{t('Legend')}</SectionHeading>
           <DetailsTimelineLegend showMissedLegend={showMissedLegend} />
         </UptimeContainer>
-        {summary?.avgDurationUs !== null && (
+        {summary && summary.avgDurationUs !== null && (
           <div>
             <SectionHeading>{t('Duration')}</SectionHeading>
             <UptimeContainer>
-              {summary ? (
-                <UptimeDuration size="xl" summary={summary} />
-              ) : (
+              {summary === undefined ? (
                 <Text size="xl">
                   <Placeholder width="60px" height="1lh" />
                 </Text>
+              ) : summary === null ? (
+                '-'
+              ) : (
+                <UptimeDuration size="xl" summary={summary} />
               )}
             </UptimeContainer>
           </div>
@@ -60,7 +62,13 @@ export function UptimeDetailsSidebar({
         <div>
           <SectionHeading>{t('Uptime')}</SectionHeading>
           <UptimeContainer>
-            {summary ? (
+            {summary === undefined ? (
+              <Text size="xl">
+                <Placeholder width="60px" height="1lh" />
+              </Text>
+            ) : summary === null ? (
+              '-'
+            ) : (
               <UptimePercent
                 size="xl"
                 summary={summary}
@@ -68,10 +76,6 @@ export function UptimeDetailsSidebar({
                   'The total calculated uptime of this monitors over the last 90 days.'
                 )}
               />
-            ) : (
-              <Text size="xl">
-                <Placeholder width="60px" height="1lh" />
-              </Text>
             )}
           </UptimeContainer>
         </div>

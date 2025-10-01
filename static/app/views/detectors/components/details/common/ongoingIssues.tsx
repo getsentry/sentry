@@ -84,7 +84,7 @@ function OpenPeriodsSubTable({groupId, onZoom}: OpenPeriodsSubTableProps) {
           <SimpleTable.Row key={`${period.start}-${idx}`}>
             <SimpleTable.RowCell>
               {/* TODO: Status Color */}
-              #ID_MISSING
+              <Text tabular>#{period.id}</Text>
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
               <Text>

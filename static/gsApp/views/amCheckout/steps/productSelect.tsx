@@ -235,22 +235,22 @@ function ProductSelect({
                     </ProductDescription>
                     <Container paddingTop="md">
                       <Text
-                        size={'2xl'}
+                        size="2xl"
                         bold
                         variant="primary"
                       >{`+$${priceInDollars}`}</Text>
-                      <Text size={'md'} variant="primary">{`/${billingInterval}`}</Text>
+                      <Text size="md" variant="primary">{`/${billingInterval}`}</Text>
                     </Container>
                   </Flex>
                 </Flex>
                 <Flex direction="column" gap="2xs">
                   <Separator orientation="horizontal" border="primary" />
                   <Flex direction="column" gap="sm" paddingTop="xl">
-                    <FeatureItem data-test-id={`product-option-feature-credits`}>
+                    <FeatureItem data-test-id="product-option-feature-credits">
                       <IconContainer>
                         <IconCheckmark color={theme.successText as Color} />
                       </IconContainer>
-                      <Text size={'md'}>
+                      <Text size="md">
                         {tct('Includes [includedBudget]/mo in credits', {
                           includedBudget: formattedMonthlyBudget,
                         })}
@@ -280,13 +280,12 @@ function ProductSelect({
                           <IconContainer>
                             <IconCheckmark color={theme.successText as Color} />
                           </IconContainer>
-                          <Text size={'md'}>
+                          <Text size="md">
                             <FeatureItemCategory>
                               {getSingularCategoryName({
                                 plan: activePlan,
                                 category: category as DataCategory,
                                 hadCustomDynamicSampling: false,
-                                title: true,
                               })}
                               {':'}
                             </FeatureItemCategory>

@@ -166,7 +166,6 @@ function UsageLog({location, subscription}: Props) {
         <CompactSelect
           searchable
           clearable
-          triggerLabel={selectedEventName ? undefined : t('Select Action')}
           menuTitle={t('Subscription Actions')}
           options={eventNameOptions}
           defaultValue={selectedEventName}
@@ -174,7 +173,10 @@ function UsageLog({location, subscription}: Props) {
           onChange={option => {
             handleEventFilter(option.value);
           }}
-          triggerProps={{size: 'sm'}}
+          triggerProps={{
+            size: 'sm',
+            children: selectedEventName ? undefined : t('Select Action'),
+          }}
         />
         {isError ? (
           <LoadingError onRetry={refetch} />

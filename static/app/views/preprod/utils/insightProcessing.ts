@@ -9,7 +9,12 @@ import type {
 } from 'sentry/views/preprod/types/appSizeTypes';
 
 type FileTypeData =
-  | {fileType: 'optimizable_image'; originalFile: OptimizableImageFile}
+  | {
+      conversionPercentage: number;
+      fileType: 'optimizable_image';
+      minifyPercentage: number;
+      originalFile: OptimizableImageFile;
+    }
   | {fileType: 'strip_binary'; originalFile: StripBinaryFileInfo}
   | {fileType: 'regular'; originalFile: FileSavingsResult};
 
@@ -148,6 +153,8 @@ export function processInsights(
             percentage: (maxSavings / totalSize) * 100,
             data: {
               fileType: 'optimizable_image' as const,
+              minifyPercentage: ((file.minify_savings || 0) / totalSize) * 100,
+              conversionPercentage: ((file.conversion_savings || 0) / totalSize) * 100,
               originalFile: file,
             },
           };

@@ -8,10 +8,18 @@ import {Stack} from 'sentry/components/core/layout';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Radio} from 'sentry/components/core/radio';
 import {Text} from 'sentry/components/core/text';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar, IconCode, IconCommit, IconDownload, IconSearch} from 'sentry/icons';
+import {
+  IconCalendar,
+  IconCode,
+  IconCommit,
+  IconDownload,
+  IconMobile,
+  IconSearch,
+} from 'sentry/icons';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
@@ -90,13 +98,15 @@ export function SizeCompareSelectionContent({
   >({
     mutationFn: ({headArtifactId, baseArtifactId}) => {
       return api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
+        `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/run/`,
         {
-          method: 'POST',
+          method: 'GET',
         }
       );
     },
     onSuccess: () => {
+      // Always navigate to the comparison page on success
+      // The backend handles whether it's a new comparison or existing one
       navigate(
         `/organizations/${organization.slug}/preprod/${projectId}/compare/${headBuildDetails.id}/${selectedBaseBuild?.id}/`
       );
@@ -217,6 +227,14 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
             <Flex align="center" gap="sm">
               <IconCalendar size="xs" color="gray300" />
               <TimeSince date={dateAdded} />
+            </Flex>
+          )}
+          {build.app_info?.build_configuration && (
+            <Flex align="center" gap="sm">
+              <IconMobile size="xs" color="gray300" />
+              <Tooltip title={t('Build configuration')}>
+                <Text monospace>{build.app_info.build_configuration}</Text>
+              </Tooltip>
             </Flex>
           )}
           {isSizeInfoCompleted(sizeInfo) && (

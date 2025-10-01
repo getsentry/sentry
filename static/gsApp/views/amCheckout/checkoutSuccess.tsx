@@ -364,12 +364,10 @@ function Receipt({
                         ? getSingularCategoryName({
                             plan,
                             category,
-                            title: true,
                           })
                         : getPlanCategoryName({
                             plan,
                             category,
-                            title: true,
                           });
                     return (
                       <ReceiptItem
