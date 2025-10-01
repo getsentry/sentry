@@ -69,6 +69,7 @@ export function EditExistingMetricDetectorForm({detector}: {detector: Detector})
       previewChart={<MetricDetectorPreviewChart />}
       formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
       savedDetectorToFormData={metricSavedDetectorToFormData}
+      mapFormErrors={mapMetricDetectorFormErrors}
     >
       <MetricDetectorForm />
     </EditDetectorLayout>
@@ -82,11 +83,28 @@ export function NewMetricDetectorForm() {
       previewChart={<MetricDetectorPreviewChart />}
       formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
       initialFormData={DEFAULT_THRESHOLD_METRIC_FORM_DATA}
+      mapFormErrors={mapMetricDetectorFormErrors}
     >
       <MetricDetectorForm />
     </NewDetectorLayout>
   );
 }
+
+// Errors come back as nested objects, we need to flatten them
+// to match the form state
+const mapMetricDetectorFormErrors = (error: unknown) => {
+  if (typeof error !== 'object' || error === null) {
+    return error;
+  }
+
+  if ('dataSource' in error && typeof error.dataSource === 'object') {
+    return {
+      ...error,
+      ...error.dataSource,
+    };
+  }
+  return error;
+};
 
 const DETECTION_TYPE_MAP: Record<
   MetricDetectorConfig['detectionType'],

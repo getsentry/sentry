@@ -53,7 +53,6 @@ export default function MonitorCreateForm() {
   const form = useRef(
     new FormModel({
       transformData: transformMonitorFormData,
-      mapFormErrors: mapMonitorFormErrors,
     })
   );
 
@@ -99,6 +98,7 @@ export default function MonitorCreateForm() {
       }}
       onSubmitSuccess={onCreateMonitor}
       submitLabel={t('Create')}
+      mapFormErrors={mapMonitorFormErrors}
     >
       <FieldContainer>
         <ProjectOwnerNameInputs>
