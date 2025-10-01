@@ -8,11 +8,6 @@ interface Options {
 export default function useTimeout({timeMs, onTimeout}: Options) {
   const timeoutRef = useRef<number | null>(null);
 
-  const onTimeoutRef = useRef(onTimeout);
-  useEffect(() => {
-    onTimeoutRef.current = onTimeout;
-  });
-
   const saveTimeout = useCallback((timeout: number | null) => {
     if (timeoutRef.current) {
       window.clearTimeout(timeoutRef.current);
@@ -22,8 +17,8 @@ export default function useTimeout({timeMs, onTimeout}: Options) {
 
   const start = useCallback(() => {
     saveTimeout(null);
-    saveTimeout(window.setTimeout(() => onTimeoutRef.current(), timeMs));
-  }, [saveTimeout, timeMs]);
+    saveTimeout(window.setTimeout(onTimeout, timeMs));
+  }, [onTimeout, saveTimeout, timeMs]);
 
   const cancel = useCallback(() => {
     saveTimeout(null);
@@ -31,8 +26,8 @@ export default function useTimeout({timeMs, onTimeout}: Options) {
 
   const end = useCallback(() => {
     saveTimeout(null);
-    onTimeoutRef.current();
-  }, [saveTimeout]);
+    onTimeout();
+  }, [onTimeout, saveTimeout]);
 
   // Cancel the timeout on unmount
   useEffect(() => cancel, [cancel]);

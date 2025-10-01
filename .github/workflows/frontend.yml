@@ -274,14 +274,14 @@ jobs:
           # default false
           # merge_multiple: false
 
-      - name: Download jest-balance.json
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # 5.0.0
-        continue-on-error: false
-        with:
-          name: jest-balance.json
-          path: tests/js/test-balancer/
-          run-id: ''
-          github-token: ${{ steps.token.outputs.token }}
+      # - name: Download jest-balance.json
+      #   uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # 5.0.0
+      #   continue-on-error: false
+      #   with:
+      #     name: jest-balance.json
+      #     path: tests/js/test-balancer/
+      #     run-id: ''
+      #     github-token: ${{ steps.token.outputs.token }}
 
       - name: jest
         env:
