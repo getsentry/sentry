@@ -302,11 +302,11 @@ class Strategy(Generic[ConcreteInterface]):
         for non_priority_variant_name in non_priority_contributing_variants:
             non_priority_component = final_components_by_variant[non_priority_variant_name]
             hash_value = non_priority_component.get_hash()
-            duplicate_of = priority_contributing_variants_by_hash.get(hash_value)
-            if duplicate_of is not None:
+            matching_hash_variant_name = priority_contributing_variants_by_hash.get(hash_value)
+            if matching_hash_variant_name is not None:
                 non_priority_component.update(
                     contributes=False,
-                    hint="ignored because hash matches %s variant" % duplicate_of,
+                    hint="ignored because hash matches %s variant" % matching_hash_variant_name,
                 )
 
         if self.variant_processor_func is not None:
