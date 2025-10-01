@@ -74,7 +74,7 @@ describe('GroupUptimeChecks', () => {
     });
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
     for (const column of ['Timestamp', 'Status', 'Duration', 'Trace', 'Region']) {
-      expect(screen.getByText(column)).toBeInTheDocument();
+      expect(await screen.findByText(column)).toBeInTheDocument();
     }
     expect(screen.getByText('No matching uptime checks found')).toBeInTheDocument();
   });
@@ -101,7 +101,9 @@ describe('GroupUptimeChecks', () => {
     });
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
     expect(screen.queryByText('No matching uptime checks found')).not.toBeInTheDocument();
-    expect(screen.getByText('Showing 1-1 matching uptime checks')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Showing 1-1 matching uptime checks')
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Previous Page'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Next Page'})).toBeInTheDocument();
 

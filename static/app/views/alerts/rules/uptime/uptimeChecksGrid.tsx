@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -6,9 +7,10 @@ import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
-import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
-import GridEditable from 'sentry/components/tables/gridEditable';
+import GridEditable, {type GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getShortEventId} from 'sentry/utils/events';
@@ -23,8 +25,18 @@ import {
 
 type Props = {
   traceSampling: boolean;
-  uptimeChecks: UptimeCheck[];
+  isPending?: boolean;
+  resizable?: boolean;
+  uptimeChecks?: UptimeCheck[];
 };
+
+type ColumnKey =
+  | 'timestamp'
+  | 'checkStatus'
+  | 'httpStatusCode'
+  | 'durationMs'
+  | 'regionName'
+  | 'traceId';
 
 /**
  * This value is used when a trace was not recorded since the field is required.
@@ -37,7 +49,12 @@ const EMPTY_TRACE = '00000000000000000000000000000000';
  */
 const SYSTEM_UPTIME_SPAN_COUNT = 7;
 
-export function UptimeChecksGrid({traceSampling, uptimeChecks}: Props) {
+export function UptimeChecksGrid({
+  traceSampling,
+  uptimeChecks,
+  isPending,
+  resizable,
+}: Props) {
   const traceIds = uptimeChecks?.map(check => check.traceId) ?? [];
 
   const {data: spanCounts, isPending: spanCountLoading} = useSpans(
@@ -62,31 +79,155 @@ export function UptimeChecksGrid({traceSampling, uptimeChecks}: Props) {
         ])
       );
 
+  if (resizable) {
+    if (isPending || uptimeChecks === undefined) {
+      return <LoadingIndicator />;
+    }
+
+    return (
+      <GridEditable<UptimeCheck, ColumnKey>
+        emptyMessage={t('No matching uptime checks found')}
+        data={uptimeChecks ?? []}
+        columnOrder={[
+          {key: 'timestamp', width: 150, name: t('Timestamp')},
+          {key: 'checkStatus', width: 250, name: t('Status')},
+          {key: 'httpStatusCode', width: 100, name: t('HTTP Code')},
+          {key: 'durationMs', width: 110, name: t('Duration')},
+          {key: 'regionName', width: 200, name: t('Region')},
+          {key: 'traceId', width: 150, name: t('Trace')},
+        ]}
+        columnSortBy={[]}
+        grid={{
+          renderHeadCell: (col: GridColumnOrder) => <Cell>{col.name}</Cell>,
+          renderBodyCell: (column, dataRow) => (
+            <CheckInBodyCell
+              column={column.key}
+              traceSampling={traceSampling}
+              check={dataRow}
+              spanCount={traceSpanCounts?.[dataRow.traceId]}
+            />
+          ),
+        }}
+      />
+    );
+  }
+
   return (
-    <GridEditable
-      emptyMessage={t('No matching uptime checks found')}
-      data={uptimeChecks}
-      columnOrder={[
-        {key: 'timestamp', width: 150, name: t('Timestamp')},
-        {key: 'checkStatus', width: 250, name: t('Status')},
-        {key: 'httpStatusCode', width: 100, name: t('HTTP Code')},
-        {key: 'durationMs', width: 110, name: t('Duration')},
-        {key: 'regionName', width: 200, name: t('Region')},
-        {key: 'traceId', width: 150, name: t('Trace')},
-      ]}
-      columnSortBy={[]}
-      grid={{
-        renderHeadCell: (col: GridColumnOrder) => <Cell>{col.name}</Cell>,
-        renderBodyCell: (column, dataRow) => (
-          <CheckInBodyCell
-            column={column as GridColumnOrder<keyof UptimeCheck>}
-            traceSampling={traceSampling}
-            check={dataRow}
-            spanCount={traceSpanCounts?.[dataRow.traceId]}
-          />
-        ),
-      }}
-    />
+    <Container>
+      <UptimeSimpleTable>
+        <SimpleTable.Header>
+          <SimpleTable.HeaderCell data-column-name="timestamp">
+            {t('Timestamp')}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="checkStatus">
+            {t('Status')}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="httpStatusCode">
+            {t('HTTP Code')}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="durationMs">
+            {t('Duration')}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="regionName">
+            {t('Region')}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="traceId">
+            {t('Trace')}
+          </SimpleTable.HeaderCell>
+        </SimpleTable.Header>
+        {isPending && <UptimeChecksSkeletonRows />}
+        {!isPending && uptimeChecks?.length === 0 && (
+          <SimpleTable.Empty>{t('No matching uptime checks found')}</SimpleTable.Empty>
+        )}
+        {!isPending && uptimeChecks && (
+          <Fragment>
+            {uptimeChecks.map(check => (
+              <SimpleTable.Row
+                key={`${check.scheduledCheckTime}-${check.regionName}-${check.traceId}`}
+              >
+                <SimpleTable.RowCell data-column-name="timestamp">
+                  <CheckInBodyCell
+                    column="timestamp"
+                    traceSampling={traceSampling}
+                    check={check}
+                    spanCount={traceSpanCounts?.[check.traceId]}
+                  />
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell data-column-name="checkStatus">
+                  <CheckInBodyCell
+                    column="checkStatus"
+                    traceSampling={traceSampling}
+                    check={check}
+                    spanCount={traceSpanCounts?.[check.traceId]}
+                  />
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell data-column-name="httpStatusCode">
+                  <CheckInBodyCell
+                    column="httpStatusCode"
+                    traceSampling={traceSampling}
+                    check={check}
+                    spanCount={traceSpanCounts?.[check.traceId]}
+                  />
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell data-column-name="durationMs">
+                  <CheckInBodyCell
+                    column="durationMs"
+                    traceSampling={traceSampling}
+                    check={check}
+                    spanCount={traceSpanCounts?.[check.traceId]}
+                  />
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell data-column-name="regionName">
+                  <CheckInBodyCell
+                    column="regionName"
+                    traceSampling={traceSampling}
+                    check={check}
+                    spanCount={traceSpanCounts?.[check.traceId]}
+                  />
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell data-column-name="traceId">
+                  <CheckInBodyCell
+                    column="traceId"
+                    traceSampling={traceSampling}
+                    check={check}
+                    spanCount={traceSpanCounts?.[check.traceId]}
+                  />
+                </SimpleTable.RowCell>
+              </SimpleTable.Row>
+            ))}
+          </Fragment>
+        )}
+      </UptimeSimpleTable>
+    </Container>
+  );
+}
+
+function UptimeChecksSkeletonRows() {
+  return (
+    <Fragment>
+      {Array.from({length: 10}).map((_, index) => (
+        <SimpleTable.Row key={index}>
+          <SimpleTable.RowCell data-column-name="timestamp">
+            <Placeholder height="20px" />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell data-column-name="checkStatus">
+            <Placeholder height="20px" />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell data-column-name="httpStatusCode">
+            <Placeholder height="20px" />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell data-column-name="durationMs">
+            <Placeholder height="20px" />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell data-column-name="regionName">
+            <Placeholder height="20px" />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell data-column-name="traceId">
+            <Placeholder height="20px" />
+          </SimpleTable.RowCell>
+        </SimpleTable.Row>
+      ))}
+    </Fragment>
   );
 }
 
@@ -97,7 +238,7 @@ function CheckInBodyCell({
   traceSampling,
 }: {
   check: UptimeCheck;
-  column: GridColumnOrder<keyof UptimeCheck>;
+  column: ColumnKey;
   spanCount: number | undefined;
   traceSampling: boolean;
 }) {
@@ -113,11 +254,7 @@ function CheckInBodyCell({
     traceId,
   } = check;
 
-  if (check[column.key] === undefined) {
-    return <Cell />;
-  }
-
-  switch (column.key) {
+  switch (column) {
     case 'timestamp': {
       return (
         <TimeCell>
@@ -211,9 +348,41 @@ function CheckInBodyCell({
       );
     }
     default:
-      return <Cell>{check[column.key]}</Cell>;
+      return <Cell>{check[column]}</Cell>;
   }
 }
+
+const Container = styled('div')`
+  container-type: inline-size;
+`;
+
+const UptimeSimpleTable = styled(SimpleTable)`
+  grid-template-columns: 170px 1fr max-content max-content 1fr 1fr;
+
+  @container (max-width: ${p => p.theme.breakpoints.md}) {
+    grid-template-columns: 170px 1fr max-content max-content 1fr;
+
+    [data-column-name='regionName'] {
+      display: none;
+    }
+  }
+
+  @container (max-width: ${p => p.theme.breakpoints.sm}) {
+    grid-template-columns: 170px 1fr max-content 1fr;
+
+    [data-column-name='httpStatusCode'] {
+      display: none;
+    }
+  }
+
+  @container (max-width: ${p => p.theme.breakpoints.xs}) {
+    grid-template-columns: 170px 1fr 1fr;
+
+    [data-column-name='durationMs'] {
+      display: none;
+    }
+  }
+`;
 
 const Cell = styled('div')`
   display: flex;
