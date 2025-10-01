@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Mapping
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 from urllib.parse import urljoin
@@ -23,7 +24,12 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.utils.metrics import IntegrationProxyEvent, IntegrationProxyEventType
 from sentry.metrics.base import Tags
-from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError
+from sentry.shared_integrations.exceptions import (
+    ApiForbiddenError,
+    ApiHostError,
+    ApiTimeoutError,
+    ApiUnauthorized,
+)
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_URL_HEADER,
@@ -57,10 +63,46 @@ class IntegrationProxyFailureMetricType(StrEnum):
     INVALID_SENDER = "invalid_sender"
     INVALID_REQUEST = "invalid_request"
     INVALID_IDENTITY = "invalid_identity"
+    UNAUTHORIZED = "unauthorized"
     HOST_UNREACHABLE_ERROR = "host_unreachable_error"
     HOST_TIMEOUT_ERROR = "host_timeout_error"
+    FORBIDDEN_ERROR = "forbidden_error"
     UNKNOWN_ERROR = "unknown_error"
     FAILED_VALIDATION = "failed_validation"
+
+
+@dataclass
+class IntegrationProxyErrorMapping:
+    failure_type: IntegrationProxyFailureMetricType
+    message: str
+    status_code: int
+
+
+IntegrationProxyErrorMapping: dict[type[Exception], IntegrationProxyErrorMapping] = {
+    IdentityNotValid: IntegrationProxyErrorMapping(
+        IntegrationProxyFailureMetricType.INVALID_IDENTITY,
+        "invalid_identity",
+        ApiUnauthorized.code,
+    ),
+    ApiForbiddenError: IntegrationProxyErrorMapping(
+        IntegrationProxyFailureMetricType.FORBIDDEN_ERROR, "forbidden_error", ApiForbiddenError.code
+    ),
+    ApiUnauthorized: IntegrationProxyErrorMapping(
+        IntegrationProxyFailureMetricType.UNAUTHORIZED,
+        "unauthorized",
+        ApiUnauthorized.code,
+    ),
+    ApiHostError: IntegrationProxyErrorMapping(
+        IntegrationProxyFailureMetricType.HOST_UNREACHABLE_ERROR,
+        "host_unreachable_error",
+        ApiHostError.code,
+    ),
+    ApiTimeoutError: IntegrationProxyErrorMapping(
+        IntegrationProxyFailureMetricType.HOST_TIMEOUT_ERROR,
+        "host_timeout_error",
+        ApiTimeoutError.code,
+    ),
+}
 
 
 @control_silo_endpoint
@@ -313,20 +355,14 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         handler_context: Mapping[str, Any] | None = None,
         scope: Scope | None = None,
     ) -> DRFResponse:
-        if isinstance(exc, IdentityNotValid):
-            logger.warning("hybrid_cloud.integration_proxy.invalid_identity", extra=self.log_extra)
-            self._add_failure_metric(IntegrationProxyFailureMetricType.INVALID_IDENTITY)
-            return self.respond(status=400)
-        elif isinstance(exc, ApiHostError):
-            logger.info(
-                "hybrid_cloud.integration_proxy.host_unreachable_error", extra=self.log_extra
-            )
-            self._add_failure_metric(IntegrationProxyFailureMetricType.HOST_UNREACHABLE_ERROR)
-            return self.respond(status=exc.code)
-        elif isinstance(exc, ApiTimeoutError):
-            logger.info("hybrid_cloud.integration_proxy.host_timeout_error", extra=self.log_extra)
-            self._add_failure_metric(IntegrationProxyFailureMetricType.HOST_TIMEOUT_ERROR)
-            return self.respond(status=exc.code)
+        for exc_type, error_mapping in IntegrationProxyErrorMapping.items():
+            if isinstance(exc, exc_type):
+                logger.warning(
+                    "hybrid_cloud.integration_proxy.{failure_type}",
+                    extra={"failure_type": error_mapping.failure_type},
+                )
+                self._add_failure_metric(error_mapping.failure_type)
+                return self.respond(status=error_mapping.status_code)
 
         self._add_failure_metric(IntegrationProxyFailureMetricType.UNKNOWN_ERROR)
         return super().handle_exception_with_details(request, exc, handler_context, scope)
