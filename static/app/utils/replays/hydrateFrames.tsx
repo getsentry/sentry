@@ -25,7 +25,12 @@ export default function hydrateFrames(attachments: unknown[]) {
       return;
     }
     if (isBreadcrumbFrameEvent(attachment)) {
-      if (attachment.data.payload.category !== 'sentry.feedback') {
+      // Do not include feedback frames as breadcrumb frames.
+      // They are now fetched and hydrated the same way as error frames.
+      if (
+        attachment.data.payload.category !== 'sentry.feedback' &&
+        attachment.data.payload.category !== 'feedback'
+      ) {
         breadcrumbFrames.push(attachment.data.payload);
       }
     } else if (isSpanFrameEvent(attachment)) {
