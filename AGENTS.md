@@ -2,44 +2,36 @@
 
 This document contains system-wide architectural patterns and development workflows that complement the comprehensive guides in `CLAUDE.md` and `static/CLAUDE.md`.
 
+## 🚨 Content Guidelines for AI Agents
+
+**This file should contain ONLY:**
+
+- ✅ **WHY** patterns exist (architectural principles, reasoning)
+- ✅ **WHEN** to apply patterns (decision frameworks, strategy hierarchies)
+- ✅ **WHAT** the high-level approach is (testing philosophy, cross-system considerations)
+
+**This file should NEVER contain:**
+
+- ❌ **HOW** to implement patterns (concrete syntax, specific commands)
+- ❌ Code examples with imports/syntax
+- ❌ Execution commands with parameters
+- ❌ Language-specific technical details
+
+**👉 For concrete syntax and implementation details, see `.cursor/rules/` files.**
+
 ## Development Environment
 
 ### Python Environment Setup
 
-Whenever you attempt to run a Python command (e.g. `python -c`) or Python package (e.g. `pytest`, `mypy`), enable the virtualenv by activating it with `source .venv/bin/activate`.
-
-## Testing Workflows
-
-### Python Test Execution
-
-Run pytest with these parameters:
-
-```bash
-pytest -svv --reuse-db
-```
-
-### React Test Execution
-
-Always run React tests with the CI flag to use non-interactive mode:
-
-```bash
-CI=true pnpm test <file_path>
-```
+**Critical Requirement:** Always activate the virtualenv before running any Python commands. This ensures consistency across all development and testing activities.
 
 ## Project Structure Patterns
 
 ### Test File Location Strategy
 
-When fixing an error, do not place test cases in a new file but find an existing test file associated with the module.
+**Decision Framework:** When fixing an error, prioritize finding existing test files over creating new ones. This maintains test organization and reduces fragmentation.
 
-**Standard Pattern:**
-
-- Code location: `src/sentry/foo/bar.py`
-- Test location: `tests/sentry/foo/test_bar.py`
-- Pattern: Prefix `tests/` to the path and prefix `test_` to the module name
-
-**Exception:**
-Place tests in `tests/snuba/` when ensuring changes on Snuba will not break Sentry. These tests run in Snuba's CI process as well.
+**Exception Handling:** Consider cross-system impact when placing tests - some changes require testing in multiple CI environments.
 
 ## Testing Philosophy & Architecture
 
@@ -53,111 +45,37 @@ Place tests in `tests/snuba/` when ensuring changes on Snuba will not break Sent
 
 #### Use Factories Over Direct Model Creation
 
-In Sentry Python tests, prefer using factory methods from `sentry.testutils.factories.Factories` or fixture methods (e.g., `self.create_model`) provided by base classes like `sentry.testutils.fixtures.Fixtures` instead of directly calling `Model.objects.create`. This promotes consistency, reduces boilerplate, and leverages shared test setup logic.
+**Architectural Principle:** Leverage shared test infrastructure rather than direct ORM calls. This promotes consistency, reduces boilerplate, and enables shared test setup logic across the codebase.
 
-**Example:**
-
-```python
-# Instead of:
-direct_project = Project.objects.create(
-    organization=self.organization,
-    name="Directly Created",
-    slug="directly-created"
-)
-
-# Use:
-direct_project = self.create_project(
-    organization=self.organization,
-    name="Directly Created",
-    slug="directly-created"
-)
-```
+**Priority Order:** Use factory methods > fixture methods > never use direct model creation.
 
 #### Prefer pytest Over unittest
 
-Use `pytest` instead of `unittest` for consistency and to leverage shared test setup logic.
-
-**Example:**
-
-```python
-# Instead of:
-self.assertRaises(ValueError, EffectiveGrantStatus.from_cache, None)
-
-# Use:
-with pytest.raises(ValueError):
-    EffectiveGrantStatus.from_cache(None)
-```
+**Framework Decision:** Standardize on pytest for consistency and to leverage shared test setup logic across the entire test suite.
 
 ### React Testing Patterns
 
 #### Avoid Mocking System Components
 
-Do not use `jest.mocked()` for hooks, functions, or components. Instead:
+**Testing Philosophy:** Avoid mocking internal system components (hooks, functions, components). Instead, configure the system's state and data to achieve the desired test scenario.
 
-- **For API calls:** Set response data with `MockApiClient.addMockResponse()`
-- **For contexts:** Use provided configuration on `render()`
-- **For routing:** Use `initialRouterConfig` parameter
-- **For page filters:** Update corresponding data stores
+**Strategy Hierarchy:**
+
+- **API calls:** Configure response data
+- **Contexts:** Use configuration parameters
+- **Routing:** Use initialization config
+- **Page filters:** Update data stores directly
 
 #### Use Sentry Fixtures
 
-Sentry fixtures are located in `tests/js/fixtures/` while GetSentry fixtures are in `tests/js/getsentry-test/fixtures/`.
-
-**Example:**
-
-```typescript
-// Instead of:
-import type {Project} from 'sentry/types/project';
-const project: Project = {...}
-
-// Use:
-import {ProjectFixture} from 'sentry-fixture/project';
-const project = ProjectFixture(partialProject)
-```
+**Resource Organization:** Leverage pre-built fixtures instead of manual object creation. Fixtures are organized by system (Sentry vs GetSentry) and provide complete, realistic data structures.
 
 #### Handle Network Request Testing
 
-For components making network requests:
+**Async Testing Strategy:** Components making network requests require careful timing consideration:
 
-**Always await async assertions:**
-
-```typescript
-// Wrong - will fail intermittently
-expect(screen.getByText('Loaded Data')).toBeInTheDocument();
-
-// Correct - waits for element to appear
-expect(await screen.findByText('Loaded Data')).toBeInTheDocument();
-```
-
-**Handle refetches in mutations:**
-
-```typescript
-it('adds item and updates list', async () => {
-  // Initial empty state
-  MockApiClient.addMockResponse({
-    url: '/items/',
-    body: [],
-  });
-
-  const createRequest = MockApiClient.addMockResponse({
-    url: '/items/',
-    method: 'POST',
-    body: {id: 1, name: 'New Item'},
-  });
-
-  render(<ItemList />);
-  await userEvent.click(screen.getByRole('button', {name: 'Add Item'}));
-
-  // CRITICAL: Override mock before refetch happens
-  MockApiClient.addMockResponse({
-    url: '/items/',
-    body: [{id: 1, name: 'New Item'}],
-  });
-
-  await waitFor(() => expect(createRequest).toHaveBeenCalled());
-  expect(await screen.findByText('New Item')).toBeInTheDocument();
-});
-```
+- **Assertion Timing:** Always await async assertions to avoid intermittent failures
+- **State Management:** Consider refetch behavior during mutations - override mocks before refetches occur
 
 ## Integration with Existing Documentation
 
@@ -165,4 +83,7 @@ This file focuses on architectural patterns and workflows. For comprehensive sys
 
 - `/CLAUDE.md` - Backend architecture, API patterns, deployment
 - `/static/CLAUDE.md` - Frontend architecture, component patterns, styling
-- `.cursor/rules/` - File-specific coding standards and syntax preferences
+- `.cursor/rules/python.mdc` - Python coding standards, testing patterns, virtualenv setup
+- `.cursor/rules/typescript_tests.mdc` - React Testing Library patterns, Sentry fixtures, async testing
+
+**Note:** The `.cursor/rules/` files contain immediately actionable syntax patterns, while this file provides broader architectural context and decision-making frameworks.

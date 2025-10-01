@@ -4,22 +4,124 @@ globs: src/**/*.py,tests/**/*.py,**/test_*.py
 alwaysApply: false
 ---
 
-# Python Typing Standards
+# Python Standards for Sentry
 
-## Function Signature Patterns
+> **📝 Content Scope:** This file contains actionable syntax patterns and implementation details.
+> For architectural principles and decision frameworks, see `AGENTS.md`.
 
-For function signatures, prefer to use abstract types (e.g. `Sequence` over `list`) for input parameters and use specific return types (e.g. `list` over `Sequence`).
+## Development Environment
+
+### Virtualenv Activation
+
+**CRITICAL:** Always activate the virtualenv before running Python commands:
+
+```bash
+source .venv/bin/activate
+```
+
+Apply this before running `python -c`, `pytest`, `mypy`, or any Python packages.
+
+## Testing Standards
+
+### Test Execution
+
+Run pytest with these required parameters:
+
+```bash
+pytest -svv --reuse-db
+```
+
+### Test Framework Preference
+
+**Always prefer pytest over unittest** for consistency and shared test setup logic.
 
 ```python
-# Good: Abstract input types, specific return types
+# ❌ Avoid unittest patterns
+self.assertRaises(ValueError, EffectiveGrantStatus.from_cache, None)
+
+# ✅ Use pytest patterns
+with pytest.raises(ValueError):
+    EffectiveGrantStatus.from_cache(None)
+```
+
+### Factory Pattern Usage
+
+**CRITICAL:** Use factory methods instead of direct model creation in tests.
+
+Prefer these methods (in order of preference):
+
+1. `sentry.testutils.factories.Factories` methods
+2. Fixture methods from `sentry.testutils.fixtures.Fixtures` (e.g., `self.create_project`)
+3. **Never** use direct `Model.objects.create()`
+
+```python
+# ❌ Avoid direct model creation
+direct_project = Project.objects.create(
+    organization=self.organization,
+    name="Directly Created",
+    slug="directly-created"
+)
+
+# ✅ Use factory methods
+direct_project = self.create_project(
+    organization=self.organization,
+    name="Directly Created",
+    slug="directly-created"
+)
+```
+
+### Test File Location Strategy
+
+**Follow the standard pattern** for test placement:
+
+- Code location: `src/sentry/foo/bar.py`
+- Test location: `tests/sentry/foo/test_bar.py`
+- Pattern: Prefix `tests/` to the path and prefix `test_` to the module name
+
+**Exception:** Place tests in `tests/snuba/` when ensuring changes on Snuba will not break Sentry.
+
+## Typing Standards
+
+### Function Signature Patterns
+
+For function signatures, prefer abstract types for inputs and specific types for returns:
+
+```python
+# ✅ Good: Abstract input types, specific return types
 def process_items(items: Sequence[Item]) -> list[ProcessedItem]:
     return [process(item) for item in items]
 
-# Avoid: Specific input types, abstract return types
+# ❌ Avoid: Specific input types, abstract return types
 def process_items(items: list[Item]) -> Sequence[ProcessedItem]:
     return [process(item) for item in items]
 ```
 
-## Import Preferences
+### Import Preferences
 
-Always import a type from the module `collections.abc` rather than the `typing` module if it is available (e.g. `from collections.abc import Sequence` rather than `from typing import Sequence`).
+Always import types from `collections.abc` instead of `typing` when available:
+
+```python
+# ✅ Preferred
+from collections.abc import Sequence
+
+# ❌ Avoid
+from typing import Sequence
+```
+
+## Documentation and Code Formatting
+
+### Code Block Formatting
+
+**Always add a newline before opening code block markers** (```):
+
+```python
+# ✅ Correct - newline before opening ```
+def example_function():
+    pass
+```
+
+```python
+# ❌ Incorrect - no newline before opening ```
+def example_function():
+    pass
+```

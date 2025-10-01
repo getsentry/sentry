@@ -4,7 +4,18 @@ globs: *.spec.tsx
 alwaysApply: false
 ---
 
-# React Testing Library Standards
+# React Testing Library Standards for Sentry
+
+> **📝 Content Scope:** This file contains actionable syntax patterns and implementation details.
+> For architectural principles and decision frameworks, see `AGENTS.md`.
+
+## Test Execution
+
+**Always run React tests with the CI flag** for non-interactive mode:
+
+```bash
+CI=true pnpm test <file_path>
+```
 
 ## Required Imports
 
@@ -20,21 +31,47 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 ```
 
+## Sentry Fixtures
+
+**Use Sentry fixtures instead of creating mock objects manually.**
+
+Sentry fixtures are located in `tests/js/fixtures/` while GetSentry fixtures are in `tests/js/getsentry-test/fixtures/`.
+
+```tsx
+// ❌ Avoid manual object creation
+import type {Project} from 'sentry/types/project';
+const project: Project = {
+  id: '1',
+  name: 'Test Project',
+  // ... many more properties
+};
+
+// ✅ Use Sentry fixtures
+import {ProjectFixture} from 'sentry-fixture/project';
+const project = ProjectFixture({
+  name: 'Test Project',
+  // Only specify overrides
+});
+```
+
 ## Query Priority (in order of preference)
 
 1. **`getByRole`** - Primary selector for most elements
+
    ```tsx
    screen.getByRole('button', { name: 'Save' })
    screen.getByRole('textbox', { name: 'Search' })
    ```
 
 2. **`getByLabelText`/`getByPlaceholderText`** - For form elements
+
    ```tsx
    screen.getByLabelText('Email Address')
    screen.getByPlaceholderText('Enter Search Term')
    ```
 
 3. **`getByText`** - For non-interactive elements
+
    ```tsx
    screen.getByText('Error Message')
    ```
@@ -47,6 +84,7 @@ import {
 ## Syntax Standards
 
 ### Use `screen` instead of destructuring
+
 ```tsx
 // ❌ Don't do this
 const { getByRole } = render(<Component />);
@@ -57,6 +95,7 @@ const button = screen.getByRole('button');
 ```
 
 ### Query selection guidelines
+
 - Use `getBy...` for elements that should exist
 - Use `queryBy...` ONLY when checking for non-existence
 - Use `await findBy...` when waiting for elements to appear
@@ -71,6 +110,7 @@ expect(screen.queryByRole('button')).not.toBeInTheDocument();
 ```
 
 ### Async testing patterns
+
 ```tsx
 // ❌ Don't use waitFor for appearance
 await waitFor(() => {
@@ -85,6 +125,7 @@ await waitForElementToBeRemoved(() => screen.getByRole('alert'));
 ```
 
 ### User interaction syntax
+
 ```tsx
 // ❌ Don't use fireEvent
 fireEvent.change(input, { target: { value: 'text' } });
@@ -95,6 +136,7 @@ await userEvent.keyboard('text');
 ```
 
 ### Router testing syntax
+
 ```tsx
 const { router } = render(<TestComponent />, {
   initialRouterConfig: {
@@ -119,6 +161,7 @@ router.navigate(-1); // Back button
 ```
 
 ### Mock API request syntax
+
 ```tsx
 // Simple GET request
 MockApiClient.addMockResponse({
@@ -144,3 +187,19 @@ MockApiClient.addMockResponse({
   statusCode: 500,
 });
 ```
+
+## Documentation and Code Formatting
+
+### Code Block Formatting
+
+**Always add a newline before opening code block markers** (```):
+
+````tsx
+// ✅ Correct - newline before opening ```
+const Component = () => <div>Hello</div>;
+````
+
+````tsx
+// ❌ Incorrect - no newline before opening ```
+const Component = () => <div>Hello</div>;
+````
