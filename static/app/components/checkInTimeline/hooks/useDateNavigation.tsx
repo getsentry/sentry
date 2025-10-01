@@ -30,7 +30,7 @@ export interface DateNavigation {
 
 export function useDateNavigation(): DateNavigation {
   const router = useRouter();
-  const {since, until, nowRef} = usePageFilterDates();
+  const {since, until, now} = usePageFilterDates();
 
   const windowMs = until.getTime() - since.getTime();
 
@@ -45,17 +45,17 @@ export function useDateNavigation(): DateNavigation {
     // Do not navigate past the current time
     const nextUntil = moment.min(
       moment(until).add(windowMs, 'milliseconds'),
-      moment(nowRef.current)
+      moment(now)
     );
     const nextSince = moment(nextUntil).subtract(windowMs, 'milliseconds');
 
     updateDateTime({start: nextSince.toDate(), end: nextUntil.toDate()}, router, {
       keepCursor: true,
     });
-  }, [until, windowMs, nowRef, router]);
+  }, [until, windowMs, now, router]);
 
   return {
-    endIsNow: until.getTime() === nowRef.current.getTime(),
+    endIsNow: until.getTime() === now.getTime(),
     label: getDuration(windowMs / 1000),
     navigateToPreviousPeriod,
     navigateToNextPeriod,
