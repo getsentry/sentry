@@ -1,5 +1,3 @@
-import pytest
-
 from sentry.constants import ObjectStatus
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.silo.base import SiloMode
