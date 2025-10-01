@@ -47,7 +47,7 @@ export const makePreventAiField = (organization: Organization): FieldObject => {
       'Use AI to review, find bugs, and generate tests in pull requests [link:Learn more]',
       {
         link: (
-          <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/sentry-prevent-ai/" />
+          <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/" />
         ),
       }
     ),

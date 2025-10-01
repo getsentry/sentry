@@ -135,6 +135,7 @@ export enum AddOnCategory {
 
 type AddOnCategoryInfo = {
   apiName: AddOnCategory;
+  billingFlag: string | null;
   dataCategories: DataCategory[];
   name: string;
   order: number;

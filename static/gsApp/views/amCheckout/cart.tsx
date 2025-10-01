@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import moment from 'moment-timezone';
@@ -107,6 +108,7 @@ interface ItemsSummaryProps extends BaseSummaryProps {}
 interface SubtotalSummaryProps extends BaseSummaryProps {
   previewDataLoading: boolean;
   renewalDate: Date | null;
+  subscription: Subscription;
 }
 
 interface TotalSummaryProps extends BaseSummaryProps {
@@ -154,6 +156,9 @@ function ItemWithPrice({
 }
 
 function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
+  const theme = useTheme();
+  const isChonk = theme.isChonk;
+
   // TODO(checkout v3): This will need to be updated for non-budget products
   const additionalProductCategories = useMemo(
     () =>
@@ -229,12 +234,21 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                         title={t('This product is only available with a PAYG budget.')}
                       >
                         <Tag icon={<IconLock locked size="xs" />}>
-                          {tct('Unlock with [budgetTerm]', {
-                            budgetTerm:
-                              activePlan.budgetTerm === 'pay-as-you-go'
-                                ? 'PAYG'
-                                : activePlan.budgetTerm,
-                          })}
+                          {isChonk || activePlan.budgetTerm === 'pay-as-you-go' ? (
+                            tct('Unlock with [budgetTerm]', {
+                              budgetTerm:
+                                activePlan.budgetTerm === 'pay-as-you-go'
+                                  ? 'PAYG'
+                                  : activePlan.budgetTerm,
+                            })
+                          ) : (
+                            // "Unlock with on-demand" gets cut off in non-chonk theme
+                            <Text size="xs">
+                              {tct('Unlock with [budgetTerm]', {
+                                budgetTerm: activePlan.budgetTerm,
+                              })}
+                            </Text>
+                          )}
                         </Tag>
                       </Tooltip>
                     ))
@@ -301,6 +315,7 @@ function SubtotalSummary({
   previewDataLoading,
   renewalDate,
   formData,
+  subscription,
 }: SubtotalSummaryProps) {
   const shortInterval = utils.getShortInterval(activePlan.billingInterval);
   const recurringSubtotal = useMemo(() => {
@@ -316,6 +331,10 @@ function SubtotalSummary({
       : PAYG_TEAM_DEFAULT;
     return formData.onDemandMaxSpend === defaultAmount;
   }, [activePlan, formData.onDemandMaxSpend]);
+  const shouldShowDefaultPaygTag = useMemo(
+    () => isDefaultPaygAmount && isDeveloperPlan(subscription.planDetails),
+    [subscription.planDetails, isDefaultPaygAmount]
+  );
 
   return (
     <Container borderTop="primary">
@@ -362,7 +381,7 @@ function SubtotalSummary({
                     })}
                   </Text>
                   <AnimatePresence>
-                    {isDefaultPaygAmount && (
+                    {shouldShowDefaultPaygTag && (
                       <motion.div
                         initial={{opacity: 0, y: -10}}
                         animate={{opacity: 1, y: 0}}
@@ -480,27 +499,33 @@ function TotalSummary({
     }
 
     let subtext = null;
-    if (isDeveloperPlan(activePlan) || !totalOnDemandBudget) {
-      subtext = tct(
-        '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate].',
-        {
-          effectiveDateSubtext,
-          longInterval,
-          renewalDate: moment(renewalDate).format('MMM D, YYYY'),
-        }
-      );
+    if (renewalDate) {
+      if (isDeveloperPlan(activePlan) || !totalOnDemandBudget) {
+        subtext = tct(
+          '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate].',
+          {
+            effectiveDateSubtext,
+            longInterval,
+            renewalDate: moment(renewalDate).format('MMM D, YYYY'),
+          }
+        );
+      } else {
+        subtext = tct(
+          '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate], plus any additional PAYG usage billed monthly (up to [onDemandMaxSpend]/mo).',
+          {
+            effectiveDateSubtext,
+            longInterval,
+            renewalDate: moment(renewalDate).format('MMM D, YYYY'),
+            onDemandMaxSpend: utils.displayPrice({
+              cents: totalOnDemandBudget,
+            }),
+          }
+        );
+      }
     } else {
-      subtext = tct(
-        '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate], plus any additional PAYG usage billed monthly (up to [onDemandMaxSpend]/mo).',
-        {
-          effectiveDateSubtext,
-          longInterval,
-          renewalDate: moment(renewalDate).format('MMM D, YYYY'),
-          onDemandMaxSpend: utils.displayPrice({
-            cents: totalOnDemandBudget,
-          }),
-        }
-      );
+      subtext = tct('Plan renews [longInterval].', {
+        longInterval,
+      });
     }
     return subtext;
   };
@@ -514,7 +539,7 @@ function TotalSummary({
 
   const buttonText = isMigratingPartner
     ? t('Schedule changes')
-    : isDueToday
+    : isDueToday && billedTotal > 0
       ? t('Confirm and pay')
       : t('Confirm');
 
@@ -824,6 +849,7 @@ function Cart({
               formData={formData}
               previewDataLoading={previewState.isLoading}
               renewalDate={previewState.renewalDate}
+              subscription={subscription}
             />
           </Flex>
         )}

@@ -192,7 +192,7 @@ export default function RequestLog({app}: RequestLogProps) {
 
         <RequestLogFilters>
           <CompactSelect
-            triggerLabel={eventType}
+            triggerProps={{children: eventType}}
             value={eventType}
             options={getEventTypes(app).map(type => ({
               value: type,

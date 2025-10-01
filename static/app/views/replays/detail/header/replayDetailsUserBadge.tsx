@@ -2,7 +2,9 @@ import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
@@ -12,21 +14,61 @@ import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import useOrganization from 'sentry/utils/useOrganization';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
 }
 
 export default function ReplayDetailsUserBadge({readerResult}: Props) {
+  const organization = useOrganization();
   const replayRecord = readerResult.replayRecord;
   const replay = readerResult.replay;
+
+  // Generate search query based on available user data
+  const getUserSearchQuery = () => {
+    if (!replayRecord?.user) {
+      return null;
+    }
+
+    const user = replayRecord.user;
+    // Prefer email over id for search query
+    if (user.email) {
+      return `user.email:"${user.email}"`;
+    }
+    if (user.id) {
+      return `user.id:"${user.id}"`;
+    }
+    return null;
+  };
+
+  const searchQuery = getUserSearchQuery();
+  const userDisplayName = replayRecord?.user.display_name || t('Anonymous User');
+
   const badge = replayRecord ? (
     <UserBadge
       avatarSize={24}
       displayName={
         <DisplayHeader>
           <Layout.Title>
-            {replayRecord.user.display_name || t('Anonymous User')}
+            {searchQuery ? (
+              <Link
+                to={{
+                  pathname: makeReplaysPathname({
+                    path: '/',
+                    organization,
+                  }),
+                  query: {
+                    query: searchQuery,
+                  },
+                }}
+              >
+                {userDisplayName}
+              </Link>
+            ) : (
+              userDisplayName
+            )}
           </Layout.Title>
           {replayRecord.started_at ? (
             <TimeContainer>
@@ -36,7 +78,17 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                 isTooltipHoverable
                 unitStyle="regular"
               />
-              {replay?.getIsLive() ? <Live /> : null}
+              {replay?.getIsLive() ? (
+                <Tooltip
+                  showUnderline
+                  underlineColor="success"
+                  title={t(
+                    'This replay is still in progress. Refresh for the latest activity.'
+                  )}
+                >
+                  <Live />
+                </Tooltip>
+              ) : null}
             </TimeContainer>
           ) : null}
         </DisplayHeader>

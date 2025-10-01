@@ -218,10 +218,6 @@ type EventsRequestPartialProps = {
    */
   useOnDemandMetrics?: boolean;
   /**
-   * Whether or not to zerofill results
-   */
-  withoutZerofill?: boolean;
-  /**
    * The yAxis being plotted. If multiple yAxis are requested,
    * the child render function will be called with `results`
    */
