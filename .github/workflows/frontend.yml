@@ -195,6 +195,7 @@ jobs:
         with:
           name: jest-balance.json
           path: tests/js/test-balancer/jest-balance.json
+          run-id: ''
 
       - name: jest
         env:
