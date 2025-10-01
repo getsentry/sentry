@@ -199,7 +199,7 @@ jobs:
 
       - name: Download jest-balance.json
         id: download-artifact
-        uses: dawidd6/action-download-artifact@v11
+        uses: dawidd6/action-download-artifact@ac66b43f0e6a346234dd65d4d0c8fbb31cb316e5 # v11
         with:
           workflow: 38531594 # jest-balancer.yml
           workflow_conclusion: success # The conclusion of the workflow we're looking for
