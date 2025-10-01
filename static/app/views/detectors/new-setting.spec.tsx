@@ -173,14 +173,14 @@ describe('DetectorEdit', () => {
           ...metricRouterConfig.location,
           query: {
             ...metricRouterConfig.location.query,
-            dataset: 'spans',
-            aggregate: 'avg(span.duration)',
-            query: 'span.op:queue.publish',
+            dataset: 'errors',
+            aggregate: 'count_unique(user)',
+            query: 'event.type:error',
             environment: 'prod',
             name: 'My Monitor',
           },
         },
-      } as const;
+      };
 
       render(<DetectorNewSettings />, {
         organization,
@@ -212,15 +212,15 @@ describe('DetectorEdit', () => {
                 logicType: 'any',
               },
               config: {detectionType: 'static', thresholdPeriod: 1},
-              dataSource: expect.objectContaining({
-                // aggregate is validated in a unit test for initial form data; here we validate other prefilled fields
-                dataset: 'events_analytics_platform',
-                eventTypes: ['trace_item_span'],
-                query: 'span.op:queue.publish',
-                queryType: 1,
-                timeWindow: 3600,
+              dataSource: {
+                aggregate: 'count_unique(tags[sentry:user])',
+                dataset: 'events',
                 environment: 'prod',
-              }),
+                eventTypes: ['error'],
+                query: '',
+                queryType: 0,
+                timeWindow: 3600,
+              },
             }),
           })
         );
