@@ -1,17 +1,21 @@
-import {useEffect} from 'react';
+import {useEffect, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Switch} from 'sentry/components/core/switch';
 import {Heading, Text} from 'sentry/components/core/text';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
+import {FieldDescription} from 'sentry/components/forms/fieldGroup/fieldDescription';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {usePreventAIConfig} from 'sentry/views/prevent/preventAI/hooks/usePreventAIConfig';
 import {useUpdatePreventAIFeature} from 'sentry/views/prevent/preventAI/hooks/useUpdatePreventAIFeature';
+import type {Sensitivity, SensitivityOption} from 'sentry/views/prevent/preventAI/types';
 
 interface ManageReposPanelProps {
   collapsed: boolean;
@@ -53,6 +57,54 @@ function ManageReposPanel({
     config?.features?.bug_prediction?.triggers?.on_command_phrase ?? false;
   const isEnabledBugPredictionOnReadyForReview =
     config?.features?.bug_prediction?.triggers?.on_ready_for_review ?? false;
+
+  const sensitivityOptions: SensitivityOption[] = [
+    {
+      value: 'low',
+      label: 'Low',
+      details: 'Post all potential issues for maximum breadth.',
+    },
+    {
+      value: 'medium',
+      label: 'Medium',
+      details: 'Post likely issues for a balance of thoroughness and noise',
+    },
+    {
+      value: 'high',
+      label: 'High',
+      details: 'Post only major issues to highlight most impactful findings.',
+    },
+    {
+      value: 'critical',
+      label: 'Critical',
+      details: 'Post only high-impact, high-sensitivity issues for maximum focus.',
+    },
+  ];
+
+  const DEFAULT_SENSITIVITY = 'medium';
+
+  const [vanillaPrReviewSensitivity, setVanillaPrReviewSensitivity] = useState(
+    config?.features?.vanilla?.sensitivity ?? DEFAULT_SENSITIVITY
+  );
+  const [bugPredictionSensitivity, setBugPredictionSensitivity] = useState(
+    config?.features?.bug_prediction?.sensitivity ?? DEFAULT_SENSITIVITY
+  );
+
+  // Keep state in sync with config if it changes
+  useEffect(() => {
+    setVanillaPrReviewSensitivity(
+      sensitivityOptions.some(opt => opt.value === config?.features?.vanilla?.sensitivity)
+        ? config?.features?.vanilla?.sensitivity
+        : DEFAULT_SENSITIVITY
+    );
+  }, [config?.features?.vanilla?.sensitivity]);
+  useEffect(() => {
+    setBugPredictionSensitivity(
+      sensitivityOptions.some(opt => opt.value === config?.features?.bug_prediction?.sensitivity)
+        ? config?.features?.bug_prediction?.sensitivity
+        : DEFAULT_SENSITIVITY
+    );
+  }, [config?.features?.bug_prediction?.sensitivity]);
 
   return (
     <SlideOverPanel
@@ -129,6 +181,38 @@ function ManageReposPanel({
                 aria-label="Enable PR Review"
               />
             </Flex>
+            {isEnabledVanillaPrReview && (
+              <Flex paddingLeft="xl">
+                <Flex direction="column" borderLeft="muted">
+                  <StyledFieldGroup
+                    label={<Text size="md">{t('Sensitivity')}</Text>}
+                    help={
+                      <Text size="xs" variant="muted">
+                        {t('Set the sensitivity level for PR review analysis.')}
+                      </Text>
+                    }
+                    inline
+                    flexibleControlStateSize
+                  >
+                    <CompactSelect
+                      value={vanillaPrReviewSensitivity}
+                      options={sensitivityOptions}
+                      onChange={async value => {
+                        setVanillaPrReviewSensitivity(value.value);
+                        await enableFeature({
+                          feature: 'vanilla',
+                          enabled: isEnabledVanillaPrReview,
+                          sensitivity: value.value,
+                        });
+                        refetchConfig();
+                      }}
+                      menuWidth={350}
+                      maxMenuWidth={500}
+                    />
+                  </StyledFieldGroup>
+                </Flex>
+              </Flex>
+            )}
           </Flex>
 
           {/* Test Generation Feature */}
@@ -205,16 +289,39 @@ function ManageReposPanel({
               />
             </Flex>
             {isEnabledBugPrediction && (
-              // width 150% because FieldGroup > FieldDescription has fixed width 50%
-              <Flex paddingLeft="xl" width="150%">
-                <Flex
-                  direction="column"
-                  borderLeft="muted"
-                  radius="md"
-                  paddingLeft="md"
-                  width="100%"
-                >
-                  <FieldGroup
+              <Flex padding="0 xl">
+                <Flex direction="column" borderLeft="muted">
+                  <StyledFieldGroup
+                    label={<Text size="md">{t('Sensitivity')}</Text>}
+                    help={
+                      <Text size="xs" variant="muted">
+                        {t('Set the sensitivity level for PR review analysis.')}
+                      </Text>
+                    }
+                    inline
+                    flexibleControlStateSize
+                  >
+                    <CompactSelect
+                      value={bugPredictionSensitivity}
+                      options={sensitivityOptions}
+                      onChange={async value => {
+                        setBugPredictionSensitivity(value.value);
+                        await enableFeature({
+                          feature: 'bug_prediction',
+                          enabled: isEnabledBugPrediction,
+                          sensitivity: value.value,
+                          triggers: {
+                            on_ready_for_review: isEnabledBugPredictionOnReadyForReview,
+                            on_command_phrase: isEnabledBugPredictionOnCommandPhrase,
+                          },
+                        });
+                        refetchConfig();
+                      }}
+                      menuWidth={350}
+                      maxMenuWidth={500}
+                    />
+                  </StyledFieldGroup>
+                  <StyledFieldGroup
                     label={<Text size="md">{t('Auto Run on Opened Pull Requests')}</Text>}
                     help={
                       <Text size="xs" variant="muted">
@@ -238,13 +345,14 @@ function ManageReposPanel({
                           feature: 'bug_prediction',
                           enabled: isEnabledBugPrediction,
                           triggers: newTriggers,
+                          sensitivity: bugPredictionSensitivity,
                         });
                         refetchConfig();
                       }}
                       aria-label="Auto Run on Opened Pull Requests"
                     />
-                  </FieldGroup>
-                  <FieldGroup
+                  </StyledFieldGroup>
+                  <StyledFieldGroup
                     label={<Text size="md">{t('Run When Mentioned')}</Text>}
                     help={
                       <Text size="xs" variant="muted">
@@ -268,12 +376,13 @@ function ManageReposPanel({
                           feature: 'bug_prediction',
                           enabled: isEnabledBugPrediction,
                           triggers: newTriggers,
+                          sensitivity: bugPredictionSensitivity,
                         });
                         refetchConfig();
                       }}
                       aria-label="Run When Mentioned"
                     />
-                  </FieldGroup>
+                  </StyledFieldGroup>
                 </Flex>
               </Flex>
             )}
@@ -283,5 +392,13 @@ function ManageReposPanel({
     </SlideOverPanel>
   );
 }
+
+const StyledFieldGroup = styled(FieldGroup)`
+  width: 100%;
+
+  & ${FieldDescription} {
+    width: inherit;
+  }
+`;
 
 export default ManageReposPanel;

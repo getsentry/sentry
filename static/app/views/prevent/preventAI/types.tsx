@@ -17,10 +17,19 @@ export interface PreventAIOrg {
 
 type Trigger = 'on_command_phrase' | 'on_ready_for_review';
 
+export type Sensitivity = 'low' | 'medium' | 'high' | 'critical';
+
+export interface SensitivityOption {
+  value: Sensitivity;
+  label: string;
+  details: string;
+}
+
 export interface PreventAIConfig {
   features: {
     bug_prediction: {
       enabled: boolean;
+      sensitivity: Sensitivity;
       triggers: Record<Trigger, boolean>;
     };
     test_generation: {
@@ -28,6 +37,7 @@ export interface PreventAIConfig {
     };
     vanilla: {
       enabled: boolean;
+      sensitivity: Sensitivity;
     };
   };
 }

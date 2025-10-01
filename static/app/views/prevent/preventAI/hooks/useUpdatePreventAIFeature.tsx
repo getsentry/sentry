@@ -1,12 +1,13 @@
 import {useCallback, useState} from 'react';
 
 import localStorageWrapper from 'sentry/utils/localStorage';
-import type {PreventAIConfig} from 'sentry/views/prevent/preventAI/types';
+import type {PreventAIConfig, Sensitivity} from 'sentry/views/prevent/preventAI/types';
 
 interface UpdateFeatureParams {
   enabled: boolean;
   feature: 'vanilla' | 'test_generation' | 'bug_prediction';
   triggers?: Record<string, boolean>;
+  sensitivity?: Sensitivity;
 }
 
 interface UpdateFeatureResult {
@@ -71,6 +72,7 @@ export function useUpdatePreventAIFeature(orgName?: string, repoName?: string) {
             ...currentConfig.features,
             [params.feature]: {
               enabled: params.enabled,
+              sensitivity: params.sensitivity,
               triggers: params.triggers,
             },
           },
