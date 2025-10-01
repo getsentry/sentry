@@ -83,7 +83,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                   showUnderline
                   underlineColor="success"
                   title={t(
-                    'This replay is still updating. Refresh to see the latest updates.'
+                    'This replay is still in progress. Refresh for the latest activity.'
                   )}
                 >
                   <Live />
