@@ -11,7 +11,7 @@ from sentry.analytics.events.eventuser_snuba_query import EventUserSnubaQuery
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.analytics import assert_analytics_events_recorded
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.utils.eventuser import EventUser
+from sentry.utils.eventuser import MAX_TAG_VALUES_BATCH_SIZE, EventUser
 
 now = before_now(days=1).replace(minute=10, second=0, microsecond=0, tzinfo=None)
 
@@ -489,7 +489,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         tag_values.extend(["id:myminion", "id:2"])
 
         # Add many non-existent values to simulate a large batch
-        for i in range(200):  # More than MAX_TAG_VALUES_BATCH_SIZE (100)
+        for i in range(MAX_TAG_VALUES_BATCH_SIZE + 1):  # More than MAX_TAG_VALUES_BATCH_SIZE (100)
             tag_values.append(f"id:nonexistent{i}")
 
         # This should work without raising SnubaError about query size
