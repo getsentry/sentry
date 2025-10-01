@@ -189,7 +189,11 @@ export function transformToSeriesMap(
       // This is a top events query. The keys in the object will be the group names, and there is only one yAxis, known from the input
       Object.keys(result).forEach(groupName => {
         const seriesData = result[groupName]!;
-        const [, timeSeries] = convertEventsStatsToTimeSeriesData(firstYAxis, seriesData);
+        const [, timeSeries] = convertEventsStatsToTimeSeriesData(
+          firstYAxis,
+          seriesData,
+          seriesData.order
+        );
 
         if (fields) {
           const groupByFields = fields.filter(field => !yAxis.includes(field));
@@ -217,7 +221,11 @@ export function transformToSeriesMap(
         }
 
         const seriesData = groupData[axis] as EventsStats;
-        const [, timeSeries] = convertEventsStatsToTimeSeriesData(axis, seriesData);
+        const [, timeSeries] = convertEventsStatsToTimeSeriesData(
+          axis,
+          seriesData,
+          seriesData.order
+        );
 
         if (fields) {
           const groupByFields = fields.filter(field => !yAxis.includes(field));
@@ -241,7 +249,8 @@ export function transformToSeriesMap(
 
 export function convertEventsStatsToTimeSeriesData(
   yAxis: string,
-  seriesData: EventsStats
+  seriesData: EventsStats,
+  order?: number
 ): [number, TimeSeries] {
   const values: TimeSeriesItem[] = seriesData.data.map(
     ([timestamp, countsForTimestamp], index) => {
@@ -281,7 +290,7 @@ export function convertEventsStatsToTimeSeriesData(
     },
   };
 
-  if (defined(seriesData.order)) {
+  if (defined(order)) {
     serie.meta.order = seriesData.order;
   }
 
