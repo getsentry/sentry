@@ -232,7 +232,6 @@ if (
   const nodeIndex = Number(CI_NODE_INDEX);
 
   if (balance) {
-    console.log('Using balance results', balance);
     optionalTags.balancer = true;
     optionalTags.balancer_strategy = 'by_path';
     testMatch = getTestsForGroup(nodeIndex, nodeTotal, envTestList, balance);
