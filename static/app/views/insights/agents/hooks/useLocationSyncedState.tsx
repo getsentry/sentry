@@ -76,14 +76,17 @@ export function useLocationSyncedState<T extends Decoder>(key: string, decoder: 
   const handleUpdate = useCallback(
     (value: typeof urlParam) => {
       setState(value);
-      updateLocation(prevLocation => ({
-        ...prevLocation,
-        query: {
-          // make sure to clear all cursors every time the query is updated
-          ...clearQueryCursors(prevLocation.query),
-          [key]: value,
-        },
-      }));
+      updateLocation(prevLocation => {
+        return {
+          ...prevLocation,
+          query: {
+            ...prevLocation.query,
+            // make sure to clear all cursors every time the query is updated
+            ...clearQueryCursors(prevLocation.query),
+            [key]: value,
+          },
+        };
+      });
     },
     [updateLocation, key]
   );
