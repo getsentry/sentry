@@ -317,7 +317,7 @@ type RetryOptions = {
   timeoutMultiplier?: number;
 };
 
-const BASE_TIMEOUT = 200;
+const BASE_TIMEOUT = 400;
 const TIMEOUT_MULTIPLIER = 2;
 const wait = (duration: any) => new Promise(resolve => setTimeout(resolve, duration));
 
@@ -341,7 +341,7 @@ export async function doDiscoverQuery<T>(
   let error: any;
 
   if (error) {
-    console.log(statusCodes, error, error?.status);
+    console.log(statusCodes, error, error?.status, typeof error?.status);
   }
 
   while (tries < maxTries && (!error || statusCodes.includes(error.status))) {
