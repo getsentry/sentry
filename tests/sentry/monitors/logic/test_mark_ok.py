@@ -240,6 +240,7 @@ class MarkOkTestCase(TestCase):
                 "project_id": monitor.project_id,
                 "new_status": GroupStatus.RESOLVED,
                 "new_substatus": None,
+                "update_date": last_checkin.date_added,
             },
         ) == dict(status_change)
 
