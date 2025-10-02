@@ -1,24 +1,12 @@
 import {GroupFixture} from 'sentry-fixture/group';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {
-  makeAllTheProviders,
-  render,
-  renderHook,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
-import {
-  EventSearch,
-  useEventQuery,
-} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
 
 const mockHandleSearch = jest.fn();
 
@@ -73,73 +61,4 @@ describe('EventSearch', () => {
       expect.anything()
     );
   }, 10_000);
-
-  it('filters issue tokens from event queries', () => {
-    const validQuery = `${tagKey}:${tagValue} device.family:[iphone,pixel]`;
-
-    const {result: onlyIssueTokens} = renderHook(
-      () => useEventQuery({groupId: group.id}),
-      {
-        wrapper: makeAllTheProviders({
-          deprecatedRouterMocks: true,
-          organization,
-          router: RouterFixture({
-            location: LocationFixture({
-              query: {query: 'is:resolved assigned:[me,#issues] issue.priority:high'},
-            }),
-          }),
-        }),
-      }
-    );
-    expect(onlyIssueTokens.current).toBe('');
-
-    const {result: combinedTokens} = renderHook(
-      () => useEventQuery({groupId: group.id}),
-      {
-        wrapper: makeAllTheProviders({
-          deprecatedRouterMocks: true,
-          organization,
-          router: RouterFixture({
-            location: LocationFixture({
-              query: {query: `is:resolved assigned:[me,#issues] ${validQuery}`},
-            }),
-          }),
-        }),
-      }
-    );
-    expect(combinedTokens.current).toBe(validQuery);
-
-    const {result: onlyEventTokens} = renderHook(
-      () => useEventQuery({groupId: group.id}),
-      {
-        wrapper: makeAllTheProviders({
-          deprecatedRouterMocks: true,
-          organization,
-          router: RouterFixture({
-            location: LocationFixture({
-              query: {query: validQuery},
-            }),
-          }),
-        }),
-      }
-    );
-    expect(onlyEventTokens.current).toBe(validQuery);
-
-    const {result: unrecognizedFilterKey} = renderHook(
-      () => useEventQuery({groupId: group.id}),
-      {
-        wrapper: makeAllTheProviders({
-          deprecatedRouterMocks: true,
-          organization,
-          router: RouterFixture({
-            location: LocationFixture({
-              // This isn't in the TagsFixture or ISSUE_EVENT_PROPERTY_FIELDS
-              query: {query: `${validQuery} organization.slug:sentry`},
-            }),
-          }),
-        }),
-      }
-    );
-    expect(unrecognizedFilterKey.current).toBe(validQuery);
-  });
 });

@@ -6,7 +6,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import {ISSUE_PROPERTY_FIELDS} from 'sentry/utils/fields';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -15,6 +14,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {EventList} from 'sentry/views/issueDetails/streamline/eventList';
 import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {
   useEnvironmentsFromUrl,
@@ -22,14 +22,6 @@ import {
 } from 'sentry/views/issueDetails/utils';
 
 import AllEventsTable from './allEventsTable';
-
-export const ALL_EVENTS_EXCLUDED_TAGS = [
-  'environment',
-  'performance.issue_ids',
-  'transaction.op',
-  'transaction.status',
-  ...ISSUE_PROPERTY_FIELDS,
-];
 
 interface GroupEventsProps {
   group: Group;

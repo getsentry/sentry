@@ -197,7 +197,7 @@ export function useEnvironmentsFromUrl(): string[] {
   return envsArray;
 }
 
-export function getGroupEventDetailsQueryData({
+function getGroupEventDetailsQueryData({
   environments,
   query,
   start,

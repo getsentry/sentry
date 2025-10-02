@@ -553,5 +553,4 @@ export {
   // eslint-disable-next-line import/export
   fireEvent,
   waitForDrawerToHide,
-  makeAllTheProviders,
 };
