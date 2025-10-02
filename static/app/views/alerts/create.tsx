@@ -161,7 +161,7 @@ function Create(props: Props) {
         ) : (
           <Fragment>
             {alertType === AlertRuleType.UPTIME ? (
-              <UptimeAlertForm {...props} />
+              <UptimeAlertForm />
             ) : alertType === AlertRuleType.CRONS ? (
               <MonitorForm
                 apiMethod="POST"

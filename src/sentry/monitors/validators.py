@@ -456,14 +456,16 @@ class MonitorValidator(CamelSnakeSerializer):
             quotas.backend.update_monitor_slug(existing_slug, params["slug"], instance.project_id)
 
         if "config" in validated_data:
-            new_config = validated_data["config"]
-            checkin_margin = new_config.get("checkin_margin")
+            # Use the merged config from the instance (not the partial config from the request)
+            # to avoid false positives when comparing against existing values
+            updated_config = instance.config
+            checkin_margin = updated_config.get("checkin_margin")
             if checkin_margin != existing_margin:
                 MonitorEnvironment.objects.filter(monitor_id=instance.id).update(
                     next_checkin_latest=F("next_checkin") + get_checkin_margin(checkin_margin)
                 )
 
-            max_runtime = new_config.get("max_runtime")
+            max_runtime = updated_config.get("max_runtime")
             if max_runtime != existing_max_runtime:
                 MonitorCheckIn.objects.filter(
                     monitor_id=instance.id, status=CheckInStatus.IN_PROGRESS
