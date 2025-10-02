@@ -6,7 +6,6 @@ import {
   getIsAiRunSpan,
   getIsAiSpan,
   getIsExecuteToolSpan,
-  getIsHandoffSpan,
 } from 'sentry/views/insights/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {
