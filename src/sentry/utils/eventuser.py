@@ -228,7 +228,9 @@ class EventUser:
             )
             data_results = raw_snql_query(request, referrer=REFERRER)["data"]
 
-            unique_event_users = cls._find_unique(data_results, seen_eventuser_tags)
+            unique_event_users, seen_eventuser_tags = cls._find_unique(
+                data_results, seen_eventuser_tags
+            )
             full_results.extend(unique_event_users)
 
             query_end_time = time.time()
@@ -291,7 +293,7 @@ class EventUser:
                 unique_event_users.append(euser)
                 unique_tag_values.add(tag_value)
 
-        return unique_event_users
+        return unique_event_users, unique_tag_values
 
     @staticmethod
     def from_snuba(result: Mapping[str, Any]) -> EventUser:
