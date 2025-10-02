@@ -55,6 +55,7 @@ function BillingDetailsPanel({
   title?: string;
 }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [expandInitially, setExpandInitially] = useState(shouldExpandInitially);
   const {
     data: billingDetails,
     isLoading,
@@ -70,12 +71,13 @@ function BillingDetailsPanel({
   }, [loadError]);
 
   useEffect(() => {
-    if (shouldExpandInitially && !isLoading) {
+    if (expandInitially && !isLoading) {
       if (!hasSomeBillingDetails(billingDetails)) {
         setIsEditing(true);
+        setExpandInitially(false);
       }
     }
-  }, [shouldExpandInitially, isLoading, billingDetails]);
+  }, [isLoading, billingDetails, expandInitially]);
 
   if (isLoading) {
     return <LoadingIndicator />;
