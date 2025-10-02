@@ -55,7 +55,7 @@ export function useTraceRootEvent({
     !isRepEventError && // Errors are not supported in EAP yet
     (isEAPTraceEnabled || (!treeIsLoading && hasOnlyLogs));
 
-  Sentry.setTag('referrer', 'trace-details-summary');
+  Sentry.setTag('referrer', 'trace-view');
 
   const legacyRootEvent = useApiQuery<EventTransaction>(
     [
