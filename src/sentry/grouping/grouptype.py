@@ -33,7 +33,6 @@ class ErrorGroupType(GroupType):
     category_v2 = GroupCategory.ERROR.value
     default_priority = PriorityLevel.MEDIUM
     released = True
-    track_open_periods = False
     detector_settings = DetectorSettings(
         handler=ErrorDetectorHandler,
         validator=ErrorDetectorValidator,
