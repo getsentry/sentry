@@ -17,7 +17,6 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import deletion_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
@@ -34,20 +33,14 @@ class RetryTask(Exception):
 
 @instrumented_task(
     name="sentry.deletions.tasks.nodestore.delete_events_from_nodestore_and_eventstore",
-    queue="cleanup",
-    default_retry_delay=60 * 5,
-    max_retries=MAX_RETRIES,
-    acks_late=True,
-    silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=deletion_tasks,
-        processing_deadline_duration=60 * 20,
-        retry=Retry(
-            on=(RetryTask,),
-            times=MAX_RETRIES,
-            delay=60 * 5,
-        ),
+    namespace=deletion_tasks,
+    processing_deadline_duration=60 * 20,
+    retry=Retry(
+        on=(RetryTask,),
+        times=MAX_RETRIES,
+        delay=60 * 5,
     ),
+    silo_mode=SiloMode.REGION,
 )
 @retry(exclude=(DeleteAborted,))
 @track_group_async_operation

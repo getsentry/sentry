@@ -1,6 +1,6 @@
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {formatTimeSeriesName} from './formatTimeSeriesName';
+import {formatTimeSeriesLabel} from './formatTimeSeriesLabel';
 
 describe('formatSeriesName', () => {
   describe('releases', () => {
@@ -12,7 +12,7 @@ describe('formatSeriesName', () => {
         yAxis: name,
       });
 
-      expect(formatTimeSeriesName(timeSeries)).toEqual(result);
+      expect(formatTimeSeriesLabel(timeSeries)).toEqual(result);
     });
   });
 
@@ -26,7 +26,7 @@ describe('formatSeriesName', () => {
         yAxis: name,
       });
 
-      expect(formatTimeSeriesName(timeSeries)).toEqual(result);
+      expect(formatTimeSeriesLabel(timeSeries)).toEqual(result);
     });
   });
 
@@ -40,7 +40,7 @@ describe('formatSeriesName', () => {
         yAxis: name,
       });
 
-      expect(formatTimeSeriesName(timeSeries)).toEqual(result);
+      expect(formatTimeSeriesLabel(timeSeries)).toEqual(result);
     });
   });
 
@@ -53,7 +53,7 @@ describe('formatSeriesName', () => {
         yAxis: name,
       });
 
-      expect(formatTimeSeriesName(timeSeries)).toEqual(result);
+      expect(formatTimeSeriesLabel(timeSeries)).toEqual(result);
     });
   });
 
@@ -66,7 +66,7 @@ describe('formatSeriesName', () => {
         yAxis: name,
       });
 
-      expect(formatTimeSeriesName(timeSeries)).toEqual(result);
+      expect(formatTimeSeriesLabel(timeSeries)).toEqual(result);
     });
   });
 
@@ -79,7 +79,7 @@ describe('formatSeriesName', () => {
         yAxis: name,
       });
 
-      expect(formatTimeSeriesName(timeSeries)).toEqual(result);
+      expect(formatTimeSeriesLabel(timeSeries)).toEqual(result);
     });
   });
 
@@ -145,7 +145,19 @@ describe('formatSeriesName', () => {
         groupBy,
       });
 
-      expect(formatTimeSeriesName(timeSeries)).toEqual(result);
+      expect(formatTimeSeriesLabel(timeSeries)).toEqual(result);
+    });
+  });
+
+  describe('other', () => {
+    it('Formats "Other"', () => {
+      const timeSeries = TimeSeriesFixture();
+      timeSeries.meta = {
+        ...timeSeries.meta,
+        isOther: true,
+      };
+
+      expect(formatTimeSeriesLabel(timeSeries)).toBe('Other');
     });
   });
 });

@@ -48,7 +48,6 @@ describe('uptime/edit', () => {
         onChangeTitle={handleChangeTitle}
         userTeamIds={[]}
         organization={organization}
-        project={project}
         params={{projectId: project.slug, ruleId: uptimeRule.id}}
       />,
       {organization}
@@ -85,7 +84,6 @@ describe('uptime/edit', () => {
         onChangeTitle={handleChangeTitle}
         userTeamIds={[]}
         organization={organization}
-        project={project}
         params={{projectId: project.slug, ruleId: uptimeRule.id}}
       />,
       {organization}
