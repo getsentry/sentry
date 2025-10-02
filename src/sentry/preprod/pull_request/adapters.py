@@ -15,6 +15,7 @@ from sentry.preprod.pull_request.types import (
     PullRequestDetails,
     PullRequestErrorResponse,
     PullRequestFileChange,
+    PullRequestFileStatus,
     PullRequestWithFiles,
 )
 
@@ -87,7 +88,7 @@ class PullRequestDataAdapter:
 
             # Validate and normalize file status
             raw_status = file_data.get("status")
-            if raw_status not in ["added", "modified", "removed", "renamed"]:
+            if raw_status not in [status.value for status in PullRequestFileStatus]:
                 logger.warning(
                     "pr_data.parsing_failure",
                     extra={
@@ -101,7 +102,7 @@ class PullRequestDataAdapter:
 
             file_change = PullRequestFileChange(
                 filename=filename,
-                status=raw_status,  # Now guaranteed to be a valid Literal value
+                status=raw_status,
                 additions=file_data.get("additions", 0),
                 deletions=file_data.get("deletions", 0),
                 changes=file_data.get("changes", 0),

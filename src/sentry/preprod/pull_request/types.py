@@ -9,10 +9,10 @@ from sentry.preprod.api.models.project_preprod_build_details_models import Build
 
 
 class PullRequestFileStatus(StrEnum):
-    OPEN = "open"
-    CLOSED = "closed"
-    MERGED = "merged"
-    DRAFT = "draft"
+    ADDED = "added"
+    MODIFIED = "modified"
+    REMOVED = "removed"
+    RENAMED = "renamed"
 
 
 class PullRequestFileChange(BaseModel):
