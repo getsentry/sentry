@@ -5,10 +5,12 @@ import sentry_sdk
 from sentry.integrations.jira.integration import JiraIntegration
 from sentry.integrations.pagerduty.client import PagerDutyClient
 from sentry.integrations.pagerduty.utils import PagerDutyServiceDict, add_service
+from sentry.mail.adapter import MailAdapter
 from sentry.notifications.notification_action.group_type_notification_registry import (
     IssueAlertRegistryHandler,
 )
 from sentry.notifications.notification_action.issue_alert_registry import (
+    EmailIssueAlertHandler,
     PagerDutyIssueAlertHandler,
     PluginIssueAlertHandler,
 )
@@ -313,3 +315,26 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
     def test_no_events(self) -> None:
         response = self.get_response(self.organization.slug, self.project.slug)
         assert response.status_code == 400
+
+    @mock.patch.object(MailAdapter, "notify")
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.group_type_notification_registry.get",
+        return_value=IssueAlertRegistryHandler,
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.issue_alert_handler_registry.get",
+        return_value=EmailIssueAlertHandler,
+    )
+    def test_email_action(
+        self, mock_get_issue_alert_handler, mock_get_group_type_handler, mock_notify
+    ) -> None:
+        action_data = [
+            {
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "1",
+                "targetType": "Member",
+            }
+        ]
+        self.get_success_response(self.organization.slug, self.project.slug, actions=action_data)
+
+        assert mock_notify.call_count == 1
