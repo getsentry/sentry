@@ -128,7 +128,18 @@ export function AIIOAlert({
   );
 }
 
-function PythonContent() {
+type PythonSpanOrigin = (typeof knownSpanOrigins.python)[number];
+const pythonIntegrationLinks: Record<PythonSpanOrigin, string> = {
+  'auto.ai.langchain': 'https://docs.sentry.io/platforms/python/integrations/langchain/',
+  'auto.ai.openai_agents':
+    'https://docs.sentry.io/platforms/python/integrations/openai-agents/',
+  'auto.ai.openai': 'https://docs.sentry.io/platforms/python/integrations/openai/',
+  'auto.ai.langgraph': 'https://docs.sentry.io/platforms/python/integrations/langgraph/',
+  'auto.ai.anthropic': 'https://docs.sentry.io/platforms/python/integrations/anthropic/',
+};
+
+function PythonContent({spanOrigin}: {spanOrigin?: string}) {
+  const integrationLink = pythonIntegrationLinks[spanOrigin as PythonSpanOrigin];
   return (
     <Fragment>
       <Prose>
@@ -146,10 +157,8 @@ function PythonContent() {
 );`}
       </CodeSnippet>
       <Prose>
-        {tct('For more details, see the [link:docs].', {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
-          ),
+        {tct('For more details, see the [link:integrationdocs].', {
+          link: <ExternalLink href={integrationLink} />,
         })}
       </Prose>
     </Fragment>
