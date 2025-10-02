@@ -91,6 +91,7 @@ function ProductSelect({
 }: Pick<StepProps, 'activePlan' | 'onUpdate' | 'formData' | 'isNewCheckout'>) {
   const availableAddOns = Object.values(activePlan.addOnCategories).filter(
     addOnInfo =>
+      // if there's no billing flag, we assume it's launched
       !addOnInfo.billingFlag || activePlan.features.includes(addOnInfo.billingFlag)
   );
 

@@ -163,7 +163,9 @@ class AMCheckout extends Component<Props, State> {
       const selectedAll = Object.values(props.subscription.addOns ?? {}).every(
         addOn =>
           // add-on is enabled or not launched yet
-          addOn.enabled || !props.organization.features.includes(addOn.billingFlag || '')
+          // if there's no billing flag, we assume it's launched
+          addOn.enabled ||
+          (addOn.billingFlag && !props.organization.features.includes(addOn.billingFlag))
       );
 
       if (selectedAll) {
@@ -521,6 +523,7 @@ class AMCheckout extends Component<Props, State> {
       onDemandBudget: parseOnDemandBudgetsFromSubscription(subscription),
       addOns: Object.values(subscription.addOns ?? {})
         .filter(
+          // only populate add-ons that are launched
           addOn => !addOn.billingFlag || organization.features.includes(addOn.billingFlag)
         )
         .reduce((acc, addOn) => {
