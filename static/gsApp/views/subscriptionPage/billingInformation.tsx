@@ -41,7 +41,7 @@ function BillingInformation({organization, subscription, location}: Props) {
   const isNewBillingUI = hasNewBillingUI(organization);
   const hasBillingPerms = organization.access?.includes('org:billing');
 
-  if (subscription.isSelfServePartner) {
+  if (subscription?.isSelfServePartner) {
     return <Redirect to={`/settings/${organization.slug}/billing/overview/`} />;
   }
 

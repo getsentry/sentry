@@ -72,7 +72,7 @@ function CreditCardPanel({
     } else if (shouldExpandInitially) {
       setIsEditing(true);
     }
-  }, [subscription, shouldExpandInitially]);
+  }, [subscription.paymentSource, shouldExpandInitially]);
 
   useEffect(() => {
     // Open credit card update form/modal and track clicks from payment failure notifications (in app, email, etc.)
