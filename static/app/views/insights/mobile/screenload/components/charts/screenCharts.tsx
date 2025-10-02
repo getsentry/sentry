@@ -48,7 +48,6 @@ type Props = {
 const yAxes = [YAxis.TTID, YAxis.TTFD, YAxis.COUNT];
 
 export function ScreenCharts({additionalFilters}: Props) {
-  const theme = useTheme();
   const {isProjectCrossPlatform, selectedPlatform: platform} = useCrossPlatformProject();
 
   const {
@@ -127,10 +126,6 @@ export function ScreenCharts({additionalFilters}: Props) {
   };
 
   let chartAliases = {};
-  const meta: EventsMetaType = {
-    fields: {},
-    units: {},
-  };
 
   timeSeries.forEach(release => {
     const releaseName =
