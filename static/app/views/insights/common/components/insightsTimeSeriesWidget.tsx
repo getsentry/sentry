@@ -15,6 +15,7 @@ import type {
   LegendSelection,
   TimeSeries,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesName';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -134,10 +135,16 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
 
       yAxes.add(timeSeries.yAxis);
 
+      let alias = aliases?.[delayedTimeSeries.yAxis];
+      const plottableName = formatTimeSeriesName(delayedTimeSeries);
+      if (aliases?.[plottableName]) {
+        alias = aliases?.[plottableName];
+      }
+
       return new PlottableDataConstructor(delayedTimeSeries, {
-        color: COMMON_COLORS(theme)[delayedTimeSeries.yAxis],
+        color: COMMON_COLORS(theme)[plottableName],
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
-        alias: aliases?.[delayedTimeSeries.yAxis],
+        alias,
       });
     }),
     ...(props.extraPlottables ?? []),
@@ -288,5 +295,7 @@ const COMMON_COLORS = (theme: Theme): Record<string, string> => {
     'performance_score(measurements.score.inp)': vitalColors[2],
     'performance_score(measurements.score.cls)': vitalColors[3],
     'performance_score(measurements.score.ttfb)': vitalColors[4],
+    'epm() : span.op : queue.publish': colors[1],
+    'epm() : span.op : queue.process': colors[2],
   };
 };
