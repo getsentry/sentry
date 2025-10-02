@@ -1,4 +1,5 @@
 import {Fragment, useCallback} from 'react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -12,8 +13,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {parseAsSort} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -31,18 +31,9 @@ export default function DetectorsList() {
   const navigate = useNavigate();
   const {selection, isReady} = usePageFilters();
 
-  const {
-    sort: sorts,
-    query,
-    cursor,
-  } = useLocationQuery({
-    fields: {
-      sort: decodeSorts,
-      query: decodeScalar,
-      cursor: decodeScalar,
-    },
-  });
-  const sort = sorts[0] ?? {kind: 'desc', field: 'latestGroup'};
+  const [sort] = useQueryState('sort', parseAsSort);
+  const [query] = useQueryState('query', parseAsString.withDefault(''));
+  const [cursor] = useQueryState('cursor', parseAsString);
 
   const {
     data: detectors,
@@ -52,7 +43,7 @@ export default function DetectorsList() {
     getResponseHeader,
   } = useDetectorsQuery(
     {
-      cursor,
+      cursor: cursor ?? undefined,
       query,
       sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
       projects: selection.projects,
@@ -88,7 +79,6 @@ export default function DetectorsList() {
               isPending={isLoading}
               isError={isError}
               isSuccess={isSuccess}
-              sort={sort}
               queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
               allResultsVisible={allResultsVisible()}
             />
