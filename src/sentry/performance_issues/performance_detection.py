@@ -176,6 +176,9 @@ def get_merged_settings(project_id: int | None = None) -> dict[str | Any, Any]:
         "large_http_payload_size_threshold": options.get(
             "performance.issues.large_http_payload.size_threshold"
         ),
+        "large_http_payload_filtered_paths": options.get(
+            "performance.issues.large_http_payload.filtered_paths"
+        ),
         "db_on_main_thread_duration_threshold": options.get(
             "performance.issues.db_on_main_thread.total_spans_duration_threshold"
         ),
@@ -329,6 +332,7 @@ def get_detection_settings(
             "detection_enabled": settings["large_http_payload_detection_enabled"],
             "minimum_span_duration": 100,  # ms
             "organization": organization,
+            "filtered_paths": settings["large_http_payload_filtered_paths"],
         },
         DetectorType.HTTP_OVERHEAD: {
             "http_request_delay_threshold": settings["http_request_delay_threshold"],
