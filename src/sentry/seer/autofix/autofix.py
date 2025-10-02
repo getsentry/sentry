@@ -177,8 +177,14 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
             organization=project.organization, status=ObjectStatus.ACTIVE
         )
         projects = list(projects_qs)
-        start = event.datetime - timedelta(days=1)
-        end = event.datetime + timedelta(days=1)
+        # Web Vital issues are synthetic and don't necessarily occur at the same time as associated traces
+        # Don't restrict time range in these scenarios
+        if event.group and event.group.issue_type.slug == WebVitalsGroup.slug:
+            start = None
+            end = None
+        else:
+            start = event.datetime - timedelta(days=1)
+            end = event.datetime + timedelta(days=1)
 
         snuba_params = SnubaParams(
             start=start,
