@@ -148,4 +148,16 @@ describe('formatSeriesName', () => {
       expect(formatTimeSeriesName(timeSeries)).toEqual(result);
     });
   });
+
+  describe('other', () => {
+    it('Formats "Other"', () => {
+      const timeSeries = TimeSeriesFixture();
+      timeSeries.meta = {
+        ...timeSeries.meta,
+        isOther: true,
+      };
+
+      expect(formatTimeSeriesName(timeSeries)).toBe('Other');
+    });
+  });
 });
