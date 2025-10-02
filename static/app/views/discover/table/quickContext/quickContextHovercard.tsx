@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Flex} from 'sentry/components/core/layout';
 import {Body, Hovercard} from 'sentry/components/hovercard';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
@@ -108,9 +109,9 @@ function HoverHeader({
   organization,
 }: HoverHeaderProps) {
   return (
-    <HoverHeaderWrapper>
+    <Flex align="center" justify="between">
       {title}
-      <HoverHeaderContent>
+      <Flex flex="1" align="center" justify="end" gap="xs">
         {copyLabel}
 
         {!hideCopy && copyContent && (
@@ -127,8 +128,8 @@ function HoverHeader({
             text={copyContent}
           />
         )}
-      </HoverHeaderContent>
-    </HoverHeaderWrapper>
+      </Flex>
+    </Flex>
   );
 }
 
@@ -179,20 +180,6 @@ const StyledHovercard = styled(Hovercard)`
   }
   overflow: hidden;
   min-width: max-content;
-`;
-
-const HoverHeaderWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const HoverHeaderContent = styled('div')`
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: flex-end;
-  gap: ${space(0.5)};
 `;
 
 const StyledVersion = styled(Version)`
