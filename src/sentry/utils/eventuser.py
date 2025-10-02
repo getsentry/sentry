@@ -338,7 +338,7 @@ class EventUser:
 
     @classmethod
     def _process_tag_batch(
-        cls, projects: QuerySet[Project], values: list[str]
+        cls, projects: QuerySet[Project], values: Sequence[str]
     ) -> dict[str, EventUser]:
         """
         Process a single batch of tag values and return the matching EventUser objects.
