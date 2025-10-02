@@ -628,6 +628,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
 
     validated_params = validator.validated_data
 
+    non_fatal_processing_errors = None
     ensure_config_errors: list[ProcessingError] = []
     monitor = None
     # 01
