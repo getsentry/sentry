@@ -188,7 +188,7 @@ export function getPrebuiltQueries(organization: Organization) {
 }
 
 function disableMacros(value: string | null | boolean | number) {
-  const unsafeCharacterRegex = /^[\=\+\-\@]/;
+  const unsafeCharacterRegex = /^[=+-@]/;
 
   if (typeof value === 'string' && `${value}`.match(unsafeCharacterRegex)) {
     return `'${value}`;
@@ -367,7 +367,7 @@ function generateAdditionalConditions(
       const shouldQuote =
         value === null || value === undefined
           ? false
-          : /[\s\(\)\\"]/g.test(String(value).trim());
+          : /[\s()\\"]/g.test(String(value).trim());
       const nextValue =
         value === null || value === undefined
           ? ''
