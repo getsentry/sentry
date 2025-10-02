@@ -4,8 +4,7 @@ import type {Organization} from 'sentry/types/organization';
 import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
 
 import type {EventType} from 'getsentry/components/addEventsCTA';
-import type {CheckoutType, Subscription} from 'getsentry/types';
-import type {SelectableProduct} from 'getsentry/views/amCheckout/types';
+import type {AddOnCategory, CheckoutType, Subscription} from 'getsentry/types';
 
 type HasSub = {subscription: Subscription};
 type QuotaAlert = {event_types: string; is_warning: boolean; source?: string} & HasSub;
@@ -91,12 +90,14 @@ type GetsentryEventParameters = {
   'checkout.ondemand_changed': {cents: number} & Checkout;
   'checkout.payg_changed': {cents: number; method?: 'button' | 'textbox'} & Checkout &
     CheckoutUI;
-  'checkout.product_select': Record<
-    SelectableProduct,
-    {
-      enabled: boolean;
-      previously_enabled: boolean;
-    }
+  'checkout.product_select': Partial<
+    Record<
+      AddOnCategory,
+      {
+        enabled: boolean;
+        previously_enabled: boolean;
+      }
+    >
   > &
     HasSub &
     CheckoutUI;

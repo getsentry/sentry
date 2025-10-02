@@ -53,7 +53,7 @@ function ChooseYourBillingCycle({
             const priceAfterDiscount = utils.getReservedPriceCents({
               plan,
               reserved: formData.reserved,
-              selectedProducts: formData.selectedProducts,
+              addOns: formData.addOns,
             });
             const formattedPriceAfterDiscount = utils.formatPrice({
               cents: priceAfterDiscount,

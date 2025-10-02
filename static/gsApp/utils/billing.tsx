@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
-import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
+import {IconBuilding, IconGroup, IconPrevent, IconSeer, IconUser} from 'sentry/icons';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -18,20 +18,27 @@ import {
   UNLIMITED,
   UNLIMITED_RESERVED,
 } from 'getsentry/constants';
-import type {
-  BillingConfig,
-  BillingDetails,
-  BillingMetricHistory,
-  BillingStatTotal,
-  EventBucket,
-  Plan,
-  ProductTrial,
-  Subscription,
+import {
+  AddOnCategory,
+  OnDemandBudgetMode,
+  PlanName,
+  PlanTier,
+  ReservedBudgetCategoryType,
+  type BillingConfig,
+  type BillingDetails,
+  type BillingMetricHistory,
+  type BillingStatTotal,
+  type EventBucket,
+  type Plan,
+  type ProductTrial,
+  type Subscription,
 } from 'getsentry/types';
-import {OnDemandBudgetMode, PlanName, PlanTier} from 'getsentry/types';
-import {isByteCategory, isContinuousProfiling} from 'getsentry/utils/dataCategory';
+import {
+  getCategoryInfoFromPlural,
+  isByteCategory,
+  isContinuousProfiling,
+} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
-import {SelectableProduct} from 'getsentry/views/amCheckout/types';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 export const MILLISECONDS_IN_HOUR = 3600_000;
@@ -404,9 +411,11 @@ export const getOnDemandCategories = ({
 }) => {
   if (budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
     return plan.onDemandCategories.filter(category => {
-      return Object.values(plan.availableReservedBudgetTypes).every(
-        budgetType => !budgetType.dataCategories.includes(category)
-      );
+      const categoryInfo = getCategoryInfoFromPlural(category);
+      if (!categoryInfo) {
+        return false;
+      }
+      return categoryInfo.hasPerCategory;
     });
   }
 
@@ -567,10 +576,12 @@ export function getPlanIcon(plan: Plan) {
   return <IconUser />;
 }
 
-export function getProductIcon(product: SelectableProduct, size?: IconSize) {
+export function getProductIcon(product: AddOnCategory, size?: IconSize) {
   switch (product) {
-    case SelectableProduct.SEER:
+    case AddOnCategory.SEER:
       return <IconSeer size={size} />;
+    case AddOnCategory.PREVENT:
+      return <IconPrevent size={size} />;
     default:
       return null;
   }
@@ -731,4 +742,13 @@ export function hasSomeBillingDetails(billingDetails: BillingDetails | undefined
       )
       .some(([_, value]) => defined(value))
   );
+}
+
+export function getReservedBudgetCategoryForAddOn(addOnCategory: AddOnCategory) {
+  switch (addOnCategory) {
+    case AddOnCategory.SEER:
+      return ReservedBudgetCategoryType.SEER;
+    default:
+      return null;
+  }
 }

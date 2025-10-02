@@ -7,10 +7,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {AddOnCategory, OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 import CheckoutOverview from 'getsentry/views/amCheckout/checkoutOverview';
-import {SelectableProduct, type CheckoutFormData} from 'getsentry/views/amCheckout/types';
+import {type CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
 describe('CheckoutOverview', () => {
   const api = new MockApiClient();
@@ -174,13 +174,13 @@ describe('CheckoutOverview', () => {
     expect(screen.queryByTestId('on-demand-additional-cost')).not.toBeInTheDocument();
   });
 
-  it('displays product when selected', () => {
+  it('displays add-on when selected', () => {
     const orgWithSeerFeature = {...organization, features: ['seer-billing']};
     const formData: CheckoutFormData = {
       plan: 'am2_team',
       reserved: {errors: 100000, transactions: 500000, attachments: 25},
-      selectedProducts: {
-        [SelectableProduct.SEER]: {
+      addOns: {
+        [AddOnCategory.SEER]: {
           enabled: true,
         },
       },
@@ -198,16 +198,16 @@ describe('CheckoutOverview', () => {
     );
 
     expect(screen.getByTestId('seer-reserved')).toBeInTheDocument();
-    expect(screen.getByText('Seer AI Agent')).toBeInTheDocument();
+    expect(screen.getByText('Seer')).toBeInTheDocument();
   });
 
-  it('does not display product when not selected', () => {
+  it('does not display add-on when not selected', () => {
     const orgWithSeerFeature = {...organization, features: ['seer-billing']};
     const formData: CheckoutFormData = {
       plan: 'am2_team',
       reserved: {errors: 100000, transactions: 500000, attachments: 25},
-      selectedProducts: {
-        [SelectableProduct.SEER]: {
+      addOns: {
+        [AddOnCategory.SEER]: {
           enabled: false,
         },
       },
@@ -225,6 +225,6 @@ describe('CheckoutOverview', () => {
     );
 
     expect(screen.queryByTestId('seer')).not.toBeInTheDocument();
-    expect(screen.queryByText('Seer AI Agent')).not.toBeInTheDocument();
+    expect(screen.queryByText('Seer')).not.toBeInTheDocument();
   });
 });

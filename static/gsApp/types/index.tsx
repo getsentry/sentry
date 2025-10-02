@@ -133,7 +133,7 @@ export enum AddOnCategory {
   PREVENT = 'prevent',
 }
 
-type AddOnCategoryInfo = {
+export type AddOnCategoryInfo = {
   apiName: AddOnCategory;
   billingFlag: string | null;
   dataCategories: DataCategory[];
@@ -141,6 +141,15 @@ type AddOnCategoryInfo = {
   order: number;
   productName: string;
 };
+
+type AddOn = AddOnCategoryInfo & {
+  enabled: boolean;
+};
+
+type AddOns = Partial<Record<AddOnCategory, AddOn>>;
+
+// how addons are represented in the checkout form data
+export type CheckoutAddOns = Partial<Record<AddOnCategory, Pick<AddOn, 'enabled'>>>;
 
 export type Plan = {
   addOnCategories: Partial<Record<AddOnCategory, AddOnCategoryInfo>>;
@@ -396,6 +405,7 @@ export type Subscription = {
   // Seats
   usedLicenses: number;
   acv?: number;
+  addOns?: AddOns;
   // Billing information
   billingEmail?: string | null;
   channel?: string;
@@ -420,6 +430,7 @@ export type Subscription = {
 
   owner?: {email: string; name: string};
   previousPaidPlans?: string[];
+
   productTrials?: ProductTrial[];
   reservedBudgets?: ReservedBudget[];
   // Added by SubscriptionStore
@@ -671,6 +682,7 @@ export enum InvoiceItemType {
   RESERVED_SEER_AUTOFIX = 'reserved_seer_autofix',
   RESERVED_SEER_SCANNER = 'reserved_seer_scanner',
   RESERVED_SEER_BUDGET = 'reserved_seer_budget',
+  RESERVED_PREVENT_USERS = 'reserved_prevent_users',
   RESERVED_LOG_BYTES = 'reserved_log_bytes',
 }
 
