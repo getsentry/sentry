@@ -184,14 +184,14 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@sentry-internal/rrweb':
-        specifier: 2.34.0
-        version: 2.34.0
+        specifier: 2.38.0
+        version: 2.38.0
       '@sentry-internal/rrweb-player':
-        specifier: 2.34.0
-        version: 2.34.0
+        specifier: 2.38.0
+        version: 2.38.0
       '@sentry-internal/rrweb-snapshot':
-        specifier: 2.34.0
-        version: 2.34.0
+        specifier: 2.38.0
+        version: 2.38.0
       '@sentry/core':
         specifier: 10.13.0
         version: 10.13.0
@@ -417,6 +417,9 @@ importers:
       moment-timezone:
         specifier: 0.6.0
         version: 0.6.0
+      nuqs:
+        specifier: 2.7.0
+        version: 2.7.0(react-router-dom@6.30.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-router@6.30.1(react@19.1.0))(react@19.1.0)
       papaparse:
         specifier: ^5.3.2
         version: 5.3.2
@@ -542,8 +545,8 @@ importers:
         specifier: 0.0.4
         version: 0.0.4
       '@sentry-internal/rrweb-types':
-        specifier: 2.34.0
-        version: 2.34.0
+        specifier: 2.38.0
+        version: 2.38.0
       '@sentry/jest-environment':
         specifier: 6.1.0
         version: 6.1.0(@sentry/node@10.13.0)(@sentry/profiling-node@10.13.0)(jest@30.0.4(@types/node@22.15.21)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@types/node@22.15.21)(typescript@5.9.2)))
@@ -3111,23 +3114,23 @@ packages:
     resolution: {integrity: sha512-Gp2keOmy9V4YSchQPdba5lkG+XUpzm9ixCiJpCZ3hE0TKrYUHmrKYRyOCOvzg77aP4oif4WgDTAQjABuxilfXw==}
     engines: {node: '>=18'}
 
-  '@sentry-internal/rrdom@2.34.0':
-    resolution: {integrity: sha512-NFGNzI9iGYpJ1D7j8qLu4pFMGDMumQzM9/wMPQpmDQTCZYV25To5lxT7z5K1huPAIyh5NLW+hQlMx/hXxXwJ6w==}
+  '@sentry-internal/rrdom@2.38.0':
+    resolution: {integrity: sha512-dGwbtlEekAZ8gny2Udu5jed3ktTfhr4ALiTer8D3zAzjrhre+cdqXMYcUPjQb8cZeOTb0+tFjN25hOyMoSPoKw==}
 
-  '@sentry-internal/rrweb-packer@2.34.0':
-    resolution: {integrity: sha512-82dVRWbTw023wTSxhV/yjNkaTxbpvDO5SNRMVc4R42LHF1dRj3TND19TGPOw250jRwDxeAmgdshVFVfsqh6Wsw==}
+  '@sentry-internal/rrweb-packer@2.38.0':
+    resolution: {integrity: sha512-GFOx77M3lNwS8VCaHZbzYxoGu5LupfgNKcELVpFzNRsc21f5ZG+0FRq/4UyfWYEwOTE7qgiBsklXaMXwjCBOKw==}
 
-  '@sentry-internal/rrweb-player@2.34.0':
-    resolution: {integrity: sha512-iF30h3FTPLddXfkaJ+Yg5ha+in8tyAjwOCEFR/1v5fR8oYBUNbJAjrSalUBQb9xguXE6zK4dDWn18rHi/3fRgw==}
+  '@sentry-internal/rrweb-player@2.38.0':
+    resolution: {integrity: sha512-7sTbh02I6L6kEtQbt0Xs98X6rUXkPBETud/mGV05H+VwN8EfnI7C+HGtxUjWBdvJx3d+1g5MtrkjXJ+jav6oqA==}
 
-  '@sentry-internal/rrweb-snapshot@2.34.0':
-    resolution: {integrity: sha512-9Tb8jwVufn5GLV0d/CTuoZWo2O06ZB+xWeTJdEkbtJ6PAmO/Q7GQI3uNIx0pfFEnXP+0Km8CKKxpwkEM0z2m6w==}
+  '@sentry-internal/rrweb-snapshot@2.38.0':
+    resolution: {integrity: sha512-T7BdvyVa4ErfPpqh9c9b/AT7eezu0UrAb8KbWhy5aGpg/UPP1qHx5LH4QWIHdACGo1luAsCNRaCmGquaBfL7og==}
 
-  '@sentry-internal/rrweb-types@2.34.0':
-    resolution: {integrity: sha512-6g5TN8YjqxrZOSQZGMLeZ2XYXdmqaKzPdIzKRySK+rKT/1fJE2gcefJEPDxiix0z/6/v5hGu/Ia8+wbJ7ACHwQ==}
+  '@sentry-internal/rrweb-types@2.38.0':
+    resolution: {integrity: sha512-Op4iJfR6tVIV6dGHWefJ9CnUY5dK9ouE0hoY3pP0xPk+eWDouUQ4wXX7aFhDW4NTwKh1nDeM2EL+pVETZSOVfw==}
 
-  '@sentry-internal/rrweb@2.34.0':
-    resolution: {integrity: sha512-NAzpnMOvsIV8o6rEvJ7SDs/TwuHXSrRmuAYYedrOQyJoLq00HF+6wQGe6SAyXv/bkumXmQfjyJ6bv4XNtC4S6g==}
+  '@sentry-internal/rrweb@2.38.0':
+    resolution: {integrity: sha512-9wbIRbA/ic7P4AgCwHSd2jOLjCmkClZv+kRBevg0kqLywkuQqPMTBflbQDSQcbpUC0p1l/w8i3lk6AAkdZtipw==}
 
   '@sentry/babel-plugin-component-annotate@4.0.0':
     resolution: {integrity: sha512-1sozj4esnQBhJ2QO4imiLMl1858StkLjUxFF1KxgX/X1uEL/QlW2MYL8CKzbLeACy1SkR9h4V8GXSZvCnci5Dw==}
@@ -3291,6 +3294,9 @@ packages:
 
   '@socket.io/component-emitter@3.1.2':
     resolution: {integrity: sha512-9BCxFwvbGg/RsZK9tjXd8s4UcwR0MWeFQ1XEKIQVVvAGJyINdrqKMcTRyLoK8Rse1GjzLV9cwjWV1olXRWEXVA==}
+
+  '@standard-schema/spec@1.0.0':
+    resolution: {integrity: sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==}
 
   '@stripe/react-stripe-js@3.9.2':
     resolution: {integrity: sha512-urAZek4LrnHWfk4WYXItOiX+6xyxjcn0SkhBDoysXphLkUt92UWCd5+NlomhVqaLo98XiUQGZRiRcL8HOHZ8Jw==}
@@ -7019,6 +7025,27 @@ packages:
 
   nth-check@2.1.1:
     resolution: {integrity: sha512-lqjrjmaOoAnWfMmBPL+XNnynZh2+swxiX3WUE0s4yEHI6m+AwrK2UZOimIRl3X/4QctVqS8AiZjFqyOGrMXb/w==}
+
+  nuqs@2.7.0:
+    resolution: {integrity: sha512-p6j6AuOVbnIlMSOlymKVDQtDkSCgjKxikwrqE9zThEOrP0UMfB/dwHuc6nKCuBPveoNghbh15zwoyTTv0XLp+A==}
+    peerDependencies:
+      '@remix-run/react': '>=2'
+      '@tanstack/react-router': ^1
+      next: '>=14.2.0'
+      react: '>=18.2.0 || ^19.0.0-0'
+      react-router: ^6 || ^7
+      react-router-dom: ^6 || ^7
+    peerDependenciesMeta:
+      '@remix-run/react':
+        optional: true
+      '@tanstack/react-router':
+        optional: true
+      next:
+        optional: true
+      react-router:
+        optional: true
+      react-router-dom:
+        optional: true
 
   nwsapi@2.2.20:
     resolution: {integrity: sha512-/ieB+mDe4MrrKMT8z+mQL8klXydZWGR5Dowt4RAGKbJ3kIGEx3X4ljUo+6V73IXtUPWgfOlU5B9MlGxFO5T+cA==}
@@ -12052,33 +12079,33 @@ snapshots:
       '@sentry-internal/browser-utils': 10.13.0
       '@sentry/core': 10.13.0
 
-  '@sentry-internal/rrdom@2.34.0':
+  '@sentry-internal/rrdom@2.38.0':
     dependencies:
-      '@sentry-internal/rrweb-snapshot': 2.34.0
+      '@sentry-internal/rrweb-snapshot': 2.38.0
 
-  '@sentry-internal/rrweb-packer@2.34.0':
+  '@sentry-internal/rrweb-packer@2.38.0':
     dependencies:
-      '@sentry-internal/rrweb-types': 2.34.0
+      '@sentry-internal/rrweb-types': 2.38.0
       fflate: 0.4.8
 
-  '@sentry-internal/rrweb-player@2.34.0':
+  '@sentry-internal/rrweb-player@2.38.0':
     dependencies:
-      '@sentry-internal/rrweb': 2.34.0
-      '@sentry-internal/rrweb-packer': 2.34.0
+      '@sentry-internal/rrweb': 2.38.0
+      '@sentry-internal/rrweb-packer': 2.38.0
       '@tsconfig/svelte': 1.0.13
 
-  '@sentry-internal/rrweb-snapshot@2.34.0': {}
+  '@sentry-internal/rrweb-snapshot@2.38.0': {}
 
-  '@sentry-internal/rrweb-types@2.34.0':
+  '@sentry-internal/rrweb-types@2.38.0':
     dependencies:
-      '@sentry-internal/rrweb-snapshot': 2.34.0
+      '@sentry-internal/rrweb-snapshot': 2.38.0
       '@types/css-font-loading-module': 0.0.7
 
-  '@sentry-internal/rrweb@2.34.0':
+  '@sentry-internal/rrweb@2.38.0':
     dependencies:
-      '@sentry-internal/rrdom': 2.34.0
-      '@sentry-internal/rrweb-snapshot': 2.34.0
-      '@sentry-internal/rrweb-types': 2.34.0
+      '@sentry-internal/rrdom': 2.38.0
+      '@sentry-internal/rrweb-snapshot': 2.38.0
+      '@sentry-internal/rrweb-types': 2.38.0
       '@types/css-font-loading-module': 0.0.7
       '@xstate/fsm': 1.6.5
       base64-arraybuffer: 1.0.2
@@ -12300,6 +12327,8 @@ snapshots:
       '@sinonjs/commons': 3.0.1
 
   '@socket.io/component-emitter@3.1.2': {}
+
+  '@standard-schema/spec@1.0.0': {}
 
   '@stripe/react-stripe-js@3.9.2(@stripe/stripe-js@5.10.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
@@ -16993,6 +17022,14 @@ snapshots:
   nth-check@2.1.1:
     dependencies:
       boolbase: 1.0.0
+
+  nuqs@2.7.0(react-router-dom@6.30.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-router@6.30.1(react@19.1.0))(react@19.1.0):
+    dependencies:
+      '@standard-schema/spec': 1.0.0
+      react: 19.1.0
+    optionalDependencies:
+      react-router: 6.30.1(react@19.1.0)
+      react-router-dom: 6.30.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
 
   nwsapi@2.2.20: {}
 

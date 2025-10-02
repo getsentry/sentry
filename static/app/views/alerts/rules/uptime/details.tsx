@@ -56,7 +56,8 @@ export default function UptimeAlertDetails() {
   } = useDetectorQuery<UptimeDetector>(detectorId);
 
   const {data: uptimeSummaries} = useUptimeMonitorSummaries({detectorIds: [detectorId]});
-  const summary = uptimeSummaries?.[detectorId];
+  const summary =
+    uptimeSummaries === undefined ? undefined : (uptimeSummaries?.[detectorId] ?? null);
 
   // Only display the missed window legend when there are visible missed window
   // check-ins in the timeline

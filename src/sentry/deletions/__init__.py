@@ -83,6 +83,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.Release, defaults.ReleaseDeletionTask)
     manager.register(models.ReleaseCommit, BulkModelDeletionTask)
     manager.register(models.ReleaseEnvironment, BulkModelDeletionTask)
+    manager.register(models.ReleaseFile, BulkModelDeletionTask)
     manager.register(models.ReleaseHeadCommit, BulkModelDeletionTask)
     manager.register(models.ReleaseProject, BulkModelDeletionTask)
     manager.register(models.ReleaseProjectEnvironment, BulkModelDeletionTask)

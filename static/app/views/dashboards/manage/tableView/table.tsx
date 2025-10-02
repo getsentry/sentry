@@ -136,7 +136,7 @@ export function DashboardTable({
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="created-by">
               {dashboard.createdBy === null ? (
-                <Tooltip title={'Sentry'}>
+                <Tooltip title="Sentry">
                   <ActivityAvatar type="system" size={20} />
                 </Tooltip>
               ) : dashboard.createdBy ? (

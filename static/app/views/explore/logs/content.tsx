@@ -18,7 +18,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
@@ -76,33 +75,32 @@ export default function LogsContent() {
           },
         }}
       >
-        <LogsQueryParamsProvider source="location">
-          <LogsPageParamsProvider
-            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-          >
-            <Layout.Page>
-              <LogsHeader />
-              <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-                <LogsPageDataProvider>
-                  {defined(onboardingProject) ? (
-                    <LogsTabOnboarding
-                      organization={organization}
-                      project={onboardingProject}
-                      defaultPeriod={defaultPeriod}
-                      maxPickableDays={maxPickableDays}
-                      relativeOptions={relativeOptions}
-                    />
-                  ) : (
-                    <LogsTabContent
-                      defaultPeriod={defaultPeriod}
-                      maxPickableDays={maxPickableDays}
-                      relativeOptions={relativeOptions}
-                    />
-                  )}
-                </LogsPageDataProvider>
-              </TraceItemAttributeProvider>
-            </Layout.Page>
-          </LogsPageParamsProvider>
+        <LogsQueryParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+          source="location"
+        >
+          <Layout.Page>
+            <LogsHeader />
+            <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+              <LogsPageDataProvider>
+                {defined(onboardingProject) ? (
+                  <LogsTabOnboarding
+                    organization={organization}
+                    project={onboardingProject}
+                    defaultPeriod={defaultPeriod}
+                    maxPickableDays={maxPickableDays}
+                    relativeOptions={relativeOptions}
+                  />
+                ) : (
+                  <LogsTabContent
+                    defaultPeriod={defaultPeriod}
+                    maxPickableDays={maxPickableDays}
+                    relativeOptions={relativeOptions}
+                  />
+                )}
+              </LogsPageDataProvider>
+            </TraceItemAttributeProvider>
+          </Layout.Page>
         </LogsQueryParamsProvider>
       </PageFiltersContainer>
     </SentryDocumentTitle>

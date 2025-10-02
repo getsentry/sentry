@@ -946,6 +946,7 @@ export interface BaseGroup {
 export interface GroupOpenPeriod {
   duration: string;
   end: string;
+  id: string;
   isOpen: boolean;
   lastChecked: string;
   start: string;

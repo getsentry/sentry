@@ -209,16 +209,16 @@ export default function MetricDetailsBody({
               relativeOptions={relativeOptions}
               showAbsolute={false}
               disallowArbitraryRelativeRanges
-              triggerLabel={
-                timePeriod.custom
+              triggerProps={{
+                children: timePeriod.custom
                   ? timePeriod.label
                   : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    relativeOptions[timePeriod.period ?? '']
-              }
+                    relativeOptions[timePeriod.period ?? ''],
+              }}
             />
             {selectedIncident && (
               <Tooltip
-                title={`Click to clear filters`}
+                title="Click to clear filters"
                 isHoverable
                 containerDisplayMode="inline-flex"
               >

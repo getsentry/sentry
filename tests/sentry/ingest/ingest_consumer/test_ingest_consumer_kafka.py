@@ -79,7 +79,7 @@ def random_group_id() -> str:
 
 
 @django_db_all(transaction=True)
-def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
+def test_ingest_consumer_reads_from_topic_and_calls_task(
     task_runner,
     kafka_producer,
     kafka_admin,

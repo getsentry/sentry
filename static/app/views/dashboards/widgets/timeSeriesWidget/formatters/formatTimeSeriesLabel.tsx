@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import {
   getAggregateArg,
   getMeasurementSlug,
@@ -8,10 +9,14 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
-export function formatTimeSeriesLabel(timeSeries: TimeSeries): string {
+export function formatTimeSeriesName(timeSeries: TimeSeries): string {
   // If the timeSeries has `groupBy` information, the label is made by
   // concatenating the values of the groupBy, since there's no point repeating
   // the name of the Y axis multiple times in the legend.
+  if (timeSeries.meta.isOther) {
+    return t('Other');
+  }
+
   if (timeSeries.groupBy?.length && timeSeries.groupBy.length > 0) {
     return `${timeSeries.groupBy
       ?.map(groupBy => {

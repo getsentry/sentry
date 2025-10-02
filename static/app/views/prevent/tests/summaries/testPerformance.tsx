@@ -6,6 +6,7 @@ import {Heading, Text} from 'sentry/components/core/text';
 import {SummaryCard, SummaryCardGroup} from 'sentry/components/prevent/summary';
 import {t} from 'sentry/locale';
 import {formatPercentRate} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 function FlakyTestsTooltip() {
   return (
@@ -100,7 +101,7 @@ function TestPerformanceBody({
         extra={
           flakyTestsChange ? (
             <Tag type={flakyTestsChange > 0 ? 'error' : 'success'}>
-              {formatPercentRate(flakyTestsChange)}
+              {formatPercentRate(flakyTestsChange, {minimumValue: 0.01})}
             </Tag>
           ) : undefined
         }
@@ -109,12 +110,14 @@ function TestPerformanceBody({
         label={t('Avg. Flake Rate')}
         tooltip={<AverageFlakeTooltip />}
         value={
-          averageFlakeRate === undefined ? undefined : `${averageFlakeRate?.toFixed(2)}%`
+          averageFlakeRate === undefined
+            ? undefined
+            : formatPercentage(averageFlakeRate / 100, 2, {minimumValue: 0.0001})
         }
         extra={
           averageFlakeRateChange ? (
             <Tag type={averageFlakeRateChange > 0 ? 'error' : 'success'}>
-              {formatPercentRate(averageFlakeRateChange)}
+              {formatPercentRate(averageFlakeRateChange, {minimumValue: 0.01})}
             </Tag>
           ) : undefined
         }
@@ -127,7 +130,7 @@ function TestPerformanceBody({
         extra={
           cumulativeFailuresChange ? (
             <Tag type={cumulativeFailuresChange > 0 ? 'error' : 'success'}>
-              {formatPercentRate(cumulativeFailuresChange)}
+              {formatPercentRate(cumulativeFailuresChange, {minimumValue: 0.01})}
             </Tag>
           ) : undefined
         }
@@ -140,7 +143,7 @@ function TestPerformanceBody({
         extra={
           skippedTestsChange ? (
             <Tag type={skippedTestsChange > 0 ? 'error' : 'success'}>
-              {formatPercentRate(skippedTestsChange)}
+              {formatPercentRate(skippedTestsChange, {minimumValue: 0.01})}
             </Tag>
           ) : undefined
         }
