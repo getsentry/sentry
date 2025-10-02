@@ -31,7 +31,7 @@ class InvalidQuery(Exception):
     pass
 
 
-def get_user_tag(projects: Sequence[Project], key: str, value: str) -> str:
+def get_user_tag(projects: Sequence[Project], key: str, value: str) -> str | None:
     # TODO(dcramer): do something with case of multiple matches
     try:
         euser = EventUser.for_projects(projects, {key: [value]}, result_limit=1)[0]
