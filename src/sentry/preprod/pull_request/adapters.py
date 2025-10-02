@@ -113,6 +113,7 @@ class PullRequestDataAdapter:
 
         # Get build details for the head SHA if available
         head_sha = pr_data.get("head", {}).get("sha")
+        build_details = []
         if head_sha:
             build_details = PullRequestDataAdapter._get_build_details_for_sha_if_exists(
                 head_sha, organization_id
