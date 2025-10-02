@@ -1,7 +1,7 @@
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
+from sentry.workflow_engine.types import ActionHandler, ConfigTransformer, WorkflowEventData
 
 
 @action_handler_registry.register(Action.Type.PLUGIN)
@@ -26,6 +26,10 @@ class PluginActionHandler(ActionHandler):
         },
     }
     data_schema = {}
+
+    @staticmethod
+    def get_config_transformer() -> ConfigTransformer | None:
+        return None
 
     @staticmethod
     def execute(

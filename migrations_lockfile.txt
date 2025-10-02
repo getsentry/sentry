@@ -29,7 +29,7 @@ releases: 0001_release_models
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0994_add_groupreaction_table
+sentry: 0995_add_date_updated_to_grouphash_metadata
 
 social_auth: 0003_social_auth_json_field
 
@@ -37,4 +37,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0046_delete_project_uptime_subscription_table
 
-workflow_engine: 0090_add_detectorgroup_detector_date_index
+workflow_engine: 0091_fix_email_notification_names

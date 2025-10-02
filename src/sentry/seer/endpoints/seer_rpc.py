@@ -888,16 +888,22 @@ def get_github_enterprise_integration_config(
     installation = integration.get_installation(organization_id=organization_id)
     assert isinstance(installation, GitHubEnterpriseIntegration)
 
-    client = installation.get_client()
-    access_token_data = client.get_access_token()
+    integration = integration_service.refresh_github_access_token(
+        integration_id=integration.id,
+        organization_id=organization_id,
+    )
 
-    if not access_token_data:
+    assert integration is not None, "Integration should have existed given previous checks"
+
+    access_token = integration.metadata["access_token"]
+    permissions = integration.metadata["permissions"]
+
+    if not access_token:
         logger.error("No access token found for integration %s", integration.id)
         return {"success": False}
 
     try:
         fernet = Fernet(settings.SEER_GHE_ENCRYPT_KEY.encode("utf-8"))
-        access_token = access_token_data["access_token"]
         encrypted_access_token = fernet.encrypt(access_token.encode("utf-8")).decode("utf-8")
     except Exception:
         logger.exception("Failed to encrypt access token")
@@ -908,7 +914,7 @@ def get_github_enterprise_integration_config(
         "base_url": f"https://{installation.model.metadata['domain_name'].split('/')[0]}/api/v3",
         "verify_ssl": installation.model.metadata["installation"]["verify_ssl"],
         "encrypted_access_token": encrypted_access_token,
-        "permissions": access_token_data["permissions"],
+        "permissions": permissions,
     }
 
 

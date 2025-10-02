@@ -358,7 +358,11 @@ function Overview({location, subscription, promotionData}: Props) {
         <RecurringCredits displayType="data" planDetails={planDetails} />
         <OnDemandDisabled subscription={subscription} />
         <UsageAlert subscription={subscription} usage={usageData} />
-        <DisplayModeToggle subscription={subscription} displayMode={displayMode} />
+        <DisplayModeToggle
+          subscription={subscription}
+          displayMode={displayMode}
+          organization={organization}
+        />
         {renderUsageChart(usageData)}
         {renderUsageCards(usageData)}
         <OnDemandSettings organization={organization} subscription={subscription} />

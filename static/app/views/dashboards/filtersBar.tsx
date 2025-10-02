@@ -136,7 +136,7 @@ export default function FiltersBar({
             >
               {t('Save')}
             </Button>
-            <Button data-test-id={'filter-bar-cancel'} onClick={onCancel}>
+            <Button data-test-id="filter-bar-cancel" onClick={onCancel}>
               {t('Cancel')}
             </Button>
           </FilterButtons>

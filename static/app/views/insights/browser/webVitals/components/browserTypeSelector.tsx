@@ -88,7 +88,7 @@ export default function BrowserTypeSelector() {
       multiple
       clearable
       value={value}
-      menuTitle={'Filter Browsers'}
+      menuTitle="Filter Browsers"
       options={browserOptions ?? []}
       onChange={(selectedOptions: Array<SelectOption<string>>) => {
         trackAnalytics('insight.vital.select_browser_value', {
