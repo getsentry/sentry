@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, type FlexProps} from 'sentry/components/core/layout';
 
 interface SideBySideProps extends Omit<FlexProps, 'direction' | 'children'> {
   children: React.ReactNode;
