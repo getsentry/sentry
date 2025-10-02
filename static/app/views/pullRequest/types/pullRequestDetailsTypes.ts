@@ -53,32 +53,3 @@ export interface PullRequestDetailsErrorResponse {
 export type PullRequestDetailsResponse =
   | PullRequestDetailsSuccessResponse
   | PullRequestDetailsErrorResponse;
-
-export interface GitHubUser {
-  avatar_url: string;
-  html_url: string;
-  id: number;
-  login: string;
-  type: string;
-}
-
-export interface GitHubComment {
-  body: string;
-  created_at: string;
-  html_url: string;
-  id: number;
-  updated_at: string;
-  url: string;
-  user: GitHubUser;
-  diff_hunk?: string;
-  line?: number;
-  original_line?: number;
-  path?: string;
-  position?: number;
-  side?: 'LEFT' | 'RIGHT';
-}
-
-export interface PRCommentsData {
-  file_comments: Record<string, GitHubComment[]>;
-  general_comments: GitHubComment[];
-}
