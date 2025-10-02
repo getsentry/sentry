@@ -64,4 +64,3 @@ all = default_manager.all
 add_handler = default_manager.add_handler
 add_entity_handler = default_manager.add_entity_handler
 has_for_batch = default_manager.has_for_batch
-batch_has_for_organizations = default_manager.batch_has_for_organizations
