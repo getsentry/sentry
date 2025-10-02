@@ -88,19 +88,8 @@ def merge_mappings(values: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def _generate_culprit(event: GroupEvent) -> str:
-    # XXX(mitsuhiko): workaround: some old events do not have this data yet.
-    # This should be save delete by end of 2019 even considering slow
-    # self-hosted releases. Platform was added back to data in december 2018.
-    data = event.data
-    if data.get("platform") is None:
-        data_dict = dict(data.items())
-        data_dict["platform"] = event.platform
-    return generate_culprit(data)
-
-
 initial_fields = {
-    "culprit": lambda event, group: _generate_culprit(event),
+    "culprit": lambda event, group: generate_culprit(event.data),
     "data": lambda event, group: {
         "last_received": event.data.get("received") or float(event.datetime.strftime("%s")),
         "type": event.data["type"],
