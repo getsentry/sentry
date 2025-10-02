@@ -40,11 +40,12 @@ def set_default_disabled_detectors(project: Project) -> None:
 
     disabled_by_config = {k: False for k in disabled_by_config_keys}
 
-    project.update_option(
-        SETTINGS_PROJECT_OPTION_KEY,
-        {
-            **performance_issue_settings_default,
-            **performance_issue_settings,
-            **disabled_by_config,
-        },
-    )
+    if disabled_by_config:
+        project.update_option(
+            SETTINGS_PROJECT_OPTION_KEY,
+            {
+                **performance_issue_settings_default,
+                **performance_issue_settings,
+                **disabled_by_config,
+            },
+        )

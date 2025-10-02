@@ -5,6 +5,7 @@ from copy import copy
 from datetime import datetime, timedelta, timezone
 from typing import TypedDict
 
+from django import forms
 from django.db import models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
@@ -103,8 +104,10 @@ from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
     organization_provisioning_service,
 )
+from sentry.types.prevent_config import PREVENT_AI_CONFIG_GITHUB_DEFAULT, PREVENT_AI_CONFIG_SCHEMA
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.audit import create_audit_entry
+from sentry.workflow_engine.endpoints.validators.utils import validate_json_schema
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
 ERR_NO_USER = "This request requires an authenticated user."
@@ -112,6 +115,8 @@ ERR_NO_2FA = "Cannot require two-factor authentication without personal two-fact
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
 ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration. Contact support if you need assistance."
 ERR_PLAN_REQUIRED = "A paid plan is required to enable this feature."
+
+
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
     ("dataScrubber", "sentry:require_scrub_data", bool, REQUIRE_SCRUB_DATA_DEFAULT),
@@ -233,6 +238,12 @@ ORG_OPTIONS = (
         DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ),
     (
+        "preventAiConfigGithub",
+        "sentry:prevent_ai_config_github",
+        dict,
+        PREVENT_AI_CONFIG_GITHUB_DEFAULT,
+    ),
+    (
         "enablePrReviewTestGeneration",
         "sentry:enable_pr_review_test_generation",
         bool,
@@ -337,6 +348,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     )
     enablePrReviewTestGeneration = serializers.BooleanField(required=False)
     enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
+    preventAiConfigGithub = serializers.JSONField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
     ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
@@ -445,6 +457,14 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         # as this is handled by a choice field, we don't need to check the values of the field
 
+        return value
+
+    def validate_preventAiConfigGithub(self, value):
+        """Validate the structure using JSON Schema - generic error for invalid configs."""
+        try:
+            validate_json_schema(value, PREVENT_AI_CONFIG_SCHEMA)
+        except forms.ValidationError:
+            raise serializers.ValidationError("Prevent AI config option is invalid")
         return value
 
     def validate(self, attrs):
@@ -722,6 +742,7 @@ def create_console_platform_audit_log(
         "genAIConsent",
         "defaultAutofixAutomationTuning",
         "defaultSeerScannerAutomation",
+        "preventAiConfigGithub",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
     ]

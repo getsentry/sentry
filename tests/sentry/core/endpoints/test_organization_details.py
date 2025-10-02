@@ -1312,6 +1312,574 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(self.organization.slug, **data)
         assert self.organization.get_option("sentry:default_seer_scanner_automation") is True
 
+    def test_prevent_ai_config_github(self) -> None:
+        data = {
+            "preventAiConfigGithub": {
+                "schema_version": "v1",
+                "org_defaults": {
+                    "bug_prediction": {
+                        "enabled": True,
+                        "sensitivity": "high",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                    "test_generation": {
+                        "enabled": False,
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": True,
+                        },
+                    },
+                    "vanilla": {
+                        "enabled": True,
+                        "sensitivity": "medium",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                },
+                "repo_overrides": {
+                    "my_repo_name": {
+                        "bug_prediction": {
+                            "enabled": False,
+                            "sensitivity": "low",
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": True,
+                            },
+                        },
+                        "test_generation": {
+                            "enabled": True,
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": False,
+                            "sensitivity": "critical",
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": True,
+                            },
+                        },
+                    }
+                },
+            }
+        }
+        self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:prevent_ai_config_github")
+            == data["preventAiConfigGithub"]
+        )
+
+        data = {
+            "preventAiConfigGithub": {
+                "schema_version": "v1",
+                "org_defaults": {
+                    "bug_prediction": {
+                        "enabled": True,
+                        "sensitivity": "high",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                    "test_generation": {
+                        "enabled": False,
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": True,
+                        },
+                    },
+                    "vanilla": {
+                        "enabled": True,
+                        "sensitivity": "medium",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                },
+                "repo_overrides": {
+                    "my_repo_name": {
+                        "bug_prediction": {
+                            "enabled": False,
+                            "sensitivity": "low",
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": True,
+                            },
+                        },
+                        "test_generation": {
+                            "enabled": True,
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": False,
+                            "sensitivity": "critical",
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": True,
+                            },
+                        },
+                    },
+                    "my_other_repo_name": {
+                        "bug_prediction": {
+                            "enabled": True,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "test_generation": {
+                            "enabled": False,
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": True,
+                            "sensitivity": "high",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                    },
+                },
+            }
+        }
+        self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:prevent_ai_config_github")
+            == data["preventAiConfigGithub"]
+        )
+
+    def test_prevent_ai_config_github_null_rejected(self) -> None:
+        """Test that setting preventAiConfigGithub to null is rejected"""
+        data = {"preventAiConfigGithub": None}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    def test_prevent_ai_config_github_get_default(self) -> None:
+        # Verify that when no config is set, it returns the default config
+        expected_default = {
+            "schema_version": "v1",
+            "org_defaults": {
+                "bug_prediction": {
+                    "enabled": False,
+                    "sensitivity": "medium",
+                    "triggers": {
+                        "on_command_phrase": True,
+                        "on_ready_for_review": True,
+                    },
+                },
+                "test_generation": {
+                    "enabled": False,
+                    "triggers": {
+                        "on_command_phrase": True,
+                        "on_ready_for_review": False,
+                    },
+                },
+                "vanilla": {
+                    "enabled": False,
+                    "sensitivity": "medium",
+                    "triggers": {
+                        "on_command_phrase": True,
+                        "on_ready_for_review": False,
+                    },
+                },
+            },
+            "repo_overrides": {},
+        }
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["preventAiConfigGithub"] == expected_default
+
+    def test_prevent_ai_config_github_validation_missing_fields(self) -> None:
+        """Test that missing required fields are rejected"""
+        # Missing org_defaults
+        data: dict[str, dict[str, Any]] = {
+            "preventAiConfigGithub": {"schema_version": "v1", "repo_overrides": {}}
+        }
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        # Verify we get a validation error for missing required field
+        assert "preventAiConfigGithub" in response.data
+        error_msg = str(response.data["preventAiConfigGithub"])
+        assert "Prevent AI config option is invalid" in error_msg
+
+    def test_prevent_ai_config_github_validation_invalid_structure(self) -> None:
+        """Test that invalid structures are rejected"""
+        # Not an object
+        data_1 = {"preventAiConfigGithub": "invalid"}
+        response = self.get_error_response(self.organization.slug, status_code=400, **data_1)
+        # Check for validation error
+        error_msg = str(response.data["preventAiConfigGithub"])
+        assert "Prevent AI config option is invalid" in error_msg
+
+        # Missing feature fields
+        data_2: dict[str, dict] = {
+            "preventAiConfigGithub": {
+                "schema_version": "v1",
+                "org_defaults": {
+                    "bug_prediction": {
+                        "enabled": True,
+                        "sensitivity": "high",
+                        # Missing triggers
+                    }
+                },
+                "repo_overrides": {},
+            }
+        }
+        response = self.get_error_response(self.organization.slug, status_code=400, **data_2)
+        # Check for validation error
+        assert "preventAiConfigGithub" in response.data
+        error_msg = str(response.data["preventAiConfigGithub"])
+        assert "Prevent AI config option is invalid" in error_msg
+
+    def test_prevent_ai_config_github_validation_missing_repo_overrides(self) -> None:
+        """Test missing repo_overrides field"""
+        data = {
+            "preventAiConfigGithub": {
+                "schema_version": "v1",
+                "org_defaults": {
+                    "bug_prediction": {
+                        "enabled": True,
+                        "sensitivity": "high",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                    "test_generation": {
+                        "enabled": False,
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": True,
+                        },
+                    },
+                    "vanilla": {
+                        "enabled": True,
+                        "sensitivity": "medium",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                },
+                # Missing repo_overrides
+            }
+        }
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert "preventAiConfigGithub" in response.data
+
+    def test_prevent_ai_config_github_validation_missing_trigger(self) -> None:
+        """Test missing trigger field"""
+        data = {
+            "preventAiConfigGithub": {
+                "schema_version": "v1",
+                "org_defaults": {
+                    "bug_prediction": {
+                        "enabled": True,
+                        "sensitivity": "high",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            # Missing on_ready_for_review
+                        },
+                    },
+                    "test_generation": {
+                        "enabled": False,
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": True,
+                        },
+                    },
+                    "vanilla": {
+                        "enabled": True,
+                        "sensitivity": "medium",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                },
+                "repo_overrides": {},
+            }
+        }
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert "preventAiConfigGithub" in response.data
+
+    def test_prevent_ai_config_github_validation_missing_setting_field(self) -> None:
+        """Test missing setting field"""
+        data = {
+            "preventAiConfigGithub": {
+                "schema_version": "v1",
+                "org_defaults": {
+                    "bug_prediction": {
+                        "enabled": True,
+                        "sensitivity": "high",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                    "test_generation": {
+                        "enabled": False,
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": True,
+                        },
+                    },
+                    # Missing vanilla feature
+                },
+                "repo_overrides": {},
+            }
+        }
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert "preventAiConfigGithub" in response.data
+
+    def test_prevent_ai_config_github_validation_wrong_data_types(self) -> None:
+        """Test wrong data types"""
+        data = {
+            "preventAiConfigGithub": {
+                "schema_version": "v1",
+                "org_defaults": {
+                    "bug_prediction": {
+                        "enabled": "yes",  # String instead of bool
+                        "sensitivity": "high",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                    "test_generation": {
+                        "enabled": False,
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": True,
+                        },
+                    },
+                    "vanilla": {
+                        "enabled": True,
+                        "sensitivity": "medium",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                },
+                "repo_overrides": {},
+            }
+        }
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        # Should get object-level validation error
+        assert "preventAiConfigGithub" in response.data
+        error_msg = str(response.data["preventAiConfigGithub"])
+        assert "Prevent AI config option is invalid" in error_msg
+
+    def test_prevent_ai_config_github_validation_repo_overrides(self) -> None:
+        """Test validation specifically for repo_overrides structure"""
+
+        # Invalid repo override - missing features
+        data = {
+            "preventAiConfigGithub": {
+                "schema_version": "v1",
+                "org_defaults": {
+                    "bug_prediction": {
+                        "enabled": True,
+                        "sensitivity": "high",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                    "test_generation": {
+                        "enabled": False,
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": True,
+                        },
+                    },
+                    "vanilla": {
+                        "enabled": True,
+                        "sensitivity": "medium",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                },
+                "repo_overrides": {
+                    "my_repo": {
+                        # Missing all features
+                    }
+                },
+            }
+        }
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        # Should get object-level validation error
+        assert "preventAiConfigGithub" in response.data
+        error_msg = str(response.data["preventAiConfigGithub"])
+        error_msg = str(response.data["preventAiConfigGithub"])
+        assert "Prevent AI config option is invalid" in error_msg
+
+        # Invalid repo override - wrong field types
+        data = {
+            "preventAiConfigGithub": {
+                "schema_version": "v1",
+                "org_defaults": {
+                    "bug_prediction": {
+                        "enabled": True,
+                        "sensitivity": "high",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                    "test_generation": {
+                        "enabled": False,
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": True,
+                        },
+                    },
+                    "vanilla": {
+                        "enabled": True,
+                        "sensitivity": "medium",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                },
+                "repo_overrides": {
+                    "my_repo": {
+                        "bug_prediction": {
+                            "enabled": 1,  # Number instead of bool
+                            "sensitivity": "high",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "test_generation": {
+                            "enabled": False,
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": True,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": True,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                    }
+                },
+            }
+        }
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert "preventAiConfigGithub" in response.data
+
+        # Valid repo overrides should work
+        data = {
+            "preventAiConfigGithub": {
+                "schema_version": "v1",
+                "org_defaults": {
+                    "bug_prediction": {
+                        "enabled": True,
+                        "sensitivity": "high",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                    "test_generation": {
+                        "enabled": False,
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": True,
+                        },
+                    },
+                    "vanilla": {
+                        "enabled": True,
+                        "sensitivity": "medium",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                },
+                "repo_overrides": {
+                    "repo_1": {
+                        "bug_prediction": {
+                            "enabled": False,
+                            "sensitivity": "low",
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": True,
+                            },
+                        },
+                        "test_generation": {
+                            "enabled": True,
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": False,
+                            "sensitivity": "critical",
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": True,
+                            },
+                        },
+                    },
+                    "repo_2": {
+                        "bug_prediction": {
+                            "enabled": True,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "test_generation": {
+                            "enabled": False,
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": True,
+                            "sensitivity": "high",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                    },
+                },
+            }
+        }
+        self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:prevent_ai_config_github")
+            == data["preventAiConfigGithub"]
+        )
+
     def test_enabled_console_platforms_present_in_response(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert "enabledConsolePlatforms" in response.data
