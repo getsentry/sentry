@@ -11,6 +11,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
+import {DsnSection} from './dsnSection';
 import {ProjectInstallPlatform} from './platform';
 
 type Props = RouteComponentProps<{projectId: string}>;
@@ -38,7 +39,14 @@ function GettingStarted({params}: Props) {
         {loadingProjects ? (
           <LoadingIndicator />
         ) : project ? (
-          <ProjectInstallPlatform project={project} platform={currentPlatform} />
+          <>
+            <DsnSection
+              organization={organization}
+              project={project}
+              platform={currentPlatform}
+            />
+            <ProjectInstallPlatform project={project} platform={currentPlatform} />
+          </>
         ) : (
           <Redirect
             to={makeProjectsPathname({
