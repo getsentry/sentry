@@ -68,7 +68,7 @@ const settingsRoutes = (): SentryRouteObject => ({
         },
         {
           path: 'notifications/',
-          name: 'Notifications',
+          name: 'Spend Notifications',
           component: make(() => import('../views/subscriptionPage/notifications')),
           deprecatedRouteProps: true,
         },
