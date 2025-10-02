@@ -15,6 +15,9 @@ wss.on('connection', (ws, req) => {
   const connectionId = ++connectionCounter;
   console.log(`Claude WebSocket client connected (connection-${connectionId})`);
 
+  // Variable to store the Claude session UUID
+  let claudeSessionId = null;
+
   // Check if claude command exists first
   const command = 'claude';
   const args = [
@@ -43,7 +46,8 @@ wss.on('connection', (ws, req) => {
   console.log(`Claude agent process spawned with PID: ${agent.pid}`);
 
   agent.on('spawn', () => {
-    console.log('Claude agent process successfully spawned');
+    console.log('[Server] Claude agent process successfully spawned');
+    console.log('[Server] Waiting for stdout data from Claude CLI...');
   });
 
   agent.on('error', error => {
@@ -88,22 +92,109 @@ wss.on('connection', (ws, req) => {
     }
   });
 
+  // Buffer to accumulate partial JSON objects
+  let buffer = '';
+  let hasReceivedData = false;
+
   // Forward agent stdout back to WebSocket
   agent.stdout.on('data', data => {
-    const output = data.toString();
-    console.log('Agent stdout:', output);
+    if (!hasReceivedData) {
+      console.log('[Server] ✓ First data received from Claude CLI stdout!');
+      hasReceivedData = true;
+    }
 
-    try {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(output);
+    const output = data.toString();
+    buffer += output;
+
+    console.log('[Server] Received data chunk, buffer length:', buffer.length);
+    console.log('[Server] Current claudeSessionId:', claudeSessionId || 'null');
+
+    // Try to parse complete JSON objects from the buffer
+    const lines = buffer.split('\n');
+
+    // Keep the last incomplete line in the buffer
+    buffer = lines.pop() || '';
+
+    console.log(`[Server] Processing ${lines.length} complete lines`);
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+
+      console.log('[Server] Processing line:', line.substring(0, 200) + (line.length > 200 ? '...' : ''));
+
+      // Try to extract session_id if we don't have it yet
+      if (!claudeSessionId) {
+        try {
+          const parsed = JSON.parse(line);
+          console.log('[Server] ========== FULL JSON MESSAGE ==========');
+          console.log(JSON.stringify(parsed, null, 2));
+          console.log('[Server] ============================================');
+          console.log('[Server] Parsed object keys:', Object.keys(parsed));
+          console.log('[Server] Checking for session_id field...');
+          console.log('[Server] parsed.session_id value:', parsed.session_id);
+
+          if (parsed.session_id) {
+            claudeSessionId = parsed.session_id;
+            console.log(`[Server] ✓✓✓ Captured Claude session ID: ${claudeSessionId}`);
+
+            // Send the session ID to the client immediately
+            if (ws.readyState === WebSocket.OPEN) {
+              const sessionInfoMessage = JSON.stringify({
+                type: 'session_info',
+                session_id: claudeSessionId
+              });
+              console.log('[Server] Sending session_info message to client:', sessionInfoMessage);
+              ws.send(sessionInfoMessage);
+            } else {
+              console.error('[Server] WebSocket not open, cannot send session_info');
+            }
+          } else {
+            console.log('[Server] ❌ JSON parsed but no session_id field found');
+          }
+        } catch (parseError) {
+          console.log('[Server] Line is not valid JSON:', parseError.message);
+        }
       }
-    } catch (error) {
-      console.error('Error sending data to WebSocket:', error);
+
+      // Forward the complete line to the client
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(line);
+      }
     }
   });
 
   agent.stderr.on('data', data => {
-    console.error('Claude agent stderr:', data.toString());
+    const stderrOutput = data.toString();
+    console.error('[Server] Claude agent stderr:', stderrOutput);
+
+    // Some CLIs output session info to stderr, check there too
+    if (!claudeSessionId && stderrOutput.includes('session')) {
+      console.log('[Server] Found "session" in stderr, checking for session_id...');
+      try {
+        const lines = stderrOutput.split('\n');
+        for (const line of lines) {
+          if (line.trim()) {
+            try {
+              const parsed = JSON.parse(line);
+              if (parsed.session_id) {
+                claudeSessionId = parsed.session_id;
+                console.log(`[Server] ✓✓✓ Captured session ID from stderr: ${claudeSessionId}`);
+                if (ws.readyState === WebSocket.OPEN) {
+                  ws.send(JSON.stringify({
+                    type: 'session_info',
+                    session_id: claudeSessionId
+                  }));
+                }
+              }
+            } catch {
+              // Not JSON
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[Server] Error parsing stderr:', error);
+      }
+    }
   });
 
   // Clean up on disconnect

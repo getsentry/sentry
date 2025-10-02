@@ -2,10 +2,13 @@ import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import {css, useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import color from 'color';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Flex, Stack} from 'sentry/components/core/layout';
 import {Separator} from 'sentry/components/core/separator';
 import {Text} from 'sentry/components/core/text';
@@ -18,13 +21,20 @@ import {
   ProfilingContextMenuItemButton,
 } from 'sentry/components/profiling/profilingContextMenu';
 import {NODE_ENV} from 'sentry/constants';
-import {IconChevron, IconCopy, IconDocs, IconLink, IconOpen} from 'sentry/icons';
+import {
+  IconChevron,
+  IconCopy,
+  IconDocs,
+  IconLink,
+  IconOpen,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   isMDXStory,
   useStoriesLoader,
   useStoryBookFiles,
 } from 'sentry/stories/view/useStoriesLoader';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -45,8 +55,160 @@ export function SentryComponentInspector() {
 
   const user: ReturnType<typeof useUser> | null = useUser();
   const organization = useOrganization({allowNull: true});
+
+  // AI-related state
+  const [aiInputVisible, setAiInputVisible] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [selectedComponent, setSelectedComponent] = useState<{
+    name: string;
+    sourcePath: string;
+    trace: TraceElement[];
+  } | null>(null);
+  const [claudeConnection, setClaudeConnection] = useState<{
+    connected: boolean;
+    sessionId: string | null;
+    ws: WebSocket | null;
+  }>({connected: false, sessionId: null, ws: null});
+  const [aiResponse, setAiResponse] = useState<string>('');
+  const [isClaudeProcessing, setIsClaudeProcessing] = useState(false);
+
+  // AI functionality handlers
+  const connectToClaude = useCallback(() => {
+    console.log('[Claude Connection] Attempting to connect...');
+    setClaudeConnection(prevConnection => {
+      console.log('[Claude Connection] Previous connection state:', prevConnection);
+
+      if (prevConnection.connected && prevConnection.ws) {
+        console.log('[Claude Connection] Already connected, reusing connection');
+        return prevConnection;
+      }
+
+      console.log('[Claude Connection] Creating new WebSocket connection to ws://localhost:8080');
+      const ws = new WebSocket('ws://localhost:8080');
+
+      ws.onopen = () => {
+        // eslint-disable-next-line no-console
+        console.log('[Claude Connection] ✓ WebSocket connection opened successfully');
+        setClaudeConnection(prev => ({...prev, connected: true}));
+      };
+
+      ws.onmessage = event => {
+        // eslint-disable-next-line no-console
+        console.log('[WebSocket] Raw message received:', event.data);
+
+        try {
+          // Check if this is a session_info message from our WebSocket server
+          const parsed = JSON.parse(event.data);
+          // eslint-disable-next-line no-console
+          console.log('[WebSocket] Parsed message:', parsed);
+
+          if (parsed.type === 'session_info' && parsed.session_id) {
+            // eslint-disable-next-line no-console
+            console.log('[WebSocket] Received Claude session ID:', parsed.session_id);
+            setClaudeConnection(prev => {
+              const updated = {
+                ...prev,
+                sessionId: parsed.session_id
+              };
+              // eslint-disable-next-line no-console
+              console.log('[WebSocket] Updated connection state:', updated);
+              return updated;
+            });
+            return; // Don't append this to the AI response
+          }
+
+          // Check if Claude is done processing (stream-json format sends a message with type: 'done')
+          if (parsed.type === 'done' || parsed.type === 'assistant_message_done') {
+            // eslint-disable-next-line no-console
+            console.log('[WebSocket] Claude processing completed');
+            setIsClaudeProcessing(false);
+            return;
+          }
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.log('[WebSocket] Not JSON, treating as response data:', error);
+        }
+
+        setAiResponse(prev => prev + event.data);
+      };
+
+      ws.onclose = event => {
+        // eslint-disable-next-line no-console
+        console.log('[Claude Connection] ✗ WebSocket connection closed', {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean
+        });
+        setClaudeConnection(prev => ({...prev, connected: false, sessionId: null}));
+      };
+
+      ws.onerror = error => {
+        // eslint-disable-next-line no-console
+        console.error('[Claude Connection] ✗ WebSocket error:', error);
+        console.error('[Claude Connection] Error details:', {
+          type: error.type,
+          target: error.target
+        });
+        setClaudeConnection(prev => ({...prev, connected: false}));
+      };
+
+      const newConnection = {ws, sessionId: prevConnection.sessionId, connected: false};
+      console.log('[Claude Connection] Returning new connection state:', newConnection);
+      return newConnection;
+    });
+  }, []);
+
+  const handleModifyWithAI = useCallback(
+    (el: TraceElement, componentName: string, sourcePath: string) => {
+      // Get the full component trace
+      const trace = getFullTrace(el);
+
+      setSelectedComponent({name: componentName, sourcePath, trace});
+      setAiInputVisible(true);
+      connectToClaude();
+    },
+    [connectToClaude]
+  );
+
+  const sendAiPrompt = useCallback(() => {
+    if (!aiPrompt.trim()) return;
+
+    setIsClaudeProcessing(true);
+
+    setSelectedComponent(currentComponent => {
+      if (!currentComponent) return currentComponent;
+
+      setClaudeConnection(prevConnection => {
+        if (!prevConnection.ws) return prevConnection;
+
+        const traceContext = currentComponent.trace.map(el => ({
+          component: getComponentName(el),
+          path: getSourcePath(el),
+        }));
+
+        const message = {
+          prompt: aiPrompt,
+          component: {
+            name: currentComponent.name,
+            path: currentComponent.sourcePath,
+            trace: traceContext,
+          },
+        };
+
+        console.log('[AI] Sending prompt:', message);
+        prevConnection.ws.send(JSON.stringify(message));
+        return prevConnection;
+      });
+
+      return currentComponent;
+    });
+
+    setAiResponse('');
+    setAiPrompt('');
+  }, [aiPrompt]);
+
   const [state, setState] = useState<{
-    enabled: null | 'inspector' | 'context-menu';
+    enabled: null | 'inspector' | 'context-menu' | 'ai-input';
     trace: TraceElement[] | null;
   }>({
     enabled: null,
@@ -78,6 +240,21 @@ export function SentryComponentInspector() {
       document.body.removeChild(textArea);
     });
   }, []);
+
+  const copyClaudeSessionCommand = useCallback(() => {
+    // eslint-disable-next-line no-console
+    console.log('[Copy] Full connection state:', claudeConnection);
+    // eslint-disable-next-line no-console
+    console.log('[Copy] Session ID:', claudeConnection.sessionId);
+    const sessionIdPart = claudeConnection.sessionId
+      ? ` --session-id ${claudeConnection.sessionId}`
+      : '';
+    const command = `claude -p --output-format stream-json --input-format stream-json --verbose${sessionIdPart}`;
+    // eslint-disable-next-line no-console
+    console.log('[Copy] Command to copy:', command);
+    copyToClipboard(command);
+    addSuccessMessage(t('Claude session command copied to clipboard'));
+  }, [copyToClipboard, claudeConnection]);
 
   // Store the state in a ref to avoid re-rendering inside the listeners
   const stateRef = useRef(state);
@@ -406,6 +583,7 @@ export function SentryComponentInspector() {
                           }}
                           copyToClipboard={copyToClipboard}
                           subMenuPortalRef={contextMenu.subMenuRef.current}
+                          handleModifyWithAI={handleModifyWithAI}
                         />
                       );
                     })}
@@ -450,16 +628,148 @@ export function SentryComponentInspector() {
         `}
         </style>
       ) : null}
+      {aiInputVisible ? (
+        <FloatingInputContainer data-inspector-skip>
+          <FloatingInputWrapper>
+            {selectedComponent && (
+              <Flex direction="row" justify="between" align="center" gap="xs" marginBottom="md">
+                <Flex flex="1" direction="row" align="center" gap="xs">
+                  <LoadingIndicatorWrapper $isProcessing={isClaudeProcessing}>
+                    <LoadingIndicator mini size={12} />
+                  </LoadingIndicatorWrapper>
+                  <Text size="xs" monospace>
+                    {selectedComponent.name} {selectedComponent.sourcePath}
+                  </Text>
+                </Flex>
+                {claudeConnection.sessionId && (
+                  <Button
+                    size="xs"
+                    priority="link"
+                    onClick={copyClaudeSessionCommand}
+                  >
+                    <Flex gap="xs" align="center">
+                      Session: {claudeConnection.sessionId.substring(0, 8)}...
+                      <IconCopy size="xs" />
+                    </Flex>
+                  </Button>
+                )}
+              </Flex>
+            )}
+            <InputGroup>
+              <InputGroup.Input
+                value={aiPrompt}
+                onChange={e => setAiPrompt(e.target.value)}
+                placeholder="Describe changes to make to this component..."
+                autoFocus
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendAiPrompt();
+                  }
+                }}
+              />
+              <InputGroup.TrailingItems>
+                <Button
+                  size="xs"
+                  priority="default"
+                  onClick={() => setAiInputVisible(false)}
+                  aria-label="Close AI input"
+                >
+                  Close
+                </Button>
+                <Button
+                  size="xs"
+                  priority="primary"
+                  onClick={sendAiPrompt}
+                  disabled={!aiPrompt.trim()}
+                  aria-label="Send to Claude"
+                >
+                  Send
+                </Button>
+              </InputGroup.TrailingItems>
+            </InputGroup>
+          </FloatingInputWrapper>
+        </FloatingInputContainer>
+      ) : null}
     </Fragment>,
     document.body
   );
 }
+
+// Helper function to get full component trace
+function getFullTrace(el: TraceElement): TraceElement[] {
+  const trace: TraceElement[] = [el];
+  let parent = el.parentElement;
+
+  while (parent) {
+    const next = parent.closest('[data-sentry-source-path]') as TraceElement | null;
+    if (!next || next === parent) break;
+    trace.push(next);
+    parent = next.parentElement;
+  }
+
+  return trace;
+}
+
+// Styled components for AI input
+const FloatingInputContainer = styled('div')`
+  position: fixed;
+  bottom: ${space(2)};
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 800px;
+  z-index: 999999;
+`;
+
+const FloatingInputWrapper = styled('div')`
+  position: relative;
+  background: ${p => p.theme.backgroundElevated};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  padding: ${space(1)};
+`;
+
+const LoadingIndicatorWrapper = styled('div')<{$isProcessing: boolean}>`
+  opacity: ${p => (p.$isProcessing ? 1 : 0)};
+  transition: opacity 0.2s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  position: relative;
+  flex-shrink: 0;
+`;
+
+
+const AiResponseContainer = styled('div')`
+  margin-top: ${space(2)};
+  padding: ${space(2)};
+  background: ${p => p.theme.backgroundSecondary};
+  border-radius: 4px;
+  max-height: 300px;
+  overflow-y: auto;
+
+  pre {
+    white-space: pre-wrap;
+    margin: ${space(1)} 0 0 0;
+    font-family: monospace;
+    font-size: 12px;
+  }
+`;
 
 function MenuItem(props: {
   componentName: string;
   contextMenu: ReturnType<typeof useContextMenu>;
   copyToClipboard: (text: string) => void;
   el: TraceElement;
+  handleModifyWithAI: (
+    el: TraceElement,
+    componentName: string,
+    sourcePath: string
+  ) => void;
   onAction: () => void;
   sourcePath: string;
   storybook: string | null;
@@ -575,6 +885,20 @@ function MenuItem(props: {
           >
             <ProfilingContextMenuGroup>
               <ProfilingContextMenuHeading>{t('Actions')}</ProfilingContextMenuHeading>
+              <ProfilingContextMenuItemButton
+                {...props.contextMenu.getMenuItemProps({
+                  onClick: () => {
+                    props.handleModifyWithAI(
+                      props.el,
+                      props.componentName,
+                      props.sourcePath
+                    );
+                    props.onAction();
+                  },
+                })}
+              >
+                {t('Modify with AI')}
+              </ProfilingContextMenuItemButton>
               {props.storybook ? (
                 <ProfilingContextMenuItemButton
                   {...props.contextMenu.getMenuItemProps({

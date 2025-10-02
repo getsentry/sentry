@@ -636,17 +636,14 @@ const SummaryContainer = styled('div')`
 const CalloutButton = withChonk(
   styled(Button)<{isActive: boolean}>`
     cursor: ${p => (p.isActive ? 'initial' : 'pointer')};
-    border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-    background: ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
+    border: 1px solid ${p => (p.isActive ? p.theme.gray200 : 'transparent')};
+    background: ${p => (p.isActive ? p.theme.gray100 : 'transparent')};
     padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
     box-shadow: none;
     height: unset;
     overflow: hidden;
-    &:disabled {
-      opacity: 1;
-    }
     &:hover {
-      border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
+      border: 1px solid ${p => (p.isActive ? p.theme.gray200 : 'transparent')};
     }
   `,
   styled(Button)<never>`
@@ -658,7 +655,7 @@ const CalloutButton = withChonk(
 const Label = styled('div')<{isActive: boolean}>`
   line-height: 1;
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => (p.isActive ? p.theme.purple400 : p.theme.subText)};
+  color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
 `;
 
 const Count = styled('div')<{isActive: boolean}>`
@@ -666,7 +663,7 @@ const Count = styled('div')<{isActive: boolean}>`
   margin-top: ${p => p.theme.space.xs};
   font-size: 20px;
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => (p.isActive ? p.theme.purple400 : p.theme.textColor)};
+  color: ${p => p.theme.textColor};
 `;
 
 const ChartContainer = styled('div')`
