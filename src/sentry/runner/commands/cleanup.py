@@ -339,6 +339,8 @@ def cleanup(
 
         remove_file_blobs(is_filtered, silent, models_attempted)
 
+        cleanup_stuck_deletion_in_progress_groups(is_filtered, days, models_attempted)
+
     finally:
         # Shut down our pool
         for _ in pool:
@@ -639,6 +641,79 @@ def remove_file_blobs(
     else:
         models_attempted.add(FileBlob.__name__.lower())
         cleanup_unused_files(silent)
+
+
+def cleanup_stuck_deletion_in_progress_groups(
+    is_filtered: Callable[[type[Model]], bool], days: int, models_attempted: set[str]
+) -> None:
+    """
+    Clean up Groups that have been stuck in DELETION_IN_PROGRESS status for too long.
+
+    Groups can get stuck in DELETION_IN_PROGRESS status if deletion tasks fail or timeout.
+    After a reasonable grace period (7 days), we force-delete these groups to prevent
+    accumulation of stuck records.
+
+    This addresses the issue where Groups with DELETION_IN_PROGRESS status older than
+    the cleanup threshold (e.g., 95 days) are found by the cleanup script but then
+    skipped by the multiprocess_worker because Groups are in the skip_models list.
+    """
+    from sentry.models.group import Group, GroupStatus
+
+    # Only clean up stuck groups if Group model is not filtered
+    if is_filtered(Group):
+        debug_output(">> Skipping cleanup of stuck DELETION_IN_PROGRESS groups (Group model filtered)")
+        return
+
+    models_attempted.add(Group.__name__.lower())
+
+    # Grace period: allow 7 days for deletion tasks to complete before considering them stuck
+    grace_period_days = 7
+
+    # Find groups that have been in DELETION_IN_PROGRESS status for more than grace period
+    stuck_cutoff = timezone.now() - timedelta(days=grace_period_days)
+    stuck_groups_query = Group.objects.filter(
+        status=GroupStatus.DELETION_IN_PROGRESS,
+        last_seen__lt=stuck_cutoff,
+    )
+
+    # For groups older than the main cleanup threshold, force delete them
+    main_cutoff = timezone.now() - timedelta(days=days)
+    old_stuck_groups = stuck_groups_query.filter(last_seen__lt=main_cutoff)
+
+    count = old_stuck_groups.count()
+    if count > 0:
+        debug_output(f"Force-deleting {count} groups stuck in DELETION_IN_PROGRESS status for >{days} days")
+
+        # Use the regular deletion mechanism but without skipping Groups
+        from sentry import deletions
+        from uuid import uuid4
+
+        # Process in smaller batches to avoid overwhelming the system
+        batch_size = 100
+        for batch_start in range(0, count, batch_size):
+            batch_groups = list(old_stuck_groups[batch_start:batch_start + batch_size])
+            if not batch_groups:
+                break
+
+            group_ids = [group.id for group in batch_groups]
+            debug_output(f"Processing batch of {len(group_ids)} stuck groups")
+
+            try:
+                # Use the deletions framework directly without skip_models
+                task = deletions.get(
+                    model=Group,
+                    query={"id__in": group_ids},
+                    skip_models=[],  # Don't skip Groups for this cleanup
+                    transaction_id=uuid4().hex,
+                )
+
+                # Process the deletion
+                while True:
+                    if not task.chunk(apply_filter=True):
+                        break
+            except Exception as e:
+                debug_output(f"Error force-deleting stuck groups batch: {e}")
+                # Continue with next batch even if this one fails
 
 
 def cleanup_unused_files(quiet: bool = False) -> None:
