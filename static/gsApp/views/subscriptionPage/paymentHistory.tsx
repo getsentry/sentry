@@ -30,7 +30,6 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 
 import withSubscription from 'getsentry/components/withSubscription';
 import type {InvoiceBase, Subscription} from 'getsentry/types';
-import {InvoiceStatus} from 'getsentry/types';
 import {hasNewBillingUI} from 'getsentry/utils/billing';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
@@ -43,6 +42,13 @@ type Props = {
   organization: Organization;
   subscription: Subscription;
 } & RouteComponentProps<unknown, unknown>;
+
+enum ReceiptStatus {
+  PAID = 'paid',
+  REFUNDED = 'refunded',
+  CLOSED = 'closed',
+  AWAITING_PAYMENT = 'awaiting_payment',
+}
 
 /**
  * Invoice/Payment list view.
@@ -146,9 +152,52 @@ function ReceiptGrid({
   const theme = useTheme();
   const isMobile = useMedia(`(width < ${theme.breakpoints.md})`);
 
+  const getTag = (payment: InvoiceBase) => {
+    const status = payment.amountRefunded
+      ? ReceiptStatus.REFUNDED
+      : payment.isPaid
+        ? ReceiptStatus.PAID
+        : payment.isClosed
+          ? ReceiptStatus.CLOSED
+          : ReceiptStatus.AWAITING_PAYMENT;
+    let icon = <IconWarning />;
+    let tagType = 'warning';
+
+    switch (status) {
+      case ReceiptStatus.PAID:
+        icon = <IconCheckmark />;
+        tagType = 'success';
+        break;
+      case ReceiptStatus.CLOSED:
+        icon = <IconClose />;
+        tagType = 'error';
+        break;
+      case ReceiptStatus.REFUNDED:
+        icon = <IconTimer />;
+        tagType = 'promotion';
+        break;
+      default:
+        icon = <IconWarning />;
+        tagType = 'warning';
+        break;
+    }
+
+    return (
+      <Tag icon={icon} type={tagType as any}>
+        {capitalize(status.replace('_', ' '))}
+      </Tag>
+    );
+  };
+
   return (
     <Fragment>
-      <Flex border="primary" radius="md" direction="column" background="primary">
+      <Flex
+        border="primary"
+        radius="md"
+        direction="column"
+        background="primary"
+        data-test-id="payment-list"
+      >
         <Grid
           align="center"
           columns={isMobile ? 'repeat(5, 1fr)' : 'repeat(4, 1fr) 2fr'}
@@ -178,45 +227,14 @@ function ReceiptGrid({
               <Container>
                 <Text align="right">{formatCurrency(payment.amountBilled ?? 0)}</Text>
                 {!!payment.amountRefunded && (
-                  <Text size="sm">
+                  <Text size="sm" align="right">
                     {tct('[amount] refunded', {
                       amount: formatCurrency(payment.amountRefunded),
                     })}
                   </Text>
                 )}
               </Container>
-              <Container>
-                <Tag
-                  icon={
-                    payment.amountRefunded ? (
-                      <IconTimer />
-                    ) : payment.isPaid ? (
-                      <IconCheckmark />
-                    ) : payment.isClosed ? (
-                      <IconClose />
-                    ) : (
-                      <IconWarning />
-                    )
-                  }
-                  type={
-                    payment.amountRefunded
-                      ? 'promotion'
-                      : payment.isPaid
-                        ? 'success'
-                        : payment.isClosed
-                          ? 'error'
-                          : 'warning'
-                  }
-                >
-                  {capitalize(
-                    payment.isPaid
-                      ? InvoiceStatus.PAID
-                      : payment.isClosed
-                        ? InvoiceStatus.CLOSED
-                        : InvoiceStatus.AWAITING_PAYMENT
-                  )}
-                </Tag>
-              </Container>
+              <Container>{getTag(payment)}</Container>
               <Text monospace ellipsis>
                 {payment.id}
               </Text>
@@ -229,6 +247,7 @@ function ReceiptGrid({
           );
         })}
       </Flex>
+      {payments.length === 0 && <Text>{t('No receipts found')}</Text>}
       {paymentsPageLinks && <Pagination pageLinks={paymentsPageLinks} />}
     </Fragment>
   );
