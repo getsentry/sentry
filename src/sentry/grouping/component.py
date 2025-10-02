@@ -456,6 +456,19 @@ class CSPGroupingComponent(
 ):
     id: str = "csp"
 
+    @property
+    def key(self) -> str:
+        key = "csp"
+        local_script_violation = self.get_subcomponent("violation")
+        url = self.get_subcomponent("uri")
+
+        if local_script_violation and local_script_violation.contributes:
+            key += "_local_script_violation"
+        elif url and url.contributes:
+            key += "_url"
+
+        return key
+
 
 class ExpectCTGroupingComponent(
     BaseGroupingComponent[HostnameGroupingComponent | SaltGroupingComponent]
