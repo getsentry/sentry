@@ -633,6 +633,20 @@ wheels = [
 ]
 
 [[package]]
+name = "google-cloud-storage-transfer"
+version = "1.17.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "google-api-core", extra = ["grpc"], marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "google-auth", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "proto-plus", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/google_cloud_storage_transfer-1.17.0-py3-none-any.whl", hash = "sha256:19dee4cddfee35a36208f9a2a08487bc78aaf7a6695935a6333b4ae9a6e17360" },
+]
+
+[[package]]
 name = "google-crc32c"
 version = "1.6.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -1865,6 +1879,7 @@ dependencies = [
     { name = "google-cloud-pubsub", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "google-cloud-spanner", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "google-cloud-storage", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "google-cloud-storage-transfer", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "google-crc32c", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "googleapis-common-protos", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "grpc-google-iam-v1", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2026,6 +2041,7 @@ requires-dist = [
     { name = "google-cloud-pubsub", specifier = ">=2.23.0" },
     { name = "google-cloud-spanner", specifier = ">=3.49.0" },
     { name = "google-cloud-storage", specifier = ">=2.18.0" },
+    { name = "google-cloud-storage-transfer", specifier = ">=1.17.0" },
     { name = "google-crc32c", specifier = ">=1.6.0" },
     { name = "googleapis-common-protos", specifier = ">=1.63.2" },
     { name = "grpc-google-iam-v1", specifier = ">=0.13.1" },
