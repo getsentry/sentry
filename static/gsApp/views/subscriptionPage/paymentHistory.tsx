@@ -239,7 +239,7 @@ function ReceiptGrid({
                 {payment.id}
               </Text>
               <Flex justify="end">
-                <LinkButton icon={<IconDownload />} to={payment.receipt.url}>
+                <LinkButton icon={<IconDownload />} href={payment.receipt.url}>
                   {isMobile ? undefined : t('Download PDF')}
                 </LinkButton>
               </Flex>
