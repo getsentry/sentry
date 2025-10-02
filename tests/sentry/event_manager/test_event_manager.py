@@ -2254,7 +2254,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 self.tasks(),
                 pytest.raises(HashDiscarded),
             ):
-                manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
+                manager.save(self.project.id, cache_key=cache_key, attachments=[a1, a2])
 
             assert mock_track_outcome.call_count == 3
 
@@ -2302,7 +2302,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             ):
                 with self.feature("organizations:event-attachments"):
                     with self.tasks():
-                        manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
+                        manager.save(self.project.id, cache_key=cache_key, attachments=[a1, a2])
 
         # The first minidump should be accepted, since the limit is 1
         # Event outcome goes through aggregator (1 call), attachments go through direct track_outcome (2 calls)
@@ -2332,7 +2332,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 with self.feature("organizations:event-attachments"):
                     with self.tasks():
                         event = manager.save(
-                            self.project.id, cache_key=cache_key, has_attachments=True
+                            self.project.id, cache_key=cache_key, attachments=[a1, a2]
                         )
 
         assert event.data["metadata"]["stripped_crash"] is True
@@ -2383,7 +2383,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 mock_track_outcome_aggregated,
             ):
                 with self.feature("organizations:event-attachments"):
-                    manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
+                    manager.save(self.project.id, cache_key=cache_key, attachments=[a1, a3])
 
         # Event outcome goes through aggregator (1 call), attachments through direct track_outcome (2 calls)
         assert mock_track_outcome_aggregated.call_count == 1
@@ -2419,7 +2419,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 mock_track_outcome_aggregated,
             ):
                 with self.feature("organizations:event-attachments"):
-                    manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
+                    manager.save(self.project.id, cache_key=cache_key, attachments=[a1, a3])
 
         # Event outcome goes through aggregator (1 call), attachments through direct track_outcome (2 calls)
         assert mock_track_outcome_aggregated.call_count == 1
