@@ -608,10 +608,7 @@ class MonitorConsumerTest(TestCase):
                         "type": ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
                         "errors": {
                             f"user:{bad_user.id}": [
-                                ErrorDetail(
-                                    string="User is not a member of this organization",
-                                    code="invalid",
-                                )
+                                "[ErrorDetail(string='User is not a member of this organization', code='invalid')]"
                             ]
                         },
                     }

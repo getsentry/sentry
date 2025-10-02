@@ -123,7 +123,7 @@ def _ensure_monitor_with_config(
         validation_error = CheckinValidationFailed(
             {
                 "type": ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
-                "errors": {owner: e.detail},
+                "errors": {str(owner): [str(e.detail)]},
             }
         )
         non_fatal_processing_error = ProcessingErrorsException([validation_error])
