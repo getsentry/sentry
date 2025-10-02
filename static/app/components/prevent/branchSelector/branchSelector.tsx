@@ -26,7 +26,7 @@ export function BranchSelector() {
   } = usePreventContext();
   const [searchValue, setSearchValue] = useState<string | undefined>();
 
-  const {data, isFetching, isLoading} = useInfiniteRepositoryBranches({
+  const {data, isFetching} = useInfiniteRepositoryBranches({
     term: searchValue,
   });
   const branches = data.branches;
@@ -65,8 +65,8 @@ export function BranchSelector() {
     }
 
     const optionSet = new Set<string>([
-      ALL_BRANCHES,
-      ...(branch ? [branch] : []),
+      ...(searchValue ? [] : [ALL_BRANCHES]),
+      ...(branch && !searchValue ? [branch] : []),
       ...displayedBranches,
     ]);
 
@@ -79,7 +79,7 @@ export function BranchSelector() {
     };
 
     return [...optionSet].map(makeOption);
-  }, [branch, displayedBranches, isFetching]);
+  }, [branch, displayedBranches, isFetching, searchValue]);
 
   useEffect(() => {
     // Create a use effect to cancel handleOnSearch fn on unmount to avoid memory leaks
@@ -115,18 +115,20 @@ export function BranchSelector() {
       return t('Getting branches...');
     }
 
-    if (searchValue && !displayedBranches.length) {
-      return t('Sorry, no branches match your search query');
+    if (!displayedBranches.length) {
+      if (searchValue?.length) {
+        return t('No branches found. Please enter a different search term.');
+      }
+      return t('No branches found');
     }
 
-    return t('No branches found');
+    return undefined;
   }
 
   const disabled = !repository;
 
   return (
     <CompactSelect
-      loading={isLoading}
       searchable
       onSearch={handleOnSearch}
       disableSearchFilter
