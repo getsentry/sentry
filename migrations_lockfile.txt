@@ -37,4 +37,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0046_delete_project_uptime_subscription_table
 
-workflow_engine: 0091_fix_email_notification_names
+workflow_engine: 0092_heal_metric_issue_detectors
