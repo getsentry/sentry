@@ -1,14 +1,16 @@
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
 from django.conf import settings
 from django.test import RequestFactory
 from django.test.utils import override_settings
+from django.utils import timezone
 
 from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
-from sentry.monitors.models import Monitor, MonitorLimitsExceeded, ScheduleType
+from sentry.monitors.models import Monitor, MonitorLimitsExceeded, MonitorStatus, ScheduleType
 from sentry.monitors.validators import (
     MonitorDataSourceValidator,
     MonitorIncidentDetectorValidator,
@@ -399,6 +401,46 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert updated_monitor.config["checkin_margin"] == 10
         assert updated_monitor.config["max_runtime"] == 60
         assert updated_monitor.config["timezone"] == "America/New_York"
+
+    def test_partial_config_update_different_field(self):
+        """Test that updating a config field doesn't trigger false positive margin/runtime changes."""
+        now = timezone.now().replace(second=0, microsecond=0)
+        env = self.create_monitor_environment(
+            monitor=self.monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+            last_checkin=now,
+            next_checkin=now + timedelta(hours=1),
+            next_checkin_latest=now + timedelta(hours=1, minutes=5),
+        )
+        original_next_checkin_latest = env.next_checkin_latest
+
+        # Update only timezone, NOT checkin_margin
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"config": {"timezone": "America/New_York"}},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.config["timezone"] == "America/New_York"
+        assert updated_monitor.config["checkin_margin"] == 5
+
+        # With buggy code, checking the partial
+        # new_config.get("checkin_margin") would return None, when comparing
+        # that with the existing checkin_margin we would consider it as having
+        # "changed" and would have recomputed the next_checkin_latest
+
+        # Verify that because checkin_margin was not changed we did not
+        # recompute the next_checkin_latest
+        env.refresh_from_db()
+        assert env.next_checkin_latest == original_next_checkin_latest
 
     def test_update_owner_to_user(self):
         """Test updating monitor owner to a user."""
@@ -896,11 +938,13 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         data = {
             "type": "monitor_check_in_failure",
             "name": "Test Monitor Detector",
-            "dataSource": {
-                "name": "Test Monitor",
-                "slug": "test-monitor",
-                "config": self._get_base_config(),
-            },
+            "dataSources": [
+                {
+                    "name": "Test Monitor",
+                    "slug": "test-monitor",
+                    "config": self._get_base_config(),
+                }
+            ],
         }
         data.update(overrides)
         return data
@@ -918,10 +962,11 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         assert validator.is_valid(), validator.errors
         validated_data = validator.validated_data
         assert validated_data["name"] == "Test Monitor Detector"
-        assert "data_source" in validated_data
-        assert validated_data["data_source"]["name"] == "Test Monitor"
-        assert validated_data["data_source"]["slug"] == "test-monitor"
+        assert "data_sources" in validated_data
+        assert validated_data["data_sources"][0]["name"] == "Test Monitor"
+        assert validated_data["data_sources"][0]["slug"] == "test-monitor"
 
+    @pytest.mark.skip("Not required yet, migrating to dataSources")
     def test_detector_requires_data_source(self):
         data = {
             "type": "monitor_check_in_failure",
@@ -929,7 +974,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         }
         validator = self._create_validator(data)
         assert not validator.is_valid()
-        assert "dataSource" in validator.errors
+        assert "dataSources" in validator.errors
 
     def test_create_detector_validates_data_source(self):
         condition_group = DataConditionGroup.objects.create(
@@ -942,5 +987,5 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
             context=context,
         )
         assert validator.is_valid(), validator.errors
-        assert "_creator" in validator.validated_data["data_source"]
-        assert validator.validated_data["data_source"]["data_source_type"] == "cron_monitor"
+        assert "_creator" in validator.validated_data["data_sources"][0]
+        assert validator.validated_data["data_sources"][0]["data_source_type"] == "cron_monitor"

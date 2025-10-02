@@ -14,7 +14,6 @@ from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import attachments_tasks
 from sentry.utils.json import dumps_htmlsafe
 
@@ -23,13 +22,9 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.preprod.tasks.compare_preprod_artifact_size_analysis",
-    # TODO: Consider using a dedicated compare queue
-    queue="default",
+    namespace=attachments_tasks,
+    processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=attachments_tasks,
-        processing_deadline_duration=30,
-    ),
 )
 def compare_preprod_artifact_size_analysis(
     project_id: int,
@@ -174,13 +169,9 @@ def compare_preprod_artifact_size_analysis(
 
 @instrumented_task(
     name="sentry.preprod.tasks.manual_size_analysis_comparison",
-    # TODO: Consider using a dedicated compare queue
-    queue="default",
+    namespace=attachments_tasks,
+    processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=attachments_tasks,
-        processing_deadline_duration=30,
-    ),
 )
 def manual_size_analysis_comparison(
     project_id: int,
