@@ -658,6 +658,18 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
             run_scheduled_deletions()
         assert not Detector.objects.filter(id=self.detector.id).exists()
 
+    def test_dual_delete_missing_workflow(self) -> None:
+        """
+        Test that if we are missing the Workflow and AlertRuleWorkflow models that we still delete the detector
+        """
+        self.workflow.delete()
+        self.alert_rule_workflow.delete()
+
+        dual_delete_migrated_alert_rule(self.metric_alert)
+        with self.tasks():
+            run_scheduled_deletions()
+        assert not Detector.objects.filter(id=self.detector.id).exists()
+
 
 class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
     def setUp(self) -> None:
