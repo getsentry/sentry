@@ -68,7 +68,7 @@ class OrganizationPullRequestDetailsEndpoint(OrganizationEndpoint):
             )
 
             normalized_data: PullRequestWithFiles = PullRequestDataAdapter.from_github_pr_data(
-                pr_details, pr_files or []
+                pr_details, pr_files or [], organization.id
             )
 
             return Response(normalized_data, status=200)
