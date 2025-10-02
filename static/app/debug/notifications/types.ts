@@ -21,12 +21,7 @@ export interface NotificationTemplateRegistration {
       text_content: string;
     };
     [NotificationProviderKey.SLACK]: {
-      blocks: Array<{
-        [key: string]: any; // Allow any additional unknown properties
-        type: string;
-        block_id?: string;
-        text?: {text: string; type: 'plain_text' | 'mrkdwn'};
-      }>;
+      blocks: Array<Record<string, any>>;
     };
   };
   source: string;

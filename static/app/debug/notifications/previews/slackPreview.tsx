@@ -10,8 +10,7 @@ export function SlackPreview({
 }: {
   registration: NotificationTemplateRegistration;
 }) {
-  const slackBlockKitBuilderBaseURL =
-    'https://app.slack.com/block-kit-builder/T023QCMBQG3#';
+  const slackBlockKitBuilderBaseURL = 'https://app.slack.com/block-kit-builder/#';
 
   const blocks = JSON.stringify(registration.previews[NotificationProviderKey.SLACK]);
   const blockKitPreviewLink = `${slackBlockKitBuilderBaseURL}${blocks}`;
