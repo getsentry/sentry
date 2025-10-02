@@ -224,3 +224,79 @@ def test_sdk_crash_is_reported_with_unity_paths(
 
     else:
         assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@pytest.mark.parametrize(
+    ["sdk_frame_module", "system_frame_module", "detected"],
+    [
+        # Sentry.Samples.* should be filtered out (not detected as SDK crash)
+        (
+            "Sentry.Samples.AspNetCore.Mvc",
+            "System.Threading.Tasks.Task",
+            False,
+        ),
+        (
+            "Sentry.Samples.Console.Basic",
+            "Microsoft.Extensions.Logging.ILogger",
+            False,
+        ),
+        (
+            "Sentry.Samples.Maui",
+            "System.Net.Http.HttpClient",
+            False,
+        ),
+        # Regular Sentry SDK frames should still be detected
+        (
+            "Sentry.AspNetCore.SentryMiddleware",
+            "System.Threading.Tasks.Task",
+            True,
+        ),
+        (
+            "Sentry.SentryClient",
+            "Microsoft.Extensions.Logging.ILogger",
+            True,
+        ),
+    ],
+)
+@decorators
+def test_sentry_samples_filter(
+    mock_sdk_crash_reporter,
+    mock_random,
+    store_event,
+    configs,
+    sdk_frame_module: str,
+    system_frame_module: str,
+    detected: bool,
+):
+    event = store_event(
+        data=get_crash_event(
+            sdk_frame_module=sdk_frame_module, system_frame_module=system_frame_module
+        )
+    )
+
+    # Find the dotnet config
+    dotnet_config = None
+    for config in configs:
+        if config.sdk_name.value == "dotnet":
+            dotnet_config = config
+            break
+
+    assert dotnet_config is not None, "Dotnet config should be present"
+    dotnet_config.organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
+
+    if detected:
+        assert mock_sdk_crash_reporter.report.call_count == 1
+        reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
+
+        stripped_frames = get_path(
+            reported_event_data, "exception", "values", -1, "stacktrace", "frames"
+        )
+
+        # Verify SDK frame is still present and marked as SDK frame
+        sdk_frames = [f for f in stripped_frames if f["module"] == sdk_frame_module]
+        assert len(sdk_frames) == 1
+        assert sdk_frames[0]["in_app"] is True
+    else:
+        assert mock_sdk_crash_reporter.report.call_count == 0
