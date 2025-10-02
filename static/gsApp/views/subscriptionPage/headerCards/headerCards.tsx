@@ -1,10 +1,8 @@
-import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Flex, Grid} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Panel from 'sentry/components/panels/panel';
 import {IconGrid, IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -44,10 +42,16 @@ export function HeaderCards({organization, subscription}: HeaderCardsProps) {
           {cards}
         </Grid>
       ) : (
-        <HeaderCardWrapper>
+        <Grid
+          background="primary"
+          border="primary"
+          radius="md"
+          columns={{lg: 'auto minmax(0, 600px)'}}
+          gap={{lg: 'xl'}}
+        >
           <SubscriptionCard organization={organization} subscription={subscription} />
           <UsageCard organization={organization} subscription={subscription} />
-        </HeaderCardWrapper>
+        </Grid>
       )}
     </ErrorBoundary>
   );
@@ -60,21 +64,23 @@ function PlanCard({
   organization: Organization;
   subscription: Subscription;
 }) {
-  const button = subscription.isFree
-    ? {
-        ariaLabel: t('Upgrade plan'),
-        label: t('Upgrade plan'),
-        linkTo: `/settings/${organization.slug}/billing/checkout/?referrer=upgrade_plan`,
-        icon: <IconUpgrade />,
-        priority: 'primary' as const,
-      }
-    : {
-        ariaLabel: t('Edit plan'),
-        label: t('Edit plan'),
-        linkTo: `/settings/${organization.slug}/billing/checkout/?referrer=edit_plan`,
-        icon: <IconUpgrade />,
-        priority: 'default' as const,
-      };
+  const button = subscription.canSelfServe
+    ? subscription.isFree
+      ? {
+          ariaLabel: t('Upgrade plan'),
+          label: t('Upgrade plan'),
+          linkTo: `/settings/${organization.slug}/billing/checkout/?referrer=upgrade_plan`,
+          icon: <IconUpgrade />,
+          priority: 'primary' as const,
+        }
+      : {
+          ariaLabel: t('Edit plan'),
+          label: t('Edit plan'),
+          linkTo: `/settings/${organization.slug}/billing/checkout/?referrer=edit_plan`,
+          icon: <IconUpgrade />,
+          priority: 'default' as const,
+        }
+    : undefined;
   return (
     <SubscriptionHeaderCard
       title={t('Current plan')}
@@ -103,14 +109,3 @@ function PlanCard({
     />
   );
 }
-
-// TODO(checkout v3): update this with the real layout
-const HeaderCardWrapper = styled(Panel)`
-  display: grid;
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: auto minmax(0, 600px);
-    gap: ${p => p.theme.space.xl};
-  }
-`;

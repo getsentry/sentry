@@ -77,6 +77,25 @@ describe('SubscriptionHeader', () => {
     expect(screen.queryByRole('button', {name: 'Upgrade plan'})).not.toBeInTheDocument();
   });
 
+  it('renders for managed plan with new billing UI', () => {
+    const organization = OrganizationFixture({
+      features: ['subscriptions-v3'],
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_business_ent_auf',
+      isFree: false,
+      canSelfServe: false,
+    });
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />
+    );
+    expect(screen.getByText('Enterprise (Business) Plan')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Edit plan'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Upgrade plan'})).not.toBeInTheDocument();
+  });
+
   it('does not render editable sections for YY partnership', async () => {
     const organization = OrganizationFixture({
       features: ['usage-log'],

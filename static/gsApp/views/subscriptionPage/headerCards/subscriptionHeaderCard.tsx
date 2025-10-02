@@ -67,7 +67,7 @@ function SubscriptionHeaderCard({
         </Flex>
       )}
       {subtitle && <Text variant="muted">{subtitle}</Text>}
-      <Flex direction="column" gap="md" padding="xl 0">
+      <Flex direction="column" gap="md" padding={button ? 'xl 0' : 'xl 0 0'}>
         {sections.map((section, index) => {
           const isLast = index === sections.length - 1;
           return (
