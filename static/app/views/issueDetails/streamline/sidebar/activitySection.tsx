@@ -1,12 +1,14 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useState, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
+import {Button} from 'sentry/components/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import {Timeline} from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
@@ -22,6 +24,7 @@ import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
@@ -34,6 +37,11 @@ import {NoteDropdown} from 'sentry/views/issueDetails/streamline/sidebar/noteDro
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+
+interface GroupActivitiesResponse {
+  activity: GroupActivity[];
+  pageLinks?: string | null;
+}
 
 function getAuthorName(item: GroupActivity) {
   if (item.sentry_app) {
@@ -155,6 +163,11 @@ export default function StreamlinedActivitySection({
   const location = useLocation();
   const [inputId, setInputId] = useState(() => uniqueId());
 
+  // Pagination state for drawer view
+  const [additionalActivities, setAdditionalActivities] = useState<GroupActivity[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
   const activeUser = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];
   const noteProps = {
@@ -163,6 +176,56 @@ export default function StreamlinedActivitySection({
     projectSlugs,
     placeholder: t('Add a comment\u2026'),
   };
+
+  // Combine initial activities with additional loaded activities (only for drawer)
+  const allActivities = useMemo(() => {
+    return isDrawer ? [...group.activity, ...additionalActivities] : group.activity;
+  }, [group.activity, additionalActivities, isDrawer]);
+
+  // Check if we should show "Load More" button (only for drawer)
+  const shouldShowLoadMore = useMemo(() => {
+    return isDrawer && (group.activity.length >= 100 || nextCursor);
+  }, [isDrawer, group.activity.length, nextCursor]);
+
+  const loadMoreActivities = useCallback(async () => {
+    if (isLoadingMore || !isDrawer) return;
+
+    setIsLoadingMore(true);
+
+    try {
+      const response = await fetch(
+        `/api/0/organizations/${organization.slug}/issues/${group.id}/activities/?cursor=${nextCursor || ''}&limit=100`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to load more activities');
+      }
+
+      const data: GroupActivitiesResponse = await response.json();
+      const linkHeader = response.headers.get('Link');
+
+      // Parse pagination info
+      let newNextCursor = null;
+      if (linkHeader) {
+        const links = parseLinkHeader(linkHeader);
+        newNextCursor = links?.next?.cursor || null;
+      }
+
+      setAdditionalActivities((prev: GroupActivity[]) => [...prev, ...data.activity]);
+      setNextCursor(newNextCursor);
+    } catch (error) {
+      // Handle error silently for now
+      console.error('Failed to load more activities:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [organization.slug, group.id, nextCursor, isLoadingMore, isDrawer]);
 
   const mutators = useMutateActivity({
     organization,
@@ -264,7 +327,7 @@ export default function StreamlinedActivitySection({
         source="issue-details"
         {...noteProps}
       />
-      {group.activity
+      {allActivities
         .filter(item => !filterComments || item.type === GroupActivityType.NOTE)
         .map(item => {
           return (
@@ -279,6 +342,28 @@ export default function StreamlinedActivitySection({
             />
           );
         })}
+      {shouldShowLoadMore && (
+        <ActivityTimelineItem
+          title={
+            <Button
+              onClick={loadMoreActivities}
+              disabled={isLoadingMore}
+              priority="link"
+              size="sm"
+            >
+              {isLoadingMore ? (
+                <>
+                  <LoadingIndicator mini />
+                  {t('Loading...')}
+                </>
+              ) : (
+                t('Load More Activities')
+              )}
+            </Button>
+          }
+          icon={<RotatedEllipsisIcon direction="up" />}
+        />
+      )}
     </Timeline.Container>
   ) : (
     <SidebarFoldSection
