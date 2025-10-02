@@ -293,14 +293,14 @@ class EventStorage(Service):
         raise NotImplementedError
 
     def get_adjacent_event_ids(
-        self, event: Event | GroupEvent, filter: Filter
+        self, event: GroupEvent, filter: Filter
     ) -> tuple[tuple[str, str] | None, tuple[str, str] | None]:
         """
         Gets the previous and next event IDs given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id) for (prev_ids, next_ids)
 
         Arguments:
-        event (Event): Event object
+        event (GroupEvent): Event object
         snuba_filter (Filter): Filter
         """
         raise NotImplementedError
@@ -312,25 +312,20 @@ class EventStorage(Service):
         event_id: str | None = None,
         group_id: int | None = None,
         data: Mapping[str, Any] | None = None,
-    ) -> Event:
+    ) -> None:
         """
-        Returns an Event from processed data
+        DEPRECATED: Event class has been removed. Use GroupEvent with a Group object instead.
         """
-        return Event(
-            project_id=project_id,
-            event_id=event_id or str(uuid.uuid4()),
-            group_id=group_id,
-            data=data,
-        )
+        raise NotImplementedError("Event class has been removed. Use GroupEvent with a Group object instead.")
 
-    def bind_nodes(self, object_list: Sequence[Event]) -> None:
+    def bind_nodes(self, object_list: Sequence[GroupEvent]) -> None:
         """
-        For a list of Event objects, and a property name where we might find an
+        For a list of GroupEvent objects, and a property name where we might find an
         (unfetched) NodeData on those objects, fetch all the data blobs for
         those NodeDatas with a single multi-get command to nodestore, and bind
         the returned blobs to the NodeDatas.
 
-        It's not necessary to bind a single Event object since data will be lazily
+        It's not necessary to bind a single GroupEvent object since data will be lazily
         fetched on any attempt to access a property.
         """
         sentry_sdk.set_tag("eventstore.backend", "nodestore")
@@ -357,7 +352,7 @@ class EventStorage(Service):
         offset: int = 0,
         referrer: str = "eventstore.get_unfetched_transactions",
         tenant_ids: Mapping[str, Any] | None = None,
-    ) -> list[Event]:
+    ) -> list[GroupEvent]:
         """
         Same as get_unfetched_events but returns transactions.
         Only the event ID, projectID and timestamp field will be present without

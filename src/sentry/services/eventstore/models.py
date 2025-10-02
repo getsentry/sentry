@@ -47,7 +47,7 @@ if TYPE_CHECKING:
     from sentry.spans.grouping.result import SpanGroupingResults
 
 
-def ref_func(x: Event) -> int:
+def ref_func(x: GroupEvent) -> int:
     return x.project_id or x.project.id
 
 
@@ -479,44 +479,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def size(self) -> int:
         return len(orjson.dumps(dict(self.data)).decode())
 
-    def get_email_subject(self) -> str:
-        subject_template = self.project.get_option("mail:subject_template")
-        if subject_template:
-            template = EventSubjectTemplate(subject_template)
-        elif self.group.issue_category == GroupCategory.PERFORMANCE:
-            template = EventSubjectTemplate("$shortID - $issueType")
-        else:
-            template = DEFAULT_SUBJECT_TEMPLATE
-        return truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
 
-    def as_dict(self) -> dict[str, Any]:
-        """Returns the data in normalized form for external consumers."""
-        data: dict[str, Any] = {}
-        data["event_id"] = self.event_id
-        data["project"] = self.project_id
-        data["release"] = self.release
-        data["dist"] = self.dist
-        data["platform"] = self.platform
-        data["message"] = self.message
-        data["datetime"] = self.datetime
-        data["tags"] = [(k.split("sentry:", 1)[-1], v) for (k, v) in self.tags]
-        for k, v in sorted(self.data.items()):
-            if k in data:
-                continue
-            if k == "sdk":
-                v = {v_k: v_v for v_k, v_v in v.items() if v_k != "client_ip"}
-            data[k] = v
-
-        # for a long time culprit was not persisted.  In those cases put
-        # the culprit in from the group.
-        if data.get("culprit") is None and self.group_id and self.group:
-            data["culprit"] = self.group.culprit
-
-        # Override title and location with dynamically generated data
-        data["title"] = self.title
-        data["location"] = self.location
-
-        return data
 
     @cached_property
     def search_message(self) -> str:
@@ -577,116 +540,6 @@ class BaseEvent(metaclass=abc.ABCMeta):
         self._should_skip_seer = should_skip
 
 
-class Event(BaseEvent):
-    def __init__(
-        self,
-        project_id: int,
-        event_id: str,
-        group_id: int | None = None,
-        data: Mapping[str, Any] | None = None,
-        snuba_data: Mapping[str, Any] | None = None,
-        groups: Sequence[Group] | None = None,
-    ):
-        super().__init__(project_id, event_id, snuba_data=snuba_data)
-        self.group_id = group_id
-        self.groups = groups
-        self.data = data
-
-    def __getstate__(self) -> Mapping[str, Any]:
-        state = super().__getstate__()
-        state.pop("_group_cache", None)
-        state.pop("_groups_cache", None)
-        return state
-
-    def __repr__(self) -> str:
-        return "<sentry.services.eventstore.models.Event at 0x{:x}: event_id={}>".format(
-            id(self), self.event_id
-        )
-
-    @property
-    def data(self) -> NodeData:
-        return self._data
-
-    @data.setter
-    def data(self, value: Mapping[str, Any]) -> None:
-        node_id = Event.generate_node_id(self.project_id, self.event_id)
-        self._data = NodeData(
-            node_id, data=value, wrapper=EventDict, ref_version=2, ref_func=ref_func
-        )
-
-    @property
-    def group_id(self) -> int | None:
-        # TODO: `group_id` and `group` are deprecated properties on `Event`. We will remove them
-        # going forward. Since events may now be associated with multiple `Group` models, we will
-        # require `GroupEvent` to be passed around. The `group_events` property should be used to
-        # iterate through all `Groups` associated with an `Event`
-        if self._group_id:
-            return self._group_id
-
-        column = self._get_column_name(Columns.GROUP_ID)
-
-        return self._snuba_data.get(column)
-
-    @group_id.setter
-    def group_id(self, value: int | None) -> None:
-        self._group_id = value
-
-    # TODO: We need a better way to cache these properties. functools
-    # doesn't quite do the trick as there is a reference bug with unsaved
-    # models. But the current _group_cache thing is also clunky because these
-    # properties need to be stripped out in __getstate__.
-    @property
-    def group(self) -> Group | None:
-        from sentry.models.group import Group
-
-        if not self.group_id:
-            return None
-        if not hasattr(self, "_group_cache"):
-            self._group_cache = Group.objects.get(id=self.group_id)
-        return self._group_cache
-
-    @group.setter
-    def group(self, group: Group) -> None:
-        self.group_id = group.id
-        self._group_cache = group
-
-    _groups_cache: Sequence[Group]
-
-    @property
-    def groups(self) -> Sequence[Group]:
-        from sentry.models.group import Group
-
-        if getattr(self, "_groups_cache"):
-            return self._groups_cache
-
-        if self._group_ids is not None:
-            group_ids = self._group_ids
-        else:
-            snuba_group_id = self.group_id
-            # TODO: Replace `snuba_group_id` with this once we deprecate `group_id`.
-            # snuba_group_id = self._snuba_data.get(self._get_column_name(Columns.GROUP_ID))
-            snuba_group_ids = self._snuba_data.get(self._get_column_name(Columns.GROUP_IDS))
-            group_ids = []
-            if snuba_group_id:
-                group_ids.append(snuba_group_id)
-            if snuba_group_ids:
-                group_ids.extend(snuba_group_ids)
-
-        if group_ids:
-            groups = list(Group.objects.filter(id__in=group_ids))
-        else:
-            groups = []
-
-        self._groups_cache = groups
-        return groups
-
-    @groups.setter
-    def groups(self, values: Sequence[Group] | None):
-        self._groups_cache = values
-        self._group_ids = [group.id for group in values] if values else None
-
-    def for_group(self, group: Group) -> GroupEvent:
-        return GroupEvent.from_event(self, group)
 
 
 class GroupEvent(BaseEvent):
@@ -725,21 +578,15 @@ class GroupEvent(BaseEvent):
         return self._data
 
     @data.setter
-    def data(self, value: NodeData) -> None:
-        self._data = value
+    def data(self, value: NodeData | Mapping[str, Any]) -> None:
+        if isinstance(value, NodeData):
+            self._data = value
+        else:
+            node_id = GroupEvent.generate_node_id(self.project_id, self.event_id)
+            self._data = NodeData(
+                node_id, data=value, wrapper=EventDict, ref_version=2, ref_func=ref_func
+            )
 
-    @classmethod
-    def from_event(cls, event: Event, group: Group) -> GroupEvent:
-        group_event = cls(
-            project_id=event.project_id,
-            event_id=event.event_id,
-            group=group,
-            data=deepcopy(event.data),
-            snuba_data=deepcopy(event._snuba_data),
-        )
-        if hasattr(event, "_project_cache"):
-            group_event.project = event.project
-        return group_event
 
     @property
     def occurrence(self) -> IssueOccurrence | None:
@@ -777,6 +624,45 @@ class GroupEvent(BaseEvent):
 
         return message
 
+    def get_email_subject(self) -> str:
+        subject_template = self.project.get_option("mail:subject_template")
+        if subject_template:
+            template = EventSubjectTemplate(subject_template)
+        elif self.group.issue_category == GroupCategory.PERFORMANCE:
+            template = EventSubjectTemplate("$shortID - $issueType")
+        else:
+            template = DEFAULT_SUBJECT_TEMPLATE
+        return truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
+
+    def as_dict(self) -> dict[str, Any]:
+        """Returns the data in normalized form for external consumers."""
+        data: dict[str, Any] = {}
+        data["event_id"] = self.event_id
+        data["project"] = self.project_id
+        data["release"] = self.release
+        data["dist"] = self.dist
+        data["platform"] = self.platform
+        data["message"] = self.message
+        data["datetime"] = self.datetime
+        data["tags"] = [(k.split("sentry:", 1)[-1], v) for (k, v) in self.tags]
+        for k, v in sorted(self.data.items()):
+            if k in data:
+                continue
+            if k == "sdk":
+                v = {v_k: v_v for v_k, v_v in v.items() if v_k != "client_ip"}
+            data[k] = v
+
+        # for a long time culprit was not persisted.  In those cases put
+        # the culprit in from the group.
+        if data.get("culprit") is None:
+            data["culprit"] = self.group.culprit
+
+        # Override title and location with dynamically generated data
+        data["title"] = self.title
+        data["location"] = self.location
+
+        return data
+
 
 def augment_message_with_occurrence(message: str, occurrence: IssueOccurrence) -> str:
     for attr in ("issue_title", "subtitle", "culprit"):
@@ -794,7 +680,7 @@ class EventSubjectTemplate(string.Template):
 class EventSubjectTemplateData:
     tag_aliases = {"release": "sentry:release", "dist": "sentry:dist", "user": "sentry:user"}
 
-    def __init__(self, event: Event):
+    def __init__(self, event: GroupEvent):
         self.event = event
 
     def __getitem__(self, name: str) -> str:
@@ -811,7 +697,7 @@ class EventSubjectTemplateData:
             return cast(str, self.event.project.get_full_name())
         elif name == "projectID":
             return cast(str, self.event.project.slug)
-        elif name == "shortID" and self.event.group_id and self.event.group:
+        elif name == "shortID":
             return cast(str, self.event.group.qualified_short_id)
         elif name == "orgID":
             return self.event.organization.slug

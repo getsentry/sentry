@@ -12,7 +12,7 @@ from sentry.exceptions import DeleteAborted
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
 from sentry.services import eventstore
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -149,7 +149,7 @@ def fetch_events_from_eventstore(
     last_event_id: str | None = None,
     last_event_timestamp: str | None = None,
     **kwargs: Any,
-) -> list[Event]:
+) -> list[GroupEvent]:
     logger.info("Fetching %s events for deletion.", limit)
     conditions = []
     if last_event_id and last_event_timestamp:
@@ -175,9 +175,9 @@ def fetch_events_from_eventstore(
     return events
 
 
-def delete_events_from_nodestore(events: Sequence[Event], dataset: Dataset) -> None:
+def delete_events_from_nodestore(events: Sequence[GroupEvent], dataset: Dataset) -> None:
     node_ids = [
-        Event.generate_node_id(
+        GroupEvent.generate_node_id(
             event.project_id,
             (
                 event._snuba_data["occurrence_id"]
@@ -249,7 +249,7 @@ def delete_request(organization_id: int, project_id: int, group_ids: Sequence[in
 
 
 def delete_dangling_attachments_and_user_reports(
-    events: Sequence[Event], project_ids: Sequence[int]
+    events: Sequence[GroupEvent], project_ids: Sequence[int]
 ) -> None:
     """
     Remove EventAttachment and UserReport *again* as those may not have a

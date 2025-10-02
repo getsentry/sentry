@@ -26,7 +26,7 @@ from snuba_sdk import (
 
 from sentry.models.group import Group
 from sentry.services.eventstore.base import EventStorage, Filter
-from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.utils import snuba
@@ -757,7 +757,9 @@ class SnubaEventStorage(EventStorage):
         event_id = snuba_data[event_id_column]
         project_id = snuba_data[project_id_column]
 
-        return Event(event_id=event_id, project_id=project_id, snuba_data=snuba_data)
+        # DEPRECATED: Event class has been removed. This method should be updated to return GroupEvent.
+        raise NotImplementedError("Event class has been removed. Use GroupEvent with a Group object instead.")
+        # return Event(event_id=event_id, project_id=project_id, snuba_data=snuba_data)
 
     def get_unfetched_transactions(
         self,
@@ -805,4 +807,6 @@ class SnubaEventStorage(EventStorage):
         event_id = snuba_data[event_id_column]
         project_id = snuba_data[project_id_column]
 
-        return Event(event_id=event_id, project_id=project_id, snuba_data=snuba_data)
+        # DEPRECATED: Event class has been removed. This method should be updated to return GroupEvent.
+        raise NotImplementedError("Event class has been removed. Use GroupEvent with a Group object instead.")
+        # return Event(event_id=event_id, project_id=project_id, snuba_data=snuba_data)

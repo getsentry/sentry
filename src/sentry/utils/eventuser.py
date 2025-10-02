@@ -29,7 +29,7 @@ from sentry import analytics
 from sentry.analytics.events.eventuser_snuba_for_projects import EventUserSnubaForProjects
 from sentry.analytics.events.eventuser_snuba_query import EventUserSnubaQuery
 from sentry.models.project import Project
-from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.datastructures import BidirectionalMapping
@@ -115,7 +115,7 @@ class EventUser:
         return hash(self.hash)
 
     @staticmethod
-    def from_event(event: Event | GroupEvent) -> EventUser:
+    def from_event(event: GroupEvent) -> EventUser:
         return EventUser(
             id=None,
             project_id=event.project_id if event else None,

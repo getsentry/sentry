@@ -21,7 +21,7 @@ from sentry.interfaces.exception import SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
 
 if TYPE_CHECKING:
-    from sentry.services.eventstore.models import Event
+    from sentry.services.eventstore.models import GroupEvent
 
 
 STRATEGIES: dict[str, Strategy[Any]] = {}
@@ -44,7 +44,7 @@ class StrategyFunc(Protocol[ConcreteInterface]):
     def __call__(
         self,
         interface: ConcreteInterface,
-        event: Event,
+        event: GroupEvent,
         context: GroupingContext,
         **kwargs: Any,
     ) -> ComponentsByVariant: ...
@@ -115,7 +115,7 @@ class GroupingContext:
         value_at_some_key = context["some_key"] # will be "original_value"
     """
 
-    def __init__(self, strategy_config: StrategyConfiguration, event: Event):
+    def __init__(self, strategy_config: StrategyConfiguration, event: GroupEvent):
         # The initial context is essentially the grouping config options
         self._stack = [strategy_config.initial_context]
         self.config = strategy_config
@@ -153,7 +153,7 @@ class GroupingContext:
         self._stack.pop()
 
     def get_grouping_components_by_variant(
-        self, interface: Interface, *, event: Event, **kwargs: Any
+        self, interface: Interface, *, event: GroupEvent, **kwargs: Any
     ) -> ComponentsByVariant:
         """
         Called by a strategy to invoke delegates on its child interfaces.
@@ -165,21 +165,21 @@ class GroupingContext:
 
     @overload
     def get_single_grouping_component(
-        self, interface: Frame, *, event: Event, **kwargs: Any
+        self, interface: Frame, *, event: GroupEvent, **kwargs: Any
     ) -> FrameGroupingComponent: ...
 
     @overload
     def get_single_grouping_component(
-        self, interface: SingleException, *, event: Event, **kwargs: Any
+        self, interface: SingleException, *, event: GroupEvent, **kwargs: Any
     ) -> ExceptionGroupingComponent: ...
 
     @overload
     def get_single_grouping_component(
-        self, interface: Stacktrace, *, event: Event, **kwargs: Any
+        self, interface: Stacktrace, *, event: GroupEvent, **kwargs: Any
     ) -> StacktraceGroupingComponent: ...
 
     def get_single_grouping_component(
-        self, interface: Interface, *, event: Event, **kwargs: Any
+        self, interface: Interface, *, event: GroupEvent, **kwargs: Any
     ) -> FrameGroupingComponent | ExceptionGroupingComponent | StacktraceGroupingComponent:
         """
         Invoke the delegate grouping strategy corresponding to the given interface, returning the
@@ -196,7 +196,7 @@ class GroupingContext:
         return components_by_variant[variant_name]
 
     def _get_grouping_components_for_interface(
-        self, interface: Interface, *, event: Event, **kwargs: Any
+        self, interface: Interface, *, event: GroupEvent, **kwargs: Any
     ) -> ComponentsByVariant:
         """
         Apply a delegate strategy to the given interface to get a dictionary of grouping components
@@ -267,7 +267,7 @@ class Strategy(Generic[ConcreteInterface]):
         return func
 
     def get_grouping_components(
-        self, event: Event, context: GroupingContext
+        self, event: GroupEvent, context: GroupingContext
     ) -> ComponentsByVariant:
         """
         Return a dictionary, keyed by variant name, of components produced by this strategy.
