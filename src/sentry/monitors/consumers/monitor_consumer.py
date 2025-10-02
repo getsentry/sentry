@@ -120,14 +120,13 @@ def _ensure_monitor_with_config(
     try:
         owner_actor = parse_and_validate_actor(owner, project.organization_id)
     except serializers.ValidationError as e:
-        non_fatal_processing_error = ProcessingErrorsException(
-            [
-                {
-                    "type": ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
-                    "errors": {owner: e.detail},
-                }
-            ]
+        validation_error = CheckinValidationFailed(
+            {
+                "type": ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
+                "errors": {owner: e.detail},
+            }
         )
+        non_fatal_processing_error = ProcessingErrorsException([validation_error])
     except Exception:
         logger.exception(
             "Error attempting to resolve owner",
