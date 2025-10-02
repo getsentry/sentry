@@ -8,9 +8,10 @@ import Panel from 'sentry/components/panels/panel';
 import {IconGrid, IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import type {Subscription} from 'getsentry/types';
-import {getPlanIcon, hasNewBillingUI} from 'getsentry/utils/billing';
+import {getPlanIcon, getProductIcon, hasNewBillingUI} from 'getsentry/utils/billing';
 import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 import SeerAutomationAlert from 'getsentry/views/subscriptionPage/seerAutomationAlert';
 
@@ -59,6 +60,21 @@ function PlanCard({
   organization: Organization;
   subscription: Subscription;
 }) {
+  const button = subscription.isFree
+    ? {
+        ariaLabel: t('Upgrade plan'),
+        label: t('Upgrade plan'),
+        linkTo: `/settings/${organization.slug}/billing/checkout/?referrer=upgrade_plan`,
+        icon: <IconUpgrade />,
+        priority: 'primary' as const,
+      }
+    : {
+        ariaLabel: t('Edit plan'),
+        label: t('Edit plan'),
+        linkTo: `/settings/${organization.slug}/billing/checkout/?referrer=edit_plan`,
+        icon: <IconUpgrade />,
+        priority: 'default' as const,
+      };
   return (
     <SubscriptionHeaderCard
       title={t('Current plan')}
@@ -72,13 +88,18 @@ function PlanCard({
           {getPlanIcon(subscription.planDetails)}
           <Text bold>{t('%s Plan', subscription.planDetails.name)}</Text>
         </Flex>,
+        ...Object.values(subscription.addOns ?? {})
+          .filter(addOn => addOn.enabled)
+          .map(addOn => (
+            <Flex key={addOn.apiName} gap="sm" align="center">
+              {getProductIcon(addOn.apiName)}
+              <Text bold>
+                {toTitleCase(addOn.productName, {allowInnerUpperCase: true})}
+              </Text>
+            </Flex>
+          )),
       ]}
-      button={{
-        ariaLabel: t('Edit plan'),
-        label: t('Edit plan'),
-        linkTo: `/settings/${organization.slug}/billing/checkout/?referrer=edit_plan`,
-        icon: <IconUpgrade />,
-      }}
+      button={button}
     />
   );
 }

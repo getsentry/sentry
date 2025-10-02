@@ -2,7 +2,10 @@ import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
-import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {
+  SubscriptionFixture,
+  SubscriptionWithSeerFixture,
+} from 'getsentry-test/fixtures/subscription';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
@@ -38,6 +41,40 @@ describe('SubscriptionHeader', () => {
       url: `/organizations/org-slug/prompts-activity/`,
       body: {},
     });
+  });
+
+  it('renders for free plan with new billing UI', () => {
+    const organization = OrganizationFixture({
+      features: ['subscriptions-v3'],
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({organization, plan: 'am3_f'});
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />
+    );
+    expect(screen.getByText('Developer Plan')).toBeInTheDocument();
+    expect(screen.queryByText('Seer')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Edit plan'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Upgrade plan'})).toBeInTheDocument();
+  });
+
+  it('renders for paid plan and add-ons with new billing UI', () => {
+    const organization = OrganizationFixture({
+      features: ['subscriptions-v3'],
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionWithSeerFixture({
+      organization,
+      plan: 'am3_business',
+      isFree: false,
+    });
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />
+    );
+    expect(screen.getByText('Business Plan')).toBeInTheDocument();
+    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Edit plan'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Upgrade plan'})).not.toBeInTheDocument();
   });
 
   it('does not render editable sections for YY partnership', async () => {

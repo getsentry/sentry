@@ -10,6 +10,7 @@ import type {SVGIconProps} from 'sentry/icons/svgIcon';
 interface ButtonInfo {
   ariaLabel: string;
   label: React.ReactNode;
+  priority: 'primary' | 'default';
   icon?: React.ReactNode;
   linkTo?: string;
   onClick?: () => void;
@@ -42,9 +43,7 @@ function SubscriptionHeaderCard({
         {isValidElement(button.icon)
           ? cloneElement(button.icon, {size: 'sm'} as SVGIconProps)
           : null}
-        <Text bold size="sm">
-          {button.label}
-        </Text>
+        {button.label}
       </Flex>
     );
   };
@@ -81,7 +80,11 @@ function SubscriptionHeaderCard({
       </Flex>
       {button &&
         (button.linkTo ? (
-          <LinkButton aria-label={button.ariaLabel} to={button.linkTo}>
+          <LinkButton
+            priority={button.priority}
+            aria-label={button.ariaLabel}
+            to={button.linkTo}
+          >
             {getButtonContent()}
           </LinkButton>
         ) : (
