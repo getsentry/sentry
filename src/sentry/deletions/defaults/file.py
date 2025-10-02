@@ -1,6 +1,7 @@
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 from django.db.models import Q
+from django.utils import timezone
 
 from sentry.deletions.base import BaseRelation, ModelDeletionTask
 from sentry.models.files.file import File
@@ -19,7 +20,7 @@ class FileDeletionTask(ModelDeletionTask[File]):
 
         from sentry.models.releasefile import ReleaseFile
 
-        cutoff = datetime.now(timezone.utc) - timedelta(days=90)
+        cutoff = timezone.now() - timedelta(days=90)
 
         # Subquery for checking if ReleaseFile references this File
         releasefile_exists = Exists(ReleaseFile.objects.filter(file_id=OuterRef("id")))
@@ -35,8 +36,6 @@ class FileDeletionTask(ModelDeletionTask[File]):
     def get_child_relations(self, instance: File) -> list[BaseRelation]:
         from sentry.models.files.fileblobindex import FileBlobIndex
 
-        # Delete the associated FileBlobIndex records
-        # The FileBlob cleanup is handled by a separate task
         return [
             BaseRelation(
                 params={"model": FileBlobIndex, "query": {"file_id": instance.id}},
