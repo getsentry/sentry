@@ -2,7 +2,7 @@ export enum NotificationProviderKey {
   EMAIL = 'email',
   SLACK = 'slack',
   DISCORD = 'discord',
-  TEAMS = 'teams',
+  TEAMS = 'msteams',
 }
 
 export interface NotificationTemplateRegistration {
@@ -19,6 +19,14 @@ export interface NotificationTemplateRegistration {
       html_content: TrustedHTML;
       subject: string;
       text_content: string;
+    };
+    [NotificationProviderKey.TEAMS]: {
+      card: {
+        $schema: string;
+        body: any[]; // Can't really be more specific since it's a list of arbitrary cards
+        type: 'AdaptiveCard';
+        version: string;
+      };
     };
   };
   source: string;
