@@ -8,6 +8,7 @@ from django.contrib.postgres.fields.ranges import RangeBoundary, RangeOperators
 from django.db import models, router, transaction
 from django.utils import timezone
 
+from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -23,6 +24,15 @@ logger = logging.getLogger(__name__)
 class TsTzRange(models.Func):
     function = "TSTZRANGE"
     output_field = DateTimeRangeField()
+
+
+def should_create_open_periods(type_id: int) -> bool:
+    grouptypes_without_open_periods = options.get(
+        "workflow_engine.group.type_id.should_not_create_open_periods"
+    )
+    if type_id in grouptypes_without_open_periods:
+        return False
+    return True
 
 
 @region_silo_model
@@ -133,6 +143,9 @@ def get_open_periods_for_group(
     query_end: datetime | None = None,
     limit: int | None = None,
 ) -> BaseQuerySet[GroupOpenPeriod] | list[None]:
+    if not should_create_open_periods(group.type):
+        return []
+
     if not query_start:
         # use whichever date is more recent to reduce the query range. first_seen could be > 90 days ago
         query_start = max(group.first_seen, timezone.now() - timedelta(days=90))
@@ -149,8 +162,8 @@ def get_open_periods_for_group(
 
 def create_open_period(group: Group, start_time: datetime) -> None:
     # no-op if the group does not create open periods
-    if not get_group_type_by_type_id(group.type).track_open_periods:
-        return
+    if not should_create_open_periods(group.type):
+        return None
 
     latest_open_period = get_latest_open_period(group)
     if latest_open_period and latest_open_period.date_ended is None:
@@ -199,8 +212,8 @@ def update_group_open_period(
     open periods will be updated during ingestion.
     """
     # if the group does not track open periods, this is a no-op
-    if not get_group_type_by_type_id(group.type).track_open_periods:
-        return
+    if not should_create_open_periods(group.type):
+        return None
 
     # If a group was missed during backfill, we can create a new open period for it on unresolve.
     if not has_any_open_period(group) and new_status == GroupStatus.UNRESOLVED:
@@ -233,4 +246,7 @@ def has_any_open_period(group: Group) -> bool:
 
 
 def get_latest_open_period(group: Group) -> GroupOpenPeriod | None:
+    if not should_create_open_periods(group.type):
+        return None
+
     return GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()

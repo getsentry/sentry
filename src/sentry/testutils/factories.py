@@ -1153,7 +1153,7 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_group(project, create_open_period=True, **kwargs):
         from sentry.models.group import GroupStatus
-        from sentry.models.groupopenperiod import GroupOpenPeriod
+        from sentry.models.groupopenperiod import GroupOpenPeriod, should_create_open_periods
         from sentry.testutils.helpers.datetime import before_now
         from sentry.types.group import GroupSubStatus
 
@@ -1171,7 +1171,7 @@ class Factories:
             kwargs["substatus"] = GroupSubStatus.NEW
 
         group = Group.objects.create(project=project, **kwargs)
-        if create_open_period and get_group_type_by_type_id(group.type).track_open_periods:
+        if create_open_period and should_create_open_periods(group.type):
             open_period = GroupOpenPeriod.objects.create(
                 group=group,
                 project=project,

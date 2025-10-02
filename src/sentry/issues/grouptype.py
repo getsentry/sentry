@@ -224,9 +224,6 @@ class GroupType:
     # Controls whether Seer automation is always triggered for this group type.
     always_trigger_seer_automation = False
 
-    # Whether we should keep track of open periods for this group type.
-    track_open_periods = True
-
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         registry.add(cls)
