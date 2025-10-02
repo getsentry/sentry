@@ -20,6 +20,7 @@ const mockedEventData = {
   'transaction.id': 'transactionId',
   'transaction.span_id': 'transactionSpanId',
   'span.description': 'GET /foo',
+  'span.name': 'HTTP GET /foo',
 };
 
 describe('FieldRenderer tests', () => {
