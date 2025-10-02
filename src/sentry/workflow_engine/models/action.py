@@ -105,8 +105,8 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         indexes = [
             models.Index(
                 "type",
-                models.expressions.RawSQL("(config->>'sentry_app_identifier')", []),
-                models.expressions.RawSQL("(config->>'target_identifier')", []),
+                models.expressions.RawSQL("config->>'sentry_app_identifier'", []),
+                models.expressions.RawSQL("config->>'target_identifier'", []),
                 condition=Q(type="sentry_app"),
                 name="action_sentry_app_lookup",
             ),
