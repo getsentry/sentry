@@ -38,7 +38,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         self.gen_ai_chat_spans: list[str] = [
             span.get("span_id")
             for span in event.get("spans", [])
-            if span.get("op") == "gen_ai.chat" and span.get("span_id")
+            if span.get("op") == "gen_ai.chat"
         ]
 
         lcp_value = get_path(self.event(), "measurements", "lcp", "value")
