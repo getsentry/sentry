@@ -36,6 +36,8 @@ import {
 } from 'sentry/utils/browserHistory';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {TestRouteContext} from 'sentry/views/routeContext';
 
@@ -171,6 +173,28 @@ function patchBrowserHistoryMocksEnabled(history: MemoryHistory, router: Injecte
   });
 }
 
+function NuqsTestingAdapterWithNavigate({children}: {children: React.ReactNode}) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  return (
+    <NuqsTestingAdapter
+      defaultOptions={{shallow: false}}
+      onUrlUpdate={({queryString, options: nuqsOptions}) => {
+        // Pass navigation events to the test router
+        const newParams = qs.parse(queryString);
+        const newLocation = {...location, query: newParams};
+        if (nuqsOptions.history === 'replace') {
+          navigate(newLocation, {replace: true});
+        } else {
+          navigate(newLocation, {replace: false});
+        }
+      }}
+    >
+      {children}
+    </NuqsTestingAdapter>
+  );
+}
+
 function makeAllTheProviders(options: ProviderOptions) {
   const enableRouterMocks = options.deprecatedRouterMocks ?? false;
   const {organization, router} = initializeOrg({
@@ -215,9 +239,9 @@ function makeAllTheProviders(options: ProviderOptions) {
     return (
       <CacheProvider value={{...cache, compat: true}}>
         <QueryClientProvider client={makeTestQueryClient()}>
-          <NuqsTestingAdapter defaultOptions={{shallow: false}}>
+          <NuqsTestingAdapterWithNavigate>
             <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
-          </NuqsTestingAdapter>
+          </NuqsTestingAdapterWithNavigate>
         </QueryClientProvider>
       </CacheProvider>
     );
