@@ -181,7 +181,6 @@ function MonitorForm({
   const form = useRef(
     new FormModel({
       transformData: transformMonitorFormData,
-      mapFormErrors: mapMonitorFormErrors,
     })
   );
   const {projects} = useProjects();
@@ -255,6 +254,7 @@ function MonitorForm({
       }
       onSubmitSuccess={onSubmitSuccess}
       submitLabel={submitLabel}
+      mapFormErrors={mapMonitorFormErrors}
     >
       <StyledList symbol="colored-numeric">
         {monitor?.isUpserting && (

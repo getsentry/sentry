@@ -84,8 +84,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:continuous-profiling-vroomrs-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable transaction profiles processing with vroomrs
     manager.add("projects:transaction-profiling-vroomrs-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Disable certain detectors (based on platform) upon Project creation
-    manager.add("organizations:disable-detectors-on-project-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable querying profile candidates with exponentially growing datetime range chunks
     manager.add("organizations:profiling-flamegraph-use-increased-chunks-query-strategy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable daily summary

@@ -7,7 +7,6 @@ import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageD
 import {
   LOGS_FIELDS_KEY,
   LOGS_QUERY_KEY,
-  LogsPageParamsProvider,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -41,13 +40,9 @@ describe('LogsTabContent', () => {
         analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         source="location"
       >
-        <LogsPageParamsProvider
-          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-        >
-          <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-            <LogsPageDataProvider>{children}</LogsPageDataProvider>
-          </TraceItemAttributeProvider>
-        </LogsPageParamsProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+          <LogsPageDataProvider>{children}</LogsPageDataProvider>
+        </TraceItemAttributeProvider>
       </LogsQueryParamsProvider>
     );
   }
