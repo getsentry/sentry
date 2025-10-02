@@ -297,8 +297,6 @@ function IssueListOverview({
         return;
       }
 
-      setStatsLoading(true);
-
       const statsRequestParams: StatEndpointParams = {
         ...getEndpointParams(),
         groups: newGroupIds,
@@ -323,7 +321,6 @@ function IssueListOverview({
       } catch (e) {
         setError(parseApiError(e as RequestError));
       } finally {
-        setStatsLoading(false);
         // End navigation transaction to prevent additional page requests from impacting page metrics.
         // Other transactions include stacktrace preview request
         const currentSpan = Sentry.getActiveSpan();
@@ -436,8 +433,14 @@ function IssueListOverview({
         setQueryMaxCount(newQueryMaxCount);
         setPageLinks(newPageLinks === null ? '' : newPageLinks);
 
-        // Need to wait for stats request to finish before saving to cache
-        await fetchStats(data.map((group: BaseGroup) => group.id));
+        try {
+          setStatsLoading(true);
+          // Need to wait for stats request to finish before saving to cache
+          await fetchStats(data.map((group: BaseGroup) => group.id));
+        } finally {
+          setStatsLoading(false);
+        }
+
         IssueListCacheStore.save(requestParams, {
           groups: GroupStore.getState() as Group[],
           queryCount: newQueryCount,
@@ -456,6 +459,7 @@ function IssueListOverview({
         setError(parseApiError(err));
         setIssuesLoading(false);
         setIssuesSuccessfullyLoaded(false);
+        setStatsLoading(false);
       },
       complete: () => {
         resumePolling();
