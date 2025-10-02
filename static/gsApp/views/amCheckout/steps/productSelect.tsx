@@ -251,11 +251,13 @@ function ProductSelect({
                       <IconContainer>
                         <IconCheckmark color={theme.successText as Color} />
                       </IconContainer>
-                      <Text size="md">
-                        {tct('Includes [includedBudget]/mo in credits', {
-                          includedBudget: formattedMonthlyBudget,
-                        })}
-                      </Text>
+                      {formattedMonthlyBudget && (
+                        <Text size="md">
+                          {tct('Includes [includedBudget]/mo in credits', {
+                            includedBudget: formattedMonthlyBudget,
+                          })}
+                        </Text>
+                      )}
                     </FeatureItem>
                     {Object.entries(checkoutInfo.categoryInfo).map(([category, info]) => {
                       const pricingInfo =

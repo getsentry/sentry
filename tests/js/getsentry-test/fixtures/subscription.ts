@@ -261,6 +261,10 @@ export function SubscriptionFixture(props: Props): TSubscription {
  */
 export function SubscriptionWithSeerFixture(props: Props): TSubscription {
   const subscription = SubscriptionFixture(props);
+  if (!subscription.planDetails.addOnCategories[AddOnCategory.SEER]) {
+    return subscription;
+  }
+
   subscription.categories = {
     ...subscription.categories,
     seerAutofix: MetricHistoryFixture({
@@ -280,7 +284,8 @@ export function SubscriptionWithSeerFixture(props: Props): TSubscription {
   subscription.addOns = {
     ...subscription.addOns,
     [AddOnCategory.SEER]: {
-      ...subscription.addOns?.[AddOnCategory.SEER]!,
+      ...(subscription.addOns?.[AddOnCategory.SEER] ??
+        subscription.planDetails.addOnCategories[AddOnCategory.SEER]),
       enabled: true,
     },
   };
