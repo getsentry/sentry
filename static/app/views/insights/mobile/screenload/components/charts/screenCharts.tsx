@@ -13,12 +13,12 @@ import {type EventsMetaType} from 'sentry/utils/discover/eventView';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 // TODO(release-drawer): Only used in mobile/screenload/components/
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {type DiscoverSeries} from 'sentry/views/insights/common/queries/types';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {useTopNSpanMultiSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverMultiSeries';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {ScreensBarChart} from 'sentry/views/insights/mobile/screenload/components/charts/screenBarChart';
@@ -84,7 +84,7 @@ export function ScreenCharts({additionalFilters}: Props) {
   const referrer = Referrer.SCREENLOAD_LANDING_DURATION_CHART;
 
   const {
-    data: releaseSeriesArray,
+    data,
     isPending: isSeriesLoading,
     error: seriesError,
   } = useFetchSpanTimeSeries(
@@ -100,6 +100,8 @@ export function ScreenCharts({additionalFilters}: Props) {
     },
     referrer
   );
+
+  const timeSeries = data?.timeSeries ?? [];
 
   useEffect(() => {
     if (defined(primaryRelease) || isReleasesLoading) {
@@ -117,7 +119,7 @@ export function ScreenCharts({additionalFilters}: Props) {
     | 'avg(measurements.time_to_initial_display)'
     | 'avg(measurements.time_to_full_display)'
     | 'count()',
-    DiscoverSeries[]
+    TimeSeries[]
   > = {
     'avg(measurements.time_to_initial_display)': [],
     'avg(measurements.time_to_full_display)': [],
@@ -130,45 +132,59 @@ export function ScreenCharts({additionalFilters}: Props) {
     units: {},
   };
 
-  if (defined(releaseSeriesArray)) {
-    releaseSeriesArray.forEach(release => {
-      const releaseName = release.name;
-      const isPrimary = releaseName === primaryRelease;
-      const colors = theme.chart.getColorPalette(3);
-      const color = isPrimary ? colors[0] : colors[1];
-      const version = formatVersion(releaseName, true);
+  timeSeries.forEach(release => {
+    const releaseName =
+      typeof release.groupBy?.[0]?.value === 'string' ? release.groupBy?.[0]?.value : '';
+    if (!releaseName) {
+      return;
+    }
 
-      const seriesNames = [
-        'avg(measurements.time_to_initial_display)',
-        'avg(measurements.time_to_full_display)',
-        'count()',
-      ] as const;
+    const isPrimary = releaseName === primaryRelease;
+    const colors = theme.chart.getColorPalette(3);
+    const color = isPrimary ? colors[0] : colors[1];
+    const version = formatVersion(releaseName, true);
 
-      seriesNames.forEach(seriesName => {
-        const releaseSeries = release.data[seriesName];
-        const newSeriesName = `${seriesName} ${version}`;
-        chartAliases = {
-          ...chartAliases,
-          [newSeriesName]: version,
-        };
+    const seriesNames = [
+      'avg(measurements.time_to_initial_display)',
+      'avg(measurements.time_to_full_display)',
+      'count()',
+    ] as const;
 
-        if (releaseSeries.meta?.fields[seriesName]) {
-          meta.fields[newSeriesName] = releaseSeries.meta?.fields[seriesName];
-        }
+    const yAxis = release.yAxis as
+      | 'avg(measurements.time_to_initial_display)'
+      | 'avg(measurements.time_to_full_display)'
+      | 'count()';
 
-        if (releaseSeries.meta?.units[seriesName]) {
-          meta.units[newSeriesName] = releaseSeries.meta?.units[seriesName];
-        }
+    seriesMap[yAxis].push(release);
+    chartAliases = {
+      ...chartAliases,
+      [yAxis]: version,
+    };
 
-        seriesMap[seriesName].push({
-          data: releaseSeries.data,
-          meta,
-          color,
-          seriesName: newSeriesName,
-        });
-      });
-    });
-  }
+    // seriesNames.forEach(seriesName => {
+    //   const releaseSeries = release.data[seriesName];
+    //   const newSeriesName = `${seriesName} ${version}`;
+    //   chartAliases = {
+    //     ...chartAliases,
+    //     [newSeriesName]: version,
+    //   };
+
+    //   if (releaseSeries.meta?.fields[seriesName]) {
+    //     meta.fields[newSeriesName] = releaseSeries.meta?.fields[seriesName];
+    //   }
+
+    //   if (releaseSeries.meta?.units[seriesName]) {
+    //     meta.units[newSeriesName] = releaseSeries.meta?.units[seriesName];
+    //   }
+
+    //   seriesMap[seriesName].push({
+    //     data: releaseSeries.data,
+    //     meta,
+    //     color,
+    //     seriesName: newSeriesName,
+    //   });
+    // });
+  });
 
   if (isReleasesLoading) {
     return <LoadingContainer />;
