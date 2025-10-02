@@ -162,14 +162,14 @@ function PRFilesList({files, commentsData}: PRFilesListProps) {
                     {parsePatch(file.patch).map((line, lineIndex) => {
                       return (
                         <Fragment key={`${file.filename}-${lineIndex}`}>
-                          <DiffRow className={`diff-line ${line.type}`}>
+                          <DiffRow className={line.type}>
                             <LineNumber className="old-line-number">
                               {line.oldLineNumber || ''}
                             </LineNumber>
                             <LineNumber className="new-line-number">
                               {line.newLineNumber || ''}
                             </LineNumber>
-                            <DiffContent className={line.type}>
+                            <DiffContent>
                               <code>{line.content}</code>
                             </DiffContent>
                           </DiffRow>
@@ -202,14 +202,14 @@ const DiffTable = styled('table')`
 
 const DiffRow = styled('tr')`
   &.addition {
-    background-color: ${p => p.theme.green200};
+    background-color: #e6ffec;
 
     td {
       color: ${p => p.theme.gray500};
 
       &:not(.old-line-number):not(.new-line-number) {
-        background-color: ${p => p.theme.green200};
-        border-left: 3px solid ${p => p.theme.green300};
+        background-color: #d1f4db;
+        border-left: 3px solid #28a745;
       }
     }
 
@@ -218,26 +218,26 @@ const DiffRow = styled('tr')`
       color: ${p => p.theme.subText};
     }
     .new-line-number {
-      background-color: ${p => p.theme.green200};
+      background-color: #d1f4db;
       color: ${p => p.theme.subText};
     }
   }
 
   &.deletion {
-    background-color: ${p => p.theme.red100};
+    background-color: #ffebe9;
 
     td {
       color: ${p => p.theme.gray500};
 
       &:not(.old-line-number):not(.new-line-number) {
-        background-color: ${p => p.theme.red100};
-        border-left: 3px solid ${p => p.theme.red300};
+        background-color: #ffd7d5;
+        border-left: 3px solid #d73a49;
       }
     }
 
     .old-line-number,
     .new-line-number {
-      background-color: ${p => p.theme.red200};
+      background-color: #ffd7d5;
       color: ${p => p.theme.subText};
     }
   }
