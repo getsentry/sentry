@@ -228,9 +228,7 @@ class EventUser:
             )
             data_results = raw_snql_query(request, referrer=REFERRER)["data"]
 
-            unique_event_users, seen_eventuser_tags = cls._find_unique(
-                data_results, seen_eventuser_tags
-            )
+            unique_event_users = cls._find_unique(data_results, seen_eventuser_tags)
             full_results.extend(unique_event_users)
 
             query_end_time = time.time()
@@ -278,24 +276,22 @@ class EventUser:
 
     @staticmethod
     def _find_unique(
-        data_results: Sequence[dict[str, Any]], seen_eventuser_tags: set[str]
-    ) -> tuple[list[EventUser], set[str]]:
+        data_results: Sequence[Mapping[str, Any]], seen_eventuser_tags: set[str]
+    ) -> list[EventUser]:
         """
         Return the first instance of an EventUser object
         with a unique tag_value from the Snuba results.
         """
-        unique_tag_values = seen_eventuser_tags.copy()
         unique_event_users = []
+        unique_tag_values: set[str | None] = seen_eventuser_tags.copy()
 
         for euser in [EventUser.from_snuba(item) for item in data_results]:
             tag_value = euser.tag_value
-            if tag_value is None:
-                continue
             if tag_value not in unique_tag_values:
                 unique_event_users.append(euser)
                 unique_tag_values.add(tag_value)
 
-        return unique_event_users, unique_tag_values
+        return unique_event_users
 
     @staticmethod
     def from_snuba(result: Mapping[str, Any]) -> EventUser:
