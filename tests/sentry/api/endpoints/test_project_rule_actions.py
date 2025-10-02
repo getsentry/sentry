@@ -331,7 +331,7 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
         action_data = [
             {
                 "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "1",
+                "targetIdentifier": str(self.user.id),
                 "targetType": "Member",
             }
         ]
