@@ -186,8 +186,8 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
                 action_exceptions.append(str(e))
                 continue
             except Exception as e:
-                sentry_sdk.capture_exception(e)
-                action_exceptions.append(f"An unexpected error occurred. Error ID: '{e.id}'")
+                error_id = sentry_sdk.capture_exception(e)
+                action_exceptions.append(f"An unexpected error occurred. Error ID: '{error_id}'")
                 continue
 
             action_exceptions.extend(test_fire_action(action, event_data, detector))
