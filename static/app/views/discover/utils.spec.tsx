@@ -26,7 +26,6 @@ import {
   generateFieldOptions,
   getExpandedResults,
   handleAddQueryToDashboard,
-  pushEventViewToLocation,
 } from 'sentry/views/discover/utils';
 
 jest.mock('sentry/actionCreators/modal');
@@ -241,92 +240,6 @@ describe('decodeColumnOrder', () => {
       isSortable: true,
       type: 'duration',
     });
-  });
-});
-
-describe('pushEventViewToLocation', () => {
-  const state: EventViewOptions = {
-    ...baseView,
-    id: '1234',
-    name: 'best query',
-    fields: [{field: 'count()', width: 420}, {field: 'project.id'}],
-    sorts: [{field: 'count', kind: 'desc'}],
-    query: 'event.type:error',
-    project: [42],
-    start: '2019-10-01T00:00:00',
-    end: '2019-10-02T00:00:00',
-    statsPeriod: '14d',
-    environment: ['staging'],
-  };
-
-  const location = LocationFixture({
-    query: {
-      bestCountry: 'canada',
-    },
-  });
-
-  it('correct query string object pushed to history', () => {
-    const navigate = jest.fn();
-    const eventView = new EventView({...baseView, ...state});
-
-    pushEventViewToLocation({
-      navigate,
-      location,
-      nextEventView: eventView,
-    });
-
-    expect(navigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          id: '1234',
-          name: 'best query',
-          field: ['count()', 'project.id'],
-          widths: '420',
-          sort: '-count',
-          query: 'event.type:error',
-          project: '42',
-          start: '2019-10-01T00:00:00',
-          end: '2019-10-02T00:00:00',
-          statsPeriod: '14d',
-          environment: 'staging',
-          yAxis: 'count()',
-        }),
-      })
-    );
-  });
-
-  it('extra query params', () => {
-    const navigate = jest.fn();
-    const eventView = new EventView({...baseView, ...state});
-
-    pushEventViewToLocation({
-      navigate,
-      location,
-      nextEventView: eventView,
-      extraQuery: {
-        cursor: 'some cursor',
-      },
-    });
-
-    expect(navigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          id: '1234',
-          name: 'best query',
-          field: ['count()', 'project.id'],
-          widths: '420',
-          sort: '-count',
-          query: 'event.type:error',
-          project: '42',
-          start: '2019-10-01T00:00:00',
-          end: '2019-10-02T00:00:00',
-          statsPeriod: '14d',
-          environment: 'staging',
-          cursor: 'some cursor',
-          yAxis: 'count()',
-        }),
-      })
-    );
   });
 });
 

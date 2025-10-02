@@ -356,7 +356,6 @@ export function ScreenLoadSpansTable({
 
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: gridColumnOrder,
-    location,
     paramName: COLUMN_RESIZE_PARAM_NAME,
   });
 

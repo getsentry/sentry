@@ -9,6 +9,7 @@ import GridEditable, {
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
+import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -28,7 +29,6 @@ import {
   useTableSortParams,
 } from 'sentry/views/insights/agents/components/headSortCell';
 import {ModelName} from 'sentry/views/insights/agents/components/modelName';
-import {useColumnOrder} from 'sentry/views/insights/agents/hooks/useColumnOrder';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {ErrorCell} from 'sentry/views/insights/agents/utils/cells';
 import {formatLLMCosts} from 'sentry/views/insights/agents/utils/formatLLMCosts';
@@ -90,7 +90,9 @@ export function ModelsTable() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-  const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
+  const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
+    columns: defaultColumnOrder,
+  });
 
   const fullQuery = useCombinedQuery(getAIGenerationsFilter());
 
@@ -202,7 +204,7 @@ export function ModelsTable() {
           grid={{
             renderBodyCell,
             renderHeadCell,
-            onResizeColumn,
+            onResizeColumn: handleResizeColumn,
           }}
         />
         {modelsRequest.isPlaceholderData && <LoadingOverlay />}

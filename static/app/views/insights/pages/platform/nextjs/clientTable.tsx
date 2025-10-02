@@ -191,7 +191,7 @@ export function ClientTable() {
       isLoading={tableDataRequest.isPending}
       error={tableDataRequest.error}
       data={tableDataRequest.data}
-      initialColumnOrder={pageloadColumnOrder}
+      initialColumnOrder={pageloadColumnOrder as Array<GridColumnOrder<keyof TableData>>}
       stickyHeader
       cursorParamName="tableCursor"
       pageLinks={pagesTablePageLinks}

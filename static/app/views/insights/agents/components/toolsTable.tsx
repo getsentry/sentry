@@ -7,6 +7,7 @@ import GridEditable, {
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
+import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -25,7 +26,6 @@ import {
   HeadSortCell,
   useTableSortParams,
 } from 'sentry/views/insights/agents/components/headSortCell';
-import {useColumnOrder} from 'sentry/views/insights/agents/hooks/useColumnOrder';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {ErrorCell} from 'sentry/views/insights/agents/utils/cells';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
@@ -64,7 +64,9 @@ export function ToolsTable() {
   const location = useLocation();
   const organization = useOrganization();
 
-  const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
+  const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
+    columns: defaultColumnOrder,
+  });
 
   const fullQuery = useCombinedQuery(`span.op:gen_ai.execute_tool`);
 
@@ -167,7 +169,7 @@ export function ToolsTable() {
           grid={{
             renderBodyCell,
             renderHeadCell,
-            onResizeColumn,
+            onResizeColumn: handleResizeColumn,
           }}
         />
         {toolsRequest.isPlaceholderData && <LoadingOverlay />}

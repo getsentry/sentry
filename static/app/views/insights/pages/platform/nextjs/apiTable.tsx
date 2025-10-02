@@ -19,6 +19,7 @@ import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/Numb
 import {TransactionCell} from 'sentry/views/insights/pages/platform/shared/table/TransactionCell';
 import {useSpanTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import type {SpanProperty} from 'sentry/views/insights/types';
 
 const getP95Threshold = (avg: number) => {
   return {
@@ -27,7 +28,7 @@ const getP95Threshold = (avg: number) => {
   };
 };
 
-const defaultColumnOrder: Array<GridColumnOrder<string>> = [
+const defaultColumnOrder: Array<GridColumnOrder<SpanProperty>> = [
   {key: 'transaction', name: t('Path'), width: COL_WIDTH_UNDEFINED},
   {key: 'count()', name: t('Requests'), width: 112},
   {key: 'failure_rate()', name: t('Error Rate'), width: 124},
@@ -74,11 +75,10 @@ export function ApiTable() {
     );
   }, []);
 
+  type TableData = (typeof tableDataRequest.data)[number];
+
   const renderBodyCell = useCallback(
-    (
-      column: GridColumnOrder<string>,
-      dataRow: (typeof tableDataRequest.data)[number]
-    ) => {
+    (column: GridColumnOrder<string>, dataRow: TableData) => {
       switch (column.key) {
         case 'transaction':
           return (
@@ -118,7 +118,7 @@ export function ApiTable() {
           return <div />;
       }
     },
-    [tableDataRequest]
+    []
   );
 
   return (
@@ -126,7 +126,7 @@ export function ApiTable() {
       isLoading={tableDataRequest.isPending}
       error={tableDataRequest.error}
       data={tableDataRequest.data}
-      initialColumnOrder={defaultColumnOrder}
+      initialColumnOrder={defaultColumnOrder as Array<GridColumnOrder<keyof TableData>>}
       stickyHeader
       grid={{
         renderBodyCell,

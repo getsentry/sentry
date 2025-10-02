@@ -138,7 +138,6 @@ export function MobileOverviewTable({response, sort}: Props) {
   };
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: [...COLUMN_ORDER],
-    location,
   });
 
   return (
