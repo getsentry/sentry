@@ -12,6 +12,7 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {
+  AddOnCategory,
   OnDemandBudgetMode,
   type Plan,
   type SharedOnDemandBudget,
@@ -19,7 +20,7 @@ import {
 } from 'getsentry/types';
 import {formatReservedWithUnits, isNewPayingCustomer} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
-import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
+import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 import {
   getTotalBudget,
@@ -41,7 +42,7 @@ type PlanChange = CheckoutChange<'plan', string>;
 
 type CycleChange = CheckoutChange<'contractInterval', string>;
 
-type ProductChange = CheckoutChange<SelectableProduct, boolean>;
+type ProductChange = CheckoutChange<AddOnCategory, boolean>;
 
 type ReservedChange = CheckoutChange<DataCategory, number>;
 
@@ -161,7 +162,6 @@ function ReservedDiff({
                   {getPlanCategoryName({
                     category: key,
                     plan: newValue === null ? currentPlan : newPlan,
-                    title: true,
                   })}
                 </ChangedCategory>
               }
@@ -244,7 +244,6 @@ function OnDemandDiff({
                       {getPlanCategoryName({
                         category: key,
                         plan: newValue === null ? currentPlan : newPlan,
-                        title: true,
                       })}
                     </ChangedCategory>
                   }
@@ -314,15 +313,14 @@ function CartDiff({
   }, [activePlan, currentPlan]);
 
   const getProductChanges = useCallback((): ProductChange[] => {
-    // TODO(checkout v3): This will need to be updated to handle non-budget products
     const currentProducts =
-      subscription.reservedBudgets
-        ?.filter(budget => budget.reservedBudget > 0)
-        .map(budget => budget.apiName as unknown as SelectableProduct) ?? [];
+      Object.values(subscription.addOns ?? {})
+        .filter(addOnInfo => addOnInfo.enabled)
+        .map(addOnInfo => addOnInfo.apiName) ?? [];
 
-    const newProducts = Object.entries(formData.selectedProducts ?? {})
+    const newProducts = Object.entries(formData.addOns ?? {})
       .filter(([_, value]) => value.enabled)
-      .map(([key, _]) => key as unknown as SelectableProduct);
+      .map(([key, _]) => key as AddOnCategory);
 
     // we need to iterate over both in case either state has more products
     // than the other
@@ -347,7 +345,7 @@ function CartDiff({
     });
 
     return changes;
-  }, [formData.selectedProducts, subscription.reservedBudgets]);
+  }, [formData.addOns, subscription.addOns]);
 
   const getCategoryChanges = ({
     currentValues,
@@ -455,10 +453,18 @@ function CartDiff({
     ) {
       changes.push({
         key: 'sharedMaxBudget',
-        currentValue: currentOnDemandBudget.sharedMaxBudget,
+        currentValue:
+          // only show $0 PAYG changes if the budget is being changed to $0
+          currentOnDemandBudget.sharedMaxBudget === 0
+            ? null
+            : currentOnDemandBudget.sharedMaxBudget,
         newValue: newOnDemandBudget.sharedMaxBudget,
       });
-    } else if (currentBudgetMode === OnDemandBudgetMode.SHARED) {
+    } else if (
+      currentBudgetMode === OnDemandBudgetMode.SHARED &&
+      // only show $0 PAYG changes if the budget is being changed to $0
+      currentOnDemandBudget.sharedMaxBudget !== 0
+    ) {
       changes.push({
         key: 'sharedMaxBudget',
         currentValue: currentOnDemandBudget.sharedMaxBudget,
@@ -559,19 +565,19 @@ function CartDiff({
               cycleChanges={cycleChanges}
             />
           )}
-          {reservedChanges.length > 0 && (
-            <ReservedDiff
-              currentPlan={currentPlan}
-              newPlan={activePlan}
-              reservedChanges={reservedChanges}
-            />
-          )}
           {sharedOnDemandChanges.length + perCategoryOnDemandChanges.length > 0 && (
             <OnDemandDiff
               currentPlan={currentPlan}
               newPlan={activePlan}
               perCategoryOnDemandChanges={perCategoryOnDemandChanges}
               sharedOnDemandChanges={sharedOnDemandChanges}
+            />
+          )}
+          {reservedChanges.length > 0 && (
+            <ReservedDiff
+              currentPlan={currentPlan}
+              newPlan={activePlan}
+              reservedChanges={reservedChanges}
             />
           )}
         </ChangesContainer>

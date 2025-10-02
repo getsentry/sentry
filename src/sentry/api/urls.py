@@ -462,6 +462,7 @@ from sentry.relocation.api.endpoints.public_key import RelocationPublicKeyEndpoi
 from sentry.relocation.api.endpoints.recover import RelocationRecoverEndpoint
 from sentry.relocation.api.endpoints.retry import RelocationRetryEndpoint
 from sentry.relocation.api.endpoints.unpause import RelocationUnpauseEndpoint
+from sentry.replays.endpoints.data_export_notifications import DataExportNotificationsEndpoint
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
@@ -647,7 +648,6 @@ from .endpoints.internal import (
     InternalMailEndpoint,
     InternalPackagesEndpoint,
     InternalQueueTasksEndpoint,
-    InternalQuotasEndpoint,
     InternalRpcServiceEndpoint,
     InternalStatsEndpoint,
     InternalWarningsEndpoint,
@@ -3351,11 +3351,6 @@ INTERNAL_URLS = [
         name="sentry-api-0-internal-frontend-version",
     ),
     re_path(
-        r"^quotas/$",
-        InternalQuotasEndpoint.as_view(),
-        name="sentry-api-0-internal-quotas",
-    ),
-    re_path(
         r"^queue/tasks/$",
         InternalQueueTasksEndpoint.as_view(),
         name="sentry-api-0-internal-queue-tasks",
@@ -3566,6 +3561,11 @@ urlpatterns = [
         r"^accept-invite/(?P<organization_id_or_slug>[^/]+)/(?P<member_id>[^/]+)/(?P<token>[^/]+)/$",
         AcceptOrganizationInvite.as_view(),
         name="sentry-api-0-organization-accept-organization-invite",
+    ),
+    re_path(
+        r"^data-export/notifications/google-cloud/$",
+        DataExportNotificationsEndpoint.as_view(),
+        name="sentry-api-0-data-export-notifications",
     ),
     re_path(
         r"^accept-invite/(?P<member_id>[^/]+)/(?P<token>[^/]+)/$",

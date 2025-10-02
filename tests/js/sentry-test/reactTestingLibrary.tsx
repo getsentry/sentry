@@ -1,5 +1,11 @@
 import {Fragment} from 'react';
-import {RouterProvider, useRouteError, type RouteObject, type To} from 'react-router-dom';
+import {
+  Outlet,
+  RouterProvider,
+  useRouteError,
+  type RouteObject,
+  type To,
+} from 'react-router-dom';
 import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import {
@@ -12,6 +18,8 @@ import {
 } from '@remix-run/router';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
+
+import {NuqsTestingAdapter} from 'nuqs/adapters/testing';
 import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
@@ -61,7 +69,7 @@ interface ProviderOptions {
 }
 
 interface BaseRenderOptions<T extends boolean = boolean>
-  extends Pick<ProviderOptions, 'organization'>,
+  extends Pick<ProviderOptions, 'organization' | 'additionalWrapper'>,
     rtl.RenderOptions {
   /**
    * @deprecated do not use this option for new tests
@@ -77,6 +85,11 @@ type LocationConfig =
 
 type RouterConfig = {
   /**
+   * Child routes
+   */
+  children?: RouteObject[];
+
+  /**
    * Sets the initial location for the router.
    */
   location?: LocationConfig;
@@ -88,6 +101,7 @@ type RouterConfig = {
    * route: '/issues/:issueId/'
    */
   route?: string;
+
   /**
    * Sets the initial routes for the router.
    *
@@ -103,7 +117,10 @@ type RouterConfig = {
 
 type RenderOptions<T extends boolean = false> = T extends true
   ? BaseRenderOptions<T> & {router?: Partial<InjectedRouter>}
-  : BaseRenderOptions<T> & {initialRouterConfig?: RouterConfig};
+  : BaseRenderOptions<T> & {
+      initialRouterConfig?: RouterConfig;
+      outletContext?: Record<string, unknown>;
+    };
 
 type RenderReturn<T extends boolean = false> = T extends true
   ? rtl.RenderResult
@@ -115,6 +132,7 @@ type RenderHookWithProvidersOptions<Props> = Omit<
 > &
   Pick<ProviderOptions, 'additionalWrapper' | 'organization'> & {
     initialRouterConfig?: RouterConfig;
+    outletContext?: Record<string, unknown>;
   };
 
 // Inject legacy react-router 3 style router mocked navigation functions
@@ -197,7 +215,9 @@ function makeAllTheProviders(options: ProviderOptions) {
     return (
       <CacheProvider value={{...cache, compat: true}}>
         <QueryClientProvider client={makeTestQueryClient()}>
-          <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
+          <NuqsTestingAdapter defaultOptions={{shallow: false}}>
+            <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
+          </NuqsTestingAdapter>
         </QueryClientProvider>
       </CacheProvider>
     );
@@ -222,7 +242,12 @@ function createRoutesFromConfig(
 
   if (config?.route) {
     return [
-      {path: config.route, element: children, errorElement: <ErrorBoundary />},
+      {
+        path: config.route,
+        element: children,
+        errorElement: <ErrorBoundary />,
+        children: config.children,
+      },
       emptyRoute,
     ];
   }
@@ -233,6 +258,7 @@ function createRoutesFromConfig(
         path: route,
         element: children,
         errorElement: <ErrorBoundary />,
+        children: config.children,
       })),
       emptyRoute,
     ];
@@ -245,12 +271,23 @@ function makeRouter({
   children,
   history,
   config,
+  outletContext,
 }: {
   children: React.ReactNode;
   config: RouterConfig | undefined;
   history: MemoryHistory;
+  outletContext: Record<string, unknown> | undefined;
 }) {
-  const routes = createRoutesFromConfig(children, config);
+  const childRoutes = createRoutesFromConfig(children, config);
+  const routes = outletContext
+    ? [
+        {
+          path: '/',
+          element: <Outlet context={outletContext} />,
+          children: childRoutes,
+        },
+      ]
+    : childRoutes;
 
   const router = createRouter({
     future: {
@@ -317,13 +354,15 @@ function getInitialRouterConfig<T extends boolean = true>(
 ): {
   config: RouterConfig | undefined;
   initialEntry: InitialEntry;
-  legacyRouterConfig?: Partial<InjectedRouter>;
+  legacyRouterConfig: Partial<InjectedRouter> | undefined;
+  outletContext: Record<string, unknown> | undefined;
 } {
   if (options.deprecatedRouterMocks) {
     return {
       initialEntry: options.router?.location?.pathname ?? LocationFixture().pathname,
       legacyRouterConfig: options.router,
       config: undefined,
+      outletContext: undefined,
     };
   }
 
@@ -332,6 +371,7 @@ function getInitialRouterConfig<T extends boolean = true>(
     initialEntry: parseLocationConfig(opts.initialRouterConfig?.location),
     legacyRouterConfig: undefined,
     config: opts.initialRouterConfig,
+    outletContext: opts.outletContext,
   };
 }
 
@@ -353,7 +393,8 @@ function render<T extends boolean = false>(
   ui: React.ReactElement,
   options: RenderOptions<T> = {} as RenderOptions<T>
 ): RenderReturn<T> {
-  const {initialEntry, config, legacyRouterConfig} = getInitialRouterConfig(options);
+  const {initialEntry, config, legacyRouterConfig, outletContext} =
+    getInitialRouterConfig(options);
 
   const history = createMemoryHistory({
     initialEntries: [initialEntry],
@@ -361,6 +402,7 @@ function render<T extends boolean = false>(
 
   const AllTheProviders = makeAllTheProviders({
     organization: options.organization,
+    additionalWrapper: options.additionalWrapper,
     router: legacyRouterConfig,
     deprecatedRouterMocks: options.deprecatedRouterMocks,
     history,
@@ -370,6 +412,7 @@ function render<T extends boolean = false>(
     children: <AllTheProviders>{ui}</AllTheProviders>,
     history,
     config,
+    outletContext,
   });
 
   DANGEROUS_SET_REACT_ROUTER_6_HISTORY(memoryRouter);
@@ -384,6 +427,7 @@ function render<T extends boolean = false>(
       children: <AllTheProviders>{newUi}</AllTheProviders>,
       history,
       config,
+      outletContext,
     });
 
     renderResult.rerender(
@@ -406,9 +450,8 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
   callback: (initialProps: Props) => Result,
   options: RenderHookWithProvidersOptions<Props> = {} as RenderHookWithProvidersOptions<Props>
 ): rtl.RenderHookResult<Result, Props> & {router: TestRouter} {
-  const {initialEntry, config, legacyRouterConfig} = getInitialRouterConfig(
-    options as unknown as RenderOptions<false>
-  );
+  const {initialEntry, config, legacyRouterConfig, outletContext} =
+    getInitialRouterConfig(options as unknown as RenderOptions<false>);
 
   const history = createMemoryHistory({
     initialEntries: [initialEntry],
@@ -429,6 +472,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
       children: <AllTheProviders>{children}</AllTheProviders>,
       history,
       config,
+      outletContext,
     });
 
     DANGEROUS_SET_REACT_ROUTER_6_HISTORY(memoryRouter);

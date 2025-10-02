@@ -124,51 +124,49 @@ class BackfillTriggerTest(TestCase):
 
     def test_triggers_backfill_when_crossing_dual_write_start_date(self):
         dual_write_start = timezone.now() - timedelta(hours=1)
-        with self.feature({"organizations:commit-retention-dual-writing": True}):
-            with override_options({"commit.dual-write-start-date": dual_write_start.isoformat()}):
-                old_last_seen = dual_write_start - timedelta(days=1)
-                ReleaseProjectEnvironment.objects.create(
-                    project_id=self.project.id,
-                    release_id=self.release.id,
-                    environment_id=self.environment.id,
-                    first_seen=old_last_seen,
-                    last_seen=old_last_seen,
+        with override_options({"commit.dual-write-start-date": dual_write_start.isoformat()}):
+            old_last_seen = dual_write_start - timedelta(days=1)
+            ReleaseProjectEnvironment.objects.create(
+                project_id=self.project.id,
+                release_id=self.release.id,
+                environment_id=self.environment.id,
+                first_seen=old_last_seen,
+                last_seen=old_last_seen,
+            )
+            assert not Commit.objects.filter(id=self.old_commit.id).exists()
+            new_last_seen = timezone.now()
+            with self.tasks():
+                ReleaseProjectEnvironment.get_or_create(
+                    project=self.project,
+                    release=self.release,
+                    environment=self.environment,
+                    datetime=new_last_seen,
                 )
-                assert not Commit.objects.filter(id=self.old_commit.id).exists()
-                new_last_seen = timezone.now()
-                with self.tasks():
-                    ReleaseProjectEnvironment.get_or_create(
-                        project=self.project,
-                        release=self.release,
-                        environment=self.environment,
-                        datetime=new_last_seen,
-                    )
-                assert Commit.objects.filter(id=self.old_commit.id).exists()
-                new_commit = Commit.objects.get(id=self.old_commit.id)
-                assert new_commit.key == "abc123"
-                assert new_commit.message == "Test commit"
+            assert Commit.objects.filter(id=self.old_commit.id).exists()
+            new_commit = Commit.objects.get(id=self.old_commit.id)
+            assert new_commit.key == "abc123"
+            assert new_commit.message == "Test commit"
 
     def test_no_trigger_when_already_after_dual_write_start(self):
         dual_write_start = timezone.now() - timedelta(hours=2)
-        with self.feature({"organizations:commit-retention-dual-writing": True}):
-            with override_options({"commit.dual-write-start-date": dual_write_start.isoformat()}):
-                old_last_seen = dual_write_start + timedelta(hours=1)
-                ReleaseProjectEnvironment.objects.create(
-                    project_id=self.project.id,
-                    release_id=self.release.id,
-                    environment_id=self.environment.id,
-                    first_seen=old_last_seen,
-                    last_seen=old_last_seen,
+        with override_options({"commit.dual-write-start-date": dual_write_start.isoformat()}):
+            old_last_seen = dual_write_start + timedelta(hours=1)
+            ReleaseProjectEnvironment.objects.create(
+                project_id=self.project.id,
+                release_id=self.release.id,
+                environment_id=self.environment.id,
+                first_seen=old_last_seen,
+                last_seen=old_last_seen,
+            )
+            new_last_seen = timezone.now()
+            with self.tasks():
+                ReleaseProjectEnvironment.get_or_create(
+                    project=self.project,
+                    release=self.release,
+                    environment=self.environment,
+                    datetime=new_last_seen,
                 )
-                new_last_seen = timezone.now()
-                with self.tasks():
-                    ReleaseProjectEnvironment.get_or_create(
-                        project=self.project,
-                        release=self.release,
-                        environment=self.environment,
-                        datetime=new_last_seen,
-                    )
-                assert not Commit.objects.filter(id=self.old_commit.id).exists()
+            assert not Commit.objects.filter(id=self.old_commit.id).exists()
 
     def test_no_trigger_when_dual_write_not_configured(self):
         old_last_seen = timezone.now() - timedelta(days=1)
@@ -191,22 +189,21 @@ class BackfillTriggerTest(TestCase):
 
     def test_no_trigger_when_last_seen_not_bumped(self):
         dual_write_start = timezone.now() - timedelta(hours=1)
-        with self.feature({"organizations:commit-retention-dual-writing": True}):
-            with override_options({"commit.dual-write-start-date": dual_write_start.isoformat()}):
-                old_last_seen = dual_write_start - timedelta(days=1)
-                ReleaseProjectEnvironment.objects.create(
-                    project_id=self.project.id,
-                    release_id=self.release.id,
-                    environment_id=self.environment.id,
-                    first_seen=old_last_seen,
-                    last_seen=old_last_seen,
+        with override_options({"commit.dual-write-start-date": dual_write_start.isoformat()}):
+            old_last_seen = dual_write_start - timedelta(days=1)
+            ReleaseProjectEnvironment.objects.create(
+                project_id=self.project.id,
+                release_id=self.release.id,
+                environment_id=self.environment.id,
+                first_seen=old_last_seen,
+                last_seen=old_last_seen,
+            )
+            new_last_seen = old_last_seen + timedelta(seconds=30)
+            with self.tasks():
+                ReleaseProjectEnvironment.get_or_create(
+                    project=self.project,
+                    release=self.release,
+                    environment=self.environment,
+                    datetime=new_last_seen,
                 )
-                new_last_seen = old_last_seen + timedelta(seconds=30)
-                with self.tasks():
-                    ReleaseProjectEnvironment.get_or_create(
-                        project=self.project,
-                        release=self.release,
-                        environment=self.environment,
-                        datetime=new_last_seen,
-                    )
-                assert not Commit.objects.filter(id=self.old_commit.id).exists()
+            assert not Commit.objects.filter(id=self.old_commit.id).exists()

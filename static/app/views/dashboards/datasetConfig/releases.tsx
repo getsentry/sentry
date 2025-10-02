@@ -272,6 +272,7 @@ function getReleasesTableFieldOptions(_organization: Organization) {
   return generateReleaseWidgetFieldOptions(Object.values(SESSIONS_FIELDS), SESSIONS_TAGS);
 }
 
+/** @internal exported for tests **/
 export function transformSessionsResponseToTable(
   data: SessionApiResponse,
   widgetQuery: WidgetQuery

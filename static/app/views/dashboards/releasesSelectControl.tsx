@@ -101,15 +101,17 @@ function ReleasesSelectControl({
         });
       }}
       value={activeReleases}
-      triggerLabel={
-        <ButtonLabelWrapper>
-          {triggerLabel}{' '}
-          {activeReleases.length > 1 && (
-            <StyledBadge type="default">{`+${activeReleases.length - 1}`}</StyledBadge>
-          )}
-        </ButtonLabelWrapper>
-      }
-      triggerProps={{icon: <IconReleases />}}
+      triggerProps={{
+        icon: <IconReleases />,
+        children: (
+          <ButtonLabelWrapper>
+            {triggerLabel}{' '}
+            {activeReleases.length > 1 && (
+              <StyledBadge type="default">{`+${activeReleases.length - 1}`}</StyledBadge>
+            )}
+          </ButtonLabelWrapper>
+        ),
+      }}
     />
   );
 }

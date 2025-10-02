@@ -90,28 +90,6 @@ def init_plugin(plugin: Any) -> None:
         for cls in plugin.get_custom_contexts() or ():
             contexttype(cls)
 
-    if hasattr(plugin, "get_cron_schedule") and plugin.is_enabled():
-        schedules = plugin.get_cron_schedule()
-        if schedules:
-            settings.CELERYBEAT_SCHEDULE.update(schedules)
-
-    if hasattr(plugin, "get_worker_imports") and plugin.is_enabled():
-        imports = plugin.get_worker_imports()
-        if imports:
-            settings.CELERY_IMPORTS += tuple(imports)
-
-    if hasattr(plugin, "get_worker_queues") and plugin.is_enabled():
-        from kombu import Queue
-
-        for queue in plugin.get_worker_queues():
-            try:
-                name, routing_key = queue
-            except ValueError:
-                name = routing_key = queue
-            q = Queue(name, routing_key=routing_key)
-            q.durable = False
-            settings.CELERY_QUEUES.append(q)
-
 
 def initialize_receivers() -> None:
     # force signal registration
@@ -524,7 +502,6 @@ def apply_legacy_settings(settings: Any) -> None:
 
     for old, new in (
         ("SENTRY_ADMIN_EMAIL", "system.admin-email"),
-        ("SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE", "system.rate-limit"),
         ("SENTRY_ENABLE_EMAIL_REPLIES", "mail.enable-replies"),
         ("SENTRY_SMTP_HOSTNAME", "mail.reply-hostname"),
         ("MAILGUN_API_KEY", "mail.mailgun-api-key"),

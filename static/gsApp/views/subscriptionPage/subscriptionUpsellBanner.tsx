@@ -186,7 +186,6 @@ const BusinessTrialBannerWrapper = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(2)};
-  margin: ${space(1)} 0;
   background: linear-gradient(
     90deg,
     ${p => p.theme.backgroundSecondary}00 0%,

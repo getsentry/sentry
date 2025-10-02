@@ -7,7 +7,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple, NotRequired, TypedDict
 
 import sentry_sdk
-from celery.exceptions import SoftTimeLimitExceeded
 from django.db.models import OuterRef, Subquery
 
 from sentry import buffer, features, nodestore
@@ -626,10 +625,6 @@ def fire_rules(
                         for callback, futures in callback_and_futures:
                             try:
                                 callback(groupevent, futures)
-                            except SoftTimeLimitExceeded:
-                                # If we're out of time, we don't want to continue.
-                                # Raise so we can retry.
-                                raise
                             except Exception as e:
                                 func_name = getattr(callback, "__name__", str(callback))
                                 logger.exception(

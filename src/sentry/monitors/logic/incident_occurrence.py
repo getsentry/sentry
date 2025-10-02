@@ -177,7 +177,7 @@ def send_incident_occurrence(
         ],
         evidence_data=evidence_data,
         culprit="",
-        detection_time=current_timestamp,
+        detection_time=failed_checkin.date_added,
         level="error",
         assignee=monitor_env.monitor.owner_actor,
     )
@@ -280,6 +280,7 @@ def resolve_incident_group(incident: MonitorIncident, project_id: int) -> None:
         project_id=project_id,
         new_status=GroupStatus.RESOLVED,
         new_substatus=None,
+        update_date=incident.resolving_timestamp,
     )
     produce_occurrence_to_kafka(
         payload_type=PayloadType.STATUS_CHANGE,

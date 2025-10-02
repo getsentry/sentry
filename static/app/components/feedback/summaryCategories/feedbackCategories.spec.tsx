@@ -8,19 +8,26 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import FeedbackCategories from 'sentry/components/feedback/summaryCategories/feedbackCategories';
+import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');
+jest.mock('sentry/components/events/autofix/useOrganizationSeerSetup');
 
 const mockUseLocation = jest.mocked(useLocation);
 const mockUseNavigate = jest.mocked(useNavigate);
+const mockUseOrganizationSeerSetup = jest.mocked(useOrganizationSeerSetup);
 
 describe('FeedbackCategories', () => {
-  const mockOrganization = OrganizationFixture({slug: 'org-slug'});
+  const mockOrganization = OrganizationFixture({
+    slug: 'org-slug',
+    features: ['search-query-builder-wildcard-operators'],
+  });
 
   const mockCategories = [
     {
@@ -53,6 +60,12 @@ describe('FeedbackCategories', () => {
     mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
     mockUseLocation.mockReturnValue(mockLocation);
+    mockUseOrganizationSeerSetup.mockReturnValue({
+      setupAcknowledgement: {
+        orgHasAcknowledged: true,
+      },
+      isPending: false,
+    } as any);
   });
 
   describe('Component Rendering', () => {
@@ -97,6 +110,34 @@ describe('FeedbackCategories', () => {
         body: {
           categories: [],
           numFeedbacksContext: 15,
+          success: true,
+        },
+        statusCode: 200,
+      });
+
+      const {container} = render(<FeedbackCategories />, {
+        organization: mockOrganization,
+      });
+
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-placeholder'));
+
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('renders empty state when org has not acknowledged', async () => {
+      mockUseOrganizationSeerSetup.mockReturnValue({
+        setupAcknowledgement: {
+          orgHasAcknowledged: false,
+        },
+        isPending: false,
+      } as any);
+
+      // Mock API to return categories
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/feedback-categories/',
+        body: {
+          categories: mockCategories,
+          numFeedbacksContext: 35,
           success: true,
         },
         statusCode: 200,
@@ -160,8 +201,7 @@ describe('FeedbackCategories', () => {
     it('removes filter when selected category is clicked again', async () => {
       const locationWithFilter = LocationFixture({
         query: {
-          query:
-            'ai_categorization.labels:["*\\"Design\\"*","*\\"UI\\"*","*\\"User Interface\\"*"]',
+          query: `ai_categorization.labels:${WildcardOperators.CONTAINS}["\\"Design\\"","\\"UI\\"","\\"User Interface\\""]`,
         },
       });
 
@@ -229,7 +269,7 @@ describe('FeedbackCategories', () => {
       const queryString = navigateCall.query.query;
 
       expect(queryString).toBe(
-        'ai_categorization.labels:["*\\"Design\\"*","*\\"UI\\"*","*\\"User Interface\\"*"]'
+        `ai_categorization.labels:${WildcardOperators.CONTAINS}["\\"Design\\"","\\"UI\\"","\\"User Interface\\""]`
       );
     });
   });
@@ -450,8 +490,7 @@ describe('FeedbackCategories', () => {
       const navigateCall = mockNavigate.mock.calls[0][0];
       const queryString = navigateCall.query.query;
 
-      const expectedQuery =
-        'ai_categorization.labels:["*\\"Another \\\\\\"Label\\\\\\"\\"*","*\\"Associated\\* \\\\\\"Label\\\\\\"\\"*","*\\"Test\\* \\\\\\"Category\\\\\\"\\"*"]';
+      const expectedQuery = `ai_categorization.labels:${WildcardOperators.CONTAINS}["\\"Another \\\\\\"Label\\\\\\"\\"","\\"Associated\\* \\\\\\"Label\\\\\\"\\"","\\"Test\\* \\\\\\"Category\\\\\\"\\""]`;
 
       expect(queryString).toBe(expectedQuery);
     });

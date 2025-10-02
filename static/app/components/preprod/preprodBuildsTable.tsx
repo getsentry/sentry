@@ -6,6 +6,7 @@ import InteractionStateLayer from 'sentry/components/core/interactionStateLayer'
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -25,6 +26,7 @@ interface PreprodBuildsTableProps {
   organizationSlug: string;
   projectSlug: string;
   error?: boolean;
+  hasSearchQuery?: boolean;
   pageLinks?: string | null;
 }
 
@@ -35,6 +37,7 @@ export function PreprodBuildsTable({
   pageLinks,
   organizationSlug,
   projectSlug,
+  hasSearchQuery,
 }: PreprodBuildsTableProps) {
   const header = (
     <SimpleTable.Header>
@@ -66,9 +69,23 @@ export function PreprodBuildsTable({
                     {build.app_info?.name || '--'}
                   </Text>
                 </Flex>
-                <Text size="sm" variant="muted">
-                  {build.app_info?.app_id || '--'}
-                </Text>
+                <Flex align="center" gap="xs">
+                  <Text size="sm" variant="muted">
+                    {build.app_info?.app_id || '--'}
+                  </Text>
+                  {build.app_info?.build_configuration && (
+                    <React.Fragment>
+                      <Text size="sm" variant="muted">
+                        {' • '}
+                      </Text>
+                      <Tooltip title={t('Build configuration')}>
+                        <Text size="sm" variant="muted" monospace>
+                          {build.app_info.build_configuration}
+                        </Text>
+                      </Tooltip>
+                    </React.Fragment>
+                  )}
+                </Flex>
               </Flex>
             ) : null}
           </SimpleTable.RowCell>
@@ -91,7 +108,7 @@ export function PreprodBuildsTable({
               <Flex align="center" gap="xs">
                 <IconCommit size="xs" />
                 <Text size="sm" variant="muted" monospace>
-                  #{(build.vcs_info?.head_sha?.slice(0, 7) || '--').toUpperCase()}
+                  {(build.vcs_info?.head_sha?.slice(0, 7) || '--').toUpperCase()}
                 </Text>
                 {build.vcs_info?.head_ref !== null && (
                   <React.Fragment>
@@ -140,7 +157,9 @@ export function PreprodBuildsTable({
     tableContent = (
       <SimpleTable.Empty>
         <Text as="p">
-          {t('There are no preprod builds associated with this project.')}
+          {hasSearchQuery
+            ? t('No builds found for your search')
+            : t('There are no preprod builds associated with this project.')}
         </Text>
       </SimpleTable.Empty>
     );

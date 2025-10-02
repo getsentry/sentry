@@ -23,7 +23,7 @@ export function convertSeriesToTimeseries(series: DiscoverSeries): TimeSeries {
     values,
     meta: {
       // This behavior is a little awkward. Normally `meta` shouldn't be missing, but we sometime return blank meta from helper hooks
-      valueType: series.meta?.fields?.[series.seriesName] ?? null,
+      valueType: series.meta?.fields?.[series.seriesName] ?? 'number',
       valueUnit: (series.meta?.units?.[series.seriesName] ?? null) as DataUnit,
       interval,
     },

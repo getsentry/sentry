@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import functools
 import logging
 from collections.abc import Callable, Iterable
@@ -10,7 +11,9 @@ from django.db.models import Model
 
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.taskworker.config import TaskworkerConfig  # noqa (used in getsentry)
-from sentry.taskworker.retry import RetryError, retry_task
+from sentry.taskworker.constants import CompressionType
+from sentry.taskworker.registry import TaskNamespace
+from sentry.taskworker.retry import Retry, RetryError, retry_task
 from sentry.taskworker.state import current_task
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils import metrics
@@ -72,7 +75,14 @@ def load_model_from_db(
 
 
 def instrumented_task(
-    name,
+    name: str,
+    namespace: TaskNamespace | None = None,
+    retry: Retry | None = None,
+    expires: int | datetime.timedelta | None = None,
+    processing_deadline_duration: int | datetime.timedelta | None = None,
+    at_most_once: bool = False,
+    wait_for_delivery: bool = False,
+    compression_type: CompressionType = CompressionType.PLAINTEXT,
     silo_mode=None,
     taskworker_config=None,
     **kwargs,
@@ -85,20 +95,33 @@ def instrumented_task(
     - statsd metrics for duration and memory usage.
     - sentry sdk tagging.
     - hybrid cloud silo restrictions
-    - disabling of result collection.
     """
 
     def wrapped(func):
-        assert taskworker_config, "The `taskworker_config` parameter is required to define a task"
-        task = taskworker_config.namespace.register(
-            name=name,
-            retry=taskworker_config.retry,
-            expires=taskworker_config.expires,
-            processing_deadline_duration=taskworker_config.processing_deadline_duration,
-            at_most_once=taskworker_config.at_most_once,
-            wait_for_delivery=taskworker_config.wait_for_delivery,
-            compression_type=taskworker_config.compression_type,
-        )(func)
+        if namespace:
+            task = namespace.register(
+                name=name,
+                retry=retry,
+                expires=expires,
+                processing_deadline_duration=processing_deadline_duration,
+                at_most_once=at_most_once,
+                wait_for_delivery=wait_for_delivery,
+                compression_type=compression_type,
+            )(func)
+        elif taskworker_config:
+            task = taskworker_config.namespace.register(
+                name=name,
+                retry=taskworker_config.retry,
+                expires=taskworker_config.expires,
+                processing_deadline_duration=taskworker_config.processing_deadline_duration,
+                at_most_once=taskworker_config.at_most_once,
+                wait_for_delivery=taskworker_config.wait_for_delivery,
+                compression_type=taskworker_config.compression_type,
+            )(func)
+        else:
+            raise AssertionError(
+                f"The `{name}` task must provide either `taskworker_config` or `namespace`."
+            )
 
         if silo_mode:
             silo_limiter = TaskSiloLimit(silo_mode)

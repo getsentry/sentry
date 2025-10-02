@@ -181,7 +181,6 @@ function MonitorForm({
   const form = useRef(
     new FormModel({
       transformData: transformMonitorFormData,
-      mapFormErrors: mapMonitorFormErrors,
     })
   );
   const {projects} = useProjects();
@@ -255,6 +254,7 @@ function MonitorForm({
       }
       onSubmitSuccess={onSubmitSuccess}
       submitLabel={submitLabel}
+      mapFormErrors={mapMonitorFormErrors}
     >
       <StyledList symbol="colored-numeric">
         {monitor?.isUpserting && (
@@ -358,6 +358,11 @@ function MonitorForm({
                       hideLabel
                       placeholder="* * * * *"
                       defaultValue={DEFAULT_CRONTAB}
+                      transformInput={(value: string) =>
+                        // Remove non-ASCII characters from crontab schedule
+                        // eslint-disable-next-line no-control-regex
+                        value.replace(/[^\x00-\x7F]/g, '')
+                      }
                       css={css`
                         input {
                           font-family: ${theme.text.familyMono};

@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
+import moment from 'moment-timezone';
 
 import {
   deleteMonitorProcessingErrorByType,
@@ -41,7 +42,7 @@ import type {
 } from 'sentry/views/insights/crons/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
 
-const DEFAULT_POLL_INTERVAL_MS = 5000;
+import {getMonitorRefetchInterval} from './utils';
 
 type Props = RouteComponentProps<{monitorSlug: string; projectId: string}>;
 
@@ -73,7 +74,7 @@ function MonitorDetails({params, location}: Props) {
         return false;
       }
       const [monitorData] = query.state.data;
-      return hasLastCheckIn(monitorData) ? false : DEFAULT_POLL_INTERVAL_MS;
+      return getMonitorRefetchInterval(monitorData, moment());
     },
   });
 

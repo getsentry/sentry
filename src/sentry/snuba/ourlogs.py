@@ -41,16 +41,25 @@ class OurLogs(rpc_dataset_common.RPCBase):
         debug: bool = False,
     ) -> EAPResponse:
         """timestamp_precise is always displayed in the UI in lieu of timestamp but since the TraceItem table isn't a DateTime64
-        so we need to always order by it regardless of what is actually passed to the orderby"""
+        so we need to always order by it regardless of what is actually passed to the orderby.
+        Additionally, to ensure a strict order in the flex time sampling mode, we also order
+        by the item id."""
         if (
             orderby is not None
             and len(orderby) == 1
             and orderby[0].lstrip("-") == constants.TIMESTAMP_ALIAS
         ):
-            desc = orderby[0][0] == "-"
-            orderby.append(("-" if desc else "") + constants.TIMESTAMP_PRECISE_ALIAS)
+            direction = "-" if orderby[0][0] == "-" else ""
+            orderby.append(direction + constants.TIMESTAMP_PRECISE_ALIAS)
             if constants.TIMESTAMP_PRECISE_ALIAS not in selected_columns:
                 selected_columns.append(constants.TIMESTAMP_PRECISE_ALIAS)
+
+            # When using highest accuracy flex time sampling, we make sure we sort by
+            # the item id as well to ensure we have a strict ordering.
+            if sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME":
+                orderby.append(direction + "id")
+                if "id" not in selected_columns:
+                    selected_columns.append("id")
 
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(

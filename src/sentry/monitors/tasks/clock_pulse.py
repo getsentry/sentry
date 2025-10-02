@@ -17,7 +17,6 @@ from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.monitors.clock_dispatch import try_monitor_clock_tick
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import crons_tasks
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_kafka_admin_cluster_options, get_topic_definition
@@ -54,8 +53,8 @@ def _get_partitions() -> Mapping[int, PartitionMetadata]:
 
 @instrumented_task(
     name="sentry.monitors.tasks.clock_pulse",
+    namespace=crons_tasks,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=crons_tasks),
 )
 def clock_pulse(current_datetime=None):
     """

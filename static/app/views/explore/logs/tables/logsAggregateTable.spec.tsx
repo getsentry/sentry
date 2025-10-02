@@ -11,7 +11,6 @@ import {
   LOGS_FIELDS_KEY,
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
-  LogsPageParamsProvider,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
@@ -31,12 +30,11 @@ describe('LogsAggregateTable', () => {
     aggregatesTableResult: ReturnType<typeof useLogsAggregatesQuery>;
   }) {
     return (
-      <LogsQueryParamsProvider source="location">
-        <LogsPageParamsProvider
-          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-        >
-          <LogsAggregateTable aggregatesTableResult={aggregatesTableResult} />
-        </LogsPageParamsProvider>
+      <LogsQueryParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        source="location"
+      >
+        <LogsAggregateTable aggregatesTableResult={aggregatesTableResult} />
       </LogsQueryParamsProvider>
     );
   }
