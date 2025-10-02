@@ -157,30 +157,6 @@ export function ScreenCharts({additionalFilters}: Props) {
       ...chartAliases,
       [plottableName]: version,
     };
-
-    // seriesNames.forEach(seriesName => {
-    //   const releaseSeries = release.data[seriesName];
-    //   const newSeriesName = `${seriesName} ${version}`;
-    //   chartAliases = {
-    //     ...chartAliases,
-    //     [newSeriesName]: version,
-    //   };
-
-    //   if (releaseSeries.meta?.fields[seriesName]) {
-    //     meta.fields[newSeriesName] = releaseSeries.meta?.fields[seriesName];
-    //   }
-
-    //   if (releaseSeries.meta?.units[seriesName]) {
-    //     meta.units[newSeriesName] = releaseSeries.meta?.units[seriesName];
-    //   }
-
-    //   seriesMap[seriesName].push({
-    //     data: releaseSeries.data,
-    //     meta,
-    //     color,
-    //     seriesName: newSeriesName,
-    //   });
-    // });
   });
 
   if (isReleasesLoading) {
