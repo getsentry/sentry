@@ -76,6 +76,10 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
     def name(self) -> str | None:
         return KNOWN_MAJOR_COMPONENT_NAMES.get(self.id)
 
+    @property
+    def key(self) -> str:
+        return self.name or self.id
+
     @cached_property
     def description(self) -> str:
         """
