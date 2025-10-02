@@ -55,7 +55,7 @@ export interface InsightsTimeSeriesWidgetProps
   visualizationType: 'line' | 'area' | 'bar';
   aliases?: Record<string, string>;
   /**
-   * Optional color palette that will be used inplace of COMMON_COLORS. If not provided, a backfill from a common palette will be provided to `toSeries`
+   * Optional color palette that will be used inplace of COMMON_COLORS.
    */
   colorPalette?: readonly string[];
   description?: React.ReactNode;
