@@ -1,12 +1,16 @@
 from collections.abc import Mapping
 from typing import Any, NotRequired
 
-from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import (
-    _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalue as AttributeValue,
+    SpanEvent,
+    _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalueObject,
 )
 
-Attributes = dict[str, AttributeValue]
+Attributes = dict[
+    str,
+    None
+    | _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalueObject,
+]
 
 
 # The default span.op to assume if it is missing on the span. This should be

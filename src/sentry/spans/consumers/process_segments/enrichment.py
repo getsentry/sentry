@@ -4,7 +4,7 @@ from typing import Any
 
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-from sentry.spans.consumers.process_segments.types import Attributes, attribute_value, get_span_op
+from sentry.spans.consumers.process_segments.types import attribute_value, get_span_op
 
 # Keys of shared sentry attributes that are shared across all spans in a segment. This list
 # is taken from `extract_shared_tags` in Relay.
@@ -79,7 +79,12 @@ class TreeEnricher:
                 self._span_map.setdefault(parent_span_id, []).append(interval)
 
     def _attributes(self, span: SpanEvent) -> dict[str, Any]:
-        attributes: Attributes = {**span.get("attributes", {})}
+        attributes: dict[str, Any] = {**(span.get("attributes") or {})}
+
+        def get_value(key: str) -> Any:
+            attr: dict[str, Any] = attributes.get(key) or {}
+            return attr.get("value")
+
         if self._segment_span is not None:
             # Assume that Relay has extracted the shared tags into `data` on the
             # root span. Once `sentry_tags` is removed, the logic from
@@ -94,11 +99,9 @@ class TreeEnricher:
                 # NOTE: Like in Relay's implementation, shared tags are added at the
                 # very end. This does not have access to the shared tag value. We
                 # keep behavior consistent, although this should be revisited.
-                if (attributes.get("sentry.thread.name") or {}).get(
-                    "value"
-                ) == MOBILE_MAIN_THREAD_NAME:
+                if get_value("sentry.thread.name") == MOBILE_MAIN_THREAD_NAME:
                     attributes["sentry.main_thread"] = {"type": "string", "value": "true"}
-                if not attributes.get("sentry.app_start_type") and mobile_start_type:
+                if not get_value("sentry.app_start_type") and mobile_start_type:
                     attributes["sentry.app_start_type"] = {
                         "type": "string",
                         "value": mobile_start_type,

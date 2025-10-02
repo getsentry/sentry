@@ -37,8 +37,10 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
     client_sample_rate = 1.0
     server_sample_rate = 1.0
 
-    for k, field_value in (span.get("attributes") or {}).items():
-        if (value := field_value.get("value")) is None:
+    for k, attribute in (span.get("attributes") or {}).items():
+        if attribute is None:
+            continue
+        if (value := attribute.get("value")) is None:
             continue
         try:
             # NOTE: This ignores the `type` field of the attribute itself
@@ -58,9 +60,9 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
                     pass
 
     for field_name, attribute_name in FIELD_TO_ATTRIBUTE.items():
-        field_value = span.get(field_name)  # type:ignore[assignment]
-        if field_value is not None:
-            attributes[attribute_name] = _anyvalue(field_value)
+        attribute = span.get(field_name)  # type:ignore[assignment]
+        if attribute is not None:
+            attributes[attribute_name] = _anyvalue(attribute)
 
     # Rename some attributes from their sentry-conventions name to what the product currently expects.
     # Eventually this should all be handled by deprecation policies in sentry-conventions.
@@ -143,7 +145,7 @@ def _sanitize_span_link(link: SpanLink) -> SpanLink:
     # attributes count. Respect that count, if it's present. It should always be
     # an integer.
     try:
-        dropped_attributes_count = int(attributes["sentry.dropped_attributes_count"]["value"])  # type: ignore[arg-type]
+        dropped_attributes_count = int(attributes["sentry.dropped_attributes_count"]["value"])  # type: ignore[arg-type,index]
     except (KeyError, ValueError, TypeError):
         dropped_attributes_count = 0
 
