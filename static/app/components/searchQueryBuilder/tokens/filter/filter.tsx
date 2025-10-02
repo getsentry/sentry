@@ -291,8 +291,10 @@ const FilterWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   /* Ensures that filters do not grow outside of the container */
   min-width: 0;
 
-  :focus {
+  :focus,
+  &[aria-selected='true'] {
     background-color: ${p => p.theme.gray100};
+    border-color: ${p => (p.theme.isChonk ? p.theme.tokens.border.accent : undefined)};
     outline: none;
   }
 
@@ -308,10 +310,6 @@ const FilterWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
             background-color: ${p.theme.gray100};
           `
         : ''}
-
-  &[aria-selected='true'] {
-    background-color: ${p => p.theme.gray100};
-  }
 `;
 
 const GridInvalidTokenTooltip = styled(InvalidTokenTooltip)`
