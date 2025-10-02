@@ -124,6 +124,18 @@ function transformPrompt(prompt: string) {
   }
 }
 
+export function hasAIInputAttribute(
+  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>,
+  attributes?: TraceItemResponseAttribute[],
+  event?: EventTransaction
+) {
+  return (
+    getTraceNodeAttribute('gen_ai.request.messages', node, event, attributes) ||
+    getTraceNodeAttribute('ai.input_messages', node, event, attributes) ||
+    getTraceNodeAttribute('ai.prompt', node, event, attributes)
+  );
+}
+
 export function AIInputSection({
   node,
   attributes,
@@ -135,6 +147,10 @@ export function AIInputSection({
 }) {
   const organization = useOrganization();
   if (!hasAgentInsightsFeature(organization) && getIsAiNode(node)) {
+    return null;
+  }
+
+  if (!hasAIInputAttribute(node, attributes, event)) {
     return null;
   }
 
