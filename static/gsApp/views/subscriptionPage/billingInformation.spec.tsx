@@ -151,11 +151,16 @@ describe('Subscription > BillingInformation', () => {
       />
     );
 
-    await screen.findByText('Payment method');
-    expect(screen.getByText('No payment method on file')).toBeInTheDocument();
-    expect(screen.queryByText(/\*\*\*\*4242/)).not.toBeInTheDocument();
-    expect(screen.getByText('Business address')).toBeInTheDocument();
-    expect(screen.getByText('No business address on file')).toBeInTheDocument();
+    const cardPanel = await screen.findByTestId('credit-card-panel');
+    expect(cardPanel).toBeInTheDocument();
+    expect(within(cardPanel).getByText('No payment method on file')).toBeInTheDocument();
+    expect(within(cardPanel).queryByText(/\*\*\*\*4242/)).not.toBeInTheDocument();
+
+    const billingDetailsPanel = await screen.findByTestId('billing-details-panel');
+    expect(billingDetailsPanel).toBeInTheDocument();
+    expect(
+      within(billingDetailsPanel).getByText('No business address on file')
+    ).toBeInTheDocument();
   });
 
   it('opens credit card form with billing failure query for new billing UI', async () => {

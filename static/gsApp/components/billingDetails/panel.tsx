@@ -162,6 +162,7 @@ function BillingDetailsPanel({
       background="primary"
       border="primary"
       radius="md"
+      data-test-id="billing-details-panel"
     >
       <Flex direction="column" gap="lg" width="100%">
         <Heading as="h2" size="lg">
