@@ -525,6 +525,21 @@ class RootGroupingComponent(BaseGroupingComponent[ContributingComponent]):
     def id(self) -> str:
         return self.variant_name
 
+    @property
+    def key(self) -> str:
+        variant_name = self.variant_name
+
+        if not self.values:  # Insurance - shouldn't ever happen
+            return variant_name
+
+        # Variant root components which don't contribute won't have any contributing children, but
+        # we can find the component which would be the contributing component, were the root
+        # component itself contributing. Strategies are run in descending order of priority, and
+        # added into `values` in order, so the highest-priority option will always be first.
+        would_be_contributing_component = self.values[0]
+
+        return would_be_contributing_component.key
+
     def __repr__(self) -> str:
         base_repr = super().__repr__()
         # Fake the class name so that instead of showing as `RootGroupingComponent` in the repr it
