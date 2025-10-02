@@ -1,74 +1,92 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal, TypedDict
+from enum import StrEnum
+
+from pydantic import BaseModel
+
+from sentry.preprod.api.models.project_preprod_build_details_models import BuildDetailsApiResponse
 
 
-class PullRequestFileChange(TypedDict):
+class PullRequestFileStatus(StrEnum):
+    OPEN = "open"
+    CLOSED = "closed"
+    MERGED = "merged"
+    DRAFT = "draft"
+
+
+class PullRequestFileChange(BaseModel):
     """
     Represents a file change in a pull request, normalized across SCM providers.
     """
 
     filename: str
-    status: Literal["added", "modified", "removed", "renamed"]
+    status: PullRequestFileStatus
     additions: int
     deletions: int
     changes: int
-    previous_filename: str | None  # For renamed files
-    sha: str | None  # File blob SHA/hash
-    patch: str | None  # The actual diff patch (optional for large files)
+    previous_filename: str | None = None  # For renamed files
+    sha: str | None = None  # File blob SHA/hash
+    patch: str | None = None  # The actual diff patch (optional for large files)
 
 
-class PullRequestAuthor(TypedDict):
+class PullRequestAuthor(BaseModel):
     """
     Represents the author of a pull request.
     """
 
-    id: str | None  # Provider-specific ID (may be int for GitHub, str for others)
-    username: str | None
-    display_name: str | None
-    avatar_url: str | None
+    id: str | None = None  # Provider-specific ID (may be int for GitHub, str for others)
+    username: str | None = None
+    display_name: str | None = None
+    avatar_url: str | None = None
 
 
-class PullRequestDetails(TypedDict):
+class PullRequestState(StrEnum):
+    OPEN = "open"
+    CLOSED = "closed"
+    MERGED = "merged"
+    DRAFT = "draft"
+
+
+class PullRequestDetails(BaseModel):
     """
     Represents pull request details, normalized across SCM providers.
     """
 
-    id: str | None  # Provider-specific ID
+    id: str | None = None  # Provider-specific ID
     number: int  # PR/MR number
-    title: str | None
-    description: str | None
-    state: Literal["open", "closed", "merged", "draft"]
+    title: str | None = None
+    description: str | None = None
+    state: PullRequestState
     author: PullRequestAuthor
-    source_branch: str | None
-    target_branch: str | None
-    created_at: datetime | None
-    updated_at: datetime | None
-    merged_at: datetime | None
-    closed_at: datetime | None
-    url: str | None  # Provider URL to the PR
+    source_branch: str | None = None
+    target_branch: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    merged_at: datetime | None = None
+    closed_at: datetime | None = None
+    url: str | None = None  # Provider URL to the PR
     commits_count: int
     additions: int  # Total additions across all files
     deletions: int  # Total deletions across all files
     changed_files_count: int
 
 
-class PullRequestWithFiles(TypedDict):
+class PullRequestWithFiles(BaseModel):
     """
     Complete pull request data including file changes.
     """
 
     pull_request: PullRequestDetails
     files: list[PullRequestFileChange]
-    build_details: list[dict[str, Any]]
+    build_details: list[BuildDetailsApiResponse]
 
 
-class PullRequestErrorResponse(TypedDict):
+class PullRequestErrorResponse(BaseModel):
     """
     Error response for pull request operations.
     """
 
     error: str
     message: str
-    details: str | None
+    details: str | None = None
