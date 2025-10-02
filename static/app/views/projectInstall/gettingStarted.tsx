@@ -39,14 +39,14 @@ function GettingStarted({params}: Props) {
         {loadingProjects ? (
           <LoadingIndicator />
         ) : project ? (
-          <>
+          <React.Fragment>
             <DsnSection
               organization={organization}
               project={project}
               platform={currentPlatform}
             />
             <ProjectInstallPlatform project={project} platform={currentPlatform} />
-          </>
+          </React.Fragment>
         ) : (
           <Redirect
             to={makeProjectsPathname({

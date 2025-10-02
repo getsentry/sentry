@@ -48,10 +48,8 @@ export function DsnSection({organization, project, platform}: Props) {
 
   return (
     <SimpleContainer>
-      <StyledTextCopyInput onCopy={handleCopyDsn}>
-        {dsn.public}
-      </StyledTextCopyInput>
-      <SnarkyText>{t("TL;DR, if you just need the DSN, there you go.")}</SnarkyText>
+      <StyledTextCopyInput onCopy={handleCopyDsn}>{dsn.public}</StyledTextCopyInput>
+      <SnarkyText>{t('TL;DR, if you just need the DSN, there you go.')}</SnarkyText>
     </SimpleContainer>
   );
 }
