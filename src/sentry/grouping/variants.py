@@ -34,6 +34,10 @@ class BaseVariant(ABC):
         return None
 
     @property
+    def key(self) -> str:
+        return self.type
+
+    @property
     def description(self) -> str:
         return self.type
 
@@ -119,6 +123,18 @@ class ComponentVariant(BaseVariant):
         self.config = strategy_config
         self.contributing_component = contributing_component
         self.variant_name = self.root_component.id  # "app", "system", or "default"
+
+    @property
+    def key(self) -> str:
+        """
+        Create a key for this variant in the grouping info dictionary.
+        """
+        key = self.root_component.key
+
+        if self.variant_name in ["app", "system"]:
+            key = f"{self.variant_name}_{key}"
+
+        return key
 
     @property
     def description(self) -> str:
@@ -231,6 +247,10 @@ class SaltedComponentVariant(ComponentVariant):
         super().__init__(root_component, contributing_component, strategy_config)
         self.values = fingerprint
         self.fingerprint_info = fingerprint_info
+
+    @property
+    def key(self) -> str:
+        return super().key + "_hybrid_fingerprint"
 
     @property
     def description(self) -> str:
