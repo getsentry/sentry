@@ -157,7 +157,7 @@ describe('formatSeriesName', () => {
         isOther: true,
       };
 
-      expect(formatTimeSeriesName(timeSeries)).toBe('Other');
+      expect(formatTimeSeriesLabel(timeSeries)).toBe('Other');
     });
   });
 });
