@@ -54,7 +54,7 @@ function BillingDetailsPanel({
   shouldExpandInitially?: boolean;
   title?: string;
 }) {
-  const [isEditing, setIsEditing] = useState(!!shouldExpandInitially);
+  const [isEditing, setIsEditing] = useState(false);
   const {
     data: billingDetails,
     isLoading,
@@ -68,6 +68,14 @@ function BillingDetailsPanel({
       Sentry.captureException(loadError);
     }
   }, [loadError]);
+
+  useEffect(() => {
+    if (shouldExpandInitially && !isLoading) {
+      if (!hasSomeBillingDetails(billingDetails)) {
+        setIsEditing(true);
+      }
+    }
+  }, [shouldExpandInitially, isLoading, billingDetails]);
 
   if (isLoading) {
     return <LoadingIndicator />;

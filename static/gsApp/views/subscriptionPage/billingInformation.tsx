@@ -3,8 +3,12 @@ import type {Location} from 'history';
 
 import {Flex} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Redirect from 'sentry/components/redirect';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import BillingDetailsPanel from 'getsentry/components/billingDetails/panel';
 import CreditCardPanel from 'getsentry/components/creditCardEdit/panel';
@@ -34,26 +38,30 @@ function BillingInformation({organization, subscription, location}: Props) {
     trackSubscriptionView(organization, subscription, 'details');
   }, [organization, subscription]);
 
-  const hasBillingPerms = organization.access?.includes('org:billing');
-  if (!hasBillingPerms) {
-    return (
-      <SubscriptionPageContainer background="primary" organization={organization}>
-        <ContactBillingMembers />
-      </SubscriptionPageContainer>
-    );
-  }
-
-  if (!subscription) {
-    return (
-      <SubscriptionPageContainer background="primary" organization={organization}>
-        <LoadingIndicator />
-      </SubscriptionPageContainer>
-    );
-  }
-
   const isNewBillingUI = hasNewBillingUI(organization);
+  const hasBillingPerms = organization.access?.includes('org:billing');
+
+  if (subscription.isSelfServePartner) {
+    return <Redirect to={`/settings/${organization.slug}/billing/overview/`} />;
+  }
 
   if (!isNewBillingUI) {
+    if (!hasBillingPerms) {
+      return (
+        <SubscriptionPageContainer background="primary" organization={organization}>
+          <ContactBillingMembers />
+        </SubscriptionPageContainer>
+      );
+    }
+
+    if (!subscription) {
+      return (
+        <SubscriptionPageContainer background="primary" organization={organization}>
+          <LoadingIndicator />
+        </SubscriptionPageContainer>
+      );
+    }
+
     return (
       <SubscriptionPageContainer background="primary" organization={organization}>
         <SubscriptionHeader organization={organization} subscription={subscription} />
@@ -77,23 +85,33 @@ function BillingInformation({organization, subscription, location}: Props) {
 
   return (
     <SubscriptionPageContainer background="primary" organization={organization}>
-      <SubscriptionHeader organization={organization} subscription={subscription} />
-      <RecurringCredits displayType="discount" planDetails={subscription.planDetails} />
-      <Flex direction="column" gap="xl">
-        <CreditCardPanel
-          organization={organization}
-          subscription={subscription}
-          location={location}
-          isNewBillingUI={isNewBillingUI}
-          ftcLocation={FTCConsentLocation.BILLING_DETAILS}
-          budgetTerm={subscription.planDetails.budgetTerm}
-        />
-        <BillingDetailsPanel
-          organization={organization}
-          subscription={subscription}
-          isNewBillingUI={isNewBillingUI}
-        />
-      </Flex>
+      <SentryDocumentTitle title={t('Billing Information')} orgSlug={organization.slug} />
+      <SettingsPageHeader title={t('Billing Information')} />
+      {hasBillingPerms ? (
+        subscription ? (
+          <Flex direction="column" gap="xl">
+            <CreditCardPanel
+              organization={organization}
+              subscription={subscription}
+              location={location}
+              isNewBillingUI={isNewBillingUI}
+              ftcLocation={FTCConsentLocation.BILLING_DETAILS}
+              budgetTerm={subscription.planDetails.budgetTerm}
+              shouldExpandInitially
+            />
+            <BillingDetailsPanel
+              organization={organization}
+              subscription={subscription}
+              isNewBillingUI={isNewBillingUI}
+              shouldExpandInitially
+            />
+          </Flex>
+        ) : (
+          <LoadingIndicator />
+        )
+      ) : (
+        <ContactBillingMembers />
+      )}
     </SubscriptionPageContainer>
   );
 }
