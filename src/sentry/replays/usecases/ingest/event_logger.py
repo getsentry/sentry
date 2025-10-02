@@ -51,7 +51,8 @@ class ReplayActionsEventPayloadTap(TypedDict):
 
 class ReplayActionsEventPayload(TypedDict):
     environment: str
-    clicks: list[ReplayActionsEventPayloadClick] | list[ReplayActionsEventPayloadTap]
+    clicks: list[ReplayActionsEventPayloadClick]
+    taps: list[ReplayActionsEventPayloadTap]
     replay_id: str
     type: Literal["replay_actions"]
 
@@ -92,7 +93,8 @@ def emit_tap_events(
         "environment": environment or "",
         "replay_id": replay_id,
         "type": "replay_actions",
-        "clicks": taps,
+        "clicks": [],
+        "taps": taps,
     }
 
     action: ReplayActionsEvent = {
@@ -147,6 +149,7 @@ def emit_click_events(
         "replay_id": replay_id,
         "type": "replay_actions",
         "clicks": clicks,
+        "taps": [],
     }
 
     action: ReplayActionsEvent = {
