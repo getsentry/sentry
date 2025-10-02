@@ -36,7 +36,7 @@ class GroupOpenPeriodActivitySerializer(Serializer):
         return {
             "id": str(obj.id),
             "type": OPEN_PERIOD_ACTIVITY_TYPE_TO_STRING[obj.type],
-            "value": PRIORITY_LEVEL_TO_STRING.get(obj.value),
+            "value": PRIORITY_LEVEL_TO_STRING.get(obj.value) if obj.value else None,
         }
 
 
