@@ -105,21 +105,6 @@ const settingsRoutes = (): SentryRouteObject => ({
       component: make(() => import('../views/spikeProtection')),
     },
     {
-      path: 'seer/',
-      name: 'Seer Automation',
-      children: [
-        {
-          index: true,
-          component: make(() => import('../views/seerAutomation')),
-        },
-        {
-          path: 'onboarding/',
-          name: 'Configure Seer for All Projects',
-          component: make(() => import('../views/seerAutomation/onboarding')),
-        },
-      ],
-    },
-    {
       path: 'subscription/spend-allocations/',
       name: 'Spend Allocations',
       component: make(() => import('../views/spendAllocations')),
