@@ -10,7 +10,7 @@ from sentry.testutils.cases import TestCase
 
 
 class FileDeletionTaskTest(TestCase):
-    def test_get_query_filter_orphaned_release_file(self):
+    def test_get_query_filter_orphaned_release_file(self) -> None:
         """Test that orphaned release.file type Files are selected for deletion"""
         project = self.create_project()
         self.create_release(project=project)
@@ -36,7 +36,7 @@ class FileDeletionTaskTest(TestCase):
 
         assert orphaned_file in files_to_delete
 
-    def test_get_query_filter_does_not_select_referenced_file(self):
+    def test_get_query_filter_does_not_select_referenced_file(self) -> None:
         """Test that Files referenced by ReleaseFile are NOT selected for deletion"""
         project = self.create_project()
         release = self.create_release(project=project)
@@ -69,7 +69,7 @@ class FileDeletionTaskTest(TestCase):
 
         assert referenced_file not in files_to_delete
 
-    def test_get_query_filter_does_not_select_recent_files(self):
+    def test_get_query_filter_does_not_select_recent_files(self) -> None:
         """Test that recent Files are NOT selected even if orphaned"""
         # Create an orphaned file but with recent timestamp
         recent_file = File.objects.create(
@@ -91,7 +91,7 @@ class FileDeletionTaskTest(TestCase):
 
         assert recent_file not in files_to_delete
 
-    def test_get_query_filter_artifact_index_files(self):
+    def test_get_query_filter_artifact_index_files(self) -> None:
         """Test that orphaned release.artifact-index Files are selected"""
         old_timestamp = timezone.now() - timedelta(days=91)
         orphaned_index = File.objects.create(
@@ -110,7 +110,7 @@ class FileDeletionTaskTest(TestCase):
 
         assert orphaned_index in files_to_delete
 
-    def test_get_query_filter_does_not_select_other_file_types(self):
+    def test_get_query_filter_does_not_select_other_file_types(self) -> None:
         """Test that non-release file types are NOT selected"""
         old_timestamp = timezone.now() - timedelta(days=91)
 
@@ -137,7 +137,7 @@ class FileDeletionTaskTest(TestCase):
         assert artifact_bundle_file not in files_to_delete
         assert debug_file not in files_to_delete
 
-    def test_get_child_relations(self):
+    def test_get_child_relations(self) -> None:
         """Test that FileBlobIndex records are returned as child relations"""
         file = File.objects.create(
             name="test.js",
