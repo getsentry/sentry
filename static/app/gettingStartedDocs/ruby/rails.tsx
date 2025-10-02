@@ -8,7 +8,7 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
-  getCrashReportSDKInstallFirstStepRails,
+  getCrashReportSDKInstallFirstBlocksRails,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {
   feedbackOnboardingJsLoader,
@@ -84,18 +84,28 @@ const onboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'The Sentry SDK for Rails comes as two gems that should be added to your [gemfileCode:Gemfile]:',
+      content: [
         {
-          gemfileCode: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'The Sentry SDK for Rails comes as two gems that should be added to your [gemfileCode:Gemfile]:',
+            {
+              gemfileCode: <code />,
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'ruby',
           code: getInstallSnippet(params),
-          additionalInfo: params.isProfilingSelected
-            ? tct(
+        },
+        {
+          type: 'conditional',
+          condition: params.isProfilingSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
                 'Ruby Profiling beta is available since SDK version 5.9.0. We use the [stackprofLink:stackprof gem] to collect profiles for Ruby. Make sure [code:stackprof] is loaded before [code:sentry-ruby].',
                 {
                   stackprofLink: (
@@ -103,11 +113,16 @@ const onboarding: OnboardingConfig = {
                   ),
                   code: <code />,
                 }
-              )
-            : undefined,
+              ),
+            },
+          ],
         },
         {
-          description: t('After adding the gems, run the following to install the SDK:'),
+          type: 'text',
+          text: t('After adding the gems, run the following to install the SDK:'),
+        },
+        {
+          type: 'code',
           language: 'ruby',
           code: 'bundle install',
         },
@@ -117,21 +132,27 @@ const onboarding: OnboardingConfig = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Run the following Rails generator to create the initializer file [code:config/initializers/sentry.rb].',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Run the following Rails generator to create the initializer file [code:config/initializers/sentry.rb].',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'ruby',
           code: generatorSnippet,
         },
         {
-          description: t('You can then change the Sentry configuration as follows:'),
+          type: 'text',
+          text: t('You can then change the Sentry configuration as follows:'),
         },
         {
+          type: 'code',
           language: 'ruby',
           code: getConfigureSnippet(params),
         },
@@ -141,15 +162,18 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains a deliberate error and message sent to Sentry and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: t(
+            "This snippet contains a deliberate error and message sent to Sentry and can be used as a test to make sure that everything's working as expected."
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'ruby',
-              value: 'ruby',
               language: 'ruby',
               code: getVerifySnippet(),
             },
@@ -166,31 +190,35 @@ const crashReportOnboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        "In Rails, being able to serve dynamic pages in response to errors is required to pass the needed [codeEvent:event_id] to the JavaScript SDK. [link:Read our docs] to learn more. Once you're able to serve dynamic exception pages, you can support user feedback.",
+      content: [
         {
-          codeEvent: <code />,
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/ruby/guides/rails/user-feedback/#integration" />
+          type: 'text',
+          text: tct(
+            "In Rails, being able to serve dynamic pages in response to errors is required to pass the needed [codeEvent:event_id] to the JavaScript SDK. [link:Read our docs] to learn more. Once you're able to serve dynamic exception pages, you can support user feedback.",
+            {
+              codeEvent: <code />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/ruby/guides/rails/user-feedback/#integration" />
+              ),
+            }
           ),
-        }
-      ),
-      configurations: [
-        getCrashReportSDKInstallFirstStepRails(params),
+        },
+        ...getCrashReportSDKInstallFirstBlocksRails(params),
         {
-          description: t(
-            'Additionally, you need the template that brings up the dialog:'
-          ),
-          code: [
+          type: 'text',
+          text: t('Additionally, you need the template that brings up the dialog:'),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'ERB',
-              value: 'erb',
               language: 'erb',
               code: `<% sentry_id = request.env["sentry.error_event_id"] %>
 <% if sentry_id.present? %>
 <script>
-  Sentry.init({ dsn: "${params.dsn.public}" });
-  Sentry.showReportDialog({ eventId: "<%= sentry_id %>" });
+Sentry.init({ dsn: "${params.dsn.public}" });
+Sentry.showReportDialog({ eventId: "<%= sentry_id %>" });
 </script>
 <% end %>`,
             },
@@ -202,9 +230,14 @@ const crashReportOnboarding: OnboardingConfig = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/ruby/guides/rails/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/ruby/guides/rails/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],

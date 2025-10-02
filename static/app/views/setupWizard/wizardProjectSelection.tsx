@@ -290,14 +290,12 @@ export function WizardProjectSelection({
             icon: selectedOrg ? (
               <OrganizationAvatar size={16} organization={selectedOrg} />
             ) : null,
-          }}
-          triggerLabel={
-            selectedOrg ? (
+            children: selectedOrg ? (
               getOrgDisplayName(selectedOrg)
             ) : (
               <SelectPlaceholder>{t('Select an organization')}</SelectPlaceholder>
-            )
-          }
+            ),
+          }}
           onChange={({value}) => {
             if (value !== selectedOrgId) {
               setSelectedOrgId(value as string);
@@ -330,14 +328,12 @@ export function WizardProjectSelection({
               ) : selectedProject ? (
                 <ProjectBadge avatarSize={16} project={selectedProject} hideName />
               ) : null,
-            }}
-            triggerLabel={
-              isCreateProjectSelected
+              children: isCreateProjectSelected
                 ? t('Create Project')
                 : selectedProject?.slug || (
                     <SelectPlaceholder>{t('Select a project')}</SelectPlaceholder>
-                  )
-            }
+                  ),
+            }}
             onChange={({value}) => {
               setSelectedProjectId(value as string);
             }}
@@ -381,11 +377,11 @@ export function WizardProjectSelection({
                     searchKey: team.slug,
                   })) || []
                 }
-                triggerLabel={selectedTeam ? `#${selectedTeam.slug}` : t('Select a team')}
                 triggerProps={{
                   icon: selectedTeam ? (
                     <IdBadge avatarSize={16} team={selectedTeam} hideName />
                   ) : null,
+                  children: selectedTeam ? `#${selectedTeam.slug}` : t('Select a team'),
                 }}
                 onChange={({value}) => {
                   setNewProjectTeam(value as string);

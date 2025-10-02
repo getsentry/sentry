@@ -2845,17 +2845,15 @@ class SlackActivityNotificationTest(ActivityTestCase):
         alert_type: FineTuningAPIKey = FineTuningAPIKey.WORKFLOW,
         issue_link_extra_params=None,
     ):
-        notification_uuid = self.get_notification_uuid(
-            blocks[1]["elements"][0]["elements"][-1]["url"]
-        )
+        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
+
         issue_link = f"http://testserver/organizations/{org.slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
         if issue_link_extra_params is not None:
             issue_link += issue_link_extra_params
-        emoji = "large_blue_circle"
-        text = "N+1 Query"
-        assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
-        assert blocks[1]["elements"][0]["elements"][-1]["url"] == issue_link
-        assert blocks[1]["elements"][0]["elements"][-1]["text"] == text
+        assert (
+            blocks[1]["text"]["text"]
+            == f":large_blue_circle: :chart_with_upwards_trend: <{issue_link}|*N+1 Query*>"
+        )
         assert blocks[2]["elements"][0]["text"] == "/books/"
         assert (
             blocks[3]["text"]["text"]
@@ -2879,17 +2877,14 @@ class SlackActivityNotificationTest(ActivityTestCase):
         issue_link_extra_params=None,
         with_culprit=False,
     ):
-        notification_uuid = self.get_notification_uuid(
-            blocks[1]["elements"][0]["elements"][-1]["url"]
-        )
+        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
         issue_link = f"http://testserver/organizations/{org.slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
         if issue_link_extra_params is not None:
             issue_link += issue_link_extra_params
-        emoji = "red_circle"
-        text = f"{TEST_ISSUE_OCCURRENCE.issue_title}"
-        assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
-        assert blocks[1]["elements"][0]["elements"][-1]["url"] == issue_link
-        assert blocks[1]["elements"][0]["elements"][-1]["text"] == text
+        assert (
+            blocks[1]["text"]["text"]
+            == f":red_circle: <{issue_link}|*{TEST_ISSUE_OCCURRENCE.issue_title}*>"
+        )
 
         if with_culprit:
             assert blocks[2]["elements"][0]["text"] == "raven.tasks.run_a_test"
@@ -3398,6 +3393,7 @@ class OurLogTestCase(BaseTestCase):
         project: Project | None = None,
         timestamp: datetime | None = None,
         attributes: dict[str, Any] | None = None,
+        log_id: str | None = None,
     ) -> TraceItem:
         if organization is None:
             organization = self.organization
@@ -3409,6 +3405,12 @@ class OurLogTestCase(BaseTestCase):
             attributes = {}
         if extra_data is None:
             extra_data = {}
+        if log_id is None:
+            item_id = uuid4()
+        else:
+            # There's some flipping of bytes when ingesting the item id
+            # this ensures that the final item we get back is what we send
+            item_id = UUID(bytes=bytes(reversed(UUID(log_id).bytes)))
 
         trace_id = extra_data.pop("trace_id", uuid4().hex)
 
@@ -3449,7 +3451,7 @@ class OurLogTestCase(BaseTestCase):
             item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,
             timestamp=timestamp_proto,
             trace_id=trace_id,
-            item_id=uuid4().bytes,
+            item_id=item_id.bytes,
             received=timestamp_proto,
             retention_days=90,
             attributes=attributes_proto,

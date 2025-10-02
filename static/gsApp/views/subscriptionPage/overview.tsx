@@ -2,7 +2,6 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Container} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -25,7 +24,7 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
-import {hasAccessToSubscriptionOverview, hasNewBillingUI} from 'getsentry/utils/billing';
+import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   isPartOfReservedBudget,
@@ -34,6 +33,7 @@ import {
 import withPromotions from 'getsentry/utils/withPromotions';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import openPerformanceQuotaCreditsPromoModal from './promotions/performanceQuotaCreditsPromo';
 import openPerformanceReservedTransactionsDiscountModal from './promotions/performanceReservedTransactionsPromo';
@@ -167,7 +167,11 @@ function Overview({location, subscription, promotionData}: Props) {
   // Sales managed accounts do not allow members to view the billing page.
   // Whilst self-serve accounts do.
   if (!hasBillingPerms && !subscription.canSelfServe) {
-    return <ContactBillingMembers />;
+    return (
+      <SubscriptionPageContainer background="primary" organization={organization}>
+        <ContactBillingMembers />
+      </SubscriptionPageContainer>
+    );
   }
 
   function renderUsageChart(usageData: CustomerUsage) {
@@ -321,19 +325,21 @@ function Overview({location, subscription, promotionData}: Props) {
     );
   }
 
-  const isNewBillingUI = hasNewBillingUI(organization);
-
   if (isPending) {
     return (
-      <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
+      <SubscriptionPageContainer background="primary" organization={organization}>
         <SubscriptionHeader subscription={subscription} organization={organization} />
         <LoadingIndicator />
-      </Container>
+      </SubscriptionPageContainer>
     );
   }
 
   if (isError) {
-    return <LoadingError onRetry={refetchUsage} />;
+    return (
+      <SubscriptionPageContainer background="primary" organization={organization}>
+        <LoadingError onRetry={refetchUsage} />
+      </SubscriptionPageContainer>
+    );
   }
 
   /**
@@ -360,7 +366,11 @@ function Overview({location, subscription, promotionData}: Props) {
         <RecurringCredits displayType="data" planDetails={planDetails} />
         <OnDemandDisabled subscription={subscription} />
         <UsageAlert subscription={subscription} usage={usageData} />
-        <DisplayModeToggle subscription={subscription} displayMode={displayMode} />
+        <DisplayModeToggle
+          subscription={subscription}
+          displayMode={displayMode}
+          organization={organization}
+        />
         {renderUsageChart(usageData)}
         {renderUsageCards(usageData)}
         <OnDemandSettings organization={organization} subscription={subscription} />
@@ -382,14 +392,14 @@ function Overview({location, subscription, promotionData}: Props) {
   }
 
   return (
-    <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
+    <SubscriptionPageContainer background="primary" organization={organization}>
       <SubscriptionHeader organization={organization} subscription={subscription} />
       <div>
         {hasBillingPerms
           ? contentWithBillingPerms(usage, subscription.planDetails)
           : contentWithoutBillingPerms(usage)}
       </div>
-    </Container>
+    </SubscriptionPageContainer>
   );
 }
 

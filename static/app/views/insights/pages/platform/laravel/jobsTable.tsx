@@ -8,6 +8,7 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
@@ -19,6 +20,7 @@ import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/E
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 import {useSpanTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {
@@ -52,8 +54,11 @@ const rightAlignColumns = new Set([
 
 export function JobsTable() {
   const {query} = useTransactionNameQuery();
+  const mutableQuery = new MutableSearch(query);
+  mutableQuery.addFilterValue(SpanFields.SPAN_OP, 'queue.process');
+
   const tableDataRequest = useSpanTableData({
-    query: `span.op:queue.process ${query ?? ''}`.trim(),
+    query: mutableQuery,
     fields: [
       'count()',
       'project.id',

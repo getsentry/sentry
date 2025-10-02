@@ -8,6 +8,7 @@ import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
 } from 'sentry/components/tables/gridEditable';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -133,6 +134,10 @@ export function TransactionsTable({
       query: {...query, [QueryParameterNames.TRANSACTIONS_CURSOR]: newCursor},
     });
   };
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: [...COLUMN_ORDER],
+    location,
+  });
 
   return (
     <Fragment>
@@ -141,7 +146,7 @@ export function TransactionsTable({
         isLoading={isLoading}
         error={error}
         data={data}
-        columnOrder={COLUMN_ORDER}
+        columnOrder={columns}
         columnSortBy={[
           {
             key: sort.field,
@@ -158,6 +163,7 @@ export function TransactionsTable({
             }),
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, organization, theme),
+          onResizeColumn: handleResizeColumn,
         }}
       />
 

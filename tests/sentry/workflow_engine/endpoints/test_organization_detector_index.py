@@ -57,7 +57,6 @@ class OrganizationDetectorIndexBaseTest(APITestCase):
 
 @region_silo_test
 class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
-
     def test_simple(self) -> None:
         detector = self.create_detector(
             project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
@@ -94,6 +93,8 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             config={
                 "mode": 1,
                 "environment": "production",
+                "recovery_threshold": 1,
+                "downtime_threshold": 3,
             },
         )
         self.create_data_source_detector(
@@ -402,6 +403,8 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             config={
                 "mode": 1,
                 "environment": "production",
+                "recovery_threshold": 1,
+                "downtime_threshold": 3,
             },
         )
         cron_detector = self.create_detector(
@@ -703,15 +706,17 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             "name": "Test Detector",
             "type": MetricIssue.slug,
             "projectId": self.project.id,
-            "dataSource": {
-                "queryType": SnubaQuery.Type.ERROR.value,
-                "dataset": Dataset.Events.name.lower(),
-                "query": "test query",
-                "aggregate": "count()",
-                "timeWindow": 3600,
-                "environment": self.environment.name,
-                "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
-            },
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.ERROR.value,
+                    "dataset": Dataset.Events.name.lower(),
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+                }
+            ],
             "conditionGroup": {
                 "id": self.data_condition_group.id,
                 "organizationId": self.organization.id,
@@ -735,7 +740,9 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
     def test_reject_upsampled_count_aggregate(self) -> None:
         """Users should not be able to submit upsampled_count() directly in ACI."""
         data = {**self.valid_data}
-        data["dataSource"] = {**self.valid_data["dataSource"], "aggregate": "upsampled_count()"}
+        data["dataSources"] = [
+            {**self.valid_data["dataSources"][0], "aggregate": "upsampled_count()"}
+        ]
 
         response = self.get_error_response(
             self.organization.slug,
@@ -939,7 +946,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
 
     def test_empty_query_string(self) -> None:
         data = {**self.valid_data}
-        data["dataSource"]["query"] = ""
+        data["dataSources"][0]["query"] = ""
 
         with self.tasks():
             response = self.get_success_response(

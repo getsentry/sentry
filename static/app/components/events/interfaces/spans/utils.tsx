@@ -1,6 +1,5 @@
 import type {Theme} from '@emotion/react';
 import isNumber from 'lodash/isNumber';
-import maxBy from 'lodash/maxBy';
 import set from 'lodash/set';
 import moment from 'moment-timezone';
 
@@ -13,7 +12,6 @@ import type {
 } from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
-import type {TraceError} from 'sentry/views/performance/newTraceDetails/traceApi/types';
 
 import type SpanTreeModel from './spanTreeModel';
 import type {
@@ -399,22 +397,6 @@ export function getSpanSubTimings(
   return timings;
 }
 
-export function formatSpanTreeLabel(span: ProcessedSpanType): string | undefined {
-  const label = span?.description ?? getSpanID(span);
-
-  if (!isGapSpan(span)) {
-    if (span.op === 'http.client') {
-      try {
-        return decodeURIComponent(label);
-      } catch {
-        // Do nothing
-      }
-    }
-  }
-
-  return label;
-}
-
 function getTraceContext(
   event: Readonly<EventTransaction | AggregateEventTransaction>
 ): TraceContextType | undefined {
@@ -625,51 +607,6 @@ export function getSiblingGroupKey(span: SpanType, occurrence?: number): string 
 
   return `${span.op}.${span.description}`;
 }
-
-export function getCumulativeAlertLevelFromErrors(
-  errors?: Array<Pick<TraceError, 'level' | 'type'>>
-): keyof Theme['alert'] | undefined {
-  const highestErrorLevel = maxBy(
-    errors || [],
-    error => ERROR_LEVEL_WEIGHTS[error.level]
-  )?.level;
-
-  if (errors?.some(isErrorPerformanceError)) {
-    return 'error';
-  }
-
-  if (!highestErrorLevel) {
-    return undefined;
-  }
-
-  return ERROR_LEVEL_TO_ALERT_TYPE[highestErrorLevel];
-}
-
-function isErrorPerformanceError(error: {type?: number}): boolean {
-  return !!error.type && error.type >= 1000 && error.type < 2000;
-}
-
-// Maps the known error levels to an Alert component types
-const ERROR_LEVEL_TO_ALERT_TYPE: Record<TraceError['level'], keyof Theme['alert']> = {
-  fatal: 'error',
-  error: 'error',
-  default: 'error',
-  warning: 'warning',
-  sample: 'info',
-  info: 'info',
-  unknown: 'muted',
-};
-
-// Allows sorting errors according to their level of severity
-const ERROR_LEVEL_WEIGHTS: Record<TraceError['level'], number> = {
-  fatal: 5,
-  error: 4,
-  default: 4,
-  warning: 3,
-  sample: 2,
-  info: 1,
-  unknown: 0,
-};
 
 /**
  * Formats start and end unix timestamps by inserting a leading and trailing zero if needed, so they can have the same length

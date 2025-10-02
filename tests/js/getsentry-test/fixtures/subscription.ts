@@ -11,7 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {Plan, Subscription as TSubscription} from 'getsentry/types';
-import {BillingType} from 'getsentry/types';
+import {AddOnCategory, BillingType} from 'getsentry/types';
 import {isTrialPlan} from 'getsentry/utils/billing';
 
 type Props = Partial<TSubscription> & {organization: Organization};
@@ -38,7 +38,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
   );
   const hasAttachments = planDetails?.categories?.includes(DataCategory.ATTACHMENTS);
   const hasLogBytes = planDetails?.categories?.includes(DataCategory.LOG_BYTE);
-  const hasSeer = !!planDetails?.availableReservedBudgetTypes?.seer;
+  const hasSeer = AddOnCategory.SEER in planDetails.addOnCategories;
 
   // Create a safe default for planCategories if it doesn't exist
   const safeCategories = planDetails?.planCategories || {};
@@ -52,6 +52,14 @@ export function SubscriptionFixture(props: Props): TSubscription {
       reservedBudgets.push(SeerReservedBudgetFixture({reservedBudget: 0}));
     }
   }
+
+  const addOns: TSubscription['addOns'] = {};
+  Object.values(planDetails.addOnCategories).forEach(addOnCategory => {
+    addOns[addOnCategory.apiName] = {
+      ...addOnCategory,
+      enabled: isTrial,
+    };
+  });
 
   return {
     customPrice: null,
@@ -140,6 +148,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     vatID: null,
     msaUpdatedForDataConsent: false,
     dataRetention: null,
+    addOns,
     reservedBudgets,
     categories: {
       errors: MetricHistoryFixture({
@@ -252,6 +261,10 @@ export function SubscriptionFixture(props: Props): TSubscription {
  */
 export function SubscriptionWithSeerFixture(props: Props): TSubscription {
   const subscription = SubscriptionFixture(props);
+  if (!subscription.planDetails.addOnCategories[AddOnCategory.SEER]) {
+    return subscription;
+  }
+
   subscription.categories = {
     ...subscription.categories,
     seerAutofix: MetricHistoryFixture({
@@ -268,6 +281,14 @@ export function SubscriptionWithSeerFixture(props: Props): TSubscription {
     }),
   };
   subscription.reservedBudgets = [SeerReservedBudgetFixture({})];
+  subscription.addOns = {
+    ...subscription.addOns,
+    [AddOnCategory.SEER]: {
+      ...(subscription.addOns?.[AddOnCategory.SEER] ??
+        subscription.planDetails.addOnCategories[AddOnCategory.SEER]),
+      enabled: true,
+    },
+  };
   return subscription;
 }
 

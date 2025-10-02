@@ -83,19 +83,6 @@ from sentry.utils.sentry_apps.service_hook_manager import (
 
 logger = logging.getLogger("sentry.sentry_apps.tasks.sentry_apps")
 
-TASK_OPTIONS = {
-    "queue": "app_platform",
-    "default_retry_delay": (60 * 5),  # Five minutes.
-    "max_retries": 3,
-    "record_timing": True,
-    "silo_mode": SiloMode.REGION,
-}
-CONTROL_TASK_OPTIONS = {
-    "queue": "app_platform.control",
-    "default_retry_delay": (60 * 5),  # Five minutes.
-    "max_retries": 3,
-    "silo_mode": SiloMode.CONTROL,
-}
 
 retry_decorator = retry(
     on=(RequestException),
@@ -192,7 +179,7 @@ def _webhook_issue_data(
         ),
         processing_deadline_duration=30,
     ),
-    **TASK_OPTIONS,
+    silo_mode=SiloMode.REGION,
 )
 @retry_decorator
 def send_alert_webhook_v2(
@@ -303,7 +290,7 @@ def send_alert_webhook_v2(
             delay=60 * 5,
         ),
     ),
-    **TASK_OPTIONS,
+    silo_mode=SiloMode.REGION,
 )
 @retry_decorator
 def send_alert_webhook(
@@ -481,7 +468,7 @@ def _does_project_filter_allow_project(service_hook_id: int, project_id: int) ->
         ),
         processing_deadline_duration=150,
     ),
-    **TASK_OPTIONS,
+    silo_mode=SiloMode.REGION,
 )
 @retry_decorator
 def process_resource_change_bound(
@@ -499,7 +486,7 @@ def process_resource_change_bound(
             delay=60 * 5,
         ),
     ),
-    **CONTROL_TASK_OPTIONS,
+    silo_mode=SiloMode.CONTROL,
 )
 @retry_decorator
 def installation_webhook(installation_id: int, user_id: int, *args: Any, **kwargs: Any) -> None:
@@ -536,7 +523,7 @@ def installation_webhook(installation_id: int, user_id: int, *args: Any, **kwarg
         ),
         processing_deadline_duration=30,
     ),
-    **CONTROL_TASK_OPTIONS,
+    silo_mode=SiloMode.CONTROL,
 )
 def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
     try:
@@ -586,7 +573,7 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
             delay=60 * 5,
         ),
     ),
-    **TASK_OPTIONS,
+    silo_mode=SiloMode.REGION,
 )
 @retry_decorator
 def workflow_notification(
@@ -650,7 +637,7 @@ def workflow_notification(
             delay=60 * 5,
         ),
     ),
-    **TASK_OPTIONS,
+    silo_mode=SiloMode.REGION,
 )
 @retry_decorator
 def build_comment_webhook(
@@ -751,7 +738,7 @@ def get_webhook_data(
         compression_type=CompressionType.ZSTD,
         processing_deadline_duration=30,
     ),
-    **TASK_OPTIONS,
+    silo_mode=SiloMode.REGION,
 )
 @retry_decorator
 def send_resource_change_webhook(
@@ -841,6 +828,15 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
             )
             raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
         if event not in servicehook.events:
+            lifecycle.add_extras(
+                {
+                    "events": servicehook.events,
+                    "event": event,
+                    "installation_id": installation.id,
+                    "sentry_app_id": installation.sentry_app.id,
+                    "sentry_app_events": installation.sentry_app.events,
+                }
+            )
             raise SentryAppSentryError(
                 message=SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK
             )
@@ -880,7 +876,7 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
     taskworker_config=TaskworkerConfig(
         namespace=sentryapp_control_tasks, retry=Retry(times=3), processing_deadline_duration=60
     ),
-    **CONTROL_TASK_OPTIONS,
+    silo_mode=SiloMode.CONTROL,
 )
 def create_or_update_service_hooks_for_sentry_app(
     sentry_app_id: int, webhook_url: str, events: list[str], **kwargs: dict
@@ -905,7 +901,7 @@ def create_or_update_service_hooks_for_sentry_app(
     taskworker_config=TaskworkerConfig(
         namespace=sentryapp_control_tasks, retry=Retry(times=3), processing_deadline_duration=60
     ),
-    **CONTROL_TASK_OPTIONS,
+    silo_mode=SiloMode.CONTROL,
 )
 def regenerate_service_hooks_for_installation(
     *,
@@ -967,7 +963,7 @@ def regenerate_service_hooks_for_installation(
         ),
         processing_deadline_duration=30,
     ),
-    **TASK_OPTIONS,
+    silo_mode=SiloMode.REGION,
 )
 def broadcast_webhooks_for_organization(
     *,

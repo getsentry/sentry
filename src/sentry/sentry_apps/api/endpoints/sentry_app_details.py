@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log, deletions, features
+from sentry.analytics.events.sentry_app_deleted import SentryAppDeletedEvent
 from sentry.analytics.events.sentry_app_schema_validation_error import (
     SentryAppSchemaValidationError,
 )
@@ -241,12 +242,14 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                     event=audit_log.get_event_id("SENTRY_APP_REMOVE"),
                     data={"sentry_app": sentry_app.name},
                 )
-            analytics.record(
-                "sentry_app.deleted",
-                user_id=request.user.id,
-                organization_id=sentry_app.owner_id,
-                sentry_app=sentry_app.slug,
-            )
+            if request.user.is_authenticated:
+                analytics.record(
+                    SentryAppDeletedEvent(
+                        user_id=request.user.id,
+                        organization_id=sentry_app.owner_id,
+                        sentry_app=sentry_app.slug,
+                    )
+                )
             return Response(status=204)
 
         return Response({"detail": ["Published apps cannot be removed."]}, status=403)

@@ -1,4 +1,3 @@
-import random
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
@@ -14,7 +13,7 @@ from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import json
-from sentry.workflow_engine import buffer
+from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -107,10 +106,9 @@ class DelayedWorkflowItem:
 
 @scopedstats.timer()
 def enqueue_workflows(
+    client: DelayedWorkflowClient,
     items_by_workflow: dict[Workflow, DelayedWorkflowItem],
 ) -> None:
-    from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflow
-
     items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
     for queue_item in items_by_workflow.values():
         if not queue_item.delayed_if_group_ids and not queue_item.passing_if_group_ids:
@@ -126,11 +124,9 @@ def enqueue_workflows(
         sentry_sdk.set_tag("delayed_workflow_items", items)
         return
 
-    backend = buffer.get_backend()
     for project_id, queue_items in items_by_project_id.items():
-        backend.push_to_hash_bulk(
-            model=Workflow,
-            filters={"project_id": project_id},
+        client.for_project(project_id).push_to_hash(
+            batch_key=None,
             data={queue_item.buffer_key(): queue_item.buffer_value() for queue_item in queue_items},
         )
         items += len(queue_items)
@@ -138,8 +134,7 @@ def enqueue_workflows(
 
     sentry_sdk.set_tag("delayed_workflow_items", items)
 
-    sharded_key = random.choice(DelayedWorkflow.get_buffer_keys())
-    backend.push_to_sorted_set(key=sharded_key, value=list(items_by_project_id.keys()))
+    client.add_project_ids(list(items_by_project_id.keys()))
 
     logger.debug(
         "workflow_engine.workflows.enqueued",
@@ -465,6 +460,7 @@ def _get_associated_workflows(
 
 @log_context.root()
 def process_workflows(
+    batch_client: DelayedWorkflowClient,
     event_data: WorkflowEventData,
     event_start_time: datetime,
     detector: Detector | None = None,
@@ -534,7 +530,7 @@ def process_workflows(
     actions_to_trigger, queue_items_by_workflow_id = evaluate_workflows_action_filters(
         triggered_workflows, event_data, queue_items_by_workflow_id, event_start_time
     )
-    enqueue_workflows(queue_items_by_workflow_id)
+    enqueue_workflows(batch_client, queue_items_by_workflow_id)
     actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
     sentry_sdk.set_tag("workflow_engine.triggered_actions", len(actions))
 

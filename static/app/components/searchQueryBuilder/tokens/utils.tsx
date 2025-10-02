@@ -50,8 +50,6 @@ export function getDefaultValueForValueType(valueType: FieldValueType | null): s
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:
       return '100';
-    case FieldValueType.SMALL_INTEGER:
-      return '1';
     case FieldValueType.DATE:
       return '-24h';
     case FieldValueType.DURATION:
@@ -124,7 +122,6 @@ export function getInitialFilterText(
 
   switch (valueType) {
     case FieldValueType.INTEGER:
-    case FieldValueType.SMALL_INTEGER:
     case FieldValueType.NUMBER:
     case FieldValueType.DURATION:
     case FieldValueType.SIZE:

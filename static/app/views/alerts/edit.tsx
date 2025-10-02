@@ -104,7 +104,6 @@ function ProjectAlertsEditor(props: Props) {
             {alertType === CombinedAlertType.UPTIME && (
               <UptimeRulesEdit
                 {...props}
-                project={project}
                 onChangeTitle={setTitle}
                 userTeamIds={teams.map(({id}) => id)}
               />

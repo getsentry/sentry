@@ -338,6 +338,8 @@ export default function StreamlinedActivitySection({
                   aria-label={t('View all activity')}
                   to={activityLink}
                   size="xs"
+                  replace
+                  preventScrollReset
                   analyticsEventKey="issue_details.activity_expanded"
                   analyticsEventName="Issue Details: Activity Expanded"
                   analyticsParams={{
@@ -347,7 +349,7 @@ export default function StreamlinedActivitySection({
                   {t('View %s more', group.activity.length - 3)}
                 </LinkButton>
               }
-              icon={<RotatedEllipsisIcon direction={'up'} />}
+              icon={<RotatedEllipsisIcon direction="up" />}
             />
           </Fragment>
         )}

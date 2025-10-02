@@ -5,8 +5,10 @@ from parsimonious import NodeVisitor
 
 from sentry.api.event_search import event_search_grammar
 from sentry.discover import arithmetic
+from sentry.search.eap.spans.attributes import SPAN_ATTRIBUTE_DEFINITIONS
 from sentry.search.events import fields
 from sentry.snuba.metrics import parse_mri
+from sentry.utils.snuba import get_measurement_name
 
 APDEX_USER_MISERY_PATTERN = r"(apdex|user_misery)\((\d+)\)"
 
@@ -32,7 +34,11 @@ COLUMNS_TO_DROP = (
     "count_web_vitals",
     "last_seen",
     "total.count",
+    "linear_regression",
+    "corr(",
 )
+
+FIELDS_TO_DROP = ("total.count",)
 
 
 def format_percentile_term(term):
@@ -74,6 +80,17 @@ def drop_unsupported_columns(columns):
     for column in columns:
         if column.startswith(COLUMNS_TO_DROP):
             dropped_columns.append(column)
+        elif match := fields.is_function(column):
+            arguments = fields.parse_arguments(match.group("function"), match.group("columns"))
+            should_drop = False
+            for argument in arguments:
+                if argument in FIELDS_TO_DROP:
+                    dropped_columns.append(column)
+                    should_drop = True
+                    break
+            if not should_drop:
+                final_columns.append(column)
+
         else:
             final_columns.append(column)
     # if no columns are left, leave the original columns but keep track of the "dropped" columns
@@ -89,11 +106,21 @@ def apply_is_segment_condition(query: str) -> str:
     return "is_transaction:1"
 
 
+def add_equation_prefix_if_needed(term, need_equation):
+    if need_equation and term.startswith(("apdex(", "user_misery(", "count_if(")):
+        return f"equation|{term}"
+    return term
+
+
 def column_switcheroo(term):
     """Swaps out the entire column name."""
     parsed_mri = parse_mri(term)
     if parsed_mri:
         term = parsed_mri.name
+
+    measurement_name = get_measurement_name(term)
+    if measurement_name is not None and term not in SPAN_ATTRIBUTE_DEFINITIONS:
+        return f"tags[{measurement_name},number]", True
 
     column_swap_map = {
         "transaction.duration": "span.duration",
@@ -213,7 +240,12 @@ def translate_query(query: str):
     return apply_is_segment_condition("".join(flattened_query))
 
 
-def translate_columns(columns):
+def translate_columns(columns, need_equation=False):
+    """
+    @param columns: list of columns to translate
+    @param need_equation: whether to translate some of the functions to equation notation (usually if
+    the function is being used in a field/orderby)
+    """
     translated_columns = []
 
     for column in columns:
@@ -225,6 +257,7 @@ def translate_columns(columns):
 
         translated_func, did_update = function_switcheroo(column)
         if did_update:
+            translated_func = add_equation_prefix_if_needed(translated_func, need_equation)
             translated_columns.append(translated_func)
             continue
 
@@ -236,7 +269,8 @@ def translate_columns(columns):
             translated_arguments.append(column_switcheroo(argument)[0])
 
         new_arg = ",".join(translated_arguments)
-        translated_columns.append(f"{raw_function}({new_arg})")
+        new_function = add_equation_prefix_if_needed(f"{raw_function}({new_arg})", need_equation)
+        translated_columns.append(new_function)
 
     # need to drop columns after they have been translated to avoid issues with percentile()
     final_columns, dropped_columns = drop_unsupported_columns(translated_columns)
@@ -362,7 +396,9 @@ def translate_orderbys(orderbys, equations, dropped_equations, new_equations):
 
         # if orderby is a field/function
         else:
-            translated_orderby, dropped_orderby = translate_columns([orderby_without_neg])
+            translated_orderby, dropped_orderby = translate_columns(
+                [orderby_without_neg], need_equation=True
+            )
             if len(dropped_orderby) > 0:
                 dropped_orderby_reason = "fields were dropped: " + ", ".join(dropped_orderby)
 
@@ -393,7 +429,9 @@ def translate_mep_to_eap(query_parts: QueryParts):
     datamodels to store EAP compatible EQS queries.
     """
     new_query = translate_query(query_parts["query"])
-    new_columns, dropped_columns = translate_columns(query_parts["selected_columns"])
+    new_columns, dropped_columns = translate_columns(
+        query_parts["selected_columns"], need_equation=True
+    )
     new_equations, dropped_equations = translate_equations(query_parts["equations"])
     equations = query_parts["equations"] if query_parts["equations"] is not None else []
     dropped_equations_without_reasons = (

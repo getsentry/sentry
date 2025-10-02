@@ -156,6 +156,7 @@ export type InsightSources = {
   thoughts: string;
   trace_event_ids_used: string[];
   event_trace_id?: string;
+  event_trace_timestamp?: number;
 };
 
 export interface AutofixDefaultStep extends BaseStep {

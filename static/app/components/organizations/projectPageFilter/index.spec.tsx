@@ -15,7 +15,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 const {organization, projects, router} = initializeOrg({
-  organization: {features: ['global-views', 'open-membership']},
+  organization: {features: ['open-membership']},
   projects: [
     {id: '1', slug: 'project-1', isMember: true},
     {id: '2', slug: 'project-2', isMember: true},
@@ -213,7 +213,7 @@ describe('ProjectPageFilter', () => {
 
   it('displays a desynced state message', async () => {
     const {organization: desyncOrganization, router: desyncRouter} = initializeOrg({
-      organization: {features: ['global-views', 'open-membership']},
+      organization: {features: ['open-membership']},
       projects: [
         {id: '1', slug: 'project-1', isMember: true},
         {id: '2', slug: 'project-2', isMember: true},
@@ -236,7 +236,6 @@ describe('ProjectPageFilter', () => {
       organization: desyncOrganization,
       queryParams: {project: ['2']},
       router: desyncRouter,
-      shouldEnforceSingleProject: false,
     });
 
     render(<ProjectPageFilter />, {

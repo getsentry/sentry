@@ -8,7 +8,6 @@ from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.providers import get_provider_name
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 
 
 class ExternalActorSerializerTest(TestCase):
@@ -147,7 +146,6 @@ class ExternalActorSerializerTest(TestCase):
         )
         assert serializer.is_valid() is True
 
-    @with_feature("organizations:use-case-insensitive-codeowners")
     def test_create_case_insensitive_team(self) -> None:
         sentry_team = self.create_team(organization=self.organization, members=[self.user])
 
@@ -182,34 +180,3 @@ class ExternalActorSerializerTest(TestCase):
         assert created2 is False
         assert external_actor2.id == external_actor1.id
         assert external_actor2.external_name == "@getsentry/example-team"
-
-    def test_create_case_sensitive_team(self) -> None:
-        sentry_team = self.create_team(organization=self.organization, members=[self.user])
-
-        external_actor_team_data = {
-            "provider": get_provider_name(ExternalProviders.GITHUB.value),
-            "external_name": "@getsentry/example-team",
-            "integrationId": self.integration.id,
-            "team_id": sentry_team.id,
-        }
-
-        serializer = ExternalTeamSerializer(
-            data=external_actor_team_data,
-            context={"organization": self.organization},
-        )
-        assert serializer.is_valid() is True
-        external_actor1, created1 = serializer.create(serializer.validated_data)
-        assert created1 is True
-        assert external_actor1.external_name == "@getsentry/example-team"
-
-        external_actor_team_data["external_name"] = "@GETSENTRY/EXAMPLE-TEAM"
-        external_actor_team_data["team_id"] = sentry_team.id
-
-        serializer = ExternalTeamSerializer(
-            data=external_actor_team_data,
-            context={"organization": self.organization},
-        )
-        assert serializer.is_valid() is True
-        external_actor2, created2 = serializer.create(serializer.validated_data)
-        assert created2 is True
-        assert external_actor2.external_name == "@GETSENTRY/EXAMPLE-TEAM"

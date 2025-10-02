@@ -9,7 +9,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
@@ -24,11 +23,10 @@ type RouteParams = {
 type Props = {
   onChangeTitle: (data: string) => void;
   organization: Organization;
-  project: Project;
   userTeamIds: string[];
 } & RouteComponentProps<RouteParams>;
 
-export function UptimeRulesEdit({params, onChangeTitle, organization, project}: Props) {
+export function UptimeRulesEdit({params, onChangeTitle, organization}: Props) {
   const api = useApi();
   const navigate = useNavigate();
 
@@ -69,12 +67,7 @@ export function UptimeRulesEdit({params, onChangeTitle, organization, project}: 
 
   return (
     <Main fullWidth>
-      <UptimeAlertForm
-        organization={organization}
-        project={project}
-        rule={rule}
-        handleDelete={handleDelete}
-      />
+      <UptimeAlertForm rule={rule} handleDelete={handleDelete} />
     </Main>
   );
 }

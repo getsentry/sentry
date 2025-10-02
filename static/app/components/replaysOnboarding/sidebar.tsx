@@ -7,7 +7,7 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex, type FlexProps} from 'sentry/components/core/layout/flex';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
@@ -151,8 +151,13 @@ function SidebarContent() {
             }}
           >
             <CompactSelect
-              triggerLabel={
-                currentProject ? (
+              value={currentProject?.id}
+              onChange={opt =>
+                setCurrentProject(allProjects.find(p => p.id === opt.value))
+              }
+              triggerProps={{
+                'aria-label': currentProject?.slug,
+                children: currentProject ? (
                   <StyledIdBadge
                     project={currentProject}
                     avatarSize={16}
@@ -161,13 +166,8 @@ function SidebarContent() {
                   />
                 ) : (
                   t('Select a project')
-                )
-              }
-              value={currentProject?.id}
-              onChange={opt =>
-                setCurrentProject(allProjects.find(p => p.id === opt.value))
-              }
-              triggerProps={{'aria-label': currentProject?.slug}}
+                ),
+              }}
               options={projectSelectOptions}
               position="bottom-end"
             />
@@ -274,7 +274,7 @@ function OnboardingContent({
                     platformSelect: (
                       <CompactSelect
                         size="xs"
-                        triggerLabel={jsFramework.label}
+                        triggerProps={{children: jsFramework.label}}
                         value={jsFramework.value}
                         onChange={setJsFramework}
                         options={jsFrameworkSelectOptions}
@@ -442,17 +442,21 @@ const StyledIdBadge = styled(IdBadge)`
   flex-shrink: 1;
 `;
 
-const HeaderActions = styled(({children}) => (
-  <Flex direction="row" justify="between" gap="2xl">
-    {children}
-  </Flex>
-))``;
+function HeaderActions({children}: {children: ReactNode}) {
+  return (
+    <Flex direction="row" justify="between" gap="2xl">
+      {children}
+    </Flex>
+  );
+}
 
-const PlatformLabel = styled(props => <Flex gap="md" align="center" {...props} />)``;
+function PlatformLabel(props: FlexProps) {
+  return <Flex gap="md" align="center" {...props} />;
+}
 
-const PlatformSelect = styled(props => (
-  <Flex gap="md" align="center" wrap="wrap" {...props} />
-))``;
+function PlatformSelect(props: FlexProps) {
+  return <Flex gap="md" align="center" wrap="wrap" {...props} />;
+}
 
 const StyledRadioGroup = styled(RadioGroup)`
   padding: ${space(1)} 0;

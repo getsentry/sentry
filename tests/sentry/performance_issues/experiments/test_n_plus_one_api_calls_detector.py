@@ -7,15 +7,17 @@ from uuid import uuid4
 import pytest
 
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
-from sentry.performance_issues.base import DetectorType, parameterize_url
+from sentry.performance_issues.base import DetectorType
 from sentry.performance_issues.detectors.experiments.n_plus_one_api_calls_detector import (
     NPlusOneAPICallsExperimentalDetector,
 )
+from sentry.performance_issues.detectors.utils import parameterize_url
 from sentry.performance_issues.performance_detection import (
     get_detection_settings,
     run_detector_on_data,
 )
 from sentry.performance_issues.performance_problem import PerformanceProblem
+from sentry.performance_issues.types import Span
 from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     create_event,
@@ -56,7 +58,7 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
             ]
         )
 
-    def create_eligible_spans(self, duration: float, count: int) -> list:
+    def create_eligible_spans(self, duration: float, count: int) -> list[Span]:
         spans = []
 
         for i in range(count):
@@ -312,6 +314,14 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
         path_params = problem.evidence_data.get("path_parameters", [])
         assert path_params == []
 
+    def test_span_has_http_query_and_query_on_url(self) -> None:
+        event = get_event("n-plus-one-api-calls/n-plus-one-api-http-query")
+        [problem] = self.find_problems(event)
+        assert problem.evidence_data is not None
+        assert problem.evidence_data["parameters"] == [
+            "id: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19"
+        ]
+
 
 @pytest.mark.parametrize(
     "url,parameterized_url",
@@ -398,7 +408,7 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
         ),
     ],
 )
-def test_parameterizes_url(url, parameterized_url) -> None:
+def test_parameterizes_url(url: str, parameterized_url: str) -> None:
     r = parameterize_url(url)
     assert r == parameterized_url
 
@@ -441,7 +451,7 @@ def test_parameterizes_url(url, parameterized_url) -> None:
     ],
 )
 @pytest.mark.django_db
-def test_allows_eligible_spans(span) -> None:
+def test_allows_eligible_spans(span: Span) -> None:
     detector = NPlusOneAPICallsExperimentalDetector(get_detection_settings(), {})
     assert detector._is_span_eligible(span)
 
@@ -501,7 +511,7 @@ def test_allows_eligible_spans(span) -> None:
     ],
 )
 @pytest.mark.django_db
-def test_rejects_ineligible_spans(span) -> None:
+def test_rejects_ineligible_spans(span: Span) -> None:
     detector = NPlusOneAPICallsExperimentalDetector(get_detection_settings(), {})
     assert not detector._is_span_eligible(span)
 
@@ -510,7 +520,7 @@ def test_rejects_ineligible_spans(span) -> None:
     "event",
     [get_event("n-plus-one-api-calls/not-n-plus-one-api-calls")],
 )
-def test_allows_eligible_events(event) -> None:
+def test_allows_eligible_events(event: dict[str, Any]) -> None:
     assert NPlusOneAPICallsExperimentalDetector.is_event_eligible(event)
 
 
@@ -520,5 +530,5 @@ def test_allows_eligible_events(event) -> None:
         {"contexts": {"trace": {"op": "task"}}},
     ],
 )
-def test_rejects_ineligible_events(event) -> None:
+def test_rejects_ineligible_events(event: dict[str, Any]) -> None:
     assert not NPlusOneAPICallsExperimentalDetector.is_event_eligible(event)

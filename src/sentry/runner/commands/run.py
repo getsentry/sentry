@@ -5,12 +5,9 @@ import os
 import random
 import signal
 import time
-from collections.abc import Mapping
-from multiprocessing import cpu_count
 from typing import Any
 
 import click
-from django.utils import autoreload
 
 import sentry.taskworker.constants as taskworker_constants
 from sentry.bgtasks.api import managed_bgtasks
@@ -129,39 +126,75 @@ def web(
         SentryHTTPServer(host=bind[0], port=bind[1], workers=workers).run()
 
 
-def run_worker(**options: Any) -> None:
+@run.command()
+@click.option(
+    "--redis-cluster",
+    help="The rediscluster name to store run state in.",
+    default="default",
+)
+@log_options()
+@configuration
+def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     """
-    This is the inner function to actually start worker.
+    Run a scheduler for taskworkers
+
+    All tasks defined in settings.TASKWORKER_SCHEDULES will be scheduled as required.
     """
     from django.conf import settings
 
-    if settings.CELERY_ALWAYS_EAGER:
-        raise click.ClickException(
-            "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
+    from sentry.taskworker.runtime import app
+    from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
+    from sentry.utils.redis import redis_clusters
+
+    app.load_modules()
+    run_storage = RunStorage(redis_clusters.get(redis_cluster))
+
+    with managed_bgtasks(role="taskworker-scheduler"):
+        runner = ScheduleRunner(app, run_storage)
+        for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
+            runner.add(key, schedule_data)
+
+        logger.info(
+            "taskworker.scheduler.schedule_data",
+            extra={
+                "schedule_keys": list(settings.TASKWORKER_SCHEDULES.keys()),
+            },
         )
 
-    # These options are no longer used, but keeping around
-    # for backwards compatibility
-    for o in "without_gossip", "without_mingle", "without_heartbeat":
-        options.pop(o, None)
+        runner.log_startup()
+        while True:
+            sleep_time = runner.tick()
+            time.sleep(sleep_time)
 
-    from sentry.celery import app
 
-    # NOTE: without_mingle breaks everything,
-    # we can't get rid of this. Intentionally kept
-    # here as a warning. Jobs will not process.
-    without_mingle = os.getenv("SENTRY_WORKER_FORCE_WITHOUT_MINGLE", "false").lower() == "true"
-
-    with managed_bgtasks(role="worker"):
-        worker = app.Worker(
-            without_mingle=without_mingle,
-            without_gossip=True,
-            without_heartbeat=True,
-            pool_cls="processes",
-            **options,
+@run.command()
+@click.option(
+    "--pidfile",
+    help=(
+        "Optional file used to store the process pid. The "
+        "program will not start if this file already exists and "
+        "the pid is still alive."
+    ),
+)
+@click.option(
+    "--logfile", "-f", help=("Path to log file. If no logfile is specified, stderr is used.")
+)
+@click.option("--quiet", "-q", is_flag=True, default=False)
+@click.option("--no-color", is_flag=True, default=False)
+@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
+@click.option("--without-gossip", is_flag=True, default=False)
+@click.option("--without-mingle", is_flag=True, default=False)
+@click.option("--without-heartbeat", is_flag=True, default=False)
+@log_options()
+@configuration
+def cron(**options: Any) -> None:
+    # TODO(taskworker) Remove this stub command
+    while True:
+        click.secho(
+            "The cron command has been removed. Use `sentry run taskworker-scheduler` instead.",
+            fg="yellow",
         )
-        worker.start()
-        raise SystemExit(worker.exitcode)
+        time.sleep(5)
 
 
 @run.command()
@@ -186,7 +219,7 @@ def run_worker(**options: Any) -> None:
 @click.option(
     "--concurrency",
     "-c",
-    default=cpu_count(),
+    default=1,
     help=(
         "Number of child processes processing the queue. The "
         "default is the number of CPUs available on your "
@@ -207,87 +240,12 @@ def run_worker(**options: Any) -> None:
 @log_options()
 @configuration
 def worker(ignore_unknown_queues: bool, **options: Any) -> None:
-    """Run background worker instance and autoreload if necessary."""
-
-    from sentry.celery import app
-
-    known_queues = frozenset(c_queue.name for c_queue in app.conf.CELERY_QUEUES)
-
-    if options["queues"] is not None:
-        if not options["queues"].issubset(known_queues):
-            unknown_queues = options["queues"] - known_queues
-            message = "Following queues are not found: %s" % ",".join(sorted(unknown_queues))
-            if ignore_unknown_queues:
-                options["queues"] -= unknown_queues
-                click.echo(message)
-            else:
-                raise click.ClickException(message)
-
-    if options["exclude_queues"] is not None:
-        if not options["exclude_queues"].issubset(known_queues):
-            unknown_queues = options["exclude_queues"] - known_queues
-            message = "Following queues cannot be excluded as they don't exist: %s" % ",".join(
-                sorted(unknown_queues)
-            )
-            if ignore_unknown_queues:
-                options["exclude_queues"] -= unknown_queues
-                click.echo(message)
-            else:
-                raise click.ClickException(message)
-
-    if options["autoreload"]:
-        autoreload.run_with_reloader(run_worker, **options)
-    else:
-        run_worker(**options)
-
-
-@run.command()
-@click.option(
-    "--redis-cluster",
-    help="The rediscluster name to store run state in.",
-    default="default",
-)
-@log_options()
-@configuration
-def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
-    """
-    Run a scheduler for taskworkers
-
-    All tasks defined in settings.TASKWORKER_SCHEDULES will be scheduled as required.
-    """
-    from django.conf import settings
-
-    from sentry import options as runtime_options
-    from sentry.conf.types.taskworker import ScheduleConfig
-    from sentry.taskworker.registry import taskregistry
-    from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
-    from sentry.utils.redis import redis_clusters
-
-    for module in settings.TASKWORKER_IMPORTS:
-        __import__(module)
-
-    run_storage = RunStorage(redis_clusters.get(redis_cluster))
-
-    with managed_bgtasks(role="taskworker-scheduler"):
-        runner = ScheduleRunner(taskregistry, run_storage)
-        schedules: Mapping[str, ScheduleConfig] = {}
-        if runtime_options.get("taskworker.enabled"):
-            schedules = settings.TASKWORKER_SCHEDULES
-
-        for key, schedule_data in schedules.items():
-            runner.add(key, schedule_data)
-
-        logger.info(
-            "taskworker.scheduler.schedule_data",
-            extra={
-                "schedule_keys": list(schedules.keys()),
-            },
+    # TODO(taskworker) Remove this stub command
+    while True:
+        click.secho(
+            "The worker command has been removed. Use `sentry run taskworker` instead.", fg="yellow"
         )
-
-        runner.log_startup()
-        while True:
-            sleep_time = runner.tick()
-            time.sleep(sleep_time)
+        time.sleep(5)
 
 
 @run.command()
@@ -376,6 +334,7 @@ def run_taskworker(
 
     with managed_bgtasks(role="taskworker"):
         worker = TaskWorker(
+            app_module="sentry.taskworker.runtime:app",
             broker_hosts=make_broker_hosts(
                 host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
             ),
@@ -484,59 +443,6 @@ def taskbroker_send_tasks(
             click.echo(message=f"{int((i / repeat) * 100)}% complete")
 
     click.echo(message=f"Successfully sent {repeat} messages.")
-
-
-@run.command()
-@click.option(
-    "--pidfile",
-    help=(
-        "Optional file used to store the process pid. The "
-        "program will not start if this file already exists and "
-        "the pid is still alive."
-    ),
-)
-@click.option(
-    "--logfile", "-f", help=("Path to log file. If no logfile is specified, stderr is used.")
-)
-@click.option("--quiet", "-q", is_flag=True, default=False)
-@click.option("--no-color", is_flag=True, default=False)
-@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
-@click.option("--without-gossip", is_flag=True, default=False)
-@click.option("--without-mingle", is_flag=True, default=False)
-@click.option("--without-heartbeat", is_flag=True, default=False)
-@log_options()
-@configuration
-def cron(**options: Any) -> None:
-    "Run periodic task dispatcher."
-    from django.conf import settings
-
-    from sentry import options as runtime_options
-
-    if settings.CELERY_ALWAYS_EAGER:
-        raise click.ClickException(
-            "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
-        )
-
-    from sentry.celery import app
-
-    schedule = app.conf.CELERYBEAT_SCHEDULE
-    if runtime_options.get("taskworker.enabled"):
-        click.secho(
-            "You have `taskworker.enabled` active, run `sentry run taskworker-scheduler` instead.",
-            fg="yellow",
-        )
-        click.secho("Ignoring all schedules in settings.CELERYBEAT_SCHEDULE", fg="yellow")
-        schedule = {}
-
-    app.conf.update(CELERYBEAT_SCHEDULE=schedule)
-
-    with managed_bgtasks(role="cron"):
-        app.Beat(
-            # without_gossip=True,
-            # without_mingle=True,
-            # without_heartbeat=True,
-            **options
-        ).run()
 
 
 @run.command("consumer")

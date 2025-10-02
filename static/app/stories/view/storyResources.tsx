@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import {Badge} from 'sentry/components/core/badge';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconGithub} from 'sentry/icons';
@@ -6,10 +8,10 @@ import {
   type StoryResources as Resources,
 } from 'sentry/stories/view/useStoriesLoader';
 import {useStory} from 'sentry/stories/view/useStory';
-import {space} from 'sentry/styles/space';
 
 export function StoryResources() {
   const {story} = useStory();
+  const theme = useTheme();
 
   if (!isMDXStory(story)) {
     return null;
@@ -18,7 +20,7 @@ export function StoryResources() {
   const resources: Resources = story.exports.frontmatter?.resources ?? {};
 
   return (
-    <table style={{marginTop: space(4)}}>
+    <table style={{marginTop: theme.space['3xl']}}>
       <thead>
         <tr>
           <th>Type</th>
@@ -90,13 +92,14 @@ function JsResource(props: {href: string}) {
 }
 
 function A11yResource(props: {items: Record<string, string>}) {
+  const theme = useTheme();
   return (
     <tr>
       <td>Accessibility</td>
       <td>
         <ul style={{listStyle: 'none', padding: 0}}>
           {Object.entries(props.items).map(([text, href]) => (
-            <li style={{padding: `${space(0.5)} 0`}} key={href}>
+            <li style={{padding: `${theme.space.xs} 0`}} key={href}>
               <a target="_blank" href={href} rel="noreferrer">
                 {text}
               </a>

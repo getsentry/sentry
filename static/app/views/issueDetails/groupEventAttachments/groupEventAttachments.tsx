@@ -15,7 +15,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -38,7 +38,7 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
   const location = useLocation();
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const eventQuery = useEventQuery({groupId: group.id});
+  const eventQuery = useEventQuery();
   const eventView = useIssueDetailsEventView({group});
   const navigate = useNavigate();
   const [previouslyUsedAttachmentsTab, setPreviouslyUsedAttachmentsTab] =

@@ -41,9 +41,12 @@ import {
 } from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   handleOrderByReset,
   type DatasetConfig,
+  type SearchBarData,
+  type SearchBarDataProviderProps,
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {
   getTableSortOptions,
@@ -59,7 +62,13 @@ import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/fil
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+import {useSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {
+  TraceItemAttributeProvider,
+  useTraceItemAttributes,
+} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
@@ -130,6 +139,42 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
   {} as Record<AggregationKey, Aggregation>
 );
 
+function SpansSearchBarDataProviderWrapper({children}: {children: React.ReactNode}) {
+  const organization = useOrganization();
+  const enabled = organization.features.includes('visibility-explore-view');
+
+  return (
+    <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled={enabled}>
+      {children}
+    </TraceItemAttributeProvider>
+  );
+}
+
+function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
+  const {pageFilters, widgetQuery} = props;
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemAttributes('string');
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemAttributes('number');
+
+  const {filterKeys, filterKeySections, getTagValues} = useSearchQueryBuilderProps({
+    itemType: TraceItemDataset.SPANS,
+    numberAttributes,
+    stringAttributes,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
+    searchSource: 'dashboards',
+    initialQuery: widgetQuery?.conditions ?? '',
+    projects: pageFilters.projects,
+    supportedAggregates: ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  });
+  return {
+    getFilterKeys: () => filterKeys,
+    getFilterKeySections: () => filterKeySections,
+    getTagValues,
+  };
+}
+
 export const SpansConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
@@ -138,6 +183,8 @@ export const SpansConfig: DatasetConfig<
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: true,
   SearchBar: SpansSearchBar,
+  useSearchBarDataProvider: useSpansSearchBarDataProvider,
+  SearchBarDataProviderWrapper: SpansSearchBarDataProviderWrapper,
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,
   filterSeriesSortOptions,
@@ -321,7 +368,7 @@ function getEventsRequest(
     {
       retry: {
         statusCodes: [429],
-        tries: 3,
+        tries: 10,
       },
     }
   );

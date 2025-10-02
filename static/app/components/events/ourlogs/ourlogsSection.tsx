@@ -17,13 +17,10 @@ import {
   LogsPageDataProvider,
   useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
-import {
-  LogsPageParamsProvider,
-  useLogsSearch,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
+import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -39,15 +36,14 @@ export function OurlogsSection({
 }) {
   const traceId = event.contexts?.trace?.trace_id;
   return (
-    <LogsQueryParamsProvider source="state" freeze={traceId ? {traceId} : undefined}>
-      <LogsPageParamsProvider
-        analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-        isTableFrozen
-      >
-        <LogsPageDataProvider>
-          <OurlogsSectionContent event={event} group={group} project={project} />
-        </LogsPageDataProvider>
-      </LogsPageParamsProvider>
+    <LogsQueryParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+      source="state"
+      freeze={traceId ? {traceId} : undefined}
+    >
+      <LogsPageDataProvider>
+        <OurlogsSectionContent event={event} group={group} project={project} />
+      </LogsPageDataProvider>
     </LogsQueryParamsProvider>
   );
 }
@@ -64,7 +60,7 @@ function OurlogsSectionContent({
   const organization = useOrganization();
   const feature = organization.features.includes('ourlogs-enabled');
   const tableData = useLogsPageDataQueryResult();
-  const logsSearch = useLogsSearch();
+  const logsSearch = useQueryParamsSearch();
   const abbreviatedTableData = (tableData.data ?? []).slice(0, 5);
   const {openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
@@ -80,26 +76,22 @@ function OurlogsSectionContent({
       openDrawer(
         () => (
           <LogsQueryParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
             source="state"
             freeze={traceId ? {traceId} : undefined}
           >
-            <LogsPageParamsProvider
-              analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-              isTableFrozen
-            >
-              <LogsPageDataProvider>
-                <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-                  <OurlogsDrawer
-                    group={group}
-                    event={event}
-                    project={project}
-                    embeddedOptions={
-                      expandedLogId ? {openWithExpandedIds: [expandedLogId]} : undefined
-                    }
-                  />
-                </TraceItemAttributeProvider>
-              </LogsPageDataProvider>
-            </LogsPageParamsProvider>
+            <LogsPageDataProvider>
+              <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+                <OurlogsDrawer
+                  group={group}
+                  event={event}
+                  project={project}
+                  embeddedOptions={
+                    expandedLogId ? {openWithExpandedIds: [expandedLogId]} : undefined
+                  }
+                />
+              </TraceItemAttributeProvider>
+            </LogsPageDataProvider>
           </LogsQueryParamsProvider>
         ),
         {

@@ -28,7 +28,6 @@ import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ToolbarSection} from 'sentry/views/explore/components/toolbar/styles';
 import {
-  useExploreFields,
   useExploreId,
   useExploreQuery,
   useExploreSortBys,
@@ -39,6 +38,7 @@ import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSpansSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
+  useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsVisualizes,
@@ -59,7 +59,7 @@ export function ToolbarSaveAs() {
   const query = useExploreQuery();
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
-  const fields = useExploreFields();
+  const fields = useQueryParamsFields();
   const sortBys = useExploreSortBys();
   const mode = useQueryParamsMode();
   const id = useExploreId();

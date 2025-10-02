@@ -403,27 +403,6 @@ export function isCustomMeasurement(field: string) {
   return !DEFINED_MEASUREMENTS.has(field) && isMeasurement(field);
 }
 
-export function isCustomMeasurementWidget(widget: Widget) {
-  return (
-    widget.widgetType === WidgetType.DISCOVER &&
-    widget.queries.some(({aggregates, columns, fields}) => {
-      const aggregateArgs = aggregates.reduce((acc: string[], aggregate) => {
-        // Should be ok to use getAggregateArg. getAggregateArg only returns the first arg
-        // but there aren't any custom measurement aggregates that use custom measurements
-        // outside of the first arg.
-        const aggregateArg = getAggregateArg(aggregate);
-        if (aggregateArg) {
-          acc.push(aggregateArg);
-        }
-        return acc;
-      }, []);
-      return [...aggregateArgs, ...columns, ...(fields ?? [])].some(field =>
-        isCustomMeasurement(field)
-      );
-    })
-  );
-}
-
 export function isWidgetUsingTransactionName(widget: Widget) {
   return (
     widget.widgetType === WidgetType.DISCOVER &&

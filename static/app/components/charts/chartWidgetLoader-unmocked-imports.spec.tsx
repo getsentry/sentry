@@ -8,6 +8,7 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
 import type {ChartId} from './chartWidgetLoader';
@@ -19,10 +20,12 @@ function mockDiscoverSeries(seriesName: string) {
   });
 }
 
-function mockTimeSeries(yAxis: string) {
-  return TimeSeriesFixture({
-    yAxis,
-  });
+function mockTimeSeries(yAxis: string, groupBy?: string[]) {
+  const partialTimeseries: Partial<TimeSeries> = {yAxis};
+  if (groupBy) {
+    partialTimeseries.groupBy = groupBy.map(group => ({key: group, value: group}));
+  }
+  return TimeSeriesFixture(partialTimeseries);
 }
 
 // Mock this component so it doesn't yell at us for no plottables
@@ -93,50 +96,8 @@ jest.mock('sentry/views/insights/common/queries/useTopNDiscoverSeries', () => ({
     error: null,
   })),
 }));
-jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
-  useSpanSeries: jest.fn(() => ({
-    data: {
-      'epm()': {},
-      'count(span.duration)': mockDiscoverSeries('count(span.duration)'),
-      'avg(span.duration)': mockDiscoverSeries('avg(span.duration)'),
-      'p95(span.duration)': mockDiscoverSeries('p95(span.duration)'),
-      'trace_status_rate(internal_error)': mockDiscoverSeries(
-        'trace_status_rate(internal_error)'
-      ),
-      'cache_miss_rate()': {},
-      'http_response_rate(3)': {},
-      'http_response_rate(4)': {},
-      'http_response_rate(5)': {},
-      'avg(span.self_time)': {},
-      'avg(http.response_content_length)': {},
-      'avg(http.response_transfer_size)': {},
-      'avg(http.decoded_response_content_length)': {},
-      'avg(messaging.message.receive.latency)': {},
-      'performance_score(measurements.score.lcp)': {
-        data: [],
-      },
-      'performance_score(measurements.score.fcp)': {
-        data: [],
-      },
-      'performance_score(measurements.score.cls)': {
-        data: [],
-      },
-      'performance_score(measurements.score.inp)': {
-        data: [],
-      },
-      'performance_score(measurements.score.ttfb)': {
-        data: [],
-      },
-      'count()': {
-        data: [],
-      },
-    },
-    isPending: false,
-    error: null,
-  })),
-}));
 jest.mock('sentry/utils/timeSeries/useFetchEventsTimeSeries', () => ({
-  useFetchSpanTimeSeries: jest.fn(() => ({
+  useFetchSpanTimeSeries: jest.fn(({groupBy}: {groupBy?: string[]}) => ({
     data: {
       timeSeries: [
         mockTimeSeries('epm()'),
@@ -144,7 +105,7 @@ jest.mock('sentry/utils/timeSeries/useFetchEventsTimeSeries', () => ({
         mockTimeSeries('avg(span.duration)'),
         mockTimeSeries('p95(span.duration)'),
         mockTimeSeries('trace_status_rate(internal_error)'),
-        mockTimeSeries('cache_miss_rate()'),
+        mockTimeSeries('cache_miss_rate()', groupBy),
         mockTimeSeries('http_response_rate(3)'),
         mockTimeSeries('http_response_rate(4)'),
         mockTimeSeries('http_response_rate(5)'),

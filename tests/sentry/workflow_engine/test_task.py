@@ -170,7 +170,7 @@ class TestProcessWorkflowActivity(TestCase):
             "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
             return_value=set(),
         ) as mock_evaluate:
-            process_workflow_activity.run(
+            process_workflow_activity(
                 activity_id=self.activity.id,
                 group_id=self.group.id,
                 detector_id=self.detector.id,
@@ -195,7 +195,7 @@ class TestProcessWorkflowActivity(TestCase):
             workflow=self.workflow,
         )
 
-        process_workflow_activity.run(
+        process_workflow_activity(
             activity_id=self.activity.id,
             group_id=self.group.id,
             detector_id=self.detector.id,
@@ -231,7 +231,7 @@ class TestProcessWorkflowActivity(TestCase):
             group=self.group,
         )
 
-        process_workflow_activity.run(
+        process_workflow_activity(
             activity_id=self.activity.id,
             group_id=self.group.id,
             detector_id=self.detector.id,

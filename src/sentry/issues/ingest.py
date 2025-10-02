@@ -66,7 +66,7 @@ def save_issue_occurrence(
     group_info = save_issue_from_occurrence(occurrence, event, release)
     if group_info:
         environment = event.get_environment()
-        _get_or_create_group_environment(environment, release, [group_info])
+        _get_or_create_group_environment(environment, release, [group_info], event.datetime)
         _increment_release_associated_counts(
             group_info.group.project, environment, release, [group_info]
         )
@@ -320,6 +320,9 @@ def save_issue_from_occurrence(
         group_event.occurrence = occurrence
         is_regression = _process_existing_aggregate(group, group_event, issue_kwargs, release)
         group_info = GroupInfo(group=group, is_new=False, is_regression=is_regression)
+
+        # if it's a regression and the priority changed, we should update the existing GroupOpenPeriodActivity
+        # row if applicable. Otherwise, we should record a new row if applicable.
         if (
             issue_kwargs["priority"]
             and group.priority != issue_kwargs["priority"]
@@ -331,6 +334,7 @@ def save_issue_from_occurrence(
                 sender="save_issue_from_occurrence",
                 reason=PriorityChangeReason.ISSUE_PLATFORM,
                 project=project,
+                is_regression=is_regression,
             )
 
             open_period = get_latest_open_period(group)
