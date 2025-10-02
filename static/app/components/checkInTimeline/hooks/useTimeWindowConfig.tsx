@@ -17,14 +17,24 @@ interface Options {
    * Whether to recompute dates when the window regains focus
    */
   recomputeOnWindowFocus?: boolean;
+  /**
+   * This array may be provided as a queryKey to the underlying useQuery that will
+   * force the dates to be recomputed when the key changes.
+   */
+  recomputeQueryKey?: unknown[];
 }
 
 export function useTimeWindowConfig({
   timelineWidth,
   recomputeInterval,
   recomputeOnWindowFocus,
+  recomputeQueryKey,
 }: Options) {
-  const {since, until} = usePageFilterDates({recomputeInterval, recomputeOnWindowFocus});
+  const {since, until} = usePageFilterDates({
+    recomputeInterval,
+    recomputeOnWindowFocus,
+    recomputeQueryKey,
+  });
 
   return useMemo(
     () => getConfigFromTimeRange(since, until, timelineWidth),
