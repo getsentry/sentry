@@ -81,22 +81,28 @@ function ReleaseHeader({
   ];
 
   const numberOfMobileBuilds = releaseMeta.preprodBuildCount;
-  if (numberOfMobileBuilds || MOBILE_PLATFORMS.includes(project.platform)) {
-    tabs.push({
-      title: tct('Builds [count]', {
-        count:
-          numberOfMobileBuilds === 0 ? (
-            <BadgeWrapper>
-              <FeatureBadge type="new" />
-            </BadgeWrapper>
-          ) : (
-            <NavTabsBadge type="default">
-              {formatAbbreviatedNumber(numberOfMobileBuilds)}
-            </NavTabsBadge>
-          ),
-      }),
-      to: `builds/`,
-    });
+
+  const buildsTab = {
+    title: tct('Builds [count]', {
+      count:
+        numberOfMobileBuilds === 0 ? (
+          <BadgeWrapper>
+            <FeatureBadge type="new" />
+          </BadgeWrapper>
+        ) : (
+          <NavTabsBadge type="default">
+            {formatAbbreviatedNumber(numberOfMobileBuilds)}
+          </NavTabsBadge>
+        ),
+    }),
+    to: `builds/`,
+  };
+
+  if (
+    organization.features?.includes('preprod-frontend-routes') &&
+    (numberOfMobileBuilds || MOBILE_PLATFORMS.includes(project.platform))
+  ) {
+    tabs.push(buildsTab);
   }
 
   const getTabUrl = (path: string) =>

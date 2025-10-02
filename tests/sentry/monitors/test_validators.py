@@ -1,14 +1,16 @@
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
 from django.conf import settings
 from django.test import RequestFactory
 from django.test.utils import override_settings
+from django.utils import timezone
 
 from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
-from sentry.monitors.models import Monitor, MonitorLimitsExceeded, ScheduleType
+from sentry.monitors.models import Monitor, MonitorLimitsExceeded, MonitorStatus, ScheduleType
 from sentry.monitors.validators import (
     MonitorDataSourceValidator,
     MonitorIncidentDetectorValidator,
@@ -400,6 +402,46 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert updated_monitor.config["max_runtime"] == 60
         assert updated_monitor.config["timezone"] == "America/New_York"
 
+    def test_partial_config_update_different_field(self):
+        """Test that updating a config field doesn't trigger false positive margin/runtime changes."""
+        now = timezone.now().replace(second=0, microsecond=0)
+        env = self.create_monitor_environment(
+            monitor=self.monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+            last_checkin=now,
+            next_checkin=now + timedelta(hours=1),
+            next_checkin_latest=now + timedelta(hours=1, minutes=5),
+        )
+        original_next_checkin_latest = env.next_checkin_latest
+
+        # Update only timezone, NOT checkin_margin
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"config": {"timezone": "America/New_York"}},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.config["timezone"] == "America/New_York"
+        assert updated_monitor.config["checkin_margin"] == 5
+
+        # With buggy code, checking the partial
+        # new_config.get("checkin_margin") would return None, when comparing
+        # that with the existing checkin_margin we would consider it as having
+        # "changed" and would have recomputed the next_checkin_latest
+
+        # Verify that because checkin_margin was not changed we did not
+        # recompute the next_checkin_latest
+        env.refresh_from_db()
+        assert env.next_checkin_latest == original_next_checkin_latest
+
     def test_update_owner_to_user(self):
         """Test updating monitor owner to a user."""
         validator = MonitorValidator(
@@ -651,6 +693,135 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert updated_monitor.config["timezone"] == "UTC"
         assert updated_monitor.config["failure_issue_threshold"] == 3
         assert updated_monitor.config["recovery_threshold"] == 1
+
+    def test_update_schedule_recomputes_next_checkin(self):
+        """Test that updating the schedule recomputes next_checkin for all environments."""
+        # Create monitor environments with specific next_checkin times
+        now = timezone.now().replace(second=0, microsecond=0)
+        env1 = self.create_monitor_environment(
+            monitor=self.monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+            last_checkin=now,
+            next_checkin=now + timedelta(hours=1),  # Based on hourly schedule
+            next_checkin_latest=now + timedelta(hours=1, minutes=5),
+        )
+        env2_env = self.create_environment(name="production", project=self.project)
+        env2 = self.create_monitor_environment(
+            monitor=self.monitor,
+            environment_id=env2_env.id,
+            status=MonitorStatus.OK,
+            last_checkin=now,
+            next_checkin=now + timedelta(hours=1),  # Based on hourly schedule
+            next_checkin_latest=now + timedelta(hours=1, minutes=5),
+        )
+
+        # Update the schedule from hourly to daily
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"config": {"schedule": "0 0 * * *", "schedule_type": "crontab"}},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.config["schedule"] == "0 0 * * *"
+
+        # Verify that next_checkin was recomputed for both environments
+        env1.refresh_from_db()
+        env2.refresh_from_db()
+
+        # The next check-in should now be based on the daily schedule (next midnight)
+        expected_next_checkin = updated_monitor.get_next_expected_checkin(now)
+        expected_next_checkin_latest = updated_monitor.get_next_expected_checkin_latest(now)
+
+        assert env1.next_checkin == expected_next_checkin
+        assert env1.next_checkin_latest == expected_next_checkin_latest
+        assert env2.next_checkin == expected_next_checkin
+        assert env2.next_checkin_latest == expected_next_checkin_latest
+
+    def test_partial_config_update_does_not_trigger_schedule_recompute(self):
+        """Test that updating only checkin_margin doesn't trigger schedule recomputation."""
+        # Create a monitor environment with specific next_checkin times
+        now = timezone.now().replace(second=0, microsecond=0)
+        env = self.create_monitor_environment(
+            monitor=self.monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+            last_checkin=now,
+            next_checkin=now + timedelta(hours=1),
+            next_checkin_latest=now + timedelta(hours=1, minutes=5),
+        )
+
+        # Store original next_checkin time
+        original_next_checkin = env.next_checkin
+
+        # Update only checkin_margin without including schedule fields
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"config": {"checkin_margin": 10}},  # Only updating margin, not schedule
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.config["checkin_margin"] == 10
+        # Schedule should remain unchanged
+        assert updated_monitor.config["schedule"] == "0 * * * *"
+        assert updated_monitor.config["schedule_type"] == ScheduleType.CRONTAB
+
+        # Verify that next_checkin was NOT recomputed (would have changed if schedule logic ran)
+        env.refresh_from_db()
+        assert env.next_checkin == original_next_checkin
+
+    def test_update_schedule_type_recomputes_next_checkin(self):
+        """Test that changing schedule_type from crontab to interval recomputes next_checkin."""
+        # Create a monitor environment
+        now = timezone.now().replace(second=0, microsecond=0)
+        env = self.create_monitor_environment(
+            monitor=self.monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+            last_checkin=now,
+            next_checkin=now + timedelta(hours=1),
+            next_checkin_latest=now + timedelta(hours=1, minutes=5),
+        )
+
+        # Change from crontab to interval schedule
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"config": {"schedule": [10, "minute"], "schedule_type": "interval"}},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.config["schedule_type"] == ScheduleType.INTERVAL
+        assert updated_monitor.config["schedule"] == [10, "minute"]
+
+        # Verify that next_checkin was recomputed
+        env.refresh_from_db()
+
+        expected_next_checkin = updated_monitor.get_next_expected_checkin(now)
+        expected_next_checkin_latest = updated_monitor.get_next_expected_checkin_latest(now)
+
+        assert env.next_checkin == expected_next_checkin
+        assert env.next_checkin_latest == expected_next_checkin_latest
 
 
 class BaseMonitorValidatorTestCase(MonitorTestCase):
