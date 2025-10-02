@@ -160,7 +160,7 @@ class AMCheckout extends Component<Props, State> {
       props.checkoutTier === props.subscription.planTier
     ) {
       // skip to the next step if all available add-ons are already enabled
-      const selectedAll = Object.values(props.subscription.addOns).every(
+      const selectedAll = Object.values(props.subscription.addOns ?? {}).every(
         addOn =>
           // add-on is enabled or not launched yet
           addOn.enabled || !props.organization.features.includes(addOn.billingFlag || '')
@@ -519,7 +519,7 @@ class AMCheckout extends Component<Props, State> {
       },
       ...(onDemandMaxSpend > 0 && {onDemandMaxSpend}),
       onDemandBudget: parseOnDemandBudgetsFromSubscription(subscription),
-      addOns: Object.values(subscription.addOns)
+      addOns: Object.values(subscription.addOns ?? {})
         .filter(
           addOn => !addOn.billingFlag || organization.features.includes(addOn.billingFlag)
         )

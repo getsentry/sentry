@@ -428,7 +428,7 @@ function recordAnalytics(
     }
     if (key.startsWith('addOn')) {
       const targetKey = (key.charAt(5).toLowerCase() + key.slice(6)) as AddOnCategory;
-      const previouslyEnabled = subscription.addOns[targetKey]?.enabled ?? false;
+      const previouslyEnabled = subscription.addOns?.[targetKey]?.enabled ?? false;
       productSelectAnalyticsData[targetKey] = {
         enabled: data[key as keyof CheckoutAPIData] as boolean,
         // don't count trial addons

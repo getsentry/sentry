@@ -314,7 +314,7 @@ function CartDiff({
 
   const getProductChanges = useCallback((): ProductChange[] => {
     const currentProducts =
-      Object.values(subscription.addOns)
+      Object.values(subscription.addOns ?? {})
         .filter(addOnInfo => addOnInfo.enabled)
         .map(addOnInfo => addOnInfo.apiName) ?? [];
 

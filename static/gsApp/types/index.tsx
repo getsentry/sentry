@@ -301,7 +301,6 @@ export type ProductTrial = {
 
 export type Subscription = {
   accountBalance: number;
-  addOns: AddOns;
   billingInterval: 'monthly' | 'annual';
   // billingPeriod varies between 1-12 months. if you're looking for the monthly usage interval, use onDemandPeriodStart
   billingPeriodEnd: string;
@@ -406,6 +405,7 @@ export type Subscription = {
   // Seats
   usedLicenses: number;
   acv?: number;
+  addOns?: AddOns;
   // Billing information
   billingEmail?: string | null;
   channel?: string;
@@ -430,6 +430,7 @@ export type Subscription = {
 
   owner?: {email: string; name: string};
   previousPaidPlans?: string[];
+
   productTrials?: ProductTrial[];
   reservedBudgets?: ReservedBudget[];
   // Added by SubscriptionStore

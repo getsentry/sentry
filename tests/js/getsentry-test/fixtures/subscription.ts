@@ -280,7 +280,7 @@ export function SubscriptionWithSeerFixture(props: Props): TSubscription {
   subscription.addOns = {
     ...subscription.addOns,
     [AddOnCategory.SEER]: {
-      ...subscription.addOns[AddOnCategory.SEER]!,
+      ...subscription.addOns?.[AddOnCategory.SEER]!,
       enabled: true,
     },
   };
