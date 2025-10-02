@@ -1,6 +1,6 @@
 import {ExternalLink} from 'sentry/components/core/link';
+import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import type {
-  BasePlatformOptions,
   ContentBlock,
   Docs,
   DocsParams,
@@ -18,34 +18,6 @@ import {
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
-
-export enum InstallationMode {
-  AUTO = 'auto',
-  MANUAL = 'manual',
-}
-
-const platformOptions = {
-  installationMode: {
-    label: t('Installation Mode'),
-    items: [
-      {
-        label: t('Auto'),
-        value: InstallationMode.AUTO,
-      },
-      {
-        label: t('Manual'),
-        value: InstallationMode.MANUAL,
-      },
-    ],
-    defaultValue: InstallationMode.AUTO,
-  },
-} satisfies BasePlatformOptions;
-
-type PlatformOptions = typeof platformOptions;
-type Params = DocsParams<PlatformOptions>;
-
-const isAutoInstall = (params: Params) =>
-  params.platformOptions?.installationMode === InstallationMode.AUTO;
 
 const installCodeBlock: ContentBlock = {
   type: 'code',
@@ -68,7 +40,7 @@ const installCodeBlock: ContentBlock = {
   ],
 };
 
-const getConfigureSnippet = (params: Params) => `
+const getConfigureSnippet = (params: DocsParams) => `
 import * as Sentry from "@sentry/react-native";
 
 Sentry.init({
@@ -107,38 +79,7 @@ Sentry.init({
   }
 });`;
 
-const getPerformanceSnippet = () => `
-// Let's say this function is invoked when a user clicks on the checkout button of your shop
-shopCheckout() {
-  // This will create a new Transaction for you
-  const transaction = Sentry.startTransaction({ name: "shopCheckout" });
-  // Set transaction on scope to associate with errors and get included span instrumentation
-  // If there's currently an unfinished transaction, it may be dropped
-  Sentry.getCurrentHub().configureScope(scope => scope.setSpan(transaction));
-
-  // Assume this function makes an xhr/fetch call
-  const result = validateShoppingCartOnServer();
-
-  const span = transaction.startChild({
-    data: {
-      result
-    },
-    op: 'task',
-    description: "processing shopping cart result",
-  });
-  try {
-    processAndValidateShoppingCart(result);
-    span.setStatus(SpanStatus.Ok);
-  } catch (err) {
-    span.setStatus(SpanStatus.UnknownError);
-    throw err;
-  } finally {
-    span.finish();
-    transaction.finish();
-  }
-}`;
-
-const getReplaySetupSnippet = (params: Params) => `
+const getReplaySetupSnippet = (params: DocsParams) => `
 import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
@@ -157,7 +98,7 @@ Sentry.mobileReplayIntegration({
   maskAllVectors: true,
 }),`;
 
-const getFeedbackConfigureSnippet = (params: Params) => `
+const getFeedbackConfigureSnippet = (params: DocsParams) => `
 import * as Sentry from "@sentry/react-native";
 
 Sentry.init({
@@ -210,10 +151,6 @@ const profilingOnboarding: OnboardingConfig = {
           language: 'javascript',
           code: getConfigureSnippet({
             ...params,
-            platformOptions: {
-              ...params.platformOptions,
-              installationMode: InstallationMode.MANUAL,
-            },
             isProfilingSelected: true,
           }),
         },
@@ -235,7 +172,7 @@ const profilingOnboarding: OnboardingConfig = {
   ],
 };
 
-const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
+const feedbackOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
@@ -293,7 +230,7 @@ Sentry.hideFeedbackButton();`,
       ],
     },
   ],
-  configure: (params: Params) => [
+  configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
       content: [
@@ -323,320 +260,85 @@ Sentry.hideFeedbackButton();`,
   nextSteps: () => [],
 };
 
-const onboarding: OnboardingConfig<PlatformOptions> = {
-  install: params =>
-    isAutoInstall(params)
-      ? [
-          {
-            type: StepType.INSTALL,
-            content: [
-              {
-                type: 'text',
-                text: tct(
-                  'Run [code:@sentry/wizard] to automatically configure your project:',
-                  {code: <code />}
-                ),
-              },
-              {
-                type: 'code',
-                tabs: [
-                  {
-                    label: 'npx',
-                    language: 'bash',
-                    code: `npx @sentry/wizard@latest -i reactNative ${params.isSelfHosted ? '' : '--saas'} --org ${params.organization.slug} --project ${params.project.slug}`,
-                  },
-                ],
-              },
-              {
-                type: 'text',
-                text: t(
-                  'The Sentry wizard will automatically patch your project with the following:'
-                ),
-              },
-              {
-                type: 'list',
-                items: [
-                  t('Configure the SDK with your DSN'),
-                  t('Add source maps upload to your build process'),
-                  t('Add debug symbols upload to your build process'),
-                ],
-              },
-            ],
-          },
-        ]
-      : [
-          {
-            title: t('Install SDK Package'),
-            content: [
-              {
-                type: 'text',
-                text: t('Install the @sentry/react-native package:'),
-              },
-              installCodeBlock,
-            ],
-          },
-        ],
-  configure: params =>
-    isAutoInstall(params)
-      ? []
-      : [
-          {
-            type: StepType.CONFIGURE,
-            content: [
-              {
-                type: 'conditional',
-                condition: params.isProfilingSelected,
-                content: [
-                  {
-                    type: 'text',
-                    text: t(
-                      'React Native Profiling is available since SDK version 5.32.0.'
-                    ),
-                  },
-                ],
-              },
-              {
-                type: 'code',
-                language: 'javascript',
-                code: getConfigureSnippet(params),
-              },
-              {
-                type: 'text',
-                text: tct(
-                  'Wrap your app with Sentry to automatically instrument it with [touchEventTrakingLink:touch event tracking] and [automaticPerformanceMonitoringLink:automatic tracing]:',
-                  {
-                    touchEventTrakingLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/react-native/touchevents/" />
-                    ),
-                    automaticPerformanceMonitoringLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/automatic-instrumentation/" />
-                    ),
-                  }
-                ),
-              },
-              {
-                type: 'code',
-                language: 'javascript',
-                code: 'export default Sentry.wrap(App);',
-              },
-              {
-                type: 'text',
-                text: t(
-                  'You do not need to do this for Sentry to work or if your app does not have a single parent "App" component.'
-                ),
-              },
-            ],
-          },
-        ],
-  verify: params =>
-    isAutoInstall(params)
-      ? []
-      : [
-          {
-            type: StepType.VERIFY,
-            content: [
-              {
-                type: 'text',
-                text: t(
-                  'Then create an intentional error, so you can test that everything is working:'
-                ),
-              },
-              {
-                type: 'code',
-                language: 'javascript',
-                code: "throw new Error('My first Sentry error!');",
-              },
-              {
-                type: 'text',
-                text: t('Or, try a native crash with:'),
-              },
-              {
-                type: 'code',
-                language: 'javascript',
-                code: 'Sentry.nativeCrash();',
-              },
-              {
-                type: 'text',
-                text: [
-                  t(
-                    "If you're new to Sentry, use the email alert to access your account and complete a product tour."
-                  ),
-                  t(
-                    "If you're an existing user and have disabled alerts, you won't receive this email."
-                  ),
-                ],
-              },
-              {
-                type: 'conditional',
-                condition: params.isPerformanceSelected,
-                content: [
-                  {
-                    type: 'subheader',
-                    text: t('Tracing'),
-                  },
-                  {
-                    type: 'text',
-                    text: t(
-                      'Sentry can measure the performance of your app automatically when instrumented with the following routers:'
-                    ),
-                  },
-                  {
-                    type: 'list',
-                    items: [
-                      <ExternalLink
-                        key="react-navigation"
-                        href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/react-navigation/"
-                      >
-                        {t('React Navigation')}
-                      </ExternalLink>,
-                      <ExternalLink
-                        key="react-navigation-v4"
-                        href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/react-navigation-v4/"
-                      >
-                        {t('React Navigation V4 and prior')}
-                      </ExternalLink>,
-                      <ExternalLink
-                        key="react-native-navigation"
-                        href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/react-native-navigation/"
-                      >
-                        {t('React Native Navigation')}
-                      </ExternalLink>,
-                      <ExternalLink
-                        key="expo-router"
-                        href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/expo-router/"
-                      >
-                        {t('Expo Router')}
-                      </ExternalLink>,
-                    ],
-                  },
-                  {
-                    type: 'text',
-                    text: t(
-                      'Additionally, you can create transactions and spans programatically:'
-                    ),
-                  },
-                  {
-                    type: 'text',
-                    text: t('For example:'),
-                  },
-                  {
-                    type: 'code',
-                    language: 'javascript',
-                    code: getPerformanceSnippet(),
-                  },
-                  {
-                    type: 'text',
-                    text: tct(
-                      'For more information, please refer to the [docLink: Sentry React Native documentation].',
-                      {
-                        docLink: (
-                          <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/" />
-                        ),
-                      }
-                    ),
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            title: t('Debug Symbols'),
-            content: [
-              {
-                type: 'text',
-                text: [
-                  t(
-                    'We offer a range of methods to provide Sentry with debug symbols so that you can see symbolicated stack traces and triage issues faster.'
-                  ),
-                  tct(
-                    "Complete stack traces will be shown for React Native Javascript errors by default using Sentry's [automaticSourceMapsUploadLink:automatic source maps upload]. To set up manual source maps upload follow [guideLink:this guide].",
-                    {
-                      automaticSourceMapsUploadLink: (
-                        <ExternalLink href="https://docs.sentry.io/platforms/react-native/sourcemaps/" />
-                      ),
-                      guideLink: (
-                        <ExternalLink href="https://docs.sentry.io/platforms/react-native/sourcemaps/" />
-                      ),
-                    }
-                  ),
-                ],
-              },
-              {
-                type: 'text',
-                text: tct(
-                  "You'll also need to upload [debugSymbolsLink:Debug Symbols] generated by the native iOS and Android tooling for native crashes.",
-                  {
-                    debugSymbolsLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/react-native/upload-debug/" />
-                    ),
-                  }
-                ),
-              },
-            ],
-          },
-          {
-            title: t('Source Context'),
-            content: [
-              {
-                type: 'text',
-                text: tct(
-                  "If Sentry has access to your application's source code, it can show snippets of code [italic:(source context)] around the location of stack frames, which helps to quickly pinpoint problematic code.",
-                  {
-                    italic: <i />,
-                  }
-                ),
-              },
-              {
-                type: 'text',
-                text: tct(
-                  'Source Context will be shown for React Native Javascript error by default if source maps are uploaded. To set up source maps upload, follow the [sourceMapsGuideLink:Source Maps guide].',
-                  {
-                    sourceMapsGuideLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/react-native/sourcemaps/" />
-                    ),
-                  }
-                ),
-              },
-              {
-                type: 'text',
-                text: tct(
-                  "To enable source context for native errors, you'll need to upload native debug symbols to Sentry by following the instructions at [uploadWithGradleLink:Uploading Source Code Context With Sentry Gradle Plugin] and Uploading Source Context With Xcode.",
-                  {
-                    uploadWithGradleLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/react-native/upload-debug/#uploading-source-context-with-sentry-gradle-plugin" />
-                    ),
-                    uploadWithXCodeLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/react-native/upload-debug/#uploading-source-context-with-xcode" />
-                    ),
-                  }
-                ),
-              },
-            ],
-          },
-        ],
-  nextSteps: params =>
-    // i am abusing the isAutoInstall because i was tired of fighting with the Next Steps type definition
-    isAutoInstall(params)
-      ? [
-          {
-            name: t('React Navigation'),
-            description: t('Set up automatic instrumentation with React Navigation'),
-            link: 'https://docs.sentry.io/platforms/react-native/tracing/instrumentation/react-navigation/',
-          },
-          {
-            name: t('React Native Navigation'),
-            description: t(
-              'Set up automatic instrumentation with React Native Navigation'
-            ),
-            link: 'https://docs.sentry.io/platforms/react-native/tracing/instrumentation/react-native-navigation/',
-          },
-          {
-            name: t('Expo Router'),
-            description: t('Set up automatic instrumentation with Expo Router'),
-            link: 'https://docs.sentry.io/platforms/react-native/tracing/instrumentation/expo-router/',
-          },
-        ]
-      : [],
+const onboarding: OnboardingConfig = {
+  install: params => [
+    {
+      title: t('Automatic Configuration (Recommended)'),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Add Sentry automatically to your app with the [wizardLink:Sentry wizard] (call this inside your project directory).',
+            {
+              wizardLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/react-native/#install" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'code',
+          code: `npx @sentry/wizard@latest -i reactNative ${params.isSelfHosted ? '' : '--saas'} --org ${params.organization.slug} --project ${params.project.slug}`,
+          language: 'bash',
+        },
+        {
+          type: 'text',
+          text: t(
+            'The Sentry wizard will automatically patch your project with the following:'
+          ),
+        },
+        {
+          type: 'list',
+          items: [
+            t('Configure the SDK with your DSN'),
+            t('Add source maps upload to your build process'),
+            t('Add debug symbols upload to your build process'),
+          ],
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      title: t('Manual Configuration'),
+      collapsible: true,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Alternatively, you can also set up the SDK manually, by following the [manualSetupLink:manual setup docs].',
+            {
+              manualSetupLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/react-native/manual-setup/manual-setup/" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'custom',
+          content: <CopyDsnField params={params} />,
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [
+    {
+      name: t('React Navigation'),
+      description: t('Set up automatic instrumentation with React Navigation'),
+      link: 'https://docs.sentry.io/platforms/react-native/tracing/instrumentation/react-navigation/',
+    },
+    {
+      name: t('React Native Navigation'),
+      description: t('Set up automatic instrumentation with React Native Navigation'),
+      link: 'https://docs.sentry.io/platforms/react-native/tracing/instrumentation/react-native-navigation/',
+    },
+    {
+      name: t('Expo Router'),
+      description: t('Set up automatic instrumentation with Expo Router'),
+      link: 'https://docs.sentry.io/platforms/react-native/tracing/instrumentation/expo-router/',
+    },
+  ],
 };
 
 const feedbackOnboardingCrashApi: OnboardingConfig = {
@@ -680,8 +382,8 @@ Sentry.captureUserFeedback(userFeedback);`,
   nextSteps: () => [],
 };
 
-const replayOnboarding: OnboardingConfig<PlatformOptions> = {
-  install: (params: DocsParams<PlatformOptions>) => [
+const replayOnboarding: OnboardingConfig = {
+  install: params => [
     {
       type: StepType.INSTALL,
       content: [
@@ -763,12 +465,11 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   nextSteps: () => [],
 };
 
-const docs: Docs<PlatformOptions> = {
+const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   crashReportOnboarding: feedbackOnboardingCrashApi,
   replayOnboarding,
-  platformOptions,
   profilingOnboarding,
 };
 

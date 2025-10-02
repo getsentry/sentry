@@ -433,44 +433,6 @@ class TemplateGroupingComponent(
     id: str = "template"
 
 
-# Wrapper components used to link component trees to variants
-
-
-class DefaultGroupingComponent(
-    BaseGroupingComponent[
-        CSPGroupingComponent
-        | ExpectCTGroupingComponent
-        | ExpectStapleGroupingComponent
-        | HPKPGroupingComponent
-        | MessageGroupingComponent
-        | TemplateGroupingComponent
-    ]
-):
-    id: str = "default"
-
-
-class AppGroupingComponent(
-    BaseGroupingComponent[
-        ChainedExceptionGroupingComponent
-        | ExceptionGroupingComponent
-        | StacktraceGroupingComponent
-        | ThreadsGroupingComponent
-    ]
-):
-    id: str = "app"
-
-
-class SystemGroupingComponent(
-    BaseGroupingComponent[
-        ChainedExceptionGroupingComponent
-        | ExceptionGroupingComponent
-        | StacktraceGroupingComponent
-        | ThreadsGroupingComponent
-    ]
-):
-    id: str = "system"
-
-
 ContributingComponent = (
     ChainedExceptionGroupingComponent
     | ExceptionGroupingComponent
@@ -483,3 +445,27 @@ ContributingComponent = (
     | MessageGroupingComponent
     | TemplateGroupingComponent
 )
+
+
+# Wrapper component used to link component trees to variants
+class RootGroupingComponent(BaseGroupingComponent[ContributingComponent]):
+
+    def __init__(
+        self,
+        variant_name: str,
+        hint: str | None = None,
+        contributes: bool | None = None,
+        values: Sequence[ContributingComponent] | None = None,
+    ):
+        super().__init__(hint, contributes, values)
+        self.variant_name = variant_name
+
+    @property
+    def id(self) -> str:
+        return self.variant_name
+
+    def __repr__(self) -> str:
+        base_repr = super().__repr__()
+        # Fake the class name so that instead of showing as `RootGroupingComponent` in the repr it
+        # shows as `AppGroupingComponent`/`SystemGroupingComponent`/`DefaultGroupingComponent`
+        return base_repr.replace("Root", self.id.title())

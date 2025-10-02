@@ -77,7 +77,7 @@ describe('MonitorForm', () => {
         apiMethod="POST"
         apiEndpoint={apiEndpont}
         onSubmitSuccess={mockHandleSubmitSuccess}
-        submitLabel="Add Monitor"
+        submitLabel="Add Cron Monitor"
       />,
       {
         organization,
@@ -132,7 +132,7 @@ describe('MonitorForm', () => {
       method: 'POST',
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Add Monitor'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Cron Monitor'}));
 
     const config = {
       checkinMargin: '5',
