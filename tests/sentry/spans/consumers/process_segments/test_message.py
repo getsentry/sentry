@@ -24,12 +24,14 @@ class TestSpansTask(TestCase):
         segment_span = build_mock_span(
             project_id=self.project.id,
             is_segment=True,
-            data={
-                "sentry.browser.name": "Google Chrome",
-                "sentry.transaction": "/api/0/organizations/{organization_id_or_slug}/n-plus-one/",
-                "sentry.transaction.method": "GET",
-                "sentry.transaction.op": "http.server",
-                "sentry.user": "id:1",
+            attributes={
+                "sentry.browser.name": {"value": "Google Chrome"},
+                "sentry.transaction": {
+                    "value": "/api/0/organizations/{organization_id_or_slug}/n-plus-one/"
+                },
+                "sentry.transaction.method": {"value": "GET"},
+                "sentry.transaction.op": {"value": "http.server"},
+                "sentry.user": {"value": "id:1"},
             },
         )
         child_span = build_mock_span(
@@ -38,7 +40,7 @@ class TestSpansTask(TestCase):
             parent_span_id=segment_span["span_id"],
             span_id="940ce942561548b5",
             start_timestamp_ms=1707953018867,
-            start_timestamp_precise=1707953018.867,
+            start_timestamp=1707953018.867,
         )
 
         return [child_span, segment_span]
@@ -55,7 +57,7 @@ class TestSpansTask(TestCase):
             parent_span_id=segment_span["span_id"],
             span_id="940ce942561548b5",
             start_timestamp_ms=1707953018867,
-            start_timestamp_precise=1707953018.867,
+            start_timestamp=1707953018.867,
         )
         cause_span = build_mock_span(
             project_id=self.project.id,
@@ -64,7 +66,7 @@ class TestSpansTask(TestCase):
             parent_span_id="940ce942561548b5",
             span_id="a974da4671bc3857",
             start_timestamp_ms=1707953018867,
-            start_timestamp_precise=1707953018.867,
+            start_timestamp=1707953018.867,
         )
         repeating_span_description = 'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added", "sentry_organization"."default_role", "sentry_organization"."is_test", "sentry_organization"."flags" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21'
 
@@ -76,7 +78,7 @@ class TestSpansTask(TestCase):
                 parent_span_id="940ce942561548b5",
                 span_id=uuid.uuid4().hex[:16],
                 start_timestamp_ms=1707953018869,
-                start_timestamp_precise=1707953018.869,
+                start_timestamp=1707953018.869,
             )
 
         repeating_spans = [repeating_span() for _ in range(7)]
@@ -90,19 +92,19 @@ class TestSpansTask(TestCase):
 
         assert len(processed_spans) == len(spans)
         child_span, segment_span = processed_spans
-        child_data = child_span["data"]
-        segment_data = segment_span["data"]
+        child_attrs = child_span["attributes"]
+        segment_data = segment_span["attributes"]
 
-        assert child_data["sentry.transaction"] == segment_data["sentry.transaction"]
-        assert child_data["sentry.transaction.method"] == segment_data["sentry.transaction.method"]
-        assert child_data["sentry.transaction.op"] == segment_data["sentry.transaction.op"]
-        assert child_data["sentry.user"] == segment_data["sentry.user"]
+        assert child_attrs["sentry.transaction"] == segment_data["sentry.transaction"]
+        assert child_attrs["sentry.transaction.method"] == segment_data["sentry.transaction.method"]
+        assert child_attrs["sentry.transaction.op"] == segment_data["sentry.transaction.op"]
+        assert child_attrs["sentry.user"] == segment_data["sentry.user"]
 
     def test_enrich_spans_no_segment(self) -> None:
         spans = self.generate_basic_spans()
         for span in spans:
             span["is_segment"] = False
-            del span["data"]
+            del span["attributes"]
 
         processed_spans = process_segment(spans)
         assert len(processed_spans) == len(spans)
@@ -124,7 +126,7 @@ class TestSpansTask(TestCase):
             organization_id=self.organization.id,
             version="backend@24.2.0.dev0+699ce0cd1281cc3c7275d0a474a595375c769ae8",
         )
-        assert release.date_added.timestamp() == spans[0]["end_timestamp_precise"]
+        assert release.date_added.timestamp() == spans[0]["end_timestamp"]
 
     @override_options({"spans.process-segments.detect-performance-problems.enable": True})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
@@ -160,7 +162,7 @@ class TestSpansTask(TestCase):
             parent_span_id="b35b839c02985f33",
             span_id="940ce942561548b5",
             start_timestamp_ms=1707953018867,
-            start_timestamp_precise=1707953018.867,
+            start_timestamp=1707953018.867,
         )
         cause_span = build_mock_span(
             project_id=self.project.id,
@@ -170,7 +172,7 @@ class TestSpansTask(TestCase):
             parent_span_id="940ce942561548b5",
             span_id="a974da4671bc3857",
             start_timestamp_ms=1707953018867,
-            start_timestamp_precise=1707953018.867,
+            start_timestamp=1707953018.867,
         )
         repeating_span_description = 'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added", "sentry_organization"."default_role", "sentry_organization"."is_test", "sentry_organization"."flags" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21'
 
@@ -183,7 +185,7 @@ class TestSpansTask(TestCase):
                 parent_span_id="940ce942561548b5",
                 span_id=uuid.uuid4().hex[:16],
                 start_timestamp_ms=1707953018869,
-                start_timestamp_precise=1707953018.869,
+                start_timestamp=1707953018.869,
             )
 
         repeating_spans = [repeating_span() for _ in range(7)]
@@ -227,9 +229,9 @@ class TestSpansTask(TestCase):
             project_id=self.project.id,
             is_segment=True,
             span_op="http.client",
-            data={
-                "sentry.op": "http.client",
-                "sentry.category": "http",
+            attributes={
+                "sentry.op": {"value": "http.client"},
+                "sentry.category": {"value": "http"},
             },
         )
         spans = process_segment([span])
