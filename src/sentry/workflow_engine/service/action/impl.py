@@ -44,7 +44,7 @@ class DatabaseBackedActionService(ActionService):
     def update_action_status_for_sentry_app_via_sentry_app_id(
         self,
         *,
-        organization_id: int,
+        region_name: str,
         status: int,
         sentry_app_id: int,
     ) -> None:

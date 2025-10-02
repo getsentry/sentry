@@ -284,7 +284,7 @@ class TestActionService(TestCase):
             },
         )
         action_service.update_action_status_for_sentry_app_via_sentry_app_id(
-            organization_id=self.organization.id,
+            region_name="us",
             sentry_app_id=self.sentry_app.id,
             status=ObjectStatus.DISABLED,
         )

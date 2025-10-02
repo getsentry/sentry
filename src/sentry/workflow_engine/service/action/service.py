@@ -5,7 +5,7 @@
 
 import abc
 
-from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
+from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByRegionName
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.silo.base import SiloMode
 
@@ -45,12 +45,12 @@ class ActionService(RpcService):
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @regional_rpc_method(resolve=ByRegionName())
     @abc.abstractmethod
     def update_action_status_for_sentry_app_via_sentry_app_id(
         self,
         *,
-        organization_id: int,
+        region_name: str,
         status: int,
         sentry_app_id: int,
     ) -> None:
