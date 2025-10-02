@@ -126,6 +126,26 @@ class OnDemandBudgetEdit extends Component<Props> {
       onDemandBudget.budgetMode === OnDemandBudgetMode.PER_CATEGORY &&
       displayBudgetMode === OnDemandBudgetMode.PER_CATEGORY
     ) {
+      const nonPerCategory = [
+        ...activePlan.onDemandCategories
+          .filter(
+            category =>
+              !perCategoryCategories.includes(category) &&
+              !addOnDataCategories.includes(category)
+          )
+          .map(category =>
+            getPlanCategoryName({plan: activePlan, category, capitalize: false})
+          ),
+        ...Object.values(activePlan.addOnCategories)
+          .filter(
+            addOnInfo =>
+              !addOnInfo.billingFlag ||
+              organization.features.includes(addOnInfo.billingFlag)
+          )
+          .map(addOnInfo =>
+            toTitleCase(addOnInfo.productName, {allowInnerUpperCase: true})
+          ),
+      ];
       return (
         <InputFields>
           {perCategoryCategories.map(category => {
@@ -180,28 +200,10 @@ class OnDemandBudgetEdit extends Component<Props> {
           {activePlan.onDemandCategories.length !== perCategoryCategories.length && (
             <Alert type="warning">
               {tct(
-                'Additional [oxfordCategories] usage are only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.',
+                'Additional [oxfordCategories] usage [isOrAre] only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.',
                 {
-                  oxfordCategories: oxfordizeArray([
-                    ...activePlan.onDemandCategories
-                      .filter(
-                        category =>
-                          !perCategoryCategories.includes(category) &&
-                          !addOnDataCategories.includes(category)
-                      )
-                      .map(category =>
-                        getPlanCategoryName({plan: activePlan, category, title: true})
-                      ),
-                    ...Object.values(activePlan.addOnCategories)
-                      .filter(
-                        addOnInfo =>
-                          !addOnInfo.billingFlag ||
-                          organization.features.includes(addOnInfo.billingFlag)
-                      )
-                      .map(addOnInfo =>
-                        toTitleCase(addOnInfo.productName, {allowInnerUpperCase: true})
-                      ),
-                  ]),
+                  isOrAre: nonPerCategory.length === 1 ? t('is') : t('are'),
+                  oxfordCategories: oxfordizeArray(nonPerCategory),
                 }
               )}
             </Alert>
