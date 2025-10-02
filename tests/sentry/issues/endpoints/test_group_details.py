@@ -366,10 +366,11 @@ class GroupUpdateTest(APITestCase):
         assert GroupResolution.objects.all().count() == 0
 
         url = f"/api/0/issues/{group.id}/"
-        response = self.client.put(url, data={
-            "status": "resolved",
-            "statusDetails": {"inNextRelease": True}
-        }, format="json")
+        response = self.client.put(
+            url,
+            data={"status": "resolved", "statusDetails": {"inNextRelease": True}},
+            format="json",
+        )
         assert response.status_code == 200, response.content
 
         # Refetch from DB to ensure the latest state is fetched
@@ -408,10 +409,11 @@ class GroupUpdateTest(APITestCase):
         most_recent_v2 = Release.get_or_create(version="v2.0", project=project2)
 
         url2 = f"/api/0/issues/{group2.id}/"
-        response2 = self.client.put(url2, data={
-            "status": "resolved",
-            "statusDetails": {"inNextRelease": True}
-        }, format="json")
+        response2 = self.client.put(
+            url2,
+            data={"status": "resolved", "statusDetails": {"inNextRelease": True}},
+            format="json",
+        )
         assert response2.status_code == 200
 
         # Both groups should have identical resolution behavior
