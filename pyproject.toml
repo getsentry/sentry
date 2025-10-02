@@ -616,6 +616,7 @@ module = [
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.store",
+    "sentry.tasks.unmerge",
     "sentry.taskworker.*",
     "sentry.tempest.endpoints.*",
     "sentry.tempest.migrations.*",

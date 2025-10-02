@@ -7,7 +7,7 @@ from typing import Any, Union
 from sentry import eventstream
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import GroupEvent
 from sentry.utils.datastructures import BidirectionalMapping
 
 _DEFAULT_UNMERGE_KEY = "default"
@@ -43,7 +43,9 @@ class UnmergeReplacement(abc.ABC):
             raise TypeError("Either fingerprints or replacement argument is required.")
 
     @abc.abstractmethod
-    def get_unmerge_key(self, event: Event, locked_primary_hashes: Collection[str]) -> str | None:
+    def get_unmerge_key(
+        self, event: GroupEvent, locked_primary_hashes: Collection[str]
+    ) -> str | None:
         """
         The unmerge task iterates through all events of a group. This function
         should return which of them should land in the new group.
@@ -87,7 +89,9 @@ class PrimaryHashUnmergeReplacement(UnmergeReplacement):
 
     fingerprints: Collection[str]
 
-    def get_unmerge_key(self, event: Event, locked_primary_hashes: Collection[str]) -> str | None:
+    def get_unmerge_key(
+        self, event: GroupEvent, locked_primary_hashes: Collection[str]
+    ) -> str | None:
         primary_hash = event.get_primary_hash()
         if primary_hash in self.fingerprints and primary_hash in locked_primary_hashes:
             return _DEFAULT_UNMERGE_KEY
