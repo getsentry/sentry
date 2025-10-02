@@ -128,7 +128,6 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
 
 
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
-    data_source = SnubaQueryValidator(required=False, timeWindowSeconds=True)
     data_sources = serializers.ListField(
         child=SnubaQueryValidator(timeWindowSeconds=True), required=False
     )
@@ -243,7 +242,8 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             if query_subscriptions:
                 enable_disable_subscriptions(query_subscriptions, enabled)
 
-        data_source: SnubaQueryDataSourceType | None
+        data_source: SnubaQueryDataSourceType | None = None
+
         if "data_source" in validated_data:
             data_source = validated_data.pop("data_source")
         elif "data_sources" in validated_data:
