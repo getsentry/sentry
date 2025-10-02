@@ -183,3 +183,9 @@ register(key="sentry:autofix_automation_tuning", default=AutofixAutomationTuning
 
 # Should seer scanner run automatically on new issues
 register(key="sentry:seer_scanner_automation", default=True)
+
+# Enable relay extraction of JSON attributes from logs
+register(key="ourlogs.relay-extract-json-attributes.enable", default=True)
+
+# Number of JSON attributes to extract from logs in relay
+register(key="ourlogs.relay-extract-json-attributes.count", default=10)
