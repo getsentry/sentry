@@ -1,7 +1,10 @@
 from collections.abc import Sequence
 
+from sentry.constants import ObjectStatus
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.types.region import find_all_region_names
+from sentry.workflow_engine.service.action import action_service
 
 
 class SentryAppDeletionTask(ModelDeletionTask[SentryApp]):
@@ -25,6 +28,11 @@ class SentryAppDeletionTask(ModelDeletionTask[SentryApp]):
                 instance.update(status=SentryAppStatus.DELETION_IN_PROGRESS)
 
     def delete_instance(self, instance: SentryApp) -> None:
-        # action service RPC goes here, iterating by region because children are deleted first
+        for region_name in find_all_region_names():
+            action_service.update_action_status_for_sentry_app_via_sentry_app_id(
+                region_name=region_name,
+                status=ObjectStatus.DISABLED,
+                sentry_app_id=instance.id,
+            )
 
         return super().delete_instance(instance)
