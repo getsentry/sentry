@@ -23,6 +23,9 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
+from sentry.testutils.helpers.features import with_feature
+from django.utils import timezone
+from datetime import timedelta
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
@@ -252,6 +255,39 @@ class EntitySubscriptionTestCase(TestCase):
             )
         ]
         assert snql_query.query.where == [Condition(Column("project_id"), Op.IN, [self.project.id])]
+
+    @with_feature("organizations:mep-use-default-tags")
+    # @with_feature("organizations:on-demand-metrics-extraction")
+    def test_build_query_builder_performance_metrics_entity_subscription(self) -> None:
+        """
+        Trying to reproduce https://sentry.sentry.io/issues/6654944356/events/latest/?project=1&query=is%3Aunresolved%20IncompatibleMetricsQuery&referrer=latest-event
+        """
+        # NOTE: both of these flags are enabled in production for the issue in question
+        # I can reproduce the error if I disable on-demand-metrics-extraction. 
+        # this causes self.use_on_demand to be False so it goes down a different code path in search/events/builder/metrics.py#L484
+        # could there be another reason self.use_on_demand is set to False in the prod error?
+
+        now = timezone.now()
+        aggregate = "failure_rate()"
+
+        entity_subscription = get_entity_subscription(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.PerformanceMetrics,
+            aggregate=aggregate,
+            time_window=3600,
+            extra_fields={"org_id": self.organization.id},
+        )
+        query_builder = entity_subscription.build_query_builder(
+            query="package:v-analytics",
+            project_ids=[self.project.id],
+            environment=None,
+            params={
+                "organization_id": self.organization.id,
+                "project_id": [self.project.id],
+                "start": now - timedelta(minutes=5) ,
+                "end": now,
+            },
+        )
 
     # This test has been kept in order to validate whether the old queries through metrics are supported, in the future
     # this should be removed.
