@@ -33,13 +33,13 @@ import {AssignSection} from 'sentry/views/detectors/components/forms/common/assi
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
-  DEFAULT_THRESHOLD_METRIC_FORM_DATA,
   METRIC_DETECTOR_FORM_FIELDS,
   metricDetectorFormDataToEndpointPayload,
   metricSavedDetectorToFormData,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
+import {useInitialMetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/useInitialMetricDetectorFormData';
 import {useIntervalChoices} from 'sentry/views/detectors/components/forms/metric/useIntervalChoices';
 import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
@@ -77,12 +77,14 @@ export function EditExistingMetricDetectorForm({detector}: {detector: Detector})
 }
 
 export function NewMetricDetectorForm() {
+  const initialMetricFormData = useInitialMetricDetectorFormData();
+
   return (
     <NewDetectorLayout
       detectorType="metric_issue"
       previewChart={<MetricDetectorPreviewChart />}
       formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
-      initialFormData={DEFAULT_THRESHOLD_METRIC_FORM_DATA}
+      initialFormData={initialMetricFormData}
       mapFormErrors={mapMetricDetectorFormErrors}
     >
       <MetricDetectorForm />
