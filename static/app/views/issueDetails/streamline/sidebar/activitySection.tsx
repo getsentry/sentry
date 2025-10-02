@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState, useMemo} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -8,8 +8,8 @@ import {Button} from 'sentry/components/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Timeline} from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
@@ -352,10 +352,10 @@ export default function StreamlinedActivitySection({
               size="sm"
             >
               {isLoadingMore ? (
-                <>
+                <React.Fragment>
                   <LoadingIndicator mini />
                   {t('Loading...')}
-                </>
+                </React.Fragment>
               ) : (
                 t('Load More Activities')
               )}

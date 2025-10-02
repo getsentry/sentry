@@ -1,4 +1,4 @@
-import {Fragment, useState, useMemo, useCallback} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 
 import {ActivityAuthor} from 'sentry/components/activity/author';
 import {ActivityItem} from 'sentry/components/activity/item';
@@ -101,63 +101,66 @@ function ActivitySection(props: Props) {
     }
   }, [organization.slug, group.id, nextCursor, isLoadingMore]);
 
-  const renderActivity = useCallback((item: GroupActivity) => {
-    const authorName = item.user ? item.user.name : 'Sentry';
+  const renderActivity = useCallback(
+    (item: GroupActivity) => {
+      const authorName = item.user ? item.user.name : 'Sentry';
 
-    if (item.type === GroupActivityType.NOTE) {
+      if (item.type === GroupActivityType.NOTE) {
+        return (
+          <ErrorBoundary mini key={`note-${item.id}`}>
+            <Note
+              showTime={false}
+              text={item.data.text}
+              noteId={item.id}
+              user={item.user as User}
+              dateCreated={item.dateCreated}
+              authorName={authorName}
+              onDelete={() => {
+                onDelete(item);
+                trackAnalytics('issue_details.comment_deleted', {
+                  organization,
+                  streamline: false,
+                  org_streamline_only: organization.streamlineOnly ?? undefined,
+                });
+              }}
+              onUpdate={n => {
+                item.data.text = n.text;
+                onUpdate(item, n);
+                trackAnalytics('issue_details.comment_updated', {
+                  organization,
+                  streamline: false,
+                  org_streamline_only: organization.streamlineOnly ?? undefined,
+                });
+              }}
+              {...noteProps}
+            />
+          </ErrorBoundary>
+        );
+      }
+
       return (
-        <ErrorBoundary mini key={`note-${item.id}`}>
-          <Note
-            showTime={false}
-            text={item.data.text}
-            noteId={item.id}
-            user={item.user as User}
-            dateCreated={item.dateCreated}
-            authorName={authorName}
-            onDelete={() => {
-              onDelete(item);
-              trackAnalytics('issue_details.comment_deleted', {
-                organization,
-                streamline: false,
-                org_streamline_only: organization.streamlineOnly ?? undefined,
-              });
+        <ErrorBoundary mini key={`item-${item.id}`}>
+          <ActivityItem
+            author={{
+              type: item.user ? 'user' : 'system',
+              user: item.user ?? undefined,
             }}
-            onUpdate={n => {
-              item.data.text = n.text;
-              onUpdate(item, n);
-              trackAnalytics('issue_details.comment_updated', {
-                organization,
-                streamline: false,
-                org_streamline_only: organization.streamlineOnly ?? undefined,
-              });
-            }}
-            {...noteProps}
+            date={item.dateCreated}
+            header={
+              <GroupActivityItem
+                author={<ActivityAuthor>{authorName}</ActivityAuthor>}
+                activity={item}
+                organization={organization}
+                projectId={group.project.id}
+                group={group}
+              />
+            }
           />
         </ErrorBoundary>
       );
-    }
-
-    return (
-      <ErrorBoundary mini key={`item-${item.id}`}>
-        <ActivityItem
-          author={{
-            type: item.user ? 'user' : 'system',
-            user: item.user ?? undefined,
-          }}
-          date={item.dateCreated}
-          header={
-            <GroupActivityItem
-              author={<ActivityAuthor>{authorName}</ActivityAuthor>}
-              activity={item}
-              organization={organization}
-              projectId={group.project.id}
-              group={group}
-            />
-          }
-        />
-      </ErrorBoundary>
-    );
-  }, [group, organization, onDelete, onUpdate, noteProps]);
+    },
+    [group, organization, onDelete, onUpdate, noteProps]
+  );
 
   return (
     <Fragment>
@@ -191,10 +194,10 @@ function ActivitySection(props: Props) {
             size="sm"
           >
             {isLoadingMore ? (
-              <>
+              <React.Fragment>
                 <LoadingIndicator mini />
                 {t('Loading...')}
-              </>
+              </React.Fragment>
             ) : (
               t('Load More Activities')
             )}
