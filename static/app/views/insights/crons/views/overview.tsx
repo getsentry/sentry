@@ -94,9 +94,14 @@ function CronsOverview() {
     });
   };
 
-  function handleDismissError(errortype: ProcessingErrorType, projectId: string) {
-    deleteProjectProcessingErrorByType(api, organization.slug, projectId, errortype);
-    refetchErrors();
+  async function handleDismissError(errorType: ProcessingErrorType, projectId: string) {
+    await deleteProjectProcessingErrorByType(
+      api,
+      organization.slug,
+      projectId,
+      errorType
+    );
+    await refetchErrors();
   }
 
   const showAddMonitor = !isValidPlatform(platform) || !isValidGuide(guide);

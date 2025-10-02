@@ -107,15 +107,15 @@ function MonitorDetails({params, location}: Props) {
     }
   };
 
-  function handleDismissError(errortype: ProcessingErrorType) {
-    deleteMonitorProcessingErrorByType(
+  async function handleDismissError(errortype: ProcessingErrorType) {
+    await deleteMonitorProcessingErrorByType(
       api,
       organization.slug,
       params.projectId,
       params.monitorSlug,
       errortype
     );
-    refetchErrors();
+    await refetchErrors();
   }
 
   const userTimezone = useTimezone();
