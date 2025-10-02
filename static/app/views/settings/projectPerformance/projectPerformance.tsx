@@ -99,6 +99,7 @@ export enum DetectorConfigCustomer {
   N_PLUS_API_CALLS_DURATION = 'n_plus_one_api_calls_total_duration_threshold',
   RENDER_BLOCKING_ASSET_RATIO = 'render_blocking_fcp_ratio',
   LARGE_HTT_PAYLOAD_SIZE = 'large_http_payload_size_threshold',
+  LARGE_HTTP_FILTERED_PATHS = 'large_http_filtered_paths',
   DB_ON_MAIN_THREAD_DURATION = 'db_on_main_thread_duration_threshold',
   FILE_IO_MAIN_THREAD_DURATION = 'file_io_on_main_thread_duration_threshold',
   UNCOMPRESSED_ASSET_DURATION = 'uncompressed_asset_duration_threshold',
@@ -748,6 +749,23 @@ function ProjectPerformance() {
             ),
             formatLabel: formatSize,
             disabledReason,
+          },
+          {
+            name: DetectorConfigCustomer.LARGE_HTTP_FILTERED_PATHS,
+            type: 'string',
+            label: t('Filtered Paths'),
+            placeholder: t('/api/download/, /download/file'),
+            help: t(
+              'Comma-separated list of URL paths to exclude from Large HTTP Payload detection. Any spans with these paths will be excluded. Supports partial matches (e.g., "/api/" will match "/api/users").'
+            ),
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
+            ),
+            disabledReason,
+            visible: organization.features.includes(
+              'large-http-payload-detector-improvements'
+            ),
           },
         ],
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
