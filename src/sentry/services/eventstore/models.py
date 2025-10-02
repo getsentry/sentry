@@ -289,7 +289,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def project(self) -> Project:
         from sentry.models.project import Project
 
-        if not hasattr(self, "_project_cache"):
+        # Check if we have a valid cached project
+        if getattr(self, "_project_cache", None) is None:
             self._project_cache = Project.objects.get(id=self.project_id)
         return self._project_cache
 
