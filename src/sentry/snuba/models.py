@@ -116,6 +116,10 @@ class QuerySubscription(Model):
         DELETING = 3
         DISABLED = 4
 
+        @classmethod
+        def choices(cls):
+            return [(item.value, item.name) for item in cls]
+
     # NOTE: project fk SHOULD match AlertRule's fk
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", related_name="subscriptions")
