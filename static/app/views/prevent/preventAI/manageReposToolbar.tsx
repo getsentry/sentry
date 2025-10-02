@@ -65,8 +65,8 @@ function ManageReposToolbar({
             icon: <IconRepository />,
             children: (
               <TriggerLabel>
-                {organizationOptions.find(opt => opt.value === selectedOrg)?.label ||
-                  t('Select organization')}
+                {repositoryOptions.find(opt => opt.value === selectedRepo)?.label ||
+                  t('Select repository')}
               </TriggerLabel>
             ),
           }}
