@@ -132,13 +132,15 @@ class PullRequestDataAdapter:
         if not head_sha:
             return []
 
-        # Query for preprod artifacts with matching head_sha
-        artifacts = PreprodArtifact.objects.filter(
-            commit_comparison__head_sha=head_sha,
-            commit_comparison__organization_id=organization_id,
+        # Query for preprod artifacts with matching head_sha, prefetching related objects to avoid N+1
+        artifacts = list(
+            PreprodArtifact.objects.filter(
+                commit_comparison__head_sha=head_sha,
+                commit_comparison__organization_id=organization_id,
+            ).select_related("commit_comparison", "build_configuration")
         )
 
-        if len(artifacts) == 0:
+        if not artifacts:
             logger.info(
                 "pr_data.no_matching_artifacts",
                 extra={
