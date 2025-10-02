@@ -11,7 +11,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconClose, IconGrid, IconSearch} from 'sentry/icons';
 import {IconGraphCircle} from 'sentry/icons/iconGraphCircle';
 import {t} from 'sentry/locale';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {AppSizeInsights} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsights';
@@ -34,7 +33,7 @@ interface LoadingContentProps {
 
 function LoadingContent({showSkeleton, children}: LoadingContentProps) {
   return (
-    <Flex direction="column" gap="lg" minHeight="700px">
+    <Flex direction="column" gap="lg" minHeight="700px" width="100%">
       <Grid
         columns="1fr"
         rows="1fr"
@@ -74,22 +73,26 @@ function LoadingContent({showSkeleton, children}: LoadingContentProps) {
 }
 
 interface BuildDetailsMainContentProps {
-  appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError>;
-  buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
+  appSizeData?: AppSizeApiResponse | null;
+  appSizeError?: RequestError | null;
+  buildDetailsData?: BuildDetailsApiResponse | null;
+  isAppSizeError?: boolean;
+  isAppSizePending?: boolean;
+  isBuildDetailsPending?: boolean;
 }
 
 export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   const {
-    data: appSizeData,
-    isPending: isAppSizePending,
-    isError: isAppSizeError,
-    error: appSizeError,
-  } = props.appSizeQuery;
+    appSizeData,
+    isAppSizePending = false,
+    isAppSizeError = false,
+    appSizeError,
+    buildDetailsData,
+    isBuildDetailsPending = false,
+  } = props;
 
   // If the main data fetch fails, this component will not be rendered
   // so we don't handle 'isBuildDetailsError'.
-  const {isPending: isBuildDetailsPending, data: buildDetailsData} =
-    props.buildDetailsQuery;
 
   const [selectedContentParam, setSelectedContentParam] = useQueryParamState<
     'treemap' | 'categories'
@@ -236,7 +239,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   }
 
   return (
-    <Flex direction="column" gap="lg" minHeight="700px">
+    <Flex direction="column" gap="lg" minHeight="700px" width="100%">
       <Flex align="center" gap="md">
         {categoriesEnabled && (
           <SegmentedControl value={selectedContent} onChange={handleContentChange}>

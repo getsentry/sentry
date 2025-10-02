@@ -1,13 +1,16 @@
 import {Container, Flex, Stack} from 'sentry/components/core/layout';
+import {TabList} from 'sentry/components/core/tabs';
 import {Heading, Text} from 'sentry/components/core/text';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {PullRequestDetailsHeaderContent} from 'sentry/views/pullRequest/details/header/pullRequestDetailsHeaderContent';
 import {PullRequestDetailsMainContent} from 'sentry/views/pullRequest/details/main/pullRequestDetailsMainContent';
+import {PullRequestDetailsSizeContent} from 'sentry/views/pullRequest/details/main/pullRequestDetailsSizeContent';
 import type {
   PullRequestDetailsErrorResponse,
   PullRequestDetailsResponse,
@@ -17,6 +20,9 @@ import type {
 export default function PullRequestDetails() {
   const organization = useOrganization();
   const params = useParams() as {prId: string; repoName: string; repoOrg: string};
+  const [selectedTab, setSelectedTab] = useQueryParamState<'files' | 'size_analysis'>({
+    fieldName: 'tab',
+  });
 
   const pullRequestQuery: UseApiQueryResult<PullRequestDetailsResponse, RequestError> =
     useApiQuery<PullRequestDetailsResponse>(
@@ -79,6 +85,14 @@ export default function PullRequestDetails() {
   }
 
   const prSuccessData = data as PullRequestDetailsSuccessResponse;
+  const hasSizeAnalysis = prSuccessData.build_details.length > 0;
+
+  let mainContent = <PullRequestDetailsMainContent pullRequest={prSuccessData} />;
+  if (selectedTab === 'size_analysis' && hasSizeAnalysis) {
+    mainContent = (
+      <PullRequestDetailsSizeContent buildDetails={prSuccessData.build_details} />
+    );
+  }
 
   return (
     <Layout.Page
@@ -86,12 +100,18 @@ export default function PullRequestDetails() {
     >
       <Layout.Header>
         <PullRequestDetailsHeaderContent pullRequest={prSuccessData} />
+        <Layout.HeaderTabs value={selectedTab || 'files'} onChange={setSelectedTab}>
+          <TabList>
+            <TabList.Item key="files">Files</TabList.Item>
+            {hasSizeAnalysis ? (
+              <TabList.Item key="size_analysis">Size Analysis</TabList.Item>
+            ) : null}
+          </TabList>
+        </Layout.HeaderTabs>
       </Layout.Header>
 
       <Layout.Body>
-        <Layout.Main>
-          <PullRequestDetailsMainContent pullRequest={prSuccessData} />
-        </Layout.Main>
+        <Layout.Main fullWidth>{mainContent}</Layout.Main>
       </Layout.Body>
     </Layout.Page>
   );

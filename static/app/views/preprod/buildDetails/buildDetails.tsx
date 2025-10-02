@@ -95,15 +95,20 @@ export default function BuildDetails() {
           <UrlParamBatchProvider>
             <BuildDetailsSide>
               <BuildDetailsSidebarContent
-                buildDetailsQuery={buildDetailsQuery}
+                buildDetailsData={buildDetailsQuery.data}
+                isBuildDetailsPending={buildDetailsQuery.isPending}
                 artifactId={artifactId}
                 projectId={projectId}
               />
             </BuildDetailsSide>
             <BuildDetailsMain>
               <BuildDetailsMainContent
-                appSizeQuery={appSizeQuery}
-                buildDetailsQuery={buildDetailsQuery}
+                appSizeData={appSizeQuery.data}
+                isAppSizePending={appSizeQuery.isPending}
+                isAppSizeError={appSizeQuery.isError}
+                appSizeError={appSizeQuery.error}
+                buildDetailsData={buildDetailsQuery.data}
+                isBuildDetailsPending={buildDetailsQuery.isPending}
               />
             </BuildDetailsMain>
           </UrlParamBatchProvider>
