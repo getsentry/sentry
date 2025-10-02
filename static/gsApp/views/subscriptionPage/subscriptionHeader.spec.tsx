@@ -54,6 +54,11 @@ describe('SubscriptionHeader', () => {
     if (hasBillingInfoCard) {
       await screen.findByText('Billing information');
       screen.getByRole('button', {name: 'Edit billing information'});
+    } else {
+      expect(screen.queryByText('Billing information')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Edit billing information'})
+      ).not.toBeInTheDocument();
     }
   }
 
@@ -125,7 +130,20 @@ describe('SubscriptionHeader', () => {
     assertNewHeaderCards({hasBillingInfoCard: true});
   });
 
-  it('renders new header cards for self-serve customers and user without billing perms', () => {});
+  it('renders new header cards for self-serve customers and user without billing perms', () => {
+    const organization = OrganizationFixture({
+      features: ['subscriptions-v3'],
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />
+    );
+    assertNewHeaderCards({hasBillingInfoCard: false});
+  });
 
   it('does not render editable sections for YY partnership', async () => {
     const organization = OrganizationFixture({
