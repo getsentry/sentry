@@ -156,6 +156,7 @@ class BaseIssueAlertHandler(ABC):
             # If test event, just set the legacy rule id to -1
             if workflow_id == TEST_NOTIFICATION_ID:
                 data["actions"][0]["legacy_rule_id"] = TEST_NOTIFICATION_ID
+
             else:
                 try:
                     alert_rule_workflow = AlertRuleWorkflow.objects.get(
@@ -186,6 +187,10 @@ class BaseIssueAlertHandler(ABC):
         # In the new UI, we need this for to build the link to the new rule in the notification action
         else:
             data["actions"][0]["workflow_id"] = workflow_id
+
+        if workflow_id == TEST_NOTIFICATION_ID and action.type == Action.Type.EMAIL:
+            # mail action needs to have skipDigests set to True
+            data["actions"][0]["skipDigests"] = True
 
         rule = Rule(
             id=action.id,
