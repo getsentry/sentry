@@ -154,7 +154,7 @@ def get_alert_type_from_aggregate_dataset(
     # Special handling for EventsAnalyticsPlatform dataset
     if dataset == Dataset.EventsAnalyticsPlatform:
         if organization and features.has(
-            "organizations:performance-transaction-deprecation-alerts", organization
+            "organizations:discover-saved-queries-deprecation", organization
         ):
             return matching_alert_type if matching_alert_type else "eap_metrics"
 
