@@ -3,9 +3,9 @@ from typing import Any
 import orjson
 from django.test import override_settings
 
+from sentry.api.authentication import ServiceRpcSignatureAuthentication
 from sentry.preprod.api.endpoints.project_preprod_artifact_update import find_or_create_release
 from sentry.preprod.models import PreprodArtifact
-from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
 
 
@@ -29,8 +29,8 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
 
         kwargs: dict[str, Any] = {"data": json_data, "content_type": "application/json"}
         if authenticated:
-            signature = generate_service_request_signature(
-                url, json_data, ["test-secret-key"], "Launchpad"
+            signature = ServiceRpcSignatureAuthentication.generate_signature(
+                url, json_data, "test-secret-key"
             )
             kwargs["HTTP_AUTHORIZATION"] = f"rpcsignature {signature}"
 

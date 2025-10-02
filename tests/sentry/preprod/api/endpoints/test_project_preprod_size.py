@@ -1,8 +1,8 @@
 import orjson
 from django.test import override_settings
 
+from sentry.api.authentication import ServiceRpcSignatureAuthentication
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
-from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
 
 SHARED_SECRET_FOR_TESTS = "test-secret-key"
@@ -23,7 +23,7 @@ class ProjectPreprodSizeEndpointTest(TestCase):
             url = f"/api/0/internal/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/{self.artifact.id}/size/{identifier}/"
         else:
             url = f"/api/0/internal/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/{self.artifact.id}/size/"
-        signature = generate_service_request_signature(url, data, [secret], "Launchpad")
+        signature = ServiceRpcSignatureAuthentication.generate_signature(url, data, secret)
         return self.client.put(
             url,
             data=data,

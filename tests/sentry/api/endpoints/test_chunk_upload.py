@@ -8,6 +8,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry import options
+from sentry.api.authentication import ServiceRpcSignatureAuthentication
 from sentry.api.endpoints.chunk import (
     API_PREFIX,
     CHUNK_UPLOAD_ACCEPT,
@@ -21,7 +22,6 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.utils import MAX_FILE_SIZE
 from sentry.silo.base import SiloMode
-from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import assume_test_silo_mode
@@ -40,8 +40,8 @@ class ChunkUploadTest(APITestCase):
 
     def _get_launchpad_auth_headers(self, method="GET", data=b""):
         """Generate Launchpad RPC signature authentication headers."""
-        signature = generate_service_request_signature(
-            self.url, data, ["test-secret-key"], "Launchpad"
+        signature = ServiceRpcSignatureAuthentication.generate_signature(
+            self.url, data, "test-secret-key"
         )
         return {"HTTP_AUTHORIZATION": f"rpcsignature {signature}"}
 
@@ -97,13 +97,8 @@ class ChunkUploadTest(APITestCase):
         )
         assert response.status_code == 403
 
-        # Launchpad auth should succeed
-        signature = generate_service_request_signature(
-            other_url, b"", ["test-secret-key"], "Launchpad"
-        )
-        response = self.client.get(
-            other_url, HTTP_AUTHORIZATION=f"rpcsignature {signature}", format="json"
-        )
+        headers = self._get_launchpad_auth_headers("GET")
+        response = self.client.get(other_url, **headers, format="json")
         assert response.status_code == 200
 
     def test_launchpad_auth_missing_secret(self) -> None:

@@ -3,11 +3,11 @@ from unittest.mock import MagicMock, patch
 import orjson
 from django.test import override_settings
 
+from sentry.api.authentication import ServiceRpcSignatureAuthentication
 from sentry.models.files.fileblob import FileBlob
 from sentry.preprod import PreprodArtifactApiAssembleGenericEvent
 from sentry.preprod.models import PreprodArtifact
 from sentry.tasks.assemble import AssembleTask, ChunkFileState, set_assemble_status
-from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_analytics_events_recorded
 
@@ -29,8 +29,8 @@ class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
         json_data: bytes = orjson.dumps(data) if isinstance(data, dict) else data
 
         if authenticated:
-            signature = generate_service_request_signature(
-                url, json_data, ["test-secret-key"], "Launchpad"
+            signature = ServiceRpcSignatureAuthentication.generate_signature(
+                url, json_data, "test-secret-key"
             )
             return self.client.post(
                 url,
