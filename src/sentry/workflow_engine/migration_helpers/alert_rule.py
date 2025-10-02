@@ -854,7 +854,7 @@ def dual_delete_migrated_alert_rule(alert_rule: AlertRule) -> None:
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id)
     except AlertRuleWorkflow.DoesNotExist:
         logger.exception(
-            "AlertRuleWorkflow not found for AlertRule, workflow will be orphaned",
+            "AlertRuleWorkflow not found for AlertRule, workflow may be orphaned",
             extra={"detector_id": detector.id},
         )
 
