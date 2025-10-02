@@ -208,3 +208,63 @@ class OrganizationPreventGitHubReposTest(APITestCase):
         assert "github-org-2" in orgs_by_name
         assert len(orgs_by_name["github-org-2"]["repos"]) == 1
         assert orgs_by_name["github-org-2"]["repos"][0]["name"] == "repo2"
+
+    @patch("sentry.prevent.endpoints.organization_github_repos.requests.post")
+    def test_get_prevent_github_repos_multiple_repos_same_org(self, mock_requests_post):
+        """Test that multiple repositories for the same GitHub organization are all returned"""
+        self.login_as(user=self.user)
+
+        # Mock empty Seer response
+        mock_response = Mock()
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = {"integrated_repos": {}}
+        mock_requests_post.return_value = mock_response
+
+        # Create one GitHub integration
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="github-org",
+            external_id="123456",
+            metadata={"account_id": "987654"},
+        )
+
+        # Create a project and multiple repos for the same integration
+        project = self.create_project(organization=self.organization)
+
+        self.create_repo(
+            project=project,
+            name="github-org/repo1",
+            provider="integrations:github",
+            integration_id=integration.id,
+            external_id="111",
+        )
+
+        self.create_repo(
+            project=project,
+            name="github-org/repo2",
+            provider="integrations:github",
+            integration_id=integration.id,
+            external_id="222",
+        )
+
+        self.create_repo(
+            project=project,
+            name="github-org/repo3",
+            provider="integrations:github",
+            integration_id=integration.id,
+            external_id="333",
+        )
+
+        response = self.get_success_response(self.organization.slug)
+
+        # Should return one GitHub org with three repos
+        assert len(response.data["orgRepos"]) == 1
+
+        github_org = response.data["orgRepos"][0]
+        assert github_org["name"] == "github-org"
+        assert len(github_org["repos"]) == 3
+
+        # Verify all three repos are present
+        repo_names = {repo["name"] for repo in github_org["repos"]}
+        assert repo_names == {"repo1", "repo2", "repo3"}

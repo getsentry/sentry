@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 
 import orjson
 import requests
@@ -95,9 +96,9 @@ class OrganizationPreventGitHubReposEndpoint(OrganizationEndpoint):
             provider="integrations:github",
         ).exclude(status=ObjectStatus.HIDDEN)
 
-        repos_by_integration = {
-            integration_id_to_name[repo.integration_id]: [repo] for repo in all_installed_repos
-        }
+        repos_by_integration = defaultdict(list)
+        for repo in all_installed_repos:
+            repos_by_integration[integration_id_to_name[repo.integration_id]].append(repo)
 
         # Determine what repos are installed in Sentry and Seer for each GitHub org
         org_repos = []
