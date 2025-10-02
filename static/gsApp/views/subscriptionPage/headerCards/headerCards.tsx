@@ -114,7 +114,10 @@ function BillingInfoCard({
     );
   }, [billingDetails, isLoading]);
 
-  if (subscription.isSelfServePartner || !subscription.canSelfServe) {
+  if (
+    subscription.isSelfServePartner ||
+    (!subscription.canSelfServe && !subscription.onDemandInvoiced)
+  ) {
     return null;
   }
 
