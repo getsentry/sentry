@@ -421,9 +421,11 @@ def collect_tsdb_data(
 
         user = event.data.get("user")
         if user:
-            sets[event.datetime][TSDBModel.users_affected_by_group][
-                (event.group_id, environment.id)
-            ].add(get_event_user_from_interface(user, project).tag_value)
+            tag_value = get_event_user_from_interface(user, project).tag_value
+            if tag_value is not None:
+                sets[event.datetime][TSDBModel.users_affected_by_group][
+                    (event.group_id, environment.id)
+                ].add(tag_value)
 
         frequencies[event.datetime][TSDBModel.frequent_environments_by_group][str(event.group_id)][
             str(environment.id)
