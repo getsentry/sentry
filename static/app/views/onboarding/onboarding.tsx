@@ -6,7 +6,10 @@ import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import Hook from 'sentry/components/hook';
 import LogoSentry from 'sentry/components/logoSentry';
-import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {
+  OnboardingContextProvider,
+  useOnboardingContext,
+} from 'sentry/components/onboarding/onboardingContext';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import Redirect from 'sentry/components/redirect';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -332,6 +335,14 @@ function Onboarding(props: Props) {
   );
 }
 
+function OnboardingWithProvider(props: Props) {
+  return (
+    <OnboardingContextProvider>
+      <Onboarding {...props} />
+    </OnboardingContextProvider>
+  );
+}
+
 const Container = styled('div')<{hasFooter: boolean}>`
   flex-grow: 1;
   display: flex;
@@ -411,4 +422,4 @@ const OnboardingWrapper = styled('main')`
   flex-direction: column;
 `;
 
-export default Onboarding;
+export default OnboardingWithProvider;
