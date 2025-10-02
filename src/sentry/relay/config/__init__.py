@@ -73,6 +73,7 @@ EXPOSABLE_FEATURES = [
     "organizations:relay-otlp-traces-endpoint",
     "organizations:relay-otel-logs-endpoint",
     "organizations:ourlogs-ingestion",
+    "organizations:tracemetrics-ingestion",
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",
     "organizations:relay-playstation-ingestion",
