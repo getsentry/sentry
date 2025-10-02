@@ -138,6 +138,16 @@ export function ScreenCharts({additionalFilters}: Props) {
     const isPrimary = releaseName === primaryRelease;
     const version = formatVersion(releaseName, true);
 
+    const validYAxisValues = [
+      'avg(measurements.time_to_initial_display)',
+      'avg(measurements.time_to_full_display)',
+      'count()',
+    ];
+
+    if (!validYAxisValues.includes(release.yAxis)) {
+      return;
+    }
+
     const yAxis = release.yAxis as
       | 'avg(measurements.time_to_initial_display)'
       | 'avg(measurements.time_to_full_display)'
