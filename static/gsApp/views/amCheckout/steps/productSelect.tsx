@@ -72,7 +72,7 @@ export function getProductCheckoutDescription({
       'Detect and fix issues faster with [budgetText]our AI agent[punctuation]',
       {
         budgetText: includedBudget
-          ? tct('[includedBudget]/mo in credits towards', {
+          ? tct('[includedBudget]/mo in credits towards ', {
               includedBudget,
             })
           : '',
@@ -674,7 +674,7 @@ const Feature = styled(Column)`
 const FeatureHeader = styled(Row)`
   justify-content: flex-start;
   flex-wrap: wrap;
-  gap: 0px;
+  gap: 10px;
   align-items: center;
 
   > span {

@@ -12,8 +12,10 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategory, DataCategoryExact} from 'sentry/types/core';
+import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import oxfordizeArray from 'sentry/utils/oxfordizeArray';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {CronsOnDemandStepWarning} from 'getsentry/components/cronsOnDemandStepWarning';
@@ -62,6 +64,14 @@ class OnDemandBudgetEdit extends Component<Props> {
       subscription,
     } = this.props;
     const cronCategoryName = DATA_CATEGORY_INFO[DataCategoryExact.MONITOR_SEAT].plural;
+
+    const perCategoryCategories = getOnDemandCategories({
+      plan: activePlan,
+      budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+    });
+    const addOnDataCategories = Object.values(activePlan.addOnCategories).flatMap(
+      addOnInfo => addOnInfo.dataCategories
+    );
 
     if (
       onDemandBudget.budgetMode === OnDemandBudgetMode.SHARED &&
@@ -118,73 +128,83 @@ class OnDemandBudgetEdit extends Component<Props> {
     ) {
       return (
         <InputFields>
-          {getOnDemandCategories({
-            plan: activePlan,
-            budgetMode: displayBudgetMode,
-          })
-            .filter(category => category !== DataCategory.LOG_BYTE)
-            .map(category => {
-              const categoryBudgetKey = `${category}Budget`;
-              const displayName = getPlanCategoryName({plan: activePlan, category});
-              return (
-                <Fragment key={category}>
-                  <Tooltip
-                    disabled={onDemandSupported}
-                    title={this.onDemandUnsupportedCopy()}
-                  >
-                    <InputDiv>
-                      <div>
-                        <MediumTitle>{displayName}</MediumTitle>
-                        <Description>{t('Monthly Budget')}</Description>
-                      </div>
-                      <Currency>
-                        <OnDemandInput
-                          disabled={!onDemandSupported}
-                          aria-label={`${displayName} budget`}
-                          name={categoryBudgetKey}
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          maxLength={7}
-                          placeholder="e.g. 50"
-                          value={coerceValue(onDemandBudget.budgets[category] ?? 0)}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                            const inputValue = parseInputValue(e);
-                            const updatedBudgets = {
-                              ...onDemandBudget.budgets,
-                              [category]: inputValue,
-                            };
-                            setOnDemandBudget({
-                              ...onDemandBudget,
-                              budgets: updatedBudgets,
-                            });
-                          }}
-                        />
-                      </Currency>
-                    </InputDiv>
-                  </Tooltip>
-                </Fragment>
-              );
-            })}
+          {perCategoryCategories.map(category => {
+            const categoryBudgetKey = `${category}Budget`;
+            const displayName = getPlanCategoryName({plan: activePlan, category});
+            return (
+              <Fragment key={category}>
+                <Tooltip
+                  disabled={onDemandSupported}
+                  title={this.onDemandUnsupportedCopy()}
+                >
+                  <InputDiv>
+                    <div>
+                      <MediumTitle>{displayName}</MediumTitle>
+                      <Description>{t('Monthly Budget')}</Description>
+                    </div>
+                    <Currency>
+                      <OnDemandInput
+                        disabled={!onDemandSupported}
+                        aria-label={`${displayName} budget`}
+                        name={categoryBudgetKey}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={7}
+                        placeholder="e.g. 50"
+                        value={coerceValue(onDemandBudget.budgets[category] ?? 0)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const inputValue = parseInputValue(e);
+                          const updatedBudgets = {
+                            ...onDemandBudget.budgets,
+                            [category]: inputValue,
+                          };
+                          setOnDemandBudget({
+                            ...onDemandBudget,
+                            budgets: updatedBudgets,
+                          });
+                        }}
+                      />
+                    </Currency>
+                  </InputDiv>
+                </Tooltip>
+              </Fragment>
+            );
+          })}
           <CronsOnDemandStepWarning
             currentOnDemand={onDemandBudget.budgets[cronCategoryName] ?? 0}
             activePlan={activePlan}
             organization={organization}
             subscription={subscription}
           />
-          {(organization.features.includes('seer-billing') ||
-            organization.features.includes('logs-billing')) && (
-            <Alert.Container>
-              <Alert type="warning">
-                {organization.features.includes('logs-billing')
-                  ? t(
-                      'Additional logs and Seer usage are only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.'
-                    )
-                  : t(
-                      "Additional Seer usage is only available through a shared on-demand budget. To ensure you'll have access to additional Seer usage, set up a shared on-demand budget instead."
-                    )}
-              </Alert>
-            </Alert.Container>
+          {activePlan.onDemandCategories.length !== perCategoryCategories.length && (
+            <Alert type="warning">
+              {tct(
+                'Additional [oxfordCategories] usage are only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.',
+                {
+                  oxfordCategories: oxfordizeArray([
+                    ...activePlan.onDemandCategories
+                      .filter(
+                        category =>
+                          !perCategoryCategories.includes(category) &&
+                          !addOnDataCategories.includes(category)
+                      )
+                      .map(category =>
+                        getPlanCategoryName({plan: activePlan, category, title: true})
+                      ),
+                    ...Object.values(activePlan.addOnCategories)
+                      .filter(
+                        addOnInfo =>
+                          !addOnInfo.billingFlag ||
+                          organization.features.includes(addOnInfo.billingFlag)
+                      )
+                      .map(addOnInfo =>
+                        toTitleCase(addOnInfo.productName, {allowInnerUpperCase: true})
+                      ),
+                  ]),
+                }
+              )}
+            </Alert>
           )}
         </InputFields>
       );
@@ -205,16 +225,12 @@ class OnDemandBudgetEdit extends Component<Props> {
     } = this.props;
 
     const selectedBudgetMode = onDemandBudget.budgetMode;
-    const oxfordCategories = listDisplayNames({
+    const perCategoryCategories = listDisplayNames({
       plan: activePlan,
       categories: getOnDemandCategories({
         plan: activePlan,
-        budgetMode: selectedBudgetMode,
-      }).filter(category =>
-        selectedBudgetMode === OnDemandBudgetMode.PER_CATEGORY
-          ? category !== DataCategory.LOG_BYTE
-          : true
-      ),
+        budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+      }),
     });
 
     if (subscription.planDetails.budgetTerm === 'pay-as-you-go') {
@@ -299,7 +315,7 @@ class OnDemandBudgetEdit extends Component<Props> {
                   <Description>
                     {t(
                       'Dedicated on-demand budget for %s. Any overages in one category will not consume the budget of another category.',
-                      oxfordCategories
+                      perCategoryCategories
                     )}
                   </Description>
                   {this.renderInputFields(OnDemandBudgetMode.PER_CATEGORY)}
@@ -345,7 +361,7 @@ const BudgetContainer = styled('div')`
 
 const InputFields = styled('div')`
   color: ${p => p.theme.gray400};
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: 1px;
 `;
 

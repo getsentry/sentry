@@ -1008,6 +1008,8 @@ class AMCheckout extends Component<Props, State> {
           ) : (
             <Grid
               gap="2xl"
+              width="100%"
+              maxWidth="1440px"
               columns={{
                 sm: 'auto',
                 lg: '3fr 2fr',

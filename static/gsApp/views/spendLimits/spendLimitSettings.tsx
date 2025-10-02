@@ -174,11 +174,11 @@ function SharedSpendLimitPriceTable({
   organization,
   includedAddOns,
 }: SharedSpendLimitPriceTableProps) {
-  const addOnCategories = Object.values(activePlan.addOnCategories).flatMap(
+  const addOnDataCategories = Object.values(activePlan.addOnCategories).flatMap(
     addOnInfo => addOnInfo.dataCategories
   );
   const baseCategories = activePlan.onDemandCategories.filter(
-    category => !addOnCategories.includes(category)
+    category => !addOnDataCategories.includes(category)
   );
 
   return (
