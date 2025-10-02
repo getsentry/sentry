@@ -1,5 +1,5 @@
 ---
-created: '2025-09-24T20:28:34.378793+00:00'
+created: '2025-10-01T21:37:18.065568+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -23,12 +23,12 @@ metrics with tags: {
 }
 ---
 contributing variants:
-  app*
+  default*
     hash: "9509e122c6175606d52862fa4f64853c"
     contributing component: exception
     root_component:
-      app*
-        exception*
+      default*
+        exception* (app and system hashes match)
           stacktrace*
             frame* (marked in-app by the client)
               filename*

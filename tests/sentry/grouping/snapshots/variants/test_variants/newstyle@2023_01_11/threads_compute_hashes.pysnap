@@ -1,29 +1,16 @@
 ---
-created: '2025-09-24T20:27:09.089493+00:00'
+created: '2025-10-01T21:31:49.256725+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app:
+default:
   hash: "1a11687556cf74559f0ae90b1c87e2fd"
   contributing component: threads
   root_component:
-    app*
-      threads*
+    default*
+      threads* (app and system hashes match)
         stacktrace*
           frame* (marked in-app by the client)
-            filename*
-              "baz.c"
-            function*
-              "main"
---------------------------------------------------------------------------
-system:
-  hash: null
-  contributing component: null
-  root_component:
-    system (ignored because app threads take precedence)
-      threads (ignored because hash matches app variant)
-        stacktrace*
-          frame*
             filename*
               "baz.c"
             function*

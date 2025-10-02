@@ -1,14 +1,14 @@
 ---
-created: '2025-09-24T20:27:05.512364+00:00'
+created: '2025-10-01T21:31:45.886956+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app:
+default:
   hash: "ff6c4ee7c54f118a9647ee86f0c2b0b0"
   contributing component: threads
   root_component:
-    app*
-      threads*
+    default*
+      threads* (app and system hashes match)
         stacktrace*
           frame* (marked in-app by the client)
             function*
@@ -19,28 +19,5 @@ app:
           frame (marked out of app by the client)
             function*
               "__00+[Something else]_block_invoke_2"
---------------------------------------------------------------------------
-default:
-  hash: null
-  contributing component: null
-  root_component:
-    default (ignored because app threads take precedence)
-      message (ignored because app threads take precedence)
+      message (ignored because threads take precedence)
         "Foo"
---------------------------------------------------------------------------
-system:
-  hash: null
-  contributing component: null
-  root_component:
-    system (ignored because app threads take precedence)
-      threads (ignored because hash matches app variant)
-        stacktrace*
-          frame*
-            function*
-              "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
-          frame*
-            function*
-              "__99+[Something else]_block_invoke_2"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "__00+[Something else]_block_invoke_2"
