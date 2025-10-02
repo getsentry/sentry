@@ -61,6 +61,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
 
         PAGERDUTY = "pagerduty"
         OPSGENIE = "opsgenie"
+        JSM = "jsm"
 
         GITHUB = "github"
         GITHUB_ENTERPRISE = "github_enterprise"
