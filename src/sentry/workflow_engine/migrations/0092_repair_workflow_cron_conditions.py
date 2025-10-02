@@ -43,7 +43,13 @@ def repair_workflow_cron_conditions(
 
         if data_conditions_to_create:
             # find Workflow and WorkflowDataConditionGroup
-            alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+            alert_rule_workflow = AlertRuleWorkflow.objects.filter(rule_id=rule.id).first()
+            if not alert_rule_workflow:
+                logger.info(
+                    "No AlertRuleWorkflow found for rule, skipping",
+                    extra={"rule_id": rule.id},
+                )
+                continue
             workflow = Workflow.objects.get(id=alert_rule_workflow.workflow_id)
             data_condition_group = WorkflowDataConditionGroup.objects.get(
                 workflow_id=workflow.id
