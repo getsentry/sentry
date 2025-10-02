@@ -13,13 +13,18 @@ interface UsePageFilterDatesOptions {
    * Whether to recompute dates when the window regains focus
    */
   recomputeOnWindowFocus?: boolean;
+  /**
+   * This array may be provided as a queryKey to the underlying useQuery that will
+   * force the dates to be recomputed when the key changes.
+   */
+  recomputeQueryKey?: unknown[];
 }
 
 /**
  * Computes since and until values from the current page filters
  */
 export function usePageFilterDates(options: UsePageFilterDatesOptions = {}) {
-  const {recomputeInterval, recomputeOnWindowFocus = false} = options;
+  const {recomputeInterval, recomputeOnWindowFocus = false, recomputeQueryKey} = options;
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
 
@@ -41,8 +46,10 @@ export function usePageFilterDates(options: UsePageFilterDatesOptions = {}) {
     return {since, until, now};
   }
 
+  const queryKeyExtra = recomputeQueryKey ?? [];
+
   const {data} = useQuery({
-    queryKey: ['pageFilterDates', start, end, period] as const,
+    queryKey: ['pageFilterDates', start, end, period, ...queryKeyExtra] as const,
     queryFn,
     initialData: queryFn(),
     staleTime: 0,
