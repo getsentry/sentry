@@ -370,7 +370,7 @@ export const displayBudgetName = (
     withBudget?: boolean;
   } = {}
 ) => {
-  const budgetTerm = plan?.budgetTerm ?? 'on-demand';
+  const budgetTerm = plan?.budgetTerm ?? 'pay-as-you-go';
   const text = `${budgetTerm}${options.withBudget ? ' budget' : ''}`;
   if (options.title) {
     if (budgetTerm === 'on-demand') {
