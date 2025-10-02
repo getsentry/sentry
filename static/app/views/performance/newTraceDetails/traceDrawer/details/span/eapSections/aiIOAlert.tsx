@@ -157,7 +157,7 @@ function PythonContent({spanOrigin}: {spanOrigin?: string}) {
 );`}
       </CodeSnippet>
       <Prose>
-        {tct('For more details, see the [link:integrationdocs].', {
+        {tct('For more details, see the [link:integration docs].', {
           link: <ExternalLink href={integrationLink} />,
         })}
       </Prose>
@@ -244,7 +244,5 @@ const StyledCode = styled('code')`
 `;
 
 const codeSnippetStyles = css`
-  && {
-    margin: 0;
-  }
+  margin: 0 !important;
 `;
