@@ -1,14 +1,13 @@
 import styled from '@emotion/styled';
-import {useQueryState} from 'nuqs';
 
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
-import {parseAsMailbox} from 'sentry/components/feedback/decodeMailbox';
 import FeedbackListBulkSelection from 'sentry/components/feedback/list/feedbackListBulkSelection';
 import MailboxPicker from 'sentry/components/feedback/list/mailboxPicker';
 import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
 import useFeedbackHasNewItems from 'sentry/components/feedback/useFeedbackHasNewItems';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
+import {useMailbox} from 'sentry/components/feedback/useMailbox';
 import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -33,7 +32,7 @@ export default function FeedbackListHeader({
   selectAll,
   selectedIds,
 }: Props) {
-  const [mailbox, setMailbox] = useQueryState('mailbox', parseAsMailbox);
+  const [mailbox, setMailbox] = useMailbox();
 
   const {listPrefetchQueryKey, resetListHeadTime} = useFeedbackQueryKeys();
   const hasNewItems = useFeedbackHasNewItems({listPrefetchQueryKey});

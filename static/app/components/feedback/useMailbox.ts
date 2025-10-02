@@ -1,8 +1,8 @@
-import {createParser} from 'nuqs';
+import {createParser, useQueryState} from 'nuqs';
 
 export type Mailbox = 'unresolved' | 'resolved' | 'ignored';
 
-export const parseAsMailbox = createParser<Mailbox>({
+const parseAsMailbox = createParser<Mailbox>({
   parse: value => {
     switch (value) {
       case 'resolved':
@@ -17,3 +17,5 @@ export const parseAsMailbox = createParser<Mailbox>({
   },
   serialize: value => value.toString(),
 }).withDefault('unresolved');
+
+export const useMailbox = () => useQueryState('mailbox', parseAsMailbox);

@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
-import {useQueryState} from 'nuqs';
 
-import {parseAsMailbox} from 'sentry/components/feedback/decodeMailbox';
+import {useMailbox} from 'sentry/components/feedback/useMailbox';
 import type {Organization} from 'sentry/types/organization';
 import coaleseIssueStatsPeriodQuery from 'sentry/utils/feedback/coaleseIssueStatsPeriodQuery';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -21,7 +20,7 @@ export default function useFeedbackListQueryKey({
   organization,
   prefetch,
 }: Props): ApiQueryKey | undefined {
-  const [mailbox] = useQueryState('mailbox', parseAsMailbox);
+  const [mailbox] = useMailbox();
   const queryView = useLocationQuery({
     fields: {
       limit: PER_PAGE,
