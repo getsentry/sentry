@@ -387,6 +387,14 @@ class FeatureManager(RegisteredFeatureManager):
             return FeatureHandlerStrategy.INTERNAL
         return entity_feature_strategy
 
+    def batch_has_for_organizations(
+        self,
+        feature_names: Sequence[str],
+        actor: User | RpcUser | AnonymousUser | None = None,
+        organizations: Sequence[Organization] | None = None,
+    ) -> dict[Organization, dict[str, bool | None]] | None:
+        return self.batch_has(feature_names, actor, organizations=organizations)
+
 
 class FeatureCheckBatch:
     """
