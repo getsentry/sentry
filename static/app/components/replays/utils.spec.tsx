@@ -1,15 +1,12 @@
 import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
-import {ReplayRequestFrameFixture} from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {
   countColumns,
   findVideoSegmentIndex,
-  flattenFrames,
   getFramesByColumn,
 } from 'sentry/components/replays/utils';
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
-import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 
 const SECOND = 1000;
 
@@ -132,119 +129,6 @@ describe('getFramesByColumn', () => {
         [6, [CRUMB_5]],
       ])
     );
-  });
-});
-
-describe('flattenFrames', () => {
-  it('should return an empty array if there ar eno spans', () => {
-    expect(flattenFrames([])).toStrictEqual([]);
-  });
-
-  it('should return the FlattenedSpanRange for a single span', () => {
-    const frames = hydrateSpans(ReplayRecordFixture(), [
-      ReplayRequestFrameFixture({
-        op: 'resource.fetch',
-        startTimestamp: new Date(10000),
-        endTimestamp: new Date(30000),
-      }),
-    ]);
-    expect(flattenFrames(frames)).toStrictEqual([
-      {
-        duration: 20000,
-        endTimestamp: 30000,
-        frameCount: 1,
-        startTimestamp: 10000,
-      },
-    ]);
-  });
-
-  it('should return two non-overlapping spans', () => {
-    const frames = hydrateSpans(ReplayRecordFixture(), [
-      ReplayRequestFrameFixture({
-        op: 'resource.fetch',
-        startTimestamp: new Date(10000),
-        endTimestamp: new Date(30000),
-      }),
-      ReplayRequestFrameFixture({
-        op: 'resource.fetch',
-        startTimestamp: new Date(60000),
-        endTimestamp: new Date(90000),
-      }),
-    ]);
-
-    expect(flattenFrames(frames)).toStrictEqual([
-      {
-        duration: 20000,
-        endTimestamp: 30000,
-        frameCount: 1,
-        startTimestamp: 10000,
-      },
-      {
-        duration: 30000,
-        endTimestamp: 90000,
-        frameCount: 1,
-        startTimestamp: 60000,
-      },
-    ]);
-  });
-
-  it('should merge two overlapping spans', () => {
-    const frames = hydrateSpans(ReplayRecordFixture(), [
-      ReplayRequestFrameFixture({
-        op: 'resource.fetch',
-        startTimestamp: new Date(10000),
-        endTimestamp: new Date(30000),
-      }),
-      ReplayRequestFrameFixture({
-        op: 'resource.fetch',
-        startTimestamp: new Date(20000),
-        endTimestamp: new Date(40000),
-      }),
-    ]);
-
-    expect(flattenFrames(frames)).toStrictEqual([
-      {
-        duration: 30000,
-        endTimestamp: 40000,
-        frameCount: 2,
-        startTimestamp: 10000,
-      },
-    ]);
-  });
-
-  it('should merge overlapping spans that are not first in the list', () => {
-    const frames = hydrateSpans(ReplayRecordFixture(), [
-      ReplayRequestFrameFixture({
-        op: 'resource.fetch',
-        startTimestamp: new Date(0),
-        endTimestamp: new Date(1000),
-      }),
-      ReplayRequestFrameFixture({
-        op: 'resource.fetch',
-        startTimestamp: new Date(10000),
-        endTimestamp: new Date(30000),
-      }),
-      ReplayRequestFrameFixture({
-        op: 'resource.fetch',
-        startTimestamp: new Date(20000),
-        endTimestamp: new Date(40000),
-      }),
-    ]);
-
-    expect(flattenFrames(frames)).toStrictEqual([
-      {
-        duration: 1000,
-        endTimestamp: 1000,
-        frameCount: 1,
-        startTimestamp: 0,
-      },
-      {
-        duration: 30000,
-        endTimestamp: 40000,
-        frameCount: 2,
-        startTimestamp: 10000,
-      },
-    ]);
   });
 });
 

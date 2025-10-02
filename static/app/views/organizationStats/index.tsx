@@ -1,6 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
-import type {LocationDescriptorObject} from 'history';
+import type {Location, LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
@@ -29,12 +29,13 @@ import {
   type DataCategoryInfo,
   type PageFilters,
 } from 'sentry/types/core';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
-import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate, type ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
@@ -71,27 +72,18 @@ export const PAGE_QUERY_PARAMS = [
 ];
 
 export type OrganizationStatsProps = {
+  location: Location;
+  navigate: ReactRouter3Navigate;
   organization: Organization;
   selection: PageFilters;
-} & RouteComponentProps;
+};
 
-export class OrganizationStats extends Component<OrganizationStatsProps> {
+export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
   get dataCategoryInfo(): DataCategoryInfo {
     const dataCategoryPlural = this.props.location?.query?.dataCategory;
 
     const categories = Object.values(DATA_CATEGORY_INFO);
     const info = categories.find(c => c.plural === dataCategoryPlural);
-
-    if (
-      info?.name === DataCategoryExact.SPAN &&
-      this.props.organization.features.includes('spans-usage-tracking') &&
-      !hasDynamicSamplingCustomFeature(this.props.organization)
-    ) {
-      return {
-        ...info,
-        name: DataCategoryExact.SPAN_INDEXED,
-      };
-    }
 
     // Default to errors
     return info ?? DATA_CATEGORY_INFO.error;
@@ -156,20 +148,20 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
   // Validation and type-casting should be handled by chart
   get chartTransform(): string | undefined {
-    return this.props.location?.query?.transform;
+    return decodeScalar(this.props.location?.query?.transform);
   }
 
   // Validation and type-casting should be handled by table
   get tableSort(): string | undefined {
-    return this.props.location?.query?.sort;
+    return decodeScalar(this.props.location?.query?.sort);
   }
 
   get tableQuery(): string | undefined {
-    return this.props.location?.query?.query;
+    return decodeScalar(this.props.location?.query?.query);
   }
 
   get tableCursor(): string | undefined {
-    return this.props.location?.query?.cursor;
+    return decodeScalar(this.props.location?.query?.cursor);
   }
 
   // Project selection from GlobalSelectionHeader
@@ -237,7 +229,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
       willUpdateRouter: true,
     }
   ): LocationDescriptorObject => {
-    const {location, router} = this.props;
+    const {location, navigate} = this.props;
     const nextQueryParams = pick(nextState, PAGE_QUERY_PARAMS);
 
     const nextLocation = {
@@ -249,7 +241,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     };
 
     if (options.willUpdateRouter) {
-      router.push(nextLocation);
+      navigate(nextLocation);
     }
 
     return nextLocation;
@@ -425,10 +417,23 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
 const HookOrgStats = HookOrDefault({
   hookName: 'component:enhanced-org-stats',
-  defaultComponent: OrganizationStats,
+  defaultComponent: OrganizationStatsInner,
 });
 
-export default withPageFilters(withOrganization(HookOrgStats));
+export default function OrganizationStats() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const organization = useOrganization();
+  const pageFilters = usePageFilters();
+  return (
+    <HookOrgStats
+      location={location}
+      navigate={navigate}
+      organization={organization}
+      selection={pageFilters.selection}
+    />
+  );
+}
 
 const DropdownDataCategory = styled(CompactSelect)`
   width: auto;

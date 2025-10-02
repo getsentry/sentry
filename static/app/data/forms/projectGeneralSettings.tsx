@@ -208,7 +208,12 @@ export const fields = {
         'Role required to download debug information files, proguard mappings and source maps. Overrides [organizationSettingsLink: organization settings].',
         {
           organizationSettingsLink: (
-            <Link to={`/settings/${organization.slug}/#debugFilesRole`} />
+            <Link
+              to={{
+                pathname: `/settings/${organization.slug}/`,
+                hash: 'debugFilesRole',
+              }}
+            />
           ),
         }
       ),

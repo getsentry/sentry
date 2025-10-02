@@ -34,7 +34,7 @@ class ConsecutiveDbDetectorTest(TestCase):
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def create_issue_event(self, span_duration=50):
+    def create_issue_event(self, span_duration: int = 50) -> dict[str, Any]:
         spans = [
             create_span(
                 "db",

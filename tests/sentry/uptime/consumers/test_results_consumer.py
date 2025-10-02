@@ -43,9 +43,12 @@ from sentry.uptime.detectors.result_handler import (
     build_onboarding_failure_key,
 )
 from sentry.uptime.detectors.tasks import is_failed_url
-from sentry.uptime.grouptype import UptimeDomainCheckFailure, build_detector_fingerprint_component
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import UptimeStatus, UptimeSubscription, UptimeSubscriptionRegion
-from sentry.uptime.subscriptions.subscriptions import UptimeMonitorNoSeatAvailable
+from sentry.uptime.subscriptions.subscriptions import (
+    UptimeMonitorNoSeatAvailable,
+    build_detector_fingerprint_component,
+)
 from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
 from sentry.utils import json
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
@@ -68,6 +71,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         )
         self.detector = self.create_uptime_detector(
             uptime_subscription=self.subscription,
+            downtime_threshold=2,
+            recovery_threshold=2,
             owner=self.user,
         )
 
@@ -104,7 +109,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with (
             self.feature(features),
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            mock.patch("sentry.uptime.grouptype.get_active_failure_threshold", return_value=2),
         ):
             # First processed result does NOT create an occurrence since we
             # have not yet met the active threshold
@@ -164,10 +168,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert self.subscription.uptime_status == UptimeStatus.FAILED
 
         # Issue is resolved
-        with (
-            self.feature(features),
-            mock.patch("sentry.uptime.grouptype.get_active_recovery_threshold", return_value=2),
-        ):
+        with (self.feature(features),):
             # First processed result does NOT resolve since we have not yet met
             # the recovery threshold
             self.send_result(
@@ -217,11 +218,12 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             mock_remove_uptime_subscription_if_unused.assert_called_with(self.subscription)
 
     def test_no_create_issues_feature(self) -> None:
+        self.detector.config.update({"downtime_threshold": 1, "recovery_threshold": 1})
+        self.detector.save()
         result = self.create_uptime_result(self.subscription.subscription_id)
         with (
             self.feature(["organizations:uptime"]),
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            mock.patch("sentry.uptime.grouptype.get_active_failure_threshold", return_value=1),
         ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
@@ -951,7 +953,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with (
             self.feature(features),
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            mock.patch("sentry.uptime.grouptype.get_active_failure_threshold", return_value=2),
             mock.patch(
                 "sentry.uptime.consumers.results_consumer.TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS",
                 new=1,
@@ -1019,15 +1020,14 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert parsed_value["incident_status"] == 0
         assert parsed_value["retention_days"] == 90
 
-    @mock.patch("sentry.uptime.consumers.results_consumer._snuba_uptime_checks_producer.produce")
-    @mock.patch("sentry.uptime.grouptype.get_active_failure_threshold", return_value=1)
     @override_options({"uptime.snuba_uptime_results.enabled": True})
-    def test_produces_snuba_uptime_results_in_incident(
-        self, _: MagicMock, mock_produce: MagicMock
-    ) -> None:
+    @mock.patch("sentry.uptime.consumers.results_consumer._snuba_uptime_checks_producer.produce")
+    def test_produces_snuba_uptime_results_in_incident(self, mock_produce: MagicMock) -> None:
         """
         Validates that the consumer produces a message to Snuba's Kafka topic for uptime check results
         """
+        self.detector.config.update({"downtime_threshold": 1, "recovery_threshold": 1})
+        self.detector.save()
         result = self.create_uptime_result(
             self.subscription.subscription_id,
             status=CHECKSTATUS_FAILURE,

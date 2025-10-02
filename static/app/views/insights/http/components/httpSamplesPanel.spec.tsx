@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {
   render,
@@ -8,10 +9,12 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import {DurationUnit} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {HTTPSamplesPanel} from 'sentry/views/insights/http/components/httpSamplesPanel';
+import {SpanFields} from 'sentry/views/insights/types';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
@@ -131,7 +134,7 @@ describe('HTTPSamplesPanel', () => {
       });
 
       eventsStatsRequestMock = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events-stats/`,
+        url: `/organizations/${organization.slug}/events-timeseries/`,
         method: 'GET',
         match: [
           MockApiClient.matchQuery({
@@ -139,34 +142,24 @@ describe('HTTPSamplesPanel', () => {
           }),
         ],
         body: {
-          '301': {
-            data: [
-              [1699907700, [{count: 7810.2}]],
-              [1699908000, [{count: 1216.8}]],
-            ],
-            meta: {
-              fields: {
-                count: 'integer',
-              },
-              units: {
-                count: null,
-              },
-            },
-          },
-          '304': {
-            data: [
-              [1699907700, [{count: 2701.5}]],
-              [1699908000, [{count: 78.12}]],
-            ],
-            meta: {
-              fields: {
-                count: 'integer',
-              },
-              units: {
-                count: null,
-              },
-            },
-          },
+          timeSeries: [
+            TimeSeriesFixture({
+              yAxis: `epm()`,
+              groupBy: [{key: SpanFields.SPAN_STATUS_CODE, value: '301'}],
+              values: [
+                {timestamp: 1699907700000, value: 7810.2},
+                {timestamp: 1699908000000, value: 1216.8},
+              ],
+            }),
+            TimeSeriesFixture({
+              yAxis: `epm()`,
+              groupBy: [{key: SpanFields.SPAN_STATUS_CODE, value: '304'}],
+              values: [
+                {timestamp: 1699907700000, value: 2701.5},
+                {timestamp: 1699908000000, value: 78.12},
+              ],
+            }),
+          ],
         },
       });
 
@@ -228,7 +221,7 @@ describe('HTTPSamplesPanel', () => {
 
       expect(eventsStatsRequestMock).toHaveBeenNthCalledWith(
         1,
-        `/organizations/${organization.slug}/events-stats/`,
+        `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           method: 'GET',
           query: {
@@ -236,19 +229,17 @@ describe('HTTPSamplesPanel', () => {
             sampling: SAMPLING_MODE.NORMAL,
             environment: [],
             excludeOther: 0,
-            field: ['span.status_code', 'count()'],
+            groupBy: [SpanFields.SPAN_STATUS_CODE],
             interval: '30m',
-            orderby: '-count()',
+            sort: '-count()',
             partial: 1,
-            per_page: 50,
             project: [],
             query:
               'span.op:http.client !has:span.domain transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
             referrer: 'api.insights.http.samples-panel-response-code-chart',
             statsPeriod: '10d',
-            topEvents: '5',
-            transformAliasToInputFormat: '0',
-            yAxis: 'count()',
+            topEvents: 5,
+            yAxis: ['count()'],
           },
         })
       );
@@ -332,14 +323,26 @@ describe('HTTPSamplesPanel', () => {
       });
 
       chartRequestMock = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events-stats/`,
+        url: `/organizations/${organization.slug}/events-timeseries/`,
         method: 'GET',
         match: [
           MockApiClient.matchQuery({
             referrer: 'api.insights.http.samples-panel-duration-chart',
           }),
         ],
-        body: {data: [[1711393200, [{count: 900}]]]},
+        body: {
+          timeSeries: [
+            TimeSeriesFixture({
+              yAxis: 'avg(span.self_time)',
+              meta: {
+                valueType: 'duration',
+                valueUnit: DurationUnit.MILLISECOND,
+                interval: 1_800_000,
+              },
+              values: [{timestamp: 1711393200000, value: 900}],
+            }),
+          ],
+        },
       });
 
       samplesRequestMock = MockApiClient.addMockResponse({
@@ -374,7 +377,7 @@ describe('HTTPSamplesPanel', () => {
 
       expect(chartRequestMock).toHaveBeenNthCalledWith(
         1,
-        `/organizations/${organization.slug}/events-stats/`,
+        `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           method: 'GET',
           query: expect.objectContaining({
@@ -382,13 +385,17 @@ describe('HTTPSamplesPanel', () => {
             sampling: SAMPLING_MODE.NORMAL,
             environment: [],
             interval: '30m',
-            per_page: 50,
+            excludeOther: 0,
+            groupBy: undefined,
+            sort: undefined,
+            topEvents: undefined,
+            partial: 1,
             project: [],
             query:
               'span.op:http.client span.domain:"\\*.sentry.dev" transaction:/api/0/users',
             referrer: 'api.insights.http.samples-panel-duration-chart',
             statsPeriod: '10d',
-            yAxis: 'avg(span.self_time)',
+            yAxis: ['avg(span.self_time)'],
           }),
         })
       );

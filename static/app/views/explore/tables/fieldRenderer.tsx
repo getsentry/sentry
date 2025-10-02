@@ -17,7 +17,7 @@ import {Container} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -33,6 +33,7 @@ import {
   useReadQueriesFromLocation,
   useUpdateQueryAtIndex,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
+import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -121,7 +122,8 @@ function BaseExploreFieldRenderer({
 
   const field = String(column.key);
 
-  const renderer = getExploreFieldRenderer(field, meta, projectsMap);
+  const otelFriendlyUI = organization?.features.includes('performance-otel-friendly-ui');
+  const renderer = getExploreFieldRenderer(field, meta, projectsMap, otelFriendlyUI);
 
   let rendered = renderer(data, {
     location,
@@ -195,13 +197,17 @@ function BaseExploreFieldRenderer({
 function getExploreFieldRenderer(
   field: string,
   meta: MetaType,
-  projects: Record<string, Project>
+  projects: Record<string, Project>,
+  otelFriendlyUI: boolean
 ): ReturnType<typeof getFieldRenderer> {
   if (field === 'id' || field === 'span_id') {
     return eventIdRenderFunc(field);
   }
-  if (field === 'span.description') {
-    return spanDescriptionRenderFunc(projects);
+  if (field === 'span.description' && !otelFriendlyUI) {
+    return spanDescriptionRenderFunc('span.description', projects);
+  }
+  if (field === SpanFields.NAME && otelFriendlyUI) {
+    return spanDescriptionRenderFunc(SpanFields.NAME, projects);
   }
   return getFieldRenderer(field, meta, false);
 }
@@ -218,11 +224,11 @@ function eventIdRenderFunc(field: string) {
   return renderer;
 }
 
-function spanDescriptionRenderFunc(projects: Record<string, Project>) {
+function spanDescriptionRenderFunc(field: string, projects: Record<string, Project>) {
   function renderer(data: EventData) {
     const project = projects[data.project];
 
-    const value = data['span.description'];
+    const value = data[field];
 
     return (
       <span>
@@ -239,10 +245,11 @@ function spanDescriptionRenderFunc(projects: Record<string, Project>) {
                 avatarSize={16}
                 avatarProps={{hasTooltip: true, tooltip: project.slug}}
                 hideName
+                disableLink
               />
             )}
             <WrappingText>
-              {isUrl(value) ? (
+              {isValidUrl(value) ? (
                 <ExternalLink href={value}>{value}</ExternalLink>
               ) : (
                 nullableValue(value)

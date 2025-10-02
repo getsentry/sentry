@@ -3,7 +3,6 @@ import logging
 from django.core.cache import cache
 from django.db import router
 
-from sentry import features
 from sentry.locks import locks
 from sentry.models.commit import Commit as OldCommit
 from sentry.models.commitfilechange import CommitFileChange as OldCommitFileChange
@@ -55,9 +54,6 @@ def backfill_commits_for_release(
         return
 
     bind_organization_context(organization)
-
-    if not features.has("organizations:commit-retention-dual-writing", organization):
-        return
 
     cache_key = f"commit-backfill:release:{release_id}"
     if cache.get(cache_key):

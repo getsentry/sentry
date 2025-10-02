@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any
 
@@ -8,9 +9,8 @@ from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
-from ..base import (
-    DetectorType,
-    PerformanceDetector,
+from ..base import DetectorType, PerformanceDetector
+from ..detectors.utils import (
     fingerprint_resource_span,
     get_notification_attachment_body,
     get_span_duration,
@@ -94,7 +94,13 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
 
         fingerprint = self._fingerprint(span)
         span_id = span.get("span_id", None)
-        if fingerprint and span_id and not self.stored_problems.get(fingerprint, False):
+        if self.stored_problems.get(fingerprint):
+            logging.info(
+                "Multiple occurrences detected for fingerprint",
+                extra={"detector": self.settings_key},
+            )
+            return
+        if fingerprint and span_id:
             self.stored_problems[fingerprint] = PerformanceProblem(
                 fingerprint=fingerprint,
                 op=op,

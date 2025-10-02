@@ -15,6 +15,36 @@ import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/tr
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
+function isJson(value: string) {
+  try {
+    JSON.parse(value);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function renderAIResponse(text: string) {
+  return isJson(text) ? (
+    <TraceDrawerComponents.MultilineJSON value={text} maxDefaultDepth={2} />
+  ) : (
+    <TraceDrawerComponents.MultilineText>{text}</TraceDrawerComponents.MultilineText>
+  );
+}
+
+export function hasAIOutputAttribute(
+  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>,
+  attributes?: TraceItemResponseAttribute[],
+  event?: EventTransaction
+) {
+  return (
+    getTraceNodeAttribute('gen_ai.response.text', node, event, attributes) ||
+    getTraceNodeAttribute('gen_ai.response.object', node, event, attributes) ||
+    getTraceNodeAttribute('gen_ai.response.tool_calls', node, event, attributes) ||
+    getTraceNodeAttribute('gen_ai.tool.output', node, event, attributes)
+  );
+}
+
 export function AIOutputSection({
   node,
   attributes,
@@ -26,6 +56,9 @@ export function AIOutputSection({
 }) {
   const organization = useOrganization();
   if (!hasAgentInsightsFeature(organization) && getIsAiNode(node)) {
+    return null;
+  }
+  if (!hasAIOutputAttribute(node, attributes, event)) {
     return null;
   }
 
@@ -64,9 +97,7 @@ export function AIOutputSection({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Response')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <TraceDrawerComponents.MultilineText>
-            {responseText.toString().trim()}
-          </TraceDrawerComponents.MultilineText>
+          {renderAIResponse(responseText.toString())}
         </Fragment>
       )}
       {responseObject && (
@@ -74,10 +105,7 @@ export function AIOutputSection({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Response Object')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <TraceDrawerComponents.MultilineJSON
-            value={responseObject}
-            maxDefaultDepth={2}
-          />
+          {renderAIResponse(responseObject.toString())}
         </Fragment>
       )}
       {toolCalls && (

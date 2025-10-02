@@ -83,11 +83,10 @@ export function ToolbarGroupByDropdown({
       <StyledCompactSelect
         data-test-id="editor-column"
         options={options}
-        triggerLabel={label}
         value={column.column ?? ''}
         onChange={handleColumnChange}
         searchable
-        triggerProps={{style: {width: '100%'}}}
+        triggerProps={{children: label, style: {width: '100%'}}}
       />
       {canDelete ? (
         <Button

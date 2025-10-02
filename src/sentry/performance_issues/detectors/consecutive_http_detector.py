@@ -1,29 +1,29 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
+from urllib.parse import urlparse
 
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.performance_issues.base import DetectorType, PerformanceDetector
 from sentry.performance_issues.detectors.utils import (
+    does_overlap_previous_span,
+    fingerprint_http_spans,
+    get_duration_between_spans,
     get_max_span_duration,
+    get_notification_attachment_body,
+    get_span_duration,
+    get_span_evidence_value,
     get_total_span_duration,
-    has_filtered_url,
+    get_url_from_span,
+    is_filtered_url,
 )
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.safe import get_path
 
-from ..base import (
-    DetectorType,
-    PerformanceDetector,
-    does_overlap_previous_span,
-    fingerprint_http_spans,
-    get_duration_between_spans,
-    get_notification_attachment_body,
-    get_span_duration,
-    get_span_evidence_value,
-)
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
@@ -37,6 +37,11 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
 
         self.consecutive_http_spans: list[Span] = []
         self.lcp = None
+        self.gen_ai_chat_spans: list[str] = [
+            span.get("span_id")
+            for span in event.get("spans", [])
+            if span.get("op") == "gen_ai.chat"
+        ]
 
         lcp_value = get_path(self.event(), "measurements", "lcp", "value")
         lcp_unit = get_path(self.event(), "measurements", "lcp", "unit")
@@ -99,6 +104,14 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         return total_time - max_span_duration
 
     def _store_performance_problem(self) -> None:
+        # Check if spans are from multiple hosts
+        hosts = {self._extract_host_from_span(span) for span in self.consecutive_http_spans}
+        if len(hosts) > 1:
+            logging.info(
+                "Consecutive HTTP Spans with Multiple Hosts",
+                extra={"host_count": len(hosts), "project": self._event.get("project")},
+            )
+
         fingerprint = self._fingerprint()
         offender_span_ids = [span["span_id"] for span in self.consecutive_http_spans]
         desc: str = self.consecutive_http_spans[0].get("description", "")
@@ -159,6 +172,9 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         if not op.startswith("http.client"):
             return False
 
+        if span.get("parent_span_id") in self.gen_ai_chat_spans:
+            return False
+
         if (
             not description.strip().upper().startswith(("GET", "POST", "DELETE", "PUT", "PATCH"))
         ):  # Just using all methods to see if anything interesting pops up
@@ -167,10 +183,16 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         if any([x in description for x in ["_next/static/", "_next/data/", "googleapis.com"]]):
             return False
 
-        if has_filtered_url(self._event, span):
+        url = get_url_from_span(span)
+        if is_filtered_url(url):
             return False
 
         return True
+
+    def _extract_host_from_span(self, span: Span) -> str:
+        """Extract the host from a span's URL."""
+        url = get_url_from_span(span)
+        return urlparse(url).netloc
 
     def _fingerprint(self) -> str:
         hashed_url_paths = fingerprint_http_spans(self.consecutive_http_spans)

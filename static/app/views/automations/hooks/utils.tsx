@@ -8,7 +8,7 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import {AgeComparison} from 'sentry/views/automations/components/actionFilters/constants';
 import type {ConflictingConditions} from 'sentry/views/automations/components/automationBuilderConflictContext';
-import {useDetectorQueriesByIds} from 'sentry/views/detectors/hooks';
+import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
 export function getAutomationActions(automation: Automation): ActionType[] {
   return [
@@ -53,9 +53,9 @@ export function getAutomationActionsWarning(
 }
 
 export function useAutomationProjectIds(automation: Automation): string[] {
-  const queries = useDetectorQueriesByIds(automation.detectorIds);
+  const {data: detectors} = useDetectorsQuery({ids: automation.detectorIds});
   return [
-    ...new Set(queries.map(query => query.data?.projectId).filter(x => x)),
+    ...new Set(detectors?.map(detector => detector.projectId).filter(x => x) ?? []),
   ] as string[];
 }
 

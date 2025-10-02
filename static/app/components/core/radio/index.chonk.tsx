@@ -27,7 +27,7 @@ export const chonkRadioStyles = (
   justifyContent: 'center',
   cursor: 'pointer',
   appearance: 'none',
-  transition: 'border 0.1s, box-shadow 0.1s',
+  transition: `border ${props.theme.motion.smooth.fast}, box-shadow ${props.theme.motion.smooth.fast}`,
 
   /* TODO(bootstrap): Our bootstrap CSS adds this, we can remove when we remove that */
   margin: '0 !important',
@@ -40,7 +40,7 @@ export const chonkRadioStyles = (
     height: radioConfig[props.size ?? 'md'].innerSize,
     borderRadius: '50%',
     backgroundColor: props.theme.colors.white,
-    transition: 'all 0.2s ease-in-out',
+    transition: `all ${props.theme.motion.smooth.moderate}`,
     opacity: 0,
   },
 
@@ -53,7 +53,7 @@ export const chonkRadioStyles = (
     border: `1px solid ${props.theme.colors.chonk.blue400}`,
 
     '&:after': {
-      animation: `${growIn} 0.2s ease-in-out`,
+      animation: `${growIn} ${props.theme.motion.smooth.moderate}`,
       opacity: 1,
     },
   },

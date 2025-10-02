@@ -1,5 +1,5 @@
 ---
-created: '2025-07-18T18:37:27.829828+00:00'
+created: '2025-09-24T20:28:36.109779+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -28,12 +28,12 @@ contributing variants:
   app*
     hash: "c5578778212497f1ff3435405e2a4a98"
     contributing component: exception
-    component:
+    fingerprint_info: {"client_fingerprint":["{{ default }}","dogs are great"]}
+    root_component:
       app*
         exception*
           type*
             "FailedToFetchError"
           value*
             "FailedToFetchError: Maisey can't see the ball anymore :-("
-    fingerprint_info: {"client_fingerprint":["{{ default }}","dogs are great"]}
     values: ["{{ default }}","dogs are great"]

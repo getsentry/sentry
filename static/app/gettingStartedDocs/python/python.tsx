@@ -8,16 +8,17 @@ import {
   type OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  getCrashReportBackendInstallStep,
+  getCrashReportBackendInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {
-  AlternativeConfiguration,
-  getPythonInstallConfig,
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
+  getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -210,72 +211,52 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct('Install our Python SDK:', {
-        code: <code />,
-      }),
-      configurations: getPythonInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct('Install our Python SDK:', {
+            code: <code />,
+          }),
+        },
+        getPythonInstallCodeBlock(),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Import and initialize the Sentry SDK early in your application's setup:"
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            "Import and initialize the Sentry SDK early in your application's setup:"
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
+        alternativeProfilingConfiguration(params),
       ],
-      additionalInfo: params.isProfilingSelected &&
-        params.profilingOptions?.defaultProfilingMode === 'continuous' && (
-          <AlternativeConfiguration />
-        ),
     },
   ],
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      configurations: [
+      content: [
         {
-          description: t(
+          type: 'text',
+          text: t(
             'You can verify your setup by intentionally causing an error that breaks your application:'
           ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: 'division_by_zero = 1 / 0',
         },
-        ...(params.isLogsSelected
-          ? [
-              {
-                description: t(
-                  'You can send logs to Sentry using the Sentry logging APIs:'
-                ),
-                language: 'python',
-                code: `import sentry_sdk
-
-# Send logs directly to Sentry
-sentry_sdk.logger.info('This is an info log message')
-sentry_sdk.logger.warning('This is a warning message')
-sentry_sdk.logger.error('This is an error message')`,
-              },
-              {
-                description: t(
-                  "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
-                ),
-                language: 'python',
-                code: `import logging
-
-# Your existing logging setup
-logger = logging.getLogger(__name__)
-
-# These logs will be automatically sent to Sentry
-logger.info('This will be sent to Sentry')
-logger.warning('User login failed')
-logger.error('Something went wrong')`,
-              },
-            ]
-          : []),
+        getVerifyLogsContent(params),
       ],
     },
   ],
@@ -299,13 +280,18 @@ logger.error('Something went wrong')`,
 
 export const crashReportOnboardingPython: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportBackendInstallStep(params),
+  install: (params: Params) => getCrashReportBackendInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/python/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/python/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],
@@ -411,24 +397,31 @@ export const featureFlagOnboarding: OnboardingConfig = {
     return [
       {
         type: StepType.INSTALL,
-        description:
-          featureFlagOptions.integration === FeatureFlagProviderEnum.GENERIC
-            ? t('Install the Sentry SDK.')
-            : t('Install the Sentry SDK with an extra.'),
-        configurations: getPythonInstallConfig({
-          packageName,
-        }),
+        content: [
+          {
+            type: 'text',
+            text:
+              featureFlagOptions.integration === FeatureFlagProviderEnum.GENERIC
+                ? t('Install the Sentry SDK.')
+                : t('Install the Sentry SDK with an extra.'),
+          },
+          getPythonInstallCodeBlock({packageName}),
+        ],
       },
       {
         type: StepType.CONFIGURE,
-        description:
-          featureFlagOptions.integration === FeatureFlagProviderEnum.GENERIC
-            ? `You don't need an integration for a generic usecase. Simply use this API after initializing Sentry.`
-            : tct('Add [name] to your integrations list.', {
-                name: <code>{`${integrationName}`}</code>,
-              }),
-        configurations: [
+        content: [
           {
+            type: 'text',
+            text:
+              featureFlagOptions.integration === FeatureFlagProviderEnum.GENERIC
+                ? `You don't need an integration for a generic usecase. Simply use this API after initializing Sentry.`
+                : tct('Add [name] to your integrations list.', {
+                    name: <code>{`${integrationName}`}</code>,
+                  }),
+          },
+          {
+            type: 'code',
             language: 'python',
             code: makeConfigureCode(dsn.public),
           },
@@ -436,11 +429,15 @@ export const featureFlagOnboarding: OnboardingConfig = {
       },
       {
         type: StepType.VERIFY,
-        description: t(
-          'Test your setup by evaluating a flag, then capturing an exception. Check the Feature Flags table in Issue Details to confirm that your error event has recorded the flag and its result.'
-        ),
-        configurations: [
+        content: [
           {
+            type: 'text',
+            text: t(
+              'Test your setup by evaluating a flag, then capturing an exception. Check the Feature Flags table in Issue Details to confirm that your error event has recorded the flag and its result.'
+            ),
+          },
+          {
+            type: 'code',
             language: 'python',
             code: makeVerifyCode(),
           },
@@ -466,8 +463,13 @@ export const agentMonitoringOnboarding: OnboardingConfig = {
     return [
       {
         type: StepType.INSTALL,
-        description: t('Install our Python SDK:'),
-        configurations: getPythonInstallConfig({packageName}),
+        content: [
+          {
+            type: 'text',
+            text: t('Install our Python SDK:'),
+          },
+          getPythonInstallCodeBlock({packageName}),
+        ],
       },
     ];
   },

@@ -1,12 +1,12 @@
 ---
-created: '2025-05-12T23:41:30.548327+00:00'
+created: '2025-09-24T20:27:09.208856+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "e7a1be23aff9a117598bb893ed4bedb4"
   contributing component: exception
-  component:
+  root_component:
     app*
       exception*
         stacktrace*
@@ -137,7 +137,7 @@ app:
           "Ensure failed"
         value (ignored because stacktrace takes precedence)
           "Ensure condition failed: ensurePtr != nullptr [File:/Users/tustanivsky/Work/sentry-unreal/sample/Source/SentryPlayground/SentryPlaygroundUtils.cpp] [Line: <int>]"
-      threads (exception of app/system takes precedence)
+      threads (ignored because app/system exception takes precedence)
         stacktrace*
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
@@ -266,7 +266,7 @@ app:
 system:
   hash: "1bba3ace796a07d167af26959c6039c9"
   contributing component: exception
-  component:
+  root_component:
     system*
       exception*
         stacktrace*
@@ -397,7 +397,7 @@ system:
           "Ensure failed"
         value (ignored because stacktrace takes precedence)
           "Ensure condition failed: ensurePtr != nullptr [File:/Users/tustanivsky/Work/sentry-unreal/sample/Source/SentryPlayground/SentryPlaygroundUtils.cpp] [Line: <int>]"
-      threads (exception of app/system takes precedence)
+      threads (ignored because app/system exception takes precedence)
         stacktrace*
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*

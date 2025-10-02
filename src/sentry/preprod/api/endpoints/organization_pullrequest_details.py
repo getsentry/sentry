@@ -68,7 +68,7 @@ class OrganizationPullRequestDetailsEndpoint(OrganizationEndpoint):
             )
 
             normalized_data: PullRequestWithFiles = PullRequestDataAdapter.from_github_pr_data(
-                pr_details, pr_files or []
+                pr_details, pr_files or [], organization.id
             )
 
             return Response(normalized_data, status=200)
@@ -104,13 +104,12 @@ class OrganizationPullRequestDetailsEndpoint(OrganizationEndpoint):
 
 def get_github_client(organization: Organization, repo_name: str) -> GitHubApiClient | None:
     """Get the GitHub integration for this organization."""
-    try:
-        repository = Repository.objects.get(
-            organization_id=organization.id,
-            name=repo_name,
-            provider="integrations:github",
-        )
-    except Repository.DoesNotExist:
+    repository = Repository.objects.filter(
+        organization_id=organization.id,
+        name=repo_name,
+        provider="integrations:github",
+    ).first()
+    if not repository:
         logger.info(
             "preprod.pullrequest_files.no_repository",
             extra={

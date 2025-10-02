@@ -467,7 +467,7 @@ const VisibleLabel = withChonk(
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    transition: color 0.25s ease-out;
+    transition: color ${p => p.theme.motion.exit.moderate};
 
     user-select: none;
     font-weight: ${p => (p.isSelected ? 600 : 400)};

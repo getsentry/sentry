@@ -2,7 +2,6 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
@@ -20,9 +19,9 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withSubscription from 'getsentry/components/withSubscription';
 import type {InvoiceBase, Subscription} from 'getsentry/types';
 import {InvoiceStatus} from 'getsentry/types';
-import {hasNewBillingUI} from 'getsentry/utils/billing';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import SubscriptionHeader from './subscriptionHeader';
 import {trackSubscriptionView} from './utils';
@@ -60,28 +59,35 @@ function PaymentHistory({organization, subscription}: Props) {
   );
 
   const paymentsPageLinks = getResponseHeader?.('Link');
-  const isNewBillingUI = hasNewBillingUI(organization);
 
   if (isPending) {
     return (
-      <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
+      <SubscriptionPageContainer background="primary" organization={organization}>
         <SubscriptionHeader subscription={subscription} organization={organization} />
         <LoadingIndicator />
-      </Container>
+      </SubscriptionPageContainer>
     );
   }
 
   if (isError) {
-    return <LoadingError />;
+    return (
+      <SubscriptionPageContainer background="primary" organization={organization}>
+        <LoadingError />
+      </SubscriptionPageContainer>
+    );
   }
 
   const hasBillingPerms = organization.access?.includes('org:billing');
   if (!hasBillingPerms) {
-    return <ContactBillingMembers />;
+    return (
+      <SubscriptionPageContainer background="primary" organization={organization}>
+        <ContactBillingMembers />
+      </SubscriptionPageContainer>
+    );
   }
 
   return (
-    <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
+    <SubscriptionPageContainer background="primary" organization={organization}>
       <SubscriptionHeader organization={organization} subscription={subscription} />
       <div className="ref-payment-list" data-test-id="payment-list">
         <PanelTable
@@ -135,7 +141,7 @@ function PaymentHistory({organization, subscription}: Props) {
 
         {paymentsPageLinks && <Pagination pageLinks={paymentsPageLinks} />}
       </div>
-    </Container>
+    </SubscriptionPageContainer>
   );
 }
 

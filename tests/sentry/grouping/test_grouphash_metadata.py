@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import patch
 
-from sentry.grouping.component import DefaultGroupingComponent, MessageGroupingComponent
+from sentry.grouping.component import MessageGroupingComponent, RootGroupingComponent
 from sentry.grouping.ingest.grouphash_metadata import (
     check_grouphashes_for_positive_fingerprint_match,
     get_grouphash_metadata_data,
@@ -58,10 +58,11 @@ def test_unknown_hash_basis(
 
     # Overwrite the component ids and create fake variants so this stops being recognizable as a
     # known grouping type
-    component = DefaultGroupingComponent(
-        contributes=True, values=[MessageGroupingComponent(contributes=True)]
+    component = RootGroupingComponent(
+        variant_name="not_a_known_variant_name",
+        contributes=True,
+        values=[MessageGroupingComponent(contributes=True)],
     )
-    component.id = "not_a_known_component_type"
     component.values[0].id = "dogs_are_great"
     variants: dict[str, BaseVariant] = {
         "dogs": ComponentVariant(component, None, StrategyConfiguration())

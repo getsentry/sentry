@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:20:22.987371+00:00'
+created: '2025-09-24T22:53:04.420289+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -25,7 +25,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": false,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": []
             },
             {
@@ -72,6 +72,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "modified in-app exception",
     "hash": "c5578778212497f1ff3435405e2a4a98",
+    "hint": null,
     "key": "app",
     "type": "salted_component",
     "values": [

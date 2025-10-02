@@ -16,6 +16,7 @@ import {
   EAPSpanSearchQueryBuilder,
   useEAPSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
+import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -48,9 +49,7 @@ import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
-import {SeerComboBox} from 'sentry/views/explore/components/seerComboBox/seerComboBox';
 import {
-  useExploreFields,
   useExploreId,
   useExploreQuery,
   useSetExplorePageParams,
@@ -67,6 +66,7 @@ import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
   useQueryParamsExtrapolate,
+  useQueryParamsFields,
   useQueryParamsMode,
   useQueryParamsVisualizes,
   useSetQueryParamsVisualizes,
@@ -203,7 +203,7 @@ function SpansTabSeerComboBox() {
       initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
   }
 
-  return <SeerComboBox initialQuery={initialSeerQuery} />;
+  return <AskSeerComboBox initialQuery={initialSeerQuery} />;
 }
 
 interface SpanTabSearchSectionProps {
@@ -226,7 +226,7 @@ function SpansSearchBar({
 
 function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) {
   const mode = useQueryParamsMode();
-  const fields = useExploreFields();
+  const fields = useQueryParamsFields();
   const query = useExploreQuery();
   const setExplorePageParams = useSetExplorePageParams();
 

@@ -26,6 +26,7 @@ import {
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
+import {SpanFields} from 'sentry/views/insights/types';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 export default function ToolCallsWidget() {
@@ -52,7 +53,7 @@ export default function ToolCallsWidget() {
     {
       ...pageFilterChartParams,
       search: fullQuery,
-      fields: ['gen_ai.tool.name', 'count(span.duration)'],
+      fields: [SpanFields.GEN_AI_TOOL_NAME, 'count(span.duration)'],
       yAxis: ['count(span.duration)'],
       sort: {field: 'count(span.duration)', kind: 'desc'},
       topN: 3,

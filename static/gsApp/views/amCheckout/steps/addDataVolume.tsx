@@ -34,6 +34,7 @@ function AddDataVolume({
     if (organization && isActive) {
       trackGetsentryAnalytics('checkout.data_sliders_viewed', {
         organization,
+        isNewCheckout: false,
       });
     }
   }, [organization, isActive]);

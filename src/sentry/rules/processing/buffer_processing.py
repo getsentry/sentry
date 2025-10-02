@@ -7,11 +7,10 @@ from datetime import datetime, timezone
 from itertools import islice
 from typing import Any, ClassVar, Protocol
 
-from celery import Task
-
 from sentry import options
 from sentry.buffer.base import BufferField
 from sentry.db import models
+from sentry.taskworker.task import Task
 from sentry.utils import metrics
 from sentry.utils.registry import NoRegistrationExistsError, Registry
 
@@ -126,7 +125,7 @@ def process_in_batches(buffer: BufferProtocol, project_id: int, processing_type:
     The batches are replicated into a new redis hash with a unique filter (a uuid) to identify the batch.
     We need to use a UUID because these batches can be created in multiple processes and we need to ensure
     uniqueness across all of them for the centralized redis buffer. The batches are stored in redis because
-    we shouldn't pass objects that need to be pickled and 10k items could be problematic in the celery tasks
+    we shouldn't pass objects that need to be pickled and 10k items could be problematic in tasks
     as arguments could be problematic. Finally, we can't use a pagination system on the data because
     redis doesn't maintain the sort order of the hash keys.
 
@@ -238,8 +237,4 @@ def process_buffer() -> None:
     Process all registered delayed processing types.
     """
     for processing_type, handler in delayed_processing_registry.registrations.items():
-        # If the new scheduling task is enabled and this is delayed_workflow, skip it
-        use_new_scheduling = options.get("workflow_engine.use_new_scheduling_task")
-        if use_new_scheduling and processing_type == "delayed_workflow":
-            continue
         process_buffer_for_type(processing_type, handler)
