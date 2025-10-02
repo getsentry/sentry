@@ -14,7 +14,6 @@ from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDataConditionValidator,
-    BaseDataSourceValidator,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
     get_unknown_detector_type_error,
@@ -63,11 +62,6 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         # TODO: Probably need to check a feature flag to decide if a given
         # org/user is allowed to add a detector
         return type
-
-    @property
-    def data_source(self) -> BaseDataSourceValidator | None:
-        # Moving this field to optional
-        return None
 
     @property
     def data_sources(self) -> serializers.ListField:
@@ -191,10 +185,6 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 owner_team_id=owner_team_id,
                 created_by_id=self.context["request"].user.id,
             )
-
-            if "data_source" in validated_data:
-                validated_data_source = validated_data["data_source"]
-                self._create_data_source(validated_data_source, detector)
 
             if "data_sources" in validated_data:
                 for validated_data_source in validated_data["data_sources"]:
