@@ -9,8 +9,9 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Container} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
+import {Select} from 'sentry/components/core/select';
+import {Text} from 'sentry/components/core/text';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -18,18 +19,21 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {IconAdd, IconDelete, IconInfo} from 'sentry/icons';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconCheckmark, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import {displayBudgetName} from 'getsentry/utils/billing';
+import {displayBudgetName, hasNewBillingUI} from 'getsentry/utils/billing';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import SubscriptionHeader from './subscriptionHeader';
 import {trackSubscriptionView} from './utils';
@@ -55,8 +59,6 @@ const OPTIONS = [
   {label: '10%', value: 10},
 ];
 
-const MAX_THRESHOLDS = OPTIONS.length;
-
 function isThresholdsEqual(value: ThresholdsType, other: ThresholdsType): boolean {
   return isEqual(value, other);
 }
@@ -67,6 +69,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
   useEffect(() => {
     trackSubscriptionView(organization, subscription, 'notifications');
   }, [organization, subscription]);
+  const isNewBillingUI = hasNewBillingUI(organization);
 
   const {
     data: backendThresholds,
@@ -91,175 +94,158 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
     }
   }, [backendThresholds, isPending, notificationThresholds]);
 
-  const hasBillingPerms = organization.access?.includes('org:billing');
-  if (!hasBillingPerms) {
-    return <ContactBillingMembers />;
-  }
+  const onSubmit = () => {
+    addLoadingMessage(t('Saving threshold notifications\u2026'));
+    api
+      .requestPromise(`/customers/${organization.slug}/spend-notifications/`, {
+        method: 'POST',
+        data: notificationThresholds,
+      })
+      .then(response => {
+        addSuccessMessage(t('Threshold notifications saved successfully.'));
+        setNotificationThresholds(response);
+        refetch();
+      })
+      .catch(() => {
+        addErrorMessage(t('Unable to save threshold notifications.'));
+      });
+  };
 
-  if (isPending || !backendThresholds || !notificationThresholds) {
+  const hasBillingPerms = organization.access?.includes('org:billing');
+
+  if (!isNewBillingUI) {
+    if (!hasBillingPerms) {
+      return (
+        <SubscriptionPageContainer background="primary" organization={organization}>
+          <ContactBillingMembers />
+        </SubscriptionPageContainer>
+      );
+    }
+
+    if (isPending || !backendThresholds || !notificationThresholds) {
+      return (
+        <SubscriptionPageContainer background="primary" organization={organization}>
+          <SubscriptionHeader subscription={subscription} organization={organization} />
+          <LoadingIndicator />
+        </SubscriptionPageContainer>
+      );
+    }
+
+    if (isError) {
+      return (
+        <SubscriptionPageContainer background="primary" organization={organization}>
+          <LoadingError onRetry={refetch} />
+        </SubscriptionPageContainer>
+      );
+    }
+
     return (
-      <Container>
-        <SubscriptionHeader subscription={subscription} organization={organization} />
-        <LoadingIndicator />
-      </Container>
+      <SubscriptionPageContainer background="primary" organization={organization}>
+        <SubscriptionHeader organization={organization} subscription={subscription} />
+        <PageDescription>
+          {t("Configure the thresholds for your organization's spend notifications.")}
+        </PageDescription>
+        <Panel>
+          <PanelHeader>{t('Notification thresholds')}</PanelHeader>
+          <ThresholdInputs
+            isNewBillingUI={isNewBillingUI}
+            notificationThresholds={notificationThresholds}
+            setNotificationThresholds={setNotificationThresholds}
+            subscription={subscription}
+          />
+          <NotificationsFooter>
+            <NotificationButtons
+              onDemandEnabled={subscription.planDetails.allowOnDemand}
+              backendThresholds={backendThresholds}
+              notificationThresholds={notificationThresholds}
+              setNotificationThresholds={setNotificationThresholds}
+              onSubmit={onSubmit}
+            />
+          </NotificationsFooter>
+        </Panel>
+        <AlertLink
+          to="/settings/account/notifications/quota/"
+          type="info"
+          trailingItems={<IconInfo />}
+        >
+          {t(
+            'To adjust your personal billing notification settings, please go to Fine Tune Alerts in your account settings.'
+          )}
+        </AlertLink>
+      </SubscriptionPageContainer>
     );
   }
 
-  if (isError) {
-    return <LoadingError onRetry={refetch} />;
-  }
-
-  const onDemandEnabled = subscription.planDetails.allowOnDemand;
-
   return (
-    <Container>
-      <SubscriptionHeader organization={organization} subscription={subscription} />
-      <PageDescription>
-        {t("Configure the thresholds for your organization's spend notifications.")}
-      </PageDescription>
-      <Panel>
-        <PanelHeader>{t('Notification thresholds')}</PanelHeader>
-        <PanelBody>
-          <GenericConsumptionGroup
-            label={t('Subscription Consumption')}
-            help={t(
-              "Receive notifications when your organization's usage exceeds a threshold (% of monthly subscription)"
-            )}
-            thresholds={notificationThresholds.reservedPercent}
-            removeThreshold={indexToRemove => {
-              setNotificationThresholds({
-                ...notificationThresholds,
-                reservedPercent: notificationThresholds.reservedPercent.filter(
-                  (_, index) => index !== indexToRemove
-                ),
-              });
-            }}
-            updateThreshold={(indexToUpdate, value) => {
-              setNotificationThresholds({
-                ...notificationThresholds,
-                reservedPercent: notificationThresholds.reservedPercent.map(
-                  (threshold, index) => (index === indexToUpdate ? value : threshold)
-                ),
-              });
-            }}
-            addThreshold={value => {
-              setNotificationThresholds({
-                ...notificationThresholds,
-                reservedPercent: [...notificationThresholds.reservedPercent, value],
-              });
-            }}
-          />
-          {onDemandEnabled && (
-            <GenericConsumptionGroup
-              label={t(
-                '%s Consumption',
-                displayBudgetName(subscription.planDetails, {title: true})
-              )}
-              help={t(
-                "Receive notifications when your organization's usage exceeds a threshold (%% of monthly %s)",
-                displayBudgetName(subscription.planDetails, {
-                  title: true,
-                  withBudget: true,
-                })
-              )}
-              thresholds={notificationThresholds.perProductOndemandPercent}
-              removeThreshold={indexToRemove => {
-                setNotificationThresholds({
-                  ...notificationThresholds,
-                  perProductOndemandPercent:
-                    notificationThresholds.perProductOndemandPercent.filter(
-                      (_, index) => index !== indexToRemove
-                    ),
-                });
-              }}
-              updateThreshold={(indexToUpdate, value) => {
-                setNotificationThresholds({
-                  ...notificationThresholds,
-                  perProductOndemandPercent:
-                    notificationThresholds.perProductOndemandPercent.map(
-                      (threshold, index) => (index === indexToUpdate ? value : threshold)
-                    ),
-                });
-              }}
-              addThreshold={value => {
-                setNotificationThresholds({
-                  ...notificationThresholds,
-                  perProductOndemandPercent: [
-                    ...notificationThresholds.perProductOndemandPercent,
-                    value,
-                  ],
-                });
-              }}
-            />
-          )}
-        </PanelBody>
-        <NotificationsFooter>
-          <Button
-            disabled={isThresholdsEqual(backendThresholds, notificationThresholds)}
-            onClick={() => {
-              setNotificationThresholds(backendThresholds);
-            }}
-          >
-            {t('Reset')}
-          </Button>
-          <Button
-            priority="primary"
-            disabled={isThresholdsEqual(backendThresholds, notificationThresholds)}
-            onClick={() => {
-              addLoadingMessage(t('Saving threshold notifications\u2026'));
-              api
-                .requestPromise(`/customers/${organization.slug}/spend-notifications/`, {
-                  method: 'POST',
-                  data: notificationThresholds,
-                })
-                .then(response => {
-                  addSuccessMessage(t('Threshold notifications saved successfully.'));
-                  setNotificationThresholds(response);
-                  refetch();
-                })
-                .catch(() => {
-                  addErrorMessage(t('Unable to save threshold notifications.'));
-                });
-            }}
-          >
-            {t('Save Changes')}
-          </Button>
-        </NotificationsFooter>
-      </Panel>
-      <AlertLink
-        to="/settings/account/notifications/quota/"
-        type="info"
-        trailingItems={<IconInfo />}
-      >
-        {t(
-          'To adjust your personal billing notification settings, please go to Fine Tune Alerts in your account settings.'
+    <SubscriptionPageContainer background="primary" organization={organization}>
+      <SentryDocumentTitle
+        title={t('Manage Spend Notifications')}
+        orgSlug={organization.slug}
+      />
+      <SettingsPageHeader
+        title={t('Manage Spend Notifications')}
+        subtitle={t(
+          "Receive notifications when your organization's usage exceeds a threshold"
         )}
-      </AlertLink>
-    </Container>
+        action={
+          <NotificationButtons
+            onDemandEnabled={subscription.planDetails.allowOnDemand}
+            backendThresholds={backendThresholds}
+            notificationThresholds={notificationThresholds}
+            setNotificationThresholds={setNotificationThresholds}
+            onSubmit={onSubmit}
+          />
+        }
+      />
+      <Flex direction="column" gap="2xl">
+        <AlertLink
+          to="/settings/account/notifications/quota/"
+          type="info"
+          trailingItems={<IconInfo />}
+        >
+          {t(
+            'To adjust your personal billing notification settings, please go to Fine Tune Alerts in your account settings.'
+          )}
+        </AlertLink>
+        {hasBillingPerms ? (
+          isPending || !notificationThresholds || !backendThresholds ? (
+            <LoadingIndicator />
+          ) : isError ? (
+            <LoadingError onRetry={refetch} />
+          ) : (
+            <Container border="primary" radius="md" padding="md 0 md md">
+              <ThresholdInputs
+                isNewBillingUI={isNewBillingUI}
+                notificationThresholds={notificationThresholds}
+                setNotificationThresholds={setNotificationThresholds}
+                subscription={subscription}
+              />
+            </Container>
+          )
+        ) : (
+          <ContactBillingMembers />
+        )}
+      </Flex>
+    </SubscriptionPageContainer>
   );
 }
 
 type GenericConsumptionGroupProps = {
-  addThreshold: (value: number) => void;
   help: string;
+  isNewBillingUI: boolean;
   label: string;
-  removeThreshold: (index: number) => void;
   thresholds: number[];
-  updateThreshold: (index: number, value: number) => void;
+  updateThresholds: (newThresholds: number[]) => void;
 };
 
 function GenericConsumptionGroup(props: GenericConsumptionGroupProps) {
-  const {thresholds, removeThreshold, updateThreshold, addThreshold, label, help} = props;
+  const {thresholds, updateThresholds, label, help, isNewBillingUI} = props;
 
   const [newThresholdValue, setNewThresholdValue] = useState<number | undefined>(
     undefined
   );
 
-  const availableOptions = OPTIONS.filter(option => !thresholds.includes(option.value));
-  const availableThresholdValues = availableOptions.map(option => option.value);
-
-  const disableRemoveButton = thresholds.length <= 1;
-  const hideAddButton = thresholds.length >= MAX_THRESHOLDS;
+  const availableThresholdValues = OPTIONS.map(option => option.value);
 
   useEffect(() => {
     if (
@@ -271,66 +257,137 @@ function GenericConsumptionGroup(props: GenericConsumptionGroupProps) {
   }, [newThresholdValue, availableThresholdValues]);
 
   return (
-    <ConsumptionGroup label={label} help={help}>
-      <SelectGroup>
-        {thresholds.map((threshold, index) => {
-          return (
-            <SelectGroupRow key={index}>
-              <StyledCompactSelect
-                triggerProps={{
-                  style: {width: '100%', fontWeight: 'normal'},
-                  children: `${threshold}%`,
-                }}
-                value={undefined}
-                options={availableOptions}
-                onChange={value => {
-                  updateThreshold(index, value.value as number);
-                }}
-              />
-              <Button
-                priority="default"
-                onClick={() => {
-                  removeThreshold(index);
-                }}
-                icon={<IconDelete />}
-                disabled={disableRemoveButton}
-                aria-label={t('Remove notification threshold')}
-              />
-            </SelectGroupRow>
-          );
-        })}
-        {hideAddButton ? null : (
-          <SelectGroupRow>
-            <StyledCompactSelect
-              triggerProps={{
-                style: {width: '100%', fontWeight: 'normal'},
-                children:
-                  newThresholdValue === undefined
-                    ? t('Add threshold')
-                    : `${newThresholdValue}%`,
-              }}
-              value={undefined}
-              options={availableOptions}
-              onChange={value => {
-                setNewThresholdValue(value.value as number);
-              }}
-            />
-            <Button
-              priority="primary"
-              onClick={() => {
-                if (newThresholdValue !== undefined) {
-                  setNewThresholdValue(undefined);
-                  addThreshold(newThresholdValue);
-                }
-              }}
-              icon={<IconAdd />}
-              disabled={newThresholdValue === undefined}
-              aria-label={t('Add notification threshold')}
-            />
-          </SelectGroupRow>
-        )}
-      </SelectGroup>
+    <ConsumptionGroup
+      label={isNewBillingUI ? <Text bold>{label}</Text> : label}
+      help={help}
+    >
+      <Select
+        aria-label={t('Update %s spend notification thresholds', label.toLowerCase())}
+        clearable
+        multiple
+        value={thresholds}
+        options={availableThresholdValues.map(value => ({label: `${value}%`, value}))}
+        onChange={(option: Array<{label: string; value: number}>) => {
+          updateThresholds(option.map(o => o.value));
+        }}
+      />
     </ConsumptionGroup>
+  );
+}
+
+function ThresholdInputs({
+  notificationThresholds,
+  setNotificationThresholds,
+  subscription,
+  isNewBillingUI,
+}: {
+  isNewBillingUI: boolean;
+  notificationThresholds: ThresholdsType;
+  setNotificationThresholds: (newThresholds: ThresholdsType) => void;
+  subscription: Subscription;
+}) {
+  const onDemandEnabled = subscription.planDetails.allowOnDemand;
+  return (
+    <PanelBody>
+      <GenericConsumptionGroup
+        isNewBillingUI={isNewBillingUI}
+        label={t('Subscription consumption')}
+        help={
+          isNewBillingUI
+            ? t('Applies to all reserved volumes in your subscription')
+            : t(
+                "Receive notifications when your organization's usage exceeds a threshold (% of monthly subscription)"
+              )
+        }
+        thresholds={notificationThresholds.reservedPercent}
+        updateThresholds={newThresholds => {
+          setNotificationThresholds({
+            ...notificationThresholds,
+            reservedPercent: newThresholds,
+          });
+        }}
+      />
+      {onDemandEnabled && (
+        <GenericConsumptionGroup
+          isNewBillingUI={isNewBillingUI}
+          label={t(
+            '%s consumption',
+            displayBudgetName(subscription.planDetails, {title: true})
+          )}
+          help={
+            isNewBillingUI
+              ? '% ' +
+                t(
+                  'of %s usage, up to your set limit',
+                  displayBudgetName(subscription.planDetails)
+                )
+              : t(
+                  "Receive notifications when your organization's usage exceeds a threshold (%% of monthly %s)",
+                  displayBudgetName(subscription.planDetails, {
+                    title: true,
+                    withBudget: true,
+                  })
+                )
+          }
+          thresholds={notificationThresholds.perProductOndemandPercent}
+          updateThresholds={newThresholds => {
+            setNotificationThresholds({
+              ...notificationThresholds,
+              perProductOndemandPercent: newThresholds,
+            });
+          }}
+        />
+      )}
+    </PanelBody>
+  );
+}
+
+function NotificationButtons({
+  backendThresholds,
+  notificationThresholds,
+  setNotificationThresholds,
+  onSubmit,
+  onDemandEnabled,
+}: {
+  onDemandEnabled: boolean;
+  onSubmit: () => void;
+  setNotificationThresholds: (newThresholds: ThresholdsType) => void;
+  backendThresholds?: ThresholdsType;
+  notificationThresholds?: ThresholdsType;
+}) {
+  return (
+    <Flex gap="md">
+      <Button
+        disabled={
+          !notificationThresholds ||
+          !backendThresholds ||
+          isThresholdsEqual(backendThresholds, notificationThresholds)
+        }
+        onClick={() => {
+          if (!backendThresholds) {
+            return;
+          }
+          setNotificationThresholds(backendThresholds);
+        }}
+      >
+        {t('Reset')}
+      </Button>
+      <Button
+        icon={<IconCheckmark />}
+        priority="primary"
+        disabled={
+          !notificationThresholds ||
+          !backendThresholds ||
+          isThresholdsEqual(backendThresholds, notificationThresholds) ||
+          notificationThresholds.reservedPercent.length === 0 ||
+          (onDemandEnabled &&
+            notificationThresholds.perProductOndemandPercent.length === 0)
+        }
+        onClick={onSubmit}
+      >
+        {t('Save changes')}
+      </Button>
+    </Flex>
   );
 }
 
@@ -351,19 +408,4 @@ const NotificationsFooter = styled(PanelFooter)`
 
 const ConsumptionGroup = styled(FieldGroup)`
   align-items: flex-start;
-`;
-
-const StyledCompactSelect = styled(CompactSelect)`
-  width: 100%;
-`;
-
-const SelectGroup = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const SelectGroupRow = styled('div')`
-  display: flex;
-  gap: ${space(1)};
 `;
