@@ -19,7 +19,7 @@ export function MonitorCheckInsGrid({checkIns, isLoading, project, hasMultiEnv}:
     : [];
 
   return (
-    <GridEditable<CheckIn, CheckInCellKey>
+    <GridEditable<CheckIn, GridColumnOrder<CheckInCellKey>>
       isLoading={isLoading}
       emptyMessage={t('No check-ins have been recorded for this time period.')}
       data={checkIns}
