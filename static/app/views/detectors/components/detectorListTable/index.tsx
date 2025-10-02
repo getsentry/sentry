@@ -131,7 +131,7 @@ function DetectorListTable({
             <HeaderCell data-column-name="last-issue" divider sortKey="latestGroup">
               {t('Last Issue')}
             </HeaderCell>
-            <HeaderCell data-column-name="assignee" divider sortKey="assignee">
+            <HeaderCell data-column-name="assignee" divider>
               {t('Assignee')}
             </HeaderCell>
             <HeaderCell
