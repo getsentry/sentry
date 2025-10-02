@@ -57,9 +57,6 @@ export interface InsightsTimeSeriesWidgetProps
   description?: React.ReactNode;
   extraActions?: React.ReactNode[];
   extraPlottables?: Plottable[];
-  /**
-   * If true, each series will be assigned a unique color rather than relying on the default colors per yAxis
-   */
   height?: string | number;
   interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
