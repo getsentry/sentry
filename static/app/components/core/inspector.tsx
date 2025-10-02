@@ -21,7 +21,14 @@ import {
   ProfilingContextMenuItemButton,
 } from 'sentry/components/profiling/profilingContextMenu';
 import {NODE_ENV} from 'sentry/constants';
-import {IconChevron, IconCopy, IconDocs, IconLink, IconOpen} from 'sentry/icons';
+import {
+  IconCheckmark,
+  IconChevron,
+  IconCopy,
+  IconDocs,
+  IconLink,
+  IconOpen,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   isMDXStory,
@@ -64,7 +71,9 @@ export function SentryComponentInspector() {
     ws: WebSocket | null;
   }>({connected: false, sessionId: null, ws: null});
   const [_, setAiResponse] = useState<string>('');
-  const [isClaudeProcessing, setIsClaudeProcessing] = useState(false);
+  const [claudeStatus, setClaudeStatus] = useState<'idle' | 'processing' | 'success'>(
+    'idle'
+  );
 
   // AI functionality handlers
   const connectToClaude = useCallback(() => {
@@ -113,11 +122,19 @@ export function SentryComponentInspector() {
             return; // Don't append this to the AI response
           }
 
+          // Check if this is a success message
+          if (parsed.subtype === 'success') {
+            // eslint-disable-next-line no-console
+            console.log('[WebSocket] Success message received');
+            setClaudeStatus('success');
+          }
+
           // Check if Claude is done processing (stream-json format sends a message with type: 'done')
           if (parsed.type === 'done' || parsed.type === 'assistant_message_done') {
             // eslint-disable-next-line no-console
             console.log('[WebSocket] Claude processing completed');
-            setIsClaudeProcessing(false);
+            // Don't reset status here - let it stay as 'success' or remain as 'processing'
+            // Status will be reset when a new prompt is sent
             return;
           }
         } catch (error) {
@@ -169,7 +186,7 @@ export function SentryComponentInspector() {
   const sendAiPrompt = useCallback(() => {
     if (!aiPrompt.trim()) return;
 
-    setIsClaudeProcessing(true);
+    setClaudeStatus('processing');
 
     setSelectedComponent(currentComponent => {
       if (!currentComponent) return currentComponent;
@@ -636,9 +653,20 @@ export function SentryComponentInspector() {
                 marginBottom="md"
               >
                 <Flex flex="1" direction="row" align="center" gap="xs">
-                  <LoadingIndicatorWrapper $isProcessing={isClaudeProcessing}>
-                    <LoadingIndicator mini size={12} />
-                  </LoadingIndicatorWrapper>
+                  <StatusIndicatorWrapper>
+                    {claudeStatus === 'processing' ? (
+                      <LoadingIndicator
+                        mini
+                        size={12}
+                        relative
+                        style={{margin: 0, width: 12, height: 12}}
+                      />
+                    ) : (
+                      claudeStatus === 'success' && (
+                        <IconCheckmark size="xs" color="green400" isCircled />
+                      )
+                    )}
+                  </StatusIndicatorWrapper>
                   <Text size="xs" monospace>
                     {selectedComponent.name} {selectedComponent.sourcePath}
                   </Text>
@@ -729,14 +757,12 @@ const FloatingInputWrapper = styled('div')`
   padding: ${space(1)};
 `;
 
-const LoadingIndicatorWrapper = styled('div')<{$isProcessing: boolean}>`
-  opacity: ${p => (p.$isProcessing ? 1 : 0)};
-  transition: opacity 0.2s ease-in-out;
+const StatusIndicatorWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
   position: relative;
   flex-shrink: 0;
 `;

@@ -250,6 +250,7 @@ const IconContainer = styled('div')`
 const IconDescription = styled('div')`
   display: flex;
   gap: ${space(0.75)};
+  align-items: center;
   font-size: ${p => p.theme.fontSize.md};
 `;
 
