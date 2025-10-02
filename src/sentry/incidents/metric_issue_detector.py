@@ -243,10 +243,14 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             if query_subscriptions:
                 enable_disable_subscriptions(query_subscriptions, enabled)
 
+        data_source: SnubaQueryDataSourceType | None
         if "data_source" in validated_data:
             data_source: SnubaQueryDataSourceType = validated_data.pop("data_source")
-            if data_source:
-                self.update_data_source(instance, data_source)
+        elif "data_sources" in validated_data:
+            data_source: SnubaQueryDataSourceType = validated_data.pop("data_sources")[0]
+
+        if data_source is not None:
+            self.update_data_source(instance, data_source)
 
         instance.save()
 
