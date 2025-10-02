@@ -183,11 +183,7 @@ function NuqsTestingAdapterWithNavigate({children}: {children: React.ReactNode})
         // Pass navigation events to the test router
         const newParams = qs.parse(queryString);
         const newLocation = {...location, query: newParams};
-        if (nuqsOptions.history === 'replace') {
-          navigate(newLocation, {replace: true});
-        } else {
-          navigate(newLocation, {replace: false});
-        }
+        navigate(newLocation, {replace: nuqsOptions.history === 'replace'});
       }}
     >
       {children}
