@@ -14,7 +14,6 @@ import useDismissAlert from 'sentry/utils/useDismissAlert';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   getIsAiGenerationNode,
-  getIsAiRunNode,
   getIsExecuteToolNode,
   getTraceNodeAttribute,
 } from 'sentry/views/insights/agents/utils/aiTraceNodes';
