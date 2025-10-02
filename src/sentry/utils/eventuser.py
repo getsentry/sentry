@@ -63,6 +63,8 @@ KEYWORD_MAP = BidirectionalMapping(
 MAX_QUERY_TRIES = 5
 OVERFETCH_FACTOR = 10
 MAX_FETCH_SIZE = 10_000
+# Maximum number of tag values to process in a single query to avoid ClickHouse query size limits
+MAX_TAG_VALUES_BATCH_SIZE = 100
 
 
 def get_ip_address_conditions(ip_addresses: Sequence[str]) -> list[Condition]:
@@ -320,7 +322,27 @@ class EventUser:
         Return a dictionary of {tag_value: event_user}.
         """
         projects = Project.objects.filter(id=project_id)
+        result = {}
 
+        if len(values) <= MAX_TAG_VALUES_BATCH_SIZE:
+            # Process normally for small batches
+            return cls._process_tag_batch(projects, values)
+
+        # Process in batches to avoid ClickHouse query size limits
+        for i in range(0, len(values), MAX_TAG_VALUES_BATCH_SIZE):
+            batch_values = values[i : i + MAX_TAG_VALUES_BATCH_SIZE]
+            batch_result = cls._process_tag_batch(projects, batch_values)
+            result.update(batch_result)
+
+        return result
+
+    @classmethod
+    def _process_tag_batch(
+        cls, projects: QuerySet[Project], values: list[str]
+    ) -> dict[str, EventUser]:
+        """
+        Process a single batch of tag values and return the matching EventUser objects.
+        """
         result = {}
         keyword_filters: dict[str, Any] = {}
         for value in values:

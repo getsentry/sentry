@@ -1315,14 +1315,57 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     def test_prevent_ai_config_github(self) -> None:
         data = {
             "preventAiConfigGithub": {
+                "schema_version": "v1",
                 "org_defaults": {
-                    "on_command_phrase": {"bug_prediction": True, "vanilla": True},
-                    "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
+                    "bug_prediction": {
+                        "enabled": True,
+                        "sensitivity": "high",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                    "test_generation": {
+                        "enabled": False,
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": True,
+                        },
+                    },
+                    "vanilla": {
+                        "enabled": True,
+                        "sensitivity": "medium",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
                 },
                 "repo_overrides": {
                     "my_repo_name": {
-                        "on_command_phrase": {"bug_prediction": True, "vanilla": False},
-                        "on_ready_for_review": {"bug_prediction": False, "vanilla": True},
+                        "bug_prediction": {
+                            "enabled": False,
+                            "sensitivity": "low",
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": True,
+                            },
+                        },
+                        "test_generation": {
+                            "enabled": True,
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": False,
+                            "sensitivity": "critical",
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": True,
+                            },
+                        },
                     }
                 },
             }
@@ -1335,18 +1378,82 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         data = {
             "preventAiConfigGithub": {
+                "schema_version": "v1",
                 "org_defaults": {
-                    "on_command_phrase": {"bug_prediction": True, "vanilla": True},
-                    "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
+                    "bug_prediction": {
+                        "enabled": True,
+                        "sensitivity": "high",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                    "test_generation": {
+                        "enabled": False,
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": True,
+                        },
+                    },
+                    "vanilla": {
+                        "enabled": True,
+                        "sensitivity": "medium",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
                 },
                 "repo_overrides": {
                     "my_repo_name": {
-                        "on_command_phrase": {"bug_prediction": False, "vanilla": True},
-                        "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
+                        "bug_prediction": {
+                            "enabled": False,
+                            "sensitivity": "low",
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": True,
+                            },
+                        },
+                        "test_generation": {
+                            "enabled": True,
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": False,
+                            "sensitivity": "critical",
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": True,
+                            },
+                        },
                     },
                     "my_other_repo_name": {
-                        "on_command_phrase": {"bug_prediction": True, "vanilla": True},
-                        "on_ready_for_review": {"bug_prediction": False, "vanilla": False},
+                        "bug_prediction": {
+                            "enabled": True,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "test_generation": {
+                            "enabled": False,
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": True,
+                            "sensitivity": "high",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
                     },
                 },
             }
@@ -1365,9 +1472,31 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     def test_prevent_ai_config_github_get_default(self) -> None:
         # Verify that when no config is set, it returns the default config
         expected_default = {
+            "schema_version": "v1",
             "org_defaults": {
-                "on_command_phrase": {"bug_prediction": True, "vanilla": True},
-                "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
+                "bug_prediction": {
+                    "enabled": False,
+                    "sensitivity": "medium",
+                    "triggers": {
+                        "on_command_phrase": True,
+                        "on_ready_for_review": True,
+                    },
+                },
+                "test_generation": {
+                    "enabled": False,
+                    "triggers": {
+                        "on_command_phrase": True,
+                        "on_ready_for_review": False,
+                    },
+                },
+                "vanilla": {
+                    "enabled": False,
+                    "sensitivity": "medium",
+                    "triggers": {
+                        "on_command_phrase": True,
+                        "on_ready_for_review": False,
+                    },
+                },
             },
             "repo_overrides": {},
         }
@@ -1377,7 +1506,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     def test_prevent_ai_config_github_validation_missing_fields(self) -> None:
         """Test that missing required fields are rejected"""
         # Missing org_defaults
-        data: dict[str, dict[str, dict]] = {"preventAiConfigGithub": {"repo_overrides": {}}}
+        data: dict[str, dict[str, Any]] = {
+            "preventAiConfigGithub": {"schema_version": "v1", "repo_overrides": {}}
+        }
         response = self.get_error_response(self.organization.slug, status_code=400, **data)
         # Verify we get a validation error for missing required field
         assert "preventAiConfigGithub" in response.data
@@ -1393,12 +1524,16 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         error_msg = str(response.data["preventAiConfigGithub"])
         assert "Prevent AI config option is invalid" in error_msg
 
-        # Missing trigger fields
+        # Missing feature fields
         data_2: dict[str, dict] = {
             "preventAiConfigGithub": {
+                "schema_version": "v1",
                 "org_defaults": {
-                    "on_command_phrase": {"bug_prediction": True},  # Missing vanilla
-                    "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
+                    "bug_prediction": {
+                        "enabled": True,
+                        "sensitivity": "high",
+                        # Missing triggers
+                    }
                 },
                 "repo_overrides": {},
             }
@@ -1413,10 +1548,32 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         """Test missing repo_overrides field"""
         data = {
             "preventAiConfigGithub": {
+                "schema_version": "v1",
                 "org_defaults": {
-                    "on_command_phrase": {"bug_prediction": True, "vanilla": True},
-                    "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
-                }
+                    "bug_prediction": {
+                        "enabled": True,
+                        "sensitivity": "high",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                    "test_generation": {
+                        "enabled": False,
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": True,
+                        },
+                    },
+                    "vanilla": {
+                        "enabled": True,
+                        "sensitivity": "medium",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                },
                 # Missing repo_overrides
             }
         }
@@ -1427,9 +1584,31 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         """Test missing trigger field"""
         data = {
             "preventAiConfigGithub": {
+                "schema_version": "v1",
                 "org_defaults": {
-                    "on_command_phrase": {"bug_prediction": True, "vanilla": True},
-                    # Missing on_ready_for_review
+                    "bug_prediction": {
+                        "enabled": True,
+                        "sensitivity": "high",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            # Missing on_ready_for_review
+                        },
+                    },
+                    "test_generation": {
+                        "enabled": False,
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": True,
+                        },
+                    },
+                    "vanilla": {
+                        "enabled": True,
+                        "sensitivity": "medium",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
                 },
                 "repo_overrides": {},
             }
@@ -1441,9 +1620,24 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         """Test missing setting field"""
         data = {
             "preventAiConfigGithub": {
+                "schema_version": "v1",
                 "org_defaults": {
-                    "on_command_phrase": {"vanilla": True},  # Missing bug_prediction
-                    "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
+                    "bug_prediction": {
+                        "enabled": True,
+                        "sensitivity": "high",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                    "test_generation": {
+                        "enabled": False,
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": True,
+                        },
+                    },
+                    # Missing vanilla feature
                 },
                 "repo_overrides": {},
             }
@@ -1455,12 +1649,31 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         """Test wrong data types"""
         data = {
             "preventAiConfigGithub": {
+                "schema_version": "v1",
                 "org_defaults": {
-                    "on_command_phrase": {
-                        "bug_prediction": "yes",
-                        "vanilla": True,
-                    },  # String instead of bool
-                    "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
+                    "bug_prediction": {
+                        "enabled": "yes",  # String instead of bool
+                        "sensitivity": "high",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                    "test_generation": {
+                        "enabled": False,
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": True,
+                        },
+                    },
+                    "vanilla": {
+                        "enabled": True,
+                        "sensitivity": "medium",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
                 },
                 "repo_overrides": {},
             }
@@ -1474,17 +1687,38 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     def test_prevent_ai_config_github_validation_repo_overrides(self) -> None:
         """Test validation specifically for repo_overrides structure"""
 
-        # Invalid repo override - missing triggers
+        # Invalid repo override - missing features
         data = {
             "preventAiConfigGithub": {
+                "schema_version": "v1",
                 "org_defaults": {
-                    "on_command_phrase": {"bug_prediction": True, "vanilla": True},
-                    "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
+                    "bug_prediction": {
+                        "enabled": True,
+                        "sensitivity": "high",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                    "test_generation": {
+                        "enabled": False,
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": True,
+                        },
+                    },
+                    "vanilla": {
+                        "enabled": True,
+                        "sensitivity": "medium",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
                 },
                 "repo_overrides": {
                     "my_repo": {
-                        "on_command_phrase": {"bug_prediction": True, "vanilla": True},
-                        # Missing on_ready_for_review
+                        # Missing all features
                     }
                 },
             }
@@ -1499,17 +1733,57 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         # Invalid repo override - wrong field types
         data = {
             "preventAiConfigGithub": {
+                "schema_version": "v1",
                 "org_defaults": {
-                    "on_command_phrase": {"bug_prediction": True, "vanilla": True},
-                    "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
+                    "bug_prediction": {
+                        "enabled": True,
+                        "sensitivity": "high",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                    "test_generation": {
+                        "enabled": False,
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": True,
+                        },
+                    },
+                    "vanilla": {
+                        "enabled": True,
+                        "sensitivity": "medium",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
                 },
                 "repo_overrides": {
                     "my_repo": {
-                        "on_command_phrase": {
-                            "bug_prediction": 1,
-                            "vanilla": True,
-                        },  # Number instead of bool
-                        "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
+                        "bug_prediction": {
+                            "enabled": 1,  # Number instead of bool
+                            "sensitivity": "high",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "test_generation": {
+                            "enabled": False,
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": True,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": True,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
                     }
                 },
             }
@@ -1520,18 +1794,82 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         # Valid repo overrides should work
         data = {
             "preventAiConfigGithub": {
+                "schema_version": "v1",
                 "org_defaults": {
-                    "on_command_phrase": {"bug_prediction": True, "vanilla": True},
-                    "on_ready_for_review": {"bug_prediction": True, "vanilla": False},
+                    "bug_prediction": {
+                        "enabled": True,
+                        "sensitivity": "high",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                    "test_generation": {
+                        "enabled": False,
+                        "triggers": {
+                            "on_command_phrase": False,
+                            "on_ready_for_review": True,
+                        },
+                    },
+                    "vanilla": {
+                        "enabled": True,
+                        "sensitivity": "medium",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
                 },
                 "repo_overrides": {
                     "repo_1": {
-                        "on_command_phrase": {"bug_prediction": False, "vanilla": False},
-                        "on_ready_for_review": {"bug_prediction": True, "vanilla": True},
+                        "bug_prediction": {
+                            "enabled": False,
+                            "sensitivity": "low",
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": True,
+                            },
+                        },
+                        "test_generation": {
+                            "enabled": True,
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": False,
+                            "sensitivity": "critical",
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": True,
+                            },
+                        },
                     },
                     "repo_2": {
-                        "on_command_phrase": {"bug_prediction": True, "vanilla": False},
-                        "on_ready_for_review": {"bug_prediction": False, "vanilla": False},
+                        "bug_prediction": {
+                            "enabled": True,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "test_generation": {
+                            "enabled": False,
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": True,
+                            "sensitivity": "high",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
                     },
                 },
             }

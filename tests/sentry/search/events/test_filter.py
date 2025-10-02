@@ -1103,6 +1103,35 @@ def _project(x):
             ],
             [],
         ),
+        (
+            "mixed wildcards and non-wildcards",
+            'error.mechanism:["abc", "*ABC*"]',
+            [
+                Or(
+                    conditions=[
+                        Condition(
+                            lhs=Column(name="exception_stacks.mechanism_type"),
+                            op=Op.LIKE,
+                            rhs="%ABC%",
+                        ),
+                        Condition(
+                            lhs=Function(
+                                function="hasAny",
+                                parameters=[
+                                    Column(name="exception_stacks.mechanism_type"),
+                                    [
+                                        "abc",
+                                    ],
+                                ],
+                            ),
+                            op=Op.EQ,
+                            rhs=1,
+                        ),
+                    ]
+                )
+            ],
+            [],
+        ),
     ],
 )
 def test_snql_boolean_search(description, query, expected_where, expected_having) -> None:

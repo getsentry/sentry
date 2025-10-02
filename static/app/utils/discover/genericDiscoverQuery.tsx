@@ -6,8 +6,8 @@ import type {EventQuery} from 'sentry/actionCreators/events';
 import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {ImmutableEventView, LocationQuery} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
+import type {ImmutableEventView, LocationQuery} from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import type {UseQueryOptions} from 'sentry/utils/queryClient';
@@ -317,8 +317,8 @@ type RetryOptions = {
   timeoutMultiplier?: number;
 };
 
-const BASE_TIMEOUT = 200;
-const TIMEOUT_MULTIPLIER = 2;
+const BASE_TIMEOUT = 500;
+const TIMEOUT_MULTIPLIER = 1.75;
 const wait = (duration: any) => new Promise(resolve => setTimeout(resolve, duration));
 
 export async function doDiscoverQuery<T>(
