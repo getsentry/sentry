@@ -33,6 +33,7 @@ import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {displayBudgetName, hasNewBillingUI} from 'getsentry/utils/billing';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import SubscriptionHeader from './subscriptionHeader';
 import {trackSubscriptionView} from './utils';
@@ -114,24 +115,32 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
 
   if (!isNewBillingUI) {
     if (!hasBillingPerms) {
-      return <ContactBillingMembers />;
+      return (
+        <SubscriptionPageContainer background="primary" organization={organization}>
+          <ContactBillingMembers />
+        </SubscriptionPageContainer>
+      );
     }
 
     if (isPending || !backendThresholds || !notificationThresholds) {
       return (
-        <Container>
+        <SubscriptionPageContainer background="primary" organization={organization}>
           <SubscriptionHeader subscription={subscription} organization={organization} />
           <LoadingIndicator />
-        </Container>
+        </SubscriptionPageContainer>
       );
     }
 
     if (isError) {
-      return <LoadingError onRetry={refetch} />;
+      return (
+        <SubscriptionPageContainer background="primary" organization={organization}>
+          <LoadingError onRetry={refetch} />
+        </SubscriptionPageContainer>
+      );
     }
 
     return (
-      <Container>
+      <SubscriptionPageContainer background="primary" organization={organization}>
         <SubscriptionHeader organization={organization} subscription={subscription} />
         <PageDescription>
           {t("Configure the thresholds for your organization's spend notifications.")}
@@ -163,12 +172,12 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
             'To adjust your personal billing notification settings, please go to Fine Tune Alerts in your account settings.'
           )}
         </AlertLink>
-      </Container>
+      </SubscriptionPageContainer>
     );
   }
 
   return (
-    <Container>
+    <SubscriptionPageContainer background="primary" organization={organization}>
       <SentryDocumentTitle
         title={t('Manage Spend Notifications')}
         orgSlug={organization.slug}
@@ -217,7 +226,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
           <ContactBillingMembers />
         )}
       </Flex>
-    </Container>
+    </SubscriptionPageContainer>
   );
 }
 
