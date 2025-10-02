@@ -65,54 +65,44 @@ class OrganizationPreventGitHubReposEndpoint(OrganizationEndpoint):
 
         Returns GitHub repos by GitHub orgs for the specified Sentry organization.
         """
-        logger.info(
-            "PreventGitHubRepos endpoint called",
-            extra={
-                "organization_id": organization.id,
-                "organization_slug": organization.slug,
-                "organization_name": organization.name,
-                "user_id": request.user.id if request.user.is_authenticated else None,
-            },
-        )
-
         github_org_integrations = integration_service.get_organization_integrations(
             organization_id=organization.id,
             providers=[IntegrationProviderSlug.GITHUB.value],
             status=ObjectStatus.ACTIVE,
         )
 
-        integration_map = {}
-        for org_integration in github_org_integrations:
-            integration = integration_service.get_integration(
-                integration_id=org_integration.integration_id
-            )
-            if integration:
-                integration_map[integration.name] = integration
+        integration_ids = [
+            org_integration.integration_id for org_integration in github_org_integrations
+        ]
+        if not integration_ids:
+            return Response(data={"orgRepos": []})
 
-        # Call Seer API to get integrated repos with Seer GH app
-        seer_integrated_repos = {}
-        if integration_map:
-            try:
-                seer_integrated_repos = self._fetch_seer_integrated_repos(
-                    list(integration_map.keys())
-                )
-            except Exception as e:
-                logger.warning(
-                    "Failed to fetch Seer integrated repos",
-                    extra={
-                        "organization_id": organization.id,
-                        "error": str(e),
-                    },
-                )
+        integration_map = {
+            integration.name: integration
+            for integration in integration_service.get_integrations(integration_ids=integration_ids)
+        }
+
+        # Fetch all repos integrated with Seer for the organization
+        seer_integrated_repos = self._fetch_seer_integrated_repos(list(integration_map.keys()))
+
+        # Fetch all repos integrated with Sentry for the organization
+        integration_id_to_name = {
+            integration.id: integration.name for integration in integration_map.values()
+        }
+        all_installed_repos = Repository.objects.filter(
+            organization_id=organization.id,
+            integration_id__in=[integration.id for integration in integration_map.values()],
+            provider="integrations:github",
+        ).exclude(status=ObjectStatus.HIDDEN)
+
+        repos_by_integration = {
+            integration_id_to_name[repo.integration_id]: [repo] for repo in all_installed_repos
+        }
 
         # Determine what repos are installed in Sentry and Seer for each GitHub org
         org_repos = []
         for github_org_name, integration in integration_map.items():
-            installed_repos = Repository.objects.filter(
-                organization_id=organization.id,
-                integration_id=integration.id,
-                provider="integrations:github",
-            ).exclude(status=ObjectStatus.HIDDEN)
+            installed_repos = repos_by_integration.get(github_org_name, [])
 
             sentry_repo_names = {repo.name.split("/")[-1] for repo in installed_repos}
             seer_repo_names = set(seer_integrated_repos.get(github_org_name, []))

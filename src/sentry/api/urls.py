@@ -424,6 +424,9 @@ from sentry.overwatch.endpoints.overwatch_rpc import (
     PreventPrReviewSentryOrgEndpoint,
 )
 from sentry.preprod.api.endpoints import urls as preprod_urls
+from sentry.prevent.endpoints.organization_github_repos import (
+    OrganizationPreventGitHubReposEndpoint,
+)
 from sentry.releases.endpoints.organization_release_assemble import (
     OrganizationReleaseAssembleEndpoint,
 )
@@ -709,7 +712,6 @@ from .endpoints.organization_onboarding_continuation_email import (
 )
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
-from .endpoints.organization_prevent_github_repos import OrganizationPreventGitHubReposEndpoint
 from .endpoints.organization_profiling_functions import OrganizationProfilingFunctionTrendsEndpoint
 from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunksEndpoint,

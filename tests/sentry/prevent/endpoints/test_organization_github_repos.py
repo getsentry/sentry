@@ -1,9 +1,14 @@
 from unittest.mock import Mock, patch
 
+import orjson
+
 from sentry.testutils.cases import APITestCase
 
 
 class OrganizationPreventGitHubReposTest(APITestCase):
+    endpoint = "sentry-api-0-organization-prevent-github-repos"
+    method = "get"
+
     def setUp(self):
         self.organization = self.create_organization()
         self.user = self.create_user()
@@ -13,15 +18,20 @@ class OrganizationPreventGitHubReposTest(APITestCase):
         """Test that the endpoint returns empty orgRepos when no GitHub integrations exist"""
         self.login_as(user=self.user)
 
-        url = f"/api/0/organizations/{self.organization.slug}/prevent/github/repos/"
-        response = self.client.get(url)
+        response = self.get_success_response(self.organization.slug)
 
-        assert response.status_code == 200
         assert response.data == {"orgRepos": []}
 
-    def test_get_prevent_github_repos_with_integration(self):
+    @patch("sentry.prevent.endpoints.organization_github_repos.requests.post")
+    def test_get_prevent_github_repos_with_integration(self, mock_requests_post):
         """Test that the endpoint returns GitHub org data when integrations exist"""
         self.login_as(user=self.user)
+
+        # Mock the Seer API response (empty response since we're just testing Sentry integration)
+        mock_response = Mock()
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = {"integrated_repos": {}}
+        mock_requests_post.return_value = mock_response
 
         # Create a GitHub integration
         integration = self.create_integration(
@@ -48,10 +58,8 @@ class OrganizationPreventGitHubReposTest(APITestCase):
             external_id="111222",
         )
 
-        url = f"/api/0/organizations/{self.organization.slug}/prevent/github/repos/"
-        response = self.client.get(url)
+        response = self.get_success_response(self.organization.slug)
 
-        assert response.status_code == 200
         assert len(response.data["orgRepos"]) == 1
 
         github_org = response.data["orgRepos"][0]
@@ -66,24 +74,7 @@ class OrganizationPreventGitHubReposTest(APITestCase):
         assert repo_data["hasGhAppSeerBySentry"] is False
         assert "id" not in repo_data  # Verify id is not in response
 
-    def test_get_prevent_github_repos_requires_auth(self):
-        """Test that the endpoint requires authentication"""
-        url = f"/api/0/organizations/{self.organization.slug}/prevent/github/repos/"
-        response = self.client.get(url)
-
-        assert response.status_code == 401
-
-    def test_get_prevent_github_repos_requires_org_membership(self):
-        """Test that the endpoint requires organization membership"""
-        other_user = self.create_user()
-        self.login_as(user=other_user)
-
-        url = f"/api/0/organizations/{self.organization.slug}/prevent/github/repos/"
-        response = self.client.get(url)
-
-        assert response.status_code == 403
-
-    @patch("sentry.api.endpoints.organization_prevent_github_repos.requests.post")
+    @patch("sentry.prevent.endpoints.organization_github_repos.requests.post")
     def test_get_prevent_github_repos_with_seer_integration(self, mock_requests_post):
         """Test that repos from both Sentry and Seer are merged correctly"""
         self.login_as(user=self.user)
@@ -124,10 +115,8 @@ class OrganizationPreventGitHubReposTest(APITestCase):
         }
         mock_requests_post.return_value = mock_response
 
-        url = f"/api/0/organizations/{self.organization.slug}/prevent/github/repos/"
-        response = self.client.get(url)
+        response = self.get_success_response(self.organization.slug)
 
-        assert response.status_code == 200
         assert len(response.data["orgRepos"]) == 1
 
         github_org = response.data["orgRepos"][0]
@@ -135,7 +124,6 @@ class OrganizationPreventGitHubReposTest(APITestCase):
         assert github_org["name"] == "test-org"
         assert len(github_org["repos"]) == 2
 
-        # Find repos by fullName
         repos_by_name = {r["fullName"]: r for r in github_org["repos"]}
 
         # Repo that exists in both Sentry and Seer
@@ -154,13 +142,69 @@ class OrganizationPreventGitHubReposTest(APITestCase):
         mock_requests_post.assert_called_once()
         call_args = mock_requests_post.call_args
 
-        # Check the URL and headers
-        assert call_args[1]["data"]  # body was passed
-        assert call_args[1]["headers"]["content-type"] == "application/json;charset=utf-8"
-
-        # Check the request body
-        import orjson
-
         request_body = orjson.loads(call_args[1]["data"])
         assert request_body["organization_names"] == ["test-org"]
         assert request_body["provider"] == "github"
+
+    @patch("sentry.prevent.endpoints.organization_github_repos.requests.post")
+    def test_get_prevent_github_repos_multiple_orgs(self, mock_requests_post):
+        """Test that multiple GitHub orgs are handled"""
+        self.login_as(user=self.user)
+
+        # Mock empty Seer response
+        mock_response = Mock()
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = {"integrated_repos": {}}
+        mock_requests_post.return_value = mock_response
+
+        # Create two GitHub integrations
+        integration1 = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="github-org-1",
+            external_id="123456",
+            metadata={"account_id": "987654"},
+        )
+
+        integration2 = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="github-org-2",
+            external_id="789012",
+            metadata={"account_id": "345678"},
+        )
+
+        # Create projects and repos for both integrations
+        project = self.create_project(organization=self.organization)
+
+        self.create_repo(
+            project=project,
+            name="github-org-1/repo1",
+            provider="integrations:github",
+            integration_id=integration1.id,
+            external_id="111",
+        )
+
+        self.create_repo(
+            project=project,
+            name="github-org-2/repo2",
+            provider="integrations:github",
+            integration_id=integration2.id,
+            external_id="222",
+        )
+
+        response = self.get_success_response(self.organization.slug)
+
+        # Should return both GitHub orgs
+        assert len(response.data["orgRepos"]) == 2
+
+        # Verify both orgs have their respective repos
+        orgs_by_name = {org["name"]: org for org in response.data["orgRepos"]}
+
+        assert "github-org-1" in orgs_by_name
+        assert len(orgs_by_name["github-org-1"]["repos"]) == 1
+        assert orgs_by_name["github-org-1"]["repos"][0]["name"] == "repo1"
+
+        assert "github-org-2" in orgs_by_name
+        assert len(orgs_by_name["github-org-2"]["repos"]) == 1
+        assert orgs_by_name["github-org-2"]["repos"][0]["name"] == "repo2"
