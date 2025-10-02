@@ -12,7 +12,7 @@ export function PullRequestDetailsMainContent({
 }: PullRequestDetailsMainContentProps) {
   return (
     <Stack gap="md">
-      <PRFilesList files={pullRequest.files} commentsData={null} />
+      <PRFilesList files={pullRequest.files} />
     </Stack>
   );
 }
