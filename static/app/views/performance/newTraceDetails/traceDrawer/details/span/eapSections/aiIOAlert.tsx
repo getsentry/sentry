@@ -33,14 +33,14 @@ const knownSpanOrigins = {
     'auto.ai.langgraph',
     'auto.ai.anthropic',
   ],
-  javascript: ['auto.ai.anthropic', 'auto.ai.openai', 'auto.vercel.otel'],
+  javascript: ['auto.ai.anthropic', 'auto.ai.openai', 'auto.vercelai.otel'],
 } as const;
 
 function getSDKLanguage(sdkName?: string): SupportedSDKLanguage | 'other' {
   if (sdkName?.startsWith('sentry.python')) {
     return 'python';
   }
-  if (sdkName?.startsWith('sentry.javascript') || sdkName?.startsWith('sentry.node')) {
+  if (sdkName?.startsWith('sentry.javascript')) {
     return 'javascript';
   }
   return 'other';
@@ -79,8 +79,7 @@ export function AIIOAlert({
   const isChonk = isChonkTheme(theme);
   const {dismiss, isDismissed} = useDismissAlert({key: 'genai-io-alert-dismissed'});
 
-  const isSupportedNodeType =
-    getIsAiRunNode(node) || getIsAiGenerationNode(node) || getIsExecuteToolNode(node);
+  const isSupportedNodeType = getIsAiGenerationNode(node) || getIsExecuteToolNode(node);
   const hasData =
     hasAIInputAttribute(node, attributes, event) ||
     hasAIOutputAttribute(node, attributes, event);
@@ -178,14 +177,14 @@ type JavascriptSpanOrigin = (typeof knownSpanOrigins.javascript)[number];
 const jsIntegrationNames: Record<JavascriptSpanOrigin, string> = {
   'auto.ai.anthropic': 'anthropicAIIntegration',
   'auto.ai.openai': 'openAIIntegration',
-  'auto.vercel.otel': 'vercelAIIntegration',
+  'auto.vercelai.otel': 'vercelAIIntegration',
 };
 const jsIntegrationLinks: Record<JavascriptSpanOrigin, string> = {
   'auto.ai.anthropic':
     'https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/anthropic/',
   'auto.ai.openai':
     'https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/openai/',
-  'auto.vercel.otel':
+  'auto.vercelai.otel':
     'https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/vercelai/',
 };
 
