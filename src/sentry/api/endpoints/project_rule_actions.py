@@ -16,7 +16,10 @@ from sentry.notifications.notification_action.utils import should_fire_workflow_
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.rules.processing.processor import activate_downstream_actions
 from sentry.services.eventstore.models import GroupEvent
-from sentry.shared_integrations.exceptions import IntegrationFormError
+from sentry.shared_integrations.exceptions import (
+    IntegrationConfigurationError,
+    IntegrationFormError,
+)
 from sentry.utils.samples import create_sample_event
 from sentry.workflow_engine.endpoints.utils.test_fire_action import test_fire_action
 from sentry.workflow_engine.migration_helpers.rule_action import (
@@ -109,7 +112,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
 
                 # safe_execute logs these as exceptions, which can result in
                 # noisy sentry issues, so log with a warning instead.
-                if isinstance(exc, IntegrationFormError):
+                if isinstance(exc, (IntegrationFormError, IntegrationConfigurationError)):
                     logger.warning(
                         "%s.test_alert.integration_error", callback_name, extra={"exc": exc}
                     )
