@@ -12,6 +12,7 @@ import type {Subscription} from 'getsentry/types';
 import {hasNewBillingUI} from 'getsentry/utils/billing';
 import {GDPRPanel} from 'getsentry/views/legalAndCompliance/gdprPanel';
 import {TermsAndConditions} from 'getsentry/views/legalAndCompliance/termsAndConditions';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 type Props = RouteComponentProps<unknown, unknown> & {
   organization: Organization;
@@ -21,7 +22,7 @@ type Props = RouteComponentProps<unknown, unknown> & {
 function LegalAndCompliance(props: Props) {
   const isNewBillingUI = hasNewBillingUI(props.organization);
   return (
-    <div>
+    <SubscriptionPageContainer background="secondary" organization={props.organization}>
       <SentryDocumentTitle title={t('Legal & Compliance')} />
       <SettingsPageHeader
         title="Legal & Compliance"
@@ -36,7 +37,7 @@ function LegalAndCompliance(props: Props) {
         isNewBillingUI={isNewBillingUI}
         analyticsEvent="legal_and_compliance.updated_billing_details"
       />
-    </div>
+    </SubscriptionPageContainer>
   );
 }
 

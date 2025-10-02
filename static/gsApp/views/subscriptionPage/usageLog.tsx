@@ -7,7 +7,6 @@ import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Container} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -27,6 +26,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import SubscriptionHeader from './subscriptionHeader';
 import {trackSubscriptionView} from './utils';
@@ -160,7 +160,7 @@ function UsageLog({location, subscription}: Props) {
   const selectedEventName = decodeScalar(location.query.event);
 
   return (
-    <Container>
+    <SubscriptionPageContainer background="primary" organization={organization}>
       <SubscriptionHeader subscription={subscription} organization={organization} />
       <UsageLogContainer>
         <CompactSelect
@@ -214,7 +214,7 @@ function UsageLog({location, subscription}: Props) {
         )}
       </UsageLogContainer>
       <Pagination pageLinks={getResponseHeader?.('Link')} onCursor={handleCursor} />
-    </Container>
+    </SubscriptionPageContainer>
   );
 }
 

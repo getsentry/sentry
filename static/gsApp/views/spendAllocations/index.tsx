@@ -36,6 +36,7 @@ import {
 } from 'getsentry/utils/dataCategory';
 import {isDisabledByPartner} from 'getsentry/utils/partnerships';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 import PartnershipNote from 'getsentry/views/subscriptionPage/partnershipNote';
 import {hasPermissions} from 'getsentry/views/subscriptionPage/utils';
 
@@ -304,54 +305,60 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
 
   if (!organization.features.includes('spend-allocations')) {
     return (
-      <PlanFeature organization={organization} features={['spend-allocations']}>
-        {({plan}) => (
-          <Panel dashedBorder data-test-id="disabled-allocations">
-            <EmptyMessage
-              size="large"
-              icon={<IconBroadcast size="xl" />}
-              title={t(
-                'Allocate event resources to important projects every billing period.'
-              )}
-              description={tct(
-                'Spend Allocations prioritize important projects by guaranteeing a monthly volume of events for exclusive consumption. This ensures coverage for your important projects, even during consumption spikes. This feature [planRequirement] or above.',
-                {
-                  planRequirement: (
-                    <strong>
-                      {t(
-                        'requires %s %s Plan',
-                        isAmEnterprisePlan(plan?.id) ? 'an' : 'a',
-                        displayPlanName(plan)
-                      )}
-                    </strong>
-                  ),
+      <SubscriptionPageContainer background="secondary" organization={organization}>
+        <PlanFeature organization={organization} features={['spend-allocations']}>
+          {({plan}) => (
+            <Panel dashedBorder data-test-id="disabled-allocations">
+              <EmptyMessage
+                size="large"
+                icon={<IconBroadcast size="xl" />}
+                title={t(
+                  'Allocate event resources to important projects every billing period.'
+                )}
+                description={tct(
+                  'Spend Allocations prioritize important projects by guaranteeing a monthly volume of events for exclusive consumption. This ensures coverage for your important projects, even during consumption spikes. This feature [planRequirement] or above.',
+                  {
+                    planRequirement: (
+                      <strong>
+                        {t(
+                          'requires %s %s Plan',
+                          isAmEnterprisePlan(plan?.id) ? 'an' : 'a',
+                          displayPlanName(plan)
+                        )}
+                      </strong>
+                    ),
+                  }
+                )}
+                action={
+                  <ButtonBar gap="0">
+                    <StyledLearnMoreButton
+                      organization={organization}
+                      source="allocations-upsell"
+                      href="https://docs.sentry.io/product/accounts/quotas/#spend-allocation"
+                      external
+                    >
+                      {t('Documentation')}
+                    </StyledLearnMoreButton>
+                  </ButtonBar>
                 }
-              )}
-              action={
-                <ButtonBar gap="0">
-                  <StyledLearnMoreButton
-                    organization={organization}
-                    source="allocations-upsell"
-                    href="https://docs.sentry.io/product/accounts/quotas/#spend-allocation"
-                    external
-                  >
-                    {t('Documentation')}
-                  </StyledLearnMoreButton>
-                </ButtonBar>
-              }
-            />
-          </Panel>
-        )}
-      </PlanFeature>
+              />
+            </Panel>
+          )}
+        </PlanFeature>
+      </SubscriptionPageContainer>
     );
   }
 
   if (isDisabledByPartner(subscription)) {
-    return <PartnershipNote subscription={subscription} />;
+    return (
+      <SubscriptionPageContainer background="secondary" organization={organization}>
+        <PartnershipNote subscription={subscription} />
+      </SubscriptionPageContainer>
+    );
   }
 
   return (
-    <Fragment>
+    <SubscriptionPageContainer background="secondary" organization={organization}>
       <SentryDocumentTitle title={t('Spend Allocations')} orgSlug={organization.slug} />
       <SettingsPageHeader
         title={t('Spend Allocations')}
@@ -504,7 +511,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
           </Button>
         </Confirm>
       )}
-    </Fragment>
+    </SubscriptionPageContainer>
   );
 }
 
