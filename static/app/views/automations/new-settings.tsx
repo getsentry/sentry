@@ -61,6 +61,7 @@ function AutomationBreadcrumbs() {
 }
 
 const initialData = {
+  name: 'New Automation',
   environment: null,
   frequency: 1440,
   enabled: true,
