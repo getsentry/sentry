@@ -1,0 +1,313 @@
+from __future__ import annotations
+
+import logging
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any
+
+from django import forms
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
+from django.utils.translation import gettext_lazy as _
+from rest_framework.serializers import ValidationError
+
+from sentry.constants import ObjectStatus
+from sentry.integrations.base import (
+    FeatureDescription,
+    IntegrationData,
+    IntegrationDomain,
+    IntegrationFeatures,
+    IntegrationInstallation,
+    IntegrationMetadata,
+    IntegrationProvider,
+)
+from sentry.integrations.jsm.metrics import record_event
+from sentry.integrations.jsm.tasks import migrate_jsm_plugin
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason, OnCallInteractionType
+from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.utils.metrics import (
+    IntegrationPipelineViewEvent,
+    IntegrationPipelineViewType,
+)
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.pipeline.views.base import PipelineView
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiRateLimitedError,
+    ApiUnauthorized,
+    IntegrationError,
+)
+from sentry.web.helpers import render_to_response
+
+from .client import JsmClient
+from .utils import get_team
+
+logger = logging.getLogger("sentry.integrations.jsm")
+
+DESCRIPTION = """
+Trigger alerts in Jira Service Management from Sentry.
+
+Jira Service Management is a cloud-based service for dev and ops teams, providing reliable alerts, on-call schedule management, and escalations.
+JSM integrates with monitoring tools and services to ensure that the right people are notified via email, SMS, phone, and iOS/Android push notifications.
+"""
+
+
+FEATURES = [
+    FeatureDescription(
+        """
+        Manage incidents and outages by sending Sentry notifications to Jira Service Management.
+        """,
+        IntegrationFeatures.ENTERPRISE_INCIDENT_MANAGEMENT,
+    ),
+    FeatureDescription(
+        """
+        Configure rule based JSM alerts that automatically trigger and notify specific teams.
+        """,
+        IntegrationFeatures.ENTERPRISE_ALERT_RULE,
+    ),
+]
+
+metadata = IntegrationMetadata(
+    description=_(DESCRIPTION.strip()),
+    features=FEATURES,
+    author="The Sentry Team",
+    noun=_("Installation"),
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Integration%20Problem",
+    source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/jsm",
+    aspects={},
+)
+
+JSM_BASE_URL_TO_DOMAIN_NAME = {
+    "https://api.atlassian.com/": "atlassian.net",
+}
+
+
+class InstallationForm(forms.Form):
+    base_url = forms.ChoiceField(
+        label=_("Base URL"),
+        choices=[
+            ("https://api.atlassian.com/", "api.atlassian.com"),
+        ],
+        initial="https://api.atlassian.com/",
+    )
+    custom_url = forms.URLField(
+        label=_("Custom URL"),
+        help_text=_("Optionally, provide a custom JSM API endpoint URL"),
+        required=False,
+        widget=forms.TextInput(),
+    )
+    provider = forms.CharField(
+        label=_("Account Name"),
+        help_text=_("Example: 'acme' for https://acme.atlassian.net/"),
+        widget=forms.TextInput(),
+    )
+
+    api_key = forms.CharField(
+        label=("JSM Integration Key"),
+        help_text=_(
+            "Optionally, add your first integration key for sending alerts. You can rename this key later."
+        ),
+        widget=forms.TextInput(),
+        required=False,
+    )
+
+
+class InstallationConfigView:
+    def record_event(self, event: IntegrationPipelineViewType):
+        return IntegrationPipelineViewEvent(
+            event, IntegrationDomain.ON_CALL_SCHEDULING, JsmIntegrationProvider.key
+        )
+
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
+        with self.record_event(IntegrationPipelineViewType.INSTALLATION_CONFIGURATION).capture():
+            if request.method == "POST":
+                form = InstallationForm(request.POST)
+                if form.is_valid():
+                    form_data = form.cleaned_data
+
+                    pipeline.bind_state("installation_data", form_data)
+
+                    return pipeline.next_step()
+            else:
+                form = InstallationForm()
+
+            return render_to_response(
+                template="sentry/integrations/jsm-config.html",
+                context={"form": form},
+                request=request,
+            )
+
+
+class JsmIntegration(IntegrationInstallation):
+    def get_keyring_client(self, keyid: int | str) -> JsmClient:
+        org_integration = self.org_integration
+        assert org_integration, "OrganizationIntegration is required"
+        team = get_team(team_id=keyid, org_integration=org_integration)
+        assert team, "Cannot get client for unknown team"
+
+        return JsmClient(
+            integration=self.model,
+            integration_key=team["integration_key"],
+        )
+
+    def get_client(self) -> Any:
+        raise NotImplementedError("Use get_keyring_client instead.")
+
+    def get_organization_config(self) -> Sequence[Any]:
+        fields = [
+            {
+                "name": "team_table",
+                "type": "table",
+                "label": "JSM integrations",
+                "help": "Your keys have to be associated with a Sentry integration in JSM. You can update, delete, or add them here. You'll need to update alert rules individually for any added or deleted keys.",
+                "addButtonText": "",
+                "columnLabels": {
+                    "team": "Label",
+                    "integration_key": "Integration Key",
+                },
+                "columnKeys": ["team", "integration_key"],
+                "confirmDeleteMessage": "Any alert rules associated with this integration will stop working. The rules will still exist but will show a `removed` team.",
+            }
+        ]
+
+        return fields
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        from sentry.integrations.services.integration import integration_service
+
+        # add the integration ID to a newly added row
+        if not self.org_integration:
+            return
+
+        teams = data["team_table"]
+        unsaved_teams = [team for team in teams if team["id"] == ""]
+        # this is not instantaneous, so you could add the same team a bunch of times in a row
+        # but I don't anticipate this being too much of an issue
+        added_names = {team["team"] for team in teams if team not in unsaved_teams}
+        existing_team_key_pairs = {
+            (team["team"], team["integration_key"]) for team in teams if team not in unsaved_teams
+        }
+
+        integration = integration_service.get_integration(
+            organization_integration_id=self.org_integration.id, status=ObjectStatus.ACTIVE
+        )
+        if not integration:
+            raise IntegrationError("Integration does not exist")
+
+        for team in unsaved_teams:
+            if team["team"] in added_names:
+                raise ValidationError({"duplicate_name": ["Duplicate team name."]})
+            team["id"] = str(self.org_integration.id) + "-" + team["team"]
+
+        invalid_keys = []
+        with record_event(OnCallInteractionType.VERIFY_KEYS).capture() as lifecycle:
+            for team in teams:
+                # skip if team, key pair already exist in config
+                if (team["team"], team["integration_key"]) in existing_team_key_pairs:
+                    continue
+
+                integration_key = team["integration_key"]
+
+                # validate integration keys
+                client = JsmClient(
+                    integration=integration,
+                    integration_key=integration_key,
+                )
+                # call an API to test the integration key
+                try:
+                    client.get_alerts()
+                except ApiError as e:
+                    if e.code == 429:
+                        raise ApiRateLimitedError(
+                            "Too many requests. Please try updating one team/key at a time."
+                        )
+                    elif e.code == 401:
+                        invalid_keys.append(integration_key)
+                    elif e.json and e.json.get("message"):
+                        raise ApiError(e.json["message"])
+                    else:
+                        raise
+
+            if invalid_keys:
+                lifecycle.record_halt(
+                    OnCallIntegrationsHaltReason.INVALID_KEY,
+                    extra={"invalid_keys": invalid_keys, "integration_id": integration.id},
+                )
+                raise ApiUnauthorized(f"Invalid integration key: {str(invalid_keys)}")
+
+        return super().update_organization_config(data)
+
+    def schedule_migrate_jsm_plugin(self):
+        migrate_jsm_plugin.apply_async(
+            kwargs={
+                "integration_id": self.model.id,
+                "organization_id": self.organization_id,
+            }
+        )
+
+
+class JsmIntegrationProvider(IntegrationProvider):
+    key = IntegrationProviderSlug.JSM.value
+    name = "Jira Service Management"
+    metadata = metadata
+    integration_cls = JsmIntegration
+    features = frozenset(
+        [
+            IntegrationFeatures.ENTERPRISE_INCIDENT_MANAGEMENT,
+            IntegrationFeatures.ENTERPRISE_ALERT_RULE,
+        ]
+    )
+
+    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
+        return [InstallationConfigView()]
+
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
+        api_key = state["installation_data"]["api_key"]
+        base_url = state["installation_data"]["base_url"]
+        custom_url = state["installation_data"].get("custom_url")
+        name = state["installation_data"]["provider"]
+
+        # Use custom URL if provided, otherwise use base URL
+        final_url = custom_url if custom_url else base_url
+        # Ensure URL ends with /
+        if not final_url.endswith("/"):
+            final_url += "/"
+
+        return {
+            "name": name,
+            "external_id": name,
+            "metadata": {
+                "api_key": api_key,
+                "base_url": final_url,
+                "domain_name": f"{name}.{JSM_BASE_URL_TO_DOMAIN_NAME.get(base_url, 'atlassian.net')}",
+            },
+        }
+
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
+    ) -> None:
+        with record_event(OnCallInteractionType.POST_INSTALL).capture():
+            try:
+                org_integration = OrganizationIntegration.objects.get(
+                    integration=integration, organization_id=organization.id
+                )
+
+            except OrganizationIntegration.DoesNotExist:
+                logger.exception("The JSM post_install step failed.")
+                return
+
+            key = integration.metadata["api_key"]
+            team_table = []
+            if key:
+                team_name = "my-first-key"
+                team_id = f"{org_integration.id}-{team_name}"
+                team_table.append({"team": team_name, "id": team_id, "integration_key": key})
+
+            org_integration.config.update({"team_table": team_table})
+            org_integration.update(config=org_integration.config)

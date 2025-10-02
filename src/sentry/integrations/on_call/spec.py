@@ -34,3 +34,13 @@ class PagerDutyOnCallSpec(OnCallSpec):
     @property
     def action_service(self):
         return ActionService.PAGERDUTY
+
+
+class JsmOnCallSpec(OnCallSpec):
+    @property
+    def provider_slug(self):
+        return IntegrationProviderSlug.JSM
+
+    @property
+    def action_service(self):
+        return ActionService.JSM

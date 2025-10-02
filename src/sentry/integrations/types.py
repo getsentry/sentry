@@ -15,6 +15,7 @@ class ExternalProviders(ValueEqualityEnum):
     PAGERDUTY = 130
     DISCORD = 140
     OPSGENIE = 150
+    JSM = 151
     GITHUB = 200
     GITHUB_ENTERPRISE = 201
     GITLAB = 210
@@ -42,6 +43,7 @@ class IntegrationProviderSlug(StrEnum):
     BITBUCKET_SERVER = "bitbucket_server"
     PAGERDUTY = "pagerduty"
     OPSGENIE = "opsgenie"
+    JSM = "jsm"
 
 
 class ExternalProviderEnum(StrEnum):
@@ -52,6 +54,7 @@ class ExternalProviderEnum(StrEnum):
     PAGERDUTY = IntegrationProviderSlug.PAGERDUTY
     DISCORD = IntegrationProviderSlug.DISCORD
     OPSGENIE = IntegrationProviderSlug.OPSGENIE
+    JSM = IntegrationProviderSlug.JSM
     GITHUB = IntegrationProviderSlug.GITHUB
     GITHUB_ENTERPRISE = IntegrationProviderSlug.GITHUB_ENTERPRISE
     GITLAB = IntegrationProviderSlug.GITLAB
@@ -65,6 +68,7 @@ EXTERNAL_PROVIDERS_REVERSE = {
     ExternalProviderEnum.PAGERDUTY: ExternalProviders.PAGERDUTY,
     ExternalProviderEnum.DISCORD: ExternalProviders.DISCORD,
     ExternalProviderEnum.OPSGENIE: ExternalProviders.OPSGENIE,
+    ExternalProviderEnum.JSM: ExternalProviders.JSM,
     ExternalProviderEnum.GITHUB: ExternalProviders.GITHUB,
     ExternalProviderEnum.GITHUB_ENTERPRISE: ExternalProviders.GITHUB_ENTERPRISE,
     ExternalProviderEnum.GITLAB: ExternalProviders.GITLAB,
@@ -80,6 +84,7 @@ EXTERNAL_PROVIDERS = {
     ExternalProviders.PAGERDUTY: ExternalProviderEnum.PAGERDUTY.value,
     ExternalProviders.DISCORD: ExternalProviderEnum.DISCORD.value,
     ExternalProviders.OPSGENIE: ExternalProviderEnum.OPSGENIE.value,
+    ExternalProviders.JSM: ExternalProviderEnum.JSM.value,
     ExternalProviders.GITHUB: ExternalProviderEnum.GITHUB.value,
     ExternalProviders.GITHUB_ENTERPRISE: ExternalProviderEnum.GITHUB_ENTERPRISE.value,
     ExternalProviders.GITLAB: ExternalProviderEnum.GITLAB.value,
