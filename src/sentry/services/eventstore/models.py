@@ -479,8 +479,6 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def size(self) -> int:
         return len(orjson.dumps(dict(self.data)).decode())
 
-
-
     @cached_property
     def search_message(self) -> str:
         """
@@ -540,8 +538,6 @@ class BaseEvent(metaclass=abc.ABCMeta):
         self._should_skip_seer = should_skip
 
 
-
-
 class GroupEvent(BaseEvent):
     def __init__(
         self,
@@ -586,7 +582,6 @@ class GroupEvent(BaseEvent):
             self._data = NodeData(
                 node_id, data=value, wrapper=EventDict, ref_version=2, ref_func=ref_func
             )
-
 
     @property
     def occurrence(self) -> IssueOccurrence | None:

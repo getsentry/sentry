@@ -758,7 +758,9 @@ class SnubaEventStorage(EventStorage):
         project_id = snuba_data[project_id_column]
 
         # DEPRECATED: Event class has been removed. This method should be updated to return GroupEvent.
-        raise NotImplementedError("Event class has been removed. Use GroupEvent with a Group object instead.")
+        raise NotImplementedError(
+            "Event class has been removed. Use GroupEvent with a Group object instead."
+        )
         # return Event(event_id=event_id, project_id=project_id, snuba_data=snuba_data)
 
     def get_unfetched_transactions(
@@ -808,5 +810,7 @@ class SnubaEventStorage(EventStorage):
         project_id = snuba_data[project_id_column]
 
         # DEPRECATED: Event class has been removed. This method should be updated to return GroupEvent.
-        raise NotImplementedError("Event class has been removed. Use GroupEvent with a Group object instead.")
+        raise NotImplementedError(
+            "Event class has been removed. Use GroupEvent with a Group object instead."
+        )
         # return Event(event_id=event_id, project_id=project_id, snuba_data=snuba_data)

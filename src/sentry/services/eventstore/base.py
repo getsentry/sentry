@@ -316,7 +316,9 @@ class EventStorage(Service):
         """
         DEPRECATED: Event class has been removed. Use GroupEvent with a Group object instead.
         """
-        raise NotImplementedError("Event class has been removed. Use GroupEvent with a Group object instead.")
+        raise NotImplementedError(
+            "Event class has been removed. Use GroupEvent with a Group object instead."
+        )
 
     def bind_nodes(self, object_list: Sequence[GroupEvent]) -> None:
         """
