@@ -46,11 +46,12 @@ class PreprodArtifactEndpoint(ProjectEndpoint):
             return args, kwargs
 
         try:
-            head_artifact = PreprodArtifact.objects.get(id=head_artifact_id)
+            head_artifact = PreprodArtifact.objects.get(id=int(head_artifact_id))
+        except (PreprodArtifact.DoesNotExist, ValueError):
+            raise HeadPreprodArtifactResourceDoesNotExist
+        else:
             if head_artifact.project_id != project.id:
                 raise HeadPreprodArtifactResourceDoesNotExist
-        except PreprodArtifact.DoesNotExist:
-            raise HeadPreprodArtifactResourceDoesNotExist
 
         kwargs["head_artifact"] = head_artifact
 
@@ -59,11 +60,12 @@ class PreprodArtifactEndpoint(ProjectEndpoint):
             return args, kwargs
 
         try:
-            base_artifact = PreprodArtifact.objects.get(id=base_artifact_id)
+            base_artifact = PreprodArtifact.objects.get(id=int(base_artifact_id))
+        except (PreprodArtifact.DoesNotExist, ValueError):
+            raise BasePreprodArtifactResourceDoesNotExist
+        else:
             if base_artifact.project_id != project.id:
                 raise BasePreprodArtifactResourceDoesNotExist
-        except PreprodArtifact.DoesNotExist:
-            raise BasePreprodArtifactResourceDoesNotExist
 
         kwargs["base_artifact"] = base_artifact
         return args, kwargs
