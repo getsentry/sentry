@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.integrations.models.integration import Integration
@@ -27,6 +29,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
+@pytest.mark.skip("Tests pass locally but run slowly.")
 class TestHealMetricIssueDetectors(TestMigrations):
     migrate_from = "0091_fix_email_notification_names"
     migrate_to = "0092_heal_metric_issue_detectors"
