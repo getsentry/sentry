@@ -54,6 +54,10 @@ export interface InsightsTimeSeriesWidgetProps
   isLoading: boolean;
   visualizationType: 'line' | 'area' | 'bar';
   aliases?: Record<string, string>;
+  /**
+   * Optional color palette that will be used inplace of COMMON_COLORS. If not provided, a backfill from a common palette will be provided to `toSeries`
+   */
+  colorPalette?: readonly string[];
   description?: React.ReactNode;
   extraActions?: React.ReactNode[];
   extraPlottables?: Plottable[];
@@ -129,7 +133,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
         alias: aliases?.[delayedTimeSeries.yAxis],
       });
     }),
-    ...(props.timeSeries?.filter(Boolean) ?? []).map(timeSeries => {
+    ...(props.timeSeries?.filter(Boolean) ?? []).map((timeSeries, idx) => {
       // TODO: After merge of ENG-5375 we don't need to run `markDelayedData` on output of `/events-timeseries/`
       const delayedTimeSeries = markDelayedData(timeSeries, INGESTION_DELAY);
 
@@ -142,7 +146,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
       }
 
       return new PlottableDataConstructor(delayedTimeSeries, {
-        color: COMMON_COLORS(theme)[plottableName],
+        color: props.colorPalette?.[idx] ?? COMMON_COLORS(theme)[plottableName],
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
         alias,
       });

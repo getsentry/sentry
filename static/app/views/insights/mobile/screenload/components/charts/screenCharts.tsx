@@ -48,6 +48,8 @@ type Props = {
 const yAxes = [YAxis.TTID, YAxis.TTFD, YAxis.COUNT];
 
 export function ScreenCharts({additionalFilters}: Props) {
+  const theme = useTheme();
+  const colorPalette = theme.chart.getColorPalette(4);
   const {isProjectCrossPlatform, selectedPlatform: platform} = useCrossPlatformProject();
 
   const {
@@ -206,6 +208,7 @@ export function ScreenCharts({additionalFilters}: Props) {
             timeSeries={seriesMap['avg(measurements.time_to_initial_display)']}
             isLoading={isSeriesLoading}
             error={seriesError}
+            colorPalette={colorPalette}
             aliases={chartAliases}
             showReleaseAs="none"
             showLegend="always"
@@ -217,6 +220,7 @@ export function ScreenCharts({additionalFilters}: Props) {
             timeSeries={seriesMap['count()']}
             isLoading={isSeriesLoading}
             error={seriesError}
+            colorPalette={colorPalette}
             aliases={chartAliases}
             showReleaseAs="none"
             showLegend="always"
@@ -229,6 +233,7 @@ export function ScreenCharts({additionalFilters}: Props) {
             timeSeries={seriesMap['avg(measurements.time_to_full_display)']}
             isLoading={isSeriesLoading}
             error={seriesError}
+            colorPalette={colorPalette}
             aliases={chartAliases}
             showReleaseAs="none"
             showLegend="always"
