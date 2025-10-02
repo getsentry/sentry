@@ -329,7 +329,7 @@ function OrganizationMembersList() {
         }}
         allowedRoles={currentMember?.orgRoleList ?? currentMember?.roles ?? ORG_ROLES}
       />
-      {isDemoModeActive() && inviteRequests.length > 0 && (
+      {!isDemoModeActive() && inviteRequests.length > 0 && (
         <Panel>
           <PanelHeader>
             <StyledPanelItem>
