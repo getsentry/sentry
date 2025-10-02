@@ -106,7 +106,6 @@ export function ResponseCodeCountChart({
     <InsightsLineChartWidget
       extraActions={extraActions}
       title={t('Top 5 Response Codes')}
-      generateUniqueSeriesColors
       timeSeries={series}
       isLoading={isLoading}
       error={error ?? null}

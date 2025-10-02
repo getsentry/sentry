@@ -135,7 +135,6 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
       extraActions={extraActions}
       title={title}
       timeSeries={timeSeries}
-      generateUniqueSeriesColors
       aliases={FIELD_ALIASES}
       isLoading={isLoading}
       error={error ?? topNError}
