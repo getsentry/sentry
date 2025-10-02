@@ -25,7 +25,7 @@ import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceD
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
 const LEFT_PANEL_WIDTH = 400;
-const RIGHT_PANEL_WIDTH = 400;
+const RIGHT_PANEL_WIDTH = 500;
 const DRAWER_WIDTH = LEFT_PANEL_WIDTH + RIGHT_PANEL_WIDTH;
 
 interface UseTraceViewDrawerProps {

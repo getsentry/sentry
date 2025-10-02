@@ -35,6 +35,7 @@ import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnal
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
+import {AIIOAlert} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiIOAlert';
 import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {Attributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
 import {Contexts} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/contexts';
@@ -283,6 +284,7 @@ function SpanNodeDetailsContent({
           location={location}
           hideNodeActions={hideNodeActions}
         />
+        <AIIOAlert node={node} />
         <AIInputSection node={node} />
         <AIOutputSection node={node} />
         <MCPInputSection node={node} />
@@ -479,6 +481,7 @@ function EAPSpanNodeDetailsContent({
           avgSpanDuration={avgSpanDuration}
           hideNodeActions={hideNodeActions}
         />
+        <AIIOAlert node={node} attributes={attributes} />
         <AIInputSection node={node} attributes={attributes} />
         <AIOutputSection node={node} attributes={attributes} />
         <MCPInputSection node={node} attributes={attributes} />
