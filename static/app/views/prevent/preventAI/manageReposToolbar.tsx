@@ -2,7 +2,6 @@ import {Fragment, useMemo} from 'react';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {TriggerLabel} from 'sentry/components/core/compactSelect/control';
-import DropdownButton from 'sentry/components/dropdownButton';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {IconBuilding, IconRepository} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -47,28 +46,30 @@ function ManageReposToolbar({
           value={selectedOrg}
           options={organizationOptions}
           onChange={option => onOrgChange(option?.value ?? '')}
-          trigger={(triggerProps, isOpen) => (
-            <DropdownButton isOpen={isOpen} icon={<IconBuilding />} {...triggerProps}>
+          triggerProps={{
+            icon: <IconBuilding />,
+            children: (
               <TriggerLabel>
                 {organizationOptions.find(opt => opt.value === selectedOrg)?.label ||
                   t('Select organization')}
               </TriggerLabel>
-            </DropdownButton>
-          )}
+            ),
+          }}
         />
 
         <CompactSelect
           value={selectedRepo}
           options={repositoryOptions}
           onChange={option => onRepoChange(option?.value ?? '')}
-          trigger={(triggerProps, isOpen) => (
-            <DropdownButton isOpen={isOpen} icon={<IconRepository />} {...triggerProps}>
+          triggerProps={{
+            icon: <IconRepository />,
+            children: (
               <TriggerLabel>
-                {repositoryOptions.find(opt => opt.value === selectedRepo)?.label ||
-                  t('Select repository')}
+                {organizationOptions.find(opt => opt.value === selectedOrg)?.label ||
+                  t('Select organization')}
               </TriggerLabel>
-            </DropdownButton>
-          )}
+            ),
+          }}
         />
       </PageFilterBar>
     </Fragment>
