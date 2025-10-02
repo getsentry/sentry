@@ -57,7 +57,7 @@ export default function DebugNotificationsIndex() {
                 <Grid columns="1fr 375px" gap="2xl" position="relative">
                   <Flex direction="column" gap="2xl" position="relative" minWidth="0">
                     <EmailPreview registration={selectedRegistration} />
-                    <SlackPreview />
+                    <SlackPreview registration={selectedRegistration} />
                     <DiscordPreview />
                     <TeamsPreview registration={selectedRegistration} />
                   </Flex>

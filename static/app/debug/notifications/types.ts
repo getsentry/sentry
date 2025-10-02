@@ -28,6 +28,9 @@ export interface NotificationTemplateRegistration {
         version: string;
       };
     };
+    [NotificationProviderKey.SLACK]: {
+      blocks: Array<Record<string, any>>;
+    };
   };
   source: string;
 }
