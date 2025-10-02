@@ -53,7 +53,6 @@ Jira Service Management is a cloud-based service for dev and ops teams, providin
 JSM integrates with monitoring tools and services to ensure that the right people are notified via email, SMS, phone, and iOS/Android push notifications.
 """
 
-
 FEATURES = [
     FeatureDescription(
         """
@@ -96,6 +95,7 @@ class InstallationForm(forms.Form):
         label=_("Custom URL"),
         help_text=_("Optionally, provide a custom JSM API endpoint URL"),
         required=False,
+        assume_scheme="https",
         widget=forms.TextInput(),
     )
     provider = forms.CharField(
@@ -286,11 +286,11 @@ class JsmIntegrationProvider(IntegrationProvider):
         }
 
     def post_install(
-        self,
-        integration: Integration,
-        organization: RpcOrganization,
-        *,
-        extra: dict[str, Any],
+            self,
+            integration: Integration,
+            organization: RpcOrganization,
+            *,
+            extra: dict[str, Any],
     ) -> None:
         with record_event(OnCallInteractionType.POST_INSTALL).capture():
             try:
