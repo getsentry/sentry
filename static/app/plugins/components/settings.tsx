@@ -3,7 +3,7 @@ import isEqual from 'lodash/isEqual';
 
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {Stack} from 'sentry/components/core/layout';
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -223,7 +223,7 @@ class PluginSettings<
         onSubmit={this.onSubmit}
         submitDisabled={isSaving || !hasChanges}
       >
-        <Flex direction="column">
+        <Stack>
           {this.state.errors.__all__ && (
             <Alert type="error" showIcon={false}>
               <ul>
@@ -239,7 +239,7 @@ class PluginSettings<
               onChange: this.changeField.bind(this, f.name),
             })
           )}
-        </Flex>
+        </Stack>
       </Form>
     );
   }
