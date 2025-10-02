@@ -30,6 +30,8 @@ from sentry.workflow_engine.types import WorkflowEventData
 
 logger = logging.getLogger(__name__)
 
+REPORTABLE_ERROR_TYPES = (IntegrationFormError, IntegrationConfigurationError)
+
 
 @region_silo_endpoint
 class ProjectRuleActionsEndpoint(ProjectEndpoint):
@@ -112,7 +114,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
 
                 # safe_execute logs these as exceptions, which can result in
                 # noisy sentry issues, so log with a warning instead.
-                if isinstance(exc, (IntegrationFormError, IntegrationConfigurationError)):
+                if isinstance(exc, REPORTABLE_ERROR_TYPES):
                     logger.warning(
                         "%s.test_alert.integration_error", callback_name, extra={"exc": exc}
                     )
@@ -180,9 +182,12 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
                 action.id = TEST_NOTIFICATION_ID
                 # Annotate the action with the workflow id
                 setattr(action, "workflow_id", workflow.id)
-            except Exception as e:
+            except REPORTABLE_ERROR_TYPES as e:
                 action_exceptions.append(str(e))
+                continue
+            except Exception as e:
                 sentry_sdk.capture_exception(e)
+                action_exceptions.append(f"An unexpected error occurred. Error ID: '{e.id}'")
                 continue
 
             action_exceptions.extend(test_fire_action(action, event_data, detector))
