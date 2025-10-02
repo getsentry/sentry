@@ -42,13 +42,10 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact",
-    queue="assemble",
-    silo_mode=SiloMode.REGION,
     retry=Retry(times=3),
-    taskworker_config=TaskworkerConfig(
-        namespace=attachments_tasks,
-        processing_deadline_duration=30,
-    ),
+    namespace=attachments_tasks,
+    processing_deadline_duration=30,
+    silo_mode=SiloMode.REGION,
 )
 def assemble_preprod_artifact(
     org_id: int,
@@ -456,12 +453,9 @@ def _assemble_preprod_artifact_size_analysis(
 
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact_size_analysis",
-    queue="assemble",
+    namespace=attachments_tasks,
+    processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=attachments_tasks,
-        processing_deadline_duration=30,
-    ),
 )
 def assemble_preprod_artifact_size_analysis(
     org_id,
@@ -523,12 +517,9 @@ def _assemble_preprod_artifact_installable_app(
 
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact_installable_app",
-    queue="assemble",
+    namespace=attachments_tasks,
+    processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=attachments_tasks,
-        processing_deadline_duration=30,
-    ),
 )
 def assemble_preprod_artifact_installable_app(
     org_id, project_id, checksum, chunks, artifact_id, **kwargs
