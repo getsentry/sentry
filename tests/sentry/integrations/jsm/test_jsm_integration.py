@@ -1,5 +1,3 @@
-from functools import cached_property
-
 from sentry.integrations.jsm.integration import JsmIntegrationProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -40,17 +38,6 @@ class JsmIntegrationTest(IntegrationTestCase):
         "api_key": "123-key",
     }
 
-    @cached_property
-    def integration_key(self):
-        return f"{self.organization.id}-my-first-key"
-
-    def _get_team_config(self, api_key):
-        return {
-            "team_table": [
-                {"team": "my-first-key", "integration_key": api_key, "id": self.integration_key}
-            ]
-        }
-
     def assert_setup_flow(self, config):
         resp = self.client.get(self.init_path)
         assert resp.status_code == 200
@@ -59,10 +46,19 @@ class JsmIntegrationTest(IntegrationTestCase):
         return resp
 
     def test_integration_with_key(self):
-        with self.tasks():
-            self.assert_setup_flow(self.config_with_key)
+        self.assert_setup_flow(self.config_with_key)
 
         integration = Integration.objects.get(provider=self.provider.key)
+        org_integration = OrganizationIntegration.objects.get(integration_id=integration.id)
+
+        assert org_integration.config["team_table"] == [
+            {
+                "team": "my-first-key",
+                "id": f"{org_integration.id}-my-first-key",
+                "integration_key": "123-key",
+            }
+        ]
+        assert org_integration.organization_id == self.organization.id
         assert integration.external_id == "cool-name"
         assert integration.name == "cool-name"
         assert integration.metadata == {
@@ -70,16 +66,15 @@ class JsmIntegrationTest(IntegrationTestCase):
             "base_url": "https://api.atlassian.com/",
             "domain_name": "cool-name.atlassian.net",
         }
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration=integration
-        )
-        assert org_integration.config == self._get_team_config("123-key")
 
     def test_integration_no_key(self):
-        with self.tasks():
-            self.assert_setup_flow(self.config_no_key)
+        self.assert_setup_flow(self.config_no_key)
 
         integration = Integration.objects.get(provider=self.provider.key)
+        org_integration = OrganizationIntegration.objects.get(integration_id=integration.id)
+
+        assert org_integration.config["team_table"] == []
+        assert org_integration.organization_id == self.organization.id
         assert integration.external_id == "cool-name"
         assert integration.name == "cool-name"
         assert integration.metadata == {
@@ -87,16 +82,21 @@ class JsmIntegrationTest(IntegrationTestCase):
             "base_url": "https://api.atlassian.com/",
             "domain_name": "cool-name.atlassian.net",
         }
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration=integration
-        )
-        assert org_integration.config == {"team_table": []}
 
     def test_integration_custom_url(self):
-        with self.tasks():
-            self.assert_setup_flow(self.custom_config_with_key)
+        self.assert_setup_flow(self.custom_config_with_key)
 
         integration = Integration.objects.get(provider=self.provider.key)
+        org_integration = OrganizationIntegration.objects.get(integration_id=integration.id)
+
+        assert org_integration.config["team_table"] == [
+            {
+                "team": "my-first-key",
+                "id": f"{org_integration.id}-my-first-key",
+                "integration_key": "123-key",
+            }
+        ]
+        assert org_integration.organization_id == self.organization.id
         assert integration.external_id == "custom-name"
         assert integration.name == "custom-name"
         assert integration.metadata == {
@@ -104,7 +104,3 @@ class JsmIntegrationTest(IntegrationTestCase):
             "base_url": "https://custom.jsm.example.com/",
             "domain_name": "custom-name.atlassian.net",
         }
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration=integration
-        )
-        assert org_integration.config == self._get_team_config("123-key")
