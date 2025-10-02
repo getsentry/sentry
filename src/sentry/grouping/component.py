@@ -345,6 +345,41 @@ class StacktraceGroupingComponent(BaseGroupingComponent[FrameGroupingComponent])
         return result
 
 
+def _get_exception_component_key(
+    component: ExceptionGroupingComponent | ChainedExceptionGroupingComponent,
+) -> str:
+    key = component.id
+
+    contributing_stacktrace = component.get_subcomponent(
+        "stacktrace", recursive=True, only_contributing=True
+    )
+    contributing_error_message = component.get_subcomponent(
+        "value", recursive=True, only_contributing=True
+    )
+    contributing_error_type = component.get_subcomponent(
+        "type", recursive=True, only_contributing=True
+    )
+    contributing_ns_error = component.get_subcomponent(
+        "ns_error", recursive=True, only_contributing=True
+    )
+
+    # The ordering here reflects the precedence order of grouping methods, plus what counts as the
+    # "main" method in cases where multiple components contribute. (For example, when we group on
+    # stacktrace or message, the error type technically does contribute to grouping as well, but in
+    # an explaining-it-to-humans sense, it's clearer - and close enough, given how infrequently type
+    # is the only differentiator between two events - to just say we're grouping on stacktrace.)
+    if contributing_stacktrace:
+        key += "_stacktrace"
+    elif contributing_error_message:
+        key += "_message"
+    elif contributing_ns_error:
+        key = key.replace("exception", "ns_error")
+    elif contributing_error_type:
+        key += "_type"
+
+    return key
+
+
 ExceptionGroupingComponentChildren = (
     ErrorTypeGroupingComponent
     | ErrorValueGroupingComponent
@@ -366,6 +401,10 @@ class ExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponen
     ):
         super().__init__(hint=hint, contributes=contributes, values=values)
         self.frame_counts = frame_counts or Counter()
+
+    @property
+    def key(self) -> str:
+        return _get_exception_component_key(self)
 
 
 class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponent]):
@@ -390,6 +429,10 @@ class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingC
             result["values"].reverse()
 
         return result
+
+    @property
+    def key(self) -> str:
+        return _get_exception_component_key(self)
 
 
 class ThreadsGroupingComponent(BaseGroupingComponent[StacktraceGroupingComponent]):
