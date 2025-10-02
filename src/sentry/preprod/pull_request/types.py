@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal, TypedDict
 
+from sentry.preprod.api.models.project_preprod_build_details_models import BuildDetailsApiResponse
+
 
 class PullRequestFileChange(TypedDict):
     """
@@ -61,6 +63,7 @@ class PullRequestWithFiles(TypedDict):
 
     pull_request: PullRequestDetails
     files: list[PullRequestFileChange]
+    build_details: list[BuildDetailsApiResponse]
 
 
 class PullRequestErrorResponse(TypedDict):
