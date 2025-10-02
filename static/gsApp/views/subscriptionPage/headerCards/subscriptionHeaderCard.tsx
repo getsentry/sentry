@@ -88,7 +88,11 @@ function SubscriptionHeaderCard({
             {getButtonContent()}
           </LinkButton>
         ) : (
-          <Button onClick={button.onClick} aria-label={button.ariaLabel}>
+          <Button
+            onClick={button.onClick}
+            aria-label={button.ariaLabel}
+            priority={button.priority}
+          >
             {getButtonContent()}
           </Button>
         ))}
