@@ -36,11 +36,19 @@ function BillingInformation({organization, subscription, location}: Props) {
 
   const hasBillingPerms = organization.access?.includes('org:billing');
   if (!hasBillingPerms) {
-    return <ContactBillingMembers />;
+    return (
+      <SubscriptionPageContainer background="primary" organization={organization}>
+        <ContactBillingMembers />
+      </SubscriptionPageContainer>
+    );
   }
 
   if (!subscription) {
-    return <LoadingIndicator />;
+    return (
+      <SubscriptionPageContainer background="primary" organization={organization}>
+        <LoadingIndicator />
+      </SubscriptionPageContainer>
+    );
   }
 
   const isNewBillingUI = hasNewBillingUI(organization);

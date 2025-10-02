@@ -2,7 +2,6 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
@@ -63,20 +62,28 @@ function PaymentHistory({organization, subscription}: Props) {
 
   if (isPending) {
     return (
-      <Container>
+      <SubscriptionPageContainer background="primary" organization={organization}>
         <SubscriptionHeader subscription={subscription} organization={organization} />
         <LoadingIndicator />
-      </Container>
+      </SubscriptionPageContainer>
     );
   }
 
   if (isError) {
-    return <LoadingError />;
+    return (
+      <SubscriptionPageContainer background="primary" organization={organization}>
+        <LoadingError />
+      </SubscriptionPageContainer>
+    );
   }
 
   const hasBillingPerms = organization.access?.includes('org:billing');
   if (!hasBillingPerms) {
-    return <ContactBillingMembers />;
+    return (
+      <SubscriptionPageContainer background="primary" organization={organization}>
+        <ContactBillingMembers />
+      </SubscriptionPageContainer>
+    );
   }
 
   return (

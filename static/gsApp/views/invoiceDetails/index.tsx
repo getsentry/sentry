@@ -48,7 +48,7 @@ function InvoiceDetails({params}: Props) {
 
   if (isBillingDetailsError || isInvoiceError) {
     return (
-      <SubscriptionPageContainer background="primary" organization={organization}>
+      <SubscriptionPageContainer background="secondary" organization={organization}>
         <LoadingError
           onRetry={() => {
             billingDetailsRefetch();

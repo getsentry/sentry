@@ -47,8 +47,6 @@ import {
   SEER_THRESHOLD_OPTIONS,
 } from 'sentry/views/settings/projectSeer/constants';
 
-import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
-
 type ProjectState = {
   isPending: boolean;
   preference: any;
@@ -645,7 +643,7 @@ function SeerAutomationOnboarding() {
   }, []);
 
   return (
-    <SubscriptionPageContainer background="secondary" organization={organization}>
+    <Fragment>
       <SentryDocumentTitle
         title={t('Seer Automation Onboarding')}
         orgSlug={organization.slug}
@@ -818,7 +816,7 @@ function SeerAutomationOnboarding() {
           onUpdate={setProjectsWithRepos}
         />
       </NoProjectMessage>
-    </SubscriptionPageContainer>
+    </Fragment>
   );
 }
 

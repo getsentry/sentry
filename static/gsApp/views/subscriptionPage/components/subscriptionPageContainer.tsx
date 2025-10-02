@@ -25,10 +25,11 @@ function SubscriptionPageContainer({
   }
   return (
     <Container
-      padding={{xs: 'xl xl', md: 'xl 3xl'}}
+      padding={{xs: 'xl', md: '3xl'}}
       background={background}
       height="100%"
       data-test-id={dataTestId}
+      borderTop={background === 'secondary' ? 'primary' : undefined}
     >
       {children}
     </Container>
