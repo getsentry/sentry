@@ -657,7 +657,8 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
     data_source field (MonitorDataSourceValidator).
     """
 
-    data_source = MonitorDataSourceValidator(required=True)
+    data_source = MonitorDataSourceValidator(required=False)
+    data_sources = serializers.ListField(child=MonitorDataSourceValidator(), required=False)
 
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
         super().update(instance, validated_data)
