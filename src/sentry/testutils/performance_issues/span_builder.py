@@ -73,9 +73,9 @@ class SpanBuilder:
             span["hash"] = self.hash
         return span
 
-    def build_v2(self) -> Span:
-        """Return a sp"""
-        span: Span = {
+    def build_v2(self) -> dict[str, Any]:
+        """Return a Span V2"""
+        return {
             "trace_id": self.trace_id,
             "parent_span_id": self.parent_span_id,
             "span_id": self.span_id,
@@ -90,5 +90,3 @@ class SpanBuilder:
                 **{k: {"value": v} for (k, v) in (self.data or {}).items()},
             },
         }
-
-        return span
