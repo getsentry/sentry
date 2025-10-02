@@ -252,7 +252,7 @@ describe('projectPerformance', () => {
     },
     {
       title: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
-      threshold: DetectorConfigCustomer.LARGE_HTT_PAYLOAD_SIZE,
+      threshold: DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_SIZE,
       allowedValues: allowedSizeValues.slice(1),
       defaultValue: 1000000,
       newValue: 5000000,
