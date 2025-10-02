@@ -25,3 +25,8 @@ class SentryAppInstallationDeletionTask(ModelDeletionTask[SentryAppInstallation]
 
     def mark_deletion_in_progress(self, instance_list: Sequence[SentryAppInstallation]) -> None:
         pass
+
+    def delete_instance(self, instance: SentryAppInstallation) -> None:
+        # action_service RPC goes here
+
+        return super().delete_instance(instance)

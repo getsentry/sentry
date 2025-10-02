@@ -249,3 +249,46 @@ class TestActionService(TestCase):
             action = Action.objects.filter(id=sentry_app_action.id).first()
             assert action is not None
             assert action.status == ObjectStatus.DISABLED
+
+    def test_update_action_status_for_sentry_app__installation_uuid(self) -> None:
+        sentry_app_installation = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug,
+            organization=self.organization,
+        )
+        action = self.create_action(
+            type=Action.Type.SENTRY_APP,
+            config={
+                "target_identifier": sentry_app_installation.uuid,
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+                "target_type": ActionTarget.SENTRY_APP,
+            },
+        )
+
+        action_service.update_action_status_for_sentry_app_via_uuid(
+            organization_id=self.organization.id,
+            sentry_app_install_uuid=sentry_app_installation.uuid,
+            status=ObjectStatus.DISABLED,
+        )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            action.refresh_from_db()
+            assert action.status == ObjectStatus.DISABLED
+
+    def test_update_action_status_for_sentry_app__via_sentry_app_id(self) -> None:
+        action = self.create_action(
+            type=Action.Type.SENTRY_APP,
+            config={
+                "target_identifier": str(self.sentry_app.id),
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
+                "target_type": ActionTarget.SENTRY_APP,
+            },
+        )
+        action_service.update_action_status_for_sentry_app_via_sentry_app_id(
+            region_name="us",
+            sentry_app_id=self.sentry_app.id,
+            status=ObjectStatus.DISABLED,
+        )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            action.refresh_from_db()
+            assert action.status == ObjectStatus.DISABLED
