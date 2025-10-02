@@ -1,5 +1,3 @@
-import type {Group} from 'sentry/types/group';
-
 export type PullRequestState = 'open' | 'closed' | 'merged' | 'draft';
 type PullRequestFileStatus = 'added' | 'modified' | 'removed' | 'renamed';
 
