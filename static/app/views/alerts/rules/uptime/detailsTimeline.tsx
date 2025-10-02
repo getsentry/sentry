@@ -31,10 +31,16 @@ export function DetailsTimeline({uptimeDetector, onStatsLoaded}: Props) {
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
-  const {data: uptimeStats} = useUptimeMonitorStats({
-    detectorIds: [String(uptimeDetector.id)],
-    timeWindowConfig,
-  });
+  const {data: uptimeStats} = useUptimeMonitorStats(
+    {
+      detectorIds: [String(uptimeDetector.id)],
+      timeWindowConfig,
+    },
+    {
+      refetchOnWindowFocus: true,
+      refetchInterval: 60_000,
+    }
+  );
 
   useEffect(
     () => uptimeStats?.[id] && onStatsLoaded?.(uptimeStats[id]),

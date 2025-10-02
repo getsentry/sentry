@@ -1,9 +1,8 @@
 from sentry import analytics
-from sentry.analytics import Event, eventclass
 
 
-@eventclass("api_token.created")
-class ApiTokenCreated(Event):
+@analytics.eventclass("api_token.created")
+class ApiTokenCreated(analytics.Event):
     user_id: int | None = None
 
 
