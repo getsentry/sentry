@@ -13,8 +13,6 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import DetectorListTable from 'sentry/views/detectors/components/detectorListTable';
@@ -26,14 +24,19 @@ import {useDetectorListSort} from 'sentry/views/detectors/utils/useDetectorListS
 
 export default function DetectorsList() {
   useWorkflowEngineFeatureGate({redirect: true});
-
-  const location = useLocation();
-  const navigate = useNavigate();
   const {selection, isReady} = usePageFilters();
 
   const [sort] = useDetectorListSort();
-  const [query] = useQueryState('query', parseAsString.withDefault(''));
-  const [cursor] = useQueryState('cursor', parseAsString);
+  const [query, setQuery] = useQueryState(
+    'query',
+    parseAsString.withDefault('').withOptions({
+      history: 'push',
+    })
+  );
+  const [cursor, setCursor] = useQueryState(
+    'cursor',
+    parseAsString.withOptions({history: 'push'})
+  );
 
   const {
     data: detectors,
@@ -45,7 +48,7 @@ export default function DetectorsList() {
     {
       cursor: cursor ?? undefined,
       query,
-      sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
+      sortBy: sort ? `${sort.kind === 'asc' ? '' : '-'}${sort.field}` : undefined,
       projects: selection.projects,
       limit: DETECTOR_LIST_PAGE_LIMIT,
     },
@@ -72,7 +75,7 @@ export default function DetectorsList() {
     <SentryDocumentTitle title={t('Monitors')} noSuffix>
       <PageFiltersContainer>
         <ListLayout actions={<Actions />}>
-          <TableHeader />
+          <TableHeader query={query} setQuery={setQuery} />
           <div>
             <DetectorListTable
               detectors={detectors ?? []}
@@ -85,10 +88,7 @@ export default function DetectorsList() {
             <Pagination
               pageLinks={pageLinks}
               onCursor={newCursor => {
-                navigate({
-                  pathname: location.pathname,
-                  query: {...location.query, cursor: newCursor},
-                });
+                setCursor(newCursor ?? null);
               }}
             />
           </div>
@@ -98,23 +98,18 @@ export default function DetectorsList() {
   );
 }
 
-function TableHeader() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const query = typeof location.query.query === 'string' ? location.query.query : '';
-
-  const onSearch = (searchQuery: string) => {
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, query: searchQuery, cursor: undefined},
-    });
-  };
-
+function TableHeader({
+  query,
+  setQuery,
+}: {
+  query: string;
+  setQuery: (query: string) => void;
+}) {
   return (
     <Flex gap="xl">
       <ProjectPageFilter />
       <div style={{flexGrow: 1}}>
-        <DetectorSearch initialQuery={query} onSearch={onSearch} />
+        <DetectorSearch initialQuery={query} onSearch={setQuery} />
       </div>
     </Flex>
   );
