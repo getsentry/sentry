@@ -14,15 +14,8 @@ interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   width?: string;
 }
 
-export function Image(props: ImageProps) {
-  return (
-    <Img
-      loading={props.loading ?? 'lazy'}
-      width={props.width}
-      height={props.height}
-      {...props}
-    />
-  );
+export function Image({loading, ...props}: ImageProps) {
+  return <Img loading={loading ?? 'lazy'} {...props} />;
 }
 
 const Img = styled('img')<ImageProps>`
