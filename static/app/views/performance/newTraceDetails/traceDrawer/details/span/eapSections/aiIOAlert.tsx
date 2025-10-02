@@ -115,9 +115,9 @@ export function AIIOAlert({
             {t('Missing the input and output of your AI model?')}
           </Heading>
           {instrumentationType === 'automatic' ? (
-            <ContentComponent spanOrigin={spanOrigin} />
+            <ContentComponent spanOrigin={spanOrigin} sdkLanguage={sdkLanguage} />
           ) : (
-            <ManualContent language={sdkLanguage} />
+            <ManualContent sdkLanguage={sdkLanguage} />
           )}
           <Stack direction="row" paddingTop="xs" justify="start">
             <Alert.Button onClick={dismiss}>Dismiss</Alert.Button>
@@ -138,8 +138,17 @@ const pythonIntegrationLinks: Record<PythonSpanOrigin, string> = {
   'auto.ai.anthropic': 'https://docs.sentry.io/platforms/python/integrations/anthropic/',
 };
 
-function PythonContent({spanOrigin}: {spanOrigin?: string}) {
+function PythonContent({
+  spanOrigin,
+  sdkLanguage,
+}: {
+  sdkLanguage: SupportedSDKLanguage;
+  spanOrigin?: string;
+}) {
   const integrationLink = pythonIntegrationLinks[spanOrigin as PythonSpanOrigin];
+  if (!integrationLink) {
+    return <ManualContent sdkLanguage={sdkLanguage} />;
+  }
   return (
     <Fragment>
       <Prose>
@@ -180,8 +189,17 @@ const jsIntegrationLinks: Record<JavascriptSpanOrigin, string> = {
     'https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/vercelai/',
 };
 
-function JavaScriptContent({spanOrigin}: {spanOrigin?: string}) {
+function JavaScriptContent({
+  spanOrigin,
+  sdkLanguage,
+}: {
+  sdkLanguage: SupportedSDKLanguage;
+  spanOrigin?: string;
+}) {
   const integrationName = jsIntegrationNames[spanOrigin as JavascriptSpanOrigin];
+  if (!integrationName) {
+    return <ManualContent sdkLanguage={sdkLanguage} />;
+  }
   return (
     <Fragment>
       <Prose>
