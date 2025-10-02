@@ -47,7 +47,7 @@ if TYPE_CHECKING:
     from sentry.spans.grouping.result import SpanGroupingResults
 
 
-def ref_func(x: Event) -> int:
+def ref_func(x: Event | GroupEvent) -> int:
     return x.project_id or x.project.id
 
 
@@ -794,7 +794,7 @@ class EventSubjectTemplate(string.Template):
 class EventSubjectTemplateData:
     tag_aliases = {"release": "sentry:release", "dist": "sentry:dist", "user": "sentry:user"}
 
-    def __init__(self, event: Event):
+    def __init__(self, event: Event | GroupEvent):
         self.event = event
 
     def __getitem__(self, name: str) -> str:

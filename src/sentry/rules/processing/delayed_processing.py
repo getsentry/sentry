@@ -215,7 +215,7 @@ def get_condition_query_groups(
     return condition_groups
 
 
-def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]:
+def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event | GroupEvent]:
     node_id_to_event_id = {
         Event.generate_node_id(project_id, event_id=event_id): event_id for event_id in event_ids
     }

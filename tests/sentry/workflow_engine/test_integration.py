@@ -261,10 +261,10 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         event_processing_store.store({**event.data, "project": project.id})
         return event
 
-    def get_cache_key(self, event: Event) -> str:
+    def get_cache_key(self, event: Event | GroupEvent) -> str:
         return cache_key_for_event({"project": event.project_id, "event_id": event.event_id})
 
-    def post_process_error(self, event: Event, **kwargs):
+    def post_process_error(self, event: Event | GroupEvent, **kwargs):
         self.call_post_process_group(
             event.group_id,
             cache_key=self.get_cache_key(event),

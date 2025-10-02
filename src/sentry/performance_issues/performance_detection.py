@@ -101,7 +101,7 @@ class EventPerformanceProblem:
         nodestore.backend.set(self.identifier, self.problem.to_dict())
 
     @classmethod
-    def fetch(cls, event: Event, problem_hash: str) -> EventPerformanceProblem | None:
+    def fetch(cls, event: Event | GroupEvent, problem_hash: str) -> EventPerformanceProblem | None:
         return cls.fetch_multi([(event, problem_hash)])[0]
 
     @classmethod

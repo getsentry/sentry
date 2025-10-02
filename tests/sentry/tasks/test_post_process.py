@@ -51,7 +51,7 @@ from sentry.replays.lib import kafka as replays_kafka
 from sentry.replays.lib.kafka import clear_replay_publisher
 from sentry.rules import init_registry
 from sentry.rules.actions.base import EventAction
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
@@ -228,7 +228,7 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
             "platform": "python",
         }
 
-    def _call_post_process_group(self, event: Event) -> None:
+    def _call_post_process_group(self, event: Event | GroupEvent) -> None:
         self.call_post_process_group(
             is_new=True,
             is_regression=False,
