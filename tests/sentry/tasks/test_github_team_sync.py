@@ -1,8 +1,10 @@
 """
 Tests for GitHub team synchronization tasks.
 """
-import pytest
+
 from unittest.mock import Mock, patch
+
+import pytest
 
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders

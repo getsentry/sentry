@@ -1,6 +1,7 @@
 """
 API endpoint for manually triggering GitHub team synchronization.
 """
+
 import logging
 
 from rest_framework.request import Request
@@ -77,7 +78,7 @@ class OrganizationGitHubTeamSyncEndpoint(OrganizationEndpoint):
                 "organization_id": organization.id,
                 "organization_slug": organization.slug,
                 "triggered_by": request.user.id if request.user.is_authenticated else None,
-            }
+            },
         )
 
         return Response(

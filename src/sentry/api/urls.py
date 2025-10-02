@@ -224,8 +224,8 @@ from sentry.integrations.api.endpoints.doc_integrations_index import DocIntegrat
 from sentry.integrations.api.endpoints.external_team_details import ExternalTeamDetailsEndpoint
 from sentry.integrations.api.endpoints.external_team_index import ExternalTeamEndpoint
 from sentry.integrations.api.endpoints.external_user_details import ExternalUserDetailsEndpoint
-from sentry.integrations.api.endpoints.github_team_sync import OrganizationGitHubTeamSyncEndpoint
 from sentry.integrations.api.endpoints.external_user_index import ExternalUserEndpoint
+from sentry.integrations.api.endpoints.github_team_sync import OrganizationGitHubTeamSyncEndpoint
 from sentry.integrations.api.endpoints.integration_features import IntegrationFeaturesEndpoint
 from sentry.integrations.api.endpoints.integration_proxy import InternalIntegrationProxyEndpoint
 from sentry.integrations.api.endpoints.organization_code_mapping_codeowners import (

@@ -4,6 +4,7 @@ Task for synchronizing GitHub team names with stored ExternalActor mappings.
 This task periodically fetches team information from GitHub and updates the
 external_name field in ExternalActor records when teams are renamed.
 """
+
 import logging
 from collections.abc import Mapping, Sequence
 from typing import Any
@@ -66,8 +67,7 @@ def schedule_github_team_sync() -> None:
         scheduled_count += 1
 
     logger.info(
-        "github_team_sync.schedule_complete",
-        extra={"scheduled_organizations": scheduled_count}
+        "github_team_sync.schedule_complete", extra={"scheduled_organizations": scheduled_count}
     )
     metrics.incr("github_team_sync.organizations_scheduled", amount=scheduled_count)
 
@@ -96,8 +96,7 @@ def sync_github_teams_for_organization(organization_id: int) -> None:
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
         logger.error(
-            "github_team_sync.organization_not_found",
-            extra={"organization_id": organization_id}
+            "github_team_sync.organization_not_found", extra={"organization_id": organization_id}
         )
         return
 
@@ -106,7 +105,7 @@ def sync_github_teams_for_organization(organization_id: int) -> None:
         extra={
             "organization_id": organization_id,
             "organization_slug": organization.slug,
-        }
+        },
     )
 
     # Get all GitHub integrations for this organization
@@ -117,10 +116,7 @@ def sync_github_teams_for_organization(organization_id: int) -> None:
     )
 
     if not github_integrations:
-        logger.info(
-            "github_team_sync.no_integrations",
-            extra={"organization_id": organization_id}
-        )
+        logger.info("github_team_sync.no_integrations", extra={"organization_id": organization_id})
         return
 
     total_synced = 0
@@ -139,7 +135,7 @@ def sync_github_teams_for_organization(organization_id: int) -> None:
                     "organization_id": organization_id,
                     "integration_id": integration.id,
                     "error": str(e),
-                }
+                },
             )
             total_errors += 1
 
@@ -151,7 +147,7 @@ def sync_github_teams_for_organization(organization_id: int) -> None:
             "teams_synced": total_synced,
             "teams_updated": total_updated,
             "integration_errors": total_errors,
-        }
+        },
     )
 
     metrics.incr("github_team_sync.teams_synced", amount=total_synced)
@@ -182,7 +178,7 @@ def _sync_teams_for_integration(organization: Organization, integration) -> tupl
                     "organization_id": organization.id,
                     "integration_id": integration.id,
                     "integration_type": type(install).__name__,
-                }
+                },
             )
             return 0, 0
 
@@ -195,7 +191,7 @@ def _sync_teams_for_integration(organization: Organization, integration) -> tupl
                 "organization_id": organization.id,
                 "integration_id": integration.id,
                 "error": str(e),
-            }
+            },
         )
         return 0, 0
 
@@ -219,7 +215,7 @@ def _sync_teams_for_integration(organization: Organization, integration) -> tupl
             extra={
                 "organization_id": organization.id,
                 "integration_id": integration.id,
-            }
+            },
         )
         return 0, 0
 
@@ -233,7 +229,7 @@ def _sync_teams_for_integration(organization: Organization, integration) -> tupl
                 "organization_id": organization.id,
                 "integration_id": integration.id,
                 "error": str(e),
-            }
+            },
         )
         raise
 
@@ -258,7 +254,7 @@ def _sync_teams_for_integration(organization: Organization, integration) -> tupl
                     "integration_id": integration.id,
                     "external_id": stored_team.external_id,
                     "stored_name": stored_team.external_name,
-                }
+                },
             )
             teams_synced += 1
             continue
@@ -274,7 +270,7 @@ def _sync_teams_for_integration(organization: Organization, integration) -> tupl
                     "external_id": stored_team.external_id,
                     "old_name": stored_team.external_name,
                     "new_name": github_name,
-                }
+                },
             )
 
             # Update the stored team name
@@ -313,6 +309,6 @@ def _fetch_github_teams(client, integration) -> Sequence[Mapping[str, Any]]:
             extra={
                 "integration_id": integration.id,
                 "error": str(e),
-            }
+            },
         )
         raise

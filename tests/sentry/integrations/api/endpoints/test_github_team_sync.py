@@ -1,6 +1,7 @@
 """
 Tests for GitHub team synchronization API endpoint.
 """
+
 from unittest.mock import patch
 
 from sentry.integrations.models.external_actor import ExternalActor
@@ -40,7 +41,7 @@ class OrganizationGitHubTeamSyncEndpointTest(APITestCase):
         self.login_as(user=self.user)
 
         response = self.client.post(self.path)
-        
+
         assert response.status_code == 404
         assert "No GitHub team mappings found" in response.data["detail"]
         assert response.data["organization_id"] == self.organization.id
