@@ -661,7 +661,9 @@ def cleanup_stuck_deletion_in_progress_groups(
 
     # Only clean up stuck groups if Group model is not filtered
     if is_filtered(Group):
-        debug_output(">> Skipping cleanup of stuck DELETION_IN_PROGRESS groups (Group model filtered)")
+        debug_output(
+            ">> Skipping cleanup of stuck DELETION_IN_PROGRESS groups (Group model filtered)"
+        )
         return
 
     models_attempted.add(Group.__name__.lower())
@@ -682,16 +684,19 @@ def cleanup_stuck_deletion_in_progress_groups(
 
     count = old_stuck_groups.count()
     if count > 0:
-        debug_output(f"Force-deleting {count} groups stuck in DELETION_IN_PROGRESS status for >{days} days")
+        debug_output(
+            f"Force-deleting {count} groups stuck in DELETION_IN_PROGRESS status for >{days} days"
+        )
 
         # Use the regular deletion mechanism but without skipping Groups
-        from sentry import deletions
         from uuid import uuid4
+
+        from sentry import deletions
 
         # Process in smaller batches to avoid overwhelming the system
         batch_size = 100
         for batch_start in range(0, count, batch_size):
-            batch_groups = list(old_stuck_groups[batch_start:batch_start + batch_size])
+            batch_groups = list(old_stuck_groups[batch_start : batch_start + batch_size])
             if not batch_groups:
                 break
 

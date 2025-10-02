@@ -67,7 +67,7 @@ class TestCleanupStuckDeletionInProgressGroups(TestCase):
         assert Group.objects.filter(id=normal_old_group.id).exists()
 
         # Should track that Group model was attempted
-        assert 'group' in models_attempted
+        assert "group" in models_attempted
 
     def test_no_cleanup_within_grace_period(self):
         """Test that groups stuck in DELETION_IN_PROGRESS but older than cleanup threshold are not deleted if within grace period."""
@@ -109,6 +109,7 @@ class TestCleanupStuckDeletionInProgressGroups(TestCase):
         # Mock is_filtered to filter Group model
         def mock_is_filtered(model):
             from sentry.models.group import Group
+
             return model is Group
 
         models_attempted = set()
@@ -124,7 +125,7 @@ class TestCleanupStuckDeletionInProgressGroups(TestCase):
         assert Group.objects.filter(id=old_stuck_group.id).exists()
 
         # Should not track Group model as attempted since it was filtered
-        assert 'group' not in models_attempted
+        assert "group" not in models_attempted
 
     def test_cleanup_handles_empty_result_set(self):
         """Test that cleanup handles the case where no stuck groups are found."""
@@ -148,7 +149,7 @@ class TestCleanupStuckDeletionInProgressGroups(TestCase):
         assert Group.objects.filter(id=normal_group.id).exists()
 
         # Should still track that Group model was attempted
-        assert 'group' in models_attempted
+        assert "group" in models_attempted
 
     def test_cleanup_processes_large_batches(self):
         """Test that cleanup can handle large numbers of stuck groups by processing in batches."""
@@ -180,7 +181,7 @@ class TestCleanupStuckDeletionInProgressGroups(TestCase):
         for group in old_stuck_groups:
             assert not Group.objects.filter(id=group.id).exists()
 
-        assert 'group' in models_attempted
+        assert "group" in models_attempted
 
     def test_cleanup_continues_on_batch_failure(self):
         """Test that cleanup continues processing other batches even if one batch fails."""
@@ -212,17 +213,18 @@ class TestCleanupStuckDeletionInProgressGroups(TestCase):
                 raise Exception("Simulated deletion failure")
             # For subsequent calls, we still want to properly delete the groups
             # So we'll use a simple approach - mark them as deleted by changing status
-            query = kwargs.get('query', {})
-            group_ids = query.get('id__in', [])
+            query = kwargs.get("query", {})
+            group_ids = query.get("id__in", [])
             Group.objects.filter(id__in=group_ids).delete()
 
             # Return a mock task that does nothing
             class MockTask:
                 def chunk(self, apply_filter=True):
                     return False
+
             return MockTask()
 
-        with mock.patch('sentry.runner.commands.cleanup.deletions') as mock_deletions:
+        with mock.patch("sentry.runner.commands.cleanup.deletions") as mock_deletions:
             mock_deletions.get = mock_deletions_get
 
             # Run cleanup - should not raise exception despite first batch failure
@@ -234,7 +236,7 @@ class TestCleanupStuckDeletionInProgressGroups(TestCase):
 
         # Should have tried to process batches despite the first failure
         assert call_count >= 1
-        assert 'group' in models_attempted
+        assert "group" in models_attempted
 
     def test_edge_case_exactly_at_thresholds(self):
         """Test edge cases where groups are exactly at the threshold boundaries."""
