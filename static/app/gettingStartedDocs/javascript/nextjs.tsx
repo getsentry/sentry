@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -28,7 +27,6 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   getJavascriptFullStackOnboarding,
   getJavascriptLogsFullStackOnboarding,
@@ -347,7 +345,7 @@ const feedbackOnboarding: OnboardingConfig = {
         },
       ],
       additionalInfo: (
-        <Stack gap="xl">
+        <Stack gap="lg">
           <div>
             {tct(
               'Note: The User Feedback integration only needs to be added to your [code:sentry.client.config.js] file. Adding it to any server-side configuration files (like [code:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',

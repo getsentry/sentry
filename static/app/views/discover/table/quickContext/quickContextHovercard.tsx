@@ -7,7 +7,6 @@ import {Flex} from 'sentry/components/core/layout';
 import {Body, Hovercard} from 'sentry/components/hovercard';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';

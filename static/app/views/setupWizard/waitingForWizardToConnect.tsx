@@ -5,7 +5,6 @@ import {Flex} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import {useSetupWizardCompletedAnalytics} from 'sentry/views/setupWizard/utils/setupWizardAnalytics';
