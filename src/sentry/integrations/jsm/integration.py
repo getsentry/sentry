@@ -286,11 +286,11 @@ class JsmIntegrationProvider(IntegrationProvider):
         }
 
     def post_install(
-            self,
-            integration: Integration,
-            organization: RpcOrganization,
-            *,
-            extra: dict[str, Any],
+        self,
+        integration: Integration,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         with record_event(OnCallInteractionType.POST_INSTALL).capture():
             try:
