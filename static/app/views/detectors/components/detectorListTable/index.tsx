@@ -8,7 +8,6 @@ import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selec
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import type {Sort} from 'sentry/utils/discover/fields';
 import {parseAsSort} from 'sentry/utils/queryString';
 import {DetectorsTableActions} from 'sentry/views/detectors/components/detectorListTable/actions';
 import {
@@ -17,6 +16,7 @@ import {
 } from 'sentry/views/detectors/components/detectorListTable/detectorListRow';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 import {useCanEditDetectors} from 'sentry/views/detectors/utils/useCanEditDetector';
+import {useDetectorListSort} from 'sentry/views/detectors/utils/useDetectorListSort';
 
 type DetectorListTableProps = {
   allResultsVisible: boolean;
@@ -42,7 +42,7 @@ function HeaderCell({
   divider?: boolean;
   sortKey?: string;
 } & Omit<ComponentProps<typeof SimpleTable.HeaderCell>, 'sort'>) {
-  const [sort, setSort] = useQueryState('sort', parseAsSort);
+  const [sort, setSort] = useDetectorListSort();
   const [, setCursor] = useQueryState('cursor');
   const isSortedByField = sort?.field === sortKey;
   const handleSort = () => {

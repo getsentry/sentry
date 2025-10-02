@@ -13,7 +13,6 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {parseAsSort} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -23,6 +22,7 @@ import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
+import {useDetectorListSort} from 'sentry/views/detectors/utils/useDetectorListSort';
 
 export default function DetectorsList() {
   useWorkflowEngineFeatureGate({redirect: true});
@@ -31,7 +31,7 @@ export default function DetectorsList() {
   const navigate = useNavigate();
   const {selection, isReady} = usePageFilters();
 
-  const [sort] = useQueryState('sort', parseAsSort);
+  const [sort] = useDetectorListSort();
   const [query] = useQueryState('query', parseAsString.withDefault(''));
   const [cursor] = useQueryState('cursor', parseAsString);
 
