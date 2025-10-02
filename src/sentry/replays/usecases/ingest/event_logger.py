@@ -11,7 +11,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry.models.project import Project
 from sentry.replays.lib.eap.write import write_trace_items
 from sentry.replays.lib.kafka import publish_replay_event
-from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta
+from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta, TapEvent
 from sentry.replays.usecases.ingest.issue_creation import (
     report_hydration_error_issue_with_replay_event,
     report_rage_click_issue_with_replay_event,
@@ -43,9 +43,16 @@ ReplayActionsEventPayloadClick = TypedDict(
 )
 
 
+class ReplayActionsEventPayloadTap(TypedDict):
+    message: str
+    view_id: str
+    view_class: str
+
+
 class ReplayActionsEventPayload(TypedDict):
     environment: str
     clicks: list[ReplayActionsEventPayloadClick]
+    taps: list[ReplayActionsEventPayloadTap]
     replay_id: str
     type: Literal["replay_actions"]
 
@@ -57,6 +64,49 @@ class ReplayActionsEvent(TypedDict):
     retention_days: int
     start_time: float
     type: Literal["replay_event"]
+
+
+@sentry_sdk.trace
+def emit_tap_events(
+    tap_events: list[TapEvent],
+    project_id: int,
+    replay_id: str,
+    retention_days: int,
+    start_time: float,
+    event_cap: int = 20,
+    environment: str | None = None,
+) -> None:
+    # Skip event emission if no taps specified.
+    if len(tap_events) == 0:
+        return None
+
+    taps: list[ReplayActionsEventPayloadTap] = [
+        {
+            "message": tap.message,
+            "view_id": tap.view_id,
+            "view_class": tap.view_class,
+        }
+        for tap in tap_events[:event_cap]
+    ]
+
+    payload: ReplayActionsEventPayload = {
+        "environment": environment or "",
+        "replay_id": replay_id,
+        "type": "replay_actions",
+        "clicks": [],
+        "taps": taps,
+    }
+
+    action: ReplayActionsEvent = {
+        "project_id": project_id,
+        "replay_id": replay_id,
+        "retention_days": retention_days,
+        "start_time": start_time,
+        "type": "replay_event",
+        "payload": payload,
+    }
+
+    publish_replay_event(json.dumps(action))
 
 
 @sentry_sdk.trace
@@ -99,6 +149,7 @@ def emit_click_events(
         "replay_id": replay_id,
         "type": "replay_actions",
         "clicks": clicks,
+        "taps": [],
     }
 
     action: ReplayActionsEvent = {
