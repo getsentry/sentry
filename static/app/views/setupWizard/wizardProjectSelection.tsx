@@ -6,6 +6,7 @@ import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvat
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Input} from 'sentry/components/core/input';
+import {Flex, Stack, type StackProps} from 'sentry/components/core/layout';
 import IdBadge from 'sentry/components/idBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {canCreateProject} from 'sentry/components/projects/canCreateProject';
@@ -277,7 +278,7 @@ export function WizardProjectSelection({
   );
 
   return (
-    <StyledForm onSubmit={handleSubmit}>
+    <Stack as="form" gap="xl" onSubmit={handleSubmit}>
       <Heading>{t('Select your Sentry project')}</Heading>
       <FieldWrapper>
         <label>{t('Organization')}</label>
@@ -341,7 +342,7 @@ export function WizardProjectSelection({
             menuFooter={
               isCreationEnabled
                 ? ({closeOverlay}) => (
-                    <AlignRight>
+                    <Flex justify="end">
                       <Button
                         size="xs"
                         onClick={() => {
@@ -352,7 +353,7 @@ export function WizardProjectSelection({
                       >
                         {t('Create Project')}
                       </Button>
-                    </AlignRight>
+                    </Flex>
                   )
                 : undefined
             }
@@ -393,25 +394,17 @@ export function WizardProjectSelection({
       <SubmitButton disabled={!isFormValid || isPending} priority="primary" type="submit">
         {t('Continue')}
       </SubmitButton>
-    </StyledForm>
+    </Stack>
   );
 }
-
-const StyledForm = styled('form')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
 
 const Heading = styled('h5')`
   margin-bottom: ${space(0.5)};
 `;
 
-const FieldWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
+function FieldWrapper(props: StackProps) {
+  return <Stack gap="xs" {...props} />;
+}
 
 const Columns = styled('div')`
   display: grid;
@@ -429,11 +422,6 @@ const StyledCompactSelect = styled(CompactSelect)`
   & > button {
     width: 100%;
   }
-`;
-
-const AlignRight = styled('div')`
-  display: flex;
-  justify-content: flex-end;
 `;
 
 const SelectPlaceholder = styled('span')`
