@@ -247,7 +247,7 @@ describe('MetricAlertDetails', () => {
   it('disables duplicate button if deprecation flag is on', async () => {
     const {organization, routerProps} = initializeOrg({
       organization: {
-        features: ['discover-basic', 'performance-transaction-deprecation-alerts'],
+        features: ['discover-basic', 'discover-saved-queries-deprecation'],
       },
     });
     const rule = MetricRuleFixture({

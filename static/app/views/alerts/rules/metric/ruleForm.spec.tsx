@@ -489,7 +489,7 @@ describe('Incident Rules Form', () => {
         ...organization.features,
         'performance-view',
         'visibility-explore-view',
-        'performance-transaction-deprecation-alerts',
+        'discover-saved-queries-deprecation',
       ];
       const rule = MetricRuleFixture();
       createWrapper({
@@ -648,7 +648,7 @@ describe('Incident Rules Form', () => {
         ...organization.features,
         'performance-view',
         'visibility-explore-view',
-        'performance-transaction-deprecation-alerts',
+        'discover-saved-queries-deprecation',
       ];
       const metricRule = MetricRuleFixture();
       createWrapper({
