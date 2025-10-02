@@ -22,7 +22,9 @@ export function AppSizeLegend({
   const categoryTypes = new Set<TreemapType>();
 
   function collectCategories(element: TreemapElement) {
-    categoryTypes.add(element.type);
+    if (element.type) {
+      categoryTypes.add(element.type);
+    }
     if (element.children) {
       element.children.forEach(child => collectCategories(child));
     }

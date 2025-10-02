@@ -120,7 +120,7 @@ function filterNode(
       nameLC.endsWith('.bundle') ||
       nameLC.endsWith('.plugin');
 
-    if (categoryOk && !isAppContainer) {
+    if (categoryOk && !isAppContainer && !selectedCategories?.size) {
       // Regular folders: include all children as-is (avoid cloning if not needed).
       // Return a new object to preserve immutability of the node, but reuse children ref.
       return {...element, children: element.children};
