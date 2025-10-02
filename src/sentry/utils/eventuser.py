@@ -194,7 +194,7 @@ class EventUser:
             orderby=[OrderBy(Column("latest_timestamp"), Direction.DESC)],
         )
 
-        full_results = []
+        full_results: list[EventUser] = []
         tries = 0
         # If we have no result_limit, fetch as many results as we can with a single query
         max_tries = MAX_QUERY_TRIES if result_limit else 1
@@ -213,7 +213,7 @@ class EventUser:
                     min((target_unique_rows_fetched * OVERFETCH_FACTOR) + 1, MAX_FETCH_SIZE)
                 )
 
-        seen_eventuser_tags: set[str] = set()
+        seen_eventuser_tags: set[str | None] = set()
         while tries < max_tries:
             query_start_time = time.time()
             if query.limit:
@@ -278,8 +278,8 @@ class EventUser:
 
     @staticmethod
     def _find_unique(
-        data_results: Sequence[Mapping[str, Any]], seen_eventuser_tags: set[str]
-    ) -> list[EventUser]:
+        data_results: Sequence[Mapping[str, Any]], seen_eventuser_tags: set[str | None]
+    ) -> tuple[list[EventUser], set[str | None]]:
         """
         Return the first instance of an EventUser object
         with a unique tag_value from the Snuba results.
