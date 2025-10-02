@@ -172,7 +172,8 @@ const jsIntegrationNames: Record<JavascriptSpanOrigin, string> = {
   'auto.vercel.otel': 'vercelAIIntegration',
 };
 const jsIntegrationLinks: Record<JavascriptSpanOrigin, string> = {
-  'auto.ai.anthropic': 'https://docs.sentry.io/platforms/python/integrations/anthropic/',
+  'auto.ai.anthropic':
+    'https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/anthropic/',
   'auto.ai.openai':
     'https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/openai/',
   'auto.vercel.otel':
@@ -218,7 +219,7 @@ function JavaScriptContent({spanOrigin}: {spanOrigin?: string}) {
   );
 }
 
-function ManualContent({language}: {language: SupportedSDKLanguage}) {
+function ManualContent({sdkLanguage}: {sdkLanguage: SupportedSDKLanguage}) {
   return (
     <Fragment>
       <Prose>
@@ -226,7 +227,7 @@ function ManualContent({language}: {language: SupportedSDKLanguage}) {
           link: (
             <ExternalLink
               href={
-                language === 'javascript'
+                sdkLanguage === 'javascript'
                   ? 'https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/ai-agents-module/'
                   : 'https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/'
               }

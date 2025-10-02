@@ -131,6 +131,7 @@ export function hasAIInputAttribute(
 ) {
   return (
     getTraceNodeAttribute('gen_ai.request.messages', node, event, attributes) ||
+    getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes) ||
     getTraceNodeAttribute('ai.input_messages', node, event, attributes) ||
     getTraceNodeAttribute('ai.prompt', node, event, attributes)
   );
