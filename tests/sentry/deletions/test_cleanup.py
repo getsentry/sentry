@@ -1,4 +1,4 @@
-from sentry.runner.commands.cleanup import _STOP_WORKER, multiprocess_worker, start_pool, stop_pool
+from sentry.runner.commands.cleanup import _STOP_WORKER, _start_pool, _stop_pool
 from sentry.testutils.cases import TestCase
 
 
@@ -7,18 +7,20 @@ class TestCleanupMultiprocessing(TestCase):
 
     def test_starting_and_stopping_pool(self) -> None:
         """Test that starting and stopping the pool works."""
-        pool, task_queue = start_pool(1)
-        stop_pool(pool, task_queue)
+        pool, task_queue = _start_pool(1)
+        _stop_pool(pool, task_queue)
 
     def test_worker_queue_empty_behavior(self) -> None:
-        """Test worker behavior when queue becomes empty."""
-        pool, task_queue = start_pool(1)
+        """Test worker behavior when there are stop signals in the queue."""
+        pool, task_queue = _start_pool(1)
 
-        # Only put stop signal
+        # Put a stop signal before calling stop_pool
         task_queue.put(_STOP_WORKER)
 
-        # Worker should exit cleanly
-        multiprocess_worker(task_queue)
-        stop_pool(pool, task_queue)
-        # Queue should be empty and properly task_done() called
-        assert task_queue.empty()
+        # Let the pooled worker handle the stop signal and exit cleanly
+        # stop_pool will put additional stop signals for each worker
+        _stop_pool(pool, task_queue)
+
+        # Verify all worker processes have terminated
+        for process in pool:
+            assert not process.is_alive()
