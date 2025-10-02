@@ -120,6 +120,7 @@ def test_convert_span_to_item() -> None:
         "sentry.environment": AnyValue(string_value="development"),
         "sentry.is_remote": AnyValue(bool_value=True),
         "sentry.is_segment": AnyValue(bool_value=True),
+        "sentry.name": AnyValue(string_value="endpoint"),
         "sentry.normalized_description": AnyValue(string_value="normalized_description"),
         "sentry.op": AnyValue(string_value="http.server"),
         "sentry.origin": AnyValue(string_value="auto.http.django"),

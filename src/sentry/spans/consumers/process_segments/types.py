@@ -3,7 +3,7 @@ from typing import Any, NotRequired
 
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import (
-    _FileColonFullStopIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalue as AttributeValue,
+    _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalue as AttributeValue,
 )
 
 Attributes = dict[str, AttributeValue]

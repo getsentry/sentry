@@ -72,3 +72,23 @@ class SpanBuilder:
         if self.hash is not None:
             span["hash"] = self.hash
         return span
+
+    def build_v2(self) -> Span:
+        """Return a sp"""
+        span: Span = {
+            "trace_id": self.trace_id,
+            "parent_span_id": self.parent_span_id,
+            "span_id": self.span_id,
+            "start_timestamp": self.start_timestamp,
+            "timestamp": self.timestamp,
+            "same_process_as_parent": self.same_process_as_parent,
+            "attributes": {
+                "sentry.is_segment": {"value": self.is_segment},
+                "sentry.op": {"value": self.op},
+                "sentry.description": {"value": self.description},
+                **{k: {"value": v} for (k, v) in (self.tags or {}).items()},
+                **{k: {"value": v} for (k, v) in (self.data or {}).items()},
+            },
+        }
+
+        return span
