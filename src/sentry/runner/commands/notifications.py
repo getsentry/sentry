@@ -191,7 +191,7 @@ def list_cmd() -> None:
 @click.option(
     "-p", "--provider", help="the integration provider e.g. slack, discord, msteams", required=True
 )
-@click.option("-o", "--organization_slug", help="Organization slug", required=False)
+@click.option("-o", "--organization_slug", help="Organization slug", required=True)
 @notifications.command("list-integrations")
 def list_integrations(organization_slug: str | None, provider: str) -> None:
     """
@@ -213,48 +213,23 @@ def list_integrations(organization_slug: str | None, provider: str) -> None:
         click.echo(f"Invalid provider: {provider}")
         return
 
-    if organization_slug:
-        try:
-            organization = OrganizationMapping.objects.get(slug=organization_slug)
-        except OrganizationMapping.DoesNotExist:
-            click.echo(f"Organization {organization_slug} not found!")
-            return
+    try:
+        organization = OrganizationMapping.objects.get(slug=organization_slug)
+    except OrganizationMapping.DoesNotExist:
+        click.echo(f"Organization {organization_slug} not found!")
+        return
 
-        # Get organization integrations that belong to this organization and match our provider
-        organization_integrations = OrganizationIntegration.objects.filter(
-            integration__provider=provider,
-            integration__status=ObjectStatus.ACTIVE,
-            organization_id=organization.organization_id,
-        ).select_related("integration")
+    # Get organization integrations that belong to this organization and match our provider
+    organization_integrations = OrganizationIntegration.objects.filter(
+        integration__provider=provider,
+        integration__status=ObjectStatus.ACTIVE,
+        organization_id=organization.organization_id,
+    ).select_related("integration")
 
-        click.echo(
-            f"All integrations for organization {organization_slug} with provider {provider}\n"
-            f"Integration Name | Integration ID \n"
-            f"----------------------------------"
-        )
-        for oi in organization_integrations:
-            click.echo(f"{oi.integration.name} | {oi.integration.id}")
-
-    else:
-        organization_integrations = OrganizationIntegration.objects.filter(
-            integration__provider=provider,
-            integration__status=ObjectStatus.ACTIVE,
-        ).select_related("integration")
-
-        # Get organization IDs and fetch organizations so we can show the slugs
-        org_ids = organization_integrations.values_list("organization_id", flat=True)
-        organizations = {
-            org.organization_id: org
-            for org in OrganizationMapping.objects.filter(organization_id__in=org_ids)
-        }
-
-        click.echo(
-            f"All integrations for provider {provider}\n"
-            f"Organization Slug | Integration Name | Integration ID\n"
-            f"-------------------------------------------------------"
-        )
-
-        for oi in organization_integrations:
-            org = organizations.get(oi.organization_id)
-            org_slug = org.slug if org else "Unknown"
-            click.echo(f"{org_slug} | {oi.integration.name} | {oi.integration.id}")
+    click.echo(
+        f"All integrations for organization {organization_slug} with provider {provider}\n"
+        f"Integration Name | Integration ID \n"
+        f"----------------------------------"
+    )
+    for oi in organization_integrations:
+        click.echo(f"{oi.integration.name} | {oi.integration.id}")
