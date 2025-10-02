@@ -12,9 +12,14 @@ from sentry.models.groupopenperiod import (
     get_open_periods_for_group,
     update_group_open_period,
 )
-from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
+from sentry.models.groupopenperiodactivity import (
+    OPEN_PERIOD_ACTIVITY_TYPE_TO_STRING,
+    GroupOpenPeriodActivity,
+    OpenPeriodActivityType,
+)
 from sentry.testutils.cases import APITestCase
 from sentry.types.activity import ActivityType
+from sentry.types.group import PRIORITY_LEVEL_TO_STRING
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 
 
@@ -71,8 +76,8 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert len(open_period["activities"]) == 1
         assert open_period["activities"][0] == {
             "id": str(self.opened_gopa.id),
-            "type": str(OpenPeriodActivityType.OPENED.value),
-            "value": self.group.priority,
+            "type": OPEN_PERIOD_ACTIVITY_TYPE_TO_STRING[OpenPeriodActivityType.OPENED.value],
+            "value": PRIORITY_LEVEL_TO_STRING.get(self.group.priority),
         }
 
     def test_open_periods_group_id(self) -> None:
@@ -106,8 +111,8 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["lastChecked"] >= last_checked
         assert resp["activities"][0] == {
             "id": str(self.opened_gopa.id),
-            "type": str(OpenPeriodActivityType.OPENED.value),
-            "value": self.group.priority,
+            "type": OPEN_PERIOD_ACTIVITY_TYPE_TO_STRING[OpenPeriodActivityType.OPENED.value],
+            "value": PRIORITY_LEVEL_TO_STRING.get(self.group.priority),
         }
 
     def test_open_periods_resolved_group(self) -> None:
@@ -148,12 +153,12 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert len(resp["activities"]) == 2
         assert resp["activities"][0] == {
             "id": str(self.opened_gopa.id),
-            "type": str(OpenPeriodActivityType.OPENED.value),
-            "value": self.group.priority,
+            "type": OPEN_PERIOD_ACTIVITY_TYPE_TO_STRING[OpenPeriodActivityType.OPENED.value],
+            "value": PRIORITY_LEVEL_TO_STRING.get(self.group.priority),
         }
         assert resp["activities"][1] == {
             "id": str(closed_gopa.id),
-            "type": str(OpenPeriodActivityType.CLOSED.value),
+            "type": OPEN_PERIOD_ACTIVITY_TYPE_TO_STRING[OpenPeriodActivityType.CLOSED.value],
             "value": None,
         }
 
@@ -232,12 +237,12 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert len(resp["activities"]) == 2
         assert resp["activities"][0] == {
             "id": str(opened_gopa2.id),
-            "type": str(OpenPeriodActivityType.OPENED.value),
-            "value": self.group.priority,
+            "type": OPEN_PERIOD_ACTIVITY_TYPE_TO_STRING[OpenPeriodActivityType.OPENED.value],
+            "value": PRIORITY_LEVEL_TO_STRING.get(self.group.priority),
         }
         assert resp["activities"][1] == {
             "id": str(closed_gopa2.id),
-            "type": str(OpenPeriodActivityType.CLOSED.value),
+            "type": OPEN_PERIOD_ACTIVITY_TYPE_TO_STRING[OpenPeriodActivityType.CLOSED.value],
             "value": None,
         }
 
@@ -252,12 +257,12 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert len(resp2["activities"]) == 2
         assert resp2["activities"][0] == {
             "id": str(self.opened_gopa.id),
-            "type": str(OpenPeriodActivityType.OPENED.value),
-            "value": self.group.priority,
+            "type": OPEN_PERIOD_ACTIVITY_TYPE_TO_STRING[OpenPeriodActivityType.OPENED.value],
+            "value": PRIORITY_LEVEL_TO_STRING.get(self.group.priority),
         }
         assert resp2["activities"][1] == {
             "id": str(closed_gopa.id),
-            "type": str(OpenPeriodActivityType.CLOSED.value),
+            "type": OPEN_PERIOD_ACTIVITY_TYPE_TO_STRING[OpenPeriodActivityType.CLOSED.value],
             "value": None,
         }
 
