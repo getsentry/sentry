@@ -36,7 +36,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import attachments_tasks
 from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
@@ -231,12 +230,9 @@ def delete_assemble_status(task, scope, checksum):
 
 @instrumented_task(
     name="sentry.tasks.assemble.assemble_dif",
-    queue="assemble",
+    namespace=attachments_tasks,
+    processing_deadline_duration=60 * 3,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=attachments_tasks,
-        processing_deadline_duration=60 * 3,
-    ),
 )
 def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     """
@@ -610,12 +606,9 @@ class ArtifactBundlePostAssembler:
 
 @instrumented_task(
     name="sentry.tasks.assemble.assemble_artifacts",
-    queue="assemble",
+    namespace=attachments_tasks,
+    processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=attachments_tasks,
-        processing_deadline_duration=30,
-    ),
 )
 def assemble_artifacts(
     org_id,

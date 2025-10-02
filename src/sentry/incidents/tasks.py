@@ -19,7 +19,6 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscriptions.consumer import register_subscriber
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import alerts_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
@@ -43,18 +42,10 @@ def handle_snuba_query_update(
 
 @instrumented_task(
     name="sentry.incidents.tasks.handle_trigger_action",
-    queue="incidents",
-    default_retry_delay=60,
-    max_retries=5,
+    namespace=alerts_tasks,
+    retry=Retry(times=5, delay=60),
+    processing_deadline_duration=60,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=alerts_tasks,
-        retry=Retry(
-            times=5,
-            delay=60,
-        ),
-        processing_deadline_duration=60,
-    ),
 )
 def handle_trigger_action(
     action_id: int,
@@ -115,17 +106,9 @@ def handle_trigger_action(
 
 @instrumented_task(
     name="sentry.incidents.tasks.auto_resolve_snapshot_incidents",
-    queue="incidents",
-    default_retry_delay=60,
-    max_retries=2,
+    namespace=alerts_tasks,
+    retry=Retry(times=2, delay=60),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=alerts_tasks,
-        retry=Retry(
-            times=2,
-            delay=60,
-        ),
-    ),
 )
 def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
     from sentry.incidents.logic import update_incident_status
