@@ -5,10 +5,7 @@ import {Container, Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text/heading';
 import {Text} from 'sentry/components/core/text/text';
 import {IconChevron} from 'sentry/icons';
-import type {
-  PRCommentsData,
-  PullRequestDetailsSuccessResponse,
-} from 'sentry/views/pullRequest/types/pullRequestDetailsTypes';
+import type {PullRequestDetailsSuccessResponse} from 'sentry/views/pullRequest/types/pullRequestDetailsTypes';
 
 type PRFileData = PullRequestDetailsSuccessResponse['files'][number];
 
@@ -62,11 +59,10 @@ function parsePatch(patch: string): ParsedDiffLine[] {
 }
 
 interface PRFilesListProps {
-  commentsData: PRCommentsData | null;
   files: PRFileData[];
 }
 
-function PRFilesList({files, commentsData}: PRFilesListProps) {
+function PRFilesList({files}: PRFilesListProps) {
   const [expandedFiles, setExpandedFiles] = useState<Record<string, boolean>>({});
 
   // Use filename as key instead of index for more stable state
@@ -111,7 +107,6 @@ function PRFilesList({files, commentsData}: PRFilesListProps) {
       </Flex>
       {files.map(file => {
         const isExpanded = expandedFiles[file.filename] ?? true;
-        const fileComments = commentsData?.file_comments[file.filename] || [];
 
         return (
           <Container
@@ -135,13 +130,6 @@ function PRFilesList({files, commentsData}: PRFilesListProps) {
                 <Text monospace size="sm" bold>
                   {file.filename}
                 </Text>
-                {fileComments.length > 0 && (
-                  <Container background="primary" padding="xs sm" radius="sm">
-                    <Text size="sm" variant="accent">
-                      {fileComments.length} comment{fileComments.length === 1 ? '' : 's'}
-                    </Text>
-                  </Container>
-                )}
               </Flex>
               <Flex gap="md" align="center">
                 <Text size="xs" variant="success">
