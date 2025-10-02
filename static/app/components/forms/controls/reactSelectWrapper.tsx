@@ -17,15 +17,10 @@ components.LoadingMessage.defaultProps = undefined;
 // @ts-expect-error remove default props for react 19
 components.LoadingIndicator.defaultProps = undefined;
 
-const ReactSelectWrapper = (({ref, menuPlacement = 'auto', ...props}: any) => {
+const ReactSelectWrapper = (({ref, ...props}: any) => {
   // Reapply default props to the component
   return (
-    <ReactSelect
-      {...reactSelectDefaultProps}
-      {...props}
-      ref={ref}
-      menuPlacement={menuPlacement}
-    />
+    <ReactSelect {...reactSelectDefaultProps} {...props} ref={ref} menuPlacement="auto" />
   );
 }) as any as typeof ReactSelect;
 
