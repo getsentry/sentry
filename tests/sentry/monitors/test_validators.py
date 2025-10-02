@@ -896,11 +896,13 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         data = {
             "type": "monitor_check_in_failure",
             "name": "Test Monitor Detector",
-            "dataSource": {
-                "name": "Test Monitor",
-                "slug": "test-monitor",
-                "config": self._get_base_config(),
-            },
+            "dataSources": [
+                {
+                    "name": "Test Monitor",
+                    "slug": "test-monitor",
+                    "config": self._get_base_config(),
+                }
+            ],
         }
         data.update(overrides)
         return data
@@ -918,10 +920,11 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         assert validator.is_valid(), validator.errors
         validated_data = validator.validated_data
         assert validated_data["name"] == "Test Monitor Detector"
-        assert "data_source" in validated_data
-        assert validated_data["data_source"]["name"] == "Test Monitor"
-        assert validated_data["data_source"]["slug"] == "test-monitor"
+        assert "data_sources" in validated_data
+        assert validated_data["data_sources"][0]["name"] == "Test Monitor"
+        assert validated_data["data_sources"][0]["slug"] == "test-monitor"
 
+    @pytest.mark.skip("Not required yet, migrating to dataSources")
     def test_detector_requires_data_source(self):
         data = {
             "type": "monitor_check_in_failure",
@@ -929,7 +932,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         }
         validator = self._create_validator(data)
         assert not validator.is_valid()
-        assert "dataSource" in validator.errors
+        assert "dataSources" in validator.errors
 
     def test_create_detector_validates_data_source(self):
         condition_group = DataConditionGroup.objects.create(
@@ -942,5 +945,5 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
             context=context,
         )
         assert validator.is_valid(), validator.errors
-        assert "_creator" in validator.validated_data["data_source"]
-        assert validator.validated_data["data_source"]["data_source_type"] == "cron_monitor"
+        assert "_creator" in validator.validated_data["data_sources"][0]
+        assert validator.validated_data["data_sources"][0]["data_source_type"] == "cron_monitor"

@@ -456,7 +456,8 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
 
 
 class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
-    data_source = UptimeMonitorDataSourceValidator(required=True)
+    data_source = UptimeMonitorDataSourceValidator(required=False)
+    data_sources = serializers.ListField(child=UptimeMonitorDataSourceValidator(), required=False)
 
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
         super().update(instance, validated_data)
