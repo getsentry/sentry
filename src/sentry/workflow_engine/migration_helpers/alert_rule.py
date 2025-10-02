@@ -857,12 +857,14 @@ def dual_delete_migrated_alert_rule(alert_rule: AlertRule) -> None:
             "AlertRuleWorkflow not found for AlertRule, workflow may be orphaned",
             extra={"detector_id": detector.id},
         )
-
-    RegionScheduledDeletion.schedule(instance=detector, days=0)
-
     if alert_rule_workflow:
         workflow: Workflow = alert_rule_workflow.workflow
-        RegionScheduledDeletion.schedule(instance=workflow, days=0)
+        with transaction.atomic(router.db_for_write(Detector)):
+            RegionScheduledDeletion.schedule(instance=detector, days=0)
+            RegionScheduledDeletion.schedule(instance=workflow, days=0)
+
+    else:
+        RegionScheduledDeletion.schedule(instance=detector, days=0)
 
     return
 
