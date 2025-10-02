@@ -9,7 +9,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import {type EventsMetaType} from 'sentry/utils/discover/eventView';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
