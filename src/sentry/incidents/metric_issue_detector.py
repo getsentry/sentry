@@ -245,9 +245,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         data_source: SnubaQueryDataSourceType | None
         if "data_source" in validated_data:
-            data_source: SnubaQueryDataSourceType = validated_data.pop("data_source")
+            data_source = validated_data.pop("data_source")
         elif "data_sources" in validated_data:
-            data_source: SnubaQueryDataSourceType = validated_data.pop("data_sources")[0]
+            data_source = validated_data.pop("data_sources")[0]
 
         if data_source is not None:
             self.update_data_source(instance, data_source)
