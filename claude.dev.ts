@@ -120,7 +120,10 @@ wss.on('connection', (ws, req) => {
     for (const line of lines) {
       if (!line.trim()) continue;
 
-      console.log('[Server] Processing line:', line.substring(0, 200) + (line.length > 200 ? '...' : ''));
+      console.log(
+        '[Server] Processing line:',
+        line.substring(0, 200) + (line.length > 200 ? '...' : '')
+      );
 
       // Try to extract session_id if we don't have it yet
       if (!claudeSessionId) {
@@ -141,9 +144,12 @@ wss.on('connection', (ws, req) => {
             if (ws.readyState === WebSocket.OPEN) {
               const sessionInfoMessage = JSON.stringify({
                 type: 'session_info',
-                session_id: claudeSessionId
+                session_id: claudeSessionId,
               });
-              console.log('[Server] Sending session_info message to client:', sessionInfoMessage);
+              console.log(
+                '[Server] Sending session_info message to client:',
+                sessionInfoMessage
+              );
               ws.send(sessionInfoMessage);
             } else {
               console.error('[Server] WebSocket not open, cannot send session_info');
@@ -178,12 +184,16 @@ wss.on('connection', (ws, req) => {
               const parsed = JSON.parse(line);
               if (parsed.session_id) {
                 claudeSessionId = parsed.session_id;
-                console.log(`[Server] ✓✓✓ Captured session ID from stderr: ${claudeSessionId}`);
+                console.log(
+                  `[Server] ✓✓✓ Captured session ID from stderr: ${claudeSessionId}`
+                );
                 if (ws.readyState === WebSocket.OPEN) {
-                  ws.send(JSON.stringify({
-                    type: 'session_info',
-                    session_id: claudeSessionId
-                  }));
+                  ws.send(
+                    JSON.stringify({
+                      type: 'session_info',
+                      session_id: claudeSessionId,
+                    })
+                  );
                 }
               }
             } catch {

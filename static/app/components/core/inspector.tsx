@@ -21,13 +21,7 @@ import {
   ProfilingContextMenuItemButton,
 } from 'sentry/components/profiling/profilingContextMenu';
 import {NODE_ENV} from 'sentry/constants';
-import {
-  IconChevron,
-  IconCopy,
-  IconDocs,
-  IconLink,
-  IconOpen,
-} from 'sentry/icons';
+import {IconChevron, IconCopy, IconDocs, IconLink, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   isMDXStory,
@@ -83,7 +77,9 @@ export function SentryComponentInspector() {
         return prevConnection;
       }
 
-      console.log('[Claude Connection] Creating new WebSocket connection to ws://localhost:8080');
+      console.log(
+        '[Claude Connection] Creating new WebSocket connection to ws://localhost:8080'
+      );
       const ws = new WebSocket('ws://localhost:8080');
 
       ws.onopen = () => {
@@ -108,7 +104,7 @@ export function SentryComponentInspector() {
             setClaudeConnection(prev => {
               const updated = {
                 ...prev,
-                sessionId: parsed.session_id
+                sessionId: parsed.session_id,
               };
               // eslint-disable-next-line no-console
               console.log('[WebSocket] Updated connection state:', updated);
@@ -137,7 +133,7 @@ export function SentryComponentInspector() {
         console.log('[Claude Connection] ✗ WebSocket connection closed', {
           code: event.code,
           reason: event.reason,
-          wasClean: event.wasClean
+          wasClean: event.wasClean,
         });
         setClaudeConnection(prev => ({...prev, connected: false, sessionId: null}));
       };
@@ -147,7 +143,7 @@ export function SentryComponentInspector() {
         console.error('[Claude Connection] ✗ WebSocket error:', error);
         console.error('[Claude Connection] Error details:', {
           type: error.type,
-          target: error.target
+          target: error.target,
         });
         setClaudeConnection(prev => ({...prev, connected: false}));
       };
@@ -632,7 +628,13 @@ export function SentryComponentInspector() {
         <FloatingInputContainer data-inspector-skip>
           <FloatingInputWrapper>
             {selectedComponent && (
-              <Flex direction="row" justify="between" align="center" gap="xs" marginBottom="md">
+              <Flex
+                direction="row"
+                justify="between"
+                align="center"
+                gap="xs"
+                marginBottom="md"
+              >
                 <Flex flex="1" direction="row" align="center" gap="xs">
                   <LoadingIndicatorWrapper $isProcessing={isClaudeProcessing}>
                     <LoadingIndicator mini size={12} />
@@ -642,11 +644,7 @@ export function SentryComponentInspector() {
                   </Text>
                 </Flex>
                 {claudeConnection.sessionId && (
-                  <Button
-                    size="xs"
-                    priority="link"
-                    onClick={copyClaudeSessionCommand}
-                  >
+                  <Button size="xs" priority="link" onClick={copyClaudeSessionCommand}>
                     <Flex gap="xs" align="center">
                       Session: {claudeConnection.sessionId.substring(0, 8)}...
                       <IconCopy size="xs" />
@@ -742,7 +740,6 @@ const LoadingIndicatorWrapper = styled('div')<{$isProcessing: boolean}>`
   position: relative;
   flex-shrink: 0;
 `;
-
 
 const AiResponseContainer = styled('div')`
   margin-top: ${space(2)};
