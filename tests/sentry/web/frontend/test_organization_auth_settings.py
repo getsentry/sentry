@@ -96,6 +96,19 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
 
+    def test_role_options(self) -> None:
+        manager = self.create_manager_and_attach_identity()
+        self.login_as(manager, organization_id=self.organization.id)
+        with self.feature("organizations:sso-basic"):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+
+            form = resp.context["form"]
+            role_choices = dict(form.fields["default_role"].choices)
+
+            # Verify that the manager can set the default role to manager and below roles
+            assert set(role_choices.keys()) == {"admin", "manager", "member"}
+
     def test_owner_can_load(self) -> None:
         owner = self.create_owner_and_attach_identity()
 
