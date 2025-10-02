@@ -18,6 +18,7 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
 from django.db import router, transaction
+from rest_framework import serializers
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import IngestMonitorMessage
 from sentry_sdk.tracing import Span, Transaction
@@ -92,7 +93,8 @@ def _ensure_monitor_with_config(
     project: Project,
     monitor_slug: str,
     config: dict[str, Any] | None,
-) -> Monitor | None:
+) -> tuple[Monitor | None, ProcessingErrorsException | None]:
+    non_fatal_processing_error = None
     try:
         monitor = Monitor.objects.get(
             slug=monitor_slug,
@@ -108,7 +110,7 @@ def _ensure_monitor_with_config(
         monitor.update(is_upserting=False)
 
     if not config:
-        return monitor
+        return [monitor, non_fatal_processing_error]
 
     # The upsert payload doesn't quite match the api one. Pop out the owner here since
     # it's not part of the monitor config
@@ -117,6 +119,15 @@ def _ensure_monitor_with_config(
     owner_team_id = None
     try:
         owner_actor = parse_and_validate_actor(owner, project.organization_id)
+    except serializers.ValidationError as e:
+        non_fatal_processing_error = ProcessingErrorsException(
+            [
+                {
+                    "type": ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
+                    "errors": {owner: e.detail},
+                }
+            ]
+        )
     except Exception:
         logger.exception(
             "Error attempting to resolve owner",
@@ -146,7 +157,7 @@ def _ensure_monitor_with_config(
                 "errors": validator.errors,
             }
             raise ProcessingErrorsException([error])
-        return monitor
+        return [monitor, non_fatal_processing_error]
 
     validated_config = validator.validated_data
     created = False
@@ -181,7 +192,7 @@ def _ensure_monitor_with_config(
         ):
             monitor.update(owner_user_id=owner_user_id, owner_team_id=owner_team_id)
 
-    return monitor
+    return [monitor, non_fatal_processing_error]
 
 
 def check_killswitch(
@@ -622,7 +633,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
     # 01
     # Retrieve or upsert monitor for this check-in
     try:
-        monitor = _ensure_monitor_with_config(
+        (monitor, non_fatal_processing_errors) = _ensure_monitor_with_config(
             project,
             monitor_slug,
             monitor_config,
@@ -1001,6 +1012,9 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
         )
         txn.set_tag("result", "error")
         logger.exception("Failed to process check-in")
+
+    if non_fatal_processing_errors:
+        raise non_fatal_processing_errors
 
 
 def process_checkin(item: CheckinItem) -> None:
