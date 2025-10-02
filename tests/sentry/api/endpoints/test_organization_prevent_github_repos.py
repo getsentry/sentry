@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from sentry.testutils.cases import APITestCase
 
@@ -83,10 +83,8 @@ class OrganizationPreventGitHubReposTest(APITestCase):
 
         assert response.status_code == 403
 
-    @patch(
-        "sentry.api.endpoints.organization_prevent_github_repos.OrganizationPreventGitHubReposEndpoint._fetch_seer_integrated_repos"
-    )
-    def test_get_prevent_github_repos_with_seer_integration(self, mock_fetch_seer):
+    @patch("sentry.api.endpoints.organization_prevent_github_repos.requests.post")
+    def test_get_prevent_github_repos_with_seer_integration(self, mock_requests_post):
         """Test that repos from both Sentry and Seer are merged correctly"""
         self.login_as(user=self.user)
 
@@ -113,13 +111,18 @@ class OrganizationPreventGitHubReposTest(APITestCase):
             external_id="111222",
         )
 
-        # Mock Seer API to return repos (just repo names, not full paths)
-        mock_fetch_seer.return_value = {
-            "test-org": [
-                "sentry-repo",  # This exists in Sentry (matches "test-org/sentry-repo")
-                "seer-only-repo",  # This only exists in Seer
-            ]
+        # Mock the Seer API response
+        mock_response = Mock()
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = {
+            "integrated_repos": {
+                "test-org": [
+                    "sentry-repo",  # This exists in Sentry (matches "test-org/sentry-repo")
+                    "seer-only-repo",  # This only exists in Seer
+                ]
+            }
         }
+        mock_requests_post.return_value = mock_response
 
         url = f"/api/0/organizations/{self.organization.slug}/prevent/github/repos/"
         response = self.client.get(url)
@@ -146,3 +149,18 @@ class OrganizationPreventGitHubReposTest(APITestCase):
         assert seer_only_repo_data["name"] == "seer-only-repo"
         assert seer_only_repo_data["hasGhAppSentryIo"] is False
         assert seer_only_repo_data["hasGhAppSeerBySentry"] is True
+
+        # Verify the Seer API was called correctly
+        mock_requests_post.assert_called_once()
+        call_args = mock_requests_post.call_args
+
+        # Check the URL and headers
+        assert call_args[1]["data"]  # body was passed
+        assert call_args[1]["headers"]["content-type"] == "application/json;charset=utf-8"
+
+        # Check the request body
+        import orjson
+
+        request_body = orjson.loads(call_args[1]["data"])
+        assert request_body["organization_names"] == ["test-org"]
+        assert request_body["provider"] == "github"
