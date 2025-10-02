@@ -24,8 +24,12 @@ function GroupingComponent({component, showNonContributing}: Props) {
       ? GroupingComponentStacktrace
       : GroupingComponentChildren;
 
-  const [folded, setFolded] = useState(false);
+  const [folded, setFolded] = useState(component.stacktrace_folded || false);
   const canFold = !shouldInlineValue;
+  const handleToggleFold = () => {
+    setFolded(!folded);
+    component.stacktrace_folded = !folded;
+  };
 
   return (
     <CollapseButtonWrapper>
@@ -35,7 +39,7 @@ function GroupingComponent({component, showNonContributing}: Props) {
           className="collapse-button"
           priority="link"
           icon={<IconChevron direction={folded ? 'right' : 'down'} legacySize="10px" />}
-          onClick={() => setFolded(!folded)}
+          onClick={() => handleToggleFold()}
           aria-label={folded ? t('expand') : t('collapse')}
         />
       )}
