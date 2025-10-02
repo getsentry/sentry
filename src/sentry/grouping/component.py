@@ -437,6 +437,7 @@ class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingC
 
 class ThreadsGroupingComponent(BaseGroupingComponent[StacktraceGroupingComponent]):
     id: str = "threads"
+    key: str = "thread_stacktrace"
     frame_counts: Counter[str]
 
     def __init__(
