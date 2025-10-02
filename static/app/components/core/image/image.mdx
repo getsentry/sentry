@@ -142,6 +142,27 @@ import sentryLogo from 'sentry-images/logo-sentry.svg';
 <Image src={sentryLogo} alt="Eagerly loaded Sentry logo" loading="eager" />;
 ```
 
+## Image Fallback
+
+Use the `onError` callback to handle failed image loads by providing a fallback image. This is useful when displaying user-generated content or external images that might not be available.
+
+```jsx
+import {useState} from 'react';
+
+import sentryLogo from 'sentry-images/logo-sentry.svg';
+import fallbackImage from 'sentry-images/spot/feedback-empty-state.svg';
+
+function ImageWithFallback() {
+  const [imageSrc, setImageSrc] = useState('https://example.com/broken-image.jpg');
+
+  return (
+    <Image src={imageSrc} alt="User avatar" onError={() => setImageSrc(fallbackImage)} />
+  );
+}
+```
+
+In this example, if the primary image fails to load, the `onError` callback updates the `src` to use a local fallback image.
+
 ## Responsive Images
 
 Use the `srcSet` and `sizes` attributes for responsive images that adapt to different screen sizes and pixel densities. Import each image size using the webpack path loader.

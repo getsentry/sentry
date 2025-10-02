@@ -19,4 +19,21 @@ describe('Image', () => {
       'https://example.com/image.png'
     );
   });
+
+  it('calls onError callback when image fails to load', () => {
+    render(
+      <Image
+        src="https://example.com/broken-image.png"
+        alt="Example Image"
+        onError={e => {
+          (e.target as HTMLImageElement).src = 'https://example.com/image.png';
+        }}
+      />
+    );
+
+    const img = screen.getByAltText('Example Image');
+    img.dispatchEvent(new Event('error'));
+
+    expect(img).toHaveAttribute('src', 'https://example.com/image.png');
+  });
 });
