@@ -140,7 +140,7 @@ function SidebarContent() {
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Getting Started with Session Replay')}</Heading>
-        <HeaderActions>
+        <Flex direction="row" justify="between" gap="2xl">
           <div
             onClick={e => {
               // we need to stop bubbling the CompactSelect click event
@@ -172,7 +172,7 @@ function SidebarContent() {
               position="bottom-end"
             />
           </div>
-        </HeaderActions>
+        </Flex>
         <OnboardingContent currentProject={selectedProject} hasDocs={hasDocs} />
       </TaskList>
     </Fragment>
@@ -193,10 +193,10 @@ function OnboardingContent({
       value: platform.id,
       textValue: platform.name,
       label: (
-        <PlatformLabel>
+        <Flex gap="md" align="center">
           <PlatformIcon platform={platform.id} size={16} />
           <TextOverflow>{platform.name}</TextOverflow>
-        </PlatformLabel>
+        </Flex>
       ),
     };
   });
@@ -441,18 +441,6 @@ const StyledIdBadge = styled(IdBadge)`
   white-space: nowrap;
   flex-shrink: 1;
 `;
-
-function HeaderActions({children}: {children: ReactNode}) {
-  return (
-    <Flex direction="row" justify="between" gap="2xl">
-      {children}
-    </Flex>
-  );
-}
-
-function PlatformLabel(props: FlexProps) {
-  return <Flex gap="md" align="center" {...props} />;
-}
 
 function PlatformSelect(props: FlexProps) {
   return <Flex gap="md" align="center" wrap="wrap" {...props} />;
