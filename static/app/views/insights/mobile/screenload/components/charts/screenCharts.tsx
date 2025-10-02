@@ -10,6 +10,7 @@ import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {type EventsMetaType} from 'sentry/utils/discover/eventView';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 // TODO(release-drawer): Only used in mobile/screenload/components/
@@ -78,7 +79,7 @@ export function ScreenCharts({additionalFilters}: Props) {
     secondaryRelease,
   ]);
 
-  const search = new MutableSearch(queryString);
+  const query = new MutableSearch(queryString);
   const groupBy = SpanFields.RELEASE;
   const referrer = Referrer.SCREENLOAD_LANDING_DURATION_CHART;
 
@@ -86,16 +87,16 @@ export function ScreenCharts({additionalFilters}: Props) {
     data: releaseSeriesArray,
     isPending: isSeriesLoading,
     error: seriesError,
-  } = useTopNSpanMultiSeries(
+  } = useFetchSpanTimeSeries(
     {
-      fields: [groupBy],
-      topN: 2,
+      groupBy: [groupBy],
+      topEvents: 2,
       yAxis: [
         'avg(measurements.time_to_initial_display)',
         'avg(measurements.time_to_full_display)',
         'count()',
       ],
-      search,
+      query,
     },
     referrer
   );
@@ -187,9 +188,9 @@ export function ScreenCharts({additionalFilters}: Props) {
     return (
       <Fragment>
         <ChartContainer>
-          <ScreensBarChart search={search} type="ttid" chartHeight={150} />
+          <ScreensBarChart search={query} type="ttid" chartHeight={150} />
           <InsightsLineChartWidget
-            queryInfo={{search, groupBy: [groupBy], referrer}}
+            queryInfo={{search: query, groupBy: [groupBy], referrer}}
             title={t('Average TTID')}
             series={seriesMap['avg(measurements.time_to_initial_display)']}
             isLoading={isSeriesLoading}
@@ -200,7 +201,7 @@ export function ScreenCharts({additionalFilters}: Props) {
             height="100%"
           />
           <InsightsLineChartWidget
-            queryInfo={{search, groupBy: [groupBy], referrer}}
+            queryInfo={{search: query, groupBy: [groupBy], referrer}}
             title={CHART_TITLES[YAxis.COUNT]}
             series={seriesMap['count()']}
             isLoading={isSeriesLoading}
@@ -210,9 +211,9 @@ export function ScreenCharts({additionalFilters}: Props) {
             showLegend="always"
             height="100%"
           />
-          <ScreensBarChart search={search} type="ttfd" chartHeight={150} />
+          <ScreensBarChart search={query} type="ttfd" chartHeight={150} />
           <InsightsLineChartWidget
-            queryInfo={{search, groupBy: [groupBy], referrer}}
+            queryInfo={{search: query, groupBy: [groupBy], referrer}}
             title={t('Average TTFD')}
             series={seriesMap['avg(measurements.time_to_full_display)']}
             isLoading={isSeriesLoading}
