@@ -388,7 +388,10 @@ def _get_stacktrace_hashing_metadata(
     ),
 ) -> StacktraceHashingMetadata:
     return {
-        "stacktrace_type": "in_app" if contributing_variant.variant_name == "app" else "system",
+        # When the app and system stacktraces match (because all frames are in-app), we switch the
+        # variant name to `default` so the UI stops specifying one or the other, but we still want
+        # those to count as in-app
+        "stacktrace_type": "system" if contributing_variant.variant_name == "system" else "in_app",
         "stacktrace_location": (
             "exception"
             if "exception" in contributing_variant.description
