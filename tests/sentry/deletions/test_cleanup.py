@@ -19,7 +19,7 @@ MORE_THAN_RETENTION_DAYS = before_now(days=RETENTION_DAYS + 1).isoformat()
 # TransactionTestCase is needed to ensure that the events are stored in the same transaction
 # as the cleanup process since it uses raw SQL queries and cannot see test transactions
 class TestGroupDeletion(TransactionTestCase):
-    """Test cleanup with disable_multiprocessing=True."""
+    """Test cleanup."""
 
     def _create_group(
         self,
@@ -53,13 +53,7 @@ class TestGroupDeletion(TransactionTestCase):
         assert Group.objects.count() == 2
         assert GroupHash.objects.count() == 2
 
-        _cleanup(
-            model=("Group",),
-            days=RETENTION_DAYS,
-            router="default",
-            silent=True,
-            disable_multiprocessing=True,
-        )
+        _cleanup(model=("Group",), days=RETENTION_DAYS, router="default", silent=True)
 
         assert Group.objects.filter(id=group_id).exists()
         assert Group.objects.count() == 1
@@ -77,7 +71,6 @@ class TestGroupDeletion(TransactionTestCase):
             days=RETENTION_DAYS,
             router="default",
             silent=True,
-            disable_multiprocessing=True,
         )
 
         assert Group.objects.count() == 0
@@ -94,13 +87,7 @@ class TestGroupDeletion(TransactionTestCase):
         assert GroupHash.objects.count() == 2
         assert Group.objects.count() == 2
 
-        _cleanup(
-            model=("Group",),
-            days=RETENTION_DAYS,
-            router="default",
-            silent=True,
-            disable_multiprocessing=True,
-        )
+        _cleanup(model=("Group",), days=RETENTION_DAYS, router="default", silent=True)
 
         assert Group.objects.count() == 0
         assert GroupHash.objects.count() == 0

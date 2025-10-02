@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import os
-import sys
 import time
 from collections.abc import Callable, Sequence
 from datetime import timedelta
@@ -21,7 +20,6 @@ from sentry.runner import configure
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
 
-PYTEST_IN_MODULES = "pytest" in sys.modules
 logger = logging.getLogger("sentry.cleanup")
 
 
@@ -84,12 +82,8 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
 
 
 def process_deletion_task(model_name: str, chunk: Sequence[int]) -> None:
-    # Configure sentry if we're not running inside of pytest
-    # Tests already configure the app before calling _cleanup(),
-    # thus, we do it here to avoid conflicts when running tests
-    if not PYTEST_IN_MODULES:
-        # We need to do this for processes spawned by multiprocessing
-        configure()
+    # We need to do this for processes spawned by multiprocessing
+    configure()
 
     from sentry import deletions, models, similarity
     from sentry.utils.imports import import_string
@@ -182,7 +176,6 @@ def _cleanup(
     silent: bool = False,
     router: str | None = None,
     timed: bool = False,
-    disable_multiprocessing: bool = False,
 ) -> None:
     import logging
 
@@ -196,8 +189,7 @@ def _cleanup(
     if silent:
         os.environ["SENTRY_CLEANUP_SILENT"] = "1"
 
-    if not disable_multiprocessing:
-        pool, task_queue = start_pool(concurrency)
+    pool, task_queue = start_pool(concurrency)
 
     try:
         from django.db import router as db_router
@@ -289,13 +281,9 @@ def _cleanup(
                 )
 
                 for chunk in q.iterator(chunk_size=100):
-                    if not disable_multiprocessing:
-                        task_queue.put((imp, chunk))
-                    else:
-                        process_deletion_task(imp, chunk)
+                    task_queue.put((imp, chunk))
 
-                if not disable_multiprocessing:
-                    task_queue.join()
+                task_queue.join()
 
         project_deletion_query, to_delete_by_project = prepare_deletes_by_project(
             project, project_id, is_filtered
@@ -323,13 +311,9 @@ def _cleanup(
                         order_by=order_by,
                     )
                     for chunk in q.iterator(chunk_size=100):
-                        if not disable_multiprocessing:
-                            task_queue.put((imp, chunk))
-                        else:
-                            process_deletion_task(imp, chunk)
+                        task_queue.put((imp, chunk))
 
-            if not disable_multiprocessing:
-                task_queue.join()
+            task_queue.join()
 
         organization_deletion_query, to_delete_by_organization = prepare_deletes_by_organization(
             organization, organization_id, is_filtered
@@ -358,19 +342,14 @@ def _cleanup(
                     )
 
                     for chunk in q.iterator(chunk_size=100):
-                        if not disable_multiprocessing:
-                            task_queue.put((imp, chunk))
-                        else:
-                            process_deletion_task(imp, chunk)
+                        task_queue.put((imp, chunk))
 
-        if not disable_multiprocessing:
-            task_queue.join()
+        task_queue.join()
 
         remove_file_blobs(is_filtered, silent, models_attempted)
 
     finally:
-        if not disable_multiprocessing:
-            stop_pool(pool, task_queue)
+        stop_pool(pool, task_queue)
 
     if timed and start_time:
         duration = int(time.time() - start_time)
