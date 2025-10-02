@@ -3,6 +3,7 @@
 # from rest_framework.request import Request
 # from rest_framework.response import Response
 
+from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,6 +16,8 @@ from sentry.hybridcloud.rpc import RpcUserOrganizationContext
 from sentry.integrations.api.serializers.rest_framework.data_forwarder import (
     DataForwarderSerializer,
 )
+from sentry.integrations.models.data_forwarder import DataForwarder
+from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 
 
 class OrganizationDataForwardingPermission(OrganizationPermission):
@@ -53,4 +56,20 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         organization_context: RpcUserOrganizationContext,
         data_forwarder_id: int,
     ) -> Response:
-        return self.respond(serialize(organization_context.organization, request.user))
+        # also removes project overrides associated with the data forwarder
+
+        if not request.user.is_authenticated:
+            return Response(status=401)
+
+        try:
+            data_forwarder = DataForwarder.objects.get(
+                id=data_forwarder_id, organization_id=organization_context.organization.id
+            )
+        except DataForwarder.DoesNotExist:
+            return self.respond(status=404)
+
+        with transaction.atomic(router.db_for_write(DataForwarder)):
+            DataForwarderProject.objects.filter(data_forwarder=data_forwarder).delete()
+            data_forwarder.delete()
+
+        return Response(serialize(data_forwarder, request.user), status=202)

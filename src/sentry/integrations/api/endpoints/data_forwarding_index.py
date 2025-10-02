@@ -30,7 +30,7 @@ class OrganizationDataForwardingDetailsPermission(OrganizationPermission):
 
 @region_silo_endpoint
 @extend_schema(tags=["Integrations"])
-class DataForwardingDetailsEndpoint(OrganizationEndpoint):
+class DataForwardingIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,  # TODO: might need to change
