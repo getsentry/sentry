@@ -933,12 +933,19 @@ def handle_has_seen(
     if has_seen:
         for group in group_list:
             if is_member_map.get(group.project_id):
+                now = django_timezone.now()
+                values = {"last_seen": now}
+
+                # Add last_day_seen if the option is enabled
+                if options.get("groupseen.last_day_seen.enabled"):
+                    values["last_day_seen"] = now.date()
+
                 create_or_update(
                     GroupSeen,
                     group=group,
                     user_id=user_id,
                     project=project_lookup[group.project_id],
-                    values={"last_seen": django_timezone.now()},
+                    values=values,
                 )
     elif has_seen is False and user_id is not None:
         GroupSeen.objects.filter(

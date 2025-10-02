@@ -621,6 +621,48 @@ class TestHandleHasSeen(TestCase):
 
         assert not GroupSeen.objects.filter(group=self.group, user_id=self.user.id).exists()
 
+    def test_has_seen_last_day_seen_enabled(self) -> None:
+        from sentry import options
+
+        with self.options({"groupseen.last_day_seen.enabled": True}):
+            handle_has_seen(True, self.group_list, self.project_lookup, [self.project], self.user)
+
+            group_seen = GroupSeen.objects.get(group=self.group, user_id=self.user.id)
+            assert group_seen.last_day_seen is not None
+            assert group_seen.last_day_seen == group_seen.last_seen.date()
+
+    def test_has_seen_last_day_seen_disabled(self) -> None:
+        from sentry import options
+
+        with self.options({"groupseen.last_day_seen.enabled": False}):
+            handle_has_seen(True, self.group_list, self.project_lookup, [self.project], self.user)
+
+            group_seen = GroupSeen.objects.get(group=self.group, user_id=self.user.id)
+            assert group_seen.last_day_seen is None
+
+    def test_has_seen_last_day_seen_updates_on_different_days(self) -> None:
+        from sentry import options
+        from datetime import date, timedelta
+        from unittest.mock import patch
+        from django.utils import timezone
+
+        with self.options({"groupseen.last_day_seen.enabled": True}):
+            # First, mark as seen on day 1
+            day1 = timezone.now()
+            with patch('django.utils.timezone.now', return_value=day1):
+                handle_has_seen(True, self.group_list, self.project_lookup, [self.project], self.user)
+
+            group_seen = GroupSeen.objects.get(group=self.group, user_id=self.user.id)
+            assert group_seen.last_day_seen == day1.date()
+
+            # Mark as seen on day 2 (next day)
+            day2 = day1 + timedelta(days=1)
+            with patch('django.utils.timezone.now', return_value=day2):
+                handle_has_seen(True, self.group_list, self.project_lookup, [self.project], self.user)
+
+            group_seen.refresh_from_db()
+            assert group_seen.last_day_seen == day2.date()
+
 
 class TestHandleIsPublic(TestCase):
     def setUp(self) -> None:

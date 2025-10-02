@@ -19,6 +19,7 @@ class GroupSeen(Model):
     group = FlexibleForeignKey("sentry.Group")
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", db_index=False)
     last_seen = models.DateTimeField(default=timezone.now)
+    last_day_seen = models.DateField(default=timezone.now, db_index=True, null=True)
 
     class Meta:
         app_label = "sentry"
