@@ -48,7 +48,7 @@ def test_export_replay_row_set(replay_store) -> None:  # type: ignore[no-untyped
     replay1_id = "030c5419-9e0f-46eb-ae18-bfe5fd0331b5"
     replay2_id = "0dbda2b3-9286-4ecc-a409-aa32b241563d"
     replay3_id = "ff08c103-a9a4-47c0-9c29-73b932c2da34"
-    t0 = datetime.datetime.now()
+    t0 = datetime.datetime(year=2025, month=1, day=1)
     t1 = t0 + datetime.timedelta(seconds=30)
     t2 = t0 + datetime.timedelta(minutes=1)
 
@@ -66,9 +66,16 @@ def test_export_replay_row_set(replay_store) -> None:  # type: ignore[no-untyped
             self.contents = contents
 
     sink = Sink()
-    export_replay_row_set(1, t0, t2, limit=1, initial_offset=0, write_to_storage=sink)
+    project_id = 1
+    initial_offset = 0
+    export_replay_row_set(
+        project_id, t0, t2, limit=100, initial_offset=initial_offset, write_to_storage=sink
+    )
 
-    assert sink.filename is not None
+    assert (
+        sink.filename
+        == f"clickhouse/session-replay/{project_id}/{t0.isoformat()}/{t2.isoformat()}/{initial_offset}"
+    )
     assert sink.contents is not None
 
     csvfile = csv.reader(sink.contents.splitlines())
