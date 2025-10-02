@@ -1,11 +1,10 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text/heading';
 import {Text} from 'sentry/components/core/text/text';
 import {IconChevron} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {
   PRCommentsData,
   PullRequestDetailsSuccessResponse,
@@ -102,38 +101,62 @@ function PRFilesList({files, commentsData}: PRFilesListProps) {
 
   return (
     <Flex direction="column" gap="md">
-      <Heading as="h2" size="md">
-        Files ({files.length}){' '}
-        <FileStats>
+      <Flex align="center" gap="sm">
+        <Heading as="h2" size="md">
+          Files ({files.length})
+        </Heading>
+        <Text size="sm" variant="muted">
           +{totalStats.additions} -{totalStats.deletions}
-        </FileStats>
-      </Heading>
+        </Text>
+      </Flex>
       {files.map(file => {
         const isExpanded = expandedFiles[file.filename] ?? true;
         const fileComments = commentsData?.file_comments[file.filename] || [];
 
         return (
-          <PRFileItem key={file.filename}>
-            <PRFileHeader onClick={() => toggleFileExpanded(file.filename)}>
-              <PRFileHeaderLeft align="center" gap="md">
+          <Container
+            key={file.filename}
+            border="primary"
+            radius="md"
+            background="secondary"
+          >
+            <Flex
+              justify="between"
+              align="center"
+              padding="sm lg"
+              background="secondary"
+              borderBottom="primary"
+              radius="md md 0 0"
+              style={{cursor: 'pointer', userSelect: 'none'}}
+              onClick={() => toggleFileExpanded(file.filename)}
+            >
+              <Flex align="center" gap="md">
                 <CollapseIcon direction={isExpanded ? 'down' : 'right'} size="xs" />
-                <PRFileName>{file.filename}</PRFileName>
+                <Text monospace size="sm" bold>
+                  {file.filename}
+                </Text>
                 {fileComments.length > 0 && (
-                  <CommentsCount>
-                    {fileComments.length} comment{fileComments.length === 1 ? '' : 's'}
-                  </CommentsCount>
+                  <Container background="primary" padding="xs sm" radius="sm">
+                    <Text size="sm" variant="accent">
+                      {fileComments.length} comment{fileComments.length === 1 ? '' : 's'}
+                    </Text>
+                  </Container>
                 )}
-              </PRFileHeaderLeft>
-              <PRFileStats gap="md">
-                <AdditionCount>+{file.additions}</AdditionCount>
-                <DeletionCount>-{file.deletions}</DeletionCount>
+              </Flex>
+              <Flex gap="md" align="center">
+                <Text size="xs" variant="success">
+                  +{file.additions}
+                </Text>
+                <Text size="xs" variant="danger">
+                  -{file.deletions}
+                </Text>
                 <Text size="xs" monospace>
                   ({file.status})
                 </Text>
-              </PRFileStats>
-            </PRFileHeader>
+              </Flex>
+            </Flex>
             {isExpanded && file.patch && (
-              <PRFileDiff>
+              <Container background="secondary" overflowX="auto" radius="0 0 md md">
                 <DiffTable>
                   <tbody>
                     {parsePatch(file.patch).map((line, lineIndex) => {
@@ -155,76 +178,18 @@ function PRFilesList({files, commentsData}: PRFilesListProps) {
                     })}
                   </tbody>
                 </DiffTable>
-              </PRFileDiff>
+              </Container>
             )}
-          </PRFileItem>
+          </Container>
         );
       })}
     </Flex>
   );
 }
 
-const PRFileItem = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.background};
-`;
-
-const PRFileHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: ${space(0.75)} ${space(1.5)};
-  background: ${p => p.theme.backgroundElevated};
-  border-bottom: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
-  cursor: pointer;
-  user-select: none;
-
-  &:hover {
-    background: ${p => p.theme.gray100};
-  }
-`;
-
-const PRFileHeaderLeft = styled(Flex)``;
-
 const CollapseIcon = styled(IconChevron)`
   color: ${p => p.theme.gray300};
   transition: transform 0.2s ease;
-`;
-
-const PRFileStats = styled(Flex)`
-  font-size: 11px;
-  align-items: center;
-`;
-
-const PRFileName = styled(Text)`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: 12px;
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const CommentsCount = styled('span')`
-  background: ${p => p.theme.blue100};
-  color: ${p => p.theme.blue300};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  padding: ${space(0.25)} ${space(0.5)};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const AdditionCount = styled('span')`
-  color: ${p => p.theme.successText};
-`;
-
-const DeletionCount = styled('span')`
-  color: ${p => p.theme.errorText};
-`;
-
-const PRFileDiff = styled('div')`
-  background: ${p => p.theme.background};
-  overflow-x: auto;
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
 `;
 
 const DiffTable = styled('table')`
@@ -297,7 +262,7 @@ const DiffRow = styled('tr')`
 
 const LineNumber = styled('td')`
   width: 50px;
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   text-align: right;
   border-right: 1px solid ${p => p.theme.border};
   background-color: ${p => p.theme.backgroundElevated};
@@ -316,7 +281,7 @@ const LineNumber = styled('td')`
 `;
 
 const DiffContent = styled('td')`
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   white-space: pre;
   line-height: 1.4;
   vertical-align: top;
@@ -327,13 +292,6 @@ const DiffContent = styled('td')`
     font-family: inherit;
     font-size: inherit;
   }
-`;
-
-const FileStats = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
-  margin-left: ${space(1)};
 `;
 
 export default PRFilesList;
