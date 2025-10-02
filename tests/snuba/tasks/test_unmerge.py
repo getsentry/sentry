@@ -10,7 +10,7 @@ from unittest import mock
 from unittest.mock import patch
 
 from django.db import DEFAULT_DB_ALIAS, connections
-from django.test.utils import CaptureQueriesContext, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry import eventstream, tsdb
@@ -36,7 +36,6 @@ from sentry.tasks.unmerge import (
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import redis
 
@@ -175,7 +174,6 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             "first_release": None,
         }
 
-    @with_feature("projects:similarity-indexing")
     @mock.patch("sentry.analytics.record")
     def test_unmerge(self, mock_record) -> None:
         now = before_now(minutes=5).replace(microsecond=0)
@@ -612,59 +610,33 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         assert destination_similar_items[1][0] == source.id
         assert destination_similar_items[1][1]["message:message:character-shingles"] < 1.0
 
-    @with_feature("projects:similarity-indexing")
     def test_unmerge_prevents_n_plus_one_queries(self) -> None:
         """Test that unmerge caches project on events to prevent N+1 queries."""
-        now = before_now(minutes=5).replace(microsecond=0)
 
-        def time_from_now(offset=0):
-            return now + timedelta(seconds=offset)
-
-        # Create a group with multiple events
-        source = self.create_group(
-            platform="javascript",
-            metadata={"sdk": {"name_normalized": "sentry.javascript.nextjs"}},
-        )
-
-        # Create 5 events to increase the chances of detecting N+1 queries
-        events = []
         for i in range(5):
-            event = self.store_event(
+            self.store_event(
                 data={
                     "message": f"Hello world {i}",
                     "platform": "javascript",
-                    "timestamp": time_from_now(i).isoformat(),
-                    "received": time_from_now(i).isoformat(),
-                    "fingerprint": ["group-1"],
+                    "timestamp": before_now(minutes=1).isoformat(),
                     "tags": {"release": "1.0.0"},
                 },
                 project_id=self.project.id,
             )
-            events.append(event)
-
-        # Merge all events into source group
-        source.update(first_seen=time_from_now(0), last_seen=time_from_now(4))
-
-        # Create group hashes that we'll unmerge
-        fingerprints = []
-        for i, event in enumerate(events):
-            hash_val = hashlib.md5(f"unmerge-hash-{i}".encode()).hexdigest()
-            fingerprints.append(hash_val)
-            GroupHash.objects.create(
-                project=self.project,
-                group=source,
-                hash=hash_val,
-            )
+        group = Group.objects.all().first()
+        assert group is not None
+        event = group.get_latest_event()
+        assert event is not None
 
         # Test that unmerge operation doesn't perform excessive queries
         with CaptureQueriesContext(connections[DEFAULT_DB_ALIAS]) as queries:
             with self.tasks():
                 unmerge.delay(
-                    self.project.id,
-                    source.id,
-                    None,
-                    [fingerprints[0]],  # Unmerge just one hash
-                    None,
+                    project_id=self.project.id,
+                    source_id=group.id,
+                    destination_id=None,
+                    fingerprints=[event.get_primary_hash()],  # Unmerge just one hash
+                    actor_id=None,
                     batch_size=10,
                 )
 
@@ -675,16 +647,11 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             if "sentry_project" in q["sql"].lower() and "select" in q["sql"].lower()
         ]
 
-        # With the fix, we should have very few project queries (ideally just 1-2)
-        # Without the fix, we would see one query per event (N+1 pattern)
-        print(f"Project queries count: {len(project_queries)}")
-        for i, query in enumerate(project_queries):
-            print(f"Query {i+1}: {query['sql']}")
-
         # The key assertion: we should have minimal project queries, not one per event
         # Before the fix: this would be >= 5 (one for each event)
         # After the fix: this should be <= 2 (cached access)
         assert len(project_queries) <= 2, (
             f"Expected <= 2 project queries (cached access), but got {len(project_queries)}. "
-            "This indicates N+1 query issue - events are not using cached project data."
+            "This indicates N+1 query issue - events are not using cached project data. "
+            f"Queries: {[q['sql'] for q in project_queries]}"
         )
