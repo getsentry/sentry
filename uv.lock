@@ -2069,7 +2069,7 @@ requires-dist = [
     { name = "rfc3986-validator", specifier = ">=0.1.1" },
     { name = "sentry-arroyo", specifier = ">=2.25.5" },
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
-    { name = "sentry-kafka-schemas", specifier = ">=2.1.4" },
+    { name = "sentry-kafka-schemas", specifier = ">=2.1.6" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
     { name = "sentry-protos", specifier = ">=0.4.0" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
@@ -2240,7 +2240,7 @@ wheels = [
 
 [[package]]
 name = "sentry-kafka-schemas"
-version = "2.1.4"
+version = "2.1.6"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "fastjsonschema", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2251,7 +2251,7 @@ dependencies = [
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_kafka_schemas-2.1.4-py2.py3-none-any.whl", hash = "sha256:37de4a4f046fb89f959696356c1fa4cad4b487d6a462468ef1aeb55afcacd856" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_kafka_schemas-2.1.6-py2.py3-none-any.whl", hash = "sha256:385e43b268c81a822fd88fc797f6143d79e3b4c9de86ce67a974b07ddbdcb25f" },
 ]
 
 [[package]]
