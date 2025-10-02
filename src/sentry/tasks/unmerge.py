@@ -60,25 +60,32 @@ def cache(function):
     return fetch
 
 
+# Module-level cache to persist across task iterations
+_global_caches = None
+
+
 def get_caches():
-    return {
-        "Environment": cache(
-            lambda organization_id, name: Environment.objects.get(
-                organization_id=organization_id, name=name
-            )
-        ),
-        "GroupRelease": cache(
-            lambda group_id, environment, release_id: GroupRelease.objects.get(
-                group_id=group_id, environment=environment, release_id=release_id
-            )
-        ),
-        "Project": cache(lambda id: Project.objects.get(id=id)),
-        "Release": cache(
-            lambda organization_id, version: Release.objects.get(
-                organization_id=organization_id, version=version
-            )
-        ),
-    }
+    global _global_caches
+    if _global_caches is None:
+        _global_caches = {
+            "Environment": cache(
+                lambda organization_id, name: Environment.objects.get(
+                    organization_id=organization_id, name=name
+                )
+            ),
+            "GroupRelease": cache(
+                lambda group_id, environment, release_id: GroupRelease.objects.get(
+                    group_id=group_id, environment=environment, release_id=release_id
+                )
+            ),
+            "Project": cache(lambda id: Project.objects.get(id=id)),
+            "Release": cache(
+                lambda organization_id, version: Release.objects.get(
+                    organization_id=organization_id, version=version
+                )
+            ),
+        }
+    return _global_caches
 
 
 def merge_mappings(values):
@@ -505,7 +512,6 @@ def unmerge(*posargs, **kwargs):
     source = Group.objects.get(project_id=args.project_id, id=args.source_id)
 
     caches = get_caches()
-
     project = caches["Project"](args.project_id)
 
     # On the first iteration of this loop, we clear out all of the

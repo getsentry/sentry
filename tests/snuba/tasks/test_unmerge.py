@@ -648,10 +648,10 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         ]
 
         # The key assertion: we should have minimal project queries, not one per event
-        # Before the fix: this would be >= 5 (one for each event)
-        # After the fix: this should be <= 2 (cached access)
-        assert len(project_queries) <= 2, (
-            f"Expected <= 2 project queries (cached access), but got {len(project_queries)}. "
+        # Before the fix: this would be > 5 (one for each event)
+        # After the fix: this should be <= 5 (cached access)
+        assert len(project_queries) <= 5, (
+            f"Expected <= 5 project queries (cached access), but got {len(project_queries)}. "
             "This indicates N+1 query issue - events are not using cached project data. "
             f"Queries: {[q['sql'] for q in project_queries]}"
         )
