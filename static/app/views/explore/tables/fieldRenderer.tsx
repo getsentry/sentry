@@ -17,7 +17,7 @@ import {Container} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -243,7 +243,7 @@ function spanDescriptionRenderFunc(projects: Record<string, Project>) {
               />
             )}
             <WrappingText>
-              {isUrl(value) ? (
+              {isValidUrl(value) ? (
                 <ExternalLink href={value}>{value}</ExternalLink>
               ) : (
                 nullableValue(value)
