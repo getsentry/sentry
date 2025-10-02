@@ -3,7 +3,6 @@ import type {ReactNode} from 'react';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
 
@@ -13,9 +12,7 @@ function Wrapper({children}: {children: ReactNode}) {
       analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
       source="location"
     >
-      <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
-        {children}
-      </LogsPageParamsProvider>
+      {children}
     </LogsQueryParamsProvider>
   );
 }

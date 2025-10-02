@@ -84,8 +84,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:continuous-profiling-vroomrs-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable transaction profiles processing with vroomrs
     manager.add("projects:transaction-profiling-vroomrs-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Disable certain detectors (based on platform) upon Project creation
-    manager.add("organizations:disable-detectors-on-project-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable querying profile candidates with exponentially growing datetime range chunks
     manager.add("organizations:profiling-flamegraph-use-increased-chunks-query-strategy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable daily summary
@@ -174,9 +172,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:issue-taxonomy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:metric-issue-poc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("projects:metric-issue-creation", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable writing to the IncidentGroupOpenPeriod model
-    manager.add("organizations:incident-group-open-period-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=False)
-    manager.add("organizations:issue-open-periods", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=False)
     # Enable Large HTTP Payload Detector Improvements
     manager.add("organizations:large-http-payload-detector-improvements", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:mep-rollout-flag", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -293,7 +288,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:pr-page", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the playstation ingestion in relay
     manager.add("organizations:relay-playstation-ingestion", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    # Enables OTLP Trace ingestion in Relay for an entire org (see also `projects:relay-otel-endpoint`)
+    # Enables OTLP Trace ingestion in Relay for an entire org.
     manager.add("organizations:relay-otlp-traces-endpoint", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables OTLP Log ingestion in Relay for an entire org.
     manager.add("organizations:relay-otel-logs-endpoint", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -627,8 +622,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Starfish: extract metrics from the spans
     manager.add("projects:span-metrics-extraction", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     manager.add("projects:span-metrics-extraction-addons", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    # Enables OTLP Trace ingestion in Relay for a project (see also `organizations:relay-otlp-traces-endpoint`)
-    manager.add("projects:relay-otel-endpoint", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # EAP: extremely experimental flag that makes DDM page use EAP tables
     manager.add("projects:use-eap-spans-for-metrics-explorer", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable num events in an issue debugging

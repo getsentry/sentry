@@ -32,6 +32,19 @@ function renderAIResponse(text: string) {
   );
 }
 
+export function hasAIOutputAttribute(
+  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>,
+  attributes?: TraceItemResponseAttribute[],
+  event?: EventTransaction
+) {
+  return (
+    getTraceNodeAttribute('gen_ai.response.text', node, event, attributes) ||
+    getTraceNodeAttribute('gen_ai.response.object', node, event, attributes) ||
+    getTraceNodeAttribute('gen_ai.response.tool_calls', node, event, attributes) ||
+    getTraceNodeAttribute('gen_ai.tool.output', node, event, attributes)
+  );
+}
+
 export function AIOutputSection({
   node,
   attributes,
@@ -43,6 +56,9 @@ export function AIOutputSection({
 }) {
   const organization = useOrganization();
   if (!hasAgentInsightsFeature(organization) && getIsAiNode(node)) {
+    return null;
+  }
+  if (!hasAIOutputAttribute(node, attributes, event)) {
     return null;
   }
 
