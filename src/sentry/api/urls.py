@@ -709,6 +709,7 @@ from .endpoints.organization_onboarding_continuation_email import (
 )
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
+from .endpoints.organization_prevent_github_repos import OrganizationPreventGitHubReposEndpoint
 from .endpoints.organization_profiling_functions import OrganizationProfilingFunctionTrendsEndpoint
 from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunksEndpoint,
@@ -2107,6 +2108,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/repos/(?P<repo_id>[^/]+)/commits/$",
         OrganizationRepositoryCommitsEndpoint.as_view(),
         name="sentry-api-0-organization-repository-commits",
+    ),
+    # Prevent AI endpoints
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/prevent/github/repos/$",
+        OrganizationPreventGitHubReposEndpoint.as_view(),
+        name="sentry-api-0-organization-prevent-github-repos",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/plugins/$",
