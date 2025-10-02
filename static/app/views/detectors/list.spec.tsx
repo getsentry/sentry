@@ -497,11 +497,7 @@ describe('DetectorsList', () => {
       const searchInput = await screen.findByRole('combobox', {
         name: 'Add a search term',
       });
-      await userEvent.type(searchInput, 'assignee:test@example.com');
-
-      // It takes two enters. One to enter the search term, and one to submit the search.
-      await userEvent.keyboard('{enter}');
-      await userEvent.keyboard('{enter}');
+      await userEvent.type(searchInput, 'assignee:test@example.com{enter}');
 
       // Wait for filtered results to load
       await screen.findByText('Assigned Detector 1');
