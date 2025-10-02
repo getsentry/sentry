@@ -110,7 +110,7 @@ def _ensure_monitor_with_config(
         monitor.update(is_upserting=False)
 
     if not config:
-        return [monitor, non_fatal_processing_error]
+        return (monitor, non_fatal_processing_error)
 
     # The upsert payload doesn't quite match the api one. Pop out the owner here since
     # it's not part of the monitor config
@@ -157,7 +157,7 @@ def _ensure_monitor_with_config(
                 "errors": validator.errors,
             }
             raise ProcessingErrorsException([error])
-        return [monitor, non_fatal_processing_error]
+        return (monitor, non_fatal_processing_error)
 
     validated_config = validator.validated_data
     created = False
@@ -192,7 +192,7 @@ def _ensure_monitor_with_config(
         ):
             monitor.update(owner_user_id=owner_user_id, owner_team_id=owner_team_id)
 
-    return [monitor, non_fatal_processing_error]
+    return (monitor, non_fatal_processing_error)
 
 
 def check_killswitch(
