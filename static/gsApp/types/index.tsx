@@ -34,6 +34,12 @@ declare global {
      */
     pendo?: any; // TODO: use types package
   }
+
+  namespace React {
+    interface DOMAttributes<T> {
+      'data-test-id'?: string;
+    }
+  }
 }
 
 /**
