@@ -353,6 +353,88 @@ class GroupUpdateTest(APITestCase):
         assert group_resolution.status == GroupResolution.Status.pending
         assert group_resolution.release.version == most_recent_version.version
 
+    def test_resolved_in_next_release_with_status_details(self) -> None:
+        """Test the modern statusDetails format for resolving in next release."""
+        self.login_as(user=self.user)
+        project = self.create_project_with_releases()
+        group = self.create_group_with_no_release(project)
+
+        # Two releases are created, the most recent one will be used for group resolution
+        Release.get_or_create(version="abcd", project=group.project)
+        most_recent_version = Release.get_or_create(version="def", project=group.project)
+        assert group.status == GroupStatus.UNRESOLVED
+        assert GroupResolution.objects.all().count() == 0
+
+        url = f"/api/0/issues/{group.id}/"
+        response = self.client.put(url, data={
+            "status": "resolved",
+            "statusDetails": {"inNextRelease": True}
+        }, format="json")
+        assert response.status_code == 200, response.content
+
+        # Refetch from DB to ensure the latest state is fetched
+        group = Group.objects.get(id=group.id, project=group.project.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        group_resolution = GroupResolution.objects.filter(group=group).first()
+        assert group_resolution is not None
+        assert group_resolution.group == group
+        assert group_resolution.type == GroupResolution.Type.in_next_release
+        assert group_resolution.status == GroupResolution.Status.pending
+        assert group_resolution.release.version == most_recent_version.version
+
+        # Verify the response data format
+        assert response.data["status"] == "resolved"
+        assert response.data["statusDetails"]["inNextRelease"] is True
+
+    def test_resolve_in_next_release_consistency(self) -> None:
+        """Test that both legacy and modern formats produce identical results."""
+        self.login_as(user=self.user)
+
+        # Test legacy format
+        project1 = self.create_project_with_releases()
+        group1 = self.create_group_with_no_release(project1)
+        Release.get_or_create(version="v1.0", project=project1)
+        most_recent_v1 = Release.get_or_create(version="v2.0", project=project1)
+
+        url1 = f"/api/0/issues/{group1.id}/"
+        response1 = self.client.put(url1, data={"status": "resolvedInNextRelease"})
+        assert response1.status_code == 200
+
+        # Test modern format
+        project2 = self.create_project_with_releases()
+        group2 = self.create_group_with_no_release(project2)
+        Release.get_or_create(version="v1.0", project=project2)
+        most_recent_v2 = Release.get_or_create(version="v2.0", project=project2)
+
+        url2 = f"/api/0/issues/{group2.id}/"
+        response2 = self.client.put(url2, data={
+            "status": "resolved",
+            "statusDetails": {"inNextRelease": True}
+        }, format="json")
+        assert response2.status_code == 200
+
+        # Both groups should have identical resolution behavior
+        group1 = Group.objects.get(id=group1.id)
+        group2 = Group.objects.get(id=group2.id)
+
+        assert group1.status == group2.status == GroupStatus.RESOLVED
+
+        resolution1 = GroupResolution.objects.get(group=group1)
+        resolution2 = GroupResolution.objects.get(group=group2)
+
+        # Both should have the same resolution type and status
+        assert resolution1.type == resolution2.type == GroupResolution.Type.in_next_release
+        assert resolution1.status == resolution2.status == GroupResolution.Status.pending
+
+        # Both should be associated with the most recent release
+        assert resolution1.release == most_recent_v1
+        assert resolution2.release == most_recent_v2
+
+        # Both response formats should contain inNextRelease
+        assert response1.data["statusDetails"]["inNextRelease"] is True
+        assert response2.data["statusDetails"]["inNextRelease"] is True
+
     def create_project_with_releases(self) -> Project:
         project = self.create_project()
         project.flags.has_releases = True

@@ -212,15 +212,15 @@
             "properties": {
               "status": {
                 "type": "string",
-                "description": "The new status for the issues. Valid values are `\"resolved\"`, `\"resolvedInNextRelease\"`, `\"unresolved\"`, and `\"ignored\"`."
+                "description": "The new status for the issues. Valid values are `\"resolved\"`, `\"resolvedInNextRelease\"` (legacy format), `\"unresolved\"`, and `\"ignored\"`. For next release resolution, prefer using `\"resolved\"` with `statusDetails.inNextRelease: true`."
               },
               "statusDetails": {
                 "type": "object",
-                "description": "Additional details about the resolution. Supported values are `\"inRelease\"`, `\"inNextRelease\"`, `\"inCommit\"`, `\"ignoreDuration\"`, `\"ignoreCount\"`, `\"ignoreWindow\"`, `\"ignoreUserCount\"`, and `\"ignoreUserWindow\"`.",
+                "description": "Additional details about the resolution. Supported values are `\"inRelease\"`, `\"inNextRelease\"`, `\"inCommit\"`, `\"ignoreDuration\"`, `\"ignoreCount\"`, `\"ignoreWindow\"`, `\"ignoreUserCount\"`, and `\"ignoreUserWindow\"`. This is the preferred modern format for detailed resolution specifications.",
                 "properties": {
                   "inNextRelease": {
                     "type": "boolean",
-                    "description": "Indicates if the issue is resolved in the next release based on the last seen release of that issue."
+                    "description": "When true, indicates the issue is resolved in the next release. Use with `status: \"resolved\"`. This is equivalent to the legacy `status: \"resolvedInNextRelease\"` format but preferred."
                   },
                   "inRelease": {
                     "type": "string",

@@ -195,7 +195,7 @@
             "properties": {
               "status": {
                 "type": "string",
-                "description": "The new status for the issues. Valid values are `\"resolved\"`, `\"resolvedInNextRelease\"`, `\"unresolved\"`, and `\"ignored\"`."
+                "description": "The new status for the issues. Valid values are `\"resolved\"`, `\"resolvedInNextRelease\"` (legacy format), `\"unresolved\"`, and `\"ignored\"`. For next release resolution, prefer using `\"resolved\"` with `statusDetails.inNextRelease: true`."
               },
               "statusDetails": {
                 "type": "object",
@@ -225,7 +225,7 @@
                     "type": "integer"
                   }
                 },
-                "description": "Additional details about the resolution. Valid values are `\"inRelease\"`, `\"inNextRelease\"`, `\"inCommit\"`, `\"ignoreDuration\"`, `\"ignoreCount\"`, `\"ignoreWindow\"`, `\"ignoreUserCount\"`, and `\"ignoreUserWindow\"`."
+                "description": "Additional details about the resolution. This is the preferred modern format for detailed resolution specifications. Valid values are `\"inRelease\"`, `\"inNextRelease\"`, `\"inCommit\"`, `\"ignoreDuration\"`, `\"ignoreCount\"`, `\"ignoreWindow\"`, `\"ignoreUserCount\"`, and `\"ignoreUserWindow\"`."
               },
               "ignoreDuration": {
                 "type": "integer",

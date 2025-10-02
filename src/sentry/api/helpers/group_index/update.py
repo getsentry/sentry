@@ -376,8 +376,13 @@ def handle_resolve_in_release(
         # TODO(jess): We may want to support this for multi project, but punting on it for now
         if len(projects) > 1:
             raise MultipleProjectsError()
-        # may not be a release yet
-        release = status_details.get("inNextRelease") or get_release_to_resolve_by(projects[0])
+        # For resolvedInNextRelease, we don't resolve to a specific release yet
+        # The release will be determined when the next release is actually created
+        if status == "resolvedInNextRelease":
+            release = None
+        else:
+            # For the new statusDetails format, get the release to resolve by
+            release = get_release_to_resolve_by(projects[0])
 
         activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
         activity_data = {

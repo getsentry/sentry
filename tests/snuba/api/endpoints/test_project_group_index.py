@@ -817,6 +817,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert activity.data["version"] == ""
 
     def test_set_resolved_in_next_release_legacy(self) -> None:
+        """Test the legacy resolvedInNextRelease status format."""
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
 
@@ -825,11 +826,16 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         url = f"{self.path}?id={group.id}"
-        response = self.client.put(url, data={"status": "resolvedInNextRelease"}, format="json")
+        response = self.client.put(
+            url,
+            data={"status": "resolvedInNextRelease"},
+            format="json",
+        )
         assert response.status_code == 200
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inNextRelease"]
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+        assert "activity" in response.data
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -848,6 +854,51 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
         assert activity.data["version"] == ""
+
+    def test_set_resolved_in_next_release_legacy_consistency(self) -> None:
+        """Test that legacy and modern formats work identically in project endpoint."""
+        release = Release.objects.create(organization_id=self.project.organization_id, version="a")
+        release.add_project(self.project)
+
+        # Test both groups with the same setup but different request formats
+        group1 = self.create_group(status=GroupStatus.UNRESOLVED)
+        group2 = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        self.login_as(user=self.user)
+
+        # Test legacy format
+        url1 = f"{self.path}?id={group1.id}"
+        response1 = self.client.put(
+            url1,
+            data={"status": "resolvedInNextRelease"},
+            format="json",
+        )
+        assert response1.status_code == 200
+        assert response1.data["status"] == "resolved"
+        assert response1.data["statusDetails"]["inNextRelease"]
+
+        # Test modern format
+        url2 = f"{self.path}?id={group2.id}"
+        response2 = self.client.put(
+            url2,
+            data={"status": "resolved", "statusDetails": {"inNextRelease": True}},
+            format="json",
+        )
+        assert response2.status_code == 200
+        assert response2.data["status"] == "resolved"
+        assert response2.data["statusDetails"]["inNextRelease"]
+
+        # Both should have identical database state
+        group1 = Group.objects.get(id=group1.id)
+        group2 = Group.objects.get(id=group2.id)
+        assert group1.status == group2.status == GroupStatus.RESOLVED
+
+        resolution1 = GroupResolution.objects.get(group=group1)
+        resolution2 = GroupResolution.objects.get(group=group2)
+
+        assert resolution1.type == resolution2.type == GroupResolution.Type.in_next_release
+        assert resolution1.status == resolution2.status == GroupResolution.Status.pending
+        assert resolution1.release == resolution2.release == release
 
     def test_set_resolved_in_explicit_commit_unreleased(self) -> None:
         repo = self.create_repo(project=self.project, name=self.project.name)
