@@ -10,7 +10,7 @@ import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import * as Storybook from 'sentry/stories';
 
-import sentryLogo from 'sentry-images/logo-sentry.svg';
+import image from 'sentry-images/spot/habitsSuccessfulCustomer.jpg';
 
 import {Image} from './image';
 
@@ -20,16 +20,18 @@ export const types = {Image: APIReference.Image};
 
 The `Image` component is a styled wrapper around the HTML `<img>` element that provides sensible defaults for lazy loading and object-fit behavior. It extends all standard HTML image attributes while adding additional functionality for modern web applications.
 
+An Image requires a `src` and `alt` prop for accessibility and functionality. Read here for more information on [alt descriptions](https://www.w3.org/WAI/tutorials/images/decision-tree/) and how to write good alt descriptions for [informative](https://www.w3.org/WAI/tutorials/images/informative/) and [complex](https://www.w3.org/WAI/tutorials/images/complex/) images.
+
 ## Basic Usage
 
 The `Image` component requires `src` and `alt` props for accessibility and functionality.
 
 <Storybook.Demo>
-  <Image src={sentryLogo} alt="Sentry logo" />
+  <Image src={image} alt="Sentry logo" />
 </Storybook.Demo>
-```jsx import sentryLogo from 'sentry-images/logo-sentry.svg';
+```jsx import image from 'sentry-images/image.png';
 
-<Image src={sentryLogo} alt="Sentry logo" />
+<Image src={image} alt="Sentry logo" />
 ```
 
 ## Using Local Images via Path Loader
@@ -37,7 +39,7 @@ The `Image` component requires `src` and `alt` props for accessibility and funct
 For local images in the codebase, you must use the path loader by importing the image file. The `sentry-images` alias resolves to the static images directory and returns a URL that can be passed to the `src` prop.
 
 ```jsx
-import emptyState from 'sentry-images/spot/feedback-empty-state.svg';
+import emptyState from 'sentry-images/spot/habitsSuccessfulCustomer.png';
 
 <Image src={emptyState} alt="Empty state illustration" />;
 ```
@@ -52,14 +54,14 @@ This approach ensures that:
 
 ```jsx
 // ❌ WRONG: Don't use relative paths
-<Image src="../../images/logo-sentry.svg" alt="Sentry logo" />
+<Image src="../../images/image.png" alt="Sentry logo" />
 
 // ❌ WRONG: Don't use string paths to static files
-<Image src="/static/images/logo-sentry.svg" alt="Sentry logo" />
+<Image src="/static/images/image.png" alt="Sentry logo" />
 
 // ✅ CORRECT: Import the image first
-import sentryLogo from 'sentry-images/logo-sentry.svg';
-<Image src={sentryLogo} alt="Sentry logo" />
+import image from 'sentry-images/image.png';
+<Image src={image} alt="Sentry logo" />
 ```
 
 ## Object Fit
@@ -73,7 +75,7 @@ The image is scaled to maintain its aspect ratio while fitting within the elemen
 <Storybook.Demo>
   <Container width="400px" height="200px" border="primary">
     <Image
-      src={sentryLogo}
+      src={image}
       alt="Sentry logo contained"
       fit="contain"
       width="100%"
@@ -81,15 +83,9 @@ The image is scaled to maintain its aspect ratio while fitting within the elemen
     />
   </Container>
 </Storybook.Demo>
-```jsx import sentryLogo from 'sentry-images/logo-sentry.svg';
+```jsx import image from 'sentry-images/image.png';
 
-<Image
-  src={sentryLogo}
-  alt="Sentry logo contained"
-  fit="contain"
-  width="100%"
-  height="100%"
-/>
+<Image src={image} alt="Sentry logo contained" fit="contain" width="100%" height="100%" />
 ```
 
 ### Cover
@@ -98,24 +94,12 @@ The image is sized to maintain its aspect ratio while filling the element's enti
 
 <Storybook.Demo>
   <Container width="400px" height="200px" border="primary">
-    <Image
-      src={sentryLogo}
-      alt="Sentry logo covered"
-      fit="cover"
-      width="100%"
-      height="100%"
-    />
+    <Image src={image} alt="Sentry logo covered" fit="cover" width="100%" height="100%" />
   </Container>
 </Storybook.Demo>
-```jsx import sentryLogo from 'sentry-images/logo-sentry.svg';
+```jsx import image from 'sentry-images/image.png';
 
-<Image
-  src={sentryLogo}
-  alt="Sentry logo covered"
-  fit="cover"
-  width="100%"
-  height="100%"
-/>
+<Image src={image} alt="Sentry logo covered" fit="cover" width="100%" height="100%" />
 ```
 
 ## Loading Behavior
@@ -127,9 +111,9 @@ The `loading` prop controls when the browser should load the image. By default, 
 Images are loaded only when they're about to enter the viewport, reducing initial page load time and bandwidth usage.
 
 ```jsx
-import sentryLogo from 'sentry-images/logo-sentry.svg';
+import image from 'sentry-images/image.png';
 
-<Image src={sentryLogo} alt="Lazy loaded Sentry logo" loading="lazy" />;
+<Image src={image} alt="Lazy loaded Sentry logo" loading="lazy" />;
 ```
 
 ### Eager Loading
@@ -137,9 +121,9 @@ import sentryLogo from 'sentry-images/logo-sentry.svg';
 Images are loaded immediately, regardless of their position in the viewport. Use this for above-the-fold images or critical content.
 
 ```jsx
-import sentryLogo from 'sentry-images/logo-sentry.svg';
+import image from 'sentry-images/image.png';
 
-<Image src={sentryLogo} alt="Eagerly loaded Sentry logo" loading="eager" />;
+<Image src={image} alt="Eagerly loaded Sentry logo" loading="eager" />;
 ```
 
 ## Image Fallback
@@ -149,14 +133,16 @@ Use the `onError` callback to handle failed image loads by providing a fallback 
 ```jsx
 import {useState} from 'react';
 
-import sentryLogo from 'sentry-images/logo-sentry.svg';
-import fallbackImage from 'sentry-images/spot/feedback-empty-state.svg';
+import image from 'sentry-images/image.png';
+import fallbackImage from 'sentry-images/spot/habitsSuccessfulCustomer.png';
 
 function ImageWithFallback() {
-  const [imageSrc, setImageSrc] = useState('https://example.com/broken-image.jpg');
-
   return (
-    <Image src={imageSrc} alt="User avatar" onError={() => setImageSrc(fallbackImage)} />
+    <Image
+      src={image}
+      alt="User avatar"
+      onError={e => (e.currentTarget.src = fallbackImage)}
+    />
   );
 }
 ```
@@ -168,8 +154,8 @@ In this example, if the primary image fails to load, the `onError` callback upda
 Use the `srcSet` and `sizes` attributes for responsive images that adapt to different screen sizes and pixel densities. Import each image size using the webpack path loader.
 
 ```jsx
-import logoSmall from 'sentry-images/logos/sentry-wordmark-dark-400x100.svg';
-import logoLarge from 'sentry-images/logos/sentry-wordmark-dark-800x200.svg';
+import logoSmall from 'sentry-images/logos/sentry-wordmark-dark-400x100.png';
+import logoLarge from 'sentry-images/logos/sentry-wordmark-dark-800x200.png';
 
 <Image
   src={logoSmall}
@@ -179,15 +165,15 @@ import logoLarge from 'sentry-images/logos/sentry-wordmark-dark-800x200.svg';
 />;
 ```
 
-**Note:** For SVG images, `srcSet` is typically not needed since SVGs are vector graphics and scale perfectly at any resolution. Use `srcSet` primarily for raster images (PNG, JPG) when you have multiple resolutions available.
-
 ## Accessibility
 
 Always provide meaningful `alt` text for images. The `alt` prop is required to ensure proper accessibility support for screen readers.
 
+[Read here about alt descriptions](https://www.w3.org/WAI/tutorials/images/decision-tree/) and how to write good alt descriptions for [informative](https://www.w3.org/WAI/tutorials/images/informative/) and [complex](https://www.w3.org/WAI/tutorials/images/complex/) images.
+
 ```jsx
-import sentryLogo from 'sentry-images/logo-sentry.svg';
-import emptyState from 'sentry-images/spot/feedback-empty-state.svg';
+import image from 'sentry-images/image.png';
+import emptyState from 'sentry-images/spot/habitsSuccessfulCustomer.jpg';
 
 // Good: Descriptive alt text
 <Image
@@ -196,5 +182,5 @@ import emptyState from 'sentry-images/spot/feedback-empty-state.svg';
 />
 
 // Bad: Generic or missing alt text
-<Image src={sentryLogo} alt="image" />
+<Image src={image} alt="image" />
 ```
