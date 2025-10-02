@@ -63,7 +63,7 @@ export function SentryComponentInspector() {
     sessionId: string | null;
     ws: WebSocket | null;
   }>({connected: false, sessionId: null, ws: null});
-  const [aiResponse, setAiResponse] = useState<string>('');
+  const [_, setAiResponse] = useState<string>('');
   const [isClaudeProcessing, setIsClaudeProcessing] = useState(false);
 
   // AI functionality handlers
@@ -739,22 +739,6 @@ const LoadingIndicatorWrapper = styled('div')<{$isProcessing: boolean}>`
   height: 12px;
   position: relative;
   flex-shrink: 0;
-`;
-
-const AiResponseContainer = styled('div')`
-  margin-top: ${space(2)};
-  padding: ${space(2)};
-  background: ${p => p.theme.backgroundSecondary};
-  border-radius: 4px;
-  max-height: 300px;
-  overflow-y: auto;
-
-  pre {
-    white-space: pre-wrap;
-    margin: ${space(1)} 0 0 0;
-    font-family: monospace;
-    font-size: 12px;
-  }
 `;
 
 function MenuItem(props: {
