@@ -1,11 +1,10 @@
+from typing import cast
+
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-from sentry.spans.consumers.process_segments.enrichment import (
-    TreeEnricher,
-    attribute_value,
-    compute_breakdowns,
-)
+from sentry.spans.consumers.process_segments.enrichment import TreeEnricher, compute_breakdowns
 from sentry.spans.consumers.process_segments.shim import make_compatible
+from sentry.spans.consumers.process_segments.types import CompatibleSpan, attribute_value
 from tests.sentry.spans.consumers.process import build_mock_span
 
 # Tests ported from Relay
@@ -425,10 +424,10 @@ def test_write_tags_for_performance_issue_detection():
         segment_span,
     ]
 
-    _, spans = TreeEnricher.enrich_spans(spans)
-    spans = [make_compatible(span) for span in spans]
+    _, enriched_spans = TreeEnricher.enrich_spans(spans)
+    compatible_spans: list[CompatibleSpan] = [make_compatible(span) for span in enriched_spans]
 
-    child_span, segment_span = spans
+    child_span, segment_span = compatible_spans
 
     assert segment_span["sentry_tags"] == {
         "sdk.name": "sentry.php.laravel",
@@ -448,24 +447,27 @@ def test_write_tags_for_performance_issue_detection():
 
 
 def _mock_performance_issue_span(is_segment, attributes, **fields) -> SpanEvent:
-    return {
-        "duration_ms": 107,
-        "parent_span_id": None,
-        "profile_id": "dbae2b82559649a1a34a2878134a007b",
-        "project_id": 1,
-        "organization_id": 1,
-        "received": 1707953019.044972,
-        "retention_days": 90,
-        "segment_id": "a49b42af9fb69da0",
-        "attributes": {
-            **attributes,
-            "sentry.is_segment": {"type": "boolean", "value": is_segment},
-            "sentry.description": {"type": "string", "value": "OrganizationNPlusOne"},
+    return cast(
+        SpanEvent,
+        {
+            "duration_ms": 107,
+            "parent_span_id": None,
+            "profile_id": "dbae2b82559649a1a34a2878134a007b",
+            "project_id": 1,
+            "organization_id": 1,
+            "received": 1707953019.044972,
+            "retention_days": 90,
+            "segment_id": "a49b42af9fb69da0",
+            "attributes": {
+                **attributes,
+                "sentry.is_segment": {"type": "boolean", "value": is_segment},
+                "sentry.description": {"type": "string", "value": "OrganizationNPlusOne"},
+            },
+            "span_id": "a49b42af9fb69da0",
+            "start_timestamp_ms": 1707953018865,
+            "start_timestamp": 1707953018.865,
+            "end_timestamp": 1707953018.972,
+            "trace_id": "94576097f3a64b68b85a59c7d4e3ee2a",
+            **fields,
         },
-        "span_id": "a49b42af9fb69da0",
-        "start_timestamp_ms": 1707953018865,
-        "start_timestamp": 1707953018.865,
-        "end_timestamp": 1707953018.972,
-        "trace_id": "94576097f3a64b68b85a59c7d4e3ee2a",
-        **fields,
-    }
+    )

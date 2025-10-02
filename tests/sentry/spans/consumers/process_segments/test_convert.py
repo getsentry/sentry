@@ -79,7 +79,7 @@ SPAN_KAFKA_MESSAGE: SpanEvent = {
 
 
 def test_convert_span_to_item() -> None:
-    item = convert_span_to_item(SPAN_KAFKA_MESSAGE)
+    item = convert_span_to_item(cast(CompatibleSpan, SPAN_KAFKA_MESSAGE))
 
     assert item.organization_id == 1
     assert item.project_id == 1
