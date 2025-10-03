@@ -700,7 +700,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             group_id=self.group.id,
             event_id="test_event_id",
             user_id=self.user.id,
-            auto_run_source="test_source"
+            auto_run_source="test_source",
         )
 
         # Verify preferences were retrieved for the correct project
@@ -725,9 +725,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_response = Mock()
         mock_response.raise_for_status.return_value = None
         mock_response.json.return_value = {
-            "preference": {
-                "automated_run_stopping_point": "solution"
-            }
+            "preference": {"automated_run_stopping_point": "solution"}
         }
         mock_post.return_value = mock_response
 

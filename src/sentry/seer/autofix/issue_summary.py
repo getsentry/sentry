@@ -24,7 +24,11 @@ from sentry.seer.autofix.constants import (
     FixabilityScoreThresholds,
     SeerAutomationSource,
 )
-from sentry.seer.autofix.utils import AutofixStoppingPoint, get_autofix_state, is_seer_autotriggered_autofix_rate_limited
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    get_autofix_state,
+    is_seer_autotriggered_autofix_rate_limited,
+)
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
