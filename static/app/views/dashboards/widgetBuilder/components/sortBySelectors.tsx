@@ -125,7 +125,6 @@ export function SortBySelectors({
         <Select
           name="sortDirection"
           aria-label={t('Sort direction')}
-          menuPlacement="auto"
           disabled={disableSortDirection}
           options={Object.keys(sortDirections).map(value => ({
             // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -149,7 +148,6 @@ export function SortBySelectors({
           <Select
             name="sortBy"
             aria-label={t('Sort by')}
-            menuPlacement="auto"
             disabled={disableSort}
             placeholder={`${t('Select a column')}\u{2026}`}
             value={values.sortBy}

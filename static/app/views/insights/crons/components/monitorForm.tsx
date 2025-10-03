@@ -497,7 +497,6 @@ function MonitorForm({
                 name="owner"
                 label={t('Owner')}
                 help={t('Automatically assign issues to a team or user.')}
-                menuPlacement="auto"
               />
             </PanelBody>
           </Panel>
@@ -532,7 +531,6 @@ function MonitorForm({
                       name="alertRule.targets"
                       memberOfProjectSlugs={projectSlug ? [projectSlug] : undefined}
                       multiple
-                      menuPlacement="auto"
                     />
                   );
                 }}
@@ -552,7 +550,6 @@ function MonitorForm({
                       name="alertRule.environment"
                       options={alertRuleEnvs}
                       disabled={disabled}
-                      menuPlacement="auto"
                       defaultValue=""
                       disabledReason={t(
                         'Please select which teams or members to notify first.'
