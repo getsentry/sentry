@@ -13,8 +13,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.issue_detection.detectors.utils import escape_transaction
 from sentry.models.organization import Organization
-from sentry.performance_issues.detectors.utils import escape_transaction
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.events.constants import METRICS_GRANULARITIES
 from sentry.seer.breakpoints import detect_breakpoints
