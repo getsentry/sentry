@@ -620,5 +620,8 @@ class TestMetricAlertDetectorDataSourcesValidator(TestMetricAlertsDetectorValida
         super().setUp()
 
         data_source = self.valid_data["dataSource"]
-        self.valid_data["dataSources"] = [data_source]
+
+        # This is a temporary line of code; works fine when inlining the [] which
+        # is the longer term solution.
+        self.valid_data["dataSources"] = [data_source]  # type: ignore[list-item]
         del self.valid_data["dataSource"]
