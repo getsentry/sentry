@@ -89,7 +89,6 @@ class OrganizationSerializerTest(TestCase):
             "integrations-vercel",
             "invite-members",
             "minute-resolution-sessions",
-            "new-page-filter",
             "open-membership",
             "relay",
             "session-replay-ui",
