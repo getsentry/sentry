@@ -57,7 +57,7 @@ class ConfigurableThresholds(Enum):
     UNCOMPRESSED_ASSET_SIZE = "uncompressed_asset_size_threshold"
     LARGE_HTTP_PAYLOAD = "large_http_payload_detection_enabled"
     LARGE_HTTP_PAYLOAD_SIZE = "large_http_payload_size_threshold"
-    LARGE_HTTP_FILTERED_PATHS = "large_http_filtered_paths"
+    LARGE_HTTP_PAYLOAD_FILTERED_PATHS = "large_http_payload_filtered_paths"
     DB_ON_MAIN_THREAD = "db_on_main_thread_detection_enabled"
     DB_ON_MAIN_THREAD_DURATION = "db_on_main_thread_duration_threshold"
     FILE_IO_MAIN_THREAD = "file_io_on_main_thread_detection_enabled"
@@ -104,7 +104,7 @@ thresholds_to_manage_map: dict[str, str] = {
     ConfigurableThresholds.UNCOMPRESSED_ASSET_DURATION.value: ConfigurableThresholds.UNCOMPRESSED_ASSET.value,
     ConfigurableThresholds.UNCOMPRESSED_ASSET_SIZE.value: ConfigurableThresholds.UNCOMPRESSED_ASSET.value,
     ConfigurableThresholds.LARGE_HTTP_PAYLOAD_SIZE.value: ConfigurableThresholds.LARGE_HTTP_PAYLOAD.value,
-    ConfigurableThresholds.LARGE_HTTP_FILTERED_PATHS.value: ConfigurableThresholds.LARGE_HTTP_PAYLOAD.value,
+    ConfigurableThresholds.LARGE_HTTP_PAYLOAD_FILTERED_PATHS.value: ConfigurableThresholds.LARGE_HTTP_PAYLOAD.value,
     ConfigurableThresholds.DB_ON_MAIN_THREAD_DURATION.value: ConfigurableThresholds.DB_ON_MAIN_THREAD.value,
     ConfigurableThresholds.FILE_IO_MAIN_THREAD_DURATION.value: ConfigurableThresholds.FILE_IO_MAIN_THREAD.value,
     ConfigurableThresholds.CONSECUTIVE_DB_QUERIES_MIN_TIME_SAVED.value: ConfigurableThresholds.CONSECUTIVE_DB_QUERIES.value,
@@ -135,7 +135,7 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     large_http_payload_size_threshold = serializers.IntegerField(
         required=False, min_value=100000, max_value=TEN_MB
     )
-    large_http_filtered_paths = serializers.CharField(
+    large_http_payload_filtered_paths = serializers.CharField(
         required=False, allow_blank=True, max_length=1000, allow_null=True
     )
     db_on_main_thread_duration_threshold = serializers.IntegerField(
