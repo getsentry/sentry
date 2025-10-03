@@ -76,12 +76,15 @@ def serialize(
 
     project_map = get_projects(projects, fetch_project_platforms)
 
-    release_projects_map = {
-        release_id: [
-            {**project_map[project_id], "newGroups": count} for project_id, count in mapping.items()
-        ]
-        for release_id, mapping in new_groups_map.items()
-    }
+    release_projects_map = {}
+    for release_id, mapping in new_groups_map.items():
+        projects_for_release = []
+        for project_id, count in mapping.items():
+            if count is not None and count > 0:  # Only include projects with actual new groups
+                project_data = project_map[project_id].copy()
+                project_data["newGroups"] = count
+                projects_for_release.append(project_data)
+        release_projects_map[release_id] = projects_for_release
 
     adoption_stage_map: dict[int, dict[str, AdoptionStage]] = {
         rid: {project_map[pid]["slug"]: adoption_stage for pid, adoption_stage in mapping}
@@ -134,6 +137,7 @@ def get_projects(
             "slug": project.slug,
             "name": project.name,
             "platform": project.platform,
+            "newGroups": 0,  # Default value, will be overridden per release
             "platforms": platforms[project.id],
             "hasHealthData": False,
         }
