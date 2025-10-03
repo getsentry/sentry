@@ -86,6 +86,22 @@ class MaxManualUptimeSubscriptionsReached(ValueError):
     pass
 
 
+def check_uptime_subscription_limit(organization_id: int) -> None:
+    """
+    Check if adding a new manual uptime monitor would exceed the organization's limit.
+    Raises MaxManualUptimeSubscriptionsReached if the limit would be exceeded.
+    """
+    manual_subscription_count = Detector.objects.filter(
+        status=ObjectStatus.ACTIVE,
+        type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+        project__organization_id=organization_id,
+        config__mode=UptimeMonitorMode.MANUAL,
+    ).count()
+
+    if manual_subscription_count >= MAX_MANUAL_SUBSCRIPTIONS_PER_ORG:
+        raise MaxManualUptimeSubscriptionsReached
+
+
 class UptimeMonitorNoSeatAvailable(Exception):
     """
     Indicates that the quotes system is unable to allocate a seat for the new
@@ -234,13 +250,6 @@ def create_uptime_detector(
     Creates an UptimeSubscription and associated Detector
     """
     if mode == UptimeMonitorMode.MANUAL:
-        manual_subscription_count = Detector.objects.filter(
-            status=ObjectStatus.ACTIVE,
-            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
-            project__organization=project.organization,
-            config__mode=UptimeMonitorMode.MANUAL,
-        ).count()
-
         # Once a user has created a subscription manually, make sure we disable all autodetection, and remove any
         # onboarding monitors
         if project.organization.get_option("sentry:uptime_autodetection", False):
@@ -250,11 +259,8 @@ def create_uptime_detector(
             ):
                 delete_uptime_detector(detector)
 
-        if (
-            not override_manual_org_limit
-            and manual_subscription_count >= MAX_MANUAL_SUBSCRIPTIONS_PER_ORG
-        ):
-            raise MaxManualUptimeSubscriptionsReached
+        if not override_manual_org_limit:
+            check_uptime_subscription_limit(project.organization_id)
 
     with atomic_transaction(
         using=(
