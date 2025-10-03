@@ -31,7 +31,6 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import NoRetriesRemainingError, Retry, retry_task
 from sentry.utils import metrics
@@ -49,21 +48,10 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.tasks.process_commit_context",
-    queue="group_owners.process_commit_context",
-    autoretry_for=(ApiError,),
-    max_retries=5,
-    retry_backoff=True,
-    retry_backoff_max=60 * 60 * 3,  # 3 hours
-    retry_jitter=False,
+    namespace=issues_tasks,
+    processing_deadline_duration=90,
+    retry=Retry(times=5, on=(ApiError,)),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=90,
-        retry=Retry(
-            times=5,
-            on=(ApiError,),
-        ),
-    ),
 )
 def process_commit_context(
     event_id: str,

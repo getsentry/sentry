@@ -8,7 +8,6 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
 from sentry.types.group import GroupSubStatus
@@ -30,13 +29,9 @@ ITERATOR_CHUNK = 10_000
 
 @instrumented_task(
     name="sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
-    queue="weekly_escalating_forecast",
-    max_retries=0,
+    namespace=issues_tasks,
+    processing_deadline_duration=60 * 2,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=60 * 2,
-    ),
 )
 def run_escalating_forecast() -> None:
     """
@@ -57,18 +52,10 @@ def run_escalating_forecast() -> None:
 
 @instrumented_task(
     name="sentry.tasks.weekly_escalating_forecast.generate_forecasts_for_projects",
-    queue="weekly_escalating_forecast",
-    max_retries=3,
-    default_retry_delay=60,
+    namespace=issues_tasks,
+    processing_deadline_duration=60 * 2,
+    retry=Retry(times=3, delay=60),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=60 * 2,
-        retry=Retry(
-            times=3,
-            delay=60,
-        ),
-    ),
 )
 @retry
 def generate_forecasts_for_projects(project_ids: list[int]) -> None:
