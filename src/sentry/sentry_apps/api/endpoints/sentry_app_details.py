@@ -230,7 +230,6 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                             SentryAppInstallationNotifier(
                                 sentry_app_installation=install, user=request.user, action="deleted"
                             ).run()
-                            ScheduledDeletion.schedule(install, days=0, actor=request.user)
                     except RequestException as exc:
                         sentry_sdk.capture_exception(exc)
 
