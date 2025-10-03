@@ -464,7 +464,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
           organization: options.organization,
           replayTraceSlug: options.replayTraceSlug,
           meta: options.meta,
-          // Won't need this cast once BaseNode replaces TraceTreeNode
         });
       }
 

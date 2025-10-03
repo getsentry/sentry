@@ -9,10 +9,7 @@ import type {Organization} from 'sentry/types/organization';
 import {getStylingSliceName} from 'sentry/views/explore/tables/tracesTable/utils';
 import {TransactionNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
@@ -97,12 +94,11 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     return `txn-${this.id}`;
   }
 
-  private getRelatedSpanErrorsFromTransaction(
-    span: TraceTree.Span
-  ): TraceTree.TraceError[] {
+  // Returns a list of errors related to the txn with ids matching the given node's id
+  private getRelatedSpanErrorsFromTransaction(node: BaseNode): TraceTree.TraceError[] {
     const errors: TraceTree.TraceError[] = [];
     for (const error of this.value.errors) {
-      if (error.span === span.span_id) {
+      if (error.span === node.id) {
         errors.push(error);
       }
     }
@@ -110,15 +106,15 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     return errors;
   }
 
-  // Returns a list of performance errors related to the txn with ids matching the span id
+  // Returns a list of performance issues related to the txn with ids matching the given node's id
   private getRelatedPerformanceIssuesFromTransaction(
-    span: TraceTree.Span
+    node: BaseNode
   ): TraceTree.TraceOccurrence[] {
     const occurrences: TraceTree.TraceOccurrence[] = [];
 
     for (const perfIssue of this.value.performance_issues) {
       for (const suspect of perfIssue.suspect_spans) {
-        if (suspect === span.span_id) {
+        if (suspect === node.id) {
           occurrences.push(perfIssue);
         }
       }
@@ -358,16 +354,14 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
         }
 
         spanIdToNode.forEach(node => {
-          if (isSpanNode(node)) {
-            for (const performanceIssue of this.getRelatedPerformanceIssuesFromTransaction(
-              node.value
-            )) {
-              node.occurrences.add(performanceIssue);
-            }
+          for (const performanceIssue of this.getRelatedPerformanceIssuesFromTransaction(
+            node
+          )) {
+            node.occurrences.add(performanceIssue);
+          }
 
-            for (const error of this.getRelatedSpanErrorsFromTransaction(node.value)) {
-              node.errors.add(error);
-            }
+          for (const error of this.getRelatedSpanErrorsFromTransaction(node)) {
+            node.errors.add(error);
           }
         });
 
