@@ -74,12 +74,22 @@ def serialize(
         fetch_owners=lambda owner_ids: fetch_owners(user, owner_ids),
     )
 
-    project_map = get_projects(projects, new_groups_map.values(), fetch_project_platforms)
+    project_map = get_projects(projects, fetch_project_platforms)
 
-    release_projects_map = {
-        release_id: [project_map[project_id] for project_id in mapping.keys()]
-        for release_id, mapping in new_groups_map.items()
-    }
+    # release_projects_map = {
+    #     release_id: [project_map[project_id] for project_id in mapping.keys()]
+    #     for release_id, mapping in new_groups_map.items()
+    # }
+
+    release_projects_map = {}
+    for release_id, mapping in new_groups_map.items():
+        projects_for_release = [project_map[project_id] for project_id in mapping.keys()]
+
+        # get the new groups for each project only for this release
+        for project_data in projects_for_release:
+            project_data["newGroups"] = mapping[project_data["id"]]
+
+        release_projects_map[release_id] = projects_for_release
 
     adoption_stage_map: dict[int, dict[str, AdoptionStage]] = {
         rid: {project_map[pid]["slug"]: adoption_stage for pid, adoption_stage in mapping}
@@ -120,17 +130,17 @@ def serialize(
 @sentry_sdk.trace
 def get_projects(
     projects: Iterable[Project],
-    project_group_counts: Iterable[dict[int, int]],
+    # project_group_counts: Iterable[dict[int, int]],
     fetch_platforms: Callable[[Iterable[int]], list[tuple[int, str]]],
 ) -> dict[int, SerializedProject]:
     platforms = defaultdict(list)
     for project_id, platform in fetch_platforms([p.id for p in projects]):
         platforms[project_id].append(platform)
 
-    new_groups: defaultdict[int, int] = defaultdict(int)
-    for mapping in project_group_counts:
-        for project_id, count in mapping.items():
-            new_groups[project_id] += count
+    # new_groups: defaultdict[int, int] = defaultdict(int)
+    # for mapping in project_group_counts:
+    #     for project_id, count in mapping.items():
+    #         new_groups[project_id] += count
 
     return {
         project.id: {
@@ -138,7 +148,7 @@ def get_projects(
             "slug": project.slug,
             "name": project.name,
             "platform": project.platform,
-            "newGroups": new_groups[project.id],
+            # "newGroups": new_groups[project.id],
             "platforms": platforms[project.id],
             "hasHealthData": False,
         }
