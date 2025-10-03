@@ -1428,7 +1428,7 @@ def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
                     metrics.incr(
                         "process_profile.eap_functions_metrics.all_frames.count",
                         tot,
-                        tags={"type": "profile"},
+                        tags={"type": "profile", "platform": profile["platform"]},
                         sample_rate=1.0,
                     )
             return True
@@ -1492,7 +1492,7 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
                     metrics.incr(
                         "process_profile.eap_functions_metrics.all_frames.count",
                         tot,
-                        tags={"type": "chunk"},
+                        tags={"type": "chunk", "platform": profile["platform"]},
                         sample_rate=1.0,
                     )
             return True

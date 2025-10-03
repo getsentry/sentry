@@ -1,5 +1,5 @@
 ---
-created: '2025-09-24T22:53:02.189532+00:00'
+created: '2025-10-03T16:56:42.858843+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -1070,6 +1070,7 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
+    "contributes": true,
     "description": "in-app exception stacktrace",
     "hash": "4ef1fb44d656c3be2a146971f2a222dc",
     "hint": null,
@@ -2142,6 +2143,7 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
+    "contributes": true,
     "description": "exception stacktrace",
     "hash": "47481871aa8d5ab5729cf2db78ce3032",
     "hint": null,

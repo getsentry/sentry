@@ -32,3 +32,4 @@ class GroupingInfoTest(TestCase):
         assert grouping_info["default"]["component"]["contributes"] is True
         assert grouping_info["default"]["config"]["id"] == DEFAULT_GROUPING_CONFIG
         assert grouping_info["default"]["key"] == "default"
+        assert grouping_info["default"]["contributes"] is True

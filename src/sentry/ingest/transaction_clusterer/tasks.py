@@ -62,7 +62,6 @@ def spawn_clusterers(**kwargs: Any) -> None:
     namespace=performance_tasks,
     processing_deadline_duration=int(PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2),
     retry=Retry(times=5, delay=5),
-    queue="transactions.name_clusterer",
 )
 def cluster_projects(project_ids: Sequence[int]) -> None:
     projects = Project.objects.get_many_from_cache(project_ids)
