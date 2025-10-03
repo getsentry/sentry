@@ -15,6 +15,7 @@ import {
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {getTimeSeriesInterval} from 'sentry/utils/timeSeries/getTimeSeriesInterval';
+import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -28,6 +29,7 @@ import {
 import type {
   TimeSeries,
   TimeSeriesItem,
+  TimeSeriesMeta,
 } from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
@@ -273,22 +275,22 @@ export function convertEventsStatsToTimeSeriesData(
     }
   );
 
-  const interval = getTimeSeriesInterval(values);
-
-  const serie: TimeSeries = {
-    yAxis: yAxis ?? FALLBACK_SERIES_NAME,
+  const timeSeries: TimeSeries = {
     values,
+    yAxis: yAxis ?? FALLBACK_SERIES_NAME,
     meta: {
       valueType: seriesData.meta?.fields?.[yAxis]!,
       valueUnit: seriesData.meta?.units?.[yAxis] as DataUnit,
-      interval,
+      interval: getTimeSeriesInterval(values),
       dataScanned: seriesData.meta?.dataScanned,
     },
   };
 
+  const delayedTimeSeries = markDelayedData(timeSeries, 90);
+
   if (defined(order)) {
-    serie.meta.order = order;
+    delayedTimeSeries.meta.order = order;
   }
 
-  return [serie.meta.order ?? 0, serie];
+  return [timeSeries.meta.order ?? 0, timeSeries];
 }
