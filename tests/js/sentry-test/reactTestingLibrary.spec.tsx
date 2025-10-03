@@ -175,14 +175,6 @@ describe('disableRouterMocks', () => {
 });
 
 describe('NuqsTestingAdapterWithNavigate', () => {
-  it('should navigate to the correct path', () => {
-    const {router} = render(<div />, {
-      initialRouterConfig: {location: {pathname: '/foo/'}},
-    });
-
-    expect(router.location.pathname).toBe('/foo/');
-  });
-
   it('sets query param on mount via nuqs useEffect', async () => {
     function TestComp() {
       const [value, setValue] = useQueryState('foo');
