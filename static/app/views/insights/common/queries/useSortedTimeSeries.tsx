@@ -264,7 +264,9 @@ export function transformToSeriesMap(
           const groupByFields = fields.filter(field => !yAxis.includes(field));
           const groupBy = parseGroupBy(groupName, groupByFields);
           timeSeries.groupBy = groupBy;
-          timeSeries.meta.isOther = groupName === 'Other';
+          if (groupName === 'Other') {
+            timeSeries.meta.isOther = true;
+          }
         }
 
         allTimeSeries.push(timeSeries);
@@ -287,14 +289,16 @@ export function transformToSeriesMap(
         const [, timeSeries] = convertEventsStatsToTimeSeriesData(
           axis,
           seriesData,
-          groupData.order as unknown as number // `order` is always present
+          seriesData.order
         );
 
         if (fields) {
           const groupByFields = fields.filter(field => !yAxis.includes(field));
           const groupBy = parseGroupBy(groupName, groupByFields);
           timeSeries.groupBy = groupBy;
-          timeSeries.meta.isOther = groupName === 'Other';
+          if (groupName === 'Other') {
+            timeSeries.meta.isOther = true;
+          }
         }
 
         allTimeSeries.push(timeSeries);
@@ -314,11 +318,25 @@ export function convertEventsStatsToTimeSeriesData(
   order?: number
 ): [number, TimeSeries] {
   const values: TimeSeriesItem[] = seriesData.data.map(
-    ([timestamp, countsForTimestamp]) => {
+    ([timestamp, countsForTimestamp], index) => {
       const item: TimeSeriesItem = {
         timestamp: timestamp * 1000,
         value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
       };
+
+      if (seriesData.meta?.accuracy?.confidence) {
+        item.confidence = seriesData.meta?.accuracy?.confidence?.[index]?.value ?? null;
+      }
+
+      if (seriesData.meta?.accuracy?.sampleCount) {
+        item.sampleCount =
+          seriesData.meta?.accuracy?.sampleCount?.[index]?.value ?? undefined;
+      }
+
+      if (seriesData.meta?.accuracy?.samplingRate) {
+        item.sampleRate =
+          seriesData.meta?.accuracy?.samplingRate?.[index]?.value ?? undefined;
+      }
 
       return item;
     }
@@ -326,48 +344,20 @@ export function convertEventsStatsToTimeSeriesData(
 
   const interval = getTimeSeriesInterval(values);
 
-  const meta: TimeSeriesMeta = {
-    valueType: seriesData.meta?.fields?.[yAxis]!,
-    valueUnit: seriesData.meta?.units?.[yAxis] as DataUnit,
-    interval,
-  };
-
-  if (seriesData.meta?.units?.[yAxis]) {
-    meta.valueUnit = seriesData.meta.units[yAxis] as DataUnit;
-  }
-
-  const serie: TimeSeries = markDelayedData(
-    {
-      values,
-      yAxis: yAxis ?? FALLBACK_SERIES_NAME,
-      meta,
+  const serie: TimeSeries = {
+    yAxis: yAxis ?? FALLBACK_SERIES_NAME,
+    values,
+    meta: {
+      valueType: seriesData.meta?.fields?.[yAxis]!,
+      valueUnit: seriesData.meta?.units?.[yAxis] as DataUnit,
+      interval,
+      dataScanned: seriesData.meta?.dataScanned,
     },
-    90
-  );
-
-  serie.values.forEach((item, index) => {
-    if (seriesData.meta?.accuracy?.sampleCount) {
-      item.sampleCount =
-        seriesData.meta?.accuracy?.sampleCount?.[index]?.value ?? undefined;
-    }
-
-    if (seriesData.meta?.accuracy?.samplingRate) {
-      item.sampleRate =
-        seriesData.meta?.accuracy?.samplingRate?.[index]?.value ?? undefined;
-    }
-
-    if (seriesData.meta?.accuracy?.confidence) {
-      item.confidence = seriesData.meta?.accuracy?.confidence?.[index]?.value ?? null;
-    }
-
-    return item;
-  });
+  };
 
   if (defined(order)) {
     serie.meta.order = order;
   }
-
-  serie.meta.dataScanned = seriesData.meta?.dataScanned;
 
   return [serie.meta.order ?? 0, serie];
 }
