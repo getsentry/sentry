@@ -750,7 +750,7 @@ export function resolveHostname(path: string, hostname?: string): string {
   // and prepend the URL with `/region/$name` so that webpack-devserver proxy
   // can route requests to the regions.
   if (hostname && window.__SENTRY_DEV_UI) {
-    const domainpattern = /https?\:\/\/([^.]*)\.sentry\.io/;
+    const domainpattern = /https?:\/\/([^.]*)\.sentry\.io/;
     const domainmatch = hostname.match(domainpattern);
     if (domainmatch) {
       hostname = '';

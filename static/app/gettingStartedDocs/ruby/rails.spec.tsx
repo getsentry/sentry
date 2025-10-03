@@ -22,7 +22,7 @@ describe('rails onboarding docs', () => {
 
     // Renders import
     expect(
-      screen.getByText(textWithMarkupMatcher(/gem \"sentry-ruby\"/))
+      screen.getByText(textWithMarkupMatcher(/gem "sentry-ruby"/))
     ).toBeInTheDocument();
   });
 

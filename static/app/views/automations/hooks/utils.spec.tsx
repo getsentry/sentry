@@ -347,7 +347,7 @@ describe('findConflictingConditions', () => {
         actionFilter3: new Set(['4']),
       },
       conflictReason:
-        'The conditions highlighted in red are in conflict with \"A new issue is created.\"',
+        'The conditions highlighted in red are in conflict with "A new issue is created."',
     });
   });
 

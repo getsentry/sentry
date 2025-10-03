@@ -14,12 +14,12 @@ import {getKeyName} from './utils';
 const EMPTY_OPTION_VALUE = '(empty)';
 
 // Hoisted regular expressions to avoid recompilation in hot paths
-const TRIMMABLE_ENDS_RE = /^["\(]+|["\)]+$/g;
-const WILDCARD_ESCAPE_RE = /([\*])/g;
-const NEEDS_QUOTING_RE = /[\s\(\)\\"]/;
+const TRIMMABLE_ENDS_RE = /^["(]+|[")]+$/g;
+const WILDCARD_ESCAPE_RE = /([*])/g;
+const NEEDS_QUOTING_RE = /[\s()\\"]/;
 const VALUE_IS_LIST_RE = /^\[.*\]$/;
 const VALUE_IS_QUOTED_RE = /^".*"$/;
-const BRACKET_QUOTE_PATTERN_RE = /^(.*), (\[[^\]]+\])\"]$/;
+const BRACKET_QUOTE_PATTERN_RE = /^(.*), (\[[^\]]+\])"]$/;
 
 const ALLOWED_WILDCARD_FIELDS = new Set<string>([
   'span.description',
