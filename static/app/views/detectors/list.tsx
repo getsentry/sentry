@@ -1,4 +1,5 @@
 import {Fragment, useCallback} from 'react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -12,10 +13,6 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import DetectorListTable from 'sentry/views/detectors/components/detectorListTable';
@@ -23,26 +20,23 @@ import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
+import {useDetectorListSort} from 'sentry/views/detectors/utils/useDetectorListSort';
 
 export default function DetectorsList() {
   useWorkflowEngineFeatureGate({redirect: true});
-
-  const location = useLocation();
-  const navigate = useNavigate();
   const {selection, isReady} = usePageFilters();
 
-  const {
-    sort: sorts,
-    query,
-    cursor,
-  } = useLocationQuery({
-    fields: {
-      sort: decodeSorts,
-      query: decodeScalar,
-      cursor: decodeScalar,
-    },
-  });
-  const sort = sorts[0] ?? {kind: 'desc', field: 'latestGroup'};
+  const [sort] = useDetectorListSort();
+  const [query, setQuery] = useQueryState(
+    'query',
+    parseAsString.withDefault('').withOptions({
+      history: 'push',
+    })
+  );
+  const [cursor, setCursor] = useQueryState(
+    'cursor',
+    parseAsString.withOptions({history: 'push'})
+  );
 
   const {
     data: detectors,
@@ -52,9 +46,9 @@ export default function DetectorsList() {
     getResponseHeader,
   } = useDetectorsQuery(
     {
-      cursor,
+      cursor: cursor ?? undefined,
       query,
-      sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
+      sortBy: sort ? `${sort.kind === 'asc' ? '' : '-'}${sort.field}` : undefined,
       projects: selection.projects,
       limit: DETECTOR_LIST_PAGE_LIMIT,
     },
@@ -81,24 +75,20 @@ export default function DetectorsList() {
     <SentryDocumentTitle title={t('Monitors')} noSuffix>
       <PageFiltersContainer>
         <ListLayout actions={<Actions />}>
-          <TableHeader />
+          <TableHeader query={query} setQuery={setQuery} />
           <div>
             <DetectorListTable
               detectors={detectors ?? []}
               isPending={isLoading}
               isError={isError}
               isSuccess={isSuccess}
-              sort={sort}
               queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
               allResultsVisible={allResultsVisible()}
             />
             <Pagination
               pageLinks={pageLinks}
               onCursor={newCursor => {
-                navigate({
-                  pathname: location.pathname,
-                  query: {...location.query, cursor: newCursor},
-                });
+                setCursor(newCursor ?? null);
               }}
             />
           </div>
@@ -108,23 +98,18 @@ export default function DetectorsList() {
   );
 }
 
-function TableHeader() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const query = typeof location.query.query === 'string' ? location.query.query : '';
-
-  const onSearch = (searchQuery: string) => {
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, query: searchQuery, cursor: undefined},
-    });
-  };
-
+function TableHeader({
+  query,
+  setQuery,
+}: {
+  query: string;
+  setQuery: (query: string) => void;
+}) {
   return (
     <Flex gap="xl">
       <ProjectPageFilter />
       <div style={{flexGrow: 1}}>
-        <DetectorSearch initialQuery={query} onSearch={onSearch} />
+        <DetectorSearch initialQuery={query} onSearch={setQuery} />
       </div>
     </Flex>
   );
