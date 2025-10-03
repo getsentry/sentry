@@ -223,7 +223,19 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                 sentry_sdk.capture_exception(err)
                 raise serializers.ValidationError("Invalid table query")
 
+        elif data["query_type"] == ExportQueryType.ISSUES_BY_TAG_STR:
+            issues_by_tag_validate(query_info)
+
         return data
+
+
+def issues_by_tag_validate(query_info: dict[str, Any]) -> None:
+    group = query_info.get("group")
+    if group is not None:
+        try:
+            query_info["group"] = int(group)
+        except (ValueError, TypeError):
+            raise serializers.ValidationError("Invalid group ID")
 
 
 @region_silo_endpoint

@@ -7,7 +7,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   PageParamsProvider,
   useExplorePageParams,
-  useSetExploreMode,
   useSetExplorePageParams,
   useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
@@ -21,6 +20,7 @@ import {
 import {
   useSetQueryParamsFields,
   useSetQueryParamsGroupBys,
+  useSetQueryParamsMode,
   useSetQueryParamsQuery,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
@@ -54,7 +54,7 @@ describe('PageParamsProvider', () => {
   let setPageParams: ReturnType<typeof useSetExplorePageParams>;
   let setFields: ReturnType<typeof useSetQueryParamsFields>;
   let setGroupBys: ReturnType<typeof useSetQueryParamsGroupBys>;
-  let setMode: ReturnType<typeof useSetExploreMode>;
+  let setMode: ReturnType<typeof useSetQueryParamsMode>;
   let setQuery: ReturnType<typeof useSetQueryParamsQuery>;
   let setSortBys: ReturnType<typeof useSetExploreSortBys>;
   let setVisualizes: ReturnType<typeof useSetQueryParamsVisualizes>;
@@ -64,7 +64,7 @@ describe('PageParamsProvider', () => {
     setPageParams = useSetExplorePageParams();
     setFields = useSetQueryParamsFields();
     setGroupBys = useSetQueryParamsGroupBys();
-    setMode = useSetExploreMode();
+    setMode = useSetQueryParamsMode();
     setQuery = useSetQueryParamsQuery();
     setSortBys = useSetExploreSortBys();
     setVisualizes = useSetQueryParamsVisualizes();
@@ -156,7 +156,7 @@ describe('PageParamsProvider', () => {
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS,
-        fields: ['id', 'timestamp', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.self_time', 'browser.name', 'sdk.name'],
         mode: Mode.AGGREGATE,
         query: '',
         sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
@@ -275,16 +275,14 @@ describe('PageParamsProvider', () => {
     );
   });
 
-  it('correctly updates mode from aggregates to sample with group bys', () => {
+  it('updates fields with managed group bys', () => {
     renderTestComponent({
       mode: Mode.AGGREGATE,
       sampleSortBys: null,
       aggregateSortBys: null,
-      fields: ['id', 'sdk.name', 'sdk.version', 'timestamp'],
+      fields: ['id', 'timestamp'],
       aggregateFields: [
-        {groupBy: 'sdk.name'},
-        {groupBy: 'sdk.version'},
-        {groupBy: 'span.op'},
+        {groupBy: 'span.description'},
         {groupBy: ''},
         {
           chartType: ChartType.AREA,
@@ -293,28 +291,19 @@ describe('PageParamsProvider', () => {
       ],
     });
 
-    act(() => setMode(Mode.SAMPLES));
+    act(() => setGroupBys(['sdk.name', 'sdk.version']));
 
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS,
-        fields: [
-          'id',
-          'sdk.name',
-          'sdk.version',
-          'timestamp',
-          'span.self_time',
-          'span.op',
-        ],
-        mode: Mode.SAMPLES,
+        fields: ['id', 'timestamp', 'span.self_time', 'sdk.name', 'sdk.version'],
+        mode: Mode.AGGREGATE,
         query: '',
         sampleSortBys: [{field: 'timestamp', kind: 'desc'}],
         aggregateSortBys: [{field: 'count(span.self_time)', kind: 'desc'}],
         aggregateFields: [
           {groupBy: 'sdk.name'},
           {groupBy: 'sdk.version'},
-          {groupBy: 'span.op'},
-          {groupBy: ''},
           new Visualize('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),

@@ -2,6 +2,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any
 
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Function, Op
@@ -130,6 +131,11 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         # get_filter_params().
         if not request.access.has_project_access(project):
             return Response(status=404)
+
+        referrer = request.GET.get("referrer")
+
+        if referrer is not None:
+            sentry_sdk.set_tag("referrer", referrer)
 
         # We return the requested event if we find a match regardless of whether
         # it occurred within the range specified
