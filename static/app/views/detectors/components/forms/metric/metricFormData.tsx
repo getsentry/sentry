@@ -308,7 +308,7 @@ export function metricDetectorFormDataToEndpointPayload(
       conditions,
     },
     config,
-    dataSource,
+    dataSources: [dataSource],
     workflowIds: data.workflowIds,
   };
 }
