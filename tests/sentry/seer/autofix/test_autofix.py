@@ -427,7 +427,7 @@ class TestGetTraceTreeForEvent(APITestCase, OccurrenceTestMixin):
         _, group_info = save_issue_occurrence(occurrence_data, event)
         assert group_info is not None
         group = group_info.group
-        event = event.for_group(group)
+        group_event = event.for_group(group)
 
         mock_trace_data = [
             {
@@ -441,7 +441,7 @@ class TestGetTraceTreeForEvent(APITestCase, OccurrenceTestMixin):
         ]
         mock_query_trace_data.return_value = mock_trace_data
 
-        trace_tree = _get_trace_tree_for_event(event, self.project)
+        trace_tree = _get_trace_tree_for_event(group_event, self.project)
 
         assert trace_tree is not None
         assert trace_tree["trace_id"] == trace_id
