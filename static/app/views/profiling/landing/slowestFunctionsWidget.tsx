@@ -49,7 +49,6 @@ import {MAX_FUNCTIONS} from './constants';
 import {
   Accordion,
   AccordionItem,
-  ContentContainer,
   HeaderContainer,
   HeaderTitleLegend,
   StatusContainer,
@@ -192,7 +191,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
           paginationAnalyticsEvent={paginationAnalyticsEvent}
         />
       </HeaderContainer>
-      <ContentContainer>
+      <Flex flex="1 1 auto" direction="column" justify="center">
         {isLoading && (
           <StatusContainer>
             <LoadingIndicator />
@@ -239,7 +238,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
             })}
           </Accordion>
         )}
-      </ContentContainer>
+      </Flex>
     </WidgetContainer>
   );
 }

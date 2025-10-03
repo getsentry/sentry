@@ -219,11 +219,11 @@ const StyledHeaderContainer = styled(HeaderContainer)`
   grid-template-columns: 30px auto;
 `;
 
-export function LeftAlignedContentContainer(props: FlexProps) {
+function LeftAlignedContentContainer(props: FlexProps) {
   return <Flex flex="1 1 auto" direction="column" justify="start" {...props} />;
 }
 
-export function CenteredContentContainer(props: FlexProps) {
+function CenteredContentContainer(props: FlexProps) {
   return <Flex flex="1 1 auto" direction="column" justify="center" {...props} />;
 }
 
