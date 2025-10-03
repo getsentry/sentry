@@ -6,8 +6,9 @@ from unittest.mock import MagicMock, call
 import pytest
 from django.utils import timezone
 
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
-from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
+from sentry.issues.grouptype import FeedbackGroup, PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_message import StatusChangeMessage
@@ -23,7 +24,9 @@ from sentry.utils.cache import cache
 from sentry.workflow_engine.handlers.detector import DetectorStateData
 from sentry.workflow_engine.handlers.detector.stateful import get_redis_client
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors.detector import (
+    associate_new_group_with_detector,
     get_detector_by_event,
     get_detectors_by_groupevents_bulk,
     process_detectors,
@@ -1017,3 +1020,40 @@ class TestGetDetectorsByGroupEventsBulk(TestCase):
 
             assert result == {}
             mock_metrics.incr.assert_called_with("workflow_engine.detectors.error", amount=1)
+
+
+class TestAssociateNewGroupWithDetector(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.metric_detector = self.create_detector(project=self.project, type="metric_issue")
+        self.error_detector = self.create_detector(project=self.project, type="error")
+
+    def test_metrics_group_with_known_detector(self) -> None:
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+
+        # Should return True and create DetectorGroup
+        assert associate_new_group_with_detector(group, self.metric_detector.id)
+        assert DetectorGroup.objects.filter(
+            detector_id=self.metric_detector.id, group_id=group.id
+        ).exists()
+
+    def test_error_group_with_feature_disabled(self) -> None:
+        group = self.create_group(project=self.project, type=ErrorGroupType.type_id)
+
+        with self.options({"workflow_engine.associate_error_detectors": False}):
+            assert not associate_new_group_with_detector(group)
+            assert not DetectorGroup.objects.filter(group_id=group.id).exists()
+
+    def test_error_group_with_feature_enabled(self) -> None:
+        group = self.create_group(project=self.project, type=ErrorGroupType.type_id)
+
+        with self.options({"workflow_engine.associate_error_detectors": True}):
+            assert associate_new_group_with_detector(group)
+            assert DetectorGroup.objects.filter(
+                detector_id=self.error_detector.id, group_id=group.id
+            ).exists()
+
+    def test_feedback_group_returns_false(self) -> None:
+        group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
+        assert not associate_new_group_with_detector(group)
+        assert not DetectorGroup.objects.filter(group_id=group.id).exists()

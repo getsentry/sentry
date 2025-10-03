@@ -7,12 +7,16 @@ from typing import NamedTuple
 
 import sentry_sdk
 
+from sentry import options
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.models.group import Group
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
 from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
     DetectorGroupKey,
@@ -68,8 +72,6 @@ class _SplitEvents(NamedTuple):
 def _split_events_by_occurrence(
     event_list: list[GroupEvent],
 ) -> _SplitEvents:
-    from sentry.grouping.grouptype import ErrorGroupType
-
     events_with_occurrences: list[tuple[GroupEvent, int]] = []
     error_events: list[GroupEvent] = []  # only error events don't have occurrences
     events_missing_detectors: list[GroupEvent] = []
@@ -116,8 +118,6 @@ def get_detectors_by_groupevents_bulk(
     """
     Given a list of GroupEvents, return a mapping of event_id to Detector.
     """
-    from sentry.grouping.grouptype import ErrorGroupType
-
     if not event_list:
         return {}
 
@@ -281,3 +281,25 @@ def process_detectors[T](
             results.append((detector, detector_results))
 
     return results
+
+
+def associate_new_group_with_detector(group: Group, detector_id: int | None = None) -> bool:
+    """
+    Associate a new Group with it's Detector in the database.
+    If the Group is an error, it can be associated without a detector ID.
+
+    Return whether the group was associated.
+    """
+    if detector_id is None:
+        # For error Groups, we know there is a Detector and we can find it by project.
+        if group.type == ErrorGroupType.type_id:
+            if not options.get("workflow_engine.associate_error_detectors", False):
+                return False
+            detector_id = Detector.get_error_detector_for_project(group.project.id).id
+        else:
+            return False
+    DetectorGroup.objects.get_or_create(
+        detector_id=detector_id,
+        group_id=group.id,
+    )
+    return True
