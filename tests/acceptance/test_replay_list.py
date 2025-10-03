@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timedelta
 
 from sentry.models.project import Project
@@ -23,18 +24,50 @@ class ReplayListTest(ReplaysAcceptanceTestCase):
             flags=Project.flags.has_replays,
         )
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
+        self.login_as(self.user)
+        self.path = f"/organizations/{self.org.slug}/explore/replays/"
 
+        self.header_fields = [
+            "Replay",
+            "OS",
+            "Browser",
+            "Duration",
+            "Dead clicks",
+            "Rage clicks",
+            "Errors",
+            "Activity",
+        ]
+
+    def assert_replay_table_renders(self) -> None:
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+        self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
+        self.browser.wait_until_not('[data-test-id="replay-table-loading"]')
+        assert not self.browser.element_exists_by_test_id("replay-table-errored")
+
+    def test_empty(self) -> None:
+        with self.feature(FEATURE_NAME):
+            self.browser.get(self.path)
+            self.assert_replay_table_renders()
+
+            rows = self.browser.elements('[data-test-id="replay-table"] [role="row"]')
+            assert len(rows) == 1
+
+            for field in self.header_fields:
+                assert field in rows[0].text
+
+    def test_simple(self) -> None:
         seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
         seq2_timestamp = datetime.now() - timedelta(minutes=10, seconds=35)
-        for replay_id in [
-            "3dfe4aae8e4941feb0e4a18cb2a14777",
-            "8273c28ecf9649f198736bc1c56adf71",
-            "3b7a731012aa494bad541625637e5ea1",
-        ]:
+        replay_ids = [
+            uuid.uuid4().hex,
+            uuid.uuid4().hex,
+            uuid.uuid4().hex,
+        ]
+        for i, replay_id in enumerate(replay_ids):
             self.store_replays(
                 [
                     mock_replay(
-                        seq1_timestamp,
+                        seq1_timestamp - timedelta(seconds=i * 10),
                         self.project.id,
                         replay_id,
                         segment_id=0,
@@ -44,16 +77,58 @@ class ReplayListTest(ReplaysAcceptanceTestCase):
                             "http://localhost/profile/",
                         ],
                     ),
-                    mock_replay(seq2_timestamp, self.project.id, replay_id, segment_id=1),
+                    mock_replay(
+                        seq2_timestamp - timedelta(seconds=i * 10),
+                        self.project.id,
+                        replay_id,
+                        segment_id=1,
+                    ),
                 ]
             )
 
-        self.login_as(self.user)
-
-        self.path = f"/organizations/{self.org.slug}/replays/"
-
-    def test_simple(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
+            self.assert_replay_table_renders()
+
+            rows = self.browser.elements('[data-test-id="replay-table"] [role="row"]')
+            assert len(rows) == 4
+
+            for field in self.header_fields:
+                assert field in rows[0].text
+
+            assert replay_ids[0][:8] in rows[1].text
+            assert replay_ids[1][:8] in rows[2].text
+            assert replay_ids[2][:8] in rows[3].text
+
+    def test_archived(self) -> None:
+        seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
+        seq2_timestamp = datetime.now() - timedelta(minutes=10, seconds=35)
+        replay_id = uuid.uuid4().hex
+        self.store_replays(
+            [
+                mock_replay(
+                    seq1_timestamp,
+                    self.project.id,
+                    replay_id,
+                ),
+                mock_replay(
+                    seq2_timestamp,
+                    self.project.id,
+                    replay_id,
+                    is_archived=True,
+                ),
+            ]
+        )
+
+        with self.feature(FEATURE_NAME):
+            self.browser.get(self.path)
+            self.assert_replay_table_renders()
+
+            rows = self.browser.elements('[data-test-id="replay-table"] [role="row"]')
+            assert len(rows) == 2
+
+            for field in self.header_fields:
+                assert field in rows[0].text
+
+            assert replay_id[:8] in rows[1].text
+            assert "Deleted Replay" in rows[1].text

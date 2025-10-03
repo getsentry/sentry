@@ -15,7 +15,7 @@ FEATURE_NAME = ["organizations:session-replay", "organizations:performance-view"
 
 
 @no_silo_test
-class ReplayDetailTest(ReplaysAcceptanceTestCase):
+class ReplayDetailsTest(ReplaysAcceptanceTestCase):
     def setUp(self):
         super().setUp()
 
@@ -28,8 +28,11 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             name="Bengal",
         )
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
+        self.login_as(self.user)
 
         replay_id = "b58a67446c914f44a4e329763420047b"
+        self.path = f"/organizations/{self.org.slug}/explore/replays/{replay_id}/"
+
         seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
         seq2_timestamp = datetime.now() - timedelta(minutes=10, seconds=35)
         self.store_replays(
@@ -62,15 +65,11 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
         for segment_id, segment in enumerate(segments):
             self.store_replay_segments(replay_id, self.project.id, segment_id, segment)
 
-        self.login_as(self.user)
-
-        slug = f"{self.project.slug}:{replay_id}"
-        self.path = f"/organizations/{self.org.slug}/replays/{slug}/"
-
     def test_not_found(self) -> None:
         with self.feature(FEATURE_NAME):
-            slug = f"{self.project.slug}:abcdef"
-            self.path = f"/organizations/{self.org.slug}/replays/{slug}/"
+            self.path = (
+                f"/organizations/{self.org.slug}/explore/replays/fb58a67446c914f44a4e329763420047b/"
+            )
 
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
@@ -120,3 +119,5 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
             self.browser.click('[data-test-id="replay-details-trace-btn"]')
             self.browser.wait_until_test_id("replay-details-trace-tab")
+
+    # XXX: These tabs aren't covered yet: breadcrumbs, logs, tags, ai.
