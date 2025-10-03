@@ -141,19 +141,16 @@ describe('logsTableRow', () => {
     ProjectsStore.loadInitialData([project]);
 
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(project.id, 10)],
-        environments: [],
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: null,
-        },
+    PageFiltersStore.onInitializeUrlState({
+      projects: [parseInt(project.id, 10)],
+      environments: [],
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: null,
       },
-      new Set()
-    );
+    });
 
     stacktraceLinkMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${projects[0]!.slug}/stacktrace-link/`,

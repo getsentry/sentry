@@ -22,19 +22,16 @@ describe('DatePageFilter', () => {
     OrganizationStore.init();
 
     OrganizationStore.onUpdate(organization, {replace: true});
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [],
-        environments: [],
-        datetime: {
-          period: '7d',
-          start: null,
-          end: null,
-          utc: false,
-        },
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {
+        period: '7d',
+        start: null,
+        end: null,
+        utc: false,
       },
-      new Set(['datetime'])
-    );
+    });
   });
 
   it('can change period', async () => {
