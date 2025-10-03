@@ -33,7 +33,7 @@ export const inlineCodeStyles = (theme: Theme) => css`
   text-box-trim: trim-both;
 `;
 
-interface InlineCodeProps extends HTMLProps<HTMLElement> {}
+interface InlineCodeProps extends React.HTMLAttributes<HTMLCodeElement> {}
 export function InlineCode(props: InlineCodeProps) {
   const theme = useTheme();
   return <code css={inlineCodeStyles(theme)} {...props} />;
