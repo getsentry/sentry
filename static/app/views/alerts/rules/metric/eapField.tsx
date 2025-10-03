@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
 
 import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
@@ -9,10 +10,12 @@ import {parseFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  getFieldDefinition,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
 import {Dataset, type EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
+import {BufferedInput} from 'sentry/views/discover/table/queryField';
 import {
   DEFAULT_VISUALIZATION_FIELD,
   updateVisualizeAggregate,
@@ -40,6 +43,7 @@ const SPAN_OPERATIONS = [
     label: aggregate,
     value: aggregate,
   })),
+  {label: 'apdex', value: 'apdex'},
 ];
 
 const LOG_OPERATIONS = [
@@ -69,11 +73,16 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
     eventTypes
   );
   // We parse out the aggregation and field from the aggregate string.
-  // This only works for aggregates with <= 1 argument.
+  // This only works for aggregates with <= 1 arguments
+
   const {
     name: aggregation,
     arguments: [field],
   } = parseFunction(aggregate) ?? {arguments: [undefined]};
+
+  const {arguments: aggregateFuncArgs} = parseFunction(aggregate) ?? {
+    arguments: undefined,
+  };
 
   const {attributes: storedNumberTags} = useTraceItemAttributes('number');
   const {attributes: storedStringTags} = useTraceItemAttributes('string');
@@ -120,15 +129,18 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
     }
   }, [lockOptions, onChange, aggregate, aggregation, field, storedTags, fieldsArray]);
 
-  const handleFieldChange = useCallback(
-    (option: any) => {
-      const selectedMeta = storedTags[option.value];
-      if (!selectedMeta) {
-        return;
+  const handleArgumentChange = useCallback(
+    (index: number, value: string) => {
+      let args = cloneDeep(aggregateFuncArgs);
+      if (args) {
+        args[index] = value;
+      } else {
+        args = [value];
       }
-      onChange(`${aggregation}(${selectedMeta.key})`, {});
+      const newYAxis = `${aggregation}(${args.join(',')})`;
+      onChange(newYAxis, {});
     },
-    [storedTags, onChange, aggregation]
+    [aggregateFuncArgs, aggregation, onChange]
   );
 
   const handleOperationChange = useCallback(
@@ -150,12 +162,12 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
         newAggregate = updateVisualizeAggregate({
           newAggregate: option.value,
           oldAggregate: aggregation || DEFAULT_EAP_AGGREGATION,
-          oldArguments: field ? [field] : [DEFAULT_EAP_FIELD],
+          oldArguments: aggregateFuncArgs ? aggregateFuncArgs : [DEFAULT_EAP_FIELD],
         });
       }
       onChange(newAggregate, {});
     },
-    [aggregation, field, onChange, storedNumberTags, traceItemType]
+    [aggregateFuncArgs, aggregation, field, onChange, storedNumberTags, traceItemType]
   );
 
   // As SelectControl does not support an options size limit out of the box
@@ -178,6 +190,13 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
   const operations =
     traceItemType === TraceItemDataset.LOGS ? LOG_OPERATIONS : SPAN_OPERATIONS;
 
+  const aggregateDefinition = aggregation
+    ? getFieldDefinition(
+        aggregation,
+        traceItemType === TraceItemDataset.LOGS ? 'log' : 'span'
+      )
+    : undefined;
+
   return (
     <Wrapper>
       <StyledSelectControl
@@ -187,19 +206,70 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
         value={aggregation}
         onChange={handleOperationChange}
       />
-      <StyledSelectControl
-        searchable
-        placeholder={t('Select a metric')}
-        noOptionsMessage={() =>
-          fieldsArray.length === 0 ? t('No metrics in this project') : t('No options')
+      {aggregateDefinition?.parameters?.map((param, index) => {
+        if (param.kind === 'value') {
+          return (
+            <FlexWrapper key={param.name}>
+              <BufferedInput
+                type="integer"
+                name={param.name}
+                value={aggregateFuncArgs?.[index] || param.defaultValue || ''}
+                data-test-id="alert-name"
+                placeholder={param.placeholder}
+                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                  if (e.key === 'Enter') {
+                    handleArgumentChange(index, e.currentTarget.value);
+                  }
+                }}
+                onChange={event => handleArgumentChange(index, event.target.value)}
+                onBlur={event => handleArgumentChange(index, event.target.value)}
+                onUpdate={value => handleArgumentChange(index, value)}
+              />
+            </FlexWrapper>
+          );
         }
-        async
-        defaultOptions={getFieldOptions('')}
-        loadOptions={(searchText: any) => Promise.resolve(getFieldOptions(searchText))}
-        value={selectedOption}
-        onChange={handleFieldChange}
-        disabled={lockOptions}
-      />
+        return (
+          <FlexWrapper key={param.name}>
+            <StyledSelectControl
+              key={param.name}
+              searchable
+              placeholder={t('Select a metric')}
+              noOptionsMessage={() =>
+                fieldsArray.length === 0
+                  ? t('No metrics in this project')
+                  : t('No options')
+              }
+              async
+              defaultOptions={getFieldOptions('')}
+              loadOptions={(searchText: any) =>
+                Promise.resolve(getFieldOptions(searchText))
+              }
+              value={selectedOption}
+              onChange={(value: string) => handleArgumentChange(index, value)}
+              disabled={lockOptions}
+            />
+          </FlexWrapper>
+        );
+      })}
+      {aggregateDefinition?.parameters?.length === 0 && ( // for parameterless functions, we want to still show show greyed out spans
+        <FlexWrapper>
+          <StyledSelectControl
+            searchable
+            placeholder={t('Select a metric')}
+            noOptionsMessage={() =>
+              fieldsArray.length === 0 ? t('No metrics in this project') : t('No options')
+            }
+            async
+            defaultOptions={getFieldOptions('')}
+            loadOptions={(searchText: any) =>
+              Promise.resolve(getFieldOptions(searchText))
+            }
+            value={selectedOption}
+            onChange={(value: string) => handleArgumentChange(0, value)}
+            disabled={lockOptions}
+          />
+        </FlexWrapper>
+      )}
     </Wrapper>
   );
 }
@@ -209,6 +279,10 @@ export default EAPFieldWrapper;
 const Wrapper = styled('div')`
   display: flex;
   gap: ${space(1)};
+`;
+
+const FlexWrapper = styled('div')`
+  flex: 1;
 `;
 
 const StyledSelectControl = styled(Select)`
