@@ -21,7 +21,6 @@ import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMillisecon
 import {areNumbersAlmostEqual} from 'sentry/utils/number/areNumbersAlmostEqual';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {getTimeSeriesInterval} from 'sentry/utils/timeSeries/getTimeSeriesInterval';
-import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -36,7 +35,6 @@ import {
 import type {
   TimeSeries,
   TimeSeriesItem,
-  TimeSeriesMeta,
 } from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
