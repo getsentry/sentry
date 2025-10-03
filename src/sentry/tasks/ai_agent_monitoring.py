@@ -15,7 +15,6 @@ from sentry.relay.config.ai_model_costs import (
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import ai_agent_monitoring_tasks
 from sentry.utils.cache import cache
 
@@ -139,17 +138,10 @@ def _add_glob_model_names(models_dict: dict[ModelId, AIModelCostV2]) -> None:
 
 @instrumented_task(
     name="sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
-    queue="ai_agent_monitoring",
-    default_retry_delay=5,
-    max_retries=3,
+    namespace=ai_agent_monitoring_tasks,
+    processing_deadline_duration=35,
+    expires=30,
     silo_mode=SiloMode.REGION,
-    soft_time_limit=30,  # 30 seconds
-    time_limit=35,  # 35 seconds
-    taskworker_config=TaskworkerConfig(
-        namespace=ai_agent_monitoring_tasks,
-        processing_deadline_duration=35,
-        expires=30,
-    ),
 )
 def fetch_ai_model_costs() -> None:
     """

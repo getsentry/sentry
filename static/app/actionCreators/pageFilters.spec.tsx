@@ -78,7 +78,6 @@ describe('PageFilters ActionCreators', () => {
           environments: [],
           projects: [1],
         }),
-        new Set(['projects', 'environments']),
         true
       );
       expect(router.replace).toHaveBeenCalledWith(
@@ -129,7 +128,6 @@ describe('PageFilters ActionCreators', () => {
           environments: [],
           projects: [],
         }),
-        new Set(['projects']),
         false
       );
 
@@ -169,7 +167,6 @@ describe('PageFilters ActionCreators', () => {
             utc: null,
           },
         }),
-        new Set(),
         true
       );
     });
@@ -201,7 +198,6 @@ describe('PageFilters ActionCreators', () => {
             utc: null,
           },
         }),
-        new Set(),
         true
       );
     });
@@ -292,7 +288,6 @@ describe('PageFilters ActionCreators', () => {
           projects: [1],
           environments: [],
         },
-        new Set(),
         true
       );
       expect(router.replace).toHaveBeenCalledWith(
@@ -326,7 +321,6 @@ describe('PageFilters ActionCreators', () => {
           projects: [-1],
           environments: [],
         },
-        new Set(),
         true
       );
     });
@@ -376,7 +370,6 @@ describe('PageFilters ActionCreators', () => {
         expect.objectContaining({
           projects: [-1],
         }),
-        expect.any(Set),
         true
       );
     });
@@ -398,7 +391,6 @@ describe('PageFilters ActionCreators', () => {
         expect.objectContaining({
           projects: [],
         }),
-        expect.any(Set),
         true
       );
     });
@@ -482,7 +474,6 @@ describe('PageFilters ActionCreators', () => {
             utc: null,
           },
         }),
-        new Set(['datetime', 'projects', 'environments']),
         true
       );
       expect(router.replace).toHaveBeenCalledWith(
@@ -548,7 +539,6 @@ describe('PageFilters ActionCreators', () => {
             utc: null,
           },
         }),
-        new Set(['datetime']),
         true
       );
       expect(router.replace).toHaveBeenCalledWith(
@@ -588,7 +578,6 @@ describe('PageFilters ActionCreators', () => {
           environments: [],
           projects: [1],
         }),
-        new Set(['projects', 'environments']),
         true
       );
       expect(router.replace).toHaveBeenCalledWith(
@@ -828,19 +817,16 @@ describe('PageFilters ActionCreators', () => {
           pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         });
 
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [2],
-          environments: ['prod'],
-          datetime: {
-            start: null,
-            end: null,
-            period: '1d',
-            utc: null,
-          },
+      PageFiltersStore.onInitializeUrlState({
+        projects: [2],
+        environments: ['prod'],
+        datetime: {
+          start: null,
+          end: null,
+          period: '1d',
+          utc: null,
         },
-        new Set()
-      );
+      });
       PageFiltersStore.updateDesyncedFilters(
         new Set(['projects', 'environments', 'datetime'])
       );

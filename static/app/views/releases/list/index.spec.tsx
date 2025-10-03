@@ -40,14 +40,11 @@ describe('ReleasesList', () => {
 
   beforeEach(() => {
     act(() => ProjectsStore.loadInitialData(projects));
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [],
-        environments: [],
-        datetime: {period: null, utc: null, start: null, end: null},
-      },
-      new Set()
-    );
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {period: null, utc: null, start: null, end: null},
+    });
     endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/`,
       body: [
