@@ -8,6 +8,7 @@ import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {getInterval} from 'sentry/components/charts/utils';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Flex} from 'sentry/components/core/layout';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -272,14 +273,14 @@ function VitalDetailContent(props: Props) {
           <StyledDescription>{vitalDescription[vitalName]}</StyledDescription>
           <SupportedBrowsers>
             {Object.values(Browser).map(browser => (
-              <BrowserItem key={browser}>
+              <Flex key={browser} align="center" gap="md">
                 {vitalSupportedBrowsers[vitalName]?.includes(browser) ? (
                   <IconCheckmark color="successText" size="sm" />
                 ) : (
                   <IconClose color="dangerText" size="sm" />
                 )}
                 {browser}
-              </BrowserItem>
+              </Flex>
             ))}
           </SupportedBrowsers>
           {renderContent(vital)}
@@ -304,12 +305,6 @@ const SupportedBrowsers = styled('div')`
   display: inline-flex;
   gap: ${space(2)};
   margin-bottom: ${space(3)};
-`;
-
-const BrowserItem = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const FilterActions = styled('div')`
