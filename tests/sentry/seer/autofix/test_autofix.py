@@ -294,7 +294,7 @@ class TestConvertProfileToExecutionTree(TestCase):
 
 
 @pytest.mark.django_db
-class TestGetTraceTreeForEvent(APITestCase):
+class TestGetTraceTreeForEvent(APITestCase, OccurrenceTestMixin):
     @patch("sentry.api.endpoints.organization_trace.OrganizationTraceEndpoint.query_trace_data")
     def test_get_trace_tree_basic(self, mock_query_trace_data) -> None:
         """Test that we can get a basic trace tree."""
@@ -396,6 +396,61 @@ class TestGetTraceTreeForEvent(APITestCase):
         child_span = parent_span["children"][0]
         assert child_span["description"] == "Child Operation"
         assert child_span["parent_span"] == "aaaaaaaaaaaaaaaa"
+
+    @patch("sentry.api.endpoints.organization_trace.OrganizationTraceEndpoint.query_trace_data")
+    def test_get_trace_tree_with_web_vital_issue(self, mock_query_trace_data) -> None:
+        """Test that we can get a trace tree for a web vital issue."""
+        trace_id = "1234567890abcdef1234567890abcdef"
+        event_data = load_data("javascript")
+        event_data.update(
+            {"contexts": {"trace": {"trace_id": trace_id, "span_id": "abcdef0123456789"}}}
+        )
+
+        occurrence_data = self.build_occurrence_data(
+            project_id=self.project.id,
+            type=WebVitalsGroup.type_id,
+            issue_title="LCP score needs improvement",
+            subtitle="/test-transaction has an LCP score of 75",
+            culprit="/test-transaction",
+            evidence_data={
+                "transaction": "/test-transaction",
+                "vital": "lcp",
+                "score": 75,
+                "trace_id": trace_id,
+            },
+            level="info",
+        )
+
+        event_data["event_id"] = occurrence_data["event_id"]
+        event = self.store_event(data=event_data, project_id=self.project.id)
+
+        _, group_info = save_issue_occurrence(occurrence_data, event)
+        assert group_info is not None
+        group = group_info.group
+        group_event = event.for_group(group)
+
+        mock_trace_data = [
+            {
+                "id": "aaaaaaaaaaaaaaaa",
+                "description": "Test Transaction",
+                "is_transaction": True,
+                "children": [],
+                "errors": [],
+                "occurrences": [],
+            }
+        ]
+        mock_query_trace_data.return_value = mock_trace_data
+
+        trace_tree = _get_trace_tree_for_event(group_event, self.project)
+
+        assert trace_tree is not None
+        assert trace_tree["trace_id"] == trace_id
+        assert trace_tree["trace"] == mock_trace_data
+        mock_query_trace_data.assert_called_once()
+        call_args = mock_query_trace_data.call_args
+        snuba_params = call_args[0][0]
+        time_range = snuba_params.end - snuba_params.start
+        assert time_range.days == 90
 
 
 @requires_snuba
