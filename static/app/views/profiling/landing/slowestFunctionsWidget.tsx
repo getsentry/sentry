@@ -6,6 +6,8 @@ import styled from '@emotion/styled';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {Button} from 'sentry/components/core/button';
+import type {FlexProps} from 'sentry/components/core/layout';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -512,12 +514,9 @@ const FunctionName = styled(TextOverflow)`
   flex: 1 1 auto;
 `;
 
-const FunctionChartContainer = styled('div')`
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-`;
+function FunctionChartContainer(props: FlexProps) {
+  return <Flex flex="1 1 auto" direction="column" justify="center" {...props} />;
+}
 
 const DropdownItem = styled('div')`
   width: 150px;
