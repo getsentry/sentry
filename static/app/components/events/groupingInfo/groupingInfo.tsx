@@ -41,9 +41,12 @@ export default function GroupingInfo({
 
   const variants = groupInfo
     ? Object.values(groupInfo).sort((a, b) => {
-        // Sort variants with hashes before those without
-        if (a.hash && !b.hash) {
+        // Sort contributing variants before non-contributing ones
+        if (a.contributes && !b.contributes) {
           return -1;
+        }
+        if (b.contributes && !a.contributes) {
+          return 1;
         }
 
         // Sort by description alphabetically
