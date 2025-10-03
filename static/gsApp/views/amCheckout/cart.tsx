@@ -23,7 +23,6 @@ import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 import {
-  AddOnCategory,
   InvoiceItemType,
   OnDemandBudgetMode,
   type Plan,
@@ -34,6 +33,7 @@ import {
   formatReservedWithUnits,
   getPlanIcon,
   getProductIcon,
+  getReservedBudgetCategoryForAddOn,
   hasPartnerMigrationFeature,
   isBizPlanFamily,
   isDeveloperPlan,
@@ -41,7 +41,7 @@ import {
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
 import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
 import CartDiff from 'getsentry/views/amCheckout/cartDiff';
-import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
+import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
 const PRICE_PLACEHOLDER_WIDTH = '70px';
@@ -108,6 +108,7 @@ interface ItemsSummaryProps extends BaseSummaryProps {}
 interface SubtotalSummaryProps extends BaseSummaryProps {
   previewDataLoading: boolean;
   renewalDate: Date | null;
+  subscription: Subscription;
 }
 
 interface TotalSummaryProps extends BaseSummaryProps {
@@ -158,7 +159,6 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
   const theme = useTheme();
   const isChonk = theme.isChonk;
 
-  // TODO(checkout v3): This will need to be updated for non-budget products
   const additionalProductCategories = useMemo(
     () =>
       Object.values(activePlan.addOnCategories).flatMap(addOn => addOn.dataCategories),
@@ -257,27 +257,26 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
             })}
         </Flex>
       </ItemWithIcon>
-      {/* TODO(checkout-v3): This will need to be updated for non-budget products */}
-      {Object.values(activePlan.availableReservedBudgetTypes)
-        .filter(
-          budgetTypeInfo =>
-            formData.selectedProducts?.[
-              budgetTypeInfo.apiName as string as SelectableProduct
-            ]?.enabled
-        )
-        .map(budgetTypeInfo => {
-          const productIcon = getProductIcon(
-            budgetTypeInfo.apiName as string as SelectableProduct
-          );
-          const productName =
-            activePlan.addOnCategories[budgetTypeInfo.apiName as unknown as AddOnCategory]
-              ?.productName ?? budgetTypeInfo.productCheckoutName;
+      {Object.values(activePlan.addOnCategories)
+        .filter(addOnInfo => formData.addOns?.[addOnInfo.apiName]?.enabled)
+        .map(addOnInfo => {
+          const apiName = addOnInfo.apiName;
+          const productIcon = getProductIcon(apiName);
+          const productName = addOnInfo.productName;
+
+          // if it's a reserved budget add on, get the price; otherwise, we assume it's 0
+          const price = utils.getPrepaidPriceForAddOn({
+            plan: activePlan,
+            addOnCategory: apiName,
+          });
+          const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
+          const includedBudget = reservedBudgetCategory
+            ? (activePlan.availableReservedBudgetTypes[reservedBudgetCategory]
+                ?.defaultBudget ?? 0)
+            : 0;
 
           return (
-            <ItemWithIcon
-              key={budgetTypeInfo.apiName}
-              data-test-id={`summary-item-product-${budgetTypeInfo.apiName}`}
-            >
+            <ItemWithIcon key={apiName} data-test-id={`summary-item-product-${apiName}`}>
               <IconContainer>{productIcon}</IconContainer>
               <Flex direction="column" gap="xs">
                 <ItemWithPrice
@@ -285,18 +284,15 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                     allowInnerUpperCase: true,
                   })}
                   price={`${utils.displayPrice({
-                    cents: utils.getReservedPriceForReservedBudgetCategory({
-                      plan: activePlan,
-                      reservedBudgetCategory: budgetTypeInfo.apiName,
-                    }),
+                    cents: price,
                   })}/${shortInterval}`}
                   shouldBoldItem
                 />
-                {budgetTypeInfo.defaultBudget && (
+                {includedBudget && (
                   <div>
-                    {tct('Includes [includedBudget] monthly credits', {
-                      includedBudget: utils.displayPrice({
-                        cents: budgetTypeInfo.defaultBudget,
+                    {tct('Includes [formattedIncludedBudget] monthly credits', {
+                      formattedIncludedBudget: utils.displayPrice({
+                        cents: includedBudget,
                       }),
                     })}
                   </div>
@@ -314,21 +310,26 @@ function SubtotalSummary({
   previewDataLoading,
   renewalDate,
   formData,
+  subscription,
 }: SubtotalSummaryProps) {
   const shortInterval = utils.getShortInterval(activePlan.billingInterval);
   const recurringSubtotal = useMemo(() => {
     return utils.getReservedPriceCents({
       plan: activePlan,
       reserved: formData.reserved,
-      selectedProducts: formData.selectedProducts,
+      addOns: formData.addOns,
     });
-  }, [activePlan, formData.reserved, formData.selectedProducts]);
+  }, [activePlan, formData.reserved, formData.addOns]);
   const isDefaultPaygAmount = useMemo(() => {
     const defaultAmount = isBizPlanFamily(activePlan)
       ? PAYG_BUSINESS_DEFAULT
       : PAYG_TEAM_DEFAULT;
     return formData.onDemandMaxSpend === defaultAmount;
   }, [activePlan, formData.onDemandMaxSpend]);
+  const shouldShowDefaultPaygTag = useMemo(
+    () => isDefaultPaygAmount && isDeveloperPlan(subscription.planDetails),
+    [subscription.planDetails, isDefaultPaygAmount]
+  );
 
   return (
     <Container borderTop="primary">
@@ -375,7 +376,7 @@ function SubtotalSummary({
                     })}
                   </Text>
                   <AnimatePresence>
-                    {isDefaultPaygAmount && (
+                    {shouldShowDefaultPaygTag && (
                       <motion.div
                         initial={{opacity: 0, y: -10}}
                         animate={{opacity: 1, y: 0}}
@@ -533,7 +534,7 @@ function TotalSummary({
 
   const buttonText = isMigratingPartner
     ? t('Schedule changes')
-    : isDueToday
+    : isDueToday && billedTotal > 0
       ? t('Confirm and pay')
       : t('Confirm');
 
@@ -843,6 +844,7 @@ function Cart({
               formData={formData}
               previewDataLoading={previewState.isLoading}
               renewalDate={previewState.renewalDate}
+              subscription={subscription}
             />
           </Flex>
         )}

@@ -4,12 +4,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict
 
-from sentry.grouping.component import (
-    AppGroupingComponent,
-    ContributingComponent,
-    DefaultGroupingComponent,
-    SystemGroupingComponent,
-)
+from sentry.grouping.component import ContributingComponent, RootGroupingComponent
 from sentry.grouping.fingerprinting.rules import FingerprintRule
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 
@@ -37,6 +32,10 @@ class BaseVariant(ABC):
 
     def get_hash(self) -> str | None:
         return None
+
+    @property
+    def key(self) -> str:
+        return self.type
 
     @property
     def description(self) -> str:
@@ -113,7 +112,7 @@ class ComponentVariant(BaseVariant):
     def __init__(
         self,
         # The root of the component tree
-        root_component: AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent,
+        root_component: RootGroupingComponent,
         # The highest non-root contributing component in the tree, representing the overall grouping
         # method (exception, threads, message, etc.). For non-contributing variants, this will be
         # None.
@@ -124,6 +123,18 @@ class ComponentVariant(BaseVariant):
         self.config = strategy_config
         self.contributing_component = contributing_component
         self.variant_name = self.root_component.id  # "app", "system", or "default"
+
+    @property
+    def key(self) -> str:
+        """
+        Create a key for this variant in the grouping info dictionary.
+        """
+        key = self.root_component.key
+
+        if self.variant_name in ["app", "system"]:
+            key = f"{self.variant_name}_{key}"
+
+        return key
 
     @property
     def description(self) -> str:
@@ -215,7 +226,7 @@ class SaltedComponentVariant(ComponentVariant):
     ) -> Self:
         return cls(
             fingerprint=fingerprint,
-            component=component_variant.root_component,
+            root_component=component_variant.root_component,
             contributing_component=component_variant.contributing_component,
             strategy_config=component_variant.config,
             fingerprint_info=fingerprint_info,
@@ -225,7 +236,7 @@ class SaltedComponentVariant(ComponentVariant):
         self,
         fingerprint: list[str],
         # The root of the component tree
-        component: AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent,
+        root_component: RootGroupingComponent,
         # The highest non-root contributing component in the tree, representing the overall grouping
         # method (exception, threads, message, etc.). For non-contributing variants, this will be
         # None.
@@ -233,9 +244,13 @@ class SaltedComponentVariant(ComponentVariant):
         strategy_config: StrategyConfiguration,
         fingerprint_info: FingerprintInfo,
     ):
-        super().__init__(component, contributing_component, strategy_config)
+        super().__init__(root_component, contributing_component, strategy_config)
         self.values = fingerprint
         self.fingerprint_info = fingerprint_info
+
+    @property
+    def key(self) -> str:
+        return super().key + "_hybrid_fingerprint"
 
     @property
     def description(self) -> str:

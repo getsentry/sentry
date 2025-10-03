@@ -377,11 +377,7 @@ const replayOnboarding: OnboardingConfig = {
         'There are several privacy and sampling options available. Learn more about configuring Session Replay by reading the [link:configuration docs].',
         {
           link: (
-            <ExternalLink
-              href={
-                'https://docs.sentry.io/platforms/javascript/guides/astro/session-replay/'
-              }
-            />
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/astro/session-replay/" />
           ),
         }
       ),

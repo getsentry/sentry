@@ -138,4 +138,18 @@ describe('DataDownload', () => {
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getByRole('button', {name: 'Open in Explore'})).toBeInTheDocument();
   });
+
+  it('should render with null organization', async () => {
+    const status = DownloadStatus.VALID;
+    getDataExportDetails({
+      dateExpired,
+      status,
+      query: {type: ExportQueryType.EXPLORE, info: {}},
+    });
+
+    render(<DataDownload />, {initialRouterConfig, organization: null});
+    expect(
+      await screen.findByRole('button', {name: 'Open in Explore'})
+    ).toBeInTheDocument();
+  });
 });

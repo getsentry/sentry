@@ -56,6 +56,14 @@ export function getIsAiGenerationSpan({op = 'default'}: {op?: string}) {
   return op.startsWith('gen_ai.') && !NON_GENERATION_OPS.includes(op);
 }
 
+export function getIsExecuteToolSpan({op = 'default'}: {op?: string}) {
+  return op === 'gen_ai.execute_tool';
+}
+
+export function getIsHandoffSpan({op = 'default'}: {op?: string}) {
+  return op === 'gen_ai.handoff';
+}
+
 export function getIsAiCreateAgentSpan({op = 'default'}: {op?: string}) {
   return AI_CREATE_AGENT_OPS.includes(op);
 }

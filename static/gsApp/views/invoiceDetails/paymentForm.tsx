@@ -112,7 +112,7 @@ function InvoiceDetailsPaymentForm({
             }
             onCancel={() => closeModal()}
             amount={invoice.amountBilled ?? 0}
-            cardMode={'payment'}
+            cardMode="payment"
             onSuccess={() => {
               reloadInvoice();
               closeModal();

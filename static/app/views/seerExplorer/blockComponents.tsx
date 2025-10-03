@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -39,13 +40,13 @@ function BlockComponent({block, isLast, isFocused, onClick, ref}: BlockProps) {
               <BlockContentWrapper>
                 {block.message.content && <BlockContent text={block.message.content} />}
                 {toolsUsed.length > 0 && (
-                  <ToolsUsed>
+                  <Stack gap="md">
                     {toolsUsed.map(tool => (
                       <Text key={tool} size="xs" variant="muted" monospace>
                         {tool}
                       </Text>
                     ))}
-                  </ToolsUsed>
+                  </Stack>
                 )}
               </BlockContentWrapper>
             </BlockRow>
@@ -145,12 +146,6 @@ const BlockContent = styled(MarkedText)`
   h6:first-child {
     margin-top: 0;
   }
-`;
-
-const ToolsUsed = styled('div')`
-  gap: ${space(1)};
-  display: flex;
-  flex-direction: column;
 `;
 
 const UserBlockContent = styled('div')`

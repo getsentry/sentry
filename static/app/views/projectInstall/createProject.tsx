@@ -555,7 +555,6 @@ export function CreateProject() {
                     allowCreate
                     name="team"
                     aria-label={t('Select a Team')}
-                    menuPlacement="auto"
                     clearable={false}
                     placeholder={t('Select a Team')}
                     teamFilter={(tm: Team) => tm.access.includes('team:admin')}

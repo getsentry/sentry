@@ -135,11 +135,14 @@ function OptimizableImageFileRow({
   file: ProcessedInsightFile;
   originalFile: OptimizableImageFile;
 }) {
+  if (file.data.fileType !== 'optimizable_image') {
+    return null;
+  }
+
   const hasMinifySavings =
     originalFile.minified_size !== null && originalFile.minify_savings > 0;
   const hasHeicSavings =
     originalFile.heic_size !== null && originalFile.conversion_savings > 0;
-  const currentSize = originalFile.current_size;
 
   const maxSavings = Math.max(
     originalFile.minify_savings || 0,
@@ -157,7 +160,7 @@ function OptimizableImageFileRow({
             -{formatBytesBase10(maxSavings)}
           </Text>
           <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
-            ({formatUpside(maxSavings / currentSize)})
+            ({formatUpside(file.percentage / 100)})
           </Text>
         </Flex>
       </FlexAlternatingRow>
@@ -181,7 +184,7 @@ function OptimizableImageFileRow({
               tabular
               style={{minWidth: '64px', textAlign: 'right'}}
             >
-              ({formatUpside(originalFile.minify_savings / currentSize)})
+              ({formatUpside(file.data.minifyPercentage / 100)})
             </Text>
           </Flex>
         )}
@@ -204,7 +207,7 @@ function OptimizableImageFileRow({
               tabular
               style={{minWidth: '64px', textAlign: 'right'}}
             >
-              ({formatUpside(originalFile.conversion_savings / currentSize)})
+              ({formatUpside(file.data.conversionPercentage / 100)})
             </Text>
           </Flex>
         )}
