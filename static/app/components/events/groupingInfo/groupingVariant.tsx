@@ -156,7 +156,7 @@ function GroupingVariant({event, variant, showNonContributing}: GroupingVariantP
   };
 
   const renderTitle = () => {
-    const isContributing = variant.hash !== null;
+    const isContributing = variant.contributes;
 
     const hint = variant.hint;
 
