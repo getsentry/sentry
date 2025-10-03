@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
@@ -183,7 +184,15 @@ class SnubaQueryDataSourceType(TypedDict):
 
 
 @dataclass(frozen=True)
+class DetectorLifeCycleHooks:
+    on_create: Callable[[Detector], None] | None  # invoked on validator.save()
+    on_delete: Callable[[int], None] | None  # invoked when the `deletion` code is invoked
+    on_update: Callable[[Detector], None] | None  # invoked on the validator.update()
+
+
+@dataclass(frozen=True)
 class DetectorSettings:
+    hooks: DetectorLifeCycleHooks | None = None
     handler: type[DetectorHandler] | None = None
     validator: type[BaseDetectorTypeValidator] | None = None
     config_schema: dict[str, Any] = field(default_factory=dict)
