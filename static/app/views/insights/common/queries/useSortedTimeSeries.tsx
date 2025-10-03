@@ -222,7 +222,7 @@ export function transformToSeriesMap(
         const [, timeSeries] = convertEventsStatsToTimeSeriesData(
           axis,
           seriesData,
-          seriesData.order
+          groupData.order as unknown as number // `order` is always present
         );
 
         if (fields) {
