@@ -1,8 +1,5 @@
 import logging
-from collections.abc import Callable
 from datetime import timedelta
-
-from google.cloud.storage_transfer_v1 import CreateTransferJobRequest
 
 from sentry.models.organization import Organization
 from sentry.replays.data_export import create_transfer_job, request_create_transfer_job
@@ -11,35 +8,6 @@ logger = logging.getLogger(__name__)
 
 EXPORT_JOB_DURATION_DEFAULT = timedelta(days=5)
 EXPORT_JOB_SOURCE_BUCKET = "sentryio-profiles"
-
-
-def export_profiles_blob_data[T](
-    organization_id: int,
-    gcp_project_id: str,
-    destination_bucket: str,
-    job_duration: timedelta,
-    do_create_transfer_job: Callable[[CreateTransferJobRequest], T],
-    pubsub_topic_name: str | None = None,
-    source_bucket: str = EXPORT_JOB_SOURCE_BUCKET,
-) -> None:
-    # In the future we could set a non-unique transfer-job name. This would prevent duplicate runs
-    # from doing the same work over and over again. However, we'd need to catch the exception,
-    # look-up any active runs, and, if no active runs, schedule a new run. This is a bit much for
-    # now.
-    #
-    # transfer_job_name = f"{source_bucket}/{organization_id}"
-
-    create_transfer_job(
-        gcp_project_id=gcp_project_id,
-        transfer_job_name=None,
-        source_bucket=source_bucket,
-        source_prefix=f"{organization_id}",
-        destination_bucket=destination_bucket,
-        notification_topic=pubsub_topic_name,
-        job_description="Profiles EU Compliance Export",
-        job_duration=job_duration,
-        do_create_transfer_job=do_create_transfer_job,
-    )
 
 
 def export_profiles_data(
@@ -69,12 +37,14 @@ def export_profiles_data(
         logger.exception("Could not find organization", extra={"organization.id": organization_id})
         return None
 
-    export_profiles_blob_data(
-        organization_id=organization_id,
+    create_transfer_job(
         gcp_project_id=gcp_project_id,
-        destination_bucket=destination_bucket,
-        pubsub_topic_name=pubsub_topic_name,
+        transfer_job_name=None,
         source_bucket=source_bucket,
+        source_prefix=f"{organization_id}",
+        destination_bucket=destination_bucket,
+        notification_topic=pubsub_topic_name,
+        job_description="Profiles EU Compliance Export",
         job_duration=blob_export_job_duration,
         do_create_transfer_job=request_create_transfer_job,
     )
