@@ -17,23 +17,28 @@ class Registry[T]:
     If you have duplicate values, you may want to disable reverse lookup.
     """
 
-    def __init__(self, enable_reverse_lookup: bool = True) -> None:
+    def __init__(
+        self, enable_reverse_lookup: bool = True, allow_reregistration: bool = False
+    ) -> None:
         self.registrations: dict[str, T] = {}
         self.reverse_lookup: dict[T, str] = {}
         self.enable_reverse_lookup = enable_reverse_lookup
+        self.allow_reregistration = allow_reregistration
 
     def register(self, key: str) -> Callable[[T], T]:
         def inner(item: T) -> T:
             if key in self.registrations:
-                raise AlreadyRegisteredError(
-                    f"A registration already exists for {key}: {self.registrations[key]}"
-                )
+                if not self.allow_reregistration or self.registrations[key] != item:
+                    raise AlreadyRegisteredError(
+                        f"A registration already exists for {key}: {self.registrations[key]}"
+                    )
 
             if self.enable_reverse_lookup:
                 if item in self.reverse_lookup:
-                    raise AlreadyRegisteredError(
-                        f"A registration already exists for {item}: {self.reverse_lookup[item]}"
-                    )
+                    if not self.allow_reregistration or self.reverse_lookup[item] != key:
+                        raise AlreadyRegisteredError(
+                            f"A registration already exists for {item}: {self.reverse_lookup[item]}"
+                        )
                 self.reverse_lookup[item] = key
 
             self.registrations[key] = item

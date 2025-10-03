@@ -10,4 +10,4 @@ class EventManager(Registry[type[Event]]):
         return super().register(event_cls.type)(event_cls)
 
 
-default_manager = EventManager()
+default_manager = EventManager(allow_reregistration=True)
