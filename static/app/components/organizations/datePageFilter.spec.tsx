@@ -58,7 +58,7 @@ describe('DatePageFilter', () => {
       isReady: true,
       shouldPersist: true,
       desyncedFilters: new Set(),
-      pinnedFilters: new Set(['datetime']),
+      pinnedFilters: new Set(['projects', 'environments', 'datetime']),
       selection: {
         datetime: {
           period: '30d',
@@ -105,7 +105,7 @@ describe('DatePageFilter', () => {
       isReady: true,
       shouldPersist: true,
       desyncedFilters: new Set(),
-      pinnedFilters: new Set(['datetime']),
+      pinnedFilters: new Set(['projects', 'environments', 'datetime']),
       selection: {
         datetime: {
           period: null,
