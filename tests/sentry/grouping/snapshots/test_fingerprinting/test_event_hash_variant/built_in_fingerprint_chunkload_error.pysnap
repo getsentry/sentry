@@ -1,5 +1,5 @@
 ---
-created: '2025-09-25T07:58:54.419340+00:00'
+created: '2025-10-03T17:19:39.850063+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -14,9 +14,11 @@ variants:
     component:
       contributes: false
       hint: ignored because built-in fingerprint takes precedence
+    contributes: false
     hint: ignored because built-in fingerprint takes precedence
     type: component
   built_in_fingerprint:
+    contributes: true
     hint: null
     matched_rule: family:"javascript" type:"ChunkLoadError" -> "chunkloaderror"
     type: built_in_fingerprint
@@ -26,5 +28,6 @@ variants:
     component:
       contributes: false
       hint: ignored because built-in fingerprint takes precedence
+    contributes: false
     hint: ignored because built-in fingerprint takes precedence
     type: component
