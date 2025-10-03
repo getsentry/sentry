@@ -1,6 +1,8 @@
 import {compile} from '@mdx-js/mdx';
 import type {KnipConfig} from 'knip';
 
+const isProductionMode = process.argv.includes('--production');
+
 const productionEntryPoints = [
   // the main entry points - app, gsAdmin & gsApp
   'static/app/index.tsx',
@@ -58,6 +60,7 @@ const config: KnipConfig = {
   compilers: {
     mdx: async text => String(await compile(text)),
   },
+  ignoreExportsUsedInFile: isProductionMode,
   ignoreDependencies: [
     'core-js',
     'jest-environment-jsdom', // used as testEnvironment in jest config

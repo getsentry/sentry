@@ -2,87 +2,26 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import docs, {
-  InstallationMode,
-} from 'sentry/gettingStartedDocs/react-native/react-native';
+import docs from 'sentry/gettingStartedDocs/react-native/react-native';
 
 describe('getting started with react-native', () => {
-  it('renders manual installation docs correctly', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
-      },
-    });
+  it('renders docs correctly', async () => {
+    renderWithOnboardingLayout(docs);
 
-    // For manual install, we should see "Install SDK Package" instead of "Install"
     expect(
-      screen.getByRole('heading', {name: 'Install SDK Package'})
+      await screen.findByText(
+        textWithMarkupMatcher(
+          /Add Sentry automatically to your app with the Sentry wizard/
+        )
+      )
     ).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-  });
 
-  it('renders auto installation docs correctly', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedOptions: {
-        installationMode: InstallationMode.AUTO,
-      },
-    });
-
-    // For auto install, we should see "Install" and no configure/verify sections
-    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(
-      screen.queryByRole('heading', {name: 'Configure SDK'})
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole('heading', {name: 'Verify'})).not.toBeInTheDocument();
-  });
-
-  it('renders errors onboarding docs correctly', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
-      },
-      selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
-    });
-
-    // Renders main headings
-    expect(
-      screen.getByRole('heading', {name: 'Install SDK Package'})
+      screen.getByRole('heading', {name: /automatic configuration/i})
     ).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Tracing'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Debug Symbols'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Source Context'})).toBeInTheDocument();
-  });
-
-  it('renders performance onboarding docs correctly', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
-      selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
-      },
-    });
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/tracesSampleRate/))
-    ).toBeInTheDocument();
-  });
-
-  it('renders profiling onboarding docs correctly', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [
-        ProductSolution.PERFORMANCE_MONITORING,
-        ProductSolution.PROFILING,
-      ],
-      selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
-      },
-    });
-
-    expect(
-      screen.getByText(textWithMarkupMatcher(/profilesSampleRate/))
+      screen.getByRole('heading', {name: /manual configuration/i})
     ).toBeInTheDocument();
   });
 });

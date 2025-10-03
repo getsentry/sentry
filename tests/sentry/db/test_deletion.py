@@ -64,3 +64,25 @@ class BulkDeleteQueryIteratorTestCase(TransactionTestCase):
             results.update(chunk)
 
         assert results == expected_group_ids
+
+    def test_iteration_descending(self) -> None:
+        target_project = self.project
+        expected_group_ids = {self.create_group().id for i in range(2)}
+
+        other_project = self.create_project()
+        self.create_group(other_project)
+        self.create_group(other_project)
+
+        iterator = BulkDeleteQuery(
+            model=Group,
+            project_id=target_project.id,
+            dtfield="last_seen",
+            order_by="-last_seen",
+            days=0,
+        ).iterator(chunk_size=1)
+
+        results: set[int] = set()
+        for chunk in iterator:
+            results.update(chunk)
+
+        assert results == expected_group_ids

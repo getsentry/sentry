@@ -80,8 +80,6 @@ class BuildDetailsApiResponse(BaseModel):
     app_info: BuildDetailsAppInfo
     vcs_info: BuildDetailsVcsInfo
     size_info: SizeInfo | None = None
-    # Deprecated, to be removed once frontend uses size_info.state
-    size_analysis_state: PreprodArtifactSizeMetrics.SizeAnalysisState | None = None
 
 
 def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> Platform:
@@ -175,5 +173,4 @@ def transform_preprod_artifact_to_build_details(
         app_info=app_info,
         vcs_info=vcs_info,
         size_info=size_info,
-        size_analysis_state=size_info.state if size_info else None,
     )

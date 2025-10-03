@@ -163,9 +163,11 @@ def _get_serialized_event(
     return serialized_event, event
 
 
-def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> dict[str, Any] | None:
+def _get_trace_tree_for_event(
+    event: Event | GroupEvent, project: Project, timeout: int = 15
+) -> dict[str, Any] | None:
     """
-    Returns the full trace for the given issue event with a 15-second timeout.
+    Returns the full trace for the given issue event with a timeout (default 15 seconds).
     Returns None if the timeout expires or if the trace cannot be fetched.
     """
     trace_id = event.trace_id
@@ -217,8 +219,6 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
             "org_id": project.organization_id,
             "trace": trace,
         }
-
-    timeout = 15  # seconds
 
     try:
         with sentry_sdk.start_span(op="seer.autofix.get_trace_tree_for_event"):

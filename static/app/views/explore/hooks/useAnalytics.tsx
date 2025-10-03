@@ -13,8 +13,6 @@ import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   useExploreDataset,
-  useExploreFields,
-  useExploreQuery,
   useExploreTitle,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -45,7 +43,7 @@ const {info, fmt} = Sentry.logger;
 interface UseTrackAnalyticsProps {
   aggregatesTableResult: AggregatesTableResult;
   dataset: DiscoverDatasets;
-  fields: string[];
+  fields: readonly string[];
   interval: string;
   isTopN: boolean;
   page_source: 'explore' | 'compare';
@@ -369,8 +367,8 @@ export function useAnalytics({
 >) {
   const dataset = useExploreDataset();
   const title = useExploreTitle();
-  const query = useExploreQuery();
-  const fields = useExploreFields();
+  const query = useQueryParamsQuery();
+  const fields = useQueryParamsFields();
   const visualizes = useQueryParamsVisualizes();
   const topEvents = useTopEvents();
   const isTopN = topEvents ? topEvents > 0 : false;

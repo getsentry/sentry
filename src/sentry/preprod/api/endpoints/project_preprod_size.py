@@ -13,7 +13,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.api.models.launchpad import PutSize
-from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
+from sentry.preprod.authentication import (
+    LaunchpadRpcPermission,
+    LaunchpadRpcSignatureAuthentication,
+)
 from sentry.preprod.models import PreprodArtifactSizeMetrics
 
 logger = logging.getLogger(__name__)
@@ -33,6 +36,7 @@ def parse_request_with_pydantic(request: Request, model: type[T]) -> T:
         # can be used instead of parse_obj_as
         return parse_obj_as(model, j)
     except pydantic.ValidationError:
+        logger.exception("Could not parse PutSize")
         raise serializers.ValidationError("Could not parse PutSize")
 
 
@@ -43,7 +47,7 @@ class ProjectPreprodSizeWithIdentifierEndpoint(PreprodArtifactEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (LaunchpadRpcSignatureAuthentication,)
-    permission_classes = ()
+    permission_classes = (LaunchpadRpcPermission,)
 
     def put(
         self, request: Request, project, head_artifact_id, identifier, head_artifact
@@ -58,7 +62,7 @@ class ProjectPreprodSizeEndpoint(PreprodArtifactEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (LaunchpadRpcSignatureAuthentication,)
-    permission_classes = ()
+    permission_classes = (LaunchpadRpcPermission,)
 
     def put(self, request: Request, project, head_artifact_id, head_artifact) -> Response:
         identifier = None
@@ -85,4 +89,4 @@ def do_put(request: Request, project, identifier, head_artifact) -> Response:
             assert False, "unreachable"
     metrics.save()
 
-    return Response({"artifactId": head_artifact.id})
+    return Response({"artifactId": str(head_artifact.id)})

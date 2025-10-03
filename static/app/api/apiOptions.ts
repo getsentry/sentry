@@ -16,6 +16,7 @@ type PathParamOptions<TApiPath extends string> =
     : {path: Record<ExtractPathParams<TApiPath>, string | number> | SkipToken};
 
 const selectContent = <TData>(data: ApiResult<TData>) => data[0];
+/** @public **/
 export const selectWithHeaders =
   <THeaders extends readonly string[]>(headers: THeaders) =>
   <TData>(data: ApiResult<TData>) => ({

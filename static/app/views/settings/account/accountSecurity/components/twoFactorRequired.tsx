@@ -3,10 +3,9 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
 
-function TwoFactorRequired() {
+export default function TwoFactorRequired() {
   return getPendingInvite() ? (
     <StyledAlert data-test-id="require-2fa" type="error">
       {tct(
@@ -20,7 +19,5 @@ function TwoFactorRequired() {
 }
 
 const StyledAlert = styled(Alert)`
-  margin: ${space(3)} 0;
+  margin: ${p => p.theme.space['2xl']} 0;
 `;
-
-export default TwoFactorRequired;

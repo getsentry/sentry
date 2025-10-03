@@ -28,9 +28,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ToolbarSection} from 'sentry/views/explore/components/toolbar/styles';
 import {
-  useExploreFields,
   useExploreId,
-  useExploreQuery,
   useExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
@@ -39,8 +37,10 @@ import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSpansSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
+  useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsMode,
+  useQueryParamsQuery,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
@@ -56,10 +56,10 @@ export function ToolbarSaveAs() {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
 
-  const query = useExploreQuery();
+  const query = useQueryParamsQuery();
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
-  const fields = useExploreFields();
+  const fields = useQueryParamsFields();
   const sortBys = useExploreSortBys();
   const mode = useQueryParamsMode();
   const id = useExploreId();

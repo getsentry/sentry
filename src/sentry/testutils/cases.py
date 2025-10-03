@@ -78,6 +78,7 @@ from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.event_manager import EventManager
 from sentry.eventstream.snuba import SnubaEventStream
+from sentry.issue_detection.performance_detection import detect_performance_problems
 from sentry.issues.grouptype import (
     NoiseConfig,
     PerformanceFileIOMainThreadGroupType,
@@ -112,7 +113,6 @@ from sentry.notifications.models.notificationsettingprovider import Notification
 from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
-from sentry.performance_issues.performance_detection import detect_performance_problems
 from sentry.plugins.base import plugins
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
@@ -3393,6 +3393,7 @@ class OurLogTestCase(BaseTestCase):
         project: Project | None = None,
         timestamp: datetime | None = None,
         attributes: dict[str, Any] | None = None,
+        log_id: str | None = None,
     ) -> TraceItem:
         if organization is None:
             organization = self.organization
@@ -3404,6 +3405,12 @@ class OurLogTestCase(BaseTestCase):
             attributes = {}
         if extra_data is None:
             extra_data = {}
+        if log_id is None:
+            item_id = uuid4()
+        else:
+            # There's some flipping of bytes when ingesting the item id
+            # this ensures that the final item we get back is what we send
+            item_id = UUID(bytes=bytes(reversed(UUID(log_id).bytes)))
 
         trace_id = extra_data.pop("trace_id", uuid4().hex)
 
@@ -3444,7 +3451,7 @@ class OurLogTestCase(BaseTestCase):
             item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,
             timestamp=timestamp_proto,
             trace_id=trace_id,
-            item_id=uuid4().bytes,
+            item_id=item_id.bytes,
             received=timestamp_proto,
             retention_days=90,
             attributes=attributes_proto,
