@@ -33,10 +33,10 @@ describe('useCaseSensitivity', () => {
 
     const [, setCaseSensitivity] = result.current;
 
-    act(() => setCaseSensitivity(true));
+    await act(() => setCaseSensitivity(true));
     await waitFor(() => expect(router.location.query.caseInsensitive).toBe('true'));
 
-    act(() => setCaseSensitivity(false));
+    await act(() => setCaseSensitivity(false));
     await waitFor(() => expect(router.location.query.caseInsensitive).toBe('false'));
   });
 });
