@@ -347,8 +347,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 ## End of DevToolbar
 
 ## Codecov Merge UX
-/static/app/components/codecov/  @getsentry/codecov-merge-ux
-/static/app/views/codecov/       @getsentry/codecov-merge-ux
+/static/app/components/codecov/  @getsentry/codecov-merge
+/static/app/views/codecov/       @getsentry/codecov-merge
 ## End of Codecov Merge UX
 
 /src/sentry/codecov/ @getsentry/codecov
