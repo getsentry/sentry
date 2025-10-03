@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconCodecov} from 'sentry/icons';
@@ -25,7 +26,7 @@ import {
 import {isDisabledByPartner} from 'getsentry/utils/partnerships';
 import PartnershipNote from 'getsentry/views/subscriptionPage/partnershipNote';
 
-import {HeaderCards} from './headerCards/headerCards';
+import HeaderCards from './headerCards/headerCards';
 import DecidePendingChanges from './decidePendingChanges';
 import ManagedNote from './managedNote';
 import {SubscriptionUpsellBanner} from './subscriptionUpsellBanner';
@@ -179,7 +180,7 @@ const TabsContainer = styled('div')`
  */
 function BodyWithBillingPerms({organization, subscription}: any) {
   return (
-    <Fragment>
+    <Flex direction="column" gap="xl">
       {subscription.pendingChanges ? (
         <DecidePendingChanges subscription={subscription} organization={organization} />
       ) : null}
@@ -192,7 +193,7 @@ function BodyWithBillingPerms({organization, subscription}: any) {
       )}
       <HeaderCards organization={organization} subscription={subscription} />
       <ManagedNote subscription={subscription} />
-    </Fragment>
+    </Flex>
   );
 }
 

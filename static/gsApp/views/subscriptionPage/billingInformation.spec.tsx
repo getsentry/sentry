@@ -125,25 +125,47 @@ describe('Subscription > BillingInformation', () => {
     await screen.findByText('Billing Information');
 
     // panels are collapsed with pre-existing information
-    expect(screen.getByText(/\*\*\*\*4242/)).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Edit payment method'})).toBeInTheDocument();
-    expect(screen.getByText('Business address')).toBeInTheDocument();
+    const cardPanel = await screen.findByTestId('credit-card-panel');
+    expect(within(cardPanel).getByText(/\*\*\*\*4242/)).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {name: 'Edit business address'})
+      within(cardPanel).getByRole('button', {name: 'Edit payment method'})
     ).toBeInTheDocument();
-    expect(screen.queryByText('Address Line 1')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Save Changes'})).not.toBeInTheDocument();
+    expect(
+      within(cardPanel).queryByRole('button', {name: 'Save Changes'})
+    ).not.toBeInTheDocument();
+
+    const billingDetailsPanel = await screen.findByTestId('billing-details-panel');
+    expect(within(billingDetailsPanel).getByText('Business address')).toBeInTheDocument();
+    expect(
+      within(billingDetailsPanel).getByRole('button', {name: 'Edit business address'})
+    ).toBeInTheDocument();
+    expect(
+      within(billingDetailsPanel).queryByText('Address Line 1')
+    ).not.toBeInTheDocument();
+    expect(
+      within(billingDetailsPanel).queryByRole('button', {name: 'Save Changes'})
+    ).not.toBeInTheDocument();
 
     // can edit both
-    await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
+    await userEvent.click(
+      within(cardPanel).getByRole('button', {name: 'Edit payment method'})
+    );
     expect(
-      screen.queryByRole('button', {name: 'Edit payment method'})
+      within(cardPanel).queryByRole('button', {name: 'Edit payment method'})
     ).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Edit business address'}));
     expect(
-      screen.queryByRole('button', {name: 'Edit business address'})
+      within(cardPanel).getByRole('button', {name: 'Save Changes'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(
+      within(billingDetailsPanel).getByRole('button', {name: 'Edit business address'})
+    );
+    expect(
+      within(billingDetailsPanel).queryByRole('button', {name: 'Edit business address'})
     ).not.toBeInTheDocument();
-    expect(screen.getAllByRole('button', {name: 'Save Changes'})).toHaveLength(2);
+    expect(
+      within(billingDetailsPanel).getByRole('button', {name: 'Save Changes'})
+    ).toBeInTheDocument();
   });
 
   it('renders with no pre-existing information for new billing UI', async () => {
@@ -162,16 +184,23 @@ describe('Subscription > BillingInformation', () => {
     await screen.findByText('Billing Information');
 
     // panels are expanded with no pre-existing information
-    await waitFor(() => {
-      // wait for both panels to be expanded
-      expect(screen.getAllByRole('button', {name: 'Save Changes'})).toHaveLength(2);
-    });
+    const cardPanel = await screen.findByTestId('credit-card-panel');
+    expect(cardPanel).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', {name: 'Edit payment method'})
+      within(cardPanel).queryByRole('button', {name: 'Edit payment method'})
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', {name: 'Edit business address'})
+      within(cardPanel).getByRole('button', {name: 'Save Changes'})
+    ).toBeInTheDocument();
+
+    const billingDetailsPanel = await screen.findByTestId('billing-details-panel');
+    expect(billingDetailsPanel).toBeInTheDocument();
+    expect(
+      within(billingDetailsPanel).queryByRole('button', {name: 'Edit business address'})
     ).not.toBeInTheDocument();
+    expect(
+      within(billingDetailsPanel).getByRole('button', {name: 'Save Changes'})
+    ).toBeInTheDocument();
   });
 
   it('opens credit card form with billing failure query for new billing UI', async () => {

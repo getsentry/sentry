@@ -20,6 +20,10 @@ describe('SubscriptionHeader', () => {
       body: BillingConfigFixture(PlanTier.AM1),
     });
     MockApiClient.addMockResponse({
+      url: `/customers/org-slug/billing-details/`,
+      method: 'GET',
+    });
+    MockApiClient.addMockResponse({
       url: `/subscriptions/org-slug/`,
       method: 'GET',
       body: [],
@@ -38,6 +42,107 @@ describe('SubscriptionHeader', () => {
       url: `/organizations/org-slug/prompts-activity/`,
       body: {},
     });
+  });
+
+  async function assertNewHeaderCards({
+    hasBillingInfoCard,
+  }: {
+    hasBillingInfoCard: boolean;
+  }) {
+    await screen.findByRole('heading', {name: 'Subscription'});
+
+    if (hasBillingInfoCard) {
+      await screen.findByText('Billing information');
+      screen.getByRole('button', {name: 'Edit billing information'});
+    } else {
+      expect(screen.queryByText('Billing information')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Edit billing information'})
+      ).not.toBeInTheDocument();
+    }
+  }
+
+  it('renders new header cards for self-serve customers', () => {
+    const organization = OrganizationFixture({
+      features: ['subscriptions-v3'],
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />
+    );
+    assertNewHeaderCards({hasBillingInfoCard: true});
+  });
+
+  it('renders new header cards for self-serve partner customers', () => {
+    const organization = OrganizationFixture({
+      features: ['subscriptions-v3'],
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      isSelfServePartner: true,
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />
+    );
+    assertNewHeaderCards({hasBillingInfoCard: false});
+  });
+
+  it('renders new header cards for managed customers', () => {
+    const organization = OrganizationFixture({
+      features: ['subscriptions-v3'],
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      canSelfServe: false,
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />
+    );
+    assertNewHeaderCards({hasBillingInfoCard: false});
+  });
+
+  it('renders new header cards for managed customers with legacy invoiced OD', () => {
+    const organization = OrganizationFixture({
+      features: ['subscriptions-v3'],
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      canSelfServe: false,
+      onDemandInvoiced: true,
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />
+    );
+    assertNewHeaderCards({hasBillingInfoCard: true});
+  });
+
+  it('renders new header cards for self-serve customers and user without billing perms', () => {
+    const organization = OrganizationFixture({
+      features: ['subscriptions-v3'],
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />
+    );
+    assertNewHeaderCards({hasBillingInfoCard: false});
   });
 
   it('does not render editable sections for YY partnership', async () => {
