@@ -56,7 +56,7 @@ _WorkQueue: TypeAlias = (
     "Queue[Literal['91650ec271ae4b3e8a67cdc909d80f8c'] | tuple[str, tuple[int, ...]]]"
 )
 
-API_TOKEN_TTL_IN_DAYS: Final[int] = 30
+API_TOKEN_TTL_IN_DAYS = 30
 
 
 def debug_output(msg: str) -> None:
@@ -66,29 +66,20 @@ def debug_output(msg: str) -> None:
 
 
 def multiprocess_worker(task_queue: _WorkQueue) -> None:
-    while True:
-        task = task_queue.get()
-        if task == _STOP_WORKER:
-            task_queue.task_done()
-            return
+    # Configure within each Process
+    import logging
 
-        model_name, chunk = task
-        try:
-            process_deletion_task(model_name, chunk)
-        except Exception:
-            logger.exception("Error in process_deletion_task")
-        finally:
-            task_queue.task_done()
-
-
-def process_deletion_task(model_name: str, chunk: Sequence[int]) -> None:
-    # We need to do this for processes spawned by multiprocessing
-    configure()
-
-    from sentry import deletions, models, similarity
     from sentry.utils.imports import import_string
 
-    skip_models: list[Any] = [
+    logger = logging.getLogger("sentry.cleanup")
+
+    # Only configure if necessary (during test execution apps are already initialized)
+    if not settings.configured:
+        configure()
+
+    from sentry import deletions, models, similarity
+
+    skip_models = [
         # Handled by other parts of cleanup
         models.EventAttachment,
         models.UserReport,
@@ -99,17 +90,30 @@ def process_deletion_task(model_name: str, chunk: Sequence[int]) -> None:
         similarity,
     ]
 
-    model = import_string(model_name)
-    task = deletions.get(
-        model=model,
-        query={"id__in": chunk},
-        skip_models=skip_models,
-        transaction_id=uuid4().hex,
-    )
-
     while True:
-        if not task.chunk(apply_filter=True):
-            break
+        j = task_queue.get()
+        if j == _STOP_WORKER:
+            task_queue.task_done()
+
+            return
+
+        model_name, chunk = j
+        model = import_string(model_name)
+        try:
+            task = deletions.get(
+                model=model,
+                query={"id__in": chunk},
+                skip_models=skip_models,
+                transaction_id=uuid4().hex,
+            )
+
+            while True:
+                if not task.chunk(apply_filter=True):
+                    break
+        except Exception:
+            logger.exception("Error in multiprocess_worker.")
+        finally:
+            task_queue.task_done()
 
 
 @click.command()
@@ -137,14 +141,14 @@ def process_deletion_task(model_name: str, chunk: Sequence[int]) -> None:
 )
 @log_options()
 def cleanup(
+    days: int,
+    project: str | None,
+    organization: str | None,
+    concurrency: int,
+    silent: bool,
     model: tuple[str, ...],
-    days: int = 30,
-    project: str | None = None,
-    organization: str | None = None,
-    concurrency: int = 1,
-    silent: bool = False,
-    router: str | None = None,
-    timed: bool = False,
+    router: str | None,
+    timed: bool,
 ) -> None:
     """Delete a portion of trailing data based on creation date.
 
@@ -154,7 +158,6 @@ def cleanup(
     this can be done with the `--project` or `--organization` flags respectively,
     which accepts a project/organization ID or a string with the form `org/project` where both are slugs.
     """
-    configure()
     _cleanup(
         model=model,
         days=days,
@@ -191,6 +194,10 @@ def _cleanup(
 
     pool, task_queue = start_pool(concurrency)
 
+    # Only configure if necessary (during test execution apps are already initialized)
+    if not settings.configured:
+        configure()
+
     try:
         from django.db import router as db_router
 
@@ -198,11 +205,11 @@ def _cleanup(
         from sentry.utils import metrics
         from sentry.utils.query import RangeQuerySetWrapper
 
-        start_time: float | None = None
+        start_time = None
         if timed:
             start_time = time.time()
 
-        transaction: Any = None
+        transaction = None
         # Making sure we're not running in local dev to prevent a local error
         if not os.environ.get("SENTRY_DEVENV_HOME"):
             transaction = sentry_sdk.start_transaction(op="cleanup", name="cleanup")
@@ -310,6 +317,7 @@ def _cleanup(
                         project_id=project_id_for_deletion,
                         order_by=order_by,
                     )
+
                     for chunk in q.iterator(chunk_size=100):
                         task_queue.put((imp, chunk))
 
@@ -502,9 +510,7 @@ def remove_cross_project_models(
     from sentry.models.artifactbundle import ArtifactBundle
 
     # These models span across projects, so let's skip them
-    artifact_bundle_entry = (ArtifactBundle, "date_added", "date_added")
-    if artifact_bundle_entry in deletes:
-        deletes.remove(artifact_bundle_entry)
+    deletes.remove((ArtifactBundle, "date_added", "date_added"))
     return deletes
 
 
@@ -694,9 +700,4 @@ def cleanup_unused_files(quiet: bool = False) -> None:
             continue
         if File.objects.filter(blob=blob).exists():
             continue
-        # Handle concurrent deletion gracefully
-        try:
-            blob.delete()
-        except FileBlob.DoesNotExist:
-            # Already deleted by another process, skip
-            continue
+        blob.delete()
