@@ -40,5 +40,5 @@ export interface PreventAIOrgConfig {
 export interface PreventAIConfig {
   default_org_config: PreventAIOrgConfig;
   github_organizations: Record<string, PreventAIOrgConfig>;
-  schema_version?: string;
+  schema_version: string;
 }

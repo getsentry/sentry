@@ -1,9 +1,5 @@
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import type {
-  PreventAIConfig,
-  PreventAIFeatureTriggers,
-  PreventAIOrgConfig,
-} from 'sentry/types/prevent';
+import type {PreventAIConfig, PreventAIFeatureTriggers} from 'sentry/types/prevent';
 import {useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -12,6 +8,7 @@ interface UpdatePreventAIFeatureParams {
   enabled: boolean;
   feature: 'vanilla' | 'test_generation' | 'bug_prediction';
   orgName: string;
+  // if repoName is provided, edit repo_overrides for that repo, otherwise edit org_defaults
   repoName?: string;
   trigger?: Partial<PreventAIFeatureTriggers>;
 }
@@ -19,48 +16,16 @@ interface UpdatePreventAIFeatureParams {
 export function useUpdatePreventAIFeature() {
   const api = useApi();
   const organization = useOrganization();
-
-  const tempPatch: PreventAIConfig = {
-    github_organizations: {
-      'org-1': organization.preventAiConfigGithub as unknown as PreventAIOrgConfig,
-      'org-2': organization.preventAiConfigGithub as unknown as PreventAIOrgConfig,
-    },
-    default_org_config:
-      organization.preventAiConfigGithub as unknown as PreventAIOrgConfig,
-  };
-  const patchedOrganization = {...organization, preventAiConfigGithub: tempPatch};
-
   const {mutateAsync, isPending, error} = useMutation({
     mutationFn: async (params: UpdatePreventAIFeatureParams) => {
       if (!organization.preventAiConfigGithub) {
-        throw new Error('Organization has no prevent AI config');
+        throw new Error('Organization has no AI Code Review config');
       }
-      const editableConfig = structuredClone(patchedOrganization.preventAiConfigGithub);
-
-      const editableOrgConfig =
-        editableConfig.github_organizations[params.orgName] ??
-        structuredClone(editableConfig.default_org_config);
-      editableConfig.github_organizations[params.orgName] = editableOrgConfig;
-
-      let editableFeatureConfig = editableOrgConfig.org_defaults;
-      if (params.repoName) {
-        const overrides = editableOrgConfig.repo_overrides[params.repoName];
-        if (overrides) {
-          editableFeatureConfig = overrides;
-        }
-      }
-
-      editableFeatureConfig[params.feature] = {
-        enabled: params.enabled,
-        triggers: {...editableFeatureConfig[params.feature].triggers, ...params.trigger},
-        sensitivity: editableFeatureConfig[params.feature].sensitivity,
-      };
-
-      const tempPatched = editableConfig.github_organizations['org-1'];
+      const newConfig = makePreventAIConfig(organization.preventAiConfigGithub, params);
 
       return api.requestPromise(`/organizations/${organization.slug}/`, {
         method: 'PUT',
-        data: {preventAiConfigGithub: tempPatched},
+        data: {preventAiConfigGithub: newConfig},
       });
     },
     onSuccess: updateOrganization,
@@ -71,4 +36,41 @@ export function useUpdatePreventAIFeature() {
     isLoading: isPending,
     error: error?.message,
   };
+}
+
+export function makePreventAIConfig(
+  originalConfig: PreventAIConfig,
+  params: UpdatePreventAIFeatureParams
+) {
+  // Deep clone the config so we don't mutate the original
+  const updatedConfig = structuredClone(originalConfig);
+
+  // Get or create the org config for the specified orgName
+  const orgConfig =
+    updatedConfig.github_organizations[params.orgName] ??
+    structuredClone(updatedConfig.default_org_config);
+  updatedConfig.github_organizations[params.orgName] = orgConfig;
+
+  // Determine which feature config to update: org_defaults or repo_overrides
+  let featureConfig = orgConfig.org_defaults;
+  if (params.repoName) {
+    // Get or create repo overrides for the specified repoName
+    let repoOverride = orgConfig.repo_overrides[params.repoName];
+    if (!repoOverride) {
+      repoOverride = structuredClone(orgConfig.org_defaults);
+      orgConfig.repo_overrides[params.repoName] = repoOverride;
+    }
+    featureConfig = orgConfig.repo_overrides[params.repoName]!;
+  }
+
+  // Update the relevant feature config
+  featureConfig[params.feature] = {
+    enabled: params.enabled,
+    // Merge triggers, allowing partial updates
+    triggers: {...featureConfig[params.feature].triggers, ...params.trigger},
+    // Preserve the existing sensitivity setting
+    sensitivity: featureConfig[params.feature].sensitivity,
+  };
+
+  return updatedConfig;
 }
