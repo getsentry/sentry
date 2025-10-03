@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Flex} from 'sentry/components/core/layout/flex';
 import DetailedError from 'sentry/components/errors/detailedError';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -128,10 +129,10 @@ class ErrorBoundary extends Component<Props, State> {
       return (
         <Alert.Container>
           <Alert type="error" className={className}>
-            <AlertContent>
+            <Flex align="center" justify="between">
               {message || t('There was a problem rendering this component')}
               {this.props.allowDismiss && <IconClose onClick={this.handleClose} />}
-            </AlertContent>
+            </Flex>
           </Alert>
         </Alert.Container>
       );
@@ -152,12 +153,6 @@ Anyway, we apologize for the inconvenience.`
     );
   }
 }
-
-const AlertContent = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
 
 const Wrapper = styled('div')`
   color: ${p => p.theme.textColor};
