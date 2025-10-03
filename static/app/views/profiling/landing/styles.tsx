@@ -1,8 +1,6 @@
 import styled from '@emotion/styled';
 
 import {HeaderTitleLegend as _HeaderTitleLegend} from 'sentry/components/charts/styles';
-import type {FlexProps} from 'sentry/components/core/layout';
-import {Flex} from 'sentry/components/core/layout';
 import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -32,10 +30,6 @@ export const Subtitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   display: inline-block;
 `;
-
-export function ContentContainer(props: FlexProps) {
-  return <Flex flex="1 1 auto" direction="column" justify="center" {...props} />;
-}
 
 export const StatusContainer = styled('div')`
   display: flex;

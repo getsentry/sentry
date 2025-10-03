@@ -405,6 +405,10 @@ function Column(props: FlexProps) {
   return <Flex align="center" {...props} />;
 }
 
+function RightAlignColumn(props: FlexProps) {
+  return <Flex align="center" justify="end" {...props} />;
+}
+
 const NameColumn = styled(Column)`
   ${p => p.theme.overflowEllipsis};
   display: flex;
@@ -414,10 +418,6 @@ const NameColumn = styled(Column)`
 const NameWrapper = styled('span')`
   ${p => p.theme.overflowEllipsis};
   width: auto;
-`;
-
-const RightAlignColumn = styled(Column)`
-  justify-content: flex-end;
 `;
 
 const StyledPagination = styled(Pagination)`
