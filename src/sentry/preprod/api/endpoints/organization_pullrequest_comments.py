@@ -9,6 +9,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.integrations.github.client import GitHubApiClient
+from sentry.integrations.source_code_management.metrics import (
+    SCMIntegrationInteractionEvent,
+    SCMIntegrationInteractionType,
+)
 from sentry.models.organization import Organization
 from sentry.preprod.integration_utils import get_github_client
 from sentry.preprod.pull_request.comment_adapters import PullRequestCommentsAdapter
@@ -120,8 +124,20 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
 
         These are the comments posted in the main PR conversation thread.
         """
-        comments = client.get(f"/repos/{repo_name}/issues/{pr_number}/comments")
-        return comments or []
+        with SCMIntegrationInteractionEvent(
+            interaction_type=SCMIntegrationInteractionType.GET_ISSUE_COMMENTS,
+            provider_key=self.provider_key,
+            organization_id=self.organization_id,
+            integration_id=self.integration_id,
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "repo_name": repo_name,
+                    "pr_number": pr_number,
+                }
+            )
+            comments = client.get_issue_comments(repo_name, pr_number)
+            return comments or []
 
     def _fetch_pr_review_comments(
         self, client: GitHubApiClient, repo_name: str, pr_number: str
@@ -131,5 +147,17 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
 
         These are the comments posted on specific lines in file diffs during code review.
         """
-        comments = client.get(f"/repos/{repo_name}/pulls/{pr_number}/comments")
-        return comments or []
+        with SCMIntegrationInteractionEvent(
+            interaction_type=SCMIntegrationInteractionType.GET_PR_COMMENTS,
+            provider_key=self.provider_key,
+            organization_id=self.organization_id,
+            integration_id=self.integration_id,
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "repo_name": repo_name,
+                    "pr_number": pr_number,
+                }
+            )
+            comments = client.get_pullrequest_comments(repo_name, pr_number)
+            return comments or []
