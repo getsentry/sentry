@@ -1,4 +1,4 @@
-import {cloneElement} from 'react';
+import {cloneElement, memo} from 'react';
 import styled from '@emotion/styled';
 
 import type {LinkProps} from 'sentry/components/core/link';
@@ -101,4 +101,4 @@ const StyledLink = styled(Link)`
   }
 `;
 
-export default ProjectBadge;
+export default memo(ProjectBadge);
