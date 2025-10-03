@@ -452,6 +452,7 @@ def exported_data(
 def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str, bool]]:
     from sentry.models.artifactbundle import ArtifactBundle
     from sentry.models.eventattachment import EventAttachment
+    from sentry.models.files.file import File
     from sentry.models.grouprulestatus import GroupRuleStatus
     from sentry.models.pullrequest import PullRequest
     from sentry.models.release import Release
@@ -470,6 +471,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str, 
         (PullRequest, "date_added", "date_added", False),
         (RuleFireHistory, "date_added", "date_added", False),
         (Release, "date_added", "date_added", True),
+        (File, "timestamp", "timestamp", False),
     ]
 
 
