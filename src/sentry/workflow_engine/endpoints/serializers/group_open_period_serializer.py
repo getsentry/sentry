@@ -1,7 +1,8 @@
 from collections import defaultdict
 from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, TypedDict
+from typing import Any
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models.groupopenperiod import GroupOpenPeriod, get_last_checked_for_open_period
@@ -9,13 +10,15 @@ from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenP
 from sentry.types.group import PriorityLevel
 
 
-class GroupOpenPeriodActivityResponse(TypedDict):
+@dataclass(frozen=True)
+class GroupOpenPeriodActivityResponse:
     id: str
     type: str
     value: str | None
 
 
-class GroupOpenPeriodResponse(TypedDict):
+@dataclass(frozen=True)
+class GroupOpenPeriodResponse:
     id: str
     start: datetime
     end: datetime | None
