@@ -9,7 +9,6 @@ import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex, Grid, Stack} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
@@ -937,9 +936,15 @@ class AMCheckout extends Component<Props, State> {
                     <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
                   ),
                   contact: hasZendesk() ? (
-                    <ZendeskButton borderless onClick={activateZendesk}>
+                    <ZendeskStyledLink
+                      href="#"
+                      onClick={e => {
+                        e.preventDefault();
+                        activateZendesk();
+                      }}
+                    >
                       <Text variant="accent">{t('ask Support')}</Text>
-                    </ZendeskButton>
+                    </ZendeskStyledLink>
                   ) : (
                     <ZendeskLink subject="Billing Question" source="checkout">
                       {t('ask Support')}
@@ -1116,7 +1121,7 @@ const CheckoutStepsContainer = styled('div')<{isNewCheckout: boolean}>`
     `}
 `;
 
-const ZendeskButton = styled(Button)`
+const ZendeskStyledLink = styled(ExternalLink)`
   padding: 0;
   font-weight: ${p => p.theme.fontWeight.normal};
 `;
