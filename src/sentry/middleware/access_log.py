@@ -30,7 +30,7 @@ class _AccessLogMetaData:
         return time.time() - self.request_start_time
 
 
-def _get_request_auth(request: Request) -> AuthenticatedToken | None:
+def _get_request_auth(request: Request) -> AuthenticatedToken | str | None:
     if request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES):
         return None
     # may not be present if request was rejected by a middleware between this
@@ -38,11 +38,17 @@ def _get_request_auth(request: Request) -> AuthenticatedToken | None:
     return getattr(request, "auth", None)
 
 
-def _get_token_name(auth: AuthenticatedToken | None) -> str | None:
+def _get_token_name(auth: str | AuthenticatedToken | None) -> str | None:
     if auth is None:
         return None
     elif isinstance(auth, AuthenticatedToken):
         return auth.kind
+    elif isinstance(auth, str):
+        # Sometimes request.auth ends up set to a string of the token:
+        # - ServiceRpcSignatureAuthentication and its subclasses (launchpad, seer)
+        # - RpcSignatureAuthentication
+        # In these cases return system to avoid logging.
+        return "system"
     else:
         raise AssertionError(f"unreachable: {auth}")
 
