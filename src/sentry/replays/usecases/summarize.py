@@ -426,6 +426,8 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 return None  # we favor NAVIGATION_SPAN since the frontend favors navigation span events in the breadcrumb tab
             case EventType.MULTI_CLICK:
                 return None
+            case EventType.TAP:
+                return None
     except (KeyError, ValueError, TypeError):
         logger.exception(
             "Error parsing event in replay AI summary",

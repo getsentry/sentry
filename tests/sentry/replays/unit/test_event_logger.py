@@ -21,7 +21,7 @@ from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 
 def test_gen_rage_clicks() -> None:
     # No clicks.
-    meta = ParsedEventMeta([], [], [], [], [], [], [])
+    meta = ParsedEventMeta([], [], [], [], [], [], [], [])
     assert len(list(gen_rage_clicks(meta, 1, "1", {"a": "b"}))) == 0
 
     # Not a rage click and not URL.
@@ -143,7 +143,7 @@ def test_log_multiclick_events(
             click_count=4,
         )
     ]
-    meta = ParsedEventMeta([], [], multiclick_events, [], [], [], [])
+    meta = ParsedEventMeta([], [], multiclick_events, [], [], [], [], [])
 
     log_multiclick_events(
         meta, project_id=1, replay_id="test-replay-id", should_sample=should_sample
@@ -164,7 +164,7 @@ def test_log_multiclick_events_empty(
     mock_logger: mock.MagicMock, should_sample: Callable[[], bool]
 ) -> None:
     """Test that multiclick events logger is not called if there are no multiclick events."""
-    meta = ParsedEventMeta([], [], [], [], [], [], [])
+    meta = ParsedEventMeta([], [], [], [], [], [], [], [])
     log_multiclick_events(
         meta, project_id=1, replay_id="test-replay-id", should_sample=should_sample
     )
@@ -233,7 +233,7 @@ def test_log_rage_click_events(
             title="Regular click",
         ),
     ]
-    meta = ParsedEventMeta([], click_events, [], [], [], [], [])
+    meta = ParsedEventMeta([], click_events, [], [], [], [], [], [])
 
     log_rage_click_events(
         meta, project_id=1, replay_id="test-replay-id", should_sample=should_sample
