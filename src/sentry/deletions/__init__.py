@@ -54,6 +54,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.Deploy, BulkModelDeletionTask)
     manager.register(models.Distribution, BulkModelDeletionTask)
     manager.register(models.EnvironmentProject, BulkModelDeletionTask)
+    manager.register(models.File, defaults.FileDeletionTask)
     manager.register(models.Group, defaults.GroupDeletionTask)
     manager.register(models.GroupAssignee, BulkModelDeletionTask)
     manager.register(models.GroupBookmark, BulkModelDeletionTask)
