@@ -16,8 +16,12 @@ from sentry.integrations.source_code_management.metrics import (
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.preprod.integration_utils import get_github_client
-from sentry.preprod.pull_request.comment_adapters import PullRequestCommentsAdapter
-from sentry.preprod.pull_request.comment_types import PullRequestComments
+from sentry.preprod.pull_request.comment_types import (
+    IssueComment,
+    PullRequestComments,
+    PullRequestCommentsErrorResponse,
+    ReviewComment,
+)
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
@@ -56,7 +60,7 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
                 "No GitHub client found for organization",
                 extra={"organization_id": organization.id},
             )
-            error_data = PullRequestCommentsAdapter.create_error_response(
+            error_data = PullRequestCommentsErrorResponse(
                 error="integration_not_found",
                 message="No GitHub integration found for this repository",
                 details="Unable to find a GitHub integration for the specified repository",
@@ -71,8 +75,25 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
                 organization.id, client, repo_name, pr_number
             )
 
-            comments_data: PullRequestComments = PullRequestCommentsAdapter.from_github_comments(
-                general_comments_raw, review_comments_raw
+            # Parse general comments
+            general_comments = [IssueComment.parse_obj(c) for c in general_comments_raw]
+
+            # Parse and organize review comments by file path
+            file_comments: dict[str, list[ReviewComment]] = {}
+            for comment_data in review_comments_raw:
+                if "path" not in comment_data:
+                    continue
+
+                review_comment = ReviewComment.parse_obj(comment_data)
+                file_path = review_comment.path
+
+                if file_path not in file_comments:
+                    file_comments[file_path] = []
+                file_comments[file_path].append(review_comment)
+
+            comments_data = PullRequestComments(
+                general_comments=general_comments,
+                file_comments=file_comments,
             )
 
             logger.info(
@@ -100,7 +121,7 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
                     "pr_number": pr_number,
                 },
             )
-            error_data = PullRequestCommentsAdapter.create_error_response(
+            error_data = PullRequestCommentsErrorResponse(
                 error="api_error",
                 message="Failed to fetch pull request comments from GitHub",
                 details="A problem occurred when communicating with GitHub. Please try again later.",
@@ -115,7 +136,7 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
                     "pr_number": pr_number,
                 },
             )
-            error_data = PullRequestCommentsAdapter.create_error_response(
+            error_data = PullRequestCommentsErrorResponse(
                 error="internal_error",
                 message="An unexpected error occurred while fetching pull request comments",
             )

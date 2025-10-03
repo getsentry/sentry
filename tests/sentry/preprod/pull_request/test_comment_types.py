@@ -1,4 +1,3 @@
-from sentry.preprod.pull_request.comment_adapters import PullRequestCommentsAdapter
 from sentry.preprod.pull_request.comment_types import (
     AuthorAssociation,
     IssueComment,
@@ -7,8 +6,8 @@ from sentry.preprod.pull_request.comment_types import (
 )
 
 
-class TestPullRequestCommentsAdapter:
-    def test_from_github_issue_comments_real_data(self):
+class TestPullRequestCommentTypes:
+    def test_parse_github_issue_comments_real_data(self):
         """Test parsing real GitHub issue comments from actual PR data."""
         raw_comments = [
             {
@@ -141,7 +140,7 @@ class TestPullRequestCommentsAdapter:
             },
         ]
 
-        comment1 = PullRequestCommentsAdapter.from_github_issue_comment(raw_comments[0])
+        comment1 = IssueComment.parse_obj(raw_comments[0])
         assert isinstance(comment1, IssueComment)
         assert comment1.id == 1111111111
         assert comment1.user is not None
@@ -152,7 +151,7 @@ class TestPullRequestCommentsAdapter:
         assert comment1.reactions is not None
         assert comment1.reactions.total_count == 0
 
-        comment2 = PullRequestCommentsAdapter.from_github_issue_comment(raw_comments[1])
+        comment2 = IssueComment.parse_obj(raw_comments[1])
         assert isinstance(comment2, IssueComment)
         assert comment2.id == 2222222222
         assert comment2.user is not None
@@ -164,7 +163,7 @@ class TestPullRequestCommentsAdapter:
         )
         assert comment2.author_association == AuthorAssociation.MEMBER
 
-    def test_from_github_review_comments_real_data(self):
+    def test_parse_github_review_comments_real_data(self):
         """Test parsing real GitHub review comments from test-org/test-repo PR."""
         raw_comments = [
             {
@@ -378,7 +377,7 @@ class TestPullRequestCommentsAdapter:
             },
         ]
 
-        comment1 = PullRequestCommentsAdapter.from_github_review_comment(raw_comments[0])
+        comment1 = ReviewComment.parse_obj(raw_comments[0])
         assert isinstance(comment1, ReviewComment)
         assert comment1.id == 4444444444
         assert comment1.path == "ios/Gemfile.lock"
@@ -392,7 +391,7 @@ class TestPullRequestCommentsAdapter:
         assert comment1.diff_hunk == "@@ -1,3 +1,11 @@\n+GIT"
         assert comment1.in_reply_to_id is None
 
-        comment2 = PullRequestCommentsAdapter.from_github_review_comment(raw_comments[1])
+        comment2 = ReviewComment.parse_obj(raw_comments[1])
         assert isinstance(comment2, ReviewComment)
         assert comment2.id == 6666666666
         assert comment2.path == "ios/Gemfile.lock"
@@ -403,7 +402,7 @@ class TestPullRequestCommentsAdapter:
         )
         assert comment2.in_reply_to_id == 4444444444  # Reply to first comment
 
-        comment3 = PullRequestCommentsAdapter.from_github_review_comment(raw_comments[2])
+        comment3 = ReviewComment.parse_obj(raw_comments[2])
         assert isinstance(comment3, ReviewComment)
         assert comment3.id == 8888888888
         assert comment3.path == "ios/fastlane/Fastfile"
