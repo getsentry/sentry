@@ -40,7 +40,13 @@ _default_logger = logging.getLogger(__name__)
 
 
 class ActivityManager(BaseManager["Activity"]):
-    def get_activities_for_group(self, group: Group, num: int) -> Sequence[Activity]:
+    def get_activities_for_group(self, group: Group) -> Sequence[Activity]:
+        """
+        Returns a list of Activity objects for the given group, ordered by most recent first,
+        with duplicate consecutive activities (by type, ident, user_id, and data) filtered out,
+        except for notes which are always included. Also appends a synthetic FIRST_SEEN activity
+        at the end, using the group's initial priority if available.
+        """
         activities = []
         activity_qs = self.filter(group=group).order_by("-datetime")
 
@@ -56,7 +62,7 @@ class ActivityManager(BaseManager["Activity"]):
         prev_sig = None
         sig = None
         # we select excess so we can filter dupes
-        for item in activity_qs[: num * 2]:
+        for item in activity_qs:
             prev_sig = sig
             sig = (item.type, item.ident, item.user_id, item.data)
 
@@ -78,7 +84,7 @@ class ActivityManager(BaseManager["Activity"]):
             )
         )
 
-        return activities[:num]
+        return activities
 
     def create_group_activity(
         self,

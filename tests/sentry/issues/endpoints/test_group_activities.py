@@ -22,7 +22,7 @@ class GroupActivitiesEndpointTest(APITestCase):
     def test_endpoint_with_group_activities(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
-        for i in range(0, 4):
+        for _ in range(0, 100):
             Activity.objects.create(
                 group=group,
                 project=group.project,
@@ -33,10 +33,7 @@ class GroupActivitiesEndpointTest(APITestCase):
         self.login_as(user=self.user)
 
         url = f"/api/0/issues/{group.id}/activities/"
-        response = self.client.get(
-            url,
-            format="json",
-        )
+        response = self.client.get(url, format="json")
 
         assert "activity" in response.data
-        assert len(response.data["activity"]) == 5
+        assert len(response.data["activity"]) == 101

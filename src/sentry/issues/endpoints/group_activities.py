@@ -19,9 +19,9 @@ class GroupActivitiesEndpoint(GroupEndpoint):
         """
         Retrieve all the Activities for a Group
         """
-        activity = Activity.objects.get_activities_for_group(group, num=100)
+        activities = Activity.objects.get_activities_for_group(group)
         return Response(
             {
-                "activity": serialize(activity, request.user),
+                "activity": serialize(activities, request.user),
             }
         )

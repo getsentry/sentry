@@ -1169,6 +1169,9 @@ class Factories:
         if "status" not in kwargs:
             kwargs["status"] = GroupStatus.UNRESOLVED
             kwargs["substatus"] = GroupSubStatus.NEW
+        if "status" in kwargs:
+            if kwargs["status"] == GroupStatus.UNRESOLVED and "substatus" not in kwargs:
+                kwargs["substatus"] = GroupSubStatus.NEW
 
         group = Group.objects.create(project=project, **kwargs)
         if create_open_period:
