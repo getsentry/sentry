@@ -8,7 +8,7 @@ from requests import RequestException
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, audit_log, deletions, features
+from sentry import analytics, audit_log, features
 from sentry.analytics.events.sentry_app_deleted import SentryAppDeletedEvent
 from sentry.analytics.events.sentry_app_schema_validation_error import (
     SentryAppSchemaValidationError,
@@ -230,7 +230,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                             SentryAppInstallationNotifier(
                                 sentry_app_installation=install, user=request.user, action="deleted"
                             ).run()
-                            deletions.exec_sync(install)
+                            ScheduledDeletion.schedule(install, days=0, actor=request.user)
                     except RequestException as exc:
                         sentry_sdk.capture_exception(exc)
 
