@@ -309,7 +309,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
             onClick={() => {
               openInsightChartModal({
                 title: t('Size Analysis'),
-                height: 600,
+                height: 500,
                 children: unfilteredRoot ? (
                   <FullscreenModalContent
                     unfilteredRoot={unfilteredRoot}
