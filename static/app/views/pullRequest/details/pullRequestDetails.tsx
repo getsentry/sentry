@@ -3,6 +3,7 @@ import {TabList} from 'sentry/components/core/tabs';
 import {Heading, Text} from 'sentry/components/core/text';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
@@ -102,9 +103,9 @@ export default function PullRequestDetails() {
         <PullRequestDetailsHeaderContent pullRequest={prSuccessData} />
         <Layout.HeaderTabs value={selectedTab || 'files'} onChange={setSelectedTab}>
           <TabList>
-            <TabList.Item key="files">Files</TabList.Item>
+            <TabList.Item key="files">{t('Files')}</TabList.Item>
             {hasSizeAnalysis ? (
-              <TabList.Item key="size_analysis">Size Analysis</TabList.Item>
+              <TabList.Item key="size_analysis">{t('Size Analysis')}</TabList.Item>
             ) : null}
           </TabList>
         </Layout.HeaderTabs>

@@ -42,16 +42,16 @@ export function PullRequestDetailsSizeContent({
     const {id, app_info} = buildDetail;
     let label = `#${id}`;
 
-    if (app_info?.app_id) {
+    if (app_info?.app_id !== null) {
       label += ` ${app_info.app_id}`;
     }
-    if (app_info?.version) {
+    if (app_info?.version !== null) {
       label += ` v${app_info.version}`;
     }
-    if (app_info?.build_number) {
+    if (app_info?.build_number !== null) {
       label += ` (${app_info.build_number})`;
     }
-    if (app_info?.build_configuration) {
+    if (app_info?.build_configuration !== null) {
       label += ` ${app_info.build_configuration}`;
     }
     return label;
@@ -90,6 +90,7 @@ export function PullRequestDetailsSizeContent({
             <BuildDetailsSidebarContent
               buildDetailsData={selectedBuildDetail}
               artifactId={selectedBuildId}
+              projectId={null}
             />
           )}
         </Flex>
