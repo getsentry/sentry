@@ -16,7 +16,6 @@ import {
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {
   useExploreDataset,
-  useExploreQuery,
   useExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -24,6 +23,7 @@ import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBy
 import {
   useQueryParamsGroupBys,
   useQueryParamsMode,
+  useQueryParamsQuery,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -45,7 +45,7 @@ export function useAddToDashboard() {
   const groupBys = useQueryParamsGroupBys();
   const sortBys = useExploreSortBys();
   const visualizes = useQueryParamsVisualizes();
-  const query = useExploreQuery();
+  const query = useQueryParamsQuery();
 
   const getEventView = useCallback(
     (visualizeIndex: number) => {

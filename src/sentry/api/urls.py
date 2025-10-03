@@ -424,6 +424,9 @@ from sentry.overwatch.endpoints.overwatch_rpc import (
     PreventPrReviewSentryOrgEndpoint,
 )
 from sentry.preprod.api.endpoints import urls as preprod_urls
+from sentry.prevent.endpoints.organization_github_repos import (
+    OrganizationPreventGitHubReposEndpoint,
+)
 from sentry.releases.endpoints.organization_release_assemble import (
     OrganizationReleaseAssembleEndpoint,
 )
@@ -2108,6 +2111,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/repos/(?P<repo_id>[^/]+)/commits/$",
         OrganizationRepositoryCommitsEndpoint.as_view(),
         name="sentry-api-0-organization-repository-commits",
+    ),
+    # Prevent AI endpoints
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/prevent/github/repos/$",
+        OrganizationPreventGitHubReposEndpoint.as_view(),
+        name="sentry-api-0-organization-prevent-github-repos",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/plugins/$",

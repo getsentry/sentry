@@ -50,7 +50,7 @@ class OrganizationPullRequestDetailsEndpoint(OrganizationEndpoint):
                 message="No GitHub integration found for this repository",
                 details="Unable to find a GitHub integration for the specified repository",
             )
-            return Response(error_data, status=404)
+            return Response(error_data.dict(), status=404)
 
         try:
             # TODO(telkins): handle pagination
@@ -68,10 +68,10 @@ class OrganizationPullRequestDetailsEndpoint(OrganizationEndpoint):
             )
 
             normalized_data: PullRequestWithFiles = PullRequestDataAdapter.from_github_pr_data(
-                pr_details, pr_files or []
+                pr_details, pr_files or [], organization.id
             )
 
-            return Response(normalized_data, status=200)
+            return Response(normalized_data.dict(), status=200)
 
         except ApiError:
             logger.exception(
@@ -86,7 +86,7 @@ class OrganizationPullRequestDetailsEndpoint(OrganizationEndpoint):
                 message="Failed to fetch pull request data from GitHub",
                 details="A problem occurred when communicating with GitHub. Please try again later.",
             )
-            return Response(error_data, status=502)
+            return Response(error_data.dict(), status=502)
         except Exception:
             logger.exception(
                 "Unexpected error fetching PR data",
@@ -99,7 +99,7 @@ class OrganizationPullRequestDetailsEndpoint(OrganizationEndpoint):
                 error="internal_error",
                 message="An unexpected error occurred while fetching pull request data",
             )
-            return Response(error_data, status=500)
+            return Response(error_data.dict(), status=500)
 
 
 def get_github_client(organization: Organization, repo_name: str) -> GitHubApiClient | None:
