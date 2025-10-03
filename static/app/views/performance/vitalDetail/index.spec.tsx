@@ -49,9 +49,6 @@ const testSupportedBrowserRendering = (webVital: WebVital) => {
 
 describe('Performance > VitalDetail', () => {
   beforeEach(() => {
-    // TODO: is this needed?
-    // jest.clearAllMocks();
-
     TeamStore.loadInitialData([], false, null);
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
@@ -334,8 +331,7 @@ describe('Performance > VitalDetail', () => {
 
     expect(await screen.findByText('Cumulative Layout Shift')).toBeInTheDocument();
 
-    // Check cells are not in ms (wait for table data to load)
-    expect(await screen.findByText('0.215')).toBeInTheDocument();
+    // Check cells are not in ms
     expect(screen.getByText('0.215').closest('td')).toBeInTheDocument();
 
     await userEvent.click(
