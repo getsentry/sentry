@@ -199,9 +199,7 @@ export function transformToSeriesMap(
           const groupByFields = fields.filter(field => !yAxis.includes(field));
           const groupBy = parseGroupBy(groupName, groupByFields);
           timeSeries.groupBy = groupBy;
-          if (groupName === 'Other') {
-            timeSeries.meta.isOther = true;
-          }
+          timeSeries.meta.isOther = groupName === 'Other';
         }
 
         allTimeSeries.push(timeSeries);
@@ -231,9 +229,7 @@ export function transformToSeriesMap(
           const groupByFields = fields.filter(field => !yAxis.includes(field));
           const groupBy = parseGroupBy(groupName, groupByFields);
           timeSeries.groupBy = groupBy;
-          if (groupName === 'Other') {
-            timeSeries.meta.isOther = true;
-          }
+          timeSeries.meta.isOther = groupName === 'Other';
         }
 
         allTimeSeries.push(timeSeries);
