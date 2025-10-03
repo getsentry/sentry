@@ -1,5 +1,6 @@
-import {useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import {useSearchParams} from 'react-router-dom';
+import {useQueryState} from 'nuqs';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -170,5 +171,83 @@ describe('disableRouterMocks', () => {
     expect(screen.getByText('Name: Jane Doe')).toBeInTheDocument();
 
     expect(router.location.query).toEqual({id: '200', name: 'Jane Doe'});
+  });
+});
+
+describe('NuqsTestingAdapterWithNavigate', () => {
+  it('should navigate to the correct path', () => {
+    const {router} = render(<div />, {
+      initialRouterConfig: {location: {pathname: '/foo/'}},
+    });
+
+    expect(router.location.pathname).toBe('/foo/');
+  });
+
+  it('sets query param on mount via nuqs useEffect', async () => {
+    function TestComp() {
+      const [value, setValue] = useQueryState('foo');
+
+      useEffect(() => {
+        void setValue('bar');
+      }, [setValue]);
+
+      return <div>Foo: {value ?? 'None'}</div>;
+    }
+
+    const {router} = render(<TestComp />);
+
+    expect(await screen.findByText('Foo: bar')).toBeInTheDocument();
+    await waitFor(() => expect(router.location.query).toEqual({foo: 'bar'}));
+  });
+
+  it('reads initial query param from initialRouterConfig via nuqs', async () => {
+    function TestComp() {
+      const [value] = useQueryState('foo');
+      return <div>Foo: {value ?? 'None'}</div>;
+    }
+
+    const {router} = render(<TestComp />, {
+      initialRouterConfig: {
+        location: {pathname: '/foo/', query: {foo: 'abc'}},
+      },
+    });
+
+    expect(await screen.findByText('Foo: abc')).toBeInTheDocument();
+    expect(router.location.query).toEqual({foo: 'abc'});
+  });
+
+  it('Link navigation preserves its query params over nuqs', async () => {
+    function TestComp() {
+      const [value, setValue] = useQueryState('color');
+      const location = useLocation();
+
+      // Simulate an existing nuqs-managed value before navigation
+      useEffect(() => {
+        if (value !== 'blue') {
+          void setValue('blue');
+        }
+      }, [setValue, value]);
+
+      return (
+        <div>
+          <Link
+            to={{pathname: location.pathname, query: {...location.query, extra: '1'}}}
+          >
+            Go to dest
+          </Link>
+          <div>Color: {value ?? 'None'}</div>
+          <div>Extra: {location.query?.extra ?? 'None'}</div>
+        </div>
+      );
+    }
+
+    const {router} = render(<TestComp />);
+
+    await userEvent.click(await screen.findByRole('link', {name: 'Go to dest'}));
+
+    expect(await screen.findByText('Color: blue')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(router.location.query).toEqual({color: 'blue', extra: '1'})
+    );
   });
 });
