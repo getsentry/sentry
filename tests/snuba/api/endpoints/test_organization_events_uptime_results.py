@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from tests.sentry.uptime.endpoints.test_base import UptimeResultEAPTestCase
+from sentry.testutils.cases import UptimeResultEAPTestCase
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
