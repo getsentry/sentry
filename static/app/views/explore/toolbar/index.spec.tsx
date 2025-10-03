@@ -17,7 +17,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {
   PageParamsProvider,
   useExploreSortBys,
-  useSetExploreMode,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -27,6 +26,7 @@ import {
   useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsVisualizes,
+  useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
@@ -482,7 +482,7 @@ describe('ExploreToolbar', () => {
     let sortBys: any;
     let setMode: any;
     function Component() {
-      setMode = useSetExploreMode();
+      setMode = useSetQueryParamsMode();
       sortBys = useExploreSortBys();
       return <ExploreToolbar />;
     }
@@ -556,7 +556,7 @@ describe('ExploreToolbar', () => {
     let sortBys: any;
     let setMode: any;
     function Component() {
-      setMode = useSetExploreMode();
+      setMode = useSetQueryParamsMode();
       sortBys = useExploreSortBys();
       return <ExploreToolbar />;
     }
