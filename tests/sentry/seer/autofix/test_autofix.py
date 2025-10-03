@@ -425,6 +425,7 @@ class TestGetTraceTreeForEvent(APITestCase, OccurrenceTestMixin):
         event = self.store_event(data=event_data, project_id=self.project.id)
 
         _, group_info = save_issue_occurrence(occurrence_data, event)
+        assert group_info is not None
         group = group_info.group
         event = event.for_group(group)
 
