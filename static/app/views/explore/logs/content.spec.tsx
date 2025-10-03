@@ -77,7 +77,7 @@ describe('LogsPage', () => {
     render(<LogsPage />, {
       organization,
       initialRouterConfig: {
-        location: `/organizations/${organization.slug}/explore/logs/`,
+        location: {pathname: `/organizations/${organization.slug}/explore/logs/`},
       },
     });
 
@@ -141,7 +141,7 @@ describe('LogsPage', () => {
     render(<LogsPage />, {
       organization,
       initialRouterConfig: {
-        location: `/organizations/${organization.slug}/explore/logs/`,
+        location: {pathname: `/organizations/${organization.slug}/explore/logs/`},
       },
     });
 
@@ -157,7 +157,7 @@ describe('LogsPage', () => {
     render(<LogsPage />, {
       organization,
       initialRouterConfig: {
-        location: `/organizations/${organization.slug}/explore/logs/`,
+        location: {pathname: `/organizations/${organization.slug}/explore/logs/`},
       },
     });
 
