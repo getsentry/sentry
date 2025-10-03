@@ -91,6 +91,7 @@ class OrganizationSerializerTest(TestCase):
             "minute-resolution-sessions",
             "new-page-filter",
             "open-membership",
+            "project-creation-games-tab",
             "relay",
             "session-replay-ui",
             "shared-issues",
