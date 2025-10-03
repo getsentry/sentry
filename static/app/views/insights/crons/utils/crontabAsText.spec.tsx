@@ -25,4 +25,27 @@ describe('crontabAsText', () => {
       'At 0 minutes past the hour, every * hours, starting at 05:00, January through May'
     );
   });
+
+  it('returns null for unsupported "no specific value" marker (?)', () => {
+    expect(crontabAsText('0 0 ? * *')).toBeNull();
+    expect(crontabAsText('0 0 * * ?')).toBeNull();
+  });
+
+  it('returns null for unsupported weekday marker (W)', () => {
+    expect(crontabAsText('0 0 15W * *')).toBeNull();
+    expect(crontabAsText('0 0 LW * *')).toBeNull();
+  });
+
+  it('returns null for expressions with more than 5 fields', () => {
+    expect(crontabAsText('0 0 * * * *')).toBeNull();
+    expect(crontabAsText('0 0 0 * * * *')).toBeNull();
+  });
+
+  it('returns null for invalid expressions', () => {
+    expect(crontabAsText('invalid')).toBeNull();
+  });
+
+  it('returns null for null input', () => {
+    expect(crontabAsText(null)).toBeNull();
+  });
 });
