@@ -7,6 +7,7 @@ import type {Node} from '@react-types/shared';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
@@ -76,12 +77,12 @@ function FilterKeyOperatorLabel({
   }
 
   return (
-    <KeyOpLabelWrapper>
+    <Flex align="center" gap="sm">
       <Tooltip title={fieldDefinition?.desc}>
         <span>{keyLabel}</span>
         {opLabel ? <OpLabel> {opLabel}</OpLabel> : null}
       </Tooltip>
-    </KeyOpLabelWrapper>
+    </Flex>
   );
 }
 
@@ -281,12 +282,6 @@ const OpButton = styled(UnstyledButton, {
     border-right: 1px solid ${p => p.theme.innerBorder};
     border-left: 1px solid ${p => p.theme.innerBorder};
   }
-`;
-
-const KeyOpLabelWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
 `;
 
 const OpLabel = styled('span')`
