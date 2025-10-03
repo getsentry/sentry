@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.deletions.defaults.commit import CommitDeletionTask
 from sentry.models.commit import Commit
 from sentry.models.commitcomparison import CommitComparison
@@ -14,12 +15,12 @@ from sentry.testutils.cases import TestCase
 
 
 class CommitDeletionTaskTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.repo = self.create_repo(project=self.project)
         self.old_date = timezone.now() - timedelta(days=91)
 
-    def _create_old_commit(self, key="abc123"):
+    def _create_old_commit(self, key: str = "abc123") -> Commit:
         return Commit.objects.create(
             organization_id=self.organization.id,
             repository_id=self.repo.id,
@@ -27,7 +28,7 @@ class CommitDeletionTaskTest(TestCase):
             date_added=self.old_date,
         )
 
-    def _get_filtered_commits(self):
+    def _get_filtered_commits(self) -> BaseQuerySet[Commit, Commit]:
         task = CommitDeletionTask(
             manager=None,  # type: ignore[arg-type]
             model=Commit,

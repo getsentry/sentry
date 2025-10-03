@@ -47,7 +47,7 @@ class CommitDeletionTask(ModelDeletionTask[Commit]):
             LatestRepoReleaseEnvironment.objects.filter(commit_id=OuterRef("id"))
         )
 
-        return Q(date_added__lt=cutoff) & ~(
+        return Q(date_added__lt=cutoff) & ~Q(
             releasecommit_exists
             | releaseheadcommit_exists
             | groupreaction_exists
