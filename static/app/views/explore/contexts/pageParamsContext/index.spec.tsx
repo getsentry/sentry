@@ -8,7 +8,6 @@ import {
   PageParamsProvider,
   useExplorePageParams,
   useSetExplorePageParams,
-  useSetExploreQuery,
   useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -22,6 +21,7 @@ import {
   useSetQueryParamsFields,
   useSetQueryParamsGroupBys,
   useSetQueryParamsMode,
+  useSetQueryParamsQuery,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
@@ -55,7 +55,7 @@ describe('PageParamsProvider', () => {
   let setFields: ReturnType<typeof useSetQueryParamsFields>;
   let setGroupBys: ReturnType<typeof useSetQueryParamsGroupBys>;
   let setMode: ReturnType<typeof useSetQueryParamsMode>;
-  let setQuery: ReturnType<typeof useSetExploreQuery>;
+  let setQuery: ReturnType<typeof useSetQueryParamsQuery>;
   let setSortBys: ReturnType<typeof useSetExploreSortBys>;
   let setVisualizes: ReturnType<typeof useSetQueryParamsVisualizes>;
 
@@ -65,7 +65,7 @@ describe('PageParamsProvider', () => {
     setFields = useSetQueryParamsFields();
     setGroupBys = useSetQueryParamsGroupBys();
     setMode = useSetQueryParamsMode();
-    setQuery = useSetExploreQuery();
+    setQuery = useSetQueryParamsQuery();
     setSortBys = useSetExploreSortBys();
     setVisualizes = useSetQueryParamsVisualizes();
     return <br />;

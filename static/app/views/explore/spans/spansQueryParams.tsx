@@ -97,6 +97,7 @@ export function getTargetWithReadableQueryParams(
         : '0'
       : writableQueryParams.extrapolate
   );
+  updateNullableLocation(target, SPANS_QUERY_KEY, writableQueryParams.query);
   updateNullableLocation(target, SPANS_MODE_KEY, writableQueryParams.mode);
 
   updateNullableLocation(target, SPANS_FIELD_KEY, writableQueryParams.fields);
