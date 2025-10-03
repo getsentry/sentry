@@ -129,7 +129,7 @@ describe('PageFiltersContainer', () => {
       expect(PageFiltersStore.getState()).toEqual({
         isReady: true,
         desyncedFilters: new Set(),
-        pinnedFilters: new Set(),
+        pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
           datetime: {
@@ -161,7 +161,7 @@ describe('PageFiltersContainer', () => {
       expect(PageFiltersStore.getState()).toEqual({
         isReady: true,
         desyncedFilters: new Set(),
-        pinnedFilters: new Set(),
+        pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
           datetime: {
@@ -191,7 +191,7 @@ describe('PageFiltersContainer', () => {
       expect(PageFiltersStore.getState()).toEqual({
         isReady: true,
         desyncedFilters: new Set(),
-        pinnedFilters: new Set(),
+        pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
           datetime: {
@@ -232,7 +232,7 @@ describe('PageFiltersContainer', () => {
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
       desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
+      pinnedFilters: new Set(['projects', 'environments', 'datetime']),
       shouldPersist: true,
       selection: {
         datetime: {

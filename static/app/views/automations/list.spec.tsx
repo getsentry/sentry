@@ -54,7 +54,7 @@ describe('AutomationsList', () => {
       url: '/organizations/org-slug/projects/',
       body: [project],
     });
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}), new Set());
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
     ProjectsStore.loadInitialData([project]);
   });
 
@@ -216,10 +216,7 @@ describe('AutomationsList', () => {
         url: '/organizations/org-slug/detectors/',
         body: [detector],
       });
-      PageFiltersStore.onInitializeUrlState(
-        PageFiltersFixture({projects: [1]}),
-        new Set()
-      );
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
     });
 
     it('can select automations', async () => {

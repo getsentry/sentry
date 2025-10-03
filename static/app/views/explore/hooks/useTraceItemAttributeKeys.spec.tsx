@@ -46,19 +46,16 @@ describe('useTraceItemAttributeKeys', () => {
 
     // Setup the PageFilters store with default values
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [1],
-        environments: [],
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: false,
-        },
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: false,
       },
-      new Set()
-    );
+    });
   });
 
   it('fetches attribute keys correctly for string type', async () => {
