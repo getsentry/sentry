@@ -24,7 +24,7 @@ from sentry.seer.autofix.constants import (
     FixabilityScoreThresholds,
     SeerAutomationSource,
 )
-from sentry.seer.autofix.utils import get_autofix_state, is_seer_autotriggered_autofix_rate_limited
+from sentry.seer.autofix.utils import AutofixStoppingPoint, get_autofix_state, is_seer_autotriggered_autofix_rate_limited
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
@@ -46,6 +46,46 @@ auto_run_source_map = {
     SeerAutomationSource.ALERT: "issue_summary_on_alert_fixability",
     SeerAutomationSource.POST_PROCESS: "issue_summary_on_post_process_fixability",
 }
+
+
+def _get_project_seer_preferences(project_id: int) -> AutofixStoppingPoint | None:
+    """
+    Retrieve the automated_run_stopping_point preference for a project from Seer.
+    """
+    try:
+        path = "/v1/project-preference"
+        body = orjson.dumps({"project_id": project_id})
+
+        response = requests.post(
+            f"{settings.SEER_AUTOFIX_URL}{path}",
+            data=body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(body),
+            },
+        )
+
+        response.raise_for_status()
+        result = response.json()
+
+        preference = result.get("preference")
+        if preference and preference.get("automated_run_stopping_point"):
+            stopping_point = preference["automated_run_stopping_point"]
+            try:
+                return AutofixStoppingPoint(stopping_point)
+            except ValueError:
+                logger.warning(
+                    "Invalid stopping point preference: %s for project %s",
+                    stopping_point,
+                    project_id,
+                )
+
+        # Default to root_cause if no preference is set
+        return AutofixStoppingPoint.ROOT_CAUSE
+    except Exception:
+        logger.exception("Failed to get project seer preferences for project %s", project_id)
+        # Default to root_cause if we can't retrieve preferences
+        return AutofixStoppingPoint.ROOT_CAUSE
 
 
 @instrumented_task(
@@ -84,11 +124,15 @@ def _trigger_autofix_task(group_id: int, event_id: str, user_id: int | None, aut
         else:
             user = AnonymousUser()
 
+        # Get the automated stopping point preference for this project
+        stopping_point = _get_project_seer_preferences(group.project.id)
+
         trigger_autofix(
             group=group,
             event_id=event_id,
             user=user,
             auto_run_source=auto_run_source,
+            stopping_point=stopping_point,
         )
 
 

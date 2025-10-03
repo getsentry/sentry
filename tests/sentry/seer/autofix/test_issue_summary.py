@@ -682,3 +682,85 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         assert status_code == 200
         mock_call_seer.assert_called_once_with(self.group, serialized_event, None)
+
+    @patch("sentry.seer.autofix.issue_summary.trigger_autofix")
+    @patch("sentry.seer.autofix.issue_summary._get_project_seer_preferences")
+    def test_trigger_autofix_task_uses_stopping_point_preference(
+        self, mock_get_preferences, mock_trigger_autofix
+    ):
+        """Test that _trigger_autofix_task retrieves and uses the automated_run_stopping_point preference"""
+        from sentry.seer.autofix.issue_summary import _trigger_autofix_task
+        from sentry.seer.autofix.utils import AutofixStoppingPoint
+
+        # Mock the preference retrieval to return a specific stopping point
+        mock_get_preferences.return_value = AutofixStoppingPoint.CODE_CHANGES
+
+        # Call the trigger task
+        _trigger_autofix_task(
+            group_id=self.group.id,
+            event_id="test_event_id",
+            user_id=self.user.id,
+            auto_run_source="test_source"
+        )
+
+        # Verify preferences were retrieved for the correct project
+        mock_get_preferences.assert_called_once_with(self.group.project.id)
+
+        # Verify trigger_autofix was called with the correct stopping point
+        mock_trigger_autofix.assert_called_once_with(
+            group=self.group,
+            event_id="test_event_id",
+            user=self.user,
+            auto_run_source="test_source",
+            stopping_point=AutofixStoppingPoint.CODE_CHANGES,
+        )
+
+    @patch("sentry.seer.autofix.issue_summary.requests.post")
+    def test_get_project_seer_preferences_returns_correct_stopping_point(self, mock_post):
+        """Test that _get_project_seer_preferences correctly parses the response"""
+        from sentry.seer.autofix.issue_summary import _get_project_seer_preferences
+        from sentry.seer.autofix.utils import AutofixStoppingPoint
+
+        # Mock successful response with solution stopping point
+        mock_response = Mock()
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = {
+            "preference": {
+                "automated_run_stopping_point": "solution"
+            }
+        }
+        mock_post.return_value = mock_response
+
+        result = _get_project_seer_preferences(self.group.project.id)
+
+        assert result == AutofixStoppingPoint.SOLUTION
+        mock_post.assert_called_once()
+
+    @patch("sentry.seer.autofix.issue_summary.requests.post")
+    def test_get_project_seer_preferences_handles_missing_preference(self, mock_post):
+        """Test that _get_project_seer_preferences defaults to root_cause when no preference is set"""
+        from sentry.seer.autofix.issue_summary import _get_project_seer_preferences
+        from sentry.seer.autofix.utils import AutofixStoppingPoint
+
+        # Mock response with no preference
+        mock_response = Mock()
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = {"preference": None}
+        mock_post.return_value = mock_response
+
+        result = _get_project_seer_preferences(self.group.project.id)
+
+        assert result == AutofixStoppingPoint.ROOT_CAUSE
+
+    @patch("sentry.seer.autofix.issue_summary.requests.post")
+    def test_get_project_seer_preferences_handles_api_failure(self, mock_post):
+        """Test that _get_project_seer_preferences defaults to root_cause on API failure"""
+        from sentry.seer.autofix.issue_summary import _get_project_seer_preferences
+        from sentry.seer.autofix.utils import AutofixStoppingPoint
+
+        # Mock API failure
+        mock_post.side_effect = Exception("API failure")
+
+        result = _get_project_seer_preferences(self.group.project.id)
+
+        assert result == AutofixStoppingPoint.ROOT_CAUSE
