@@ -1,6 +1,7 @@
 import types
 from unittest import TestCase
 
+from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.grouptype import (
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceNPlusOneGroupType,
@@ -11,7 +12,6 @@ from sentry.notifications.utils import (
     PerformanceProblemContext,
     RenderBlockingAssetProblemContext,
 )
-from sentry.performance_issues.performance_problem import PerformanceProblem
 
 
 def mock_event(*, transaction, data=None):
