@@ -2080,6 +2080,10 @@ SENTRY_USE_TASKBROKER = False
 # This flag activates the objectstore in devservices
 SENTRY_USE_OBJECTSTORE = False
 
+# Configures the objectstore in the dev environment
+if IS_DEV:
+    SENTRY_OPTIONS["objectstore.config"] = {"base_url": "http://localhost:8888/"}
+
 # Max file size for serialized file uploads in API
 SENTRY_MAX_SERIALIZED_FILE_SIZE = 5000000
 
