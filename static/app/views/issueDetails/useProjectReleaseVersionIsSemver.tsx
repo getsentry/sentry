@@ -13,7 +13,9 @@ export default function useProjectReleaseVersionIsSemver({
   const organization = useOrganization();
 
   const {data, isError, isPending} = useApiQuery<Release>(
-    [`/organizations/${organization.slug}/releases/${version}/`],
+    [
+      `/organizations/${organization.slug}/releases/${encodeURIComponent(version ?? '')}/`,
+    ],
     {staleTime: 0, enabled: Boolean(version) && enabled}
   );
 
