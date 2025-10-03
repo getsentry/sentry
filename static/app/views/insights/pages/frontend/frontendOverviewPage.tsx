@@ -41,13 +41,11 @@ import {
   isAValidSort,
   type ValidSort,
 } from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {useFrontendTableData} from 'sentry/views/insights/pages/frontend/queries/useFrontendTableData';
 import type {PageSpanOps} from 'sentry/views/insights/pages/frontend/settings';
 import {
   DEFAULT_SORT,
   DEFAULT_SPAN_OP_SELECTION,
-  FRONTEND_LANDING_TITLE,
   PAGE_SPAN_OPS,
   SPAN_OP_QUERY_PARAM,
 } from 'sentry/views/insights/pages/frontend/settings';
@@ -143,7 +141,6 @@ function FrontendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <FrontendHeader headerTitle={FRONTEND_LANDING_TITLE} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
