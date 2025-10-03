@@ -71,11 +71,9 @@ function BillingDetailsPanel({
   }, [loadError]);
 
   useEffect(() => {
-    if (expandInitially && !isLoading) {
-      if (!hasSomeBillingDetails(billingDetails)) {
-        setIsEditing(true);
-        setExpandInitially(false);
-      }
+    if (expandInitially && !isLoading && !hasSomeBillingDetails(billingDetails)) {
+      setIsEditing(true);
+      setExpandInitially(false);
     }
   }, [isLoading, billingDetails, expandInitially]);
 
