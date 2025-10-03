@@ -2,7 +2,6 @@ import logging
 
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import notifications_tasks
 from sentry.utils.sdk import bind_organization_context
 
@@ -26,12 +25,9 @@ def get_activity_notifiers(project):
 
 @instrumented_task(
     name="sentry.tasks.activity.send_activity_notifications",
-    queue="activity.notify",
+    namespace=notifications_tasks,
+    processing_deadline_duration=180,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=notifications_tasks,
-        processing_deadline_duration=180,
-    ),
 )
 def send_activity_notifications(activity_id: int) -> None:
     from sentry.models.activity import Activity

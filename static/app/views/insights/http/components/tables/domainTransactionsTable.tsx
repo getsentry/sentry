@@ -133,7 +133,6 @@ export function DomainTransactionsTable({
   };
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: [...COLUMN_ORDER],
-    location,
   });
 
   return (

@@ -96,7 +96,7 @@ export function MonitorStats({monitor, monitorEnvs}: Props) {
     missed.data.push({name: timestamp, value: p.missed});
     duration.data.push({name: timestamp, value: Math.trunc(p.duration)});
   });
-  const colors = [theme.green200, theme.red200, theme.red200, theme.yellow200];
+  const colors = [theme.green300, theme.red400, theme.red200, theme.yellow300];
 
   const height = 150;
   const getYAxisOptions = (aggregateType: AggregationOutputType) => ({
