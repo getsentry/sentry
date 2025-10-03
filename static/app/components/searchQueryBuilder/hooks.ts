@@ -1,10 +1,10 @@
 import {parseAsBoolean, useQueryState} from 'nuqs';
 
-export function useCaseInsensitivity(): [boolean | undefined, (c: boolean) => void] {
+export function useCaseInsensitivity() {
   const [caseInsensitive, setCaseInsensitive] = useQueryState(
     'caseInsensitive',
     parseAsBoolean
   );
 
-  return [caseInsensitive ?? undefined, setCaseInsensitive];
+  return [caseInsensitive ?? undefined, setCaseInsensitive] as const;
 }
