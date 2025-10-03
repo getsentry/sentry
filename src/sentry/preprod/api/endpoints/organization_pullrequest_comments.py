@@ -1,6 +1,5 @@
 import logging
 
-from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -8,15 +7,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationEventPermission
-from sentry.apidocs.constants import (
-    RESPONSE_BAD_REQUEST,
-    RESPONSE_FORBIDDEN,
-    RESPONSE_NOT_FOUND,
-    RESPONSE_UNAUTHORIZED,
-)
-from sentry.apidocs.parameters import GlobalParams
-from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.integrations.github.client import GitHubApiClient
 from sentry.models.organization import Organization
 from sentry.preprod.integration_utils import get_github_client
@@ -29,43 +20,11 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
-    """
-    Endpoint to retrieve GitHub comments related to a Pull Request.
-
-    This endpoint fetches both general PR comments and file-specific review comments
-    from GitHub for the specified Pull Request.
-    """
-
+    owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.EMERGE_TOOLS
-    permission_classes = (OrganizationEventPermission,)
 
-    @extend_schema(
-        operation_id="Get Pull Request Comments",
-        parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
-        ],
-        request=None,
-        responses={
-            200: inline_sentry_response_serializer("OrganizationPrComments", PullRequestComments),
-            400: RESPONSE_BAD_REQUEST,
-            401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
-        examples=[
-            {
-                "summary": "Get comments for GitHub PR",
-                "description": "Returns all comments related to a GitHub PR",
-                "value": {
-                    "repo": "getsentry/sentry",
-                    "pr": "12345",
-                },
-            }
-        ],
-    )
     def get(
         self, request: Request, organization: Organization, repo_name: str, pr_number: str
     ) -> Response:
