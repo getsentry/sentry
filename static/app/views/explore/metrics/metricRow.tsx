@@ -33,7 +33,7 @@ export function MetricRow({traceMetric}: MetricRowProps) {
         stringSecondaryAliases: {},
         initialQuery: query,
         onSearch: setQuery,
-        searchSource: 'ourmetrics',
+        searchSource: 'tracemetrics',
       };
     }, [query, setQuery]);
 
