@@ -3500,3 +3500,13 @@ register(
     default="plaintext",
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Preprod / Launchpad options
+
+# Return AuthenticatedToken from ServiceRpcSignatureAuthentication
+register(
+    "preprod.new-token.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_ALLOW_EMPTY | FLAG_BOOL,
+)
