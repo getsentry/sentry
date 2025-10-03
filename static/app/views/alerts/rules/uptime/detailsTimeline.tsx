@@ -10,6 +10,7 @@ import Panel from 'sentry/components/panels/panel';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {OverviewRow} from 'sentry/views/insights/uptime/components/overviewTimeline/overviewRow';
 import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
 
