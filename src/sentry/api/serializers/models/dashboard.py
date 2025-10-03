@@ -3,11 +3,13 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
+from urllib.parse import urlencode
 
 from django.db.models import prefetch_related_objects
 
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.discover.arithmetic import get_equation_alias_index, is_equation, is_equation_alias
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
@@ -18,6 +20,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
     DatasetSourcesTypes,
 )
+from sentry.search.events.fields import is_function, parse_arguments
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
@@ -66,11 +69,26 @@ class DashboardWidgetResponse(TypedDict):
     widgetType: str
     layout: dict[str, int] | None
     datasetSource: str | None
+    exploreUrls: NotRequired[list[str] | None]
 
 
 class DashboardPermissionsResponse(TypedDict):
     isEditableByEveryone: bool
     teamsWithEditAccess: list[int]
+
+
+class ExploreQuery(TypedDict, total=False):
+    mode: str
+    aggregateField: list[dict[str, str | list[str]]]
+    field: list[str]
+    query: str
+    orderby: str
+    interval: str
+    projects: list[int]
+    environment: list[str]
+    start: str
+    end: str
+    statsPeriod: str
 
 
 @register(DashboardWidget)
@@ -91,6 +109,141 @@ class DashboardWidgetSerializer(Serializer):
 
         return result
 
+    def get_explore_urls(self, obj, attrs):
+        from sentry.explore.translation.dashboards_translation import translate_dashboard_widget
+
+        spans_widget = translate_dashboard_widget(obj, save_widget=False)
+        queries = spans_widget["queries"]
+        urls = []
+
+        for query in queries:
+            aggregate_equation_fields = [
+                field for field in query["fields"] if is_function(field) or is_equation(field)
+            ]
+            y_axes = (
+                aggregate_equation_fields
+                if spans_widget.display_type == DashboardWidgetDisplayTypes.TABLE
+                else query["aggregates"]
+            )
+
+            explore_mode = "aggregate"
+            chart_type = 1
+            match spans_widget.display_type:
+                case DashboardWidgetDisplayTypes.BAR_CHART:
+                    explore_mode = "aggregate"
+                    chart_type = 0
+                case DashboardWidgetDisplayTypes.LINE_CHART:
+                    explore_mode = "aggregate"
+                    chart_type = 1
+                case DashboardWidgetDisplayTypes.AREA_CHART:
+                    explore_mode = "aggregate"
+                    chart_type = 2
+                case DashboardWidgetDisplayTypes.TABLE:
+                    if len(y_axes) > 0:
+                        explore_mode = "aggregate"
+                    else:
+                        explore_mode = "samples"
+                case DashboardWidgetDisplayTypes.BIG_NUMBER:
+                    if len(y_axes) > 0:
+                        explore_mode = "aggregate"
+                    else:
+                        explore_mode = "samples"
+                case _:
+                    explore_mode = "samples"
+
+            filters = obj.dashboard.filters
+            if filters:
+                datetime = {
+                    "end": filters.get("end"),
+                    "period": filters.get("period"),
+                    "start": filters.get("start"),
+                    "utc": filters.get("utc"),
+                }
+
+            non_aggregate_group_by_fields = [
+                field
+                for field in query["fields"]
+                if not is_function(field) and not is_equation(field) and field != "timestamp"
+            ]
+
+            group_by = (
+                non_aggregate_group_by_fields
+                if query["fields"]
+                and spans_widget.display_type == DashboardWidgetDisplayTypes.TABLE
+                else query["columns"]
+            )
+            if len(group_by) == 0:
+                group_by = [""]
+
+            y_axis_fields = []
+            for function in y_axes:
+                match = is_function(function)
+                args_string = match.group("columns") if match else ""
+                args = parse_arguments(match.group("columns"), args_string)
+                y_axis_fields.extend(args)
+
+            fields = list(set(group_by + y_axis_fields))
+
+            sort_direction = "-" if query["orderby"].startswith("-") else ""
+            sort_column = query["orderby"].lstrip("-")
+            sort = None
+
+            if match := is_function(sort_column):
+                if explore_mode == "samples":
+                    args = parse_arguments(match.group("function"), match.group("columns"))
+                    if args:
+                        sort = f"{sort_direction}{args[0]}"
+                elif explore_mode == "aggregate":
+                    sort = query["orderby"]
+            elif is_equation_alias(sort_column) and explore_mode == "aggregate":
+                equations = [field for field in query["fields"] if is_equation(field)]
+                equation_index = get_equation_alias_index(sort_column)
+                if equation_index is not None:
+                    orderby = equations[equation_index]
+                    sort = f"{sort_direction}{orderby}"
+                else:
+                    sort = None
+            elif not is_function(sort_column) and not is_equation(sort_column):
+                sort = query["orderby"]
+
+            visualize = [
+                {
+                    "chartType": chart_type,
+                    "yAxes": y_axis,
+                }
+                for y_axis in y_axes
+            ]
+
+            projects = obj.dashboard.projects.all().values_list("id", flat=True)
+            environment = obj.dashboard.filters.get("environment", [])
+            release = obj.dashboard.filters.get("release", [])
+
+            query_params = {
+                "project": projects,
+                "environment": environment,
+                "statsPeriod": datetime.get("period"),
+                "start": datetime.get("start"),
+                "end": datetime.get("end"),
+                "utc": datetime.get("utc"),
+                "organization": obj.dashboard.organization,
+                "mode": explore_mode,
+                "visualize": visualize,
+                "groupBy": group_by if len(visualize) > 0 else [],
+                "field": fields,
+                "query": f"{query["conditions"]} {f"AND release:{",".join(release)}" if release else ""}",
+                "sort": sort,
+                "interval": obj.interval,
+                "referrer": "dashboards.widget-transaction-deprecation-warning",
+            }
+
+            url = obj.dashboard.organization.absolute_url(
+                "/explore/traces/", query=urlencode(query_params)
+            )
+
+            urls.append(url)
+
+        return urls
+
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardWidgetResponse:
         widget_type = (
             DashboardWidgetTypes.get_type_name(obj.widget_type)
@@ -103,7 +256,15 @@ class DashboardWidgetSerializer(Serializer):
         ):
             widget_type = DashboardWidgetTypes.get_type_name(obj.discover_widget_split)
 
-        return {
+        explore_urls = None
+        if obj.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE and features.has(
+            "organizations:transaction-widget-deprecation-explore-view",
+            organization=obj.dashboard.organization,
+            actor=user,
+        ):
+            explore_urls = self.get_explore_urls(obj, attrs)
+
+        serialized_widget: DashboardWidgetResponse = {
             "id": str(obj.id),
             "title": obj.title,
             "description": obj.description,
@@ -120,6 +281,11 @@ class DashboardWidgetSerializer(Serializer):
             "layout": obj.detail.get("layout") if obj.detail else None,
             "datasetSource": DATASET_SOURCES[obj.dataset_source],
         }
+
+        if explore_urls:
+            serialized_widget["exploreUrls"] = explore_urls
+
+        return serialized_widget
 
 
 @register(DashboardWidgetQueryOnDemand)

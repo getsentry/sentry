@@ -1,4 +1,5 @@
-from typing import Any
+import copy
+from typing import Any, Literal, overload
 
 from django.db import router
 
@@ -16,24 +17,45 @@ from sentry.search.events.fields import is_function
 from sentry.utils.db import atomic_transaction
 
 
-def snapshot_widget(widget: DashboardWidget):
+def snapshot_widget(widget: DashboardWidget, save_widget: bool = True):
     if widget.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE or (
         widget.widget_type == DashboardWidgetTypes.DISCOVER
         and widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
     ):
+
         serialized_widget = serialize(widget)
-        serialized_widget["dateCreated"] = serialized_widget["dateCreated"].timestamp()
-        widget.widget_snapshot = serialized_widget
-        widget.save()
+        if serialized_widget["dateCreated"]:
+            serialized_widget["dateCreated"] = serialized_widget["dateCreated"].timestamp()
+        if save_widget:
+            widget.widget_snapshot = serialized_widget
+            widget.save()
+        else:
+            return serialized_widget
 
 
-def translate_dashboard_widget(widget: DashboardWidget) -> DashboardWidget:
-    snapshot_widget(widget)
+@overload
+def translate_dashboard_widget(
+    widget: DashboardWidget, save_widget: Literal[True] = True
+) -> DashboardWidget: ...
 
-    if not widget.widget_snapshot:
+
+@overload
+def translate_dashboard_widget(
+    widget: DashboardWidget, save_widget: Literal[False]
+) -> dict[str, Any]: ...
+
+
+def translate_dashboard_widget(
+    widget: DashboardWidget, save_widget: bool = True
+) -> DashboardWidget | dict[str, Any]:
+    unsaved_snapshot_widget = snapshot_widget(widget, save_widget=save_widget)
+
+    if not widget.widget_snapshot and save_widget:
         return widget
 
-    transaction_widget = widget.widget_snapshot
+    transaction_widget = (
+        unsaved_snapshot_widget if not widget.widget_snapshot else widget.widget_snapshot
+    )
     new_widget_queries = []
     dropped_fields_info = []
     for q_index, query in enumerate(transaction_widget["queries"]):
@@ -130,6 +152,13 @@ def translate_dashboard_widget(widget: DashboardWidget) -> DashboardWidget:
         )
 
         dropped_fields_info.append(dropped_fields)
+
+    if not save_widget:
+        new_widget = copy.deepcopy(widget)
+        new_widget_dict = vars(new_widget)
+        widget_dict_queries = [vars(q) for q in new_widget_queries]
+        new_widget_dict["queries"] = widget_dict_queries
+        return new_widget_dict
 
     with atomic_transaction(
         using=(
