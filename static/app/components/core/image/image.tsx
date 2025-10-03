@@ -3,13 +3,14 @@ import styled from '@emotion/styled';
 interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   alt: string;
   src: string;
-  fit?: 'contain' | 'cover';
   height?: string;
   /**
    * Determines if the image should be loaded eagerly or lazily.
    * @default 'lazy'
    */
   loading?: 'eager' | 'lazy';
+  objectFit?: 'contain' | 'cover';
+  objectPosition?: 'center' | 'top' | 'bottom' | 'left' | 'right' | (string & {});
   ref?: React.Ref<HTMLImageElement>;
   width?: string;
 }
@@ -19,7 +20,8 @@ export function Image({loading, ...props}: ImageProps) {
 }
 
 const Img = styled('img')<ImageProps>`
-  object-fit: ${p => p.fit ?? 'contain'};
+  object-fit: ${p => p.objectFit ?? 'contain'};
   width: ${p => p.width ?? '100%'};
   height: ${p => p.height ?? '100%'};
+  object-position: ${p => p.objectPosition};
 `;

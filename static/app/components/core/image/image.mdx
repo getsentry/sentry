@@ -66,7 +66,7 @@ import image from 'sentry-images/image.png';
 
 ## Object Fit
 
-The `fit` prop controls how the image content is sized within its container. It accepts `'contain'` (default) or `'cover'` values, which map to the CSS `object-fit` property.
+The `objectFit` prop controls how the image content is sized within its container. It accepts `'contain'` (default) or `'cover'` values, which map to the CSS `object-fit` property.
 
 ### Contain (Default)
 
@@ -77,7 +77,7 @@ The image is scaled to maintain its aspect ratio while fitting within the elemen
     <Image
       src={image}
       alt="Sentry logo contained"
-      fit="contain"
+      objectFit="contain"
       width="100%"
       height="100%"
     />
@@ -85,7 +85,13 @@ The image is scaled to maintain its aspect ratio while fitting within the elemen
 </Storybook.Demo>
 ```jsx import image from 'sentry-images/image.png';
 
-<Image src={image} alt="Sentry logo contained" fit="contain" width="100%" height="100%" />
+<Image
+  src={image}
+  alt="Sentry logo contained"
+  objectFit="contain"
+  width="100%"
+  height="100%"
+/>
 ```
 
 ### Cover
@@ -94,12 +100,24 @@ The image is sized to maintain its aspect ratio while filling the element's enti
 
 <Storybook.Demo>
   <Container width="400px" height="200px" border="primary">
-    <Image src={image} alt="Sentry logo covered" fit="cover" width="100%" height="100%" />
+    <Image
+      src={image}
+      alt="Sentry logo covered"
+      objectFit="cover"
+      width="100%"
+      height="100%"
+    />
   </Container>
 </Storybook.Demo>
 ```jsx import image from 'sentry-images/image.png';
 
-<Image src={image} alt="Sentry logo covered" fit="cover" width="100%" height="100%" />
+<Image
+  src={image}
+  alt="Sentry logo covered"
+  objectFit="cover"
+  width="100%"
+  height="100%"
+/>
 ```
 
 ## Loading Behavior
