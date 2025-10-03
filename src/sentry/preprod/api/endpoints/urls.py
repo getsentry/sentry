@@ -11,6 +11,7 @@ from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_do
 )
 
 from .organization_preprod_artifact_assemble import ProjectPreprodArtifactAssembleEndpoint
+from .organization_pullrequest_comments import OrganizationPrCommentsEndpoint
 from .organization_pullrequest_details import OrganizationPullRequestDetailsEndpoint
 from .preprod_artifact_admin_batch_delete import PreprodArtifactAdminBatchDeleteEndpoint
 from .preprod_artifact_admin_info import PreprodArtifactAdminInfoEndpoint
@@ -26,12 +27,21 @@ from .project_preprod_artifact_update import ProjectPreprodArtifactUpdateEndpoin
 from .project_preprod_build_details import ProjectPreprodBuildDetailsEndpoint
 from .project_preprod_check_for_updates import ProjectPreprodArtifactCheckForUpdatesEndpoint
 from .project_preprod_list_builds import ProjectPreprodListBuildsEndpoint
+from .project_preprod_size import (
+    ProjectPreprodSizeEndpoint,
+    ProjectPreprodSizeWithIdentifierEndpoint,
+)
 
 preprod_urlpatterns = [
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/pullrequest-files/(?P<repo_name>.+?)/(?P<pr_number>\d+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/pr-comments/(?P<repo_name>.+?)/(?P<pr_number>\d+)/$",
+        OrganizationPrCommentsEndpoint.as_view(),
+        name="sentry-api-0-organization-pr-comments",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/pullrequest-details/(?P<repo_name>.+?)/(?P<pr_number>\d+)/$",
         OrganizationPullRequestDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-pullrequest-files",
+        name="sentry-api-0-organization-pullrequest-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/assemble/$",
@@ -116,5 +126,15 @@ preprod_internal_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/(?P<head_artifact_id>[^/]+)/assemble-generic/$",
         ProjectPreprodArtifactAssembleGenericEndpoint.as_view(),
         name="sentry-api-0-project-preprod-artifact-assemble-generic",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/(?P<head_artifact_id>[^/]+)/size/$",
+        ProjectPreprodSizeEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-size",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/(?P<head_artifact_id>[^/]+)/size/(?P<identifier>[^/]+)/$",
+        ProjectPreprodSizeWithIdentifierEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-size-identifier",
     ),
 ]

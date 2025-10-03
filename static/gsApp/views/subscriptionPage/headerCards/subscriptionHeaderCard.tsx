@@ -10,6 +10,7 @@ import type {SVGIconProps} from 'sentry/icons/svgIcon';
 interface ButtonInfo {
   ariaLabel: string;
   label: React.ReactNode;
+  priority: 'primary' | 'default';
   icon?: React.ReactNode;
   linkTo?: string;
   onClick?: () => void;
@@ -42,9 +43,7 @@ function SubscriptionHeaderCard({
         {isValidElement(button.icon)
           ? cloneElement(button.icon, {size: 'sm'} as SVGIconProps)
           : null}
-        <Text bold size="sm">
-          {button.label}
-        </Text>
+        {button.label}
       </Flex>
     );
   };
@@ -54,7 +53,7 @@ function SubscriptionHeaderCard({
       direction="column"
       padding="xl"
       background={isMainCard ? 'secondary' : 'primary'}
-      border={'primary'}
+      border="primary"
       radius="md"
       gap="xs"
     >
@@ -68,7 +67,7 @@ function SubscriptionHeaderCard({
         </Flex>
       )}
       {subtitle && <Text variant="muted">{subtitle}</Text>}
-      <Flex direction="column" gap="md" padding="xl 0">
+      <Flex direction="column" gap="md" padding={button ? 'xl 0' : 'xl 0 0'}>
         {sections.map((section, index) => {
           const isLast = index === sections.length - 1;
           return (
@@ -81,11 +80,19 @@ function SubscriptionHeaderCard({
       </Flex>
       {button &&
         (button.linkTo ? (
-          <LinkButton aria-label={button.ariaLabel} to={button.linkTo}>
+          <LinkButton
+            priority={button.priority}
+            aria-label={button.ariaLabel}
+            to={button.linkTo}
+          >
             {getButtonContent()}
           </LinkButton>
         ) : (
-          <Button onClick={button.onClick} aria-label={button.ariaLabel}>
+          <Button
+            onClick={button.onClick}
+            aria-label={button.ariaLabel}
+            priority={button.priority}
+          >
             {getButtonContent()}
           </Button>
         ))}

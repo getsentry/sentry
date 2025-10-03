@@ -143,22 +143,26 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
         hashed_project_ids = hash_from_values(project_ids)
 
         if end - start < timedelta(days=2):
+            # Hour granularity date range.
             categorization_cache_key = f"feedback_categorization:{organization.id}:{start.strftime('%Y-%m-%d-%H')}:{end.strftime('%Y-%m-%d-%H')}:{hashed_project_ids}"
         else:
-            # Date range is long enough that the categories won't change much (as long as the same day is selected)
+            # Day granularity date range. Date range is long enough that the categories won't change much (as long as the same day is selected)
             categorization_cache_key = f"feedback_categorization:{organization.id}:{start.strftime('%Y-%m-%d')}:{end.strftime('%Y-%m-%d')}:{hashed_project_ids}"
 
-        categories_cache = cache.get(categorization_cache_key)
-        if categories_cache:
-            # TODO(vishnupsatish): the below was commented only to be able to iterate on the prompt fast. Uncomment when releasing to Sentry.
-            # return Response(
-            #     {
-            #         "categories": categories_cache["categories"],
-            #         "success": True,
-            #         "numFeedbacksContext": categories_cache["numFeedbacksContext"],
-            #     }
-            # )
-            pass
+        has_cache = features.has(
+            "organizations:user-feedback-ai-summaries-cache", organization, actor=request.user
+        )
+
+        if has_cache:
+            cache_entry = cache.get(categorization_cache_key)
+            if cache_entry:
+                return Response(
+                    {
+                        "categories": cache_entry["categories"],
+                        "success": True,
+                        "numFeedbacksContext": cache_entry["numFeedbacksContext"],
+                    }
+                )
 
         recent_feedbacks = query_recent_feedbacks_with_ai_labels(
             organization_id=organization.id,
@@ -324,11 +328,12 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
         categories.sort(key=lambda x: x["feedbackCount"], reverse=True)
         categories = categories[:MAX_RETURN_CATEGORIES]
 
-        cache.set(
-            categorization_cache_key,
-            {"categories": categories, "numFeedbacksContext": len(context_feedbacks)},
-            timeout=CATEGORIES_CACHE_TIMEOUT,
-        )
+        if has_cache:
+            cache.set(
+                categorization_cache_key,
+                {"categories": categories, "numFeedbacksContext": len(context_feedbacks)},
+                timeout=CATEGORIES_CACHE_TIMEOUT,
+            )
 
         return Response(
             {

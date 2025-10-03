@@ -1,11 +1,16 @@
-import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import RadioField from 'sentry/components/forms/fields/radioField';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Radio} from 'sentry/components/core/radio';
+import {Text} from 'sentry/components/core/text';
+import Hook from 'sentry/components/hook';
+import {t, tct} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 export function DetectorTypeForm() {
@@ -23,47 +28,101 @@ export function DetectorTypeForm() {
   );
 }
 
+interface DetectorTypeOption {
+  description: string;
+  id: DetectorType;
+  name: string;
+  visualization: React.ReactNode;
+  disabled?: boolean;
+  infoBanner?: React.ReactNode;
+}
+
 function MonitorTypeField() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const selectedDetectorType = location.query.detectorType as DetectorType;
+
+  const useMetricDetectorLimit =
+    HookStore.get('react-hook:use-metric-detector-limit')[0] ?? (() => null);
+  const quota = useMetricDetectorLimit();
+  const canCreateMetricDetector = !quota?.hasReachedLimit;
+
+  const handleChange = (value: DetectorType) => {
+    navigate({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        detectorType: value,
+      },
+    });
+  };
+
+  const options: DetectorTypeOption[] = [
+    {
+      id: 'metric_issue',
+      name: getDetectorTypeLabel('metric_issue'),
+      description: t('Monitor error counts, transaction duration, and more!'),
+      visualization: <MetricVisualization />,
+      infoBanner: canCreateMetricDetector ? undefined : (
+        <Hook name="component:metric-alert-quota-message" />
+      ),
+      disabled: !canCreateMetricDetector,
+    },
+    {
+      id: 'monitor_check_in_failure',
+      name: getDetectorTypeLabel('monitor_check_in_failure'),
+      description: t(
+        'Monitor the uptime and performance of any scheduled, recurring jobs.'
+      ),
+      visualization: <CronsVisualization />,
+    },
+    {
+      id: 'uptime_domain_failure',
+      name: getDetectorTypeLabel('uptime_domain_failure'),
+      description: t('Monitor the uptime of specific endpoint in your applications.'),
+      visualization: <UptimeVisualization />,
+      infoBanner: tct(
+        'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/organization/data-storage-location/#data-stored-in-us" />
+          ),
+        }
+      ),
+    },
+  ];
+
   return (
-    <StyledRadioField
-      inline={false}
-      flexibleControlStateSize
-      name="detectorType"
-      choices={
-        [
-          [
-            'metric_issue',
-            getDetectorTypeLabel('metric_issue'),
-            <Description
-              key="description"
-              text={t('Monitor error counts, transaction duration, and more!')}
-              visualization={<MetricVisualization />}
-            />,
-          ],
-          [
-            'monitor_check_in_failure',
-            getDetectorTypeLabel('monitor_check_in_failure'),
-            <Description
-              key="description"
-              text={t(
-                'Monitor the uptime and performance of any scheduled, recurring jobs.'
-              )}
-              visualization={<CronsVisualization />}
-            />,
-          ],
-          [
-            'uptime_domain_failure',
-            getDetectorTypeLabel('uptime_domain_failure'),
-            <Description
-              key="description"
-              text={t('Monitor the uptime of specific endpoint in your applications.')}
-              visualization={<UptimeVisualization />}
-            />,
-          ],
-        ] satisfies Array<[DetectorType, string, React.ReactNode]>
-      }
-      required
-    />
+    <RadioOptions role="radiogroup" aria-label={t('Monitor type')}>
+      {options.map(({id, name, description, visualization, infoBanner, disabled}) => {
+        const checked = selectedDetectorType === id;
+        return (
+          <OptionLabel key={id} aria-checked={checked} disabled={disabled}>
+            <OptionBody>
+              <Flex direction="column" gap="sm">
+                <Radio
+                  name="detectorType"
+                  checked={checked}
+                  onChange={() => handleChange(id)}
+                  aria-label={name}
+                  disabled={disabled}
+                />
+                <Text size="lg" bold variant={disabled ? 'muted' : undefined}>
+                  {name}
+                </Text>
+                {description && (
+                  <Text size="md" variant="muted">
+                    {description}
+                  </Text>
+                )}
+              </Flex>
+              {visualization && <Visualization>{visualization}</Visualization>}
+            </OptionBody>
+            {infoBanner && (checked || disabled) && <OptionInfo>{infoBanner}</OptionInfo>}
+          </OptionLabel>
+        );
+      })}
+    </RadioOptions>
   );
 }
 
@@ -71,60 +130,65 @@ const FormContainer = styled('div')`
   display: flex;
   flex-direction: column;
   max-width: ${p => p.theme.breakpoints.xl};
+  gap: ${p => p.theme.space.xl};
 `;
 
-const StyledRadioField = styled(RadioField)`
-  flex-grow: 1;
-  padding-left: 0;
-  border-bottom: none;
+const RadioOptions = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.md};
+`;
 
-  label {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    padding: ${space(3)} ${space(2)};
-    border-radius: ${p => p.theme.borderRadius};
-    border: 1px solid ${p => p.theme.border};
-    background-color: ${p => p.theme.surface400};
+const OptionBody = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  padding: ${p => p.theme.space.xl};
+  align-items: center;
+`;
 
-    &:empty {
-      display: none;
-    }
+const OptionLabel = styled('label')<{disabled?: boolean}>`
+  display: grid;
+  grid-template-columns: 1fr;
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+  background-color: ${p => p.theme.surface400};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
+  overflow: hidden;
 
-    div:empty {
-      display: none;
-    }
-
-    /* Markup for choice name and description is all divs :( */
-    div:nth-child(2) {
-      font-weight: ${p => p.theme.fontWeight.bold};
-    }
-
-    &[aria-checked='true'] {
-      border-color: ${p => p.theme.focusBorder};
-      outline: solid 1px ${p => p.theme.focusBorder};
-    }
-
-    input[type='radio'] {
-      clip: rect(0 0 0 0);
-      clip-path: inset(50%);
-      height: 1px;
-      overflow: hidden;
-      position: absolute;
-      white-space: nowrap;
-      width: 1px;
-    }
+  input[type='radio'] {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
   }
+
+  &[aria-checked='true'] {
+    border-color: ${p => p.theme.focusBorder};
+    outline: solid 1px ${p => p.theme.focusBorder};
+  }
+
+  ${OptionBody} {
+    opacity: ${p => (p.disabled ? 0.7 : 1)};
+  }
+`;
+
+const OptionInfo = styled('div')`
+  border-top: 1px solid ${p => p.theme.border};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+  background-color: ${p => p.theme.backgroundSecondary};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const Header = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
-  margin-top: ${space(3)};
-  margin-bottom: ${space(1)};
+  gap: ${p => p.theme.space.sm};
+  margin-top: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.md};
 
   h3 {
     margin: 0;
@@ -135,30 +199,17 @@ const Header = styled('div')`
   }
 `;
 
-function Description({
-  text,
-  visualization,
-}: {
-  text: string;
-  visualization: React.ReactNode;
-}) {
-  return (
-    <Fragment>
-      <span>{text}</span>
-      <Visualization>{visualization}</Visualization>
-    </Fragment>
-  );
-}
-
 const Visualization = styled('div')`
   display: none;
-  width: 480px;
   height: 56px;
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  right: ${space(2)};
-  margin-block: auto;
+  flex: 0 0 50%;
+  max-width: 50%;
+
+  > svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     display: block;

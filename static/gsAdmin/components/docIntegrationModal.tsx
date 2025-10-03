@@ -110,7 +110,7 @@ function DocIntegrationModal(props: Props) {
               return existingResources;
             });
           }}
-          aria-label={'Close'}
+          aria-label="Close"
         />
       </ResourceContainer>
     ));
@@ -283,7 +283,7 @@ function DocIntegrationModal(props: Props) {
               model={docIntegration.avatar ? docIntegration : {}}
               onSave={() => {}}
               title="Logo"
-              help={"The company's logo"}
+              help="The company's logo"
             />
           )}
         </Form>

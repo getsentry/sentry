@@ -269,6 +269,46 @@ class RelinkCronsToCompatibleIssueWorkflowsTest(TestMigrations):
             )
         )
 
+        # Workflows with issue_category conditions
+        self.issue_category_cron_rule, self.issue_category_cron_workflow = (
+            self._create_issue_rule_with_workflow(
+                project=self.project1,
+                condition_data=[
+                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+                    {
+                        "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
+                        "value": "4",  # GroupCategory.CRON
+                    },
+                ],
+            )
+        )
+
+        self.issue_category_error_rule, self.issue_category_error_workflow = (
+            self._create_issue_rule_with_workflow(
+                project=self.project1,
+                condition_data=[
+                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+                    {
+                        "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
+                        "value": "1",  # GroupCategory.ERROR
+                    },
+                ],
+            )
+        )
+
+        self.issue_category_performance_rule, self.issue_category_performance_workflow = (
+            self._create_issue_rule_with_workflow(
+                project=self.project1,
+                condition_data=[
+                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+                    {
+                        "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
+                        "value": "2",  # GroupCategory.PERFORMANCE
+                    },
+                ],
+            )
+        )
+
         self.cron_detector1, self.monitor1 = self._create_cron_detector(
             self.org, self.project1, "cron1", owner_team=self.team1
         )
@@ -285,11 +325,12 @@ class RelinkCronsToCompatibleIssueWorkflowsTest(TestMigrations):
     def test_migration(self) -> None:
         # Should be linked to workflows with compatible conditions
         # Including assigned_to:team1 but NOT assigned_to:team2 or assigned_to:user1
+        # Including issue_category:CRON but NOT issue_category:ERROR or issue_category:PERFORMANCE
         detector1_workflows = DetectorWorkflow.objects.filter(detector=self.cron_detector1)
         detector1_workflow_ids = set(detector1_workflows.values_list("workflow_id", flat=True))
 
-        assert len(detector1_workflow_ids) == 6, (
-            f"detector1 should have 6 workflows, "
+        assert len(detector1_workflow_ids) == 7, (
+            f"detector1 should have 7 workflows, "
             f"got {len(detector1_workflow_ids)}: {detector1_workflow_ids}"
         )
 
@@ -347,6 +388,20 @@ class RelinkCronsToCompatibleIssueWorkflowsTest(TestMigrations):
             f"got {detector1_workflow_ids}"
         )
 
+        # Test issue_category conditions
+        assert self.issue_category_cron_workflow.id in detector1_workflow_ids, (
+            f"detector1 should have issue_category_cron_workflow (category=CRON), "
+            f"got {detector1_workflow_ids}"
+        )
+        assert self.issue_category_error_workflow.id not in detector1_workflow_ids, (
+            f"detector1 should not have issue_category_error_workflow (category=ERROR), "
+            f"got {detector1_workflow_ids}"
+        )
+        assert self.issue_category_performance_workflow.id not in detector1_workflow_ids, (
+            f"detector1 should not have issue_category_performance_workflow (category=PERFORMANCE), "
+            f"got {detector1_workflow_ids}"
+        )
+
         detector2_workflows = DetectorWorkflow.objects.filter(detector=self.cron_detector2)
         detector2_workflow_ids = set(detector2_workflows.values_list("workflow_id", flat=True))
 
@@ -360,6 +415,20 @@ class RelinkCronsToCompatibleIssueWorkflowsTest(TestMigrations):
         )
         assert self.assigned_unassigned_workflow.id not in detector2_workflow_ids, (
             f"detector2 (user1 owner) should not have assigned_unassigned_workflow, "
+            f"got {detector2_workflow_ids}"
+        )
+
+        # Test issue_category conditions for detector2
+        assert self.issue_category_cron_workflow.id in detector2_workflow_ids, (
+            f"detector2 should have issue_category_cron_workflow (category=CRON), "
+            f"got {detector2_workflow_ids}"
+        )
+        assert self.issue_category_error_workflow.id not in detector2_workflow_ids, (
+            f"detector2 should not have issue_category_error_workflow (category=ERROR), "
+            f"got {detector2_workflow_ids}"
+        )
+        assert self.issue_category_performance_workflow.id not in detector2_workflow_ids, (
+            f"detector2 should not have issue_category_performance_workflow (category=PERFORMANCE), "
             f"got {detector2_workflow_ids}"
         )
 

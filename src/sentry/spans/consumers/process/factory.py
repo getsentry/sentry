@@ -18,6 +18,7 @@ from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry import killswitches
 from sentry.spans.buffer import Span, SpansBuffer
 from sentry.spans.consumers.process.flusher import SpanFlusher
+from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, SetJoinTimeout, run_task_with_multiprocessing
 
@@ -182,10 +183,10 @@ def process_batch(
                 trace_id=val["trace_id"],
                 span_id=val["span_id"],
                 parent_span_id=val.get("parent_span_id"),
-                segment_id=cast(str | None, val.get("segment_id")),
+                segment_id=cast(str | None, attribute_value(val, "sentry.segment.id")),
                 project_id=val["project_id"],
                 payload=payload.value,
-                end_timestamp_precise=val["end_timestamp_precise"],
+                end_timestamp=val["end_timestamp"],
                 is_segment_span=bool(val.get("parent_span_id") is None or val.get("is_remote")),
             )
             spans.append(span)

@@ -50,8 +50,8 @@ function SubscriptionSettingsLayout(props: Props) {
         </Flex>
       </StyledSettingsHeader>
 
-      <Flex maxWidth={'1440px'} flex="1">
-        <Container padding={{xs: 'xl', md: '3xl'}} minWidth={0} flex={1}>
+      <Flex maxWidth="1440px" flex="1">
+        <Container minWidth={0} flex={1}>
           {children}
         </Container>
       </Flex>

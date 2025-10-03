@@ -1,13 +1,10 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('useMutateOnboardingTasks', () => {
   jest.spyOn(OrganizationStore, 'onUpdate');
@@ -32,14 +29,8 @@ describe('useMutateOnboardingTasks', () => {
       body: testTask,
     });
 
-    const {result} = renderHook(() => useMutateOnboardingTasks(), {
-      wrapper: ({children}) => (
-        <OrganizationContext value={organization}>
-          <QueryClientProvider client={makeTestQueryClient()}>
-            {children}
-          </QueryClientProvider>
-        </OrganizationContext>
-      ),
+    const {result} = renderHookWithProviders(() => useMutateOnboardingTasks(), {
+      organization,
     });
 
     result.current.mutate([testTask]);

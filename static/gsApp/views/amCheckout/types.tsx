@@ -3,7 +3,9 @@ import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
 import type {
+  AddOnCategory,
   BillingConfig,
+  CheckoutAddOns,
   OnDemandBudgets,
   Plan,
   PlanTier,
@@ -11,33 +13,24 @@ import type {
   Subscription,
 } from 'getsentry/types';
 
-export enum SelectableProduct {
-  SEER = 'seer', // should match ReservedBudgetCategoryType.SEER
-}
-
 type BaseCheckoutData = {
   plan: string;
+  addOns?: CheckoutAddOns;
   applyNow?: boolean;
   onDemandBudget?: OnDemandBudgets;
   onDemandMaxSpend?: number;
-  selectedProducts?: Record<SelectableProduct, SelectedProductData>;
-};
-
-export type SelectedProductData = {
-  enabled: boolean;
-  budget?: number; // if not provided, the default budget will be used
 };
 
 export type CheckoutFormData = BaseCheckoutData & {
   reserved: Partial<Record<DataCategory, number>>;
 };
 
-export type CheckoutAPIData = Omit<BaseCheckoutData, 'selectedProducts'> & {
+export type CheckoutAPIData = Omit<BaseCheckoutData, 'addOns'> & {
   paymentIntent?: string;
   previewToken?: string;
   referrer?: string;
-  seer?: boolean; // TODO: in future, we should just use selectedProducts
-} & Partial<Record<`reserved${Capitalize<DataCategory>}`, number>>;
+} & Partial<Record<`reserved${Capitalize<DataCategory>}`, number>> &
+  Partial<Record<`addOn${Capitalize<AddOnCategory>}`, boolean>>;
 
 type BaseStepProps = {
   activePlan: Plan;

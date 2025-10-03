@@ -213,7 +213,7 @@ const DetectorListSimpleTable = styled(SimpleTable)`
   }
 
   @container (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
+    grid-template-columns: 3fr 0.8fr 1.5fr;
 
     [data-column-name='last-issue'] {
       display: flex;
@@ -229,7 +229,7 @@ const DetectorListSimpleTable = styled(SimpleTable)`
   }
 
   @container (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 2fr;
+    grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 1.1fr;
 
     [data-column-name='connected-automations'] {
       display: flex;

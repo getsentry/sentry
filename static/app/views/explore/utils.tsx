@@ -267,7 +267,7 @@ export function generateTargetQuery({
   sorts,
   yAxes,
 }: {
-  fields: string[];
+  fields: readonly string[];
   groupBys: readonly string[];
   location: Location;
   // needed to generate targets when `project` is in the group by
@@ -365,7 +365,7 @@ export function viewSamplesTarget({
   row,
   projects,
 }: {
-  fields: string[];
+  fields: readonly string[];
   groupBys: readonly string[];
   location: Location;
   // needed to generate targets when `project` is in the group by
@@ -745,6 +745,7 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.LOGS]: getLogsUrlFromSavedQueryUrl,
   [TraceItemDataset.SPANS]: getExploreUrlFromSavedQueryUrl,
   [TraceItemDataset.UPTIME_RESULTS]: undefined,
+  [TraceItemDataset.TRACEMETRICS]: undefined,
 };
 
 /**

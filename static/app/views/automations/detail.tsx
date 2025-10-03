@@ -1,4 +1,5 @@
 import {Fragment, useCallback} from 'react';
+import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -14,6 +15,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
+import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
@@ -47,8 +49,6 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-
-  const {data: createdByUser} = useUserFromId({id: Number(automation.createdBy)});
 
   const {
     data: detectors,
@@ -134,7 +134,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                       AUTOMATION_DETECTORS_LIMIT
                     )}
                   />
-                  <Pagination
+                  <StyledPagination
                     pageLinks={getResponseHeader?.('Link')}
                     onCursor={cursor => {
                       navigate({
@@ -185,7 +185,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                   />
                   <KeyValueTableRow
                     keyName={t('Created by')}
-                    value={createdByUser?.name || createdByUser?.email || t('Unknown')}
+                    value={<UserDisplayName id={automation.createdBy} />}
                   />
                   <KeyValueTableRow
                     keyName={t('Last modified')}
@@ -261,3 +261,20 @@ function Actions({automation}: {automation: Automation}) {
     </Fragment>
   );
 }
+
+function UserDisplayName({id}: {id: string | undefined}) {
+  const {data: createdByUser, isPending} = useUserFromId({
+    id: id ? Number(id) : undefined,
+  });
+  if (!id) {
+    return t('Sentry');
+  }
+  if (isPending) {
+    return <Placeholder height="20px" />;
+  }
+  return createdByUser?.name || createdByUser?.email || t('Unknown');
+}
+
+const StyledPagination = styled(Pagination)`
+  margin: 0;
+`;
