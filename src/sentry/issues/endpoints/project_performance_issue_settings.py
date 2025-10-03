@@ -10,6 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.auth.superuser import superuser_has_permission
+from sentry.issue_detection.performance_detection import get_merged_settings
 from sentry.issues.grouptype import (
     GroupType,
     PerformanceConsecutiveDBQueriesGroupType,
@@ -27,7 +28,6 @@ from sentry.issues.grouptype import (
     ProfileFunctionRegressionType,
     QueryInjectionVulnerabilityGroupType,
 )
-from sentry.performance_issues.performance_detection import get_merged_settings
 
 MAX_VALUE = 2147483647
 TEN_SECONDS = 10000  # ten seconds in milliseconds

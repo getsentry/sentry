@@ -321,7 +321,6 @@ function AddToDashboardModal({
             {({hasReachedDashboardLimit, isLoading, limitMessage}) => (
               <Select
                 disabled={dashboards === null}
-                menuPlacement="auto"
                 name="dashboard"
                 placeholder={t('Select Dashboard')}
                 value={selectedDashboardId}
