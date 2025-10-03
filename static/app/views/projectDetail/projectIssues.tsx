@@ -36,7 +36,7 @@ enum IssuesType {
   ALL = 'all',
 }
 
-export enum IssuesQuery {
+enum IssuesQuery {
   NEW = 'is:unresolved is:for_review',
   UNHANDLED = 'error.unhandled:true is:unresolved',
   REGRESSED = 'regressed_in_release:latest',
