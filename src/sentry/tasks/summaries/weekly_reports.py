@@ -34,7 +34,6 @@ from sentry.tasks.summaries.organization_report_context_factory import (
     OrganizationReportContextFactory,
 )
 from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.taskworker.retry import Retry
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
@@ -99,15 +98,10 @@ class WeeklyReportProgressTracker:
 # The entry point. This task is scheduled to run every week.
 @instrumented_task(
     name="sentry.tasks.summaries.weekly_reports.schedule_organizations",
-    queue="reports.prepare",
-    max_retries=5,
-    acks_late=True,
+    namespace=reports_tasks,
+    retry=Retry(times=5),
+    processing_deadline_duration=timedelta(minutes=30),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=reports_tasks,
-        retry=Retry(times=5),
-        processing_deadline_duration=timedelta(minutes=30),
-    ),
 )
 @retry(timeouts=True)
 def schedule_organizations(
@@ -164,18 +158,10 @@ def schedule_organizations(
 # This task is launched per-organization.
 @instrumented_task(
     name="sentry.tasks.summaries.weekly_reports.prepare_organization_report",
-    queue="reports.prepare",
-    max_retries=5,
-    acks_late=True,
+    namespace=reports_tasks,
+    processing_deadline_duration=60 * 10,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=reports_tasks,
-        processing_deadline_duration=60 * 10,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @retry
 def prepare_organization_report(

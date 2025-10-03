@@ -32,7 +32,6 @@ from sentry.tasks.assemble import (
     set_assemble_status,
 )
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import attachments_tasks, preprod_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils.sdk import bind_organization_context
@@ -538,10 +537,9 @@ def assemble_preprod_artifact_installable_app(
 
 @instrumented_task(
     name="sentry.preprod.tasks.detect_expired_preprod_artifacts",
-    max_retries=0,
-    record_timing=True,
+    namespace=preprod_tasks,
+    processing_deadline_duration=60,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=preprod_tasks, processing_deadline_duration=60),
 )
 def detect_expired_preprod_artifacts():
     """

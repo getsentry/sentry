@@ -10,7 +10,6 @@ from sentry.integrations.tasks import should_comment_sync
 from sentry.models.activity import Activity
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
@@ -18,17 +17,9 @@ from sentry.types.activity import ActivityType
 
 @instrumented_task(
     name="sentry.tasks.integrations.update_comment",
-    queue="integrations",
-    default_retry_delay=60 * 5,
-    max_retries=5,
+    namespace=integrations_tasks,
+    retry=Retry(times=5, delay=60 * 5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=integrations_tasks,
-        retry=Retry(
-            times=5,
-            delay=60 * 5,
-        ),
-    ),
 )
 # TODO(jess): Add more retry exclusions once ApiClients have better error handling
 @retry(exclude=(Integration.DoesNotExist))

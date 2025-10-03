@@ -7,7 +7,6 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import integrations_control_tasks
 from sentry.taskworker.retry import Retry
 
@@ -18,14 +17,10 @@ account_link_endpoint = "/sentry/internal/account/link/"
 
 @instrumented_task(
     name="sentry.integrations.github.tasks.codecov_account_link",
-    queue="integrations.control",
-    max_retries=3,
+    namespace=integrations_control_tasks,
+    retry=Retry(times=3),
+    processing_deadline_duration=60,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(
-        namespace=integrations_control_tasks,
-        retry=Retry(times=3),
-        processing_deadline_duration=60,
-    ),
 )
 @retry(exclude=(ConfigurationError,))
 def codecov_account_link(
