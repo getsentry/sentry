@@ -15,7 +15,7 @@ export interface PreventAIOrg {
   repos: PreventAIRepo[];
 }
 
-export interface PreventAIFeatureConfig {
+interface PreventAIFeatureConfig {
   enabled: boolean;
   triggers: PreventAIFeatureTriggers;
   sensitivity?: string;
