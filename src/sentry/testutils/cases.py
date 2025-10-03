@@ -3393,6 +3393,7 @@ class OurLogTestCase(BaseTestCase):
         project: Project | None = None,
         timestamp: datetime | None = None,
         attributes: dict[str, Any] | None = None,
+        log_id: str | None = None,
     ) -> TraceItem:
         if organization is None:
             organization = self.organization
@@ -3404,6 +3405,12 @@ class OurLogTestCase(BaseTestCase):
             attributes = {}
         if extra_data is None:
             extra_data = {}
+        if log_id is None:
+            item_id = uuid4()
+        else:
+            # There's some flipping of bytes when ingesting the item id
+            # this ensures that the final item we get back is what we send
+            item_id = UUID(bytes=bytes(reversed(UUID(log_id).bytes)))
 
         trace_id = extra_data.pop("trace_id", uuid4().hex)
 
@@ -3444,7 +3451,7 @@ class OurLogTestCase(BaseTestCase):
             item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,
             timestamp=timestamp_proto,
             trace_id=trace_id,
-            item_id=uuid4().bytes,
+            item_id=item_id.bytes,
             received=timestamp_proto,
             retention_days=90,
             attributes=attributes_proto,

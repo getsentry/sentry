@@ -1,11 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {Alert} from 'sentry/components/core/alert';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {Button} from 'sentry/components/core/button';
 import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import useDrawer from 'sentry/components/globalDrawer';
+import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconJson} from 'sentry/icons';
@@ -16,6 +20,8 @@ import {DetailsTimelineLegend} from 'sentry/views/insights/crons/components/deta
 import type {Monitor, MonitorEnvironment} from 'sentry/views/insights/crons/types';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
+
+import MonitorQuickStartGuide from './monitorQuickStartGuide';
 
 interface Props {
   monitor: Monitor;
@@ -29,6 +35,9 @@ interface Props {
 export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) {
   const {checkin_margin, schedule, schedule_type, max_runtime, timezone} = monitor.config;
   const {onClick, label} = useCopyToClipboard({text: monitor.slug});
+  const openDocsPanel = useDocsPanel(monitor);
+
+  const hasCheckIns = monitor.environments.some(e => e.lastCheckIn);
 
   const slug = (
     <Tooltip title={label}>
@@ -57,11 +66,15 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
         </div>
         <div>
           {monitor.status !== 'disabled' && monitorEnv?.nextCheckIn ? (
-            <TimeSince
-              unitStyle="regular"
-              liveUpdateInterval="second"
-              date={monitorEnv.nextCheckIn}
-            />
+            moment(monitorEnv.nextCheckIn).isAfter(moment()) ? (
+              <TimeSince
+                unitStyle="regular"
+                liveUpdateInterval="second"
+                date={monitorEnv.nextCheckIn}
+              />
+            ) : (
+              t('Expected Now')
+            )
           ) : (
             '-'
           )}
@@ -128,8 +141,33 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
           </Alert>
         </Alert.Container>
       )}
+      {hasCheckIns && (
+        <Button size="xs" onClick={openDocsPanel}>
+          {t('Show Setup Docs')}
+        </Button>
+      )}
     </Fragment>
   );
+}
+
+function useDocsPanel(monitor: Monitor) {
+  const {openDrawer} = useDrawer();
+
+  const contents = (
+    <Fragment>
+      <DrawerHeader hideBar />
+      <DrawerBody>
+        <MonitorQuickStartGuide project={monitor.project} monitorSlug={monitor.slug} />
+      </DrawerBody>
+    </Fragment>
+  );
+
+  return () =>
+    openDrawer(() => contents, {
+      ariaLabel: t('See Setup Docs'),
+      drawerKey: 'cron-docs',
+      resizable: true,
+    });
 }
 
 const CheckIns = styled('div')`
