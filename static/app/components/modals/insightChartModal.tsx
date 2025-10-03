@@ -11,6 +11,7 @@ export type InsightChartModalOptions = {
   children: React.ReactNode;
   title: React.ReactNode;
   footer?: React.ReactNode;
+  height?: number;
 };
 type Props = ModalRenderProps & InsightChartModalOptions;
 
@@ -20,6 +21,7 @@ export default function InsightChartModal({
   children,
   Footer,
   footer,
+  height = 300,
 }: Props) {
   return (
     <Fragment>
@@ -28,7 +30,7 @@ export default function InsightChartModal({
           <h3>{title}</h3>
         </Header>
 
-        <ChartRenderingContext value={{height: 300, isFullscreen: true}}>
+        <ChartRenderingContext value={{height, isFullscreen: true}}>
           {children}
         </ChartRenderingContext>
 
