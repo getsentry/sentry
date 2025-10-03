@@ -4,12 +4,13 @@ from requests import RequestException
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, audit_log, deletions
+from sentry import analytics, audit_log
 from sentry.analytics.events.sentry_app_uninstalled import SentryAppUninstalledEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import serialize
+from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 from sentry.sentry_apps.api.parsers.sentry_app_installation import SentryAppInstallationParser
 from sentry.sentry_apps.api.serializers.sentry_app_installation import (
@@ -56,7 +57,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
             # if the error is from a request exception, log the error and continue
             except RequestException as exc:
                 sentry_sdk.capture_exception(exc)
-            deletions.exec_sync(sentry_app_installation)
+            ScheduledDeletion.schedule(sentry_app_installation, days=0, actor=request.user)
             create_audit_entry(
                 request=request,
                 organization_id=sentry_app_installation.organization_id,
