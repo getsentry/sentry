@@ -174,7 +174,10 @@ def parse_replay_events(message: Event):
                 if isinstance(e, CustomEvent)
             ]
         except Exception:
-            logger.exception("msgspec deserialization failed.")
+            # We're emitting a metric instead of logging in case this thing really fails hard in
+            # prod. We don't want a huge volume of logs slowing throughput. If there's a
+            # significant volume of this metric we'll test against a broader cohort of data.
+            metrics.incr("replays.recording_consumer.msgspec_decode_error")
             events = json.loads(message["payload"])
 
         return parse_events(
