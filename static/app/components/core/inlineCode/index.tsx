@@ -1,4 +1,3 @@
-import type {HTMLProps} from 'react';
 import {css, useTheme, type Theme} from '@emotion/react';
 
 export const inlineCodeStyles = (theme: Theme) => css`
@@ -33,7 +32,7 @@ export const inlineCodeStyles = (theme: Theme) => css`
   text-box-trim: trim-both;
 `;
 
-interface InlineCodeProps extends React.HTMLAttributes<HTMLCodeElement> {}
+interface InlineCodeProps extends React.HTMLProps<HTMLElementTagNameMap['code']> {}
 export function InlineCode(props: InlineCodeProps) {
   const theme = useTheme();
   return <code css={inlineCodeStyles(theme)} {...props} />;
