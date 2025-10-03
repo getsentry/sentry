@@ -8,7 +8,7 @@ export function ChonkOptInBanner() {
   const subscription = useSubscription();
   const exceededCategories = useExceededSubscriptionCategories(subscription);
 
-  if (exceededCategories.length === 0) {
+  if (exceededCategories.length > 0) {
     return null;
   }
 
