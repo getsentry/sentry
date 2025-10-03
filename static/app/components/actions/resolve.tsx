@@ -220,30 +220,6 @@ function ResolveActions({
         details: actionTitle ? actionTitle : t('The next release after the current one'),
         onAction: () => onActionOrConfirm(handleNextReleaseResolution),
       },
-      {
-        key: 'current-release',
-        label: t('The current release'),
-        details: (
-          <CurrentReleaseWrapper>
-            {actionTitle ? (
-              actionTitle
-            ) : latestRelease ? (
-              <Fragment>
-                <div>
-                  <MaxReleaseWidthWrapper>
-                    {formatVersion(latestRelease.version)}
-                  </MaxReleaseWidthWrapper>
-                </div>{' '}
-                ({isSemver ? t('semver') : t('non-semver')})
-              </Fragment>
-            ) : null}
-          </CurrentReleaseWrapper>
-        ),
-        onAction: () =>
-          onActionOrConfirm(() =>
-            handleCurrentReleaseResolution({isLatestSemverRelease: false})
-          ),
-      },
       ...(hasSemverReleaseFeature && latestSemverRelease?.version
         ? [
             {
@@ -270,7 +246,32 @@ function ResolveActions({
                 ),
             },
           ]
-        : []),
+        : [
+            {
+              key: 'current-release',
+              label: t('The current release'),
+              details: (
+                <CurrentReleaseWrapper>
+                  {actionTitle ? (
+                    actionTitle
+                  ) : latestRelease ? (
+                    <Fragment>
+                      <div>
+                        <MaxReleaseWidthWrapper>
+                          {formatVersion(latestRelease.version)}
+                        </MaxReleaseWidthWrapper>
+                      </div>{' '}
+                      ({isSemver ? t('semver') : t('non-semver')})
+                    </Fragment>
+                  ) : null}
+                </CurrentReleaseWrapper>
+              ),
+              onAction: () =>
+                onActionOrConfirm(() =>
+                  handleCurrentReleaseResolution({isLatestSemverRelease: false})
+                ),
+            },
+          ]),
       {
         key: 'another-release',
         label: t('Another existing release\u2026'),
@@ -303,20 +304,19 @@ function ResolveActions({
           multipleProjectsSelected
             ? [
                 'next-release',
-                'current-release',
                 ...(hasSemverReleaseFeature && latestSemverRelease?.version
                   ? ['semver-release']
-                  : []),
+                  : ['current-release']),
                 'another-release',
                 'a-commit',
               ]
             : disabled || !hasRelease
               ? [
                   'next-release',
-                  'current-release',
+
                   ...(hasSemverReleaseFeature && latestSemverRelease?.version
                     ? ['semver-release']
-                    : []),
+                    : ['current-release']),
                   'another-release',
                 ]
               : []
