@@ -171,9 +171,6 @@ class BaseNotification(abc.ABC):
         """
         return None
 
-    def record_analytics(self, event_name: str, *args: Any, **kwargs: Any) -> None:
-        analytics.record(event_name, *args, **kwargs)
-
     def record_notification_sent(self, recipient: Actor, provider: ExternalProviders) -> None:
         from sentry.integrations.discord.analytics import DiscordIntegrationNotificationSent
         from sentry.integrations.msteams.analytics import MSTeamsIntegrationNotificationSent
