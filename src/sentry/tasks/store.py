@@ -581,7 +581,7 @@ def _do_save_event(
             if cache_key and has_attachments:
                 all_attachments = list(get_attachments_for_event(data))
                 # we won’t be needing the transient attachments after this anymore
-                del data["_attachments"]
+                data.pop("_attachments", None)
                 attachments = [a for a in all_attachments if not a.rate_limited]
             else:
                 all_attachments = []

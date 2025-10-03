@@ -41,7 +41,7 @@ def store_attachments_for_event(event: Any, attachments: list[CachedAttachment],
         timeout=timeout,
         set_metadata=not put_metadata_into_event,
     )
-    del event["_attachments"]
+    event.pop("_attachments", None)
     if put_metadata_into_event:
         event["_attachments"] = attachments_metadata
 

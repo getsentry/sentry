@@ -493,13 +493,7 @@ class EventManager:
             # and adds support for differentiating based on platforms
             with metrics.timer("event_manager.save_error_events", tags=metric_tags):
                 return self.save_error_events(
-                    project,
-                    job,
-                    projects,
-                    metric_tags,
-                    raw,
-                    cache_key,
-                    attachments=attachments or [],
+                    project, job, projects, metric_tags, attachments or [], raw, cache_key
                 )
 
     @sentry_sdk.tracing.trace
