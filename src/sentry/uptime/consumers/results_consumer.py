@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
+import uuid
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -394,7 +395,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             last_interval_seen: str = cluster.get(last_interval_key) or "0"
 
             if int(last_interval_seen) == subscription_interval_ms:
-                num_missed_checks = num_intervals - 1
+                num_missed_checks = int(num_intervals - 1)
                 metrics.distribution(
                     "uptime.result_processer.num_missing_check",
                     num_missed_checks,
@@ -415,6 +416,42 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                             **result,
                         },
                     )
+
+                synthetic_metric_tags = metric_tags.copy()
+                synthetic_metric_tags["status"] = CHECKSTATUS_MISSED_WINDOW
+                for i in range(0, num_missed_checks):
+                    missed_result: CheckResult = {
+                        "guid": str(uuid.uuid4()),
+                        "subscription_id": result["subscription_id"],
+                        "status": CHECKSTATUS_MISSED_WINDOW,
+                        "status_reason": None,
+                        "trace_id": str(uuid.uuid4()),
+                        "span_id": str(uuid.uuid4()),
+                        "region": result["region"],
+                        "scheduled_check_time_ms": last_update_ms
+                        + ((i + 1) * subscription_interval_ms),
+                        "actual_check_time_ms": result["actual_check_time_ms"],
+                        "duration_ms": 0,
+                        "request_info": None,
+                    }
+
+                    if options.get("uptime.snuba_uptime_results.enabled"):
+                        produce_snuba_uptime_result(
+                            subscription,
+                            detector.project,
+                            missed_result,
+                            synthetic_metric_tags.copy(),
+                        )
+
+                    if features.has(
+                        "organizations:uptime-eap-results", detector.project.organization
+                    ):
+                        produce_eap_uptime_result(
+                            subscription,
+                            detector.project,
+                            missed_result,
+                            synthetic_metric_tags.copy(),
+                        )
             else:
                 logger.info(
                     "uptime.result_processor.false_num_missing_check",
