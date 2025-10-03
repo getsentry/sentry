@@ -76,11 +76,10 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
   // This only works for aggregates with <= 1 arguments
 
   const {
-    name: aggregation,
     arguments: [field],
   } = parseFunction(aggregate) ?? {arguments: [undefined]};
 
-  const {arguments: aggregateFuncArgs} = parseFunction(aggregate) ?? {
+  const {name: aggregation, arguments: aggregateFuncArgs} = parseFunction(aggregate) ?? {
     arguments: undefined,
   };
 
@@ -251,7 +250,8 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
           </FlexWrapper>
         );
       })}
-      {aggregateDefinition?.parameters?.length === 0 && ( // for parameterless functions, we want to still show show greyed out spans
+      {(aggregateDefinition?.parameters?.length === 0 ||
+        !defined(aggregateDefinition?.parameters)) && ( // for parameterless functions, we want to still show show greyed out spans
         <FlexWrapper>
           <StyledSelectControl
             searchable
