@@ -652,5 +652,7 @@ class ServiceRpcSignatureAuthentication(StandardAuthentication):
             raise AuthenticationFailed("Invalid signature")
 
         sentry_sdk.get_isolation_scope().set_tag(self.sdk_tag_name, True)
-
-        return (AnonymousUser(), token)
+        if options.get("preprod.new-token.enabled"):
+            return (AnonymousUser(), AuthenticatedToken(kind="service"))
+        else:
+            return (AnonymousUser(), token)
