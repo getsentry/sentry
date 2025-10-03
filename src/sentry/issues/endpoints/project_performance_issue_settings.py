@@ -136,7 +136,9 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
         required=False, min_value=100000, max_value=TEN_MB
     )
     large_http_payload_filtered_paths = serializers.CharField(
-        required=False, allow_blank=True, max_length=1000, allow_null=True
+        required=False,
+        allow_blank=True,
+        max_length=1000,
     )
     db_on_main_thread_duration_threshold = serializers.IntegerField(
         required=False, min_value=10, max_value=50
