@@ -2480,7 +2480,7 @@ function buildRoutes(): RouteObject[] {
   ];
 
   const pullRequestRoutes: SentryRouteObject = {
-    path: ':projectId/pull/',
+    path: 'pull/',
     component: make(() => import('sentry/views/pullRequest/index')),
     withOrgPath: true,
     children: pullRequestChildren,

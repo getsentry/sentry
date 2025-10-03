@@ -20,7 +20,7 @@ import {
 
 interface BuildDetailsSidebarContentProps {
   artifactId: string;
-  projectId: string;
+  projectId: string | null;
   buildDetailsData?: BuildDetailsApiResponse | null;
   isBuildDetailsPending?: boolean;
 }

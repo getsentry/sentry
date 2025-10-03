@@ -8,7 +8,6 @@ import {t} from 'sentry/locale';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {BuildDetailsMainContent} from 'sentry/views/preprod/buildDetails/main/buildDetailsMainContent';
 import {BuildDetailsSidebarContent} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarContent';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
@@ -22,21 +21,16 @@ export function PullRequestDetailsSizeContent({
   buildDetails,
 }: PullRequestDetailsSizeContentProps) {
   const organization = useOrganization();
-  const {projectId} = useParams<{
-    projectId: string;
-  }>();
   const [selectedBuildId, setSelectedBuildId] = useState<string | undefined>(
     buildDetails[0]?.id
   );
 
   const appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError> =
     useApiQuery<AppSizeApiResponse>(
-      [
-        `/projects/${organization.slug}/${projectId}/files/preprodartifacts/${selectedBuildId}/size-analysis/`,
-      ],
+      [`projects/${organization.slug}/pull-requests/size-analysis/${selectedBuildId}/`],
       {
         staleTime: 0,
-        enabled: !!projectId && !!selectedBuildId,
+        enabled: !!selectedBuildId,
       }
     );
 
@@ -96,7 +90,6 @@ export function PullRequestDetailsSizeContent({
             <BuildDetailsSidebarContent
               buildDetailsData={selectedBuildDetail}
               artifactId={selectedBuildId}
-              projectId={projectId}
             />
           )}
         </Flex>
