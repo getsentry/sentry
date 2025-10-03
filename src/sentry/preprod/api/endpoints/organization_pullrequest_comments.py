@@ -13,6 +13,7 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.preprod.integration_utils import get_github_client
 from sentry.preprod.pull_request.comment_adapters import PullRequestCommentsAdapter
@@ -63,8 +64,12 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
             return Response(error_data.dict(), status=404)
 
         try:
-            general_comments_raw = self._fetch_pr_general_comments(client, repo_name, pr_number)
-            review_comments_raw = self._fetch_pr_review_comments(client, repo_name, pr_number)
+            general_comments_raw = self._fetch_pr_general_comments(
+                organization.id, client, repo_name, pr_number
+            )
+            review_comments_raw = self._fetch_pr_review_comments(
+                organization.id, client, repo_name, pr_number
+            )
 
             comments_data: PullRequestComments = PullRequestCommentsAdapter.from_github_comments(
                 general_comments_raw, review_comments_raw
@@ -117,7 +122,11 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
             return Response(error_data.dict(), status=500)
 
     def _fetch_pr_general_comments(
-        self, client: GitHubApiClient, repo_name: str, pr_number: str
+        self,
+        organization_id: int,
+        client: GitHubApiClient,
+        repo_name: str,
+        pr_number: str,
     ) -> list[dict]:
         """
         Fetch general PR comments from GitHub.
@@ -126,9 +135,9 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
         """
         with SCMIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.GET_ISSUE_COMMENTS,
-            provider_key=self.provider_key,
-            organization_id=self.organization_id,
-            integration_id=self.integration_id,
+            provider_key=IntegrationProviderSlug.GITHUB.value,  # only Github for now
+            organization_id=organization_id,
+            integration_id=client.integration_id,
         ).capture() as lifecycle:
             lifecycle.add_extras(
                 {
@@ -140,7 +149,11 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
             return comments or []
 
     def _fetch_pr_review_comments(
-        self, client: GitHubApiClient, repo_name: str, pr_number: str
+        self,
+        organization_id: int,
+        client: GitHubApiClient,
+        repo_name: str,
+        pr_number: str,
     ) -> list[dict]:
         """
         Fetch PR review comments from GitHub.
@@ -149,9 +162,9 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
         """
         with SCMIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.GET_PR_COMMENTS,
-            provider_key=self.provider_key,
-            organization_id=self.organization_id,
-            integration_id=self.integration_id,
+            provider_key=IntegrationProviderSlug.GITHUB.value,  # only Github for now
+            organization_id=organization_id,
+            integration_id=client.integration_id,
         ).capture() as lifecycle:
             lifecycle.add_extras(
                 {
