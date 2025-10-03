@@ -63,7 +63,7 @@ export default function DebugNotificationsIndex() {
                   >
                     <EmailPreview registration={selectedRegistration} />
                     <SlackPreview registration={selectedRegistration} />
-                    <DiscordPreview />
+                    <DiscordPreview registration={selectedRegistration} />
                     <TeamsPreview registration={selectedRegistration} />
                   </Flex>
                   <ExampleContainer>
