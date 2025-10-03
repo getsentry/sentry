@@ -76,15 +76,7 @@ def serialize(
 
     project_map = get_projects(projects, fetch_project_platforms)
 
-    release_projects_map = {}
-    for release_id, mapping in new_groups_map.items():
-        projects_for_release = []
-        for project_id, count in mapping.items():
-            if count is not None and count > 0:  # Only include projects with actual new groups
-                project_data = project_map[project_id].copy()
-                project_data["newGroups"] = count
-                projects_for_release.append(project_data)
-        release_projects_map[release_id] = projects_for_release
+    release_projects_map = get_release_projects_map(new_groups_map, project_map)
 
     adoption_stage_map: dict[int, dict[str, AdoptionStage]] = {
         rid: {project_map[pid]["slug"]: adoption_stage for pid, adoption_stage in mapping}
@@ -143,6 +135,23 @@ def get_projects(
         }
         for project in projects
     }
+
+
+@sentry_sdk.trace
+def get_release_projects_map(
+    new_groups_map: dict[int, dict[int, int | None]],
+    project_map: dict[int, SerializedProject],
+) -> dict[int, list[SerializedProject]]:
+    release_projects_map = {}
+    for release_id, mapping in new_groups_map.items():
+        projects_for_release = []
+        for project_id, count in mapping.items():
+            if count is not None and count > 0:  # Only include projects with actual new groups
+                project_data = project_map[project_id].copy()
+                project_data["newGroups"] = count
+                projects_for_release.append(project_data)
+        release_projects_map[release_id] = projects_for_release
+    return release_projects_map
 
 
 @sentry_sdk.trace
