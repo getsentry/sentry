@@ -163,7 +163,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             )
 
             # TODO: these probably should be another endpoint
-            activity = Activity.objects.get_activities_for_group(group, 100)
+            activity = Activity.objects.get_activities_for_group(group)
             seen_by = self._get_seen_by(request, group)
 
             if "release" not in collapse:

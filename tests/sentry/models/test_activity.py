@@ -17,7 +17,7 @@ class ActivityTest(TestCase):
         project = self.create_project(name="test_activities_group")
         group = self.create_group(project)
 
-        act_for_group = Activity.objects.get_activities_for_group(group=group, num=100)
+        act_for_group = Activity.objects.get_activities_for_group(group=group)
         assert len(act_for_group) == 1
         assert act_for_group[0].type == ActivityType.FIRST_SEEN.value
 
@@ -47,7 +47,7 @@ class ActivityTest(TestCase):
             ),
         ]
 
-        act_for_group = Activity.objects.get_activities_for_group(group=group, num=100)
+        act_for_group = Activity.objects.get_activities_for_group(group=group)
         assert len(act_for_group) == 3
         assert act_for_group[0] == activities[-1]
         assert act_for_group[1] == activities[-2]
@@ -87,7 +87,7 @@ class ActivityTest(TestCase):
             ),
         ]
 
-        act_for_group = Activity.objects.get_activities_for_group(group=group, num=100)
+        act_for_group = Activity.objects.get_activities_for_group(group=group)
 
         assert len(act_for_group) == 3
         assert act_for_group[0] == activities[-1]
@@ -117,7 +117,7 @@ class ActivityTest(TestCase):
             ),
         ]
 
-        act_for_group = Activity.objects.get_activities_for_group(group=group, num=100)
+        act_for_group = Activity.objects.get_activities_for_group(group=group)
         assert len(act_for_group) == 3
         assert act_for_group[0] == activities[-1]
         assert act_for_group[1] == activities[-2]
@@ -210,7 +210,7 @@ class ActivityTest(TestCase):
             ),
         ]
 
-        act_for_group = Activity.objects.get_activities_for_group(group=group, num=100)
+        act_for_group = Activity.objects.get_activities_for_group(group=group)
         assert len(act_for_group) == 7
         assert act_for_group[0] == activities[-1]
         assert act_for_group[1] == activities[-2]
@@ -314,7 +314,7 @@ class ActivityTest(TestCase):
             ),
         ]
 
-        act_for_group = Activity.objects.get_activities_for_group(group=group, num=100)
+        act_for_group = Activity.objects.get_activities_for_group(group=group)
 
         assert len(act_for_group) == len(activities) + 1
         assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value

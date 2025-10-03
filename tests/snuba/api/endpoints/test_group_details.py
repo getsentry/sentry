@@ -239,7 +239,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["priority"] == "high"
 
-        act_for_group = Activity.objects.get_activities_for_group(group=group, num=100)
+        act_for_group = Activity.objects.get_activities_for_group(group=group)
         assert len(act_for_group) == 2
         assert act_for_group[0].type == ActivityType.SET_PRIORITY.value
         assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value

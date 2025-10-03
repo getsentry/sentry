@@ -11,8 +11,6 @@ from sentry.utils.cursors import CursorResult
 #  complicated right now.
 BULK_MUTATION_LIMIT = 1000
 
-ACTIVITIES_COUNT = 100
-
 # XXX: The 1000 magic number for `max_hits` is an abstraction leak from
 #  `sentry.api.paginator.BasePaginator.get_result`.
 SEARCH_MAX_HITS = 1000
@@ -20,7 +18,6 @@ SEARCH_MAX_HITS = 1000
 SearchFunction = Callable[[Mapping[str, Any]], tuple[CursorResult[Group], Mapping[str, Any]]]
 
 __all__ = (
-    "ACTIVITIES_COUNT",
     "BULK_MUTATION_LIMIT",
     "SEARCH_MAX_HITS",
     "delete_group_list",

@@ -60,7 +60,7 @@ from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
 
-from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
+from . import BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
 from .validators import GroupValidator, ValidationError
 
 logger = logging.getLogger(__name__)
@@ -752,9 +752,7 @@ def prepare_response(
         if len(group_list) == 1:
             if res_type in (GroupResolution.Type.in_next_release, GroupResolution.Type.in_release):
                 result["activity"] = serialize(
-                    Activity.objects.get_activities_for_group(
-                        group=group_list[0], num=ACTIVITIES_COUNT
-                    ),
+                    Activity.objects.get_activities_for_group(group=group_list[0]),
                     acting_user,
                 )
     except UnboundLocalError:
