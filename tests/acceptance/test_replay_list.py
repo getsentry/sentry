@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timedelta
 
 from sentry.models.project import Project
-from sentry.replays.testutils import mock_replay
+from sentry.replays.testutils import mock_replay, mock_replay_viewed
 from sentry.testutils.cases import ReplaysAcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -132,3 +132,70 @@ class ReplayListTest(ReplaysAcceptanceTestCase):
 
             assert replay_id[:8] in rows[1].text
             assert "Deleted Replay" in rows[1].text
+
+    def test_viewed_indicator_has_viewed(self) -> None:
+        seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
+        seq2_timestamp = datetime.now() - timedelta(minutes=10, seconds=35)
+        replay_id = uuid.uuid4().hex
+
+        self.store_replays(
+            [
+                mock_replay(
+                    seq1_timestamp,
+                    self.project.id,
+                    replay_id,
+                ),
+                mock_replay_viewed(
+                    seq2_timestamp.timestamp(),
+                    self.project.id,
+                    replay_id,
+                    self.user.id,
+                ),
+            ]
+        )
+
+        with self.feature(FEATURE_NAME):
+            self.browser.get(self.path)
+            self.assert_replay_table_renders()
+            rows = self.browser.elements('[data-test-id="replay-table"] [role="row"]')
+
+            for field in self.header_fields:
+                assert field in rows[0].text
+
+            assert replay_id[:8] in rows[1].text
+            assert not self.browser.element_exists(
+                '[data-test-id="replay-table"][role="row"][data-has-viewed="true"]'
+            )
+
+    def test_viewed_indicator_not_viewed(self) -> None:
+        seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
+        seq2_timestamp = datetime.now() - timedelta(minutes=10, seconds=35)
+        replay_id = uuid.uuid4().hex
+
+        self.store_replays(
+            [
+                mock_replay(
+                    seq1_timestamp,
+                    self.project.id,
+                    replay_id,
+                ),
+                mock_replay(
+                    seq2_timestamp,
+                    self.project.id,
+                    replay_id,
+                ),
+            ]
+        )
+
+        with self.feature(FEATURE_NAME):
+            self.browser.get(self.path)
+            self.assert_replay_table_renders()
+            rows = self.browser.elements('[data-test-id="replay-table"] [role="row"]')
+
+            for field in self.header_fields:
+                assert field in rows[0].text
+
+            assert replay_id[:8] in rows[1].text
+            assert not self.browser.element_exists(
+                '[data-test-id="replay-table"][role="row"][data-has-viewed="false"]'
+            )

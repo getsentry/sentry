@@ -488,10 +488,7 @@ export const ReplaySelectColumn: ReplayTableColumn = {
           </CheckboxClickTarget>
 
           <Tooltip title={t('Unread')} skipWrapper disabled={Boolean(replay.has_viewed)}>
-            <UnreadIndicator
-              data-has-viewed={replay.has_viewed}
-              data-test-id="replay-table-unread-indicator"
-            />
+            <UnreadIndicator data-has-viewed={replay.has_viewed} />
           </Tooltip>
         </CheckboxCellContainer>
       </CheckboxClickCapture>
