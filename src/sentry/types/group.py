@@ -78,10 +78,3 @@ class PriorityLevel(IntEnum):
         """
         name = name.upper()
         return self[name] if name in self.__members__ else None
-
-
-PRIORITY_LEVEL_TO_STRING: Mapping[int, str] = {
-    PriorityLevel.LOW: "low",
-    PriorityLevel.MEDIUM: "medium",
-    PriorityLevel.HIGH: "high",
-}

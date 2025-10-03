@@ -1,4 +1,3 @@
-from collections.abc import Mapping
 from enum import IntEnum
 from uuid import UUID, uuid4
 
@@ -14,12 +13,11 @@ class OpenPeriodActivityType(IntEnum):
     STATUS_CHANGE = 2
     CLOSED = 3
 
-
-OPEN_PERIOD_ACTIVITY_TYPE_TO_STRING: Mapping[int, str] = {
-    OpenPeriodActivityType.OPENED: "opened",
-    OpenPeriodActivityType.STATUS_CHANGE: "status_change",
-    OpenPeriodActivityType.CLOSED: "closed",
-}
+    def to_str(self) -> str:
+        """
+        Return the string representation of the activity type.
+        """
+        return self.name.lower()
 
 
 def generate_random_uuid() -> UUID:

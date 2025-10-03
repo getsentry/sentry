@@ -5,11 +5,8 @@ from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models.groupopenperiod import GroupOpenPeriod, get_last_checked_for_open_period
-from sentry.models.groupopenperiodactivity import (
-    OPEN_PERIOD_ACTIVITY_TYPE_TO_STRING,
-    GroupOpenPeriodActivity,
-)
-from sentry.types.group import PRIORITY_LEVEL_TO_STRING
+from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
+from sentry.types.group import PriorityLevel
 
 
 class GroupOpenPeriodActivityResponse(TypedDict):
@@ -35,8 +32,8 @@ class GroupOpenPeriodActivitySerializer(Serializer):
     ) -> GroupOpenPeriodActivityResponse:
         return {
             "id": str(obj.id),
-            "type": OPEN_PERIOD_ACTIVITY_TYPE_TO_STRING[obj.type],
-            "value": PRIORITY_LEVEL_TO_STRING.get(obj.value) if obj.value else None,
+            "type": OpenPeriodActivityType(obj.type).to_str(),
+            "value": PriorityLevel(obj.value).to_str() if obj.value else None,
         }
 
 
