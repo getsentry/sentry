@@ -1,14 +1,14 @@
 ---
-created: '2025-09-24T20:27:08.656302+00:00'
+created: '2025-10-01T21:31:48.817587+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app:
+default:
   hash: "be36642f41f047346396f018f62375d3"
   contributing component: exception
   root_component:
-    app*
-      exception*
+    default*
+      exception* (app and system hashes match)
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by stack trace rule (function:processTicksAndRejections -app))
             module*
@@ -18,30 +18,6 @@ app:
             function*
               "processTicksAndRejections"
           frame (marked out of app by stack trace rule (function:runMicrotasks -app))
-            filename*
-              "axiosinterceptor.js"
-            function*
-              "runMicrotasks"
-        type*
-          "Error"
-        value*
-          "bad"
---------------------------------------------------------------------------
-system:
-  hash: null
-  contributing component: null
-  root_component:
-    system (ignored because app exception takes precedence)
-      exception (ignored because hash matches app variant)
-        stacktrace (ignored because it contains no contributing frames)
-          frame (ignored by stack trace rule (function:processTicksAndRejections -group))
-            module*
-              "task_queues"
-            filename (ignored because module takes precedence)
-              "task_queues"
-            function*
-              "processTicksAndRejections"
-          frame (ignored by stack trace rule (function:runMicrotasks -group))
             filename*
               "axiosinterceptor.js"
             function*

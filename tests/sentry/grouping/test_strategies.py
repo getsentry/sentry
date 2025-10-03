@@ -89,6 +89,66 @@ class GroupingContextTest(TestCase):
         assert context["tricks"] == ["shake", "kangaroo"]
 
 
+class StrategyTest(TestCase):
+    def test_combines_variants_with_matching_hashes(self) -> None:
+        # First, create an event with a mix of in-app and system frames, so that the app and system
+        # hashes will be different (since one will be using more frames than the other). We should
+        # get one variant for each hash.
+        event_data: dict[str, Any] = {
+            "exception": {
+                "values": [
+                    {
+                        "type": "FetchError",
+                        "value": "Charlie didn't bring the ball back",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "play_fetch",
+                                    "filename": "dog_games.py",
+                                    "in_app": False,
+                                },
+                                {
+                                    "function": "go_to_park",
+                                    "filename": "dogpark.py",
+                                    "in_app": True,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+        non_matching_hash_variants = Event(
+            event_id="1121123104150908",
+            project_id=self.project.id,
+            data=event_data,
+        ).get_grouping_variants()
+
+        assert len(non_matching_hash_variants) == 2
+        assert list(non_matching_hash_variants.keys()) == ["app", "system"]
+        assert (
+            non_matching_hash_variants["app"].get_hash()
+            != non_matching_hash_variants["system"].get_hash()
+        )
+
+        # Now make it so all frames are in-app, which will make the app and system hashes match
+        # (since now they'll both be considering the same set of frames). In this case, we should
+        # only get one variant, labeled as neither `app` nor `system`.
+        event_data["exception"]["values"][0]["stacktrace"]["frames"][0]["in_app"] = True
+        matching_hash_variants = Event(
+            event_id="1231112109080415",
+            project_id=self.project.id,
+            data=event_data,
+        ).get_grouping_variants()
+
+        assert len(matching_hash_variants) == 1
+        assert list(matching_hash_variants.keys()) == ["default"]
+        assert (  # These match because they both consider all frames
+            matching_hash_variants["default"].get_hash()
+            == non_matching_hash_variants["system"].get_hash()
+        )
+
+
 class ChainedExceptionTest(TestCase):
     def test_ignores_mechanism_in_python_sdk_version_3_chained_exception_events(self) -> None:
         # First, get hashes for an event with no `mechanism` data

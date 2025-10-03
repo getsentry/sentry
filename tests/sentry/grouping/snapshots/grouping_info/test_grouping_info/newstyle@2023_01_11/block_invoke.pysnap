@@ -1,19 +1,19 @@
 ---
-created: '2025-09-24T22:53:02.095327+00:00'
+created: '2025-10-01T21:31:20.738148+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "default": {
     "component": {
       "contributes": true,
       "hint": null,
-      "id": "app",
-      "name": "in-app",
+      "id": "default",
+      "name": null,
       "values": [
         {
           "contributes": true,
-          "hint": null,
+          "hint": "app and system hashes match",
           "id": "threads",
           "name": "thread",
           "values": [
@@ -119,45 +119,10 @@ source: tests/sentry/grouping/test_grouping_info.py
               ]
             }
           ]
-        }
-      ]
-    },
-    "config": {
-      "base": "BASE_CONFIG",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2023-01-11",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
-    },
-    "description": "in-app thread stacktrace",
-    "hash": "ff6c4ee7c54f118a9647ee86f0c2b0b0",
-    "hint": null,
-    "key": "app",
-    "type": "component"
-  },
-  "default": {
-    "component": {
-      "contributes": false,
-      "hint": "ignored because app threads take precedence",
-      "id": "default",
-      "name": null,
-      "values": [
+        },
         {
           "contributes": false,
-          "hint": "ignored because app threads take precedence",
+          "hint": "ignored because threads take precedence",
           "id": "message",
           "name": "message",
           "values": [
@@ -186,154 +151,10 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "default",
-    "hash": null,
-    "hint": "ignored because app threads take precedence",
+    "description": "thread stacktrace",
+    "hash": "ff6c4ee7c54f118a9647ee86f0c2b0b0",
+    "hint": null,
     "key": "default",
-    "type": "component"
-  },
-  "system": {
-    "component": {
-      "contributes": false,
-      "hint": "ignored because app threads take precedence",
-      "id": "system",
-      "name": null,
-      "values": [
-        {
-          "contributes": false,
-          "hint": "ignored because hash matches app variant",
-          "id": "threads",
-          "name": "thread",
-          "values": [
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "stacktrace",
-              "name": "stacktrace",
-              "values": [
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "__99+[Something else]_block_invoke_2"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored by stack trace rule (category:internals -group)",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": false,
-                      "hint": null,
-                      "id": "filename",
-                      "name": null,
-                      "values": []
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "__00+[Something else]_block_invoke_2"
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "config": {
-      "base": "BASE_CONFIG",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2023-01-11",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
-    },
-    "description": "system",
-    "hash": null,
-    "hint": "ignored because app threads take precedence",
-    "key": "system",
     "type": "component"
   }
 }

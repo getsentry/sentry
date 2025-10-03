@@ -1,14 +1,14 @@
 ---
-created: '2025-09-24T20:27:07.888908+00:00'
+created: '2025-10-01T21:31:48.214026+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app:
+default:
   hash: "be36642f41f047346396f018f62375d3"
   contributing component: exception
   root_component:
-    app*
-      exception*
+    default*
+      exception* (app and system hashes match)
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by stack trace rule (module:@babel/** -app))
             module*
@@ -21,33 +21,6 @@ app:
             function*
               "listener"
           frame (marked out of app by stack trace rule (module:tslib/** -app))
-            module*
-              "tslib/tslib.es6"
-            function* (trimmed javascript function)
-              "sent"
-        type*
-          "Error"
-        value*
-          "bad"
---------------------------------------------------------------------------
-system:
-  hash: null
-  contributing component: null
-  root_component:
-    system (ignored because app exception takes precedence)
-      exception (ignored because hash matches app variant)
-        stacktrace (ignored because it contains no contributing frames)
-          frame (ignored by stack trace rule (module:@babel/** -group))
-            module*
-              "@babel/runtime/helpers/asyncToGenerator"
-            function (ignored unknown function name)
-              "<anonymous>"
-          frame (ignored by stack trace rule (module:core-js/** -group))
-            module*
-              "core-js/internals/task"
-            function*
-              "listener"
-          frame (ignored by stack trace rule (module:tslib/** -group))
             module*
               "tslib/tslib.es6"
             function* (trimmed javascript function)

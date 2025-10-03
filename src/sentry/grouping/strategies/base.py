@@ -298,15 +298,27 @@ class Strategy(Generic[ConcreteInterface]):
 
             final_components_by_variant[variant_name] = component
 
-        # Mark any non-priority duplicates of priority hashes as non-contributing
+        # Combine variants with matching hashes
         for non_priority_variant_name in non_priority_contributing_variants:
             non_priority_component = final_components_by_variant[non_priority_variant_name]
-            hash_value = non_priority_component.get_hash()
-            matching_hash_variant_name = priority_contributing_variants_by_hash.get(hash_value)
+            matching_hash_variant_name = priority_contributing_variants_by_hash.get(
+                non_priority_component.get_hash()
+            )
+
             if matching_hash_variant_name is not None:
-                non_priority_component.update(
-                    contributes=False,
-                    hint="ignored because hash matches %s variant" % matching_hash_variant_name,
+                # Remove the duplicate, low-priority variant
+                final_components_by_variant.pop(non_priority_variant_name)
+
+                # Switch the dominant variant (which will now represent both variants) to being
+                # "default" (so it doesn't get a variant designation in the UI) and leave a hint
+                # about it.
+                #
+                # Note: Unlike the rest of this function, this assumes only two variants, which is
+                # all we've ever had. If that ever changes, we'll need to revist the logic here.
+                shared_component = final_components_by_variant.pop(matching_hash_variant_name)
+                final_components_by_variant["default"] = shared_component
+                shared_component.hint = (
+                    f"{matching_hash_variant_name} and {non_priority_variant_name} hashes match"
                 )
 
         if self.variant_processor_func is not None:
