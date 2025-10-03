@@ -129,14 +129,11 @@ describe('IssueList', () => {
       body: [project],
     });
 
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(project.id, 10)],
-        environments: [],
-        datetime: {period: '14d', start: null, end: null, utc: null},
-      },
-      new Set()
-    );
+    PageFiltersStore.onInitializeUrlState({
+      projects: [parseInt(project.id, 10)],
+      environments: [],
+      datetime: {period: '14d', start: null, end: null, utc: null},
+    });
 
     TagStore.init?.();
   });
@@ -242,14 +239,11 @@ describe('IssueList', () => {
         },
       });
 
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [],
-          environments: [],
-          datetime: {period: '14d', start: null, end: null, utc: null},
-        },
-        new Set()
-      );
+      PageFiltersStore.onInitializeUrlState({
+        projects: [],
+        environments: [],
+        datetime: {period: '14d', start: null, end: null, utc: null},
+      });
 
       const {unmount} = render(<IssueListOverview />, {
         organization,
@@ -415,14 +409,11 @@ describe('IssueList', () => {
       });
 
       act(() =>
-        PageFiltersStore.onInitializeUrlState(
-          {
-            projects: [99],
-            environments: [],
-            datetime: {period: '24h', start: null, end: null, utc: null},
-          },
-          new Set()
-        )
+        PageFiltersStore.onInitializeUrlState({
+          projects: [99],
+          environments: [],
+          datetime: {period: '24h', start: null, end: null, utc: null},
+        })
       );
 
       rerender(<IssueListOverview />);
@@ -444,14 +435,11 @@ describe('IssueList', () => {
       });
 
       act(() =>
-        PageFiltersStore.onInitializeUrlState(
-          {
-            projects: [99],
-            environments: [],
-            datetime: {period: '14d', start: null, end: null, utc: null},
-          },
-          new Set()
-        )
+        PageFiltersStore.onInitializeUrlState({
+          projects: [99],
+          environments: [],
+          datetime: {period: '14d', start: null, end: null, utc: null},
+        })
       );
 
       rerender(<IssueListOverview />);
@@ -478,14 +466,11 @@ describe('IssueList', () => {
       });
 
       act(() =>
-        PageFiltersStore.onInitializeUrlState(
-          {
-            projects: [99],
-            environments: [],
-            datetime: {period: '24h', start: null, end: null, utc: null},
-          },
-          new Set()
-        )
+        PageFiltersStore.onInitializeUrlState({
+          projects: [99],
+          environments: [],
+          datetime: {period: '24h', start: null, end: null, utc: null},
+        })
       );
       rerender(<IssueListOverview />);
 
@@ -568,14 +553,11 @@ describe('IssueList', () => {
 
   describe('Error Robot', () => {
     beforeEach(() => {
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [],
-          environments: [],
-          datetime: {period: '14d', start: null, end: null, utc: null},
-        },
-        new Set()
-      );
+      PageFiltersStore.onInitializeUrlState({
+        projects: [],
+        environments: [],
+        datetime: {period: '14d', start: null, end: null, utc: null},
+      });
     });
 
     const createWrapper = async (moreProps: any) => {
