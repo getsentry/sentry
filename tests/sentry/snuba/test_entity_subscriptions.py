@@ -257,7 +257,7 @@ class EntitySubscriptionTestCase(TestCase):
         assert snql_query.query.where == [Condition(Column("project_id"), Op.IN, [self.project.id])]
 
     @with_feature("organizations:mep-use-default-tags")
-    # @with_feature("organizations:on-demand-metrics-extraction")
+    @with_feature("organizations:on-demand-metrics-extraction")
     def test_build_query_builder_performance_metrics_entity_subscription(self) -> None:
         """
         Trying to reproduce https://sentry.sentry.io/issues/6654944356/events/latest/?project=1&query=is%3Aunresolved%20IncompatibleMetricsQuery&referrer=latest-event
@@ -265,7 +265,9 @@ class EntitySubscriptionTestCase(TestCase):
         # NOTE: both of these flags are enabled in production for the issue in question
         # I can reproduce the error if I disable on-demand-metrics-extraction. 
         # this causes self.use_on_demand to be False so it goes down a different code path in search/events/builder/metrics.py#L484
-        # could there be another reason self.use_on_demand is set to False in the prod error?
+        # something about the OnDemandMetricSpec must be evaluating to False - this is fetched in _get_on_demand_metric_spec
+        # but all that code is very complicated and there is even a if in_random_rollout("on_demand_metrics.cache_should_use_on_demand") 
+        # wtf is that???
 
         now = timezone.now()
         aggregate = "failure_rate()"
