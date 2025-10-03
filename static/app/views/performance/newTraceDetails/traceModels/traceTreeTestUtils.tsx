@@ -270,3 +270,17 @@ export function makeNodeMetadata(
     ...overrides,
   };
 }
+
+export function mockSpansResponse(
+  spans: TraceTree.Span[],
+  project_slug: string,
+  event_id: string
+): jest.Mock<any, any> {
+  return MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/events/${project_slug}:${event_id}/?averageColumn=span.self_time&averageColumn=span.duration`,
+    method: 'GET',
+    body: makeEventTransaction({
+      entries: [{type: EntryType.SPANS, data: spans}],
+    }),
+  });
+}

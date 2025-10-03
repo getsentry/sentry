@@ -23,9 +23,6 @@ const {info, fmt} = Sentry.logger;
 
 export class TransactionNode extends BaseNode<TraceTree.Transaction> {
   private _spanPromises: Map<string, Promise<EventTransaction>> = new Map();
-  private _fromSpans: typeof TraceTree.FromSpans;
-  private _applyPreferences: typeof TraceTree.ApplyPreferences;
-
   extra: TraceTreeNodeExtra;
 
   searchPriority = 1;
@@ -33,16 +30,11 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
   constructor(
     parent: BaseNode | null,
     value: TraceTree.Transaction,
-    extra: TraceTreeNodeExtra,
-    fromSpans: typeof TraceTree.FromSpans,
-    applyPreferences: typeof TraceTree.ApplyPreferences
+    extra: TraceTreeNodeExtra
   ) {
     super(parent, value, extra);
 
     this.extra = extra;
-    this._fromSpans = fromSpans;
-    this._applyPreferences = applyPreferences;
-
     const spanChildrenCount = extra.meta?.transaction_child_count_map[this.id];
 
     // We check for >1 events, as the first one is the transaction node itself
@@ -61,7 +53,6 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     }
 
     this.parent?.children.push(this);
-    this.parent?.children.sort(traceChronologicalSort);
   }
 
   get id(): string {
@@ -101,6 +92,35 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
 
   get nodePath(): TraceTree.NodePath {
     return `txn-${this.id}`;
+  }
+
+  // Returns a list of errors related to the txn with ids matching the given node's id
+  private getRelatedSpanErrorsFromTransaction(node: BaseNode): TraceTree.TraceError[] {
+    const errors: TraceTree.TraceError[] = [];
+    for (const error of this.value.errors) {
+      if (error.span === node.id) {
+        errors.push(error);
+      }
+    }
+
+    return errors;
+  }
+
+  // Returns a list of performance issues related to the txn with ids matching the given node's id
+  private getRelatedPerformanceIssuesFromTransaction(
+    node: BaseNode
+  ): TraceTree.TraceOccurrence[] {
+    const occurrences: TraceTree.TraceOccurrence[] = [];
+
+    for (const perfIssue of this.value.performance_issues) {
+      for (const suspect of perfIssue.suspect_spans) {
+        if (suspect === node.id) {
+          occurrences.push(perfIssue);
+        }
+      }
+    }
+
+    return occurrences;
   }
 
   pathToNode(): TraceTree.NodePath[] {
@@ -280,6 +300,10 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
         const index = tree.list.indexOf(this);
         this.fetchStatus = 'resolved';
 
+        const txnChildren = this.findAllChildren(c =>
+          isTransactionNode(c)
+        ) as TransactionNode[];
+
         if (this.expanded && index !== -1) {
           const childrenCount = this.visibleChildren.length;
           if (childrenCount > 0) {
@@ -287,42 +311,58 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
           }
         }
 
+        // Clear children of root node as we are recreating the sub tree
+        this.children = [];
+
         // API response is not sorted
         const spans = data.entries.find(s => s.type === 'spans') ?? {data: []};
         spans.data.sort((a: any, b: any) => a.start_timestamp - b.start_timestamp);
 
-        const [root, spanTreeSpaceBounds] = this._fromSpans(this, spans.data, data);
-
-        root.hasFetchedChildren = true;
-        // Spans contain millisecond precision, which means that it is possible for the
-        // children spans of a transaction to extend beyond the start and end of the transaction
-        // through ns precision. To account for this, we need to adjust the space of the transaction node and the space
-        // of our trace so that all of the span children are visible and can be rendered inside the view
-        const previousStart = tree.root.space[0];
-        const previousDuration = tree.root.space[1];
-
-        const newStart = spanTreeSpaceBounds[0];
-        const newEnd = spanTreeSpaceBounds[0] + spanTreeSpaceBounds[1];
-
-        // Extend the start of the trace to include the new min start
-        if (newStart <= tree.root.space[0]) {
-          tree.root.space[0] = newStart;
-        }
-        // Extend the end of the trace to include the new max end
-        if (newEnd > tree.root.space[0] + tree.root.space[1]) {
-          tree.root.space[1] = newEnd - tree.root.space[0];
-        }
-
-        if (
-          previousStart !== tree.root.space[0] ||
-          previousDuration !== tree.root.space[1]
-        ) {
-          tree.dispatch('trace timeline change', tree.root.space);
-        }
-
-        this._applyPreferences(root, {
+        const spanIdToNode = tree.fromSpans(this, spans.data, data, {
           organization: this.extra.organization,
           preferences: options.preferences,
+        });
+
+        this.hasFetchedChildren = true;
+
+        // Reparent transactions under children spans
+        for (const transaction of txnChildren) {
+          const parent = spanIdToNode.get(transaction.value.parent_span_id!);
+          // If the parent span does not exist in the span tree, the transaction will remain under the current node
+          if (!parent) {
+            if (transaction.parent?.children.indexOf(transaction) === -1) {
+              transaction.parent.children.push(transaction);
+            }
+            continue;
+          }
+
+          if (transaction === this) {
+            Sentry.withScope(scope => {
+              scope.setFingerprint(['trace-tree-span-parent-cycle']);
+              scope.captureMessage(
+                'Span is a parent of its own transaction, this should not be possible'
+              );
+              info(
+                fmt`Span is a parent of its own transaction, this should not be possible`
+              );
+            });
+            continue;
+          }
+
+          parent.children.push(transaction);
+          transaction.parent = parent;
+        }
+
+        spanIdToNode.forEach(node => {
+          for (const performanceIssue of this.getRelatedPerformanceIssuesFromTransaction(
+            node
+          )) {
+            node.occurrences.add(performanceIssue);
+          }
+
+          for (const error of this.getRelatedSpanErrorsFromTransaction(node)) {
+            node.errors.add(error);
+          }
         });
 
         if (index !== -1) {
