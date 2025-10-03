@@ -37,9 +37,9 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
     """
 
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.EMERGE_TOOLS
     permission_classes = (OrganizationEventPermission,)
 
     @extend_schema(
