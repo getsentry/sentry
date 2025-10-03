@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -76,9 +76,10 @@ def serialize(
 
     project_map = get_projects(projects, fetch_project_platforms)
 
-    release_projects_map = {
+    release_projects_map: dict[int, list[SerializedProject]] = {
         release_id: [
-            {**project_map[project_id], "newGroups": count} for project_id, count in mapping.items()
+            cast(SerializedProject, {**project_map[project_id], "newGroups": count})
+            for project_id, count in mapping.items()
         ]
         for release_id, mapping in new_groups_map.items()
     }
@@ -396,8 +397,10 @@ def fetch_issue_count(
         qs1 = ReleaseProjectEnvironment.objects.filter(release_id__in=release_ids)
         qs1 = qs1.filter(environment_id__in=environment_ids)
         qs1 = qs1.filter(project_id__in=project_ids)
-        qs1 = qs1.values("project_id", "release_id").annotate(new_groups=Sum("new_issues_count"))
-        return list(qs1.values_list("project_id", "release_id", "new_groups"))
+        annotated_qs = qs1.values("project_id", "release_id").annotate(
+            new_groups=Sum("new_issues_count")
+        )
+        return list(annotated_qs.values_list("project_id", "release_id", "new_groups"))
     else:
         qs2 = ReleaseProject.objects.filter(release_id__in=release_ids)
         qs2 = qs2.filter(project_id__in=project_ids)
