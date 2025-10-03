@@ -9,7 +9,7 @@ import {t, tct} from 'sentry/locale';
 
 import {ANNUAL} from 'getsentry/constants';
 import type {Plan, Subscription} from 'getsentry/types';
-import {isDeveloperPlan} from 'getsentry/utils/billing';
+import {displayBudgetName, isDeveloperPlan} from 'getsentry/utils/billing';
 import CheckoutOption from 'getsentry/views/amCheckout/checkoutOption';
 import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
@@ -72,7 +72,10 @@ function BillingCycleSelectCard({
 
   const additionalInfo = isAnnual
     ? tct('[budgetTerm] usage billed monthly, discount does not apply', {
-        budgetTerm: plan.budgetTerm === 'pay-as-you-go' ? 'PAYG' : plan.budgetTerm,
+        budgetTerm:
+          plan.budgetTerm === 'pay-as-you-go'
+            ? 'PAYG'
+            : displayBudgetName(plan, {title: true}),
       })
     : t('Cancel anytime');
 

@@ -30,6 +30,7 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {
+  displayBudgetName,
   formatReservedWithUnits,
   getPlanIcon,
   getProductIcon,
@@ -238,13 +239,16 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                               budgetTerm:
                                 activePlan.budgetTerm === 'pay-as-you-go'
                                   ? 'PAYG'
-                                  : activePlan.budgetTerm,
+                                  : displayBudgetName(activePlan, {title: true}),
                             })
                           ) : (
                             // "Unlock with on-demand" gets cut off in non-chonk theme
                             <Text size="xs">
                               {tct('Unlock with [budgetTerm]', {
-                                budgetTerm: activePlan.budgetTerm,
+                                budgetTerm:
+                                  activePlan.budgetTerm === 'pay-as-you-go'
+                                    ? 'PAYG'
+                                    : displayBudgetName(activePlan, {title: true}),
                               })}
                             </Text>
                           )}
@@ -364,7 +368,7 @@ function SubtotalSummary({
               <ItemFlex>
                 <Text>
                   {tct('[budgetTerm] spend limit', {
-                    budgetTerm: capitalize(activePlan.budgetTerm),
+                    budgetTerm: displayBudgetName(activePlan, {title: true}),
                   })}
                 </Text>
                 <Flex direction="column" gap="sm" align="end">
