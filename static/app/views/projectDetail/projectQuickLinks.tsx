@@ -4,7 +4,7 @@ import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {IconLink} from 'sentry/icons';
