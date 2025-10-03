@@ -711,7 +711,16 @@ SPAN_AGGREGATE_DEFINITIONS = {
         processor=count_processor,
         arguments=[
             AttributeArgumentDefinition(
-                attribute_types={"string"},
+                attribute_types={
+                    "string",
+                    "duration",
+                    "number",
+                    "integer",
+                    "percentage",
+                    "currency",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
             )
         ],
     ),
@@ -741,7 +750,16 @@ LOG_AGGREGATE_DEFINITIONS = {
         processor=count_processor,
         arguments=[
             AttributeArgumentDefinition(
-                attribute_types={"string"},
+                attribute_types={
+                    "string",
+                    "duration",
+                    "number",
+                    "integer",
+                    "percentage",
+                    "currency",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
             )
         ],
     ),
