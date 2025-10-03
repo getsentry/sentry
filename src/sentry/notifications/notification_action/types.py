@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError
 
 from sentry import features
 from sentry.constants import ObjectStatus
+from sentry.exceptions import InvalidIdentity
 from sentry.incidents.grouptype import MetricIssueEvidenceData
 from sentry.incidents.models.incident import TriggerStatus
 from sentry.incidents.typings.metric_detector import (
@@ -27,9 +28,15 @@ from sentry.models.rule import Rule, RuleSource
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.rules.processing.processor import activate_downstream_actions
 from sentry.services.eventstore.models import GroupEvent
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    IntegrationConfigurationError,
+    IntegrationFormError,
+)
+from sentry.taskworker.retry import RetryError
+from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
-from sentry.utils.safe import safe_execute
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector
 from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
@@ -40,6 +47,8 @@ from sentry.workflow_engine.typings.notification_action import (
 )
 
 logger = logging.getLogger(__name__)
+
+FutureCallback = Callable[[GroupEvent, Sequence[RuleFuture]], Any]
 
 
 class RuleData(TypedDict):
@@ -61,6 +70,48 @@ class LegacyRegistryHandler(ABC):
         Implement this method to handle the specific notification logic for your handler.
         """
         raise NotImplementedError
+
+
+EXCEPTION_IGNORE_LIST = (IntegrationFormError, IntegrationConfigurationError, InvalidIdentity)
+RETRYABLE_EXCEPTIONS = (ApiError,)
+
+
+def invoke_future_with_error_handling(
+    event_data: WorkflowEventData,
+    callback: FutureCallback,
+    future: Sequence[RuleFuture],
+) -> None:
+    # WorkflowEventData should only ever be a GroupEvent in this context, so we
+    # narrow the type here to keep mypy happy.
+    assert isinstance(
+        event_data.event, GroupEvent
+    ), f"Expected a GroupEvent, received: {type(event_data.event).__name__}"
+    try:
+        callback(event_data.event, future)
+    except EXCEPTION_IGNORE_LIST:
+        # no-op on any exceptions in the ignore list. We likely have
+        # reporting for them in the integration code already.
+        pass
+    except ProcessingDeadlineExceeded:
+        # We need to reraise ProcessingDeadlineExceeded for workflow engine to
+        # monitor and potentially retry this action.
+        raise
+    except RETRYABLE_EXCEPTIONS as e:
+        raise RetryError from e
+    except Exception as e:
+        # This is just a redefinition of the safe_execute util function, as we
+        # still want to report any unhandled exceptions.
+        if hasattr(callback, "im_class"):
+            cls = callback.im_class
+        else:
+            cls = callback.__class__
+
+        func_name = getattr(callback, "__name__", str(callback))
+        cls_name = cls.__name__
+        local_logger = logging.getLogger(f"sentry.safe_action.{cls_name.lower()}")
+
+        local_logger.exception("%s.process_error", func_name, extra={"exception": e})
+        return None
 
 
 class BaseIssueAlertHandler(ABC):
@@ -225,9 +276,7 @@ class BaseIssueAlertHandler(ABC):
     @staticmethod
     def execute_futures(
         event_data: WorkflowEventData,
-        futures: Collection[
-            tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
-        ],
+        futures: Collection[tuple[FutureCallback, list[RuleFuture]]],
     ) -> None:
         """
         This method will execute the futures.
@@ -239,7 +288,7 @@ class BaseIssueAlertHandler(ABC):
             )
 
         for callback, future in futures:
-            safe_execute(callback, event_data.event, future)
+            invoke_future_with_error_handling(event_data, callback, future)
 
     @staticmethod
     def send_test_notification(
