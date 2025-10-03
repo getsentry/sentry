@@ -1,7 +1,9 @@
-import {isValidElement, useEffect, useState} from 'react';
+import {isValidElement, useEffect, useLayoutEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import Placeholder from 'sentry/components/placeholder';
@@ -21,6 +23,7 @@ import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
+import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
@@ -258,8 +261,7 @@ function GroupSummaryCollapsed({
     setIsExpanded(!isExpanded);
   };
 
-  useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+  useLayoutEffect(() => {
     setIsExpanded(!defaultCollapsed);
   }, [defaultCollapsed]);
 
@@ -287,17 +289,29 @@ function GroupSummaryCollapsed({
             </CollapsedHeaderContent>
           </CollapsedHeader>
 
-          <ExpandableContent isExpanded={isExpanded}>
-            <GroupSummaryFull
-              group={group}
-              project={project}
-              data={data}
-              isPending={isPending}
-              isError={isError}
-              preview={false}
-              setForceEvent={setForceEvent}
-              event={event}
-            />
+          <ExpandableContent
+            initial={false}
+            animate={{height: isExpanded ? 'auto' : 0}}
+            transition={testableTransition({
+              type: 'spring',
+              damping: 50,
+              stiffness: 600,
+              bounce: 0,
+              visualDuration: 0.4,
+            })}
+          >
+            <Flex padding="sm">
+              <GroupSummaryFull
+                group={group}
+                project={project}
+                data={data}
+                isPending={isPending}
+                isError={isError}
+                preview={false}
+                setForceEvent={setForceEvent}
+                event={event}
+              />
+            </Flex>
           </ExpandableContent>
         </CollapsedContent>
       )}
@@ -528,14 +542,6 @@ const ChevronIcon = styled('div')`
   flex-shrink: 0;
 `;
 
-const ExpandableContent = styled('div')<{isExpanded: boolean}>`
-  max-height: ${p => (p.isExpanded ? '1000px' : '0')};
+const ExpandableContent = styled(motion.div)`
   overflow: hidden;
-  transition: max-height 0.3s ease-in-out;
-
-  ${p =>
-    p.isExpanded &&
-    `
-    padding-top: ${p.theme.space.lg};
-  `}
 `;
