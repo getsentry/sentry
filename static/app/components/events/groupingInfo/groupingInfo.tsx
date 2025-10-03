@@ -101,7 +101,7 @@ export default function GroupingInfo({
       {isPending && !hasPerformanceGrouping ? <LoadingIndicator /> : null}
       {hasPerformanceGrouping || isSuccess
         ? variants
-            .filter(variant => variant.hash !== null || showNonContributing)
+            .filter(variant => variant.contributes || showNonContributing)
             .map((variant, index, filteredVariants) => (
               <Fragment key={variant.key}>
                 <GroupingVariant
