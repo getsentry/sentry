@@ -48,4 +48,10 @@ describe('crontabAsText', () => {
   it('returns null for null input', () => {
     expect(crontabAsText(null)).toBeNull();
   });
+
+  it('handles extra whitespace in expressions', () => {
+    // Should not reject valid 5-field expressions with extra spaces
+    expect(crontabAsText('0  0  *  *  *')).toBe('At 12:00 AM');
+    expect(crontabAsText('0   0   *   *   *')).toBe('At 12:00 AM');
+  });
 });

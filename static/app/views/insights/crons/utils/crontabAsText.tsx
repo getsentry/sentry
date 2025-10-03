@@ -18,7 +18,7 @@ export function crontabAsText(crontabInput: string | null): string | null {
 
   // The backend does not support expressions with more than 5 fields. Do not
   // parse these to avoid confusion
-  if (crontabInput.split(' ').length > 5) {
+  if (crontabInput.split(/\s+/).filter(Boolean).length > 5) {
     return null;
   }
 
