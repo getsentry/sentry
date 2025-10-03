@@ -28,6 +28,7 @@ describe('Subscription > UsageHistory', () => {
   const organization = OrganizationFixture({access: ['org:billing']});
 
   beforeEach(() => {
+    organization.features = [];
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
       method: 'GET',
@@ -57,6 +58,38 @@ describe('Subscription > UsageHistory', () => {
       url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {},
     });
+  });
+
+  it('renders for old billing UI', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/history/`,
+      method: 'GET',
+      body: [BillingHistoryFixture()],
+    });
+    const subscription = SubscriptionFixture({organization});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
+    expect(await screen.findByTestId('history-expand')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', {name: /Usage History/i})
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders for new billing UI', async () => {
+    organization.features = ['subscriptions-v3'];
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/history/`,
+      method: 'GET',
+      body: [BillingHistoryFixture()],
+    });
+    const subscription = SubscriptionFixture({organization});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
+    expect(
+      await screen.findByRole('heading', {name: /Usage History/i})
+    ).toBeInTheDocument();
   });
 
   it('shows an error for non-billing roles', async () => {
