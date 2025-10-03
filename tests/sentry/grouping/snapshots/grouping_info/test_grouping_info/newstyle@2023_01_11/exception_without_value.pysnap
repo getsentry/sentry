@@ -1,5 +1,5 @@
 ---
-created: '2025-09-24T22:53:03.130531+00:00'
+created: '2025-10-03T16:56:43.777453+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -64,6 +64,7 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
+    "contributes": true,
     "description": "in-app exception",
     "hash": "5a2cfd89b7b171fd7b4794b08023d04f",
     "hint": null,

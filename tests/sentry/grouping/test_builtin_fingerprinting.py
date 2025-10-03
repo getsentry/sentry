@@ -570,6 +570,7 @@ class BuiltInFingerprintingTest(TestCase):
         assert variants["built_in_fingerprint"].as_dict() == {
             "hash": mock.ANY,  # ignore hash as it can change for unrelated reasons
             "type": "built_in_fingerprint",
+            "contributes": True,
             "description": "Sentry defined fingerprint",
             "values": ["chunkloaderror"],
             "client_values": ["my-route", "{{ default }}"],
