@@ -317,11 +317,7 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
     options: fields.platform.options.filter(({value}) => {
       if (!consoles.includes(value)) return true;
 
-      return (
-        organization.features?.includes('project-creation-games-tab') &&
-        organization.enabledConsolePlatforms?.includes(value) &&
-        !isSelfHosted
-      );
+      return organization.enabledConsolePlatforms?.includes(value) && !isSelfHosted;
     }),
   };
 
