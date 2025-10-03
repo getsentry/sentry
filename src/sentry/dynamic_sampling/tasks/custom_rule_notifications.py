@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import sentry_sdk
 from django.http import QueryDict
 
 from sentry.constants import ObjectStatus
@@ -93,14 +94,17 @@ def get_num_samples(rule: CustomDynamicSamplingRule) -> int:
         organization=rule.organization,
     )
 
-    result = discover.query(
-        selected_columns=["count()"],
-        snuba_params=params,
-        query=rule.query if rule.query is not None else "",
-        referrer="dynamic_sampling.tasks.custom_rule_notifications",
-    )
-
-    return result["data"][0]["count"]
+    try:
+        result = discover.query(
+            selected_columns=["count()"],
+            snuba_params=params,
+            query=rule.query if rule.query is not None else "",
+            referrer="dynamic_sampling.tasks.custom_rule_notifications",
+        )
+        return result["data"][0]["count"]
+    except Exception:
+        sentry_sdk.capture_exception("Error querying samples from Snuba", tags={"rule_id": rule.id})
+        return 0
 
 
 def send_notification(rule: CustomDynamicSamplingRule, num_samples: int) -> None:
