@@ -495,7 +495,13 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "type": "cron_job",
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
         }
-        self.get_error_response(self.organization.slug, status_code=403, **data)
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert response.data["nonFieldErrors"] == [
+            ErrorDetail(
+                f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization",
+                code="invalid",
+            )
+        ]
 
     def test_simple_with_alert_rule(self) -> None:
         data = {

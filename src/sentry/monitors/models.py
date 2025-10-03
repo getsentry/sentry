@@ -439,16 +439,24 @@ class Monitor(Model):
         return old_pk
 
 
-@receiver(pre_save, sender=Monitor)
-def check_organization_monitor_limits(sender, instance, **kwargs):
+def check_organization_monitor_limit(organization_id: int) -> None:
+    """
+    Check if adding a new monitor would exceed the organization's monitor limit.
+    Raises MonitorLimitsExceeded if the limit would be exceeded.
+    """
     if (
-        instance.pk is None
-        and sender.objects.filter(organization_id=instance.organization_id).count()
+        Monitor.objects.filter(organization_id=organization_id).count()
         == settings.MAX_MONITORS_PER_ORG
     ):
         raise MonitorLimitsExceeded(
             f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization"
         )
+
+
+@receiver(pre_save, sender=Monitor)
+def check_organization_monitor_limits_on_save(sender, instance, **kwargs):
+    if instance.pk is None:
+        check_organization_monitor_limit(instance.organization_id)
 
 
 @region_silo_model
