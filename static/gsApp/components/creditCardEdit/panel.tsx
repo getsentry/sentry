@@ -55,9 +55,10 @@ function CreditCardPanel({
 }: CreditCardPanelProps) {
   const [cardLastFourDigits, setCardLastFourDigits] = useState<string | null>(null);
   const [cardZipCode, setCardZipCode] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(!!shouldExpandInitially);
+  const [isEditing, setIsEditing] = useState(false);
   const [fromBillingFailure, setFromBillingFailure] = useState(false);
   const [referrer, setReferrer] = useState<string | undefined>(undefined);
+  const [expandInitially, setExpandInitially] = useState(shouldExpandInitially);
 
   const handleCardUpdated = useCallback((data: Subscription) => {
     setCardLastFourDigits(data.paymentSource?.last4 || null);
@@ -69,8 +70,11 @@ function CreditCardPanel({
     if (subscription.paymentSource) {
       setCardLastFourDigits(prev => prev ?? (subscription.paymentSource?.last4 || null));
       setCardZipCode(prev => prev ?? (subscription.paymentSource?.zipCode || null));
+    } else if (expandInitially) {
+      setIsEditing(true);
+      setExpandInitially(false);
     }
-  }, [subscription]);
+  }, [subscription.paymentSource, expandInitially]);
 
   useEffect(() => {
     // Open credit card update form/modal and track clicks from payment failure notifications (in app, email, etc.)

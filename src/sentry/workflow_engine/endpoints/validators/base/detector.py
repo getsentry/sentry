@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from django.db import router, transaction
+from jsonschema import ValidationError as JSONSchemaValidationError
 from rest_framework import serializers
 
 from sentry import audit_log
@@ -27,6 +28,7 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import DataCondition
+from sentry.workflow_engine.models.detector import enforce_config_schema
 from sentry.workflow_engine.types import DataConditionType
 
 
@@ -181,7 +183,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 elif owner.is_team:
                     owner_team_id = owner.id
 
-            detector = Detector.objects.create(
+            detector = Detector(
                 project_id=self.context["project"].id,
                 name=validated_data["name"],
                 workflow_condition_group=condition_group,
@@ -191,6 +193,14 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 owner_team_id=owner_team_id,
                 created_by_id=self.context["request"].user.id,
             )
+
+            try:
+                enforce_config_schema(detector)
+            except JSONSchemaValidationError as error:
+                # Surface schema errors as a user-facing validation error
+                raise serializers.ValidationError({"config": [str(error)]})
+
+            detector.save()
 
             if "data_source" in validated_data:
                 validated_data_source = validated_data["data_source"]

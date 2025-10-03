@@ -389,7 +389,7 @@ function OccurenceBasedMonitorsWarning() {
       </WarningLine>
       <WarningLine>
         {t(
-          'They are only available for occurrence-based monitors \(errors, N+1, and replay\) and only apply to the triggers "A new event is captured for an issue" and "A new issue is created."'
+          'They are only available for occurrence-based monitors (errors, N+1, and replay) and only apply to the triggers "A new event is captured for an issue" and "A new issue is created."'
         )}
       </WarningLine>
     </Flex>

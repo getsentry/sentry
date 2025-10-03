@@ -70,7 +70,6 @@ export function ScreensTable({
 
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: gridColumnOrder,
-    location,
   });
 
   function renderBodyCell(
