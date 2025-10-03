@@ -9,6 +9,7 @@ from sentry.analytics.events.sentry_app_schema_validation_error import (
     SentryAppSchemaValidationError,
 )
 from sentry.constants import SentryAppStatus
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import OrganizationMember
 from sentry.sentry_apps.api.endpoints.sentry_app_details import PARTNERSHIP_RESTRICTED_ERROR_MESSAGE
@@ -791,6 +792,8 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
             self.unpublished_app.slug,
             status_code=204,
         )
+        with self.tasks():
+            run_scheduled_deletions_control()
 
         assert AuditLogEntry.objects.filter(
             event=audit_log.get_event_id("SENTRY_APP_REMOVE")
@@ -815,6 +818,8 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
             self.unpublished_app.slug,
             status_code=204,
         )
+        with self.tasks():
+            run_scheduled_deletions_control()
 
         assert AuditLogEntry.objects.filter(
             event=audit_log.get_event_id("SENTRY_APP_REMOVE")
