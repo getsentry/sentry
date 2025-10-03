@@ -3,8 +3,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 
-const CUSTOMER_DOMAIN_PRIMARY_PATH_REGEX = /^\/([^\/]+)/;
-const NON_CUSTOMER_DOMAIN_PRIMARY_PATH_REGEX = /^\/organizations\/[^\/]+\/([^\/]+)/;
+const CUSTOMER_DOMAIN_PRIMARY_PATH_REGEX = /^\/([^/]+)/;
+const NON_CUSTOMER_DOMAIN_PRIMARY_PATH_REGEX = /^\/organizations\/[^/]+\/([^/]+)/;
 
 const getPrimaryRoutePath = (path: string): string | undefined => {
   if (USING_CUSTOMER_DOMAIN) {
