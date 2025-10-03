@@ -473,9 +473,8 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
             data_source = validated_data.pop("data_sources")[0]
 
         if data_source is not None:
-            data_source = validated_data.pop("data_source")
-            if data_source:
-                self.update_data_source(instance, data_source)
+            self.update_data_source(instance, data_source)
+
         return instance
 
     def update_data_source(self, instance: Detector, data_source: dict[str, Any]):
