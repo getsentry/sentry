@@ -4,6 +4,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -82,6 +83,8 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
         GET /projects/sentry/pr-comments/getsentry/sentry/12345/
         ```
         """
+        if not features.has("organizations:pr-page", organization, actor=request.user):
+            return Response({"error": "Feature not enabled"}, status=403)
 
         client = get_github_client(organization, repo_name)
         if not client:
