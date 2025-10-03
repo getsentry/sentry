@@ -55,7 +55,7 @@ export default function FeedbackCategories() {
 
   useEffect(() => {
     // Analytics for the rendered state. Should match the conditions below.
-    if (isPending || isOrgSeerSetupPending) {
+    if (isPending || isOrgSeerSetupPending || !setupAcknowledgement.orgHasAcknowledged) {
       return;
     }
     if (isError) {
@@ -70,7 +70,7 @@ export default function FeedbackCategories() {
       trackAnalytics('feedback.summary.categories-empty', {
         organization,
       });
-    } else if (setupAcknowledgement.orgHasAcknowledged) {
+    } else {
       trackAnalytics('feedback.summary.categories-rendered', {
         organization,
         num_categories: categories.length,
