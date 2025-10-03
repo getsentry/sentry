@@ -178,6 +178,9 @@ class ReleaseSerializerUseCaseTest(TestCase):
         ReleaseProjectEnvironment.objects.create(
             release=release, project=project_b, environment=production, new_issues_count=2
         )
+        ReleaseProjectEnvironment.objects.create(
+            release=release, project=project_b, environment=staging, new_issues_count=0
+        )
 
         # 1. No environment filter
         result = release_serializer(
@@ -221,7 +224,7 @@ class ReleaseSerializerUseCaseTest(TestCase):
         serialized_release = result[0]
         projects = {p["id"]: p for p in serialized_release["projects"]}
         assert projects[project_a.id]["newGroups"] == 1
-        assert project_b.id not in projects
+        assert projects[project_b.id]["newGroups"] == 0
         assert serialized_release["newGroups"] == 1
 
         # 4. Filter by both environments

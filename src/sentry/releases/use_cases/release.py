@@ -78,9 +78,7 @@ def serialize(
 
     release_projects_map = {
         release_id: [
-            {**project_map[project_id], "newGroups": count}
-            for project_id, count in mapping.items()
-            if count is not None and count > 0
+            {**project_map[project_id], "newGroups": count} for project_id, count in mapping.items()
         ]
         for release_id, mapping in new_groups_map.items()
     }
