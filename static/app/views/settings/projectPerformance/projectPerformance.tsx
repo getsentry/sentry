@@ -751,7 +751,7 @@ function ProjectPerformance() {
             disabledReason,
           },
           {
-            name: DetectorConfigCustomer.LARGE_HTTP_FILTERED_PATHS,
+            name: DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_FILTERED_PATHS,
             type: 'string',
             label: t('Filtered Paths'),
             placeholder: t('/api/download/, /download/file'),
