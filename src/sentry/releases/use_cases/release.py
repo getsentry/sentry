@@ -430,7 +430,7 @@ def fetch_issue_count(
         qs1 = ReleaseProjectEnvironment.objects.filter(release_id__in=release_ids)
         qs1 = qs1.filter(environment_id__in=environment_ids)
         qs1 = qs1.filter(project_id__in=project_ids)
-        qs1 = qs1.annotate(new_groups=Sum("new_issues_count"))
+        qs1 = qs1.values("project_id", "release_id").annotate(new_groups=Sum("new_issues_count"))
         return list(qs1.values_list("project_id", "release_id", "new_groups"))
     else:
         qs2 = ReleaseProject.objects.filter(release_id__in=release_ids)

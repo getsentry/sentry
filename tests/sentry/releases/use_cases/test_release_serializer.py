@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from sentry.models.release import Release
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.releases.use_cases.release import serialize as release_serializer
 from sentry.testutils.cases import TestCase
@@ -59,7 +60,7 @@ class ReleaseSerializerUseCaseTest(TestCase):
         assert projects_by_id[project_b.id]["name"] == "Project B"
         assert projects_by_id[project_b.id]["slug"] == "project-b"
 
-    def test_multiple_releases_per_project_isolation(self):
+    def test_new_groups_multiple_releases_per_project(self):
         """
         Test new groups count for multiple releases per project.
         """
@@ -135,36 +136,109 @@ class ReleaseSerializerUseCaseTest(TestCase):
 
         assert len(result_both) == 2
 
-        # Find each release in the results
+        # Verify that when serialized together, counts are still isolated per release
         releases_by_version = {r["version"]: r for r in result_both}
         both_release_1 = releases_by_version["1.0.0"]
         both_release_2 = releases_by_version["2.0.0"]
-
-        # Verify that when serialized together, counts are still isolated per release
         both_projects_1_by_id = {p["id"]: p for p in both_release_1["projects"]}
         both_projects_2_by_id = {p["id"]: p for p in both_release_2["projects"]}
-        # Release 1.0.0 should still have its isolated counts
         assert both_projects_1_by_id[project_a.id]["newGroups"] == 3
         assert both_projects_1_by_id[project_b.id]["newGroups"] == 2
-        # Release 2.0.0 should still have its isolated counts
         assert both_projects_2_by_id[project_a.id]["newGroups"] == 1
         assert both_projects_2_by_id[project_b.id]["newGroups"] == 4
 
-    def test_environment_filtering_per_project(self):
+    def test_new_groups_environment_filtering(self):
         """
-        Test environment filtering with per-project counts.
-
-        Scenario:
-        - Release "1.0.0" in Project A: 3 issues in production, 1 issue in staging
-        - Release "1.0.0" in Project B: 2 issues in production, 0 issues in staging
-        - When filtering by production: Project A = 3, Project B = 2
-        - When filtering by staging: Project A = 1, Project B = 0
-        - When no environment filter: Project A = 3, Project B = 2 (uses ReleaseProject.new_groups)
-
-        This verifies environment filtering works correctly with our fix.
+        Test new group counts withenvironment filtering.
         """
-        # TODO: Implement test
-        pass
+        project_a = self.create_project(name="Project A", slug="project-a")
+        project_b = self.create_project(
+            name="Project B", slug="project-b", organization=project_a.organization
+        )
+
+        production = self.create_environment(name="production", organization=project_a.organization)
+        staging = self.create_environment(name="staging", organization=project_a.organization)
+
+        release = Release.objects.create(organization_id=project_a.organization_id, version="1.0.0")
+        release.add_project(project_a)
+        release.add_project(project_b)
+
+        # 4 new groups for project A, 2 new groups for project B
+        ReleaseProject.objects.filter(release=release, project=project_a).update(new_groups=4)
+        ReleaseProject.objects.filter(release=release, project=project_b).update(new_groups=2)
+
+        # Project A: 3 issues in production, 1 issue in staging (total = 4)
+        ReleaseProjectEnvironment.objects.create(
+            release=release, project=project_a, environment=production, new_issues_count=3
+        )
+        ReleaseProjectEnvironment.objects.create(
+            release=release, project=project_a, environment=staging, new_issues_count=1
+        )
+
+        # Project B: 2 issues in production, 0 issues in staging (total = 2)
+        ReleaseProjectEnvironment.objects.create(
+            release=release, project=project_b, environment=production, new_issues_count=2
+        )
+
+        # 1. No environment filter
+        result_no_env = release_serializer(
+            releases=[release],
+            user=self.user,
+            organization_id=project_a.organization_id,
+            environment_ids=[],
+            projects=[project_a, project_b],
+        )
+        assert len(result_no_env) == 1
+        release_data_no_env = result_no_env[0]
+        projects_no_env = {p["id"]: p for p in release_data_no_env["projects"]}
+        assert projects_no_env[project_a.id]["newGroups"] == 4
+        assert projects_no_env[project_b.id]["newGroups"] == 2
+        assert release_data_no_env["newGroups"] == 6
+
+        # 2. Filter by production environment
+        result_production = release_serializer(
+            releases=[release],
+            user=self.user,
+            organization_id=project_a.organization_id,
+            environment_ids=[production.id],
+            projects=[project_a, project_b],
+        )
+        assert len(result_production) == 1
+        release_data_production = result_production[0]
+        projects_production = {p["id"]: p for p in release_data_production["projects"]}
+        assert projects_production[project_a.id]["newGroups"] == 3
+        assert projects_production[project_b.id]["newGroups"] == 2
+        assert release_data_production["newGroups"] == 5
+
+        # 3. Filter by staging environment
+        result_staging = release_serializer(
+            releases=[release],
+            user=self.user,
+            organization_id=project_a.organization_id,
+            environment_ids=[staging.id],  # Staging only
+            projects=[project_a, project_b],
+        )
+        assert len(result_staging) == 1
+        release_data_staging = result_staging[0]
+        projects_staging = {p["id"]: p for p in release_data_staging["projects"]}
+        assert projects_staging[project_a.id]["newGroups"] == 1
+        assert project_b.id not in projects_staging
+        assert release_data_staging["newGroups"] == 1
+
+        # 4. Filter by both environments
+        result_both_envs = release_serializer(
+            releases=[release],
+            user=self.user,
+            organization_id=project_a.organization_id,
+            environment_ids=[production.id, staging.id],
+            projects=[project_a, project_b],
+        )
+        assert len(result_both_envs) == 1
+        release_data_both_envs = result_both_envs[0]
+        projects_both_envs = {p["id"]: p for p in release_data_both_envs["projects"]}
+        assert projects_both_envs[project_a.id]["newGroups"] == 4
+        assert projects_both_envs[project_b.id]["newGroups"] == 2
+        assert release_data_both_envs["newGroups"] == 6
 
     def test_cross_project_release_environment_complex(self):
         """
@@ -181,52 +255,6 @@ class ReleaseSerializerUseCaseTest(TestCase):
         When serializing Release "1.0.0" with production filter:
         - Should return: Project A = 3, Project B = 2
         - Should NOT include counts from Release "2.0.0"
-
-        This is the most comprehensive test of our fix.
-        """
-        # TODO: Implement test
-        pass
-
-    # def test_model_counts_vs_serializer_consistency(self):
-    #     """
-    #     Test that our serializer produces consistent results with model counts.
-
-    #     Scenario:
-    #     - Create releases and projects with known issue counts
-    #     - Force buffer processing to update ReleaseProject.new_groups and ReleaseProjectEnvironment.new_issues_count
-    #     - Compare serializer output with direct model queries
-    #     - Verify they match after buffer processing
-
-    #     This ensures our fix maintains consistency with the underlying model data.
-    #     """
-    #     # TODO: Implement test
-    #     pass
-
-    def test_backward_compatibility_release_level_totals(self):
-        """
-        Test that release-level totals (release.newGroups) remain unchanged.
-
-        Scenario:
-        - Create multiple projects with different issue counts
-        - Verify that release.newGroups still equals sum of all project counts
-        - Ensure existing frontend code that uses release.newGroups continues to work
-
-        This ensures our fix doesn't break existing functionality.
-        """
-        # TODO: Implement test
-        pass
-
-    def test_empty_and_edge_cases(self):
-        """
-        Test edge cases: empty projects, zero counts, missing data.
-
-        Scenarios:
-        - Release with no projects
-        - Release with projects but zero new issues
-        - Release with missing ReleaseProject records
-        - Release with None values in new_groups fields
-
-        This ensures our fix handles edge cases gracefully.
         """
         # TODO: Implement test
         pass
