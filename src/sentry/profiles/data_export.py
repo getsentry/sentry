@@ -21,7 +21,7 @@ def export_profiles_blob_data[T](
     do_create_transfer_job: Callable[[CreateTransferJobRequest], T],
     pubsub_topic_name: str | None = None,
     source_bucket: str = EXPORT_JOB_SOURCE_BUCKET,
-):
+) -> None:
     # In the future we could set a non-unique transfer-job name. This would prevent duplicate runs
     # from doing the same work over and over again. However, we'd need to catch the exception,
     # look-up any active runs, and, if no active runs, schedule a new run. This is a bit much for
@@ -49,7 +49,7 @@ def export_profiles_data(
     blob_export_job_duration: timedelta = EXPORT_JOB_DURATION_DEFAULT,
     source_bucket: str = EXPORT_JOB_SOURCE_BUCKET,
     pubsub_topic_name: str | None = None,
-):
+) -> None:
     logger.info(
         "Starting profiles export...",
         extra={
@@ -70,7 +70,7 @@ def export_profiles_data(
         return None
 
     export_profiles_blob_data(
-        project_id=organization_id,
+        organization_id=organization_id,
         gcp_project_id=gcp_project_id,
         destination_bucket=destination_bucket,
         pubsub_topic_name=pubsub_topic_name,
