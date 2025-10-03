@@ -230,6 +230,10 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
         result = data_packet.packet.check_result
         uptime_subscription = data_packet.packet.subscription
 
+        # Use the scheduled_check_time, since this is what we use as a
+        # timestamp for the uptime trace items.
+        detection_time = datetime.fromtimestamp(result["scheduled_check_time_ms"] / 1000)
+
         occurrence = DetectorOccurrence(
             issue_title=f"Downtime detected for {uptime_subscription.url}",
             subtitle="Your monitored domain is down",
@@ -239,6 +243,7 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
             culprit="",  # TODO: The url?
             assignee=self.detector.owner,
             priority=priority,
+            detection_time=detection_time,
         )
         event_data = build_event_data(result, self.detector)
 
