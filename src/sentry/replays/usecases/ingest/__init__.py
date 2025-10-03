@@ -5,6 +5,7 @@ import zlib
 from datetime import datetime, timezone
 from typing import Any, TypedDict
 
+import msgspec
 import sentry_sdk
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
@@ -36,6 +37,58 @@ LOG_SAMPLE_RATE = 0.01
 
 logger = logging.getLogger("sentry.replays")
 logger.addFilter(SamplingFilter(LOG_SAMPLE_RATE))
+
+
+# Msgspec allows us to define a schema which we can deserialize the typed JSON into. We can also
+# leverage this fact to opportunistically avoid deserialization. This is especially important
+# because we have huge JSON types that we don't really care about.
+
+
+class DomContentLoadedEvent(msgspec.Struct, gc=False, tag_field="type", tag=0):
+    pass
+
+
+class LoadedEvent(msgspec.Struct, gc=False, tag_field="type", tag=1):
+    pass
+
+
+class FullSnapshotEvent(msgspec.Struct, gc=False, tag_field="type", tag=2):
+    pass
+
+
+class IncrementalSnapshotEvent(msgspec.Struct, gc=False, tag_field="type", tag=3):
+    pass
+
+
+class MetaEvent(msgspec.Struct, gc=False, tag_field="type", tag=4):
+    pass
+
+
+class PluginEvent(msgspec.Struct, gc=False, tag_field="type", tag=6):
+    pass
+
+
+# These are the schema definitions we care about.
+
+
+class CustomEventData(msgspec.Struct, gc=False):
+    tag: str
+    payload: Any
+
+
+class CustomEvent(msgspec.Struct, gc=False, tag_field="type", tag=5):
+    data: CustomEventData
+
+
+RRWebEvent = (
+    DomContentLoadedEvent
+    | LoadedEvent
+    | FullSnapshotEvent
+    | IncrementalSnapshotEvent
+    | MetaEvent
+    | CustomEvent
+    | PluginEvent
+)
 
 
 class DropEvent(Exception):
@@ -112,6 +165,18 @@ def process_recording_event(message: Event) -> ProcessedEvent:
 
 def parse_replay_events(message: Event):
     try:
+        try:
+            # We're parsing with msgspec (if we can) and then transforming to the type that
+            # JSON.loads returns.
+            events = [
+                {"data": {"tag": e.data.tag, "payload": e.data.payload}}
+                for e in msgspec.json.decode(message["payload"], type=list[RRWebEvent])
+                if isinstance(e, CustomEvent)
+            ]
+        except Exception:
+            logger.exception("msgspec deserialization failed.")
+            events = json.loads(message["payload"])
+
         return parse_events(
             {
                 "organization_id": message["context"]["org_id"],
@@ -122,7 +187,7 @@ def parse_replay_events(message: Event):
                 "segment_id": message["context"]["segment_id"],
                 "trace_id": extract_trace_id(message["replay_event"]),
             },
-            json.loads(message["payload"]),
+            events,
         )
     except Exception:
         logger.exception(
