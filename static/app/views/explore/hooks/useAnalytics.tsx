@@ -13,7 +13,6 @@ import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   useExploreDataset,
-  useExploreQuery,
   useExploreTitle,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -368,7 +367,7 @@ export function useAnalytics({
 >) {
   const dataset = useExploreDataset();
   const title = useExploreTitle();
-  const query = useExploreQuery();
+  const query = useQueryParamsQuery();
   const fields = useQueryParamsFields();
   const visualizes = useQueryParamsVisualizes();
   const topEvents = useTopEvents();
