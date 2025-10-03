@@ -8,7 +8,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {SearchFixture} from 'sentry-fixture/search';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
   render,
@@ -22,7 +21,6 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import IssueListOverview from 'sentry/views/issueList/overview';
@@ -39,23 +37,11 @@ const project = ProjectFixture({
   firstEvent: new Date().toISOString(),
 });
 
-const {organization, projects, router} = initializeOrg({
-  organization: {
-    id: '1337',
-    slug: 'org-slug',
-    access: [],
-  },
-  router: {
-    location: {query: {query: DEFAULT_QUERY}},
-    params: {},
-  },
-  projects: [project],
+const organization = OrganizationFixture({
+  id: '1337',
+  slug: 'org-slug',
+  access: [],
 });
-
-const routerProps = {
-  params: router.params,
-  location: router.location,
-} as RouteComponentProps<Record<PropertyKey, string | undefined>, {searchId?: string}>;
 
 const initialRouterConfig = {
   routes: [
@@ -145,7 +131,7 @@ describe('IssueList', () => {
 
     PageFiltersStore.onInitializeUrlState(
       {
-        projects: [parseInt(projects[0]!.id, 10)],
+        projects: [parseInt(project.id, 10)],
         environments: [],
         datetime: {period: '14d', start: null, end: null, utc: null},
       },
@@ -180,7 +166,7 @@ describe('IssueList', () => {
     });
 
     it('loads group uses the provided initial query when no query is in the URL', async () => {
-      render(<IssueListOverview {...routerProps} initialQuery="is:unresolved" />, {
+      render(<IssueListOverview initialQuery="is:unresolved" />, {
         organization,
 
         initialRouterConfig: {
@@ -222,7 +208,7 @@ describe('IssueList', () => {
         ],
       });
 
-      render(<IssueListOverview {...routerProps} />, {
+      render(<IssueListOverview />, {
         organization,
 
         initialRouterConfig: merge({}, initialRouterConfig, {
@@ -265,7 +251,7 @@ describe('IssueList', () => {
         new Set()
       );
 
-      const {unmount} = render(<IssueListOverview {...routerProps} />, {
+      const {unmount} = render(<IssueListOverview />, {
         organization,
 
         initialRouterConfig,
@@ -278,7 +264,7 @@ describe('IssueList', () => {
       unmount();
 
       // Mount component again, getting from cache
-      render(<IssueListOverview {...routerProps} />, {
+      render(<IssueListOverview />, {
         organization,
 
         initialRouterConfig,
@@ -299,7 +285,7 @@ describe('IssueList', () => {
         },
       });
 
-      const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
+      const {router: testRouter} = render(<IssueListOverview />, {
         organization,
 
         initialRouterConfig,
@@ -380,7 +366,7 @@ describe('IssueList', () => {
         },
       });
 
-      const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
+      const {router: testRouter} = render(<IssueListOverview />, {
         initialRouterConfig,
       });
 
@@ -401,7 +387,7 @@ describe('IssueList', () => {
   });
 
   it('fetches members', async () => {
-    render(<IssueListOverview {...routerProps} />, {
+    render(<IssueListOverview />, {
       initialRouterConfig,
     });
 
@@ -424,7 +410,7 @@ describe('IssueList', () => {
     });
 
     it('fetches data on selection change', async () => {
-      const {rerender} = render(<IssueListOverview {...routerProps} />, {
+      const {rerender} = render(<IssueListOverview />, {
         initialRouterConfig,
       });
 
@@ -439,7 +425,7 @@ describe('IssueList', () => {
         )
       );
 
-      rerender(<IssueListOverview {...routerProps} />);
+      rerender(<IssueListOverview />);
 
       await waitFor(() => {
         expect(fetchDataMock).toHaveBeenCalled();
@@ -447,7 +433,7 @@ describe('IssueList', () => {
     });
 
     it('uses correct statsPeriod when fetching issues list and no datetime given', async () => {
-      const {rerender} = render(<IssueListOverview {...routerProps} />, {
+      const {rerender} = render(<IssueListOverview />, {
         initialRouterConfig: merge({}, initialRouterConfig, {
           location: {
             query: {
@@ -468,7 +454,7 @@ describe('IssueList', () => {
         )
       );
 
-      rerender(<IssueListOverview {...routerProps} />);
+      rerender(<IssueListOverview />);
 
       await waitFor(() => {
         expect(fetchDataMock).toHaveBeenLastCalledWith(
@@ -483,7 +469,7 @@ describe('IssueList', () => {
 
   describe('componentDidUpdate fetching members', () => {
     it('fetches memberlist on project change', async () => {
-      const {rerender} = render(<IssueListOverview {...routerProps} />, {
+      const {rerender} = render(<IssueListOverview />, {
         initialRouterConfig,
       });
       // Called during componentDidMount
@@ -501,7 +487,7 @@ describe('IssueList', () => {
           new Set()
         )
       );
-      rerender(<IssueListOverview {...routerProps} />);
+      rerender(<IssueListOverview />);
 
       await waitFor(() => {
         expect(fetchMembersRequest).toHaveBeenCalledWith(
@@ -523,7 +509,7 @@ describe('IssueList', () => {
         status: 500,
         statusCode: 500,
       });
-      render(<IssueListOverview {...routerProps} />, {
+      render(<IssueListOverview />, {
         initialRouterConfig,
       });
 
@@ -538,7 +524,7 @@ describe('IssueList', () => {
           Link: DEFAULT_LINKS_HEADER,
         },
       });
-      render(<IssueListOverview {...routerProps} />, {
+      render(<IssueListOverview />, {
         initialRouterConfig,
       });
 
@@ -556,7 +542,7 @@ describe('IssueList', () => {
         },
       });
 
-      const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
+      const {router: testRouter} = render(<IssueListOverview />, {
         initialRouterConfig: merge({}, initialRouterConfig, {
           location: {
             query: {
@@ -601,7 +587,7 @@ describe('IssueList', () => {
         },
       });
 
-      render(<IssueListOverview {...routerProps} {...moreProps} />, {
+      render(<IssueListOverview {...moreProps} />, {
         organization,
 
         initialRouterConfig,
@@ -812,7 +798,7 @@ describe('IssueList', () => {
       },
     });
 
-    const {rerender} = render(<IssueListOverview {...routerProps} />, {
+    const {rerender} = render(<IssueListOverview />, {
       organization,
 
       initialRouterConfig: merge({}, initialRouterConfig, {
@@ -841,7 +827,7 @@ describe('IssueList', () => {
         href: '',
       },
     });
-    rerender(<IssueListOverview {...routerProps} />);
+    rerender(<IssueListOverview />);
 
     await waitFor(() => {
       expect(screen.getByText(textWithMarkupMatcher('26-50 of 500'))).toBeInTheDocument();
@@ -856,7 +842,7 @@ describe('IssueList', () => {
     it('does not render event processing alert', async () => {
       act(() => ProjectsStore.loadInitialData([project]));
 
-      render(<IssueListOverview {...routerProps} />, {
+      render(<IssueListOverview />, {
         initialRouterConfig,
       });
 
@@ -891,7 +877,7 @@ describe('IssueList', () => {
       });
 
       const {router: testRouter} = render(
-        <IssueListOverview {...routerProps} initialQuery="" shouldFetchOnMount={false} />,
+        <IssueListOverview initialQuery="" shouldFetchOnMount={false} />,
         {
           initialRouterConfig: {
             ...initialRouterConfig,

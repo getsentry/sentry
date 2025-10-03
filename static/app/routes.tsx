@@ -2556,39 +2556,32 @@ function buildRoutes(): RouteObject[] {
     {
       index: true,
       component: errorHandler(OverviewWrapper),
-      deprecatedRouteProps: true,
     },
     {
       path: `${IssueTaxonomy.ERRORS_AND_OUTAGES}/`,
       component: make(() => import('sentry/views/issueList/pages/errorsOutages')),
-      deprecatedRouteProps: true,
     },
     {
       path: `${IssueTaxonomy.BREACHED_METRICS}/`,
       component: make(() => import('sentry/views/issueList/pages/breachedMetrics')),
-      deprecatedRouteProps: true,
     },
     {
       path: `${IssueTaxonomy.WARNINGS}/`,
       component: make(() => import('sentry/views/issueList/pages/warnings')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'views/',
       component: make(
         () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
       ),
-      deprecatedRouteProps: true,
     },
     {
       path: 'views/:viewId/',
       component: errorHandler(OverviewWrapper),
-      deprecatedRouteProps: true,
     },
     {
       path: 'searches/:searchId/',
       component: errorHandler(OverviewWrapper),
-      deprecatedRouteProps: true,
     },
     // Redirects for legacy tags route.
     {
