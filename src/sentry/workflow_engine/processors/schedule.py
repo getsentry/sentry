@@ -1,14 +1,11 @@
 import hashlib
-import itertools
 import logging
 import math
 import uuid
-from datetime import datetime, timezone
-from itertools import chain, islice
 from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-from itertools import islice
+from itertools import chain, islice
 
 from sentry import options
 from sentry.utils import metrics
@@ -167,7 +164,7 @@ def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
 
 def mark_projects_processed(
     buffer_client: DelayedWorkflowClient,
-    project_ids_to_process: list[int],
+    processed_project_ids: list[int],
     all_project_ids_and_timestamps: dict[int, list[float]],
 ) -> None:
     if not all_project_ids_and_timestamps:
@@ -191,7 +188,7 @@ def mark_projects_processed(
                     "process_buffered_workflows.project_ids_deleted",
                     extra={
                         "deleted_project_ids": sorted(deleted_project_ids),
-                        "processed_project_ids": sorted(project_ids_to_process),
+                        "processed_project_ids": sorted(processed_project_ids),
                     },
                 )
             except Exception:
