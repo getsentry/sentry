@@ -149,10 +149,15 @@ function QuotaExceededContent({
   );
 }
 
-function PrimaryNavigationQuotaExceeded({organization}: {organization: Organization}) {
-  const subscription = useSubscription();
+export function useExceededSubscriptionCategories(
+  subscription: Subscription | null
+): DataCategory[] {
+  if (!subscription) {
+    return [];
+  }
+
   const exceededCategories = (
-    sortCategoriesWithKeys(subscription?.categories ?? {}) as Array<
+    sortCategoriesWithKeys(subscription.categories) as Array<
       [DataCategory, BillingMetricHistory]
     >
   )
@@ -181,6 +186,14 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
       }
       return acc;
     }, [] as DataCategory[]);
+
+  return exceededCategories;
+}
+
+function PrimaryNavigationQuotaExceeded({organization}: {organization: Organization}) {
+  const subscription = useSubscription();
+  const exceededCategories = useExceededSubscriptionCategories(subscription);
+
   const promptsToCheck = exceededCategories
     .map(category => {
       return `${snakeCase(category)}_overage_alert`;
@@ -278,6 +291,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     subscription &&
     subscription.canSelfServe &&
     !subscription.hasOverageNotificationsDisabled;
+
   if (!shouldShow || isLoading || isError) {
     return null;
   }

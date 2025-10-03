@@ -14,7 +14,6 @@ import {
   IconPrevent,
   IconSettings,
 } from 'sentry/icons';
-import {ChonkOptInBanner} from 'sentry/utils/theme/ChonkOptInBanner';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -179,7 +178,9 @@ export function PrimaryNavigationItems() {
       </SidebarBody>
 
       <SidebarFooter>
-        <ChonkOptInBanner collapsed="never" />
+        <ErrorBoundary customComponent={null}>
+          <Hook name="sidebar:chonk-opt-in-banner" />
+        </ErrorBoundary>
         <PrimaryNavigationHelp />
         <ErrorBoundary customComponent={null}>
           <PrimaryNavigationWhatsNew />

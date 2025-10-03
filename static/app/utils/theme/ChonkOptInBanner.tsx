@@ -4,6 +4,7 @@ import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import Panel from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -15,7 +16,7 @@ import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 
 import {useChonkPrompt} from './useChonkPrompt';
 
-export function ChonkOptInBanner(props: {collapsed: boolean | 'never'}) {
+export function ChonkOptInBannerComponent(props: {collapsed: boolean | 'never'}) {
   const chonkPrompt = useChonkPrompt();
   const config = useLegacyStore(ConfigStore);
   const {mutate: mutateUserOptions} = useMutateUserOptions();
@@ -62,6 +63,11 @@ export function ChonkOptInBanner(props: {collapsed: boolean | 'never'}) {
     </TranslucentBackgroundPanel>
   );
 }
+
+export const ChonkOptInBanner = HookOrDefault({
+  hookName: 'sidebar:chonk-opt-in-banner',
+  defaultComponent: () => <ChonkOptInBannerComponent collapsed="never" />,
+});
 
 const TranslucentBackgroundPanel = styled(Panel)<{
   isDarkMode: boolean;
