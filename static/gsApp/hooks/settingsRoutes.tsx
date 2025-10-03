@@ -74,7 +74,7 @@ const settingsRoutes = (): SentryRouteObject => ({
         },
         {
           path: 'details/',
-          name: 'Billing Details',
+          name: 'Billing Information',
           component: make(() => import('../views/subscriptionPage/billingInformation')),
           deprecatedRouteProps: true,
         },
