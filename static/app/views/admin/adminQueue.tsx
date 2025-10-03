@@ -1,8 +1,8 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Flex} from 'sentry/components/core/layout';
 import {Select} from 'sentry/components/core/select';
 import InternalStatChart from 'sentry/components/internalStatChart';
 import LoadingError from 'sentry/components/loadingError';
@@ -74,7 +74,7 @@ export default function AdminQueue() {
 
   return (
     <div>
-      <Header>
+      <Flex justify="between" align="center">
         <h3>{t('Queue Overview')}</h3>
 
         <ButtonBar merged gap="0">
@@ -89,7 +89,7 @@ export default function AdminQueue() {
             </Button>
           ))}
         </ButtonBar>
-      </Header>
+      </Flex>
 
       <Panel>
         <PanelHeader>{t('Global Throughput')}</PanelHeader>
@@ -152,9 +152,3 @@ export default function AdminQueue() {
     </div>
   );
 }
-
-const Header = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
