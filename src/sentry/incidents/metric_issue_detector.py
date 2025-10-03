@@ -125,6 +125,7 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
 
 
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
+    data_source = SnubaQueryValidator(required=False, timeWindowSeconds=True)
     data_sources = serializers.ListField(
         child=SnubaQueryValidator(timeWindowSeconds=True), required=False
     )
