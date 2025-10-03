@@ -56,7 +56,7 @@ describe('SamplesTables', () => {
           <div>{`This is a custom Event Samples table for release: ${release}`}</div>
         )}
         SpanOperationTable={_props => <div>This is a custom Span Operation table</div>}
-        transactionName={''}
+        transactionName=""
       />
     );
 
@@ -92,7 +92,7 @@ describe('SamplesTables', () => {
           <div>{`Event table for release: ${release || 'none'}`}</div>
         )}
         SpanOperationTable={_props => <div>Span Operation table</div>}
-        transactionName={''}
+        transactionName=""
       />
     );
 
@@ -124,7 +124,7 @@ describe('SamplesTables', () => {
           <div>{`Event table for release: ${release || 'none'}`}</div>
         )}
         SpanOperationTable={_props => <div>Span Operation table</div>}
-        transactionName={''}
+        transactionName=""
       />
     );
 
@@ -147,7 +147,7 @@ describe('SamplesTables', () => {
           <div>{`Event table for release: ${release || 'none'}`}</div>
         )}
         SpanOperationTable={_props => <div>Span Operation table</div>}
-        transactionName={''}
+        transactionName=""
       />
     );
 

@@ -35,7 +35,7 @@ describe('AlertHeader', () => {
     });
     expect(screen.getByRole('button', {name: 'Create Alert'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/alerts/wizard/?referrer=alert_stream&project=project-slug'
+      '/organizations/org-slug/issues/alerts/wizard/?referrer=alert_stream&project=project-slug'
     );
   });
 });

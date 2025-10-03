@@ -144,13 +144,13 @@ describe('ScreenLoadEventSamples', () => {
     // Transaction is a link
     expect(await screen.findByRole('link', {name: '76af98a3'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/traces/trace/trace-id/?statsPeriod=14d'
+      '/organizations/org-slug/explore/traces/trace/trace-id/?statsPeriod=14d'
     );
 
     // Profile is a button
     expect(screen.getByRole('button', {name: 'View Profile'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/profiling/profile/sentry-cocoa/profile-id/flamegraph/'
+      '/organizations/org-slug/explore/profiling/profile/sentry-cocoa/profile-id/flamegraph/'
     );
 
     expect(screen.getByText('131.00ms')).toBeInTheDocument();

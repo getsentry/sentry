@@ -7,7 +7,7 @@ from functools import lru_cache
 
 from arroyo import Partition
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from arroyo.backends.kafka import KafkaPayload
 from confluent_kafka.admin import AdminClient, PartitionMetadata
 from django.conf import settings
 from sentry_kafka_schemas.codecs import Codec
@@ -17,14 +17,9 @@ from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.monitors.clock_dispatch import try_monitor_clock_tick
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import crons_tasks
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
-from sentry.utils.kafka_config import (
-    get_kafka_admin_cluster_options,
-    get_kafka_producer_cluster_options,
-    get_topic_definition,
-)
+from sentry.utils.kafka_config import get_kafka_admin_cluster_options, get_topic_definition
 
 logger = logging.getLogger("sentry")
 
@@ -32,22 +27,11 @@ MONITOR_CODEC: Codec[IngestMonitorMessage] = get_topic_codec(Topic.INGEST_MONITO
 
 
 def _get_producer():
-    producer = get_arroyo_producer(
+    return get_arroyo_producer(
         name="sentry.monitors.tasks.clock_pulse",
         topic=Topic.INGEST_MONITORS,
         exclude_config_keys=["compression.type", "message.max.bytes"],
     )
-
-    # Fallback to legacy producer creation if not rolled out
-    if producer is None:
-        cluster_name = get_topic_definition(Topic.INGEST_MONITORS)["cluster"]
-        producer_config = get_kafka_producer_cluster_options(cluster_name)
-        producer_config.pop("compression.type", None)
-        producer_config.pop("message.max.bytes", None)
-        producer_config["client.id"] = "sentry.monitors.tasks.clock_pulse"
-        producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
-
-    return producer
 
 
 _checkin_producer = SingletonProducer(_get_producer)
@@ -69,8 +53,8 @@ def _get_partitions() -> Mapping[int, PartitionMetadata]:
 
 @instrumented_task(
     name="sentry.monitors.tasks.clock_pulse",
+    namespace=crons_tasks,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=crons_tasks),
 )
 def clock_pulse(current_datetime=None):
     """

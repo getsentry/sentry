@@ -117,6 +117,7 @@ export function getDiscoverSeriesQueryOptions({
         dataset,
         includePrevious: false,
         includeAllArgs: true,
+        partial: '1',
         statsPeriod,
         start,
         end,

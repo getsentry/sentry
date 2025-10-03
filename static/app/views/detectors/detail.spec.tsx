@@ -1,3 +1,4 @@
+import {ActorFixture} from 'sentry-fixture/actor';
 import {AutomationFixture} from 'sentry-fixture/automations';
 import {
   CronDetectorFixture,
@@ -11,12 +12,14 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
+import {UptimeCheckFixture} from 'sentry-fixture/uptimeCheck';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
 import DetectorDetails from 'sentry/views/detectors/detail';
 
 describe('DetectorDetails', () => {
@@ -77,6 +80,10 @@ describe('DetectorDetails', () => {
       url: '/organizations/org-slug/open-periods/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/`,
+      body: GroupFixture(),
+    });
   });
 
   describe('metric detectors', () => {
@@ -84,7 +91,7 @@ describe('DetectorDetails', () => {
       id: '1',
       projectId: project.id,
       dataSources: [dataSource],
-      owner: `team:${ownerTeam.id}`,
+      owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
       workflowIds: ['1', '2'], // Add workflow IDs for connected automations
     });
 
@@ -214,7 +221,7 @@ describe('DetectorDetails', () => {
     const uptimeDetector = UptimeDetectorFixture({
       id: '1',
       projectId: project.id,
-      owner: `team:${ownerTeam.id}`,
+      owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
       workflowIds: ['1', '2'], // Add workflow IDs for connected automations
     });
 
@@ -222,6 +229,33 @@ describe('DetectorDetails', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/${uptimeDetector.id}/`,
         body: uptimeDetector,
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        method: 'GET',
+        body: [],
+      });
+
+      // Mock uptime checks endpoint
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeDetector.id}/checks/`,
+        body: [
+          UptimeCheckFixture({
+            checkStatus: CheckStatus.SUCCESS,
+            scheduledCheckTime: '2025-01-01T00:00:00Z',
+            httpStatusCode: 200,
+            durationMs: 150,
+            regionName: 'US East',
+          }),
+          UptimeCheckFixture({
+            checkStatus: CheckStatus.FAILURE,
+            scheduledCheckTime: '2025-01-01T00:01:00Z',
+            httpStatusCode: 500,
+            durationMs: 5000,
+            regionName: 'US West',
+          }),
+        ],
       });
     });
 
@@ -258,6 +292,23 @@ describe('DetectorDetails', () => {
         '/organizations/org-slug/issues/monitors/1/edit/'
       );
     });
+
+    it('displays the check-in table with correct data', async () => {
+      render(<DetectorDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByText('Recent Check-Ins')).toBeInTheDocument();
+
+      // Verify check-in data is displayed
+      expect(screen.getAllByText('Uptime')).toHaveLength(2); // timeline legend + check-in row
+      expect(screen.getByText('200')).toBeInTheDocument();
+      expect(screen.getByText('US East')).toBeInTheDocument();
+      expect(screen.getAllByText('Failure')).toHaveLength(2); // timeline legend + check-in row
+      expect(screen.getByText('500')).toBeInTheDocument();
+      expect(screen.getByText('US West')).toBeInTheDocument();
+    });
   });
 
   describe('cron detectors', () => {
@@ -286,7 +337,7 @@ describe('DetectorDetails', () => {
     const cronDetector = CronDetectorFixture({
       id: '1',
       projectId: project.id,
-      owner: `team:${ownerTeam.id}`,
+      owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
       workflowIds: ['1', '2'],
       dataSources: [cronMonitorDataSource],
     });

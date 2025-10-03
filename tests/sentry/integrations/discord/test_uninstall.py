@@ -34,7 +34,7 @@ class DiscordUninstallTest(APITestCase):
         user: RpcUser | User,
         guild_id: str = GUILD_ID,
         **kwargs: Any,
-    ):
+    ) -> Integration:
         integration = Factories.create_integration(
             provider="discord",
             name="Cool server",
@@ -45,7 +45,7 @@ class DiscordUninstallTest(APITestCase):
 
         return integration
 
-    def uninstall(self):
+    def uninstall(self) -> None:
         org_integration = OrganizationIntegration.objects.get(
             integration=self.integration, organization_id=self.organization.id
         )
@@ -66,14 +66,14 @@ class DiscordUninstallTest(APITestCase):
             object_id=org_integration.id,
         ).exists()
 
-    def mock_discord_guild_leave(self, status: int = 204):
+    def mock_discord_guild_leave(self, status: int = 204) -> None:
         responses.add(
             responses.DELETE,
             url=f"{DiscordClient.base_url}{USERS_GUILD_URL.format(guild_id=GUILD_ID)}",
             status=status,
         )
 
-    def assert_leave_guild_api_call_count(self, count: int):
+    def assert_leave_guild_api_call_count(self, count: int) -> None:
         assert responses.assert_call_count(count=count, url=LEAVE_GUILD_URL)
 
     @responses.activate

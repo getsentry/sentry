@@ -13,6 +13,7 @@ resources:
     WAI-ARIA Button Practices: https://www.w3.org/WAI/ARIA/apg/patterns/button/
 ---
 
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {
   IconAdd,
@@ -86,6 +87,12 @@ Buttons are available in different sizes: `md` (default), `sm`, `xs`, and `zero`
 
 Buttons support an optional leading icon.
 
+<Alert type="info">
+  You do not typically need to set the `size` prop for the icon, the Button wraps the
+  rendered Icon in a `IcconDefaultsProvider` to provide an icon size proportional to the
+  button size.
+</Alert>
+
 <Storybook.Demo>
   <Button icon={<IconAdd />} priority="primary">
     Add
@@ -127,6 +134,31 @@ We have standardized call to action copy and specific icon pairings. When creati
 | <IconZoom isZoomIn />                      | `zoom`      | Zoom In                                | Applies to charts and zooms to fit                        |
 | <IconZoom />                               | `zoom`      | Zoom Out                               | Applies to charts and zooms out (i.e. 200%)               |
 | <IconStar />                               | `star`      | Favorite                               | Hoisting item to primary view                             |
+
+## Disabled and Busy Buttons
+
+Disabled and busy buttons are used to indicate the status of an item. Busy buttons should be used to indicate that an action is in progress. Disabled buttons should be used to indicate that an action is not available.
+
+<Storybook.Demo>
+  <Button disabled priority="primary">
+    Disabled
+  </Button>
+  <Button disabled>Disabled</Button>
+  <Button busy priority="primary">
+    Busy
+  </Button>
+  <Button busy>Busy</Button>
+</Storybook.Demo>
+```jsx
+<Button disabled priority="primary">
+  Disabled
+</Button>
+<Button disabled>Disabled</Button>
+<Button busy priority="primary">
+  Busy
+</Button>
+<Button busy>Busy</Button>
+```
 
 ## Icon-only Buttons
 

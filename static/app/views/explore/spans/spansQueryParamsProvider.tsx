@@ -9,6 +9,7 @@ import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writabl
 import {
   getReadableQueryParamsFromLocation,
   getTargetWithReadableQueryParams,
+  isDefaultFields,
 } from 'sentry/views/explore/spans/spansQueryParams';
 
 interface SpansQueryParamsProviderProps {
@@ -33,10 +34,14 @@ export function SpansQueryParamsProvider({children}: SpansQueryParamsProviderPro
     [location, navigate]
   );
 
+  const isUsingDefaultFields = isDefaultFields(location);
+
   return (
     <QueryParamsContextProvider
+      isUsingDefaultFields={isUsingDefaultFields}
       queryParams={readableQueryParams}
       setQueryParams={setWritableQueryParams}
+      shouldManageFields
     >
       {children}
     </QueryParamsContextProvider>

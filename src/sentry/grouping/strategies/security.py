@@ -13,8 +13,8 @@ from sentry.grouping.component import (
     ViolationGroupingComponent,
 )
 from sentry.grouping.strategies.base import (
+    ComponentsByVariant,
     GroupingContext,
-    ReturnedVariants,
     produces_variants,
     strategy,
 )
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 @produces_variants(["default"])
 def expect_ct_v1(
     interface: ExpectCT, event: Event, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+) -> ComponentsByVariant:
     variant_name = context["variant_name"]
 
     return {
@@ -45,7 +45,7 @@ def expect_ct_v1(
 @produces_variants(["default"])
 def expect_staple_v1(
     interface: ExpectStaple, event: Event, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+) -> ComponentsByVariant:
     variant_name = context["variant_name"]
 
     return {
@@ -62,7 +62,7 @@ def expect_staple_v1(
 @produces_variants(["default"])
 def hpkp_v1(
     interface: Hpkp, event: Event, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+) -> ComponentsByVariant:
     variant_name = context["variant_name"]
 
     return {
@@ -79,7 +79,7 @@ def hpkp_v1(
 @produces_variants(["default"])
 def csp_v1(
     interface: Csp, event: Event, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+) -> ComponentsByVariant:
     variant_name = context["variant_name"]
 
     violation_component = ViolationGroupingComponent()
@@ -89,11 +89,13 @@ def csp_v1(
         violation_component.update(values=["'%s'" % interface.local_script_violation_type])
         uri_component.update(
             contributes=False,
-            hint="violation takes precedence",
+            hint="ignored because violation takes precedence",
             values=[interface.normalized_blocked_uri],
         )
     else:
-        violation_component.update(contributes=False, hint="not a local script violation")
+        violation_component.update(
+            contributes=False, hint="ignored because it's not a local script violation"
+        )
         uri_component.update(values=[interface.normalized_blocked_uri])
 
     return {

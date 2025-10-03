@@ -26,7 +26,6 @@ from tests.sentry.sentry_apps.tasks.test_sentry_apps import MockResponseInstance
 
 
 class IssueSyncIntegration(TestCase):
-    @with_feature("organizations:issue-open-periods")
     def test_status_sync_inbound_resolve(self) -> None:
         group = self.group
         assert group.status == GroupStatus.UNRESOLVED
@@ -423,7 +422,6 @@ class IssueSyncIntegration(TestCase):
                 "provider_key": integration.get_provider().key,
             }
 
-    @with_feature("organizations:issue-open-periods")
     def test_status_sync_inbound_unresolve(self) -> None:
         group = self.group
         group.status = GroupStatus.RESOLVED
@@ -542,7 +540,6 @@ class IssueSyncIntegrationWebhookTest(TestCase):
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     @patch("sentry.analytics.record")
-    @with_feature("organizations:issue-open-periods")
     def test_status_sync_inbound_resolve_webhook_and_sends_to_sentry_app(
         self, mock_record, mock_safe_urlopen
     ):
@@ -580,7 +577,6 @@ class IssueSyncIntegrationWebhookTest(TestCase):
             )
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
-    @with_feature("organizations:issue-open-periods")
     @with_feature("organizations:webhooks-unresolved")
     def test_status_sync_inbound_unresolve_webhook_and_sends_to_sentry_app(
         self, mock_safe_urlopen: MagicMock

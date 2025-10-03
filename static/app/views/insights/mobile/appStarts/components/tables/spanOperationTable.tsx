@@ -8,6 +8,7 @@ import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -136,28 +137,28 @@ export function SpanOperationTable({
     'api.insights.mobile-spartup-span-table'
   );
 
-  const columns: GridColumnHeader[] = [
+  const columnHeaders: GridColumnHeader[] = [
     {key: SPAN_OP, name: t('Operation'), width: COL_WIDTH_UNDEFINED},
     {key: SPAN_DESCRIPTION, name: t('Span Description'), width: COL_WIDTH_UNDEFINED},
   ];
   if (defined(primaryRelease) && defined(secondaryRelease)) {
-    columns.push({
+    columnHeaders.push({
       key: `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
       name: t('Avg Duration (%s)', PRIMARY_RELEASE_ALIAS),
       width: COL_WIDTH_UNDEFINED,
     });
-    columns.push({
+    columnHeaders.push({
       key: `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
       name: t('Avg Duration (%s)', SECONDARY_RELEASE_ALIAS),
       width: COL_WIDTH_UNDEFINED,
     });
-    columns.push({
+    columnHeaders.push({
       key: `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
       name: t('Change'),
       width: COL_WIDTH_UNDEFINED,
     });
   } else {
-    columns.push({
+    columnHeaders.push({
       key: `avg(${SPAN_SELF_TIME})`,
       name: t('Avg Duration'),
       width: COL_WIDTH_UNDEFINED,
@@ -262,6 +263,10 @@ export function SpanOperationTable({
     });
   };
 
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: columnHeaders,
+  });
+
   return (
     <Fragment>
       <GridEditable
@@ -277,6 +282,7 @@ export function SpanOperationTable({
         grid={{
           renderHeadCell: column => renderHeadCell(column, meta),
           renderBodyCell,
+          onResizeColumn: handleResizeColumn,
         }}
       />
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />

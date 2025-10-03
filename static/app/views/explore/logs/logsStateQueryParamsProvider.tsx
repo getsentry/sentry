@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo, useState} from 'react';
 
+import {defined} from 'sentry/utils';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {defaultSortBys} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {
@@ -17,13 +18,15 @@ import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writabl
 
 interface LogsStateQueryParamsProviderProps {
   children: ReactNode;
+  frozenParams?: Partial<ReadableQueryParams>;
 }
 
 export function LogsStateQueryParamsProvider({
   children,
+  frozenParams,
 }: LogsStateQueryParamsProviderProps) {
   const [mode, _setMode] = useState(defaultMode());
-  const [query, _setQuery] = useState(defaultQuery());
+  const [query, setQuery] = useResettableState(defaultQuery);
 
   const [cursor, _setCursor] = useState(defaultCursor());
   const [fields, _setFields] = useState(defaultLogFields());
@@ -35,8 +38,9 @@ export function LogsStateQueryParamsProvider({
     defaultAggregateSortBys(aggregateFields)
   );
 
-  const readableQueryParams = useMemo(() => {
+  const _readableQueryParams = useMemo(() => {
     return new ReadableQueryParams({
+      extrapolate: true,
       mode,
       query,
 
@@ -59,17 +63,25 @@ export function LogsStateQueryParamsProvider({
     aggregateSortBys,
   ]);
 
+  const readableQueryParams = useMemo(
+    () =>
+      frozenParams ? {..._readableQueryParams, ...frozenParams} : _readableQueryParams,
+    [_readableQueryParams, frozenParams]
+  );
+
   const setWritableQueryParams = useCallback(
-    (_writableQueryParams: WritableQueryParams) => {
-      // TODO
+    (writableQueryParams: WritableQueryParams) => {
+      setQuery(writableQueryParams.query);
     },
-    []
+    [setQuery]
   );
 
   return (
     <QueryParamsContextProvider
       queryParams={readableQueryParams}
       setQueryParams={setWritableQueryParams}
+      isUsingDefaultFields
+      shouldManageFields={false}
     >
       {children}
     </QueryParamsContextProvider>
@@ -78,4 +90,21 @@ export function LogsStateQueryParamsProvider({
 
 function defaultAggregateFields() {
   return [...defaultGroupBys(), ...defaultVisualizes()];
+}
+
+function useResettableState<T>(defaultValue: () => T) {
+  const [state, _setState] = useState<T>(defaultValue());
+
+  const setState = useCallback(
+    (newState: T | null | undefined) => {
+      if (defined(newState)) {
+        _setState(newState);
+      } else if (newState === null) {
+        _setState(defaultValue());
+      }
+    },
+    [defaultValue]
+  );
+
+  return [state, setState] as const;
 }

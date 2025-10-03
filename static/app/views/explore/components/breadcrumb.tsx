@@ -17,7 +17,7 @@ function ExploreBreadcrumb({traceItemDataset}: {traceItemDataset: TraceItemDatas
   }
   if (traceItemDataset === TraceItemDataset.LOGS) {
     crumbs.push({
-      to: makeLogsPathname({organization, path: '/'}),
+      to: makeLogsPathname({organizationSlug: organization.slug, path: '/'}),
       label: t('Logs'),
     });
   }

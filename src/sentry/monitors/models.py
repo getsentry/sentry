@@ -492,8 +492,10 @@ class MonitorCheckIn(Model):
 
     date_updated = models.DateTimeField(default=timezone.now)
     """
-    Represents the last time a check-in was updated. This will typically be by
-    the terminal state.
+    Represents the last time a check-in was updated. This comes from the same
+    value as date_added, so it is the time relay received the (closing)
+    check-in. This will typically be the terminal state, heart-beat check-ins
+    being the other case.
     """
 
     date_clock = models.DateTimeField(null=True)
@@ -707,6 +709,9 @@ class MonitorEnvironment(Model):
             )
         except MonitorIncident.DoesNotExist:
             return None
+
+    def build_occurrence_fingerprint(self) -> str:
+        return f"crons:{self.id}"
 
 
 @receiver(pre_save, sender=MonitorEnvironment)

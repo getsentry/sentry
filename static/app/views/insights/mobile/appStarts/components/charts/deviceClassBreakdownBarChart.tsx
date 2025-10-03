@@ -6,6 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {
   axisLabelFormatter,
   getDurationUnit,
@@ -218,7 +219,7 @@ function DeviceClassBreakdownBarChart({
             <ChartActionDropdown
               chartType={ChartType.LINE}
               yAxes={[appStartMetric]}
-              groupBy={groupBy}
+              groupBy={groupBy as SpanFields[]}
               search={search}
               title={title}
               referrer={referrer}

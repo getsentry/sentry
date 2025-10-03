@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -40,6 +40,7 @@ import {
 import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import {StripedTable} from './styles';
 import SubscriptionHeader from './subscriptionHeader';
@@ -109,26 +110,34 @@ function UsageHistory({subscription}: Props) {
 
   if (isPending) {
     return (
-      <Fragment>
+      <SubscriptionPageContainer background="primary" organization={organization}>
         <SubscriptionHeader subscription={subscription} organization={organization} />
         <LoadingIndicator />
-      </Fragment>
+      </SubscriptionPageContainer>
     );
   }
 
   if (isError) {
-    return <LoadingError onRetry={refetch} />;
+    return (
+      <SubscriptionPageContainer background="primary" organization={organization}>
+        <LoadingError onRetry={refetch} />
+      </SubscriptionPageContainer>
+    );
   }
 
   const usageListPageLinks = getResponseHeader?.('Link');
 
   const hasBillingPerms = organization.access?.includes('org:billing');
   if (!hasBillingPerms) {
-    return <ContactBillingMembers />;
+    return (
+      <SubscriptionPageContainer background="primary" organization={organization}>
+        <ContactBillingMembers />
+      </SubscriptionPageContainer>
+    );
   }
 
   return (
-    <Fragment>
+    <SubscriptionPageContainer background="primary" organization={organization}>
       <SubscriptionHeader subscription={subscription} organization={organization} />
       <Panel>
         <PanelHeader>{t('Usage History')}</PanelHeader>
@@ -139,7 +148,7 @@ function UsageHistory({subscription}: Props) {
         </PanelBody>
       </Panel>
       {usageListPageLinks && <Pagination pageLinks={usageListPageLinks} />}
-    </Fragment>
+    </SubscriptionPageContainer>
   );
 }
 

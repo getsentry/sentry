@@ -1,0 +1,34 @@
+---
+created: '2025-09-24T20:27:06.018498+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "9509e122c6175606d52862fa4f64853c"
+  contributing component: exception
+  root_component:
+    app*
+      exception*
+        stacktrace*
+          frame* (marked in-app by the client)
+            filename*
+              "baz.py"
+        type*
+          "ValueError"
+        value (ignored because stacktrace takes precedence)
+          "hello world"
+--------------------------------------------------------------------------
+system:
+  hash: null
+  contributing component: null
+  root_component:
+    system (ignored because app exception takes precedence)
+      exception (ignored because hash matches app variant)
+        stacktrace*
+          frame*
+            filename*
+              "baz.py"
+        type*
+          "ValueError"
+        value (ignored because stacktrace takes precedence)
+          "hello world"

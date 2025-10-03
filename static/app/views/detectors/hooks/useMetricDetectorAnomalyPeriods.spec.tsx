@@ -1,10 +1,6 @@
-import type {ReactNode} from 'react';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -14,17 +10,8 @@ import {
 import {AnomalyType, type Anomaly} from 'sentry/views/alerts/types';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useMetricDetectorAnomalyPeriods} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyPeriods';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const {organization} = initializeOrg();
-
-function TestContext({children}: {children?: ReactNode}) {
-  return (
-    <QueryClientProvider client={makeTestQueryClient()}>
-      <OrganizationContext value={organization}>{children}</OrganizationContext>
-    </QueryClientProvider>
-  );
-}
 
 describe('useMetricDetectorAnomalyPeriods', () => {
   beforeEach(() => {
@@ -87,25 +74,23 @@ describe('useMetricDetectorAnomalyPeriods', () => {
       },
     ];
 
-    const {result} = renderHook(
-      () =>
-        useMetricDetectorAnomalyPeriods({
-          series,
-          detectorDataset: DetectorDataset.ERRORS,
-          dataset: Dataset.ERRORS,
-          aggregate: 'count()',
-          query: '',
-          eventTypes: [],
-          environment: undefined,
-          projectId: '1',
-          statsPeriod: TimePeriod.SEVEN_DAYS,
-          interval: 900, // 15 minutes
-          thresholdType: AlertRuleThresholdType.ABOVE,
-          sensitivity: AlertRuleSensitivity.MEDIUM,
-          isLoadingSeries: false,
-          enabled: true,
-        }),
-      {wrapper: TestContext}
+    const {result} = renderHookWithProviders(() =>
+      useMetricDetectorAnomalyPeriods({
+        series,
+        detectorDataset: DetectorDataset.ERRORS,
+        dataset: Dataset.ERRORS,
+        aggregate: 'count()',
+        query: '',
+        eventTypes: [],
+        environment: undefined,
+        projectId: '1',
+        statsPeriod: TimePeriod.SEVEN_DAYS,
+        interval: 900, // 15 minutes
+        thresholdType: AlertRuleThresholdType.ABOVE,
+        sensitivity: AlertRuleSensitivity.MEDIUM,
+        isLoadingSeries: false,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {

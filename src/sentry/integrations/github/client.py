@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
 import orjson
@@ -31,7 +31,7 @@ from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, Int
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, UnknownHostError
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
@@ -206,14 +206,25 @@ class GithubProxyClient(IntegrationProxyClient):
         return metadata["access_token"]
 
     @control_silo_function
-    def get_access_token(self) -> AccessTokenData | None:
+    def get_access_token(
+        self, token_minimum_validity_time: timedelta | None = None
+    ) -> AccessTokenData | None:
+        """
+        Retrieves an access token for the given integration with an optional
+        minimum validity time. This will guarantee that the token is valid for
+        at least the timedelta provided.
+        """
+        token_minimum_validity_time = token_minimum_validity_time or timedelta(minutes=0)
         now = datetime.utcnow()
         access_token: str | None = self.integration.metadata.get("access_token")
         expires_at: str | None = self.integration.metadata.get("expires_at")
-        is_expired = (
-            expires_at is not None and datetime.fromisoformat(expires_at).replace(tzinfo=None) < now
+
+        close_to_expiry = (
+            expires_at
+            and datetime.fromisoformat(expires_at).replace(tzinfo=None)
+            < now + token_minimum_validity_time
         )
-        should_refresh = not access_token or not expires_at or is_expired
+        should_refresh = not access_token or not expires_at or close_to_expiry
 
         if should_refresh:
             return self._refresh_access_token()
@@ -655,10 +666,23 @@ class GitHubBaseClient(
             # usually a missing repo/branch/file which is expected with wrong configurations.
             # If data is not present, the query may be formed incorrectly, so raise an error.
             if not response.get("data"):
-                err_message = ", ".join(
-                    [error.get("message", "") for error in response.get("errors", [])]
-                )
+                err_message = ""
+                for error in response.get("errors", []):
+                    err = error.get("message", "")
+                    err_message += err + "\n"
+
+                    if err and "something went wrong" in err.lower():
+                        raise UnknownHostError(err)
+
                 raise ApiError(err_message)
+
+        detail = str(response.get("detail", ""))
+        if detail and "internal error" in detail.lower():
+            errorId = response.get("errorId", "")
+            logger.info(
+                "github.get_blame_for_files.host_error", extra={**log_info, "errorId": errorId}
+            )
+            raise UnknownHostError("Something went wrong when communicating with GitHub")
 
         return extract_commits_from_blame_response(
             response=response,

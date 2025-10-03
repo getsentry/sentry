@@ -55,14 +55,14 @@ function ScreenDetailsPage() {
       key: 'app_start',
       label: t('App Start'),
       content: () => {
-        return <AppStartPage key={'app_start'} />;
+        return <AppStartPage key="app_start" />;
       },
     },
     {
       key: 'screen_load',
       label: t('Screen Load'),
       content: () => {
-        return <ScreenLoadPage key={'screen_load'} />;
+        return <ScreenLoadPage key="screen_load" />;
       },
     },
     {
@@ -70,7 +70,7 @@ function ScreenDetailsPage() {
       label: t('Screen Rendering'),
       featureBadge: 'experimental',
       content: () => {
-        return <UiPage key={'screen_rendering'} />;
+        return <UiPage key="screen_rendering" />;
       },
     },
   ];

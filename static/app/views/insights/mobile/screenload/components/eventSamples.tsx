@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -27,7 +28,7 @@ const DEFAULT_SORT = {
 
 type Props = {
   cursorName: string;
-  release: string;
+  release: string | undefined;
   sortKey: string;
   transaction: string;
 };
@@ -83,10 +84,12 @@ export function ScreenLoadEventSamples({
   const sort = decodeSorts(location.query[sortKey])[0] ?? DEFAULT_SORT;
 
   const columnNameMap = {
-    id: t(
-      'Event ID (%s)',
-      release === primaryRelease ? PRIMARY_RELEASE_ALIAS : SECONDARY_RELEASE_ALIAS
-    ),
+    id: defined(release)
+      ? t(
+          'Event ID (%s)',
+          release === primaryRelease ? PRIMARY_RELEASE_ALIAS : SECONDARY_RELEASE_ALIAS
+        )
+      : t('Event ID'),
     'profile.id': t('Profile'),
     'measurements.time_to_initial_display': t('TTID'),
     'measurements.time_to_full_display': t('TTFD'),

@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 import re
+import sys
 from collections.abc import Mapping, Sequence
 from operator import attrgetter
-from typing import Any, TypedDict
+from typing import Any, NoReturn, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -46,11 +47,12 @@ from sentry.shared_integrations.exceptions import (
     ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiUnauthorized,
+    IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
-    IntegrationInstallationConfigurationError,
 )
 from sentry.silo.base import all_silo_function
+from sentry.users.models.identity import Identity
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -949,7 +951,7 @@ class JiraIntegration(IssueSyncIntegration):
 
         meta = client.get_create_meta_for_project(jira_project)
         if not meta:
-            raise IntegrationInstallationConfigurationError(
+            raise IntegrationConfigurationError(
                 "Could not fetch issue create configuration from Jira."
             )
 
@@ -969,6 +971,31 @@ class JiraIntegration(IssueSyncIntegration):
 
         # Immediately fetch and return the created issue.
         return self.get_issue(issue_key)
+
+    def raise_error(self, exc: Exception, identity: Identity | None = None) -> NoReturn:
+        """
+        Overrides the base `raise_error` method to treat ApiInvalidRequestErrors
+        as configuration errors when we don't have error field handling for the
+        response.
+
+        This is because the majority of Jira errors we receive are external
+        configuration problems, like required fields missing.
+        """
+        if isinstance(exc, ApiInvalidRequestError):
+            if exc.json:
+                error_fields = self.error_fields_from_json(exc.json)
+                if error_fields is not None:
+                    raise IntegrationFormError(error_fields).with_traceback(sys.exc_info()[2])
+
+            logger.warning(
+                "sentry.jira.raise_error.api_invalid_request_error",
+                extra={
+                    "exception_type": type(exc).__name__,
+                    "request_body": str(exc.json),
+                },
+            )
+            raise IntegrationConfigurationError(exc.text) from exc
+        super().raise_error(exc, identity=identity)
 
     def sync_assignee_outbound(
         self,
@@ -1022,7 +1049,7 @@ class JiraIntegration(IssueSyncIntegration):
             id_field = client.user_id_field()
             client.assign_issue(external_issue.key, jira_user and jira_user.get(id_field))
         except ApiUnauthorized as e:
-            raise IntegrationInstallationConfigurationError(
+            raise IntegrationConfigurationError(
                 "Insufficient permissions to assign user to the Jira issue."
             ) from e
         except ApiError as e:

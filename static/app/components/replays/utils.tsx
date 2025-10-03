@@ -1,4 +1,4 @@
-import type {ReplayFrame, SpanFrame, VideoEvent} from 'sentry/utils/replays/types';
+import type {ReplayFrame, VideoEvent} from 'sentry/utils/replays/types';
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -91,68 +91,6 @@ export function getFramesByColumn(
   );
 
   return framesByColumn;
-}
-
-type FlattenedSpanRange = {
-  /**
-   * Duration of this range
-   */
-  duration: number;
-  /**
-   * Absolute time in ms when the range ends
-   */
-  endTimestamp: number;
-  /**
-   * Number of spans that got flattened into this range
-   */
-  frameCount: number;
-  /**
-   * Absolute time in ms when the span starts
-   */
-  startTimestamp: number;
-};
-
-function doesOverlap(a: FlattenedSpanRange, b: FlattenedSpanRange) {
-  const bStartsWithinA =
-    a.startTimestamp <= b.startTimestamp && b.startTimestamp <= a.endTimestamp;
-  const bEndsWithinA =
-    a.startTimestamp <= b.endTimestamp && b.endTimestamp <= a.endTimestamp;
-  return bStartsWithinA || bEndsWithinA;
-}
-
-export function flattenFrames(frames: SpanFrame[]): FlattenedSpanRange[] {
-  if (!frames.length) {
-    return [];
-  }
-
-  const [first, ...rest] = frames.map((span): FlattenedSpanRange => {
-    return {
-      frameCount: 1,
-      startTimestamp: span.timestampMs,
-      endTimestamp: span.endTimestampMs,
-      duration: span.endTimestampMs - span.timestampMs,
-    };
-  });
-
-  const flattened = [first!];
-
-  for (const span of rest) {
-    let overlap = false;
-    for (const range of flattened) {
-      if (doesOverlap(range, span)) {
-        overlap = true;
-        range.frameCount += 1;
-        range.startTimestamp = Math.min(range.startTimestamp, span.startTimestamp);
-        range.endTimestamp = Math.max(range.endTimestamp, span.endTimestamp);
-        range.duration = range.endTimestamp - range.startTimestamp;
-        break;
-      }
-    }
-    if (!overlap) {
-      flattened.push(span);
-    }
-  }
-  return flattened;
 }
 
 /**

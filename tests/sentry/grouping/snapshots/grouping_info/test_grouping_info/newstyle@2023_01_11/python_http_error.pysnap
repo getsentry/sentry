@@ -1,0 +1,453 @@
+---
+created: '2025-09-24T22:53:05.373996+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouping_info.py
+---
+{
+  "app": {
+    "component": {
+      "contributes": true,
+      "hint": null,
+      "id": "app",
+      "name": "in-app",
+      "values": [
+        {
+          "contributes": true,
+          "hint": null,
+          "id": "exception",
+          "name": "exception",
+          "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "stacktrace",
+              "name": "stacktrace",
+              "values": [
+                {
+                  "contributes": true,
+                  "hint": "marked in-app by the client",
+                  "id": "frame",
+                  "name": null,
+                  "values": [
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "module",
+                      "name": null,
+                      "values": [
+                        "sentry.utils.safe"
+                      ]
+                    },
+                    {
+                      "contributes": false,
+                      "hint": "ignored because module takes precedence",
+                      "id": "filename",
+                      "name": null,
+                      "values": [
+                        "safe.py"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "function",
+                      "name": null,
+                      "values": [
+                        "safe_execute"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "context_line",
+                      "name": null,
+                      "values": [
+                        "result = func(*args, **kwargs)"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "contributes": true,
+                  "hint": "marked in-app by the client",
+                  "id": "frame",
+                  "name": null,
+                  "values": [
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "module",
+                      "name": null,
+                      "values": [
+                        "sentry.integrations.slack.notify_action"
+                      ]
+                    },
+                    {
+                      "contributes": false,
+                      "hint": "ignored because module takes precedence",
+                      "id": "filename",
+                      "name": null,
+                      "values": [
+                        "notify_action.py"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "function",
+                      "name": null,
+                      "values": [
+                        "send_notification"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "context_line",
+                      "name": null,
+                      "values": [
+                        "resp.raise_for_status()"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": "marked out of app by the client",
+                  "id": "frame",
+                  "name": null,
+                  "values": [
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "module",
+                      "name": null,
+                      "values": [
+                        "requests.models"
+                      ]
+                    },
+                    {
+                      "contributes": false,
+                      "hint": "ignored because module takes precedence",
+                      "id": "filename",
+                      "name": null,
+                      "values": [
+                        "models.py"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "function",
+                      "name": null,
+                      "values": [
+                        "raise_for_status"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "context_line",
+                      "name": null,
+                      "values": [
+                        "raise HTTPError(http_error_msg, response=self)"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "HTTPError"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "<int> Client Error: Too Many Requests for url: <url>"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "config": {
+      "base": "BASE_CONFIG",
+      "delegates": [
+        "frame:v1",
+        "single-exception:v1",
+        "stacktrace:v1"
+      ],
+      "id": "newstyle:2023-01-11",
+      "strategies": [
+        "chained-exception:v1",
+        "csp:v1",
+        "expect-ct:v1",
+        "expect-staple:v1",
+        "hpkp:v1",
+        "message:v1",
+        "stacktrace:v1",
+        "template:v1",
+        "threads:v1"
+      ]
+    },
+    "description": "in-app exception stacktrace",
+    "hash": "d59239f5aad3304d60beb1fde3369b78",
+    "hint": null,
+    "key": "app",
+    "type": "component"
+  },
+  "default": {
+    "component": {
+      "contributes": false,
+      "hint": "ignored because app/system exception takes precedence",
+      "id": "default",
+      "name": null,
+      "values": [
+        {
+          "contributes": false,
+          "hint": "ignored because app/system exception takes precedence",
+          "id": "message",
+          "name": "message",
+          "values": [
+            "%s.process_error"
+          ]
+        }
+      ]
+    },
+    "config": {
+      "base": "BASE_CONFIG",
+      "delegates": [
+        "frame:v1",
+        "single-exception:v1",
+        "stacktrace:v1"
+      ],
+      "id": "newstyle:2023-01-11",
+      "strategies": [
+        "chained-exception:v1",
+        "csp:v1",
+        "expect-ct:v1",
+        "expect-staple:v1",
+        "hpkp:v1",
+        "message:v1",
+        "stacktrace:v1",
+        "template:v1",
+        "threads:v1"
+      ]
+    },
+    "description": "default",
+    "hash": null,
+    "hint": "ignored because app/system exception takes precedence",
+    "key": "default",
+    "type": "component"
+  },
+  "system": {
+    "component": {
+      "contributes": true,
+      "hint": null,
+      "id": "system",
+      "name": null,
+      "values": [
+        {
+          "contributes": true,
+          "hint": null,
+          "id": "exception",
+          "name": "exception",
+          "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "stacktrace",
+              "name": "stacktrace",
+              "values": [
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "frame",
+                  "name": null,
+                  "values": [
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "module",
+                      "name": null,
+                      "values": [
+                        "sentry.utils.safe"
+                      ]
+                    },
+                    {
+                      "contributes": false,
+                      "hint": "ignored because module takes precedence",
+                      "id": "filename",
+                      "name": null,
+                      "values": [
+                        "safe.py"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "function",
+                      "name": null,
+                      "values": [
+                        "safe_execute"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "context_line",
+                      "name": null,
+                      "values": [
+                        "result = func(*args, **kwargs)"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "frame",
+                  "name": null,
+                  "values": [
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "module",
+                      "name": null,
+                      "values": [
+                        "sentry.integrations.slack.notify_action"
+                      ]
+                    },
+                    {
+                      "contributes": false,
+                      "hint": "ignored because module takes precedence",
+                      "id": "filename",
+                      "name": null,
+                      "values": [
+                        "notify_action.py"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "function",
+                      "name": null,
+                      "values": [
+                        "send_notification"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "context_line",
+                      "name": null,
+                      "values": [
+                        "resp.raise_for_status()"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "frame",
+                  "name": null,
+                  "values": [
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "module",
+                      "name": null,
+                      "values": [
+                        "requests.models"
+                      ]
+                    },
+                    {
+                      "contributes": false,
+                      "hint": "ignored because module takes precedence",
+                      "id": "filename",
+                      "name": null,
+                      "values": [
+                        "models.py"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "function",
+                      "name": null,
+                      "values": [
+                        "raise_for_status"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "context_line",
+                      "name": null,
+                      "values": [
+                        "raise HTTPError(http_error_msg, response=self)"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "HTTPError"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "<int> Client Error: Too Many Requests for url: <url>"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "config": {
+      "base": "BASE_CONFIG",
+      "delegates": [
+        "frame:v1",
+        "single-exception:v1",
+        "stacktrace:v1"
+      ],
+      "id": "newstyle:2023-01-11",
+      "strategies": [
+        "chained-exception:v1",
+        "csp:v1",
+        "expect-ct:v1",
+        "expect-staple:v1",
+        "hpkp:v1",
+        "message:v1",
+        "stacktrace:v1",
+        "template:v1",
+        "threads:v1"
+      ]
+    },
+    "description": "exception stacktrace",
+    "hash": "133db3f366b1327dab4e661f66dfb961",
+    "hint": null,
+    "key": "system",
+    "type": "component"
+  }
+}

@@ -92,7 +92,7 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import GroupOpenPeriod, create_open_period
+from sentry.models.groupopenperiod import create_open_period
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
@@ -548,6 +548,7 @@ class EventManager:
                 increment_group_tombstone_hit_counter(
                     getattr(e, "tombstone_id", None), job["event"]
                 )
+            # TODO: make sure that already stored attachments are deleted
             discard_event(job, attachments)
             raise
 
@@ -566,6 +567,7 @@ class EventManager:
         _tsdb_record_all_metrics(jobs)
 
         if attachments:
+            # TODO: make sure that already stored attachments are deleted
             attachments = filter_attachments_for_group(attachments, job)
 
         # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
@@ -910,17 +912,23 @@ def _get_or_create_environment_many(jobs: Sequence[Job], projects: ProjectsMappi
 @sentry_sdk.tracing.trace
 def _get_or_create_group_environment_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
-        _get_or_create_group_environment(job["environment"], job["release"], job["groups"])
+        _get_or_create_group_environment(
+            job["environment"], job["release"], job["groups"], job["event"].datetime
+        )
 
 
 def _get_or_create_group_environment(
-    environment: Environment, release: Release | None, groups: Sequence[GroupInfo]
+    environment: Environment,
+    release: Release | None,
+    groups: Sequence[GroupInfo],
+    event_datetime: datetime,
 ) -> None:
     for group_info in groups:
+
         group_info.is_new_group_environment = GroupEnvironment.get_or_create(
             group_id=group_info.group.id,
             environment_id=environment.id,
-            defaults={"first_release": release or None},
+            defaults={"first_release": release or None, "first_seen": event_datetime},
         )[1]
 
 
@@ -1164,28 +1172,16 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
         event = job["event"]
 
-        if options.get("event-manager.use-outcome-aggregator"):
-            outcome_aggregator.track_outcome_aggregated(
-                org_id=event.project.organization_id,
-                project_id=job["project_id"],
-                key_id=job["key_id"],
-                outcome=Outcome.ACCEPTED,
-                reason=None,
-                timestamp=to_datetime(job["start_time"]),
-                category=job["category"],
-                quantity=1,
-            )
-        else:
-            track_outcome(
-                org_id=event.project.organization_id,
-                project_id=job["project_id"],
-                key_id=job["key_id"],
-                outcome=Outcome.ACCEPTED,
-                reason=None,
-                timestamp=to_datetime(job["start_time"]),
-                event_id=event.event_id,
-                category=job["category"],
-            )
+        outcome_aggregator.track_outcome_aggregated(
+            org_id=event.project.organization_id,
+            project_id=job["project_id"],
+            key_id=job["key_id"],
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=to_datetime(job["start_time"]),
+            category=job["category"],
+            quantity=1,
+        )
 
 
 def _get_event_instance(data: MutableMapping[str, Any], project_id: int) -> Event:
@@ -1326,22 +1322,6 @@ def assign_event_to_group(
             result = "no_match"
 
     # From here on out, we're just doing housekeeping
-
-    # TODO: Temporary metric to debug missing grouphash metadata. This metric *should* exactly match
-    # the `grouping.grouphashmetadata.backfill_needed` metric collected in
-    # `get_or_create_grouphashes`. If it doesn't, perhaps there's a race condition between creation
-    # of the metadata and our ability to pull it from the database immediately thereafter.
-    for grouphash in [*primary.grouphashes, *secondary.grouphashes]:
-        if not grouphash.metadata:
-            logger.warning(
-                "grouphash_metadata.hash_without_metadata",
-                extra={
-                    "event_id": event.event_id,
-                    "project_id": project.id,
-                    "hash": grouphash.hash,
-                },
-            )
-            metrics.incr("grouping.grouphashmetadata.backfill_needed_2", sample_rate=1.0)
 
     # Background grouping is a way for us to get performance metrics for a new
     # config without having it actually affect on how events are grouped. It runs
@@ -1615,13 +1595,8 @@ def _create_group(
             logger.exception("Error after unsticking project counter")
             raise
 
-    if features.has("organizations:issue-open-periods", project.organization):
-        GroupOpenPeriod.objects.create(
-            group=group,
-            project_id=project.id,
-            date_started=group.first_seen,
-            date_ended=None,
-        )
+    create_open_period(group=group, start_time=group.first_seen)
+
     return group
 
 
@@ -2315,9 +2290,6 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
     :param attachments: The full list of attachments to filter.
     :param job:         The job context container.
     """
-    if not attachments:
-        return attachments
-
     event = job["event"]
     project = event.project
 
@@ -2429,7 +2401,7 @@ def save_attachment(
         timestamp = datetime.now(timezone.utc)
 
     try:
-        attachment.data
+        attachment.stored_id or attachment.data
     except MissingAttachmentChunks:
         track_outcome(
             org_id=project.organization_id,

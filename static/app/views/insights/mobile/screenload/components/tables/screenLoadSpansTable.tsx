@@ -10,6 +10,7 @@ import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t, tct} from 'sentry/locale';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
@@ -39,6 +40,7 @@ import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import type {SpanProperty} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} = SpanFields;
+const COLUMN_RESIZE_PARAM_NAME = 'events';
 
 type Props = {
   primaryRelease?: string;
@@ -128,12 +130,12 @@ export function ScreenLoadSpansTable({
     'api.insights.mobile-span-table'
   );
 
-  const columns: GridColumnHeader[] = [
+  const columnHeaders: GridColumnHeader[] = [
     {key: SPAN_OP, name: t('Operation'), width: COL_WIDTH_UNDEFINED},
     {key: SPAN_DESCRIPTION, name: t('Span Description'), width: COL_WIDTH_UNDEFINED},
   ];
   if (showComparison) {
-    columns.push(
+    columnHeaders.push(
       {
         key: `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
         name: t('Avg Duration (%s)', PRIMARY_RELEASE_ALIAS),
@@ -146,7 +148,7 @@ export function ScreenLoadSpansTable({
       }
     );
   } else {
-    columns.push({
+    columnHeaders.push({
       key: `avg(${SPAN_SELF_TIME})`,
       name: t('Avg Duration'),
       width: COL_WIDTH_UNDEFINED,
@@ -154,9 +156,9 @@ export function ScreenLoadSpansTable({
   }
 
   if (organization.features.includes('insight-modules')) {
-    columns.push({key: 'affects', name: t('Affects'), width: COL_WIDTH_UNDEFINED});
+    columnHeaders.push({key: 'affects', name: t('Affects'), width: COL_WIDTH_UNDEFINED});
   }
-  columns.push({
+  columnHeaders.push({
     key: `sum(${SPAN_SELF_TIME})`,
     name: t('Total Time Spent'),
     width: COL_WIDTH_UNDEFINED,
@@ -365,6 +367,11 @@ export function ScreenLoadSpansTable({
     });
   };
 
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: columnHeaders,
+    paramName: COLUMN_RESIZE_PARAM_NAME,
+  });
+
   return (
     <Fragment>
       <GridEditable
@@ -375,6 +382,7 @@ export function ScreenLoadSpansTable({
         grid={{
           renderHeadCell: column => renderHeadCell(column, meta),
           renderBodyCell,
+          onResizeColumn: handleResizeColumn,
         }}
       />
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />

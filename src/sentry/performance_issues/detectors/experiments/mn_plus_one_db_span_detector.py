@@ -6,16 +6,16 @@ from collections import deque
 from collections.abc import Sequence
 from typing import Any
 
+from sentry import features
 from sentry.issues.grouptype import (
-    PerformanceMNPlusOneDBQueriesExperimentalGroupType,
-    PerformanceNPlusOneExperimentalGroupType,
+    PerformanceMNPlusOneDBQueriesGroupType,
+    PerformanceNPlusOneGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.performance_issues.base import (
-    DetectorType,
-    PerformanceDetector,
+from sentry.performance_issues.base import DetectorType, PerformanceDetector
+from sentry.performance_issues.detectors.utils import (
     get_notification_attachment_body,
     get_span_evidence_value,
     total_span_time,
@@ -259,7 +259,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
             fingerprint=self._fingerprint(db_span["hash"], common_parent_span),
             op="db",
             desc=db_span["description"],
-            type=PerformanceNPlusOneExperimentalGroupType,
+            type=PerformanceNPlusOneGroupType,
             parent_span_ids=[common_parent_span["span_id"]],
             cause_span_ids=db_span_ids,
             offender_span_ids=offender_span_ids,
@@ -369,7 +369,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
         full_fingerprint = hashlib.sha1(
             (parent_op + parent_hash + db_hash).encode("utf8")
         ).hexdigest()
-        return f"1-{PerformanceMNPlusOneDBQueriesExperimentalGroupType.type_id}-{full_fingerprint}"
+        return f"1-{PerformanceMNPlusOneDBQueriesGroupType.type_id}-{full_fingerprint}"
 
 
 class MNPlusOneDBSpanExperimentalDetector(PerformanceDetector):
@@ -403,7 +403,7 @@ class MNPlusOneDBSpanExperimentalDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        return True
+        return features.has("organizations:experimental-mn-plus-one-detector-rollout", organization)
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]

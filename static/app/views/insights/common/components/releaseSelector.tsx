@@ -110,7 +110,6 @@ function ReleaseSelector({
         title: triggerLabel,
         prefix: triggerLabelPrefix,
       }}
-      triggerLabel={triggerLabel}
       menuTitle={t('Filter Release')}
       loading={isLoading}
       searchable

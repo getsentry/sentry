@@ -4,7 +4,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from arroyo.backends.kafka import KafkaPayload
 from django.conf import settings
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.monitors_clock_tick_v1 import ClockTick
@@ -12,7 +12,7 @@ from sentry_kafka_schemas.schema_types.monitors_clock_tick_v1 import ClockTick
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.utils import metrics, redis
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.kafka_config import get_topic_definition
 
 logger = logging.getLogger("sentry")
 
@@ -33,22 +33,11 @@ def _int_or_none(s: str | None) -> int | None:
 
 
 def _get_producer():
-    producer = get_arroyo_producer(
+    return get_arroyo_producer(
         name="sentry.monitors.clock_dispatch",
         topic=Topic.MONITORS_CLOCK_TICK,
         exclude_config_keys=["compression.type", "message.max.bytes"],
     )
-
-    # Fallback to legacy producer creation if not rolled out
-    if producer is None:
-        cluster_name = get_topic_definition(Topic.MONITORS_CLOCK_TICK)["cluster"]
-        producer_config = get_kafka_producer_cluster_options(cluster_name)
-        producer_config.pop("compression.type", None)
-        producer_config.pop("message.max.bytes", None)
-        producer_config["client.id"] = "sentry.monitors.clock_dispatch"
-        producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
-
-    return producer
 
 
 _clock_tick_producer = SingletonProducer(_get_producer)
@@ -62,12 +51,12 @@ def _dispatch_tick(ts: datetime):
     allows the monitor tasks to be synchronized to any backlog of check-ins
     that are being processed.
 
-    To ensure these tasks are always triggered there is an additional celery
-    beat task that produces a clock pulse message into the topic that can be
+    To ensure these tasks are always triggered there is an additional scheduled
+    task that produces a clock pulse message into the topic that can be
     used to trigger these tasks when there is a low volume of check-ins. It is
     however, preferred to have a high volume of check-ins, so we do not need to
-    rely on celery beat, which in some cases may fail to trigger (such as in
-    sentry.io, when we deploy we restart the celery beat worker and it will
+    rely on scheduled tasks, which in some cases may fail to trigger (such as in
+    sentry.io, when we deploy we restart the task-scheduler and it will
     skip any tasks it missed)
     """
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
@@ -152,7 +141,7 @@ def try_monitor_clock_tick(ts: datetime, partition: int):
     # slowed down too much and is missing a minutes worth of check-ins
     if last_ts is not None and slowest_part_ts > last_ts + 60:
         # We only want to do backfills when we're using the clock tick
-        # consumer, otherwise the celery tasks may process out of order
+        # consumer, otherwise tasks may process out of order
         backfill_tick = datetime.fromtimestamp(last_ts + 60, tz=timezone.utc)
         while backfill_tick < tick:
             extra = {"reference_datetime": str(backfill_tick)}

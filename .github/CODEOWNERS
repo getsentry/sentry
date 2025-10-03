@@ -71,6 +71,7 @@
 /config/hooks/                                           @getsentry/owners-sentry-dev
 /scripts/                                                @getsentry/owners-sentry-dev
 /tools/                                                  @getsentry/owners-sentry-dev
+/src/flagpole/                                           @getsentry/owners-sentry-dev @getsentry/dev-infra
 Makefile                                                 @getsentry/owners-sentry-dev @getsentry/dev-infra
 .envrc                                                   @getsentry/owners-sentry-dev @getsentry/dev-infra
 .pre-commit-config.yaml                                  @getsentry/owners-sentry-dev @getsentry/dev-infra
@@ -346,8 +347,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 ## End of DevToolbar
 
 ## Codecov Merge UX
-/static/app/components/codecov/  @getsentry/codecov-merge-ux
-/static/app/views/codecov/       @getsentry/codecov-merge-ux
+/static/app/components/codecov/  @getsentry/codecov-merge
+/static/app/views/codecov/       @getsentry/codecov-merge
 ## End of Codecov Merge UX
 
 /src/sentry/codecov/ @getsentry/codecov
@@ -386,6 +387,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/pipeline/                                                @getsentry/ecosystem
 /src/sentry/plugins/                                                 @getsentry/ecosystem
 /src/sentry/shared_integrations/                                     @getsentry/ecosystem
+/src/sentry/workflow_engine/tasks/actions.py                         @getsentry/ecosystem
 
 /src/sentry/users/models/identity.py                                 @getsentry/enterprise
 
@@ -495,6 +497,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/tasks/ai_agent_monitoring.py                                         @getsentry/telemetry-experience
 /tests/sentry/tasks/test_ai_agent_monitoring.py                                  @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
+/static/app/components/onboarding/                                               @getsentry/telemetry-experience
 /static/app/data/platformCategories.tsx                                          @getsentry/telemetry-experience
 /static/app/data/platformPickerCategories.tsx                                    @getsentry/telemetry-experience
 /static/app/data/platforms.tsx                                                   @getsentry/telemetry-experience
@@ -678,4 +681,5 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/stories/                                  @getsentry/design-engineering
 /static/.cursor/BUGBOT.md                             @getsentry/design-engineering
 /static/CLAUDE.md                                     @getsentry/design-engineering
+/scripts/analyze-styled.ts                            @getsentry/design-engineering
 ## End of Frontend Platform

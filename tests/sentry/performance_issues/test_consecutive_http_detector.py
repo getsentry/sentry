@@ -36,7 +36,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def create_issue_spans(self, span_duration=2000) -> list[Span]:
+    def create_issue_spans(self, span_duration: int = 2000) -> list[Span]:
         spans = [
             create_span(
                 "http.client", span_duration, "GET /api/0/organizations/endpoint1", "hash1"
@@ -54,7 +54,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
 
         return spans
 
-    def create_issue_event(self, span_duration=2000):
+    def create_issue_event(self, span_duration: int = 2000) -> dict[str, Any]:
         spans = self.create_issue_spans(span_duration)
         return create_event(spans)
 
@@ -392,4 +392,32 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
         ]
         spans = [modify_span_start(span, span_duration * spans.index(span)) for span in spans]
         problems = self.find_problems(create_event(spans))
+        assert len(problems) == 0
+
+    def test_ignores_http_spans_with_gen_ai_parent(self) -> None:
+        """Test that HTTP spans with gen_ai.chat parent spans are ignored."""
+        span_duration = 2000
+
+        # Create a gen_ai.chat span first
+        gen_ai_span = create_span("gen_ai.chat", 1000, "AI Chat", "gen_ai_hash")
+        gen_ai_span_id = gen_ai_span["span_id"]
+
+        # Create HTTP spans that are children of the gen_ai span
+        http_spans = [
+            create_span("http.client", span_duration, "GET /api/endpoint1", "hash1"),
+            create_span("http.client", span_duration, "GET /api/endpoint2", "hash2"),
+            create_span("http.client", span_duration, "GET /api/endpoint3", "hash3"),
+        ]
+
+        # Set the parent_span_id to the gen_ai span
+        for span in http_spans:
+            span["parent_span_id"] = gen_ai_span_id
+
+        # Ensure spans don't overlap
+        all_spans = [gen_ai_span] + http_spans
+        all_spans = [
+            modify_span_start(span, span_duration * all_spans.index(span)) for span in all_spans
+        ]
+
+        problems = self.find_problems(create_event(all_spans))
         assert len(problems) == 0

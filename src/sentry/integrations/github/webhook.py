@@ -35,7 +35,7 @@ from sentry.integrations.utils.metrics import IntegrationWebhookEvent, Integrati
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
@@ -44,6 +44,7 @@ from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
 )
+from sentry.releases.commits import bulk_create_commit_file_changes, create_commit
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.service import user_service
@@ -51,6 +52,7 @@ from sentry.utils import metrics
 
 from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
+from .tasks.codecov_account_unlink import codecov_account_unlink
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -292,6 +294,21 @@ class InstallationEventWebhook(GitHubWebhook):
                 integration_id=integration.id,
             )
 
+        github_app_id = event["installation"].get("app_id")
+        SENTRY_GITHUB_APP_ID = options.get("github-app.id")
+
+        if (
+            github_app_id
+            and SENTRY_GITHUB_APP_ID
+            and str(github_app_id) == str(SENTRY_GITHUB_APP_ID)
+        ):
+            codecov_account_unlink.apply_async(
+                kwargs={
+                    "integration_id": integration.id,
+                    "organization_ids": list(org_ids),
+                }
+            )
+
 
 class PushEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pushevent"""
@@ -424,9 +441,9 @@ class PushEventWebhook(GitHubWebhook):
                 author.preload_users()
             try:
                 with transaction.atomic(router.db_for_write(Commit)):
-                    c = Commit.objects.create(
-                        repository_id=repo.id,
-                        organization_id=organization.id,
+                    c, _ = create_commit(
+                        organization=organization,
+                        repo_id=repo.id,
                         key=commit["id"],
                         message=commit["message"],
                         author=author,
@@ -440,7 +457,7 @@ class PushEventWebhook(GitHubWebhook):
                         file_changes.append(
                             CommitFileChange(
                                 organization_id=organization.id,
-                                commit=c,
+                                commit_id=c.id,
                                 filename=fname,
                                 type="A",
                             )
@@ -451,7 +468,7 @@ class PushEventWebhook(GitHubWebhook):
                         file_changes.append(
                             CommitFileChange(
                                 organization_id=organization.id,
-                                commit=c,
+                                commit_id=c.id,
                                 filename=fname,
                                 type="D",
                             )
@@ -462,14 +479,15 @@ class PushEventWebhook(GitHubWebhook):
                         file_changes.append(
                             CommitFileChange(
                                 organization_id=organization.id,
-                                commit=c,
+                                commit_id=c.id,
                                 filename=fname,
                                 type="M",
                             )
                         )
 
                     if file_changes:
-                        CommitFileChange.objects.bulk_create(file_changes)
+                        bulk_create_commit_file_changes(file_changes)
+                        post_bulk_create(file_changes)
 
             except IntegrityError:
                 pass

@@ -39,6 +39,7 @@ from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
+from sentry.quotas.base import RETENTIONS_CONFIG_MAPPING
 from sentry.relay.config.experimental import TimeChecker, add_experimental_config
 from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
@@ -69,8 +70,10 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-addons",
     "organizations:indexed-spans-extraction",
-    "projects:relay-otel-endpoint",
+    "organizations:relay-otlp-traces-endpoint",
+    "organizations:relay-otel-logs-endpoint",
     "organizations:ourlogs-ingestion",
+    "organizations:tracemetrics-ingestion",
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",
     "organizations:relay-playstation-ingestion",
@@ -1156,6 +1159,14 @@ def _get_project_config(
         )
         if downsampled_event_retention is not None:
             config["downsampledEventRetention"] = downsampled_event_retention
+    with sentry_sdk.start_span(op="get_retentions"):
+        retentions = quotas.backend.get_retentions(project.organization)
+        config["retentions"] = {
+            RETENTIONS_CONFIG_MAPPING[c]: v.to_object()
+            for c, v in retentions.items()
+            if c in RETENTIONS_CONFIG_MAPPING
+        }
+
     with sentry_sdk.start_span(op="get_all_quotas"):
         if quotas_config := get_quotas(project, keys=project_keys):
             config["quotas"] = quotas_config

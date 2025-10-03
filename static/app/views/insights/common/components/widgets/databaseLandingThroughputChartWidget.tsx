@@ -23,7 +23,7 @@ export default function DatabaseLandingThroughputChartWidget(
       queryInfo={{search, referrer}}
       id="databaseLandingThroughputChartWidget"
       title={getThroughputChartTitle('db')}
-      series={[data['epm()']]}
+      timeSeries={data?.timeSeries}
       isLoading={isPending}
       error={error}
     />

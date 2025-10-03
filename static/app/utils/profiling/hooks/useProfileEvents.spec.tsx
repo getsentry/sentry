@@ -1,23 +1,10 @@
-import type {ReactNode} from 'react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-
-const {organization} = initializeOrg();
-function TestContext({children}: {children?: ReactNode}) {
-  return (
-    <QueryClientProvider client={makeTestQueryClient()}>
-      <OrganizationContext value={organization}>{children}</OrganizationContext>
-    </QueryClientProvider>
-  );
-}
 
 describe('useProfileEvents', () => {
   afterEach(() => {
@@ -25,17 +12,7 @@ describe('useProfileEvents', () => {
   });
 
   it('handles querying the api using discover', async () => {
-    const {organization: organizationUsingTransactions} = initializeOrg();
-
-    function TestContextUsingTransactions({children}: {children?: ReactNode}) {
-      return (
-        <QueryClientProvider client={makeTestQueryClient()}>
-          <OrganizationContext value={organizationUsingTransactions}>
-            {children}
-          </OrganizationContext>
-        </QueryClientProvider>
-      );
-    }
+    const organizationUsingTransactions = OrganizationFixture();
 
     const fields = ['count()'];
 
@@ -45,7 +22,7 @@ describe('useProfileEvents', () => {
     };
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
+      url: `/organizations/${organizationUsingTransactions.slug}/events/`,
       body,
       match: [
         MockApiClient.matchQuery({
@@ -55,8 +32,8 @@ describe('useProfileEvents', () => {
       ],
     });
 
-    const {result} = renderHook(useProfileEvents, {
-      wrapper: TestContextUsingTransactions,
+    const {result} = renderHookWithProviders(useProfileEvents, {
+      organization: organizationUsingTransactions,
       initialProps: {
         fields,
         query: 'transaction:foo',
@@ -70,6 +47,7 @@ describe('useProfileEvents', () => {
   });
 
   it('handles api errors', async () => {
+    const organization = OrganizationFixture();
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
     MockApiClient.addMockResponse({
@@ -79,8 +57,7 @@ describe('useProfileEvents', () => {
       match: [MockApiClient.matchQuery({dataset: 'discover'})],
     });
 
-    const {result} = renderHook(useProfileEvents, {
-      wrapper: TestContext,
+    const {result} = renderHookWithProviders(useProfileEvents, {
       initialProps: {
         fields: ['count()'],
         sort: {key: 'count()', order: 'desc' as const},

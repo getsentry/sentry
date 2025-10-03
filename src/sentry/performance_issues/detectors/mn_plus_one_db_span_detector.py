@@ -6,6 +6,7 @@ from collections import deque
 from collections.abc import Sequence
 from typing import Any
 
+from sentry import features
 from sentry.issues.grouptype import (
     PerformanceMNPlusOneDBQueriesGroupType,
     PerformanceNPlusOneGroupType,
@@ -14,9 +15,8 @@ from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
-from ..base import (
-    DetectorType,
-    PerformanceDetector,
+from ..base import DetectorType, PerformanceDetector
+from ..detectors.utils import (
     get_notification_attachment_body,
     get_span_evidence_value,
     total_span_time,
@@ -274,7 +274,9 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
         self.state: MNPlusOneState = SearchingForMNPlusOne(self.settings, self.event())
 
     def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        return True
+        return not features.has(
+            "organizations:experimental-mn-plus-one-detector-rollout", organization
+        )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]

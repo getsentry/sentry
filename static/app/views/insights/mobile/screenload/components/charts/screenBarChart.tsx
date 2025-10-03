@@ -164,7 +164,7 @@ export function ScreensBarChart({
             <ChartActionDropdown
               chartType={ChartType.LINE}
               yAxes={[breakdownMetric]}
-              groupBy={[...groupBy]}
+              groupBy={[...groupBy] as SpanFields[]}
               title={title}
               search={search}
               referrer={referrer}

@@ -230,14 +230,12 @@ export function ScreenLoadSpansContent() {
               </React.Fragment>
             ) : (
               <SampleContainerItem>
-                {primaryRelease !== undefined && (
-                  <ScreenLoadEventSamples
-                    release={primaryRelease}
-                    sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
-                    cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
-                    transaction={transactionName}
-                  />
-                )}
+                <ScreenLoadEventSamples
+                  release={primaryRelease}
+                  sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
+                  cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
+                  transaction={transactionName}
+                />
               </SampleContainerItem>
             )}
           </SampleContainer>

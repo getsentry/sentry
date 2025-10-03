@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -28,7 +28,6 @@ import {
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
-import {useLogsSearch} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {
   ChartIntervalUnspecifiedStrategy,
@@ -40,8 +39,10 @@ import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
   useQueryParamsMode,
+  useQueryParamsSearch,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
+  useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
@@ -61,12 +62,41 @@ interface LogsGraphProps {
 
 export function LogsGraph({timeseriesResult}: LogsGraphProps) {
   const visualizes = useQueryParamsVisualizes();
+  const setVisualizes = useSetQueryParamsVisualizes();
+
+  function handleChartTypeChange(index: number, chartType: ChartType) {
+    const newVisualizes = visualizes.map((visualize, i) => {
+      if (i === index) {
+        visualize = visualize.replace({chartType});
+      }
+      return visualize.serialize();
+    });
+    setVisualizes(newVisualizes);
+  }
+
+  function handleChartVisibilityChange(index: number, visible: boolean) {
+    const newVisualizes = visualizes.map((visualize, i) => {
+      if (i === index) {
+        visualize = visualize.replace({visible});
+      }
+      return visualize.serialize();
+    });
+    setVisualizes(newVisualizes);
+  }
 
   return (
     <Fragment>
       {visualizes.map((visualize, index) => {
         return (
-          <Graph key={index} visualize={visualize} timeseriesResult={timeseriesResult} />
+          <Graph
+            key={index}
+            visualize={visualize}
+            timeseriesResult={timeseriesResult}
+            onChartTypeChange={chartType => handleChartTypeChange(index, chartType)}
+            onChartVisibilityChange={visible =>
+              handleChartVisibilityChange(index, visible)
+            }
+          />
         );
       })}
     </Fragment>
@@ -74,15 +104,20 @@ export function LogsGraph({timeseriesResult}: LogsGraphProps) {
 }
 
 interface GraphProps extends LogsGraphProps {
+  onChartTypeChange: (chartType: ChartType) => void;
+  onChartVisibilityChange: (visible: boolean) => void;
   visualize: Visualize;
 }
 
-function Graph({timeseriesResult, visualize}: GraphProps) {
+function Graph({
+  onChartTypeChange,
+  onChartVisibilityChange,
+  timeseriesResult,
+  visualize,
+}: GraphProps) {
   const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
 
-  const [visible, setVisible] = useState(true);
-  const [chartType, setChartType] = useState<ChartType>(ChartType.BAR);
   const [interval, setInterval, intervalOptions] = useChartInterval({
     unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
   });
@@ -92,7 +127,7 @@ function Graph({timeseriesResult, visualize}: GraphProps) {
     const isTopEvents = defined(topEventsLimit);
     const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopEvents);
     return {
-      chartType,
+      chartType: visualize.chartType,
       series,
       timeseriesResult,
       yAxis: aggregate,
@@ -103,14 +138,18 @@ function Graph({timeseriesResult, visualize}: GraphProps) {
       samplingMode: undefined,
       topEvents: isTopEvents ? TOP_EVENTS_LIMIT : undefined,
     };
-  }, [chartType, timeseriesResult, aggregate, topEventsLimit]);
+  }, [visualize.chartType, timeseriesResult, aggregate, topEventsLimit]);
 
   const Title = (
     <Widget.WidgetTitle title={prettifyAggregation(aggregate) ?? aggregate} />
   );
 
   const chartIcon =
-    chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
+    visualize.chartType === ChartType.LINE
+      ? 'line'
+      : visualize.chartType === ChartType.AREA
+        ? 'area'
+        : 'bar';
 
   const Actions = (
     <Fragment>
@@ -122,10 +161,10 @@ function Graph({timeseriesResult, visualize}: GraphProps) {
             showChevron: false,
             size: 'xs',
           }}
-          value={chartType}
+          value={visualize.chartType}
           menuTitle="Type"
           options={EXPLORE_CHART_TYPE_OPTIONS}
-          onChange={option => setChartType(option.value)}
+          onChange={option => onChartTypeChange(option.value)}
         />
       </Tooltip>
       <Tooltip title={t('Time interval displayed in this visualization (ex. 5m)')}>
@@ -145,8 +184,8 @@ function Graph({timeseriesResult, visualize}: GraphProps) {
       <ContextMenu
         interval={interval}
         visualize={visualize}
-        visible={visible}
-        setVisible={setVisible}
+        visible={visualize.visible}
+        setVisible={onChartVisibilityChange}
       />
     </Fragment>
   );
@@ -155,16 +194,16 @@ function Graph({timeseriesResult, visualize}: GraphProps) {
     <Widget
       Title={Title}
       Actions={Actions}
-      Visualization={visible && <ChartVisualization chartInfo={chartInfo} />}
+      Visualization={visualize.visible && <ChartVisualization chartInfo={chartInfo} />}
       Footer={
-        visible && (
+        visualize.visible && (
           <ConfidenceFooter
             chartInfo={chartInfo}
             isLoading={timeseriesResult.isLoading}
           />
         )
       }
-      height={visible ? 200 : 50}
+      height={visualize.visible ? 200 : 50}
       revealActions="always"
     />
   );
@@ -188,7 +227,7 @@ function ContextMenu({
   const pageFilters = usePageFilters();
 
   const mode = useQueryParamsMode();
-  const search = useLogsSearch();
+  const search = useQueryParamsSearch();
   const aggregateFields = useQueryParamsAggregateFields();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
 

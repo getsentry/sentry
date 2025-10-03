@@ -1,7 +1,6 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -14,7 +13,6 @@ import {
 
 import * as modal from 'sentry/actionCreators/modal';
 import * as LineChart from 'sentry/components/charts/lineChart';
-import {DatasetSource} from 'sentry/utils/discover/types';
 import {MINUTE, SECOND} from 'sentry/utils/formatters';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {Widget} from 'sentry/views/dashboards/types';
@@ -166,7 +164,7 @@ describe('Dashboards > WidgetCard', () => {
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
+      '/organizations/org-slug/explore/discover/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
   });
 
@@ -225,7 +223,7 @@ describe('Dashboards > WidgetCard', () => {
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?environment=prod&field=count_if%28transaction.duration%2Cequals%2C300%29&field=failure_count%28%29&field=count%28%29&field=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29'
+      '/organizations/org-slug/explore/discover/results/?environment=prod&field=count_if%28transaction.duration%2Cequals%2C300%29&field=failure_count%28%29&field=count%28%29&field=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29'
     );
   });
 
@@ -260,7 +258,7 @@ describe('Dashboards > WidgetCard', () => {
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29'
+      '/organizations/org-slug/explore/discover/results/?display=top5&environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29'
     );
   });
 
@@ -296,7 +294,7 @@ describe('Dashboards > WidgetCard', () => {
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?environment=prod&field=p99%28measurements.custom.measurement%29&name=Errors&project=1&query=&queryDataset=error-events&statsPeriod=14d&yAxis=p99%28measurements.custom.measurement%29'
+      '/organizations/org-slug/explore/discover/results/?environment=prod&field=p99%28measurements.custom.measurement%29&name=Errors&project=1&query=&queryDataset=error-events&statsPeriod=14d&yAxis=p99%28measurements.custom.measurement%29'
     );
   });
 
@@ -807,37 +805,5 @@ describe('Dashboards > WidgetCard', () => {
     );
 
     expect(await screen.findByText('Indexed')).toBeInTheDocument();
-  });
-
-  it('displays the discover split warning icon when the dataset source is forced', async () => {
-    const testWidget = {
-      ...WidgetFixture(),
-      datasetSource: DatasetSource.FORCED,
-      widgetType: WidgetType.ERRORS,
-    };
-
-    renderWithProviders(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={testWidget}
-        selection={selection}
-        isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        showContextMenu
-        widgetLimitReached={false}
-        isPreview
-        widgetLegendState={widgetLegendState}
-      />
-    );
-
-    await userEvent.hover(screen.getByLabelText('Widget warnings'));
-
-    expect(
-      await screen.findByText(/We're splitting our datasets up/)
-    ).toBeInTheDocument();
   });
 });

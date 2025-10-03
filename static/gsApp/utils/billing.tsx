@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
-import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
+import {IconBuilding, IconGroup, IconPrevent, IconSeer, IconUser} from 'sentry/icons';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -18,19 +18,27 @@ import {
   UNLIMITED,
   UNLIMITED_RESERVED,
 } from 'getsentry/constants';
-import type {
-  BillingConfig,
-  BillingMetricHistory,
-  BillingStatTotal,
-  EventBucket,
-  Plan,
-  ProductTrial,
-  Subscription,
+import {
+  AddOnCategory,
+  OnDemandBudgetMode,
+  PlanName,
+  PlanTier,
+  ReservedBudgetCategoryType,
+  type BillingConfig,
+  type BillingDetails,
+  type BillingMetricHistory,
+  type BillingStatTotal,
+  type EventBucket,
+  type Plan,
+  type ProductTrial,
+  type Subscription,
 } from 'getsentry/types';
-import {OnDemandBudgetMode, PlanName, PlanTier} from 'getsentry/types';
-import {isByteCategory, isContinuousProfiling} from 'getsentry/utils/dataCategory';
+import {
+  getCategoryInfoFromPlural,
+  isByteCategory,
+  isContinuousProfiling,
+} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
-import {SelectableProduct} from 'getsentry/views/amCheckout/types';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 export const MILLISECONDS_IN_HOUR = 3600_000;
@@ -150,7 +158,11 @@ export function formatReservedWithUnits(
     return options.isGifted ? '0 GB' : UNLIMITED;
   }
   if (!options.useUnitScaling) {
-    const formatted = formatReservedNumberToString(reservedQuantity, options);
+    const byteOptions =
+      dataCategory === DataCategory.LOG_BYTE
+        ? {...options, isAbbreviated: false}
+        : options;
+    const formatted = formatReservedNumberToString(reservedQuantity, byteOptions);
     return `${formatted} GB`;
   }
 
@@ -307,6 +319,14 @@ export const hasPartnerMigrationFeature = (organization: Organization) =>
 export const hasActiveVCFeature = (organization: Organization) =>
   organization.features.includes('vc-marketplace-active-customer');
 
+// TODO(isabella): clean this up after GA
+export const hasNewBillingUI = (organization: Organization) =>
+  organization.features.includes('subscriptions-v3');
+
+// TODO(isabella): clean this up after GA
+export const hasStripeComponentsFeature = (organization: Organization) =>
+  organization.features.includes('stripe-components');
+
 export const isDeveloperPlan = (plan?: Plan) => plan?.name === PlanName.DEVELOPER;
 
 export const isBizPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.BUSINESS);
@@ -357,7 +377,7 @@ export const displayBudgetName = (
     withBudget?: boolean;
   } = {}
 ) => {
-  const budgetTerm = plan?.budgetTerm ?? 'on-demand';
+  const budgetTerm = plan?.budgetTerm ?? 'pay-as-you-go';
   const text = `${budgetTerm}${options.withBudget ? ' budget' : ''}`;
   if (options.title) {
     if (budgetTerm === 'on-demand') {
@@ -391,9 +411,11 @@ export const getOnDemandCategories = ({
 }) => {
   if (budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
     return plan.onDemandCategories.filter(category => {
-      return Object.values(plan.availableReservedBudgetTypes).every(
-        budgetType => !budgetType.dataCategories.includes(category)
-      );
+      const categoryInfo = getCategoryInfoFromPlural(category);
+      if (!categoryInfo) {
+        return false;
+      }
+      return categoryInfo.hasPerCategory;
     });
   }
 
@@ -554,10 +576,12 @@ export function getPlanIcon(plan: Plan) {
   return <IconUser />;
 }
 
-export function getProductIcon(product: SelectableProduct, size?: IconSize) {
+export function getProductIcon(product: AddOnCategory, size?: IconSize) {
   switch (product) {
-    case SelectableProduct.SEER:
+    case AddOnCategory.SEER:
       return <IconSeer size={size} />;
+    case AddOnCategory.PREVENT:
+      return <IconPrevent size={size} />;
     default:
       return null;
   }
@@ -699,5 +723,32 @@ export function partnerPlanEndingModalIsDismissed(
       return lastDaysLeft <= 30 && lastDaysLeft > 7;
     default:
       return true;
+  }
+}
+
+/**
+ * Returns true if some billing details are set.
+ */
+export function hasSomeBillingDetails(billingDetails: BillingDetails | undefined) {
+  if (!billingDetails) {
+    return false;
+  }
+  return (
+    billingDetails &&
+    Object.entries(billingDetails)
+      .filter(
+        ([key, _]) =>
+          key !== 'billingEmail' && key !== 'companyName' && key !== 'taxNumber'
+      )
+      .some(([_, value]) => defined(value))
+  );
+}
+
+export function getReservedBudgetCategoryForAddOn(addOnCategory: AddOnCategory) {
+  switch (addOnCategory) {
+    case AddOnCategory.SEER:
+      return ReservedBudgetCategoryType.SEER;
+    default:
+      return null;
   }
 }

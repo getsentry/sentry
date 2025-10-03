@@ -2,6 +2,7 @@ import 'echarts/lib/component/grid';
 import 'echarts/lib/component/graphic';
 import 'echarts/lib/component/toolbox';
 import 'echarts/lib/component/brush';
+import 'echarts/theme/v5.js';
 import 'zrender/lib/svg/svg';
 
 import {useId, useMemo} from 'react';
@@ -37,9 +38,9 @@ import type {
   EChartClickHandler,
   EChartDataZoomHandler,
   EChartDownplayHandler,
-  EChartEventHandler,
   EChartFinishedHandler,
   EChartHighlightHandler,
+  EChartLegendSelectChangeHandler,
   EChartMouseOutHandler,
   EChartMouseOverHandler,
   EChartRenderedHandler,
@@ -110,6 +111,7 @@ export interface TooltipOption
     bucketSize: number | undefined,
     seriesParamsOrParam: TooltipComponentFormatterCallbackParams
   ) => string;
+  formatter?: TooltipComponentOption['formatter'];
   markerFormatter?: (marker: string, label?: string) => string;
   nameFormatter?: (name: string, seriesParams?: CallbackDataParams) => string;
   /**
@@ -217,11 +219,7 @@ export interface BaseChartProps {
   onDownplay?: EChartDownplayHandler;
   onFinished?: EChartFinishedHandler;
   onHighlight?: EChartHighlightHandler;
-  onLegendSelectChanged?: EChartEventHandler<{
-    name: string;
-    selected: Record<string, boolean>;
-    type: 'legendselectchanged';
-  }>;
+  onLegendSelectChanged?: EChartLegendSelectChangeHandler;
   onMouseOut?: EChartMouseOutHandler;
   onMouseOver?: EChartMouseOverHandler;
   onRendered?: EChartRenderedHandler;
@@ -416,7 +414,7 @@ function BaseChart({
       (hasSinglePoints && transformSinglePointToBar
         ? (series as LineSeriesOption[] | undefined)?.map(s => ({
             ...s,
-            type: 'bar',
+            type: 'bar' as const,
             barWidth: 40,
             barGap: 0,
             itemStyle: {...s.areaStyle},
@@ -424,7 +422,7 @@ function BaseChart({
         : hasSinglePoints && transformSinglePointToLine
           ? (series as LineSeriesOption[] | undefined)?.map(s => ({
               ...s,
-              type: 'line',
+              type: 'line' as const,
               itemStyle: {...s.lineStyle},
               markLine:
                 (s?.data?.[0] as any)?.[1] === undefined
@@ -567,7 +565,7 @@ function BaseChart({
     return {
       ...options,
       useUTC: utc,
-      color,
+      color: color as string[],
       grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
       tooltip: tooltipOrNone,
       legend: legend ? Legend({theme, ...legend}) : undefined,
@@ -690,7 +688,7 @@ function BaseChart({
         echarts={echarts}
         notMerge={notMerge}
         lazyUpdate={lazyUpdate}
-        theme={echartsTheme}
+        theme={echartsTheme ?? 'v5'}
         onChartReady={onChartReady}
         onEvents={eventsMap}
         style={chartStyles}

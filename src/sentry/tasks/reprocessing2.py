@@ -17,7 +17,7 @@ from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
-from sentry.utils.query import CeleryBulkQueryState, celery_run_batch_query
+from sentry.utils.query import TaskBulkQueryState, task_run_batch_query
 
 
 @instrumented_task(
@@ -36,7 +36,7 @@ def reprocess_group(
     group_id: int,
     remaining_events: str = "delete",
     new_group_id: int | None = None,
-    query_state: CeleryBulkQueryState | None = None,
+    query_state: TaskBulkQueryState | None = None,
     start_time: float | None = None,
     max_events: int | None = None,
     acting_user_id: int | None = None,
@@ -70,7 +70,7 @@ def reprocess_group(
 
     assert new_group_id is not None
 
-    query_state, events = celery_run_batch_query(
+    query_state, events = task_run_batch_query(
         filter=eventstore.Filter(project_ids=[project_id], group_ids=[group_id]),
         batch_size=settings.SENTRY_REPROCESSING_PAGE_SIZE,
         state=query_state,

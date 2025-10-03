@@ -5,6 +5,8 @@ import orjson
 import pytest
 from django.contrib.auth.models import AnonymousUser
 
+from sentry.issues.grouptype import WebVitalsGroup
+from sentry.issues.ingest import save_issue_occurrence
 from sentry.seer.autofix.autofix import (
     TIMEOUT_SECONDS,
     _call_autofix,
@@ -21,6 +23,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class TestConvertProfileToExecutionTree(TestCase):
@@ -722,12 +725,13 @@ class TestGetAllTagsOverview(TestCase, SnubaTestCase):
 @pytest.mark.django_db
 @with_feature("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
-class TestTriggerAutofix(APITestCase, SnubaTestCase):
+class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     def setUp(self) -> None:
         super().setUp()
 
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
 
+    @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.seer.autofix.autofix._get_all_tags_overview")
     @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
@@ -740,6 +744,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
         mock_get_trace,
         mock_get_profile,
         mock_get_tags,
+        mock_record_seer_run,
         mock_get_seer_org_acknowledgement,
     ):
         """Tests triggering autofix with a specified event_id."""
@@ -781,6 +786,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
 
         # Verify the function calls
         mock_call.assert_called_once()
+        mock_record_seer_run.assert_called_once()
         call_kwargs = mock_call.call_args.kwargs
         assert call_kwargs["user"] == test_user
         assert call_kwargs["group"] == group
@@ -826,6 +832,58 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
         )
         # Verify _get_serialized_event was not called since we have no event
         mock_get_serialized_event.assert_not_called()
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.seer.autofix.autofix._get_all_tags_overview")
+    @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
+    @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.autofix._call_autofix")
+    @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
+    def test_trigger_autofix_with_web_vitals_issue(
+        self,
+        mock_check_autofix_status,
+        mock_call,
+        mock_get_trace,
+        mock_get_profile,
+        mock_get_tags,
+        mock_record_seer_run,
+        mock_get_seer_org_acknowledgement,
+    ):
+        """Tests triggering autofix with a web vitals issue."""
+        # Setup test data
+        mock_get_profile.return_value = {"profile_data": "test"}
+        mock_get_trace.return_value = {"trace_data": "test"}
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+
+        # Create an event
+        data = load_data("javascript", timestamp=before_now(minutes=1))
+        event = self.store_event(data=data, project_id=self.project.id)
+        # Create an occurrence to obtain a WebVitalsGroup group
+        occurrence_data = self.build_occurrence_data(
+            event_id=event.event_id,
+            project_id=self.project.id,
+            type=WebVitalsGroup.type_id,
+            issue_title="LCP score needs improvement",
+            subtitle="/test-transaction has an LCP score of 75",
+            culprit="/test-transaction",
+            evidence_data={
+                "transaction": "/test-transaction",
+                "vital": "lcp",
+                "score": 75,
+                "trace_id": "1234567890",
+            },
+            level="info",
+        )
+
+        _, group_info = save_issue_occurrence(occurrence_data, event)
+        assert group_info is not None
+        group = group_info.group
+
+        user = Mock(spec=AnonymousUser)
+
+        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
+        assert response.status_code == 202
+        mock_record_seer_run.assert_not_called()
 
 
 @requires_snuba

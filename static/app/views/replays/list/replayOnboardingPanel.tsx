@@ -14,14 +14,13 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import ReplayUnsupportedAlert from 'sentry/components/replays/alerts/replayUnsupportedAlert';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import PreferencesStore from 'sentry/stores/preferencesStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {useNavContext} from 'sentry/views/nav/context';
 import {HeaderContainer, WidgetContainer} from 'sentry/views/profiling/landing/styles';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
@@ -45,11 +44,11 @@ const OnboardingAlertHook = HookOrDefault({
 });
 
 export default function ReplayOnboardingPanel() {
-  const preferences = useLegacyStore(PreferencesStore);
   const pageFilters = usePageFilters();
   const projects = useProjects();
   const organization = useOrganization();
   const canUserCreateProject = useCanCreateProject();
+  const {isCollapsed} = useNavContext();
 
   const supportedPlatforms = replayPlatforms;
 
@@ -77,7 +76,7 @@ export default function ReplayOnboardingPanel() {
       ? !canUserCreateProject
       : allSelectedProjectsUnsupported && hasSelectedProjects;
 
-  const breakpoints = preferences.collapsed
+  const breakpoints = isCollapsed
     ? {
         sm: '800px',
         md: '992px',

@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from arroyo.backends.kafka import KafkaPayload
 from django.utils.text import get_text_list
 from django.utils.translation import gettext_lazy as _
 from sentry_kafka_schemas.codecs import Codec
@@ -29,7 +29,7 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.utils import get_detector_for_monitor
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.kafka_config import get_topic_definition
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
@@ -42,22 +42,11 @@ MONITORS_INCIDENT_OCCURRENCES: Codec[IncidentOccurrence] = get_topic_codec(
 
 
 def _get_producer():
-    producer = get_arroyo_producer(
+    return get_arroyo_producer(
         name="sentry.monitors.logic.incident_occurrence",
         topic=Topic.MONITORS_INCIDENT_OCCURRENCES,
         exclude_config_keys=["compression.type", "message.max.bytes"],
     )
-
-    # Fallback to legacy producer creation if not rolled out
-    if producer is None:
-        cluster_name = get_topic_definition(Topic.MONITORS_INCIDENT_OCCURRENCES)["cluster"]
-        producer_config = get_kafka_producer_cluster_options(cluster_name)
-        producer_config.pop("compression.type", None)
-        producer_config.pop("message.max.bytes", None)
-        producer_config["client.id"] = "sentry.monitors.logic.incident_occurrence"
-        producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
-
-    return producer
 
 
 _incident_occurrence_producer = SingletonProducer(_get_producer)
@@ -188,7 +177,7 @@ def send_incident_occurrence(
         ],
         evidence_data=evidence_data,
         culprit="",
-        detection_time=current_timestamp,
+        detection_time=failed_checkin.date_added,
         level="error",
         assignee=monitor_env.monitor.owner_actor,
     )
@@ -291,6 +280,7 @@ def resolve_incident_group(incident: MonitorIncident, project_id: int) -> None:
         project_id=project_id,
         new_status=GroupStatus.RESOLVED,
         new_substatus=None,
+        update_date=incident.resolving_timestamp,
     )
     produce_occurrence_to_kafka(
         payload_type=PayloadType.STATUS_CHANGE,

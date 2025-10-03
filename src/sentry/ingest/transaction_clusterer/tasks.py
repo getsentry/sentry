@@ -31,7 +31,7 @@ MERGE_THRESHOLD = 200
 #: very low-cardinality or very high-cardinality, so we can use a more aggressive threshold.
 MERGE_THRESHOLD_SPANS = 50
 
-#: Number of projects to process in one celery task
+#: Number of projects to process in one task
 #: The number 100 was chosen at random and might still need tweaking.
 PROJECTS_PER_TASK = 100
 

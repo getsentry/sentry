@@ -17,11 +17,10 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import deletion_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
-from sentry.utils.snuba import bulk_snuba_queries
+from sentry.utils.snuba import UnqualifiedQueryError, bulk_snuba_queries
 
 EVENT_CHUNK_SIZE = 10000
 # https://github.com/getsentry/snuba/blob/54feb15b7575142d4b3af7f50d2c2c865329f2db/snuba/datasets/configuration/issues/storages/search_issues.yaml#L139
@@ -34,20 +33,14 @@ class RetryTask(Exception):
 
 @instrumented_task(
     name="sentry.deletions.tasks.nodestore.delete_events_from_nodestore_and_eventstore",
-    queue="cleanup",
-    default_retry_delay=60 * 5,
-    max_retries=MAX_RETRIES,
-    acks_late=True,
-    silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=deletion_tasks,
-        processing_deadline_duration=60 * 20,
-        retry=Retry(
-            on=(RetryTask,),
-            times=MAX_RETRIES,
-            delay=60 * 5,
-        ),
+    namespace=deletion_tasks,
+    processing_deadline_duration=60 * 20,
+    retry=Retry(
+        on=(RetryTask,),
+        times=MAX_RETRIES,
+        delay=60 * 5,
     ),
+    silo_mode=SiloMode.REGION,
 )
 @retry(exclude=(DeleteAborted,))
 @track_group_async_operation
@@ -55,6 +48,7 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
     organization_id: int,
     project_id: int,
     group_ids: Sequence[int],
+    times_seen: Sequence[int],
     transaction_id: str,
     dataset_str: str,
     referrer: str,
@@ -71,7 +65,8 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
     Args:
         organization_id:        Organization ID for tenant context
         project_id:             Project ID that all groups belong to
-        group_ids:              List of group IDs to delete events for
+        group_ids:              List of group IDs to delete events for (sorted by times_seen & id)
+        times_seen:             List of times_seen for the groups (the caller has to ensure it matches to the group_ids)
         transaction_id:         Unique identifier to help debug deletion tasks
         dataset_str:            Dataset string to delete events from
         referrer:               Referrer for the task
@@ -86,6 +81,7 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
         "organization_id": organization_id,
         "project_id": project_id,
         "group_ids": group_ids,
+        "times_seen": times_seen,
         "transaction_id": transaction_id,
         "dataset_str": dataset_str,
         "referrer": referrer,
@@ -125,14 +121,20 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
             # from the nodestore. This is why we only delete from the eventstore once we've deleted
             # from the nodestore.
             delete_events_from_eventstore(
-                organization_id, project_id, group_ids, Dataset(dataset_str)
+                organization_id, project_id, group_ids, times_seen, Dataset(dataset_str)
             )
+    except UnqualifiedQueryError as error:
+        if error.args[0] == "All project_ids from the filter no longer exist":
+            # We currently don't have a way to handle this error, so we just track it and don't retry the task
+            metrics.incr(f"{prefix}.warning", tags={"type": "all-projects-deleted"}, sample_rate=1)
+        else:
+            metrics.incr(f"{prefix}.error", tags={"type": "unqualified-query-error"}, sample_rate=1)
+            # Report to Sentry to investigate
+            raise DeleteAborted(f"{error.args[0]}. We won't retry this task.") from error
 
     # TODO: Add specific error handling for retryable errors and raise RetryTask when appropriate
     except Exception:
-        metrics.incr(f"{prefix}.error", tags={"type": "non-retryable"}, sample_rate=1)
-        # Report to Sentry without blocking deployments
-        logger.warning(f"{prefix}.error", extra=extra, exc_info=True)
+        metrics.incr(f"{prefix}.error", tags={"type": "unhandled-exception"}, sample_rate=1)
         raise DeleteAborted("Failed to delete events from nodestore. We won't retry this task.")
 
 
@@ -189,26 +191,47 @@ def delete_events_from_nodestore(events: Sequence[Event], dataset: Dataset) -> N
 
 
 def delete_events_from_eventstore(
-    organization_id: int, project_id: int, group_ids: Sequence[int], dataset: Dataset
+    organization_id: int,
+    project_id: int,
+    group_ids: Sequence[int],
+    times_seen: Sequence[int],
+    dataset: Dataset,
 ) -> None:
     if dataset == Dataset.IssuePlatform:
-        delete_events_from_eventstore_issue_platform(organization_id, project_id, group_ids)
+        delete_events_from_eventstore_issue_platform(
+            organization_id, project_id, group_ids, times_seen
+        )
     else:
         eventstream_state = eventstream.backend.start_delete_groups(project_id, group_ids)
         eventstream.backend.end_delete_groups(eventstream_state)
 
 
-# Since we now schedule a task to delete events from the eventstore, we are likely
-# to end up with the groups being deleted from the DB, thus, we won't have access
-# to the times_seen field.
-#
-# For now, we will drop the ability to delete groups in batches based on the times_seen field.
-#
-# In the future, we can schedule multiple event deletion tasks taking into account the times_seen field.
 def delete_events_from_eventstore_issue_platform(
-    organization_id: int, project_id: int, group_ids: Sequence[int]
+    organization_id: int, project_id: int, group_ids: Sequence[int], times_seen_list: Sequence[int]
 ) -> None:
-    requests = [delete_request(organization_id, project_id, group_ids)]
+    """
+    When this task executes, the groups will have been deleted from the DB, thus, we won't have access
+    to the times_seen field via the Group model.
+    """
+    requests = []
+    # Split group_ids into batches where the sum of times_seen is less than ISSUE_PLATFORM_MAX_ROWS_TO_DELETE
+    current_batch: list[int] = []
+    current_batch_rows = 0
+
+    for group_id, times_seen in zip(group_ids, times_seen_list):
+        # If adding this group would exceed the limit, create a request with the current batch
+        if current_batch_rows + times_seen > ISSUE_PLATFORM_MAX_ROWS_TO_DELETE:
+            requests.append(delete_request(organization_id, project_id, current_batch))
+            # We now start a new batch
+            current_batch = [group_id]
+            current_batch_rows = times_seen
+        else:
+            current_batch.append(group_id)
+            current_batch_rows += times_seen
+
+    # Add the final batch if it's not empty
+    if current_batch:
+        requests.append(delete_request(organization_id, project_id, current_batch))
     bulk_snuba_queries(requests)
 
 

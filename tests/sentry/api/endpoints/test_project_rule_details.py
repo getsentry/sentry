@@ -9,6 +9,11 @@ import responses
 from rest_framework import status
 from slack_sdk.web.slack_response import SlackResponse
 
+from sentry.analytics.events.rule_disable_opt_out import (
+    RuleDisableOptOutEdit,
+    RuleDisableOptOutExplicit,
+)
+from sentry.analytics.events.rule_reenable import RuleReenableEdit
 from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.integrations.slack.utils.channel import strip_channel_name
@@ -20,6 +25,7 @@ from sentry.sentry_apps.utils.errors import SentryAppErrorType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -945,12 +951,13 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         rule = Rule.objects.get(id=rule.id)
         assert rule.status == ObjectStatus.ACTIVE
 
-        assert self.analytics_called_with_args(
+        assert_any_analytics_event(
             record_analytics,
-            "rule_reenable.edit",
-            rule_id=rule.id,
-            user_id=self.user.id,
-            organization_id=self.organization.id,
+            RuleReenableEdit(
+                rule_id=rule.id,
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -985,12 +992,13 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         self.get_success_response(
             self.organization.slug, self.project.slug, rule.id, status_code=200, **payload
         )
-        assert self.analytics_called_with_args(
+        assert_any_analytics_event(
             record_analytics,
-            "rule_disable_opt_out.explicit",
-            rule_id=rule.id,
-            user_id=self.user.id,
-            organization_id=self.organization.id,
+            RuleDisableOptOutExplicit(
+                rule_id=rule.id,
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+            ),
         )
         neglected_rule = NeglectedRule.objects.get(rule=rule)
         assert neglected_rule.opted_out is True
@@ -1027,12 +1035,13 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         self.get_success_response(
             self.organization.slug, self.project.slug, rule.id, status_code=200, **payload
         )
-        assert self.analytics_called_with_args(
+        assert_any_analytics_event(
             record_analytics,
-            "rule_disable_opt_out.edit",
-            rule_id=rule.id,
-            user_id=self.user.id,
-            organization_id=self.organization.id,
+            RuleDisableOptOutEdit(
+                rule_id=rule.id,
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+            ),
         )
         neglected_rule = NeglectedRule.objects.get(rule=rule)
         assert neglected_rule.opted_out is True

@@ -39,7 +39,6 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
         super().setUp()
         self.widget_1 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -48,7 +47,6 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
         )
         self.widget_2 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=1,
             title="Widget 2",
             display_type=DashboardWidgetDisplayTypes.TABLE,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -243,7 +241,6 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         )
         DashboardWidget.objects.create(
             dashboard=dashboard,
-            order=0,
             title="error widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -253,7 +250,6 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         )
         DashboardWidget.objects.create(
             dashboard=dashboard,
-            order=1,
             title="transaction widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -263,7 +259,6 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         )
         DashboardWidget.objects.create(
             dashboard=dashboard,
-            order=2,
             title="no split",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -288,7 +283,6 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         )
         DashboardWidget.objects.create(
             dashboard=dashboard,
-            order=0,
             title="error widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -309,7 +303,6 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         )
         DashboardWidget.objects.create(
             dashboard=dashboard,
-            order=0,
             title="error widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -324,7 +317,6 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
     def test_dashboard_widget_query_returns_selected_aggregate(self) -> None:
         widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=2,
             title="Big Number Widget",
             display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -691,14 +683,12 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.create_user_member_role()
         self.widget_3 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=2,
             title="Widget 3",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
         )
         self.widget_4 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=3,
             title="Widget 4",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -1499,8 +1489,9 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         # Check ordering
         assert self.widget_1.id == widgets[0].id
         assert self.widget_2.id == widgets[1].id
-        self.assert_serialized_widget(data["widgets"][2], widgets[2])
-        assert self.widget_4.id == widgets[3].id
+        assert self.widget_4.id == widgets[2].id
+        # The new widget was added to the end, this is because the order is based on the id
+        self.assert_serialized_widget(data["widgets"][2], widgets[3])
 
     def test_update_widget_invalid_aggregate_parameter(self) -> None:
         data = {
@@ -1566,7 +1557,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.assert_serialized_widget(data["widgets"][0], widgets[0])
         self.assert_serialized_widget(data["widgets"][1], widgets[1])
 
-    def test_reorder_widgets(self) -> None:
+    def test_reorder_widgets_has_no_effect(self) -> None:
         response = self.do_request(
             "put",
             self.url(self.dashboard.id),
@@ -1580,8 +1571,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         )
         assert response.status_code == 200, response.data
+
+        # Reordering has no effect since the order is based on the id
         self.assert_dashboard_and_widgets(
-            [self.widget_3.id, self.widget_2.id, self.widget_1.id, self.widget_4.id]
+            [self.widget_1.id, self.widget_2.id, self.widget_3.id, self.widget_4.id]
         )
 
     def test_update_widget_layouts(self) -> None:
@@ -1736,7 +1729,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
     def test_widget_does_not_belong_to_dashboard(self) -> None:
         widget = DashboardWidget.objects.create(
-            order=5,
             dashboard=Dashboard.objects.create(
                 organization=self.organization, title="Dashboard 2", created_by_id=self.user.id
             ),
@@ -2582,7 +2574,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
-            order=1,
             title="Custom Widget",
             display_type=DashboardWidgetDisplayTypes.TABLE,
             widget_type=DashboardWidgetTypes.ERROR_EVENTS,
@@ -2752,14 +2743,12 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
         self.create_user_member_role()
         self.widget_3 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=2,
             title="Widget 3",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=self.widget_type,
         )
         self.widget_4 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=3,
             title="Widget 4",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=self.widget_type,
@@ -3132,7 +3121,51 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             assert current_version.extraction_state == "enabled:creation"
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
-    def test_cardinality_precedence_over_feature_checks(self, mock_query: mock.MagicMock) -> None:
+    def test_cardinality_check_with_feature_flag(self, mock_query: mock.MagicMock) -> None:
+        mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
+            "sometag",
+        ]
+        data: dict[str, Any] = {
+            "title": "first dashboard",
+            "widgets": [
+                {
+                    "title": "errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "widgetType": DashboardWidgetTypes.get_type_name(self.widget_type),
+                    "queries": [
+                        {
+                            "name": "errors",
+                            "fields": ["count()", "sometag"],
+                            "columns": ["sometag"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        with self.feature(["organizations:on-demand-metrics-extraction-widgets"]):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+        last = list(widgets).pop()
+        queries = last.dashboardwidgetquery_set.all()
+
+        ondemand_objects = DashboardWidgetQueryOnDemand.objects.filter(
+            dashboard_widget_query=queries[0]
+        )
+        for version in OnDemandMetricSpecVersioning.get_spec_versions():
+            current_version = ondemand_objects.filter(spec_version=version.version).first()
+            assert current_version is not None
+            assert current_version.extraction_state == "disabled:high-cardinality"
+
+    @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
+    def test_feature_check_takes_precedence_over_cardinality(
+        self, mock_query: mock.MagicMock
+    ) -> None:
         mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
             "sometag",
         ]
@@ -3169,7 +3202,7 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
         for version in OnDemandMetricSpecVersioning.get_spec_versions():
             current_version = ondemand_objects.filter(spec_version=version.version).first()
             assert current_version is not None
-            assert current_version.extraction_state == "disabled:high-cardinality"
+            assert current_version.extraction_state == "disabled:pre-rollout"
 
     @mock.patch("sentry.api.serializers.rest_framework.dashboard.get_current_widget_specs")
     def test_cardinality_skips_non_discover_widget_types(
@@ -3258,7 +3291,7 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
 
-        widgets = self.dashboard.dashboardwidget_set.all()
+        widgets = self.dashboard.dashboardwidget_set.all().order_by("id")
         assert widgets[0].widget_type == DashboardWidgetTypes.get_id_for_type_name("error-events")
         assert widgets[0].discover_widget_split == DashboardWidgetTypes.get_id_for_type_name(
             "error-events"

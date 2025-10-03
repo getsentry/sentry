@@ -5,6 +5,8 @@ import orjson
 import responses
 from django.http import HttpResponse
 from django.urls import reverse
+from requests import PreparedRequest
+from rest_framework.response import Response
 
 from sentry.api.client import ApiClient
 from sentry.integrations.msteams.card_builder.identity import build_linking_card
@@ -69,17 +71,17 @@ class StatusActionTest(APITestCase):
 
     def post_webhook(
         self,
-        action_type="dummy",
-        user_id="g4nd4lf",
-        team_id="f3ll0wsh1p",
-        tenant_id="m17hr4nd1r",
-        conversation_type="channel",
-        channel_id=None,
-        group_id=None,
-        resolve_input=None,
-        archive_input=None,
-        assign_input=None,
-    ):
+        action_type: str = "dummy",
+        user_id: str = "g4nd4lf",
+        team_id: str = "f3ll0wsh1p",
+        tenant_id: str = "m17hr4nd1r",
+        conversation_type: str = "channel",
+        channel_id: str | None = None,
+        group_id: str | None = None,
+        resolve_input: str | None = None,
+        archive_input: str | None = None,
+        assign_input: str | None = None,
+    ) -> Response:
         replyToId = "12345"
 
         channel_data = {"tenant": {"id": tenant_id}}
@@ -126,7 +128,10 @@ class StatusActionTest(APITestCase):
     def test_ask_linking(self, sign: MagicMock, verify: MagicMock) -> None:
         sign.return_value = "signed_parameters"
 
-        def user_conversation_id_callback(request):
+        def user_conversation_id_callback(
+            request: PreparedRequest,
+        ) -> tuple[int, dict[str, str], str]:
+            assert request.body is not None
             payload = orjson.loads(request.body)
             if payload["members"] == [{"id": "s4ur0n"}] and payload["channelData"] == {
                 "tenant": {"id": "7h3_gr347"}

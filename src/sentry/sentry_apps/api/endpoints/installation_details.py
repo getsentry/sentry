@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log, deletions
+from sentry.analytics.events.sentry_app_uninstalled import SentryAppUninstalledEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
@@ -63,12 +64,14 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
                 event=audit_log.get_event_id("SENTRY_APP_UNINSTALL"),
                 data={"sentry_app": sentry_app_installation.sentry_app.name},
             )
-        analytics.record(
-            "sentry_app.uninstalled",
-            user_id=request.user.id,
-            organization_id=sentry_app_installation.organization_id,
-            sentry_app=sentry_app_installation.sentry_app.slug,
-        )
+        if request.user.is_authenticated:
+            analytics.record(
+                SentryAppUninstalledEvent(
+                    user_id=request.user.id,
+                    organization_id=sentry_app_installation.organization_id,
+                    sentry_app=sentry_app_installation.sentry_app.slug,
+                ),
+            )
         return Response(status=204)
 
     def put(self, request: Request, installation) -> Response:

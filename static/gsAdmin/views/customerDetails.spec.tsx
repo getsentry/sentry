@@ -3644,13 +3644,26 @@ describe('Gift Categories Availability', () => {
     organization,
     planDetails: {
       ...SubscriptionFixture({organization}).planDetails,
-      checkoutCategories: [DataCategory.ERRORS, DataCategory.REPLAYS, DataCategory.SPANS],
-      onDemandCategories: [DataCategory.ERRORS, DataCategory.PROFILE_DURATION],
+      checkoutCategories: [
+        DataCategory.ERRORS,
+        DataCategory.REPLAYS,
+        DataCategory.SPANS,
+        DataCategory.SEER_AUTOFIX,
+        DataCategory.SEER_SCANNER,
+      ],
+      onDemandCategories: [
+        DataCategory.ERRORS,
+        DataCategory.PROFILE_DURATION,
+        DataCategory.SEER_AUTOFIX,
+        DataCategory.SEER_SCANNER,
+      ],
       categories: [
         DataCategory.ERRORS,
         DataCategory.REPLAYS,
         DataCategory.PROFILE_DURATION,
         DataCategory.SPANS,
+        DataCategory.SEER_AUTOFIX,
+        DataCategory.SEER_SCANNER,
       ],
     },
     categories: {
@@ -3673,6 +3686,16 @@ describe('Gift Categories Availability', () => {
         category: DataCategory.SPANS,
         reserved: -1, // Unlimited
         order: 4,
+      }),
+      seerAutofix: MetricHistoryFixture({
+        category: DataCategory.SEER_AUTOFIX,
+        reserved: 0,
+        order: 5,
+      }),
+      seerScanner: MetricHistoryFixture({
+        category: DataCategory.SEER_SCANNER,
+        reserved: 0,
+        order: 6,
       }),
     },
   });
@@ -3805,6 +3828,34 @@ describe('Gift Categories Availability', () => {
 
     expect(
       screen.queryByTestId(`gift-${DataCategory.PROFILE_DURATION_UI}`)
+    ).not.toBeInTheDocument();
+  });
+
+  it('filters out categories that are not giftable', async () => {
+    setUpMocks(organization, customSubscription);
+    render(<CustomerDetails />, {
+      initialRouterConfig: {
+        location: `/customers/${organization.slug}`,
+        route: `/customers/:orgId`,
+      },
+      organization,
+    });
+
+    await screen.findByRole('heading', {name: 'Customers'});
+
+    renderGlobalModal();
+
+    await userEvent.click(
+      screen.getAllByRole('button', {
+        name: 'Customers Actions',
+      })[0]!
+    );
+
+    expect(
+      screen.queryByTestId(`gift-${DataCategory.SEER_AUTOFIX}`)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(`gift-${DataCategory.SEER_SCANNER}`)
     ).not.toBeInTheDocument();
   });
 });

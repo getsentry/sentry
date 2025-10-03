@@ -29,11 +29,17 @@ class OrganizationIntegrationReposTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data == {
             "repos": [
-                {"name": "rad-repo", "identifier": "Example/rad-repo", "defaultBranch": "main"},
+                {
+                    "name": "rad-repo",
+                    "identifier": "Example/rad-repo",
+                    "defaultBranch": "main",
+                    "isInstalled": False,
+                },
                 {
                     "name": "cool-repo",
                     "identifier": "Example/cool-repo",
                     "defaultBranch": None,
+                    "isInstalled": False,
                 },
             ],
             "searchable": True,
@@ -67,6 +73,7 @@ class OrganizationIntegrationReposTest(APITestCase):
                     "name": "cool-repo",
                     "identifier": "Example/cool-repo",
                     "defaultBranch": None,
+                    "isInstalled": False,
                 },
             ],
             "searchable": True,
@@ -89,15 +96,56 @@ class OrganizationIntegrationReposTest(APITestCase):
         )
 
         response = self.client.get(self.path, format="json", data={"installableOnly": "true"})
-
         assert response.status_code == 200, response.content
         assert response.data == {
             "repos": [
-                {"name": "cool-repo", "identifier": "Example/cool-repo", "defaultBranch": "dev"},
+                {
+                    "name": "cool-repo",
+                    "identifier": "Example/cool-repo",
+                    "defaultBranch": "dev",
+                    "isInstalled": False,
+                },
                 {
                     "name": "awesome-repo",
                     "identifier": "Example/awesome-repo",
                     "defaultBranch": None,
+                    "isInstalled": False,
+                },
+            ],
+            "searchable": True,
+        }
+
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]
+    )
+    def test_is_installed_field(self, get_repositories: MagicMock) -> None:
+        get_repositories.return_value = [
+            {"name": "rad-repo", "identifier": "Example/rad-repo", "default_branch": "main"},
+            {"name": "rad-repo", "identifier": "Example2/rad-repo", "default_branch": "dev"},
+        ]
+
+        self.create_repo(
+            project=self.project,
+            integration_id=self.integration.id,
+            name="Example/rad-repo",
+        )
+
+        response = self.client.get(self.path, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "repos": [
+                {
+                    "name": "rad-repo",
+                    "identifier": "Example/rad-repo",
+                    "defaultBranch": "main",
+                    "isInstalled": True,
+                },
+                {
+                    "name": "rad-repo",
+                    "identifier": "Example2/rad-repo",
+                    "defaultBranch": "dev",
+                    "isInstalled": False,
                 },
             ],
             "searchable": True,

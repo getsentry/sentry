@@ -4,6 +4,7 @@ import calendar
 import datetime
 import logging
 import time
+from urllib.parse import urlparse
 
 from rest_framework.response import Response
 
@@ -54,3 +55,26 @@ def get_next_link(response: Response) -> str | None:
             return link[start:end]
 
     return None
+
+
+def parse_github_blob_url(repo_url: str, source_url: str) -> tuple[str, str]:
+    """
+    Parse a GitHub blob URL relative to a repository URL and return
+    a tuple of (branch, source_path).
+
+    Handles minor differences (for example, trailing slashes) by
+    normalizing paths and stripping the repo path prefix before
+    splitting on '/blob/'. If parsing fails, returns ("", "").
+    """
+    repo_path = urlparse(repo_url).path.rstrip("/")
+    parsed = urlparse(source_url)
+    path = parsed.path
+    if repo_path and path.startswith(repo_path):
+        path = path[len(repo_path) :]
+
+    _, _, after_blob = path.partition("/blob/")
+    if not after_blob:
+        return "", ""
+
+    branch, _, remainder = after_blob.partition("/")
+    return branch, remainder.lstrip("/")

@@ -57,7 +57,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         self, organization: Organization, request: Request
     ) -> Mapping[str, bool | None]:
         feature_names = [
-            "organizations:performance-chart-interpolation",
             "organizations:performance-use-metrics",
             "organizations:dashboards-mep",
             "organizations:mep-rollout-flag",
@@ -164,9 +163,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     sentry_sdk.capture_exception(e)
 
             batch_features = self.get_features(organization, request)
-            has_chart_interpolation = batch_features.get(
-                "organizations:performance-chart-interpolation", False
-            )
             use_metrics = (
                 batch_features.get("organizations:performance-use-metrics", False)
                 or batch_features.get("organizations:dashboards-mep", False)
@@ -247,6 +243,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         raw_groupby=raw_groupby,
                         orderby=self.get_orderby(request),
                         limit=top_events,
+                        include_other=include_other,
                         referrer=referrer,
                         config=SearchResolverConfig(
                             auto_fields=False,
@@ -496,12 +493,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             return fn
 
         get_event_stats = get_event_stats_factory(dataset)
-        zerofill_results = not (
-            request.GET.get("withoutZerofill") == "1" and has_chart_interpolation
-        )
-        if use_rpc:
-            # The rpc will usually zerofill for us so we don't need to do it ourselves
-            zerofill_results = False
+        # The rpc will usually zerofill for us so we don't need to do it ourselves
+        zerofill_results = not use_rpc
 
         try:
             return Response(

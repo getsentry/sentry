@@ -67,6 +67,8 @@ class IssueDetails(BaseModel):
     culprit: str | None
     transaction: str | None
     events: list[dict[str, Any]]
+    metadata: dict[str, Any] = {}
+    message: str = ""
 
 
 class TransactionIssues(BaseModel):

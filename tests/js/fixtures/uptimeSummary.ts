@@ -6,6 +6,7 @@ export function UptimeSummaryFixture(params: Partial<UptimeSummary> = {}): Uptim
     failedChecks: 3,
     missedWindowChecks: 2,
     totalChecks: 100,
+    avgDurationUs: 50_000,
     ...params,
   };
 }

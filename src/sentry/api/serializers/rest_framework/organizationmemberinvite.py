@@ -2,7 +2,7 @@ from django.db.models import Q
 from rest_framework import serializers
 
 from sentry import features
-from sentry.api.endpoints.organization_member.utils import (
+from sentry.core.endpoints.organization_member_utils import (
     ROLE_CHOICES,
     MemberConflictValidationError,
 )
@@ -28,13 +28,6 @@ class OrganizationMemberInviteRequestValidator(serializers.Serializer):
         help_text="The organization-level role of the new member. Roles include:",  # choices will follow in the docs
     )
     teams = serializers.ListField(required=False, allow_null=False, default=list)
-
-    reinvite = serializers.BooleanField(
-        required=False,
-        help_text="Whether or not to re-invite a user who has already been invited to the organization. Defaults to True.",
-    )
-
-    regenerate = serializers.BooleanField(required=False)
 
     def validate_email(self, email):
         users = user_service.get_many_by_email(
@@ -172,3 +165,11 @@ class ApproveInviteRequestValidator(serializers.Serializer):
             raise serializers.ValidationError(str(err))
 
         return approve
+
+
+class OrganizationMemberReinviteRequestValidator(serializers.Serializer):
+    trigger_regenerate_token = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Whether or not to regenerate the token for this invitation",
+    )

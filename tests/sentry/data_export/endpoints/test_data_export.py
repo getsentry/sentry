@@ -24,7 +24,9 @@ class DataExportTest(APITestCase):
         self.create_member(user=self.user, organization=self.org, teams=[self.team])
         self.login_as(user=self.user)
 
-    def make_payload(self, payload_type, extras=None, overwrite=False):
+    def make_payload(
+        self, payload_type: str, extras: dict[str, Any] | None = None, overwrite: bool = False
+    ) -> dict[str, Any]:
         payload: dict[str, Any] = {}
         if payload_type == "issue":
             payload = {
@@ -35,6 +37,16 @@ class DataExportTest(APITestCase):
             payload = {
                 "query_type": ExportQueryType.DISCOVER_STR,
                 "query_info": {"field": ["id"], "query": "", "project": [self.project.id]},
+            }
+        elif payload_type == "explore":
+            payload = {
+                "query_type": ExportQueryType.EXPLORE_STR,
+                "query_info": {
+                    "field": ["span_id"],
+                    "query": "",
+                    "project": [self.project.id],
+                    "dataset": "spans",
+                },
             }
         if extras is not None:
             if overwrite:
@@ -389,3 +401,265 @@ class DataExportTest(APITestCase):
         assert query_info["field"] == ["title", "project", "user.display", "timestamp"]
         assert query_info["dataset"] == "errors"
         assert query_info["query"] == "is:unresolved"
+
+    # Explore Query Type Tests
+    def test_explore_fields_are_lists(self) -> None:
+        """
+        Ensures that if a single field is passed for explore, we convert it to a list before making
+        a query.
+        """
+        payload = self.make_payload("explore", {"field": "span_id"})
+        with self.feature("organizations:discover-query"):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        # because we passed a single string as the field, we should convert it into a list
+        assert data_export.query_info["field"] == ["span_id"]
+
+    def test_explore_export_too_many_fields(self) -> None:
+        """
+        Ensures that if too many fields are requested for explore, returns a 400 status code with the
+        corresponding error message.
+        """
+        payload = self.make_payload("explore", {"field": ["span_id"] * (MAX_FIELDS + 1)})
+        with self.feature("organizations:discover-query"):
+            response = self.get_error_response(self.org.slug, status_code=400, **payload)
+        assert response.data == {
+            "non_field_errors": [
+                f"You can export up to {MAX_FIELDS} fields at a time. Please delete some and try again."
+            ]
+        }
+
+    def test_explore_export_no_fields(self) -> None:
+        """
+        Ensures that if no fields are requested for explore, returns a 400 status code with
+        the corresponding error message.
+        """
+        payload = self.make_payload("explore", {"field": []})
+        with self.feature("organizations:discover-query"):
+            response = self.get_error_response(self.org.slug, status_code=400, **payload)
+        assert response.data == {"non_field_errors": ["at least one field is required to export"]}
+
+    def test_explore_without_query(self) -> None:
+        """
+        Ensures that we handle explore export requests without a query, and return a 400 status code
+        """
+        payload = self.make_payload("explore", {"field": ["span_id"]}, overwrite=True)
+        with self.feature("organizations:discover-query"):
+            response = self.get_error_response(self.org.slug, status_code=400, **payload)
+        assert response.data == {
+            "non_field_errors": [
+                "query is a required to export, please pass an empty string if you don't want to set one"
+            ]
+        }
+
+    def test_explore_without_dataset(self) -> None:
+        """
+        Ensures that explore queries require a dataset parameter
+        """
+        payload = self.make_payload("explore", {"dataset": None})
+        del payload["query_info"]["dataset"]
+        with self.feature("organizations:discover-query"):
+            response = self.get_error_response(self.org.slug, status_code=400, **payload)
+        assert "Please specify dataset" in response.data["non_field_errors"][0]
+
+    def test_explore_invalid_dataset(self) -> None:
+        """
+        Ensures that explore queries with invalid datasets are rejected
+        """
+        payload = self.make_payload("explore", {"dataset": "invalid_dataset"})
+        with self.feature("organizations:discover-query"):
+            response = self.get_error_response(self.org.slug, status_code=400, **payload)
+        assert response.data == {
+            "non_field_errors": ["invalid_dataset is not supported for csv exports"]
+        }
+
+    def test_explore_valid_dataset_spans(self) -> None:
+        """
+        Tests that the spans dataset is valid for explore queries
+        """
+        payload = self.make_payload(
+            "explore", {"field": ["span_id", "timestamp"], "dataset": "spans"}
+        )
+        with self.feature("organizations:discover-query"):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        query_info = data_export.query_info
+        assert query_info["field"] == ["span_id", "timestamp"]
+        assert query_info["dataset"] == "spans"
+
+    def test_explore_valid_dataset_logs(self) -> None:
+        """
+        Tests that the logs dataset is valid for explore queries
+        """
+        payload = self.make_payload(
+            "explore", {"field": ["message", "timestamp"], "dataset": "logs"}
+        )
+        with self.feature("organizations:discover-query"):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        query_info = data_export.query_info
+        assert query_info["field"] == ["message", "timestamp"]
+        assert query_info["dataset"] == "logs"
+
+    @freeze_time("2020-02-27 12:07:37")
+    def test_explore_export_invalid_date_params(self) -> None:
+        """
+        Ensures that if an invalid date parameter is specified for explore, returns a 400 status code
+        with the corresponding error message.
+        """
+        payload = self.make_payload("explore", {"statsPeriod": "shrug"})
+        with self.feature("organizations:discover-query"):
+            response = self.get_error_response(self.org.slug, status_code=400, **payload)
+        assert response.data == {"non_field_errors": ["Invalid statsPeriod: 'shrug'"]}
+
+        payload = self.make_payload(
+            "explore",
+            {
+                "start": "2021-02-27T12:07:37",
+                "end": "shrug",
+            },
+        )
+        with self.feature("organizations:discover-query"):
+            response = self.get_error_response(self.org.slug, status_code=400, **payload)
+        assert response.data == {"non_field_errors": ["shrug is not a valid ISO8601 date query"]}
+
+        payload = self.make_payload(
+            "explore",
+            {
+                "start": "shrug",
+                "end": "2021-02-27T12:07:37",
+            },
+        )
+        with self.feature("organizations:discover-query"):
+            response = self.get_error_response(self.org.slug, status_code=400, **payload)
+        assert response.data == {"non_field_errors": ["shrug is not a valid ISO8601 date query"]}
+
+    @freeze_time("2020-05-19 14:00:00")
+    def test_explore_converts_stats_period(self) -> None:
+        """
+        Ensures that statsPeriod is converted to start/end for explore queries.
+        """
+        payload = self.make_payload("explore", {"statsPeriod": "24h"})
+        with self.feature("organizations:discover-query"):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        query_info = data_export.query_info
+        assert parse_datetime_string(query_info["start"]) == parse_datetime_string(
+            "2020-05-18T14:00:00"
+        )
+        assert parse_datetime_string(query_info["end"]) == parse_datetime_string(
+            "2020-05-19T14:00:00"
+        )
+        assert "statsPeriod" not in query_info
+        assert "statsPeriodStart" not in query_info
+        assert "statsPeriodSEnd" not in query_info
+
+    @freeze_time("2020-05-19 14:00:00")
+    def test_explore_converts_stats_period_start_end(self) -> None:
+        """
+        Ensures that statsPeriodStart and statsPeriodEnd is converted to start/end for explore queries.
+        """
+        payload = self.make_payload("explore", {"statsPeriodStart": "1w", "statsPeriodEnd": "5d"})
+        with self.feature("organizations:discover-query"):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        query_info = data_export.query_info
+        assert parse_datetime_string(query_info["start"]) == parse_datetime_string(
+            "2020-05-12T14:00:00"
+        )
+        assert parse_datetime_string(query_info["end"]) == parse_datetime_string(
+            "2020-05-14T14:00:00"
+        )
+        assert "statsPeriod" not in query_info
+        assert "statsPeriodStart" not in query_info
+        assert "statsPeriodSEnd" not in query_info
+
+    def test_explore_preserves_start_end(self) -> None:
+        """
+        Ensures that start/end is preserved for explore queries
+        """
+        payload = self.make_payload(
+            "explore", {"start": "2020-05-18T14:00:00", "end": "2020-05-19T14:00:00"}
+        )
+        with self.feature("organizations:discover-query"):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        query_info = data_export.query_info
+        assert parse_datetime_string(query_info["start"]) == parse_datetime_string(
+            "2020-05-18T14:00:00"
+        )
+        assert parse_datetime_string(query_info["end"]) == parse_datetime_string(
+            "2020-05-19T14:00:00"
+        )
+        assert "statsPeriod" not in query_info
+        assert "statsPeriodStart" not in query_info
+        assert "statsPeriodSEnd" not in query_info
+
+    def test_explore_validates_invalid_sampling_mode(self) -> None:
+        """
+        Ensures that invalid sampling modes are rejected for explore.
+        """
+        payload = self.make_payload("explore", {"sampling": "INVALID_MODE"})
+        with self.feature("organizations:discover-query"):
+            response = self.get_error_response(self.org.slug, status_code=400, **payload)
+        assert (
+            "sampling mode: INVALID_MODE is not supported" in response.data["non_field_errors"][0]
+        )
+
+    @freeze_time("2020-05-19 14:00:00")
+    def test_explore_resolves_empty_project(self) -> None:
+        """
+        Ensures that a request to this endpoint returns a 201 for explore if projects
+        is an empty list.
+        """
+        payload = self.make_payload(
+            "explore",
+            {"project": [], "start": "2020-05-18T14:00:00", "end": "2020-05-19T14:00:00"},
+        )
+        with self.feature("organizations:discover-query"):
+            self.get_success_response(self.org.slug, status_code=201, **payload)
+
+    def test_explore_equations(self) -> None:
+        """
+        Ensures that equations are handled for explore queries
+        """
+        payload = self.make_payload("explore", {"field": ["equation|count() / 2", "count()"]})
+        with self.feature(["organizations:discover-query"]):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        query_info = data_export.query_info
+        assert query_info["field"] == ["count()"]
+        assert query_info["equations"] == ["count() / 2"]
+
+    def test_explore_with_sampling(self) -> None:
+        """
+        Tests that explore queries handle sampling modes correctly
+        """
+        payload = self.make_payload("explore", {"sampling": "BEST_EFFORT"})
+        with self.feature("organizations:discover-query"):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        query_info = data_export.query_info
+        assert query_info["sampling"] == "BEST_EFFORT"
+
+    def test_explore_with_sort(self) -> None:
+        """
+        Tests that explore queries handle sort parameters correctly
+        """
+        payload = self.make_payload("explore", {"sort": ["-timestamp", "span_id"]})
+        with self.feature("organizations:discover-query"):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        query_info = data_export.query_info
+        assert query_info["sort"] == ["-timestamp", "span_id"]
+
+    def test_explore_with_single_sort_string(self) -> None:
+        """
+        Tests that explore queries handle single sort string parameters correctly
+        """
+        payload = self.make_payload("explore", {"sort": "-timestamp"})
+        with self.feature("organizations:discover-query"):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        query_info = data_export.query_info
+        assert query_info["sort"] == ["-timestamp"]

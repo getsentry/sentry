@@ -3,11 +3,10 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {DurationUnit} from 'sentry/utils/discover/fields';
-import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
@@ -28,7 +27,6 @@ import {
 import AppStartWidgets from 'sentry/views/insights/mobile/appStarts/components/widgets';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
-import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {ModuleName, SpanFields, type SpanProperty} from 'sentry/views/insights/types';
 
 type Query = {
@@ -42,34 +40,6 @@ type Query = {
   spanOp: string;
   transaction: string;
 };
-
-export function ScreenSummary() {
-  const location = useLocation<Query>();
-  const {transaction: transactionName} = location.query;
-
-  return (
-    <Layout.Page>
-      <PageAlertProvider>
-        <MobileHeader
-          hideDefaultTabs
-          module={ModuleName.MOBILE_VITALS}
-          headerTitle={transactionName}
-          breadcrumbs={[
-            {
-              label: t('Screen Summary'),
-            },
-          ]}
-        />
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <PageAlert />
-            <ScreenSummaryContentPage />
-          </Layout.Main>
-        </Layout.Body>
-      </PageAlertProvider>
-    </Layout.Page>
-  );
-}
 
 export function ScreenSummaryContentPage() {
   const navigate = useNavigate();

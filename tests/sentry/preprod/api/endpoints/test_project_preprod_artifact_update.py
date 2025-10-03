@@ -3,6 +3,7 @@ from typing import Any
 import orjson
 from django.test import override_settings
 
+from sentry.preprod.api.endpoints.project_preprod_artifact_update import find_or_create_release
 from sentry.preprod.models import PreprodArtifact
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
@@ -48,8 +49,8 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert resp_data["artifact_id"] == str(self.preprod_artifact.id)
-        assert set(resp_data["updated_fields"]) == {
+        assert resp_data["artifactId"] == str(self.preprod_artifact.id)
+        assert set(resp_data["updatedFields"]) == {
             "date_built",
             "artifact_type",
             "build_version",
@@ -72,7 +73,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert set(resp_data["updated_fields"]) == {"artifact_type", "error_message", "state"}
+        assert set(resp_data["updatedFields"]) == {"artifact_type", "error_message", "state"}
 
         self.preprod_artifact.refresh_from_db()
         assert self.preprod_artifact.artifact_type == 2
@@ -88,7 +89,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert set(resp_data["updated_fields"]) == {"error_code", "state"}
+        assert set(resp_data["updatedFields"]) == {"error_code", "state"}
 
         self.preprod_artifact.refresh_from_db()
         assert self.preprod_artifact.error_code == 1
@@ -106,7 +107,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert set(resp_data["updated_fields"]) == {"error_message", "state"}
+        assert set(resp_data["updatedFields"]) == {"error_message", "state"}
 
         self.preprod_artifact.refresh_from_db()
         assert self.preprod_artifact.error_message == "Processing failed"
@@ -116,7 +117,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
     def test_update_preprod_artifact_not_found(self) -> None:
         response = self._make_request({"artifact_type": 1}, artifact_id=999999)
         assert response.status_code == 404
-        assert "not found" in response.json()["error"]
+        assert "The requested head preprod artifact does not exist" in response.json()["detail"]
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_invalid_json(self) -> None:
@@ -140,7 +141,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
 
     def test_update_preprod_artifact_unauthorized(self) -> None:
         response = self._make_request({"artifact_type": 1}, authenticated=False)
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_empty_update(self) -> None:
@@ -148,7 +149,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert resp_data["updated_fields"] == []
+        assert resp_data["updatedFields"] == []
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_with_apple_app_info(self) -> None:
@@ -171,7 +172,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert "extras" in resp_data["updated_fields"]
+        assert "extras" in resp_data["updatedFields"]
 
         self.preprod_artifact.refresh_from_db()
         stored_apple_info = self.preprod_artifact.extras or {}
@@ -192,7 +193,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert "extras" in resp_data["updated_fields"]
+        assert "extras" in resp_data["updatedFields"]
 
         self.preprod_artifact.refresh_from_db()
         stored_apple_info = self.preprod_artifact.extras or {}
@@ -222,7 +223,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert "extras" in resp_data["updated_fields"]
+        assert "extras" in resp_data["updatedFields"]
 
         self.preprod_artifact.refresh_from_db()
         stored_extras = self.preprod_artifact.extras or {}
@@ -234,25 +235,132 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert stored_extras["profile_name"] == "Production Profile"
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_update_apk_artifact_sets_installable_app_file_id(self) -> None:
-        """Test that APK artifacts get installable_app_file_id set when marked as PROCESSED"""
-        # Ensure the artifact starts without installable_app_file_id
-        assert self.preprod_artifact.installable_app_file_id is None
-        assert self.preprod_artifact.file_id is not None
+    def test_release_only_created_on_first_transition_to_processed(self) -> None:
+        from sentry.models.release import Release
 
-        # Update with APK artifact type to trigger PROCESSED state
         data = {
-            "artifact_type": PreprodArtifact.ArtifactType.APK,
+            "app_id": "com.example.app",
             "build_version": "1.0.0",
-            "build_number": 1,
+            "build_number": 123,
+        }
+        response = self._make_request(data)
+        assert response.status_code == 200
+
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+
+        releases = Release.objects.filter(
+            organization_id=self.project.organization_id,
+            projects=self.project,
+            version="com.example.app@1.0.0+123",
+        )
+        assert releases.count() == 1
+        created_release = releases.first()
+        assert created_release is not None
+
+        data2 = {
+            "date_built": "2024-01-01T00:00:00Z",
+        }
+        response2 = self._make_request(data2)
+        assert response2.status_code == 200
+
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+
+        releases_after = Release.objects.filter(
+            organization_id=self.project.organization_id,
+            projects=self.project,
+            version="com.example.app@1.0.0+123",
+        )
+        assert releases_after.count() == 1
+        first_release = releases_after.first()
+        assert first_release is not None
+        assert first_release.id == created_release.id
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_release_created_when_conditions_met_even_no_fields_updated(self) -> None:
+        from sentry.models.release import Release
+
+        self.preprod_artifact.state = PreprodArtifact.ArtifactState.PROCESSED
+        self.preprod_artifact.app_id = "com.example.app"
+        self.preprod_artifact.build_version = "1.0.0"
+        self.preprod_artifact.build_number = 123
+        self.preprod_artifact.save()
+
+        response = self._make_request({})
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["updatedFields"] == []
+
+        releases = Release.objects.filter(
+            organization_id=self.project.organization_id,
+            projects=self.project,
+            version="com.example.app@1.0.0+123",
+        )
+        assert releases.count() == 1
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_with_dequeued_at(self) -> None:
+        data = {
+            "dequeued_at": "2024-04-07T14:03:18+00:00",
         }
         response = self._make_request(data)
 
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert "installable_app_file_id" in resp_data["updated_fields"]
+        assert "extras" in resp_data["updatedFields"]
 
         self.preprod_artifact.refresh_from_db()
-        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
-        assert self.preprod_artifact.installable_app_file_id == self.preprod_artifact.file_id
+        stored_extras = self.preprod_artifact.extras or {}
+        assert stored_extras["dequeued_at"] == "2024-04-07T14:03:18+00:00"
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_preserves_existing_data(self) -> None:
+        self.preprod_artifact.extras = {"is_simulator": False, "existing_field": "value"}
+        self.preprod_artifact.save()
+
+        data = {
+            "dequeued_at": "2024-04-07T14:03:18+00:00",
+        }
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        self.preprod_artifact.refresh_from_db()
+        stored_extras = self.preprod_artifact.extras or {}
+
+        assert stored_extras["dequeued_at"] == "2024-04-07T14:03:18+00:00"
+        assert stored_extras["is_simulator"] is False
+        assert stored_extras["existing_field"] == "value"
+
+
+class FindOrCreateReleaseTest(TestCase):
+    def test_exact_version_matching_prevents_incorrect_matches(self):
+        package = "com.hackernews"
+        version = "1.2.3"
+
+        self.create_release(project=self.project, version=f"{package}@{version}333333")
+        self.create_release(project=self.project, version=f"{package}@{version}.0")
+        self.create_release(project=self.project, version=f"{package}@{version}-beta")
+
+        result = find_or_create_release(self.project, package, version)
+
+        assert result is not None
+        assert result.version == f"{package}@{version}"
+
+    def test_finds_existing_release_regardless_of_build_number(self):
+        package = "com.example.app"
+        version = "2.1.0"
+
+        existing_release = self.create_release(
+            project=self.project, version=f"{package}@{version}+456"
+        )
+
+        result = find_or_create_release(self.project, package, version)
+        assert result is not None
+        assert result.id == existing_release.id
+
+        result_with_build = find_or_create_release(self.project, package, version, 789)
+        assert result_with_build is not None
+        assert result_with_build.id == existing_release.id
+        assert result_with_build.version == f"{package}@{version}+456"

@@ -9,6 +9,7 @@ from django.test.utils import override_settings
 from rest_framework.exceptions import ErrorDetail
 
 from sentry import audit_log
+from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType
@@ -16,6 +17,7 @@ from sentry.monitors.utils import get_detector_for_monitor
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import MonitorTestCase
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.outbox import outbox_runner
 from sentry.utils.outcomes import Outcome
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
@@ -407,19 +409,23 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         self.project.refresh_from_db()
         assert self.project.flags.has_cron_monitors
 
-        mock_record.assert_any_call(
-            "cron_monitor.created",
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            from_upsert=False,
+        assert_any_analytics_event(
+            mock_record,
+            CronMonitorCreated(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                from_upsert=False,
+            ),
         )
-        mock_record.assert_called_with(
-            "first_cron_monitor.created",
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            from_upsert=False,
+        assert_any_analytics_event(
+            mock_record,
+            FirstCronMonitorCreated(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                from_upsert=False,
+            ),
         )
 
     def test_slug(self) -> None:

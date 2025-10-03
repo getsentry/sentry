@@ -168,7 +168,6 @@ declare namespace Profiling {
   interface SampledProfile extends RawProfileBase {
     weights: number[];
     samples: number[][];
-    samples_profiles?: number[][];
     samples_examples?: number[][];
     sample_durations_ns?: number[];
     type: 'sampled';
@@ -192,11 +191,12 @@ declare namespace Profiling {
     children?: Span[];
   };
 
-  type FrameInfo = {
+  type Frame = {
     col?: number;
     colno?: number;
     column?: number;
     file?: string;
+    fingerprint?: number;
     image?: string;
     inline?: boolean;
     instructionAddr?: string;
@@ -219,8 +219,22 @@ declare namespace Profiling {
     // nodejs only
     columnNumber?: number;
     lineNumber?: number;
+    resourceId?: number;
     scriptName?: string;
     scriptId?: number;
+
+    // metadata about the frame's occurrences and more
+    count?: number;
+    weight?: number;
+  };
+
+  type FrameInfo = {
+    count: number;
+    sumDuration: number;
+    sumSelfTime: number;
+    p75Duration: number;
+    p95Duration: number;
+    p99Duration: number;
   };
 
   type FunctionMetric = {
@@ -235,6 +249,7 @@ declare namespace Profiling {
     p99: number;
     package: string;
     sum: number;
+    sumSelfTime: number;
   };
 
   type ProfileInput =
@@ -313,11 +328,10 @@ declare namespace Profiling {
       >
     >;
     shared: {
-      frames: ReadonlyArray<Omit<Profiling.FrameInfo, 'key'>>;
-      profile_ids?: ReadonlyArray<string>[];
+      frames: ReadonlyArray<Omit<Profiling.Frame, 'key'>>;
+      frame_infos?: ReadonlyArray<Profiling.FrameInfo>;
       profiles?: ReadonlyArray<ProfileReference>;
     };
     activeProfileIndex?: number;
-    metrics?: FunctionMetric[];
   }
 }

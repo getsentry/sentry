@@ -1,38 +1,31 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Flex} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
-import {
-  SummaryEntries,
-  SummaryEntry,
-  SummaryEntryLabel,
-  SummaryEntryValue,
-  SummaryEntryValueLink,
-} from 'sentry/components/prevent/summary';
-import {t} from 'sentry/locale';
+import {SummaryCard, SummaryCardGroup} from 'sentry/components/prevent/summary';
+import {t, tct} from 'sentry/locale';
 import {formatPercentRate, formatTimeDuration} from 'sentry/utils/formatters';
 
 function TotalTestsRunTimeTooltip() {
   const {preventPeriod} = usePreventContext();
 
   return (
-    <Fragment>
-      <p>
-        <ToolTipTitle>Impact:</ToolTipTitle>
-        {/* TODO: this is a dynamic value based on the selector */}
-        The cumulative CI time spent running tests over the last{' '}
-        <strong>{preventPeriod}</strong>.
-      </p>
-      <p>
-        <ToolTipTitle>What is it:</ToolTipTitle>
-        The total time it takes to run all your tests.
-      </p>
-    </Fragment>
+    <Flex direction="column" gap="sm">
+      {props => (
+        <Text {...props} align="left">
+          <Heading as="h5">{t('Impact:')}</Heading>
+          <Text>
+            {tct('The cumulative CI time spent running tests over the last [period].', {
+              period: <strong>{preventPeriod}</strong>,
+            })}
+          </Text>
+          <Heading as="h5">{t('What is it:')}</Heading>
+          <Text>{t('The total time it takes to run all your tests.')}</Text>
+        </Text>
+      )}
+    </Flex>
   );
 }
 
@@ -46,25 +39,27 @@ function SlowestTestsTooltip({
   slowestTestsDuration,
 }: SlowestTestsTooltipProps) {
   return (
-    <Fragment>
-      {/* TODO: add t/tct for these tooltips */}
-      <p>
-        <ToolTipTitle>Impact:</ToolTipTitle>
-        The slowest <strong>{slowestTests}</strong> tests take{' '}
-        <strong>{formatTimeDuration(slowestTestsDuration, 2)}</strong> to run.
-      </p>
-      <p>
-        <ToolTipTitle>What is it:</ToolTipTitle>
-        Lists the tests that take more than the 95th percentile run time to complete.
-        Showing a max of 100 tests.
-      </p>
-    </Fragment>
+    <Flex direction="column" gap="sm">
+      {props => (
+        <Text {...props} align="left">
+          <Heading as="h5">{t('Impact:')}</Heading>
+          <Text>
+            {tct('The slowest [count] tests take [duration] to run.', {
+              count: <strong>{slowestTests}</strong>,
+              duration: <strong>{formatTimeDuration(slowestTestsDuration, 2)}</strong>,
+            })}
+          </Text>
+          <Heading as="h5">{t('What is it:')}</Heading>
+          <Text>
+            {t(
+              'Lists the tests that take more than the 95th percentile run time to complete. Showing a max of 100 tests.'
+            )}
+          </Text>
+        </Text>
+      )}
+    </Flex>
   );
 }
-
-const ToolTipTitle = styled('strong')`
-  display: block;
-`;
 
 interface CIEfficiencyBodyProps {
   slowestTests?: number;
@@ -80,44 +75,39 @@ function CIEfficiencyBody({
   slowestTestsDuration,
 }: CIEfficiencyBodyProps) {
   return (
-    <SummaryEntries largeColumnSpan={9} smallColumnSpan={1}>
-      <SummaryEntry columns={5}>
-        <SummaryEntryLabel showUnderline body={<TotalTestsRunTimeTooltip />}>
-          {t('Total Tests Run Time')}
-        </SummaryEntryLabel>
-        <SummaryEntryValue>
-          {totalTestsRunTime === undefined
-            ? '-'
-            : formatTimeDuration(totalTestsRunTime, 2)}
-          {typeof totalTestsRunTimeChange === 'number' &&
-            totalTestsRunTimeChange !== 0 && (
-              <Tag type={totalTestsRunTimeChange > 0 ? 'error' : 'success'}>
-                {formatPercentRate(totalTestsRunTimeChange)}
-              </Tag>
-            )}
-        </SummaryEntryValue>
-      </SummaryEntry>
-      <SummaryEntry columns={4}>
-        <SummaryEntryLabel
-          showUnderline
-          body={
-            <SlowestTestsTooltip
-              slowestTests={slowestTests}
-              slowestTestsDuration={slowestTestsDuration}
-            />
-          }
-        >
-          {t('Slowest Tests (P95)')}
-        </SummaryEntryLabel>
-        {slowestTestsDuration === undefined ? (
-          <SummaryEntryValue>-</SummaryEntryValue>
-        ) : (
-          <SummaryEntryValueLink filterBy="slowestTests">
-            {formatTimeDuration(slowestTestsDuration, 2)}
-          </SummaryEntryValueLink>
-        )}
-      </SummaryEntry>
-    </SummaryEntries>
+    <Fragment>
+      <SummaryCard
+        label={t('Total Tests Run Time')}
+        tooltip={<TotalTestsRunTimeTooltip />}
+        value={
+          totalTestsRunTime === undefined
+            ? undefined
+            : formatTimeDuration(totalTestsRunTime, 2)
+        }
+        extra={
+          totalTestsRunTimeChange ? (
+            <Tag type={totalTestsRunTimeChange > 0 ? 'error' : 'success'}>
+              {formatPercentRate(totalTestsRunTimeChange, {minimumValue: 0.01})}
+            </Tag>
+          ) : undefined
+        }
+      />
+      <SummaryCard
+        label={t('Slowest Tests (P95)')}
+        tooltip={
+          <SlowestTestsTooltip
+            slowestTests={slowestTests}
+            slowestTestsDuration={slowestTestsDuration}
+          />
+        }
+        value={
+          slowestTestsDuration === undefined
+            ? undefined
+            : formatTimeDuration(slowestTestsDuration, 2)
+        }
+        filterBy="slowestTests"
+      />
+    </Fragment>
   );
 }
 
@@ -127,19 +117,12 @@ interface CIEfficiencyProps extends CIEfficiencyBodyProps {
 
 export function CIEfficiency({isLoading, ...bodyProps}: CIEfficiencyProps) {
   return (
-    <CIEfficiencyPanel>
-      <PanelHeader>{t('CI Run Efficiency')}</PanelHeader>
-      <PanelBody>
-        {isLoading ? <LoadingIndicator /> : <CIEfficiencyBody {...bodyProps} />}
-      </PanelBody>
-    </CIEfficiencyPanel>
+    <SummaryCardGroup
+      title={t('CI Run Efficiency')}
+      isLoading={isLoading}
+      placeholderCount={2}
+    >
+      <CIEfficiencyBody {...bodyProps} />
+    </SummaryCardGroup>
   );
 }
-
-const CIEfficiencyPanel = styled(Panel)`
-  grid-column: span 24;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-column: span 9;
-  }
-`;

@@ -1,12 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 
 import {useUserTeams} from './useUserTeams';
 
@@ -14,27 +13,15 @@ jest.mock('sentry/utils/isActiveSuperuser', () => ({
   isActiveSuperuser: jest.fn(),
 }));
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
-
 describe('useUserTeams', () => {
   const org = OrganizationFixture({
     access: [],
   });
-  const wrapper = ({children}: {children?: any}) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
 
   beforeEach(() => {
     TeamStore.reset();
     OrganizationStore.onUpdate(org, {replace: true});
     MockApiClient.clearMockResponses();
-    queryClient.clear();
   });
 
   it('does not request user teams until the store has loaded', async () => {
@@ -45,7 +32,7 @@ describe('useUserTeams', () => {
       body: userTeams,
     });
 
-    const {result} = renderHook(useUserTeams, {wrapper});
+    const {result} = renderHookWithProviders(useUserTeams, {organization: org});
     const {teams} = result.current;
     expect(teams).toHaveLength(0);
 
@@ -67,7 +54,7 @@ describe('useUserTeams', () => {
     TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
     expect(TeamStore.getState().loadedUserTeams).toBe(true);
 
-    const {result} = renderHook(useUserTeams, {wrapper});
+    const {result} = renderHookWithProviders(useUserTeams, {organization: org});
     const {teams} = result.current;
 
     expect(teams).toHaveLength(1);
@@ -83,7 +70,7 @@ describe('useUserTeams', () => {
     TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
     expect(TeamStore.getState().loadedUserTeams).toBe(true);
 
-    const {result} = renderHook(useUserTeams, {wrapper});
+    const {result} = renderHookWithProviders(useUserTeams, {organization: org});
     const {teams} = result.current;
 
     expect(teams).toHaveLength(2);
@@ -102,7 +89,7 @@ describe('useUserTeams', () => {
     });
     OrganizationStore.onUpdate(organization, {replace: true});
 
-    const {result} = renderHook(() => useUserTeams(), {wrapper});
+    const {result} = renderHookWithProviders(() => useUserTeams(), {organization: org});
     const {teams} = result.current;
 
     expect(teams).toHaveLength(2);

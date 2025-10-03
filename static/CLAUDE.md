@@ -39,8 +39,8 @@ pnpm run dev-ui
 # Run JavaScript tests
 pnpm test
 
-# Run specific test file
-CI=true pnpm test components/avatar.spec.tsx
+# Run specific test file(s)
+CI=true pnpm test components/avatar.spec.tsx [...other files]
 ```
 
 ### Code Quality
@@ -48,6 +48,9 @@ CI=true pnpm test components/avatar.spec.tsx
 ```bash
 # JavaScript/TypeScript linting
 pnpm run lint:js
+
+# Linting for specific file(s)
+pnpm run lint:js components/avatar.tsx [...other files]
 
 # Fix linting issues
 pnpm run fix

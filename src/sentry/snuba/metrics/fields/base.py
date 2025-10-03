@@ -201,7 +201,6 @@ _PREFIX_TO_GENERIC_METRIC_ENTITY: dict[str, MetricEntity] = {
 
 
 def _get_known_entity_of_metric_mri(metric_mri: str) -> MetricEntity | None:
-    # ToDo(ogi): Reimplement this
     try:
         SessionMRI(metric_mri)
         entity_prefix = metric_mri.split(":")[0]

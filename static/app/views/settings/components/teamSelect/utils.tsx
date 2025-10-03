@@ -108,12 +108,11 @@ export function DropdownAddTeam({
       onClose={() => onSearch('')}
       onChange={selection => onSelect(selection.value)}
       menuTitle={t('Teams')}
-      triggerLabel={t('Add Team')}
+      triggerProps={{children: t('Add Team')}}
       searchPlaceholder={t('Search Teams')}
       emptyMessage={t('No Teams')}
       loading={isLoadingTeams}
       searchable
-      disableSearchFilter
       onSearch={onSearch}
       menuHeaderTrailingItems={createTeam}
     />

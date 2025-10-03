@@ -1,11 +1,11 @@
 // TODO(release-drawer): Only used in cache/components/samplePanel
 
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {Referrer} from 'sentry/views/insights/cache/referrers';
 // TODO(release-drawer): Only used in cache/components/samplePanel
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
@@ -20,11 +20,10 @@ export function CacheHitMissChart({search}: Props) {
     data,
     isPending: isCacheHitRateLoading,
     error,
-  } = useSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
-      search,
+      query: search,
       yAxis: [`${SpanFunction.CACHE_MISS_RATE}()`],
-      transformAliasToInputFormat: true,
     },
     referrer
   );
@@ -41,7 +40,7 @@ export function CacheHitMissChart({search}: Props) {
     <InsightsLineChartWidget
       queryInfo={queryInfo}
       title={DataTitles[`cache_miss_rate()`]}
-      series={[data[`cache_miss_rate()`]]}
+      timeSeries={data?.timeSeries}
       showLegend="never"
       isLoading={isCacheHitRateLoading}
       error={error}

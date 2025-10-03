@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("relocation.organization_imported")
 class RelocationOrganizationImportedEvent(analytics.Event):
-    type = "relocation.organization_imported"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("relocation_uuid"),
-        analytics.Attribute("owner_id"),
-        analytics.Attribute("slug"),
-    )
+    organization_id: int
+    relocation_uuid: str
+    owner_id: int
+    slug: str
 
 
 analytics.register(RelocationOrganizationImportedEvent)

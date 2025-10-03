@@ -20,8 +20,9 @@ from sentry.integrations.services.integration import integration_service
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupmeta import GroupMeta
 from sentry.shared_integrations.exceptions import (
+    IntegrationConfigurationError,
     IntegrationError,
-    IntegrationInstallationConfigurationError,
+    IntegrationFormError,
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
@@ -715,6 +716,59 @@ class RegionJiraIntegrationTest(APITestCase):
             }
 
     @responses.activate
+    def test_create_issue_with_form_error(self) -> None:
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/issue/createmeta",
+            body=StubService.get_stub_json("jira", "createmeta_response.json"),
+            content_type="json",
+        )
+        responses.add(
+            responses.POST,
+            "https://example.atlassian.net/rest/api/2/issue",
+            status=400,
+            body=json.dumps({"errors": {"issuetype": ["Issue type is required."]}}),
+            content_type="json",
+        )
+
+        installation = self.integration.get_installation(self.organization.id)
+        with pytest.raises(IntegrationFormError):
+            installation.create_issue(
+                {
+                    "title": "example summary",
+                    "description": "example bug report",
+                    "issuetype": "1",
+                    "project": "10000",
+                }
+            )
+
+    @responses.activate
+    def test_create_issue_with_configuration_error(self) -> None:
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/issue/createmeta",
+            body=StubService.get_stub_json("jira", "createmeta_response.json"),
+            content_type="json",
+        )
+        responses.add(
+            responses.POST,
+            "https://example.atlassian.net/rest/api/2/issue",
+            status=400,
+            body=json.dumps({"error": "Jira had an oopsie"}),
+            content_type="json",
+        )
+        installation = self.integration.get_installation(self.organization.id)
+        with pytest.raises(IntegrationConfigurationError):
+            installation.create_issue(
+                {
+                    "title": "example summary",
+                    "description": "example bug report",
+                    "issuetype": "1",
+                    "project": "10000",
+                }
+            )
+
+    @responses.activate
     def test_create_issue_labels_and_option(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
 
@@ -888,7 +942,7 @@ class RegionJiraIntegrationTest(APITestCase):
 
         responses.add(responses.PUT, assign_issue_url, status=401, json={})
 
-        with pytest.raises(IntegrationInstallationConfigurationError) as excinfo:
+        with pytest.raises(IntegrationConfigurationError) as excinfo:
             installation.sync_assignee_outbound(external_issue, user)
 
         assert str(excinfo.value) == "Insufficient permissions to assign user to the Jira issue."

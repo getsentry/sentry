@@ -1,10 +1,11 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {
   EAPSpanSearchQueryBuilder,
@@ -12,6 +13,7 @@ import {
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -38,8 +40,10 @@ import {
 } from 'sentry/views/insights/agents/hooks/useActiveTable';
 import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
 import {AIInsightsFeature} from 'sentry/views/insights/agents/utils/features';
+import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
 import {TwoColumnWidgetGrid, WidgetGrid} from 'sentry/views/insights/agents/views/styles';
+import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -47,6 +51,8 @@ import {InsightsProjectSelector} from 'sentry/views/insights/common/components/p
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget';
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
 import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -70,6 +76,7 @@ function AgentsOverviewPage() {
   const showOnboarding = useShowOnboarding();
   const datePageFilterProps = limitMaxPickableDays(organization);
   const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
+  useDefaultToAllProjects();
 
   const {activeTable, onActiveTableChange} = useActiveTable();
 
@@ -100,9 +107,6 @@ function AgentsOverviewPage() {
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
   );
-  const hasMatchKeySuggestions = organization.features.includes(
-    'search-query-builder-match-key-suggestions'
-  );
 
   const eapSpanSearchQueryBuilderProps = useMemo(
     () => ({
@@ -116,15 +120,12 @@ function AgentsOverviewPage() {
       numberSecondaryAliases,
       stringSecondaryAliases,
       replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
-      matchKeySuggestions: hasMatchKeySuggestions
-        ? [
-            {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
-            {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
-          ]
-        : undefined,
+      matchKeySuggestions: [
+        {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
+        {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+      ],
     }),
     [
-      hasMatchKeySuggestions,
       hasRawSearchReplacement,
       numberSecondaryAliases,
       numberTags,
@@ -138,6 +139,22 @@ function AgentsOverviewPage() {
   const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
     eapSpanSearchQueryBuilderProps
   );
+
+  // Fire a request to check if there are any agent runs
+  // If there are, we show the count/duration of agent runs
+  // If there are not, we show the count/duration of all AI spans
+  const agentRunsRequest = useSpans(
+    {
+      search: 'span.op:"gen_ai.invoke_agent"',
+      fields: ['id'],
+      limit: 1,
+    },
+    Referrer.AGENT_RUNS_WIDGET
+  );
+
+  const hasAgentRuns = agentRunsRequest.isLoading
+    ? undefined
+    : agentRunsRequest.data?.length > 0;
 
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
@@ -153,7 +170,7 @@ function AgentsOverviewPage() {
                 <ToolRibbon>
                   <PageFilterBar condensed>
                     <InsightsProjectSelector />
-                    <EnvironmentPageFilter />
+                    <InsightsEnvironmentSelector />
                     <DatePageFilter {...datePageFilterProps} />
                   </PageFilterBar>
                   {!showOnboarding && (
@@ -171,10 +188,20 @@ function AgentsOverviewPage() {
                   <Fragment>
                     <WidgetGrid rowHeight={210} paddingBottom={0}>
                       <WidgetGrid.Position1>
-                        <OverviewAgentsRunsChartWidget />
+                        {hasAgentRuns === undefined ? (
+                          <LoadingPanel />
+                        ) : (
+                          <OverviewAgentsRunsChartWidget hasAgentRuns={hasAgentRuns} />
+                        )}
                       </WidgetGrid.Position1>
                       <WidgetGrid.Position2>
-                        <OverviewAgentsDurationChartWidget />
+                        {hasAgentRuns === undefined ? (
+                          <LoadingPanel />
+                        ) : (
+                          <OverviewAgentsDurationChartWidget
+                            hasAgentRuns={hasAgentRuns}
+                          />
+                        )}
                       </WidgetGrid.Position2>
                       <WidgetGrid.Position3>
                         <IssuesWidget />
@@ -280,6 +307,33 @@ function PageWithProviders() {
     </AIInsightsFeature>
   );
 }
+
+function LoadingPanel() {
+  return (
+    <LoadingPlaceholder>
+      <LoadingMask visible />
+      <LoadingIndicator size={24} />
+    </LoadingPlaceholder>
+  );
+}
+
+const LoadingPlaceholder = styled('div')`
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  height: 100%;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: ${space(1)};
+
+  padding-top: 32px;
+`;
+
+const LoadingMask = styled(TransparentLoadingMask)`
+  background: ${p => p.theme.background};
+`;
 
 const QueryBuilderWrapper = styled('div')`
   flex: 2;

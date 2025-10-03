@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
@@ -6,9 +6,9 @@ import type {Location, LocationDescriptorObject} from 'history';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Link} from 'sentry/components/core/link';
 import Pagination from 'sentry/components/pagination';
-import type {GridColumn} from 'sentry/components/tables/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import GridEditable from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -61,30 +61,25 @@ const getTableColumnTitle = (index: number, vitalName: WebVital) => {
   return titles[index];
 };
 
-type Props = {
+interface TableProps {
   eventView: EventView;
   location: Location;
   organization: Organization;
   projects: Project[];
-  setError: (msg: string | undefined) => void;
   summaryConditions: string;
-
   theme: Theme;
-};
+}
 
-type State = {
-  widths: number[];
-};
-
-class Table extends Component<Props, State> {
-  state: State = {
-    widths: [],
-  };
-
-  handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
+function Table({
+  eventView,
+  location,
+  organization,
+  projects,
+  summaryConditions,
+  theme,
+}: TableProps) {
+  const handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: string | number) => {
-      const {eventView, location, organization} = this.props;
-
       trackAnalytics('performance_views.overview.cellaction', {
         organization,
         action,
@@ -107,15 +102,12 @@ class Table extends Component<Props, State> {
     };
   };
 
-  renderBodyCell(
+  const renderBodyCell = (
     tableData: TableData | null,
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow,
     vitalName: WebVital
-  ): React.ReactNode {
-    const {eventView, organization, projects, location, summaryConditions, theme} =
-      this.props;
-
+  ): React.ReactNode => {
     if (!tableData?.meta?.fields) {
       return dataRow[column.key];
     }
@@ -179,13 +171,13 @@ class Table extends Component<Props, State> {
         <CellAction
           column={column}
           dataRow={dataRow}
-          handleCellAction={this.handleCellAction(column)}
+          handleCellAction={handleCellAction(column)}
           allowActions={allowActions}
         >
           <Link
             to={target}
             aria-label={t('See transaction summary of the transaction %s', transaction)}
-            onClick={this.handleSummaryClick}
+            onClick={handleSummaryClick}
           >
             {rendered}
           </Link>
@@ -201,27 +193,26 @@ class Table extends Component<Props, State> {
       <CellAction
         column={column}
         dataRow={dataRow}
-        handleCellAction={this.handleCellAction(column)}
+        handleCellAction={handleCellAction(column)}
         allowActions={allowActions}
       >
         {rendered}
       </CellAction>
     );
-  }
+  };
 
-  renderBodyCellWithData = (tableData: TableData | null, vitalName: WebVital) => {
+  const renderBodyCellWithData = (tableData: TableData | null, vitalName: WebVital) => {
     return (
       column: TableColumn<keyof TableDataRow>,
       dataRow: TableDataRow
-    ): React.ReactNode => this.renderBodyCell(tableData, column, dataRow, vitalName);
+    ): React.ReactNode => renderBodyCell(tableData, column, dataRow, vitalName);
   };
 
-  renderHeadCell(
+  const renderHeadCell = (
     column: TableColumn<keyof TableDataRow>,
     title: React.ReactNode,
     tableMeta?: EventsMetaType['fields']
-  ): React.ReactNode {
-    const {eventView, location} = this.props;
+  ): React.ReactNode => {
     // TODO: Need to map table meta keys to aggregate alias since eventView sorting still expects
     // aggregate aliases for now. We'll need to refactor event view to get rid of all aggregate
     // alias references and then we can remove this.
@@ -262,18 +253,20 @@ class Table extends Component<Props, State> {
         generateSortLink={generateSortLink}
       />
     );
-  }
+  };
 
-  renderHeadCellWithMeta = (
+  const renderHeadCellWithMeta = (
     vitalName: WebVital,
     tableMeta?: EventsMetaType['fields']
   ) => {
     return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
-      this.renderHeadCell(column, getTableColumnTitle(index, vitalName), tableMeta);
+      renderHeadCell(column, getTableColumnTitle(index, vitalName), tableMeta);
   };
 
-  renderPrependCellWithData = (tableData: TableData | null, vitalName: WebVital) => {
-    const {eventView} = this.props;
+  const renderPrependCellWithData = (
+    tableData: TableData | null,
+    vitalName: WebVital
+  ) => {
     const teamKeyTransactionColumn = eventView
       .getColumns()
       .find((col: TableColumn<string | number>) => col.name === 'team_key_transaction');
@@ -289,37 +282,23 @@ class Table extends Component<Props, State> {
             />
           );
           return [
-            this.renderHeadCell(teamKeyTransactionColumn, star, tableData?.meta?.fields),
+            renderHeadCell(teamKeyTransactionColumn, star, tableData?.meta?.fields),
           ];
         }
-        return [
-          this.renderBodyCell(tableData, teamKeyTransactionColumn, dataRow, vitalName),
-        ];
+        return [renderBodyCell(tableData, teamKeyTransactionColumn, dataRow, vitalName)];
       }
       return [];
     };
   };
 
-  handleSummaryClick = () => {
-    const {organization, projects, location} = this.props;
-
+  const handleSummaryClick = useCallback(() => {
     trackAnalytics('performance_views.overview.navigate.summary', {
       organization,
       project_platforms: getSelectedProjectPlatforms(location, projects),
     });
-  };
+  }, [organization, projects, location]);
 
-  handleResizeColumn = (columnIndex: number, nextColumn: GridColumn) => {
-    const widths: number[] = [...this.state.widths];
-    widths[columnIndex] = nextColumn.width
-      ? Number(nextColumn.width)
-      : COL_WIDTH_UNDEFINED;
-    this.setState({widths});
-  };
-
-  getSortedEventView(vitalName: WebVital) {
-    const {eventView} = this.props;
-
+  const getSortedEventView = (vitalName: WebVital) => {
     const aggregateFieldPoor = getAggregateAlias(
       getVitalDetailTablePoorStatusFunction(vitalName)
     );
@@ -349,71 +328,66 @@ class Table extends Component<Props, State> {
         ];
 
     return eventView.withSorts([...additionalSorts, ...eventView.sorts]);
-  }
+  };
 
-  render() {
-    const {eventView, organization, location} = this.props;
-    const {widths} = this.state;
-
+  const columns = useMemo(() => {
     const fakeColumnView = eventView.clone();
     fakeColumnView.fields = [...eventView.fields];
-    const columnOrder = fakeColumnView
-      .getColumns()
-      // remove key_transactions from the column order as we'll be rendering it
-      // via a prepended column
-      .filter((col: TableColumn<string | number>) => col.name !== 'team_key_transaction')
-      .slice(0, -1)
-      .map((col: TableColumn<string | number>, i: number) => {
-        if (typeof widths[i] === 'number') {
-          return {...col, width: widths[i]};
-        }
-        return col;
-      });
-
-    const vitalName = vitalNameFromLocation(location);
-    const sortedEventView = this.getSortedEventView(vitalName);
-    const columnSortBy = sortedEventView.getSorts();
-
     return (
-      <div>
-        <VitalsDetailsTableQuery
-          eventView={sortedEventView}
-          orgSlug={organization.slug}
-          location={location}
-          limit={10}
-          referrer="api.insights.vital-detail"
-        >
-          {({pageLinks, isLoading, tableData}) => (
-            <Fragment>
-              <GridEditable
-                isLoading={isLoading}
-                data={tableData ? tableData.data : []}
-                columnOrder={columnOrder}
-                columnSortBy={columnSortBy}
-                grid={{
-                  onResizeColumn: this.handleResizeColumn,
-                  renderHeadCell: this.renderHeadCellWithMeta(
-                    vitalName,
-                    tableData?.meta?.fields
-                  ) as any,
-                  renderBodyCell: this.renderBodyCellWithData(
-                    tableData,
-                    vitalName
-                  ) as any,
-                  renderPrependColumns: this.renderPrependCellWithData(
-                    tableData,
-                    vitalName
-                  ) as any,
-                  prependColumnWidths: ['max-content'],
-                }}
-              />
-              <Pagination pageLinks={pageLinks} />
-            </Fragment>
-          )}
-        </VitalsDetailsTableQuery>
-      </div>
+      fakeColumnView
+        .getColumns()
+        // remove key_transactions from the column order as we'll be rendering it
+        // via a prepended column
+        .filter(
+          (col: TableColumn<string | number>) => col.name !== 'team_key_transaction'
+        )
     );
-  }
+  }, [eventView]);
+
+  const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
+    columns,
+  });
+
+  const vitalName = vitalNameFromLocation(location);
+  const sortedEventView = getSortedEventView(vitalName);
+  const columnSortBy = sortedEventView.getSorts();
+
+  return (
+    <div>
+      <VitalsDetailsTableQuery
+        eventView={sortedEventView}
+        orgSlug={organization.slug}
+        location={location}
+        limit={10}
+        referrer="api.insights.vital-detail"
+      >
+        {({pageLinks, isLoading, tableData}) => (
+          <Fragment>
+            <GridEditable
+              isLoading={isLoading}
+              data={tableData ? tableData.data : []}
+              columnOrder={columnOrder}
+              columnSortBy={columnSortBy}
+              grid={{
+                onResizeColumn: handleResizeColumn,
+                renderHeadCell: renderHeadCellWithMeta(
+                  vitalName,
+                  tableData?.meta?.fields
+                ) as any,
+                renderBodyCell: renderBodyCellWithData(tableData, vitalName) as any,
+                renderPrependColumns: renderPrependCellWithData(
+                  tableData,
+                  vitalName
+                ) as any,
+                prependColumnWidths: ['max-content'],
+              }}
+            />
+            <Pagination pageLinks={pageLinks} />
+          </Fragment>
+        )}
+      </VitalsDetailsTableQuery>
+    </div>
+  );
 }
 
 const UniqueTagCell = styled('div')`

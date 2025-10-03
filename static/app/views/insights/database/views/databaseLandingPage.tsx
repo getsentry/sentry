@@ -31,10 +31,7 @@ import {
   QueriesTable,
 } from 'sentry/views/insights/database/components/tables/queriesTable';
 import {useSystemSelectorOptions} from 'sentry/views/insights/database/components/useSystemSelectorOptions';
-import {
-  BASE_FILTERS,
-  DEFAULT_DURATION_AGGREGATE,
-} from 'sentry/views/insights/database/settings';
+import {BASE_FILTERS} from 'sentry/views/insights/database/settings';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
@@ -46,7 +43,6 @@ export function DatabaseLandingPage() {
   const hasModuleData = useHasFirstSpan(moduleName);
   const {search, enabled} = useDatabaseLandingChartFilter();
 
-  const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
   const spanDescription =
     decodeScalar(location.query?.['sentry.normalized_description'], '') ||
     decodeScalar(location.query?.['span.description'], '');
@@ -124,10 +120,9 @@ export function DatabaseLandingPage() {
 
   const isAnyCriticalDataAvailable =
     (queryListResponse.data ?? []).length > 0 ||
-    durationData[`${selectedAggregate}(span.self_time)`].data?.some(
-      ({value}) => value > 0
-    ) ||
-    throughputData['epm()'].data?.some(({value}) => value > 0);
+    [...(durationData?.timeSeries ?? []), ...(throughputData?.timeSeries ?? [])]
+      .flatMap(timeSeries => timeSeries.values)
+      .some(({value}) => value && value > 0);
 
   return (
     <React.Fragment>

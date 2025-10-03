@@ -1,0 +1,837 @@
+---
+created: '2025-09-24T22:53:05.689368+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouping_info.py
+---
+{
+  "app": {
+    "component": {
+      "contributes": true,
+      "hint": null,
+      "id": "app",
+      "name": "in-app",
+      "values": [
+        {
+          "contributes": true,
+          "hint": null,
+          "id": "stacktrace",
+          "name": "stacktrace",
+          "values": [
+            {
+              "contributes": true,
+              "hint": "marked in-app by the client",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "foo.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "marked out of app by the client",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "marked out of app by the client",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "marked out of app by the client",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "marked out of app by the client",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "marked out of app by the client",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "marked out of app by the client",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "marked out of app by the client",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "marked out of app by the client",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "marked out of app by the client",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "marked out of app by the client",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "marked out of app by the client",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "config": {
+      "base": "BASE_CONFIG",
+      "delegates": [
+        "frame:v1",
+        "single-exception:v1",
+        "stacktrace:v1"
+      ],
+      "id": "newstyle:2023-01-11",
+      "strategies": [
+        "chained-exception:v1",
+        "csp:v1",
+        "expect-ct:v1",
+        "expect-staple:v1",
+        "hpkp:v1",
+        "message:v1",
+        "stacktrace:v1",
+        "template:v1",
+        "threads:v1"
+      ]
+    },
+    "description": "in-app stacktrace",
+    "hash": "1effb24729ae4c43efa36b460511136a",
+    "hint": null,
+    "key": "app",
+    "type": "component"
+  },
+  "system": {
+    "component": {
+      "contributes": true,
+      "hint": null,
+      "id": "system",
+      "name": null,
+      "values": [
+        {
+          "contributes": true,
+          "hint": null,
+          "id": "stacktrace",
+          "name": "stacktrace",
+          "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "foo.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored due to recursion",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored due to recursion",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored due to recursion",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored due to recursion",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored due to recursion",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored due to recursion",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored due to recursion",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored due to recursion",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored due to recursion",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored due to recursion",
+              "id": "frame",
+              "name": null,
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "module",
+                  "name": null,
+                  "values": []
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "filename",
+                  "name": null,
+                  "values": [
+                    "bar.py"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": null,
+                  "id": "function",
+                  "name": null,
+                  "values": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "config": {
+      "base": "BASE_CONFIG",
+      "delegates": [
+        "frame:v1",
+        "single-exception:v1",
+        "stacktrace:v1"
+      ],
+      "id": "newstyle:2023-01-11",
+      "strategies": [
+        "chained-exception:v1",
+        "csp:v1",
+        "expect-ct:v1",
+        "expect-staple:v1",
+        "hpkp:v1",
+        "message:v1",
+        "stacktrace:v1",
+        "template:v1",
+        "threads:v1"
+      ]
+    },
+    "description": "stacktrace",
+    "hash": "659ad79e2e70c822d30a53d7d889529e",
+    "hint": null,
+    "key": "system",
+    "type": "component"
+  }
+}

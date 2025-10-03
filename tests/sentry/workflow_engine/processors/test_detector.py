@@ -1,6 +1,5 @@
 import unittest
 import uuid
-from datetime import UTC, datetime
 from unittest import mock
 from unittest.mock import MagicMock, call
 
@@ -103,7 +102,6 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             group_key=None,
             value=6,
             priority=DetectorPriorityLevel.HIGH,
-            detection_time=datetime.now(UTC),
             occurrence_id=str(self.mock_uuid4.return_value),
         )
 
@@ -137,14 +135,12 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             detector.detector_handler, "group_1", PriorityLevel.HIGH
         )
 
-        detection_time = datetime.now(UTC)
         issue_occurrence_1, event_data_1 = self.detector_to_issue_occurrence(
             detector_occurrence=detector_occurrence_1,
             detector=detector,
             group_key="group_1",
             value=6,
             priority=DetectorPriorityLevel.HIGH,
-            detection_time=detection_time,
             occurrence_id=str(self.mock_uuid4.return_value),
         )
 
@@ -166,7 +162,6 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             group_key="group_2",
             value=10,
             priority=DetectorPriorityLevel.HIGH,
-            detection_time=detection_time,
             occurrence_id=str(self.mock_uuid4.return_value),
         )
 
@@ -259,7 +254,6 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             group_key=None,
             value=6,
             priority=DetectorPriorityLevel.HIGH,
-            detection_time=datetime.now(UTC),
             occurrence_id=str(self.mock_uuid4.return_value),
         )
 
@@ -338,7 +332,10 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
 
         with mock.patch("sentry.utils.metrics.incr") as mock_incr:
             process_detectors(data_packet, [detector])
-            mock_incr.assert_not_called()
+            calls = mock_incr.call_args_list
+            # We can have background threads emitting metrics as tasks are scheduled
+            filtered_calls = list(filter(lambda c: "taskworker" not in c.args[0], calls))
+            assert len(filtered_calls) == 0
 
 
 @django_db_all
@@ -541,14 +538,12 @@ class TestEvaluate(BaseDetectorHandlerTest):
             handler, "val1", PriorityLevel.HIGH
         )
 
-        detection_time = datetime.now(UTC)
         issue_occurrence, event_data = self.detector_to_issue_occurrence(
             detector_occurrence=detector_occurrence,
             detector=handler.detector,
             group_key="val1",
             value=6,
             priority=DetectorPriorityLevel.HIGH,
-            detection_time=detection_time,
             occurrence_id=str(self.mock_uuid4.return_value),
         )
 
@@ -582,14 +577,12 @@ class TestEvaluate(BaseDetectorHandlerTest):
             handler, "val1", PriorityLevel.HIGH
         )
 
-        detection_time = datetime.now(UTC)
         issue_occurrence, event_data = self.detector_to_issue_occurrence(
             detector_occurrence=detector_occurrence,
             detector=handler.detector,
             group_key="val1",
             value=6,
             priority=DetectorPriorityLevel.HIGH,
-            detection_time=detection_time,
             occurrence_id=str(self.mock_uuid4.return_value),
         )
 
@@ -638,14 +631,12 @@ class TestEvaluate(BaseDetectorHandlerTest):
             handler, "val1", PriorityLevel.HIGH
         )
 
-        detection_time = datetime.now(UTC)
         issue_occurrence, event_data = self.detector_to_issue_occurrence(
             detector_occurrence=detector_occurrence,
             detector=handler.detector,
             group_key="val1",
             value=100,
             priority=DetectorPriorityLevel.HIGH,
-            detection_time=detection_time,
             occurrence_id=str(self.mock_uuid4.return_value),
         )
 
@@ -681,14 +672,12 @@ class TestEvaluate(BaseDetectorHandlerTest):
             handler, "val1", PriorityLevel.HIGH
         )
 
-        detection_time = datetime.now(UTC)
         issue_occurrence, event_data = self.detector_to_issue_occurrence(
             detector_occurrence=detector_occurrence,
             detector=handler.detector,
             group_key="val1",
             value=8,
             priority=DetectorPriorityLevel.HIGH,
-            detection_time=detection_time,
             occurrence_id=str(self.mock_uuid4.return_value),
         )
 
@@ -745,14 +734,12 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
                 handler, "val1", PriorityLevel.HIGH
             )
 
-            detection_time = datetime.now(UTC)
             issue_occurrence, event_data = self.detector_to_issue_occurrence(
                 detector_occurrence=detector_occurrence,
                 detector=handler.detector,
                 group_key="group_key",
                 value=10,
                 priority=DetectorPriorityLevel.HIGH,
-                detection_time=detection_time,
                 occurrence_id=str(self.mock_uuid4.return_value),
             )
 

@@ -7,8 +7,8 @@ from unittest.mock import MagicMock, Mock, call, patch
 import pytest
 
 from sentry.issues.grouptype import (
-    PerformanceMNPlusOneDBQueriesExperimentalGroupType,
-    PerformanceNPlusOneExperimentalGroupType,
+    PerformanceMNPlusOneDBQueriesGroupType,
+    PerformanceNPlusOneGroupType,
 )
 from sentry.models.options.project_option import ProjectOption
 from sentry.performance_issues.base import DetectorType
@@ -29,8 +29,8 @@ from sentry.testutils.performance_issues.event_generators import get_event
 @pytest.mark.django_db
 class MNPlusOneDBDetectorTest(TestCase):
     detector = MNPlusOneDBSpanExperimentalDetector
-    fingerprint_type_id = PerformanceMNPlusOneDBQueriesExperimentalGroupType.type_id
-    group_type = PerformanceNPlusOneExperimentalGroupType
+    fingerprint_type_id = PerformanceMNPlusOneDBQueriesGroupType.type_id
+    group_type = PerformanceNPlusOneGroupType
 
     def setUp(self) -> None:
         super().setUp()
@@ -116,7 +116,7 @@ class MNPlusOneDBDetectorTest(TestCase):
                 evidence_display=[],
             )
         ]
-        assert problems[0].title == "N+1 Query (Experimental)"
+        assert problems[0].title == "N+1 Query"
 
     def test_detects_prisma_client_m_n_plus_one(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-prisma-client")
@@ -151,8 +151,8 @@ class MNPlusOneDBDetectorTest(TestCase):
         assert len(problems) == 1
         problem = problems[0]
 
-        assert problem.type == PerformanceNPlusOneExperimentalGroupType
-        assert problem.fingerprint == "1-1911-44f4f3cc14f0f8d0c5ae372e5e8c80e7ba84f413"
+        assert problem.type == PerformanceNPlusOneGroupType
+        assert problem.fingerprint == "1-1011-44f4f3cc14f0f8d0c5ae372e5e8c80e7ba84f413"
 
         assert len(problem.offender_span_ids) == num_offender_spans
         assert problem.evidence_data is not None
@@ -167,8 +167,8 @@ class MNPlusOneDBDetectorTest(TestCase):
         event = get_event("m-n-plus-one-db/m-n-plus-one-prisma-client-different-descriptions")
         assert len(self.find_problems(event)) == 1
         problem = self.find_problems(event)[0]
-        assert problem.type == PerformanceNPlusOneExperimentalGroupType
-        assert problem.fingerprint == "1-1911-50301e409950f4b1cc0a02d9d172684b4020ae32"
+        assert problem.type == PerformanceNPlusOneGroupType
+        assert problem.fingerprint == "1-1011-50301e409950f4b1cc0a02d9d172684b4020ae32"
         assert len(problem.offender_span_ids) == 10
         assert problem.evidence_data is not None
         assert problem.evidence_data["number_repeating_spans"] == str(10)

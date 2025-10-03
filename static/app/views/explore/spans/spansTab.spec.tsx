@@ -14,13 +14,13 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKind} from 'sentry/utils/fields';
-import {
-  PageParamsProvider,
-  useExploreFields,
-  useExploreGroupBys,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import * as spanTagsModule from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {
+  useQueryParamsFields,
+  useQueryParamsGroupBys,
+} from 'sentry/views/explore/queryParams/context';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -166,11 +166,11 @@ describe('SpansTabContent', () => {
   });
 
   it('inserts group bys from aggregate mode as fields in samples mode', async () => {
-    let fields: string[] = [];
-    let groupBys: string[] = [];
+    let fields: readonly string[] = [];
+    let groupBys: readonly string[] = [];
     function Component() {
-      fields = useExploreFields();
-      groupBys = useExploreGroupBys();
+      fields = useQueryParamsFields();
+      groupBys = useQueryParamsGroupBys();
       return <SpansTabContent datePageFilterProps={datePageFilterProps} />;
     }
 
@@ -359,7 +359,7 @@ describe('SpansTabContent', () => {
 
       // re-open the combobox
       await userEvent.click(input);
-      const askSeer = await screen.findByText(/Ask Seer/);
+      const askSeer = await screen.findByText(/Ask Seer to build your query/);
       await userEvent.click(askSeer);
 
       const askSeerInput = screen.getByRole('combobox', {
@@ -383,7 +383,7 @@ describe('SpansTabContent', () => {
       await userEvent.click(input);
       await userEvent.type(input, ' random');
 
-      const askSeer = await screen.findByText(/Ask Seer/);
+      const askSeer = await screen.findByText(/Ask Seer to build your query/);
       await userEvent.click(askSeer);
 
       const askSeerInput = screen.getByRole('combobox', {
@@ -408,7 +408,7 @@ describe('SpansTabContent', () => {
       await userEvent.type(input, 'span.duration:>10ms{enter}');
       await userEvent.type(input, ' random');
 
-      const askSeer = await screen.findByText(/Ask Seer/);
+      const askSeer = await screen.findByText(/Ask Seer to build your query/);
       await userEvent.click(askSeer);
 
       const askSeerInput = screen.getByRole('combobox', {

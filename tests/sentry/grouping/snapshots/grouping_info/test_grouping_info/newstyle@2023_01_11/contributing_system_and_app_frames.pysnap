@@ -1,0 +1,481 @@
+---
+created: '2025-09-24T22:53:02.293300+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouping_info.py
+---
+{
+  "app": {
+    "component": {
+      "contributes": true,
+      "hint": null,
+      "id": "app",
+      "name": "in-app",
+      "values": [
+        {
+          "contributes": true,
+          "hint": null,
+          "id": "exception",
+          "name": "exception",
+          "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "stacktrace",
+              "name": "stacktrace",
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": "marked out of app by stack trace rule (function:runApp -app)",
+                  "id": "frame",
+                  "name": null,
+                  "values": [
+                    {
+                      "contributes": false,
+                      "hint": null,
+                      "id": "module",
+                      "name": null,
+                      "values": []
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "filename",
+                      "name": null,
+                      "values": [
+                        "app.js"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "function",
+                      "name": null,
+                      "values": [
+                        "runApp"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "context_line",
+                      "name": null,
+                      "values": [
+                        "return server.serve(port);"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": "marked out of app by stack trace rule (function:handleRequest -app)",
+                  "id": "frame",
+                  "name": null,
+                  "values": [
+                    {
+                      "contributes": false,
+                      "hint": null,
+                      "id": "module",
+                      "name": null,
+                      "values": []
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "filename",
+                      "name": null,
+                      "values": [
+                        "router.js"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "function",
+                      "name": null,
+                      "values": [
+                        "handleRequest"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "context_line",
+                      "name": null,
+                      "values": [
+                        "return handler(request);"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": "marked in-app by stack trace rule (function:recordMetrics +app) but ignored by stack trace rule (function:recordMetrics -group)",
+                  "id": "frame",
+                  "name": null,
+                  "values": [
+                    {
+                      "contributes": false,
+                      "hint": null,
+                      "id": "module",
+                      "name": null,
+                      "values": []
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "filename",
+                      "name": null,
+                      "values": [
+                        "metrics.js"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "function",
+                      "name": null,
+                      "values": [
+                        "recordMetrics"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "context_line",
+                      "name": null,
+                      "values": [
+                        "return withMetrics(handler, metricName, tags);"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "contributes": true,
+                  "hint": "marked in-app by stack trace rule (function:playFetch +app)",
+                  "id": "frame",
+                  "name": null,
+                  "values": [
+                    {
+                      "contributes": false,
+                      "hint": null,
+                      "id": "module",
+                      "name": null,
+                      "values": []
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "filename",
+                      "name": null,
+                      "values": [
+                        "dogpark.js"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "function",
+                      "name": null,
+                      "values": [
+                        "playFetch"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "context_line",
+                      "name": null,
+                      "values": [
+                        "raise FailedToFetchError('Charlie didn't bring the ball back!');"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "FailedToFetchError"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "FailedToFetchError: Charlie didn't bring the ball back!"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "config": {
+      "base": "BASE_CONFIG",
+      "delegates": [
+        "frame:v1",
+        "single-exception:v1",
+        "stacktrace:v1"
+      ],
+      "id": "newstyle:2023-01-11",
+      "strategies": [
+        "chained-exception:v1",
+        "csp:v1",
+        "expect-ct:v1",
+        "expect-staple:v1",
+        "hpkp:v1",
+        "message:v1",
+        "stacktrace:v1",
+        "template:v1",
+        "threads:v1"
+      ]
+    },
+    "description": "in-app exception stacktrace",
+    "hash": "161ce02ecc5d6685a72e8e520ab726b3",
+    "hint": null,
+    "key": "app",
+    "type": "component"
+  },
+  "system": {
+    "component": {
+      "contributes": true,
+      "hint": null,
+      "id": "system",
+      "name": null,
+      "values": [
+        {
+          "contributes": true,
+          "hint": null,
+          "id": "exception",
+          "name": "exception",
+          "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "stacktrace",
+              "name": "stacktrace",
+              "values": [
+                {
+                  "contributes": false,
+                  "hint": "ignored by stack trace rule (function:runApp -group)",
+                  "id": "frame",
+                  "name": null,
+                  "values": [
+                    {
+                      "contributes": false,
+                      "hint": null,
+                      "id": "module",
+                      "name": null,
+                      "values": []
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "filename",
+                      "name": null,
+                      "values": [
+                        "app.js"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "function",
+                      "name": null,
+                      "values": [
+                        "runApp"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "context_line",
+                      "name": null,
+                      "values": [
+                        "return server.serve(port);"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "frame",
+                  "name": null,
+                  "values": [
+                    {
+                      "contributes": false,
+                      "hint": null,
+                      "id": "module",
+                      "name": null,
+                      "values": []
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "filename",
+                      "name": null,
+                      "values": [
+                        "router.js"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "function",
+                      "name": null,
+                      "values": [
+                        "handleRequest"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "context_line",
+                      "name": null,
+                      "values": [
+                        "return handler(request);"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": "ignored by stack trace rule (function:recordMetrics -group)",
+                  "id": "frame",
+                  "name": null,
+                  "values": [
+                    {
+                      "contributes": false,
+                      "hint": null,
+                      "id": "module",
+                      "name": null,
+                      "values": []
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "filename",
+                      "name": null,
+                      "values": [
+                        "metrics.js"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "function",
+                      "name": null,
+                      "values": [
+                        "recordMetrics"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "context_line",
+                      "name": null,
+                      "values": [
+                        "return withMetrics(handler, metricName, tags);"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "frame",
+                  "name": null,
+                  "values": [
+                    {
+                      "contributes": false,
+                      "hint": null,
+                      "id": "module",
+                      "name": null,
+                      "values": []
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "filename",
+                      "name": null,
+                      "values": [
+                        "dogpark.js"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "function",
+                      "name": null,
+                      "values": [
+                        "playFetch"
+                      ]
+                    },
+                    {
+                      "contributes": true,
+                      "hint": null,
+                      "id": "context_line",
+                      "name": null,
+                      "values": [
+                        "raise FailedToFetchError('Charlie didn't bring the ball back!');"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "FailedToFetchError"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "FailedToFetchError: Charlie didn't bring the ball back!"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "config": {
+      "base": "BASE_CONFIG",
+      "delegates": [
+        "frame:v1",
+        "single-exception:v1",
+        "stacktrace:v1"
+      ],
+      "id": "newstyle:2023-01-11",
+      "strategies": [
+        "chained-exception:v1",
+        "csp:v1",
+        "expect-ct:v1",
+        "expect-staple:v1",
+        "hpkp:v1",
+        "message:v1",
+        "stacktrace:v1",
+        "template:v1",
+        "threads:v1"
+      ]
+    },
+    "description": "exception stacktrace",
+    "hash": "c5e4b4a9ad1803c4d4ca7feee5e430ae",
+    "hint": null,
+    "key": "system",
+    "type": "component"
+  }
+}

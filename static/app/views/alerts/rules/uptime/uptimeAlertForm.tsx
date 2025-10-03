@@ -8,9 +8,11 @@ import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
+import NumberField from 'sentry/components/forms/fields/numberField';
 import RangeField from 'sentry/components/forms/fields/rangeField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
@@ -22,14 +24,13 @@ import FormModel from 'sentry/components/forms/model';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
-import Text from 'sentry/components/text';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
@@ -38,8 +39,6 @@ import {HTTPSnippet} from './httpSnippet';
 import {UptimeHeadersField} from './uptimeHeadersField';
 
 interface Props {
-  organization: Organization;
-  project: Project;
   handleDelete?: () => void;
   rule?: UptimeRule;
 }
@@ -49,6 +48,9 @@ const HTTP_METHOD_OPTIONS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'O
 const HTTP_METHODS_NO_BODY = ['GET', 'HEAD', 'OPTIONS'];
 
 const MINUTE = 60;
+
+const DEFAULT_DOWNTIME_THRESHOLD = 3;
+const DEFAULT_RECOVERY_THRESHOLD = 1;
 
 const VALID_INTERVALS_SEC = [
   MINUTE * 1,
@@ -76,17 +78,25 @@ function getFormDataFromRule(rule: UptimeRule) {
     timeoutMs: rule.timeoutMs,
     traceSampling: rule.traceSampling,
     owner: rule.owner ? `${rule.owner.type}:${rule.owner.id}` : null,
+    recoveryThreshold: rule.recoveryThreshold,
+    downtimeThreshold: rule.downtimeThreshold,
   };
 }
 
-export function UptimeAlertForm({project, handleDelete, rule}: Props) {
+export function UptimeAlertForm({handleDelete, rule}: Props) {
   const navigate = useNavigate();
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const {projects} = useProjects();
+  const {selection} = usePageFilters();
+
+  const project =
+    projects.find(p => selection.projects[0]?.toString() === p.id) ??
+    (projects.length === 1 ? projects[0] : null);
 
   const initialData = rule
     ? getFormDataFromRule(rule)
-    : {projectSlug: project.slug, method: 'GET', headers: []};
+    : {projectSlug: project?.slug, method: 'GET', headers: []};
 
   const [formModel] = useState(() => new FormModel());
 
@@ -105,13 +115,23 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
         const projectSlug = formModel.getValue<string>('projectSlug');
         const selectedProject = projects.find(p => p.slug === projectSlug);
         const apiEndpoint = rule
-          ? `/projects/${organization.slug}/${projectSlug}/uptime/${rule.detectorId}/?useDetectorId=1`
-          : `/projects/${organization.slug}/${projectSlug}/uptime/?useDetectorId=1`;
+          ? `/projects/${organization.slug}/${projectSlug}/uptime/${rule.id}/`
+          : `/projects/${organization.slug}/${projectSlug}/uptime/`;
 
         function onSubmitSuccess(response: any) {
+          // Clear the cached uptime rule so subsequent edits load fresh data
+          const ruleId = response?.id ?? rule?.id;
+          if (ruleId) {
+            queryClient.invalidateQueries({
+              queryKey: [
+                `/projects/${organization.slug}/${projectSlug}/uptime/${ruleId}/`,
+              ],
+              exact: true,
+            });
+          }
           navigate(
             makeAlertsPathname({
-              path: `/rules/uptime/${projectSlug}/${response.detectorId}/details/`,
+              path: `/rules/uptime/${projectSlug}/${response.id}/details/`,
               organization,
             })
           );
@@ -122,7 +142,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           setEnvironments(selectedProject.environments);
         }
       }),
-    [formModel, navigate, organization, projects, rule]
+    [formModel, navigate, organization, projects, rule, queryClient]
   );
 
   // When mutating the name field manually, we'll disable automatic name
@@ -295,6 +315,10 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             <UptimeHeadersField
               name="headers"
               label={t('Headers')}
+              showHelpInTooltip={{isHoverable: true}}
+              help={t(
+                'Avoid adding sensitive credentials to headers as they are stored in plain text.'
+              )}
               flexibleControlStateSize
             />
             <TextareaField
@@ -347,6 +371,56 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             )}
           </Observer>
         </Configuration>
+        <AlertListItem>{t('Set thresholds')}</AlertListItem>
+        <ListItemSubText>
+          {t('Configure when an issue is created or resolved.')}
+        </ListItemSubText>
+        <Configuration>
+          <ConfigurationPanel>
+            <NumberField
+              name="downtimeThreshold"
+              min={1}
+              placeholder={t('Defaults to 3')}
+              help={({model}) => {
+                const intervalSeconds = Number(model.getValue('intervalSeconds'));
+                const threshold =
+                  Number(model.getValue('downtimeThreshold')) ||
+                  DEFAULT_DOWNTIME_THRESHOLD;
+                const downDuration = intervalSeconds * threshold;
+                return tct(
+                  'Issue created after [threshold] consecutive failures (after [downtime] of downtime).',
+                  {
+                    threshold: <strong>{threshold}</strong>,
+                    downtime: <strong>{getDuration(downDuration)}</strong>,
+                  }
+                );
+              }}
+              label={t('Failure Tolerance')}
+              flexibleControlStateSize
+            />
+            <NumberField
+              name="recoveryThreshold"
+              min={1}
+              placeholder={t('Defaults to 1')}
+              help={({model}) => {
+                const intervalSeconds = Number(model.getValue('intervalSeconds'));
+                const threshold =
+                  Number(model.getValue('recoveryThreshold')) ||
+                  DEFAULT_RECOVERY_THRESHOLD;
+                const upDuration = intervalSeconds * threshold;
+                return tct(
+                  'Issue resolved after [threshold] consecutive successes (after [uptime] of recovered uptime).',
+                  {
+                    threshold: <strong>{threshold}</strong>,
+                    uptime: <strong>{getDuration(upDuration)}</strong>,
+                  }
+                );
+              }}
+              label={t('Recovery Tolerance')}
+              flexibleControlStateSize
+            />
+          </ConfigurationPanel>
+        </Configuration>
         <AlertListItem>{t('Establish ownership')}</AlertListItem>
         <ListItemSubText>
           {t(
@@ -374,7 +448,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           <SentryMemberTeamSelectorField
             name="owner"
             label={t('Owner')}
-            menuPlacement="auto"
             inline={false}
             flexibleControlStateSize
             stacked
@@ -424,7 +497,7 @@ const Configuration = styled('div')`
 const ConfigurationPanel = styled(Panel)`
   display: grid;
   gap: 0 ${space(2)};
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: fit-content(325px) 1fr;
   align-items: center;
 
   ${FieldWrapper} {

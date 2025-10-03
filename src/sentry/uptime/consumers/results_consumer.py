@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from arroyo.backends.kafka import KafkaPayload
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import SnubaUptimeResult
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
@@ -44,7 +44,7 @@ from sentry.uptime.subscriptions.tasks import (
 from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
 from sentry.utils import metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.kafka_config import get_topic_definition
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.processors.detector import process_detectors
@@ -66,23 +66,12 @@ SNUBA_UPTIME_RESULTS_CODEC: Codec[SnubaUptimeResult] = get_topic_codec(Topic.SNU
 TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS = 30
 
 
-def _get_snuba_uptime_checks_producer() -> KafkaProducer:
-    producer = get_arroyo_producer(
+def _get_snuba_uptime_checks_producer():
+    return get_arroyo_producer(
         "sentry.uptime.consumers.results_consumer",
         Topic.SNUBA_UPTIME_RESULTS,
         exclude_config_keys=["compression.type", "message.max.bytes"],
     )
-
-    # Fallback to legacy producer creation if not rolled out
-    if producer is None:
-        cluster_name = get_topic_definition(Topic.SNUBA_UPTIME_RESULTS)["cluster"]
-        producer_config = get_kafka_producer_cluster_options(cluster_name)
-        producer_config.pop("compression.type", None)
-        producer_config.pop("message.max.bytes", None)
-        producer_config["client.id"] = "sentry.uptime.consumers.results_consumer"
-        producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
-
-    return producer
 
 
 _snuba_uptime_checks_producer = SingletonProducer(_get_snuba_uptime_checks_producer)
@@ -323,7 +312,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         try:
             detector = get_detector(subscription, prefetch_workflow_data=True)
         except Detector.DoesNotExist:
-            # Nothing to do if there's an orphaned project subscription
+            # Nothing to do if there's an orphaned uptime subscription
             remove_uptime_subscription_if_unused(subscription)
             return
 
@@ -371,6 +360,18 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 tags={"mode": mode_name, **metric_tags},
                 sample_rate=1.0,
             )
+
+            # Don't log too much; this codepath can get used when the consumer is doing increased
+            # work, which can further increase its work, and so make a bad situation even worse.
+            if random.random() < 0.01:
+                logger.info(
+                    "uptime.result_processor.skipping_already_processed_update",
+                    extra={
+                        "guid": result["guid"],
+                        "region": result["region"],
+                        "subscription_id": result["subscription_id"],
+                    },
+                )
             return
 
         subscription_interval_ms = 1000 * subscription.interval_seconds

@@ -5,10 +5,9 @@ from collections.abc import Sequence
 from typing import Any
 
 import sentry_sdk
-from celery.exceptions import SoftTimeLimitExceeded
 from django.utils import timezone
 
-from sentry import options
+from sentry import features, options
 from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
@@ -423,6 +422,9 @@ def check_field_cardinality(
     is_task: bool = False,
     widget_query: DashboardWidgetQuery | None = None,
 ) -> dict[str, str]:
+    if not features.has("organizations:on-demand-metrics-extraction-widgets", organization):
+        return {}
+
     if not query_columns:
         return {}
     if is_task:
@@ -475,9 +477,6 @@ def check_field_cardinality(
                                 "widget_query.count": count,
                             },
                         )
-        except SoftTimeLimitExceeded as error:
-            scope.set_tag("widget_soft_deadline", True)
-            sentry_sdk.capture_exception(error)
         except Exception as error:
             sentry_sdk.capture_exception(error)
 

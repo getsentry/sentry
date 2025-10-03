@@ -471,8 +471,9 @@ def update_existing_attachments(job):
 
 def fetch_buffered_group_stats(group):
     """
-    Fetches buffered increments to `times_seen` for this group and adds them to the current
-    `times_seen`.
+    Populates `times_seen_pending` with the number of buffered increments to `times_seen`
+    for this group. `times_seen_with_pending` can subsequently be used as the total times seen,
+    including the pending buffer updates.
     """
     from sentry import buffer
     from sentry.models.group import Group
@@ -1021,6 +1022,16 @@ def process_workflow_engine(job: PostProcessJob) -> None:
         return
 
 
+def _should_single_process_event(job: PostProcessJob) -> bool:
+    org = job["event"].project.organization
+
+    return (
+        features.has("organizations:workflow-engine-single-process-workflows", org)
+        and job["event"].group.type
+        in options.get("workflow_engine.issue_alert.group.type_id.rollout")
+    ) or job["event"].group.type in options.get("workflow_engine.issue_alert.group.type_id.ga")
+
+
 def process_workflow_engine_issue_alerts(job: PostProcessJob) -> None:
     """
     Call for process_workflow_engine with the issue alert feature flag
@@ -1028,12 +1039,8 @@ def process_workflow_engine_issue_alerts(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    org = job["event"].project.organization
-
     # process workflow engine if we are single processing or dual processing for a specific org
-    if features.has("organizations:workflow-engine-single-process-workflows", org) or features.has(
-        "organizations:workflow-engine-process-workflows", org
-    ):
+    if _should_single_process_event(job):
         process_workflow_engine(job)
 
 
@@ -1058,14 +1065,8 @@ def process_rules(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    org = job["event"].project.organization
-
-    if (
-        features.has("organizations:workflow-engine-single-process-workflows", org)
-        and job["event"].group.type
-        in options.get("workflow_engine.issue_alert.group.type_id.rollout")
-    ) or job["event"].group.type in options.get("workflow_engine.issue_alert.group.type_id.ga"):
-        # we are only processing through the workflow engine
+    if _should_single_process_event(job):
+        # we are only processing through workflow engine
         return
 
     metrics.incr(
@@ -1096,10 +1097,9 @@ def process_rules(job: PostProcessJob) -> None:
         # objects back and forth isn't super efficient
         callback_and_futures = rp.apply()
 
-        if not features.has("organizations:workflow-engine-trigger-actions", org):
-            for callback, futures in callback_and_futures:
-                has_alert = True
-                safe_execute(callback, group_event, futures)
+        for callback, futures in callback_and_futures:
+            has_alert = True
+            safe_execute(callback, group_event, futures)
 
     job["has_alert"] = has_alert
     return
@@ -1426,49 +1426,6 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
     return False
 
 
-def check_has_high_priority_alerts(job: PostProcessJob) -> None:
-    """
-    Determine if we should fire a task to check if the new issue
-    threshold has been met to enable high priority alerts.
-    """
-    try:
-        event = job["event"]
-        if event.project.flags.has_high_priority_alerts:
-            return
-
-        from sentry.tasks.check_new_issue_threshold_met import (
-            check_new_issue_threshold_met,
-            new_issue_threshold_key,
-        )
-
-        # If the new issue volume has already been checked today, don't recalculate regardless of the value
-        project_key = new_issue_threshold_key(event.project_id)
-        threshold_met = cache.get(project_key)
-        if threshold_met is not None:
-            return
-
-        try:
-            lock = locks.get(project_key, duration=10)
-            with lock.acquire():
-                # If the threshold has already been calculated today, don't recalculate regardless of the value
-                task_scheduled = cache.get(project_key)
-                if task_scheduled is not None:
-                    return
-
-                check_new_issue_threshold_met.delay(event.project.id)
-
-                # Add the key to cache for 24 hours
-                cache.set(project_key, True, 60 * 60 * 24)
-        except UnableToAcquireLock:
-            pass
-    except Exception as e:
-        logger.warning(
-            "Failed to check new issue threshold met",
-            repr(e),
-            extra={"project_id": event.project_id},
-        )
-
-
 def link_event_to_user_report(job: PostProcessJob) -> None:
     from sentry.feedback.lib.utils import FeedbackCreationSource
     from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
@@ -1648,7 +1605,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         return
 
     project = group.project
-    if not project.get_option("sentry:seer_scanner_automation"):
+    if (
+        not project.get_option("sentry:seer_scanner_automation")
+        and not group.issue_type.always_trigger_seer_automation
+    ):
         return
 
     # Don't run if there's already a task in progress for this issue
@@ -1683,7 +1643,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         _capture_group_stats,
         process_snoozes,
         process_inbox_adds,
-        check_has_high_priority_alerts,
         detect_new_escalation,
         process_commits,
         handle_owner_assignment,

@@ -2,6 +2,8 @@ import isPropValid from '@emotion/is-prop-valid';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {rc, type Responsive} from 'sentry/components/core/layout/styles';
+
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';
 
 export interface BaseTextProps {
@@ -10,7 +12,7 @@ export interface BaseTextProps {
    * Horizontal alignment of the text.
    *
    */
-  align?: 'left' | 'center' | 'right' | 'justify';
+  align?: Responsive<'left' | 'center' | 'right' | 'justify'>;
   bold?: boolean;
   /**
    * Density determines the line height of the text.
@@ -18,7 +20,7 @@ export interface BaseTextProps {
    * - compressed: 1
    * - comfortable: 1.4
    */
-  density?: 'compressed' | 'comfortable';
+  density?: Responsive<'compressed' | 'comfortable'>;
   /**
    * If true, the text will be truncated with an ellipsis,
    * overflow will be hidden and white-space will be set to nowrap.
@@ -46,7 +48,7 @@ export interface BaseTextProps {
    * The size of the text.
    * @default md
    */
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  size?: Responsive<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'>;
 
   /**
    * Strikethrough the text.
@@ -58,6 +60,12 @@ export interface BaseTextProps {
    * If true, the text will be displayed in a tabular font (fixed width numbers)
    */
   tabular?: boolean;
+
+  /**
+   * Determines how text wrapping is handled using the CSS text-wrap property.
+   * @default undefined
+   */
+  textWrap?: 'wrap' | 'nowrap' | 'balance' | 'pretty' | 'stable';
 
   /**
    * Determines if the text should be underlined.
@@ -108,21 +116,22 @@ export const Text = styled(
     shouldForwardProp: p => isPropValid(p),
   }
 )`
-  font-size: ${p => getFontSize(p.size, p.theme)};
-  font-style: ${p => (p.italic ? 'italic' : undefined)};
+  ${p => rc('font-size', p.size, p.theme, v => getFontSize(v ?? 'md', p.theme))};
+  ${p => rc('line-height', p.density, p.theme, v => getLineHeight(v))};
+  ${p => rc('text-align', p.align, p.theme)};
 
-  line-height: ${p => getLineHeight(p.density)};
+  font-style: ${p => (p.italic ? 'italic' : undefined)};
   text-decoration: ${p => getTextDecoration(p)};
 
   color: ${p =>
     p.variant
       ? (p.theme.tokens.content[p.variant] ?? p.theme.tokens.content.primary)
       : p.theme.tokens.content.primary};
-  text-align: ${p => p.align ?? 'left'};
 
   overflow: ${p => (p.ellipsis ? 'hidden' : undefined)};
   text-overflow: ${p => (p.ellipsis ? 'ellipsis' : undefined)};
   white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
+  text-wrap: ${p => p.textWrap ?? undefined};
   width: ${p => (p.ellipsis ? '100%' : undefined)};
   display: ${p =>
     p.as === 'div'

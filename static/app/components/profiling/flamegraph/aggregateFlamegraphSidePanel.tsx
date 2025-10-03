@@ -228,7 +228,6 @@ function getReferenceStart(reference: Profiling.ProfileReference): number {
 const AggregateFlamegraphSidePanelContainer = styled('div')`
   flex-direction: column;
   width: 360px;
-  border-left: 1px solid ${p => p.theme.border};
   padding: ${space(1)};
 `;
 

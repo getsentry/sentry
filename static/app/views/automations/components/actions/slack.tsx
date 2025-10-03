@@ -23,8 +23,7 @@ export function SlackDetails({
   handler: ActionHandler;
 }) {
   const integrationName =
-    handler.integrations?.find(i => i.id === action.integrationId)?.name ||
-    action.integrationId;
+    handler.integrations?.find(i => i.id === action.integrationId)?.name || t('unknown');
 
   return tct(
     'Send a [logo] Slack message to [workspace] workspace, to [channel][tagsAndNotes]',

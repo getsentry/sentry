@@ -193,7 +193,7 @@ describe('ApiSource', () => {
           model: expect.objectContaining({slug: 'foo-project'}),
           sourceType: 'project',
           resultType: 'route',
-          to: '/organizations/org-slug/projects/foo-project/?project=2',
+          to: '/organizations/org-slug/insights/projects/foo-project/?project=2',
         }),
         expect.objectContaining({
           model: expect.objectContaining({slug: 'foo-project'}),
@@ -205,7 +205,7 @@ describe('ApiSource', () => {
           model: expect.objectContaining({slug: 'foo-project'}),
           sourceType: 'project',
           resultType: 'route',
-          to: '/organizations/org-slug/alerts/rules/?project=2',
+          to: '/organizations/org-slug/issues/alerts/rules/?project=2',
         }),
         expect.objectContaining({
           model: expect.objectContaining({slug: 'foo-team'}),

@@ -17,6 +17,7 @@ export default function DetectorDetails() {
     data: detector,
     isPending,
     isError,
+    error,
     refetch,
   } = useDetectorQuery(params.detectorId);
 
@@ -27,7 +28,12 @@ export default function DetectorDetails() {
   }
 
   if (isError) {
-    return <LoadingError onRetry={refetch} />;
+    return (
+      <LoadingError
+        message={error.status === 404 ? t('The monitor could not be found.') : undefined}
+        onRetry={refetch}
+      />
+    );
   }
 
   if (!project) {

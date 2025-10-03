@@ -33,6 +33,7 @@ import type {PromotionData, Subscription} from 'getsentry/types';
 import {checkForPromptBasedPromotion} from 'getsentry/utils/promotionUtils';
 import usePromotionTriggerCheck from 'getsentry/utils/usePromotionTriggerCheck';
 import withPromotions from 'getsentry/utils/withPromotions';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 type CancelReason = [string, React.ReactNode];
 type CancelCheckbox = [string, React.ReactNode];
@@ -329,11 +330,15 @@ function CancelSubscriptionWrapper({
 
   const title = t('Cancel Subscription');
   return (
-    <div data-test-id="cancel-subscription">
+    <SubscriptionPageContainer
+      background="secondary"
+      organization={organization}
+      dataTestId="cancel-subscription"
+    >
       <SentryDocumentTitle title={title} />
       <SettingsPageHeader title={title} />
       <CancelSubscriptionForm />
-    </div>
+    </SubscriptionPageContainer>
   );
 }
 

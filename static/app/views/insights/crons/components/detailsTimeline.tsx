@@ -1,5 +1,6 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+import sortBy from 'lodash/sortBy';
 
 import {
   deleteMonitorEnvironment,
@@ -10,8 +11,8 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
+import {Text} from 'sentry/components/core/text';
 import Panel from 'sentry/components/panels/panel';
-import Text from 'sentry/components/text';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
@@ -32,7 +33,7 @@ interface Props {
   /**
    * Called when monitor stats have been loaded for this timeline.
    */
-  onStatsLoaded: (stats: MonitorBucket[]) => void;
+  onStatsLoaded?: (stats: MonitorBucket[]) => void;
 }
 
 export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
@@ -45,7 +46,17 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
 
-  const timeWindowConfig = useTimeWindowConfig({timelineWidth});
+  // Use the nextCheckIn timestamp as a queryKey for computing the
+  // timeWindowConfig. This means when the nextCheckIn date changes we will
+  // recompute the timeWindowConfig timestamps. This is important when a
+  // period is used (like last hour)
+  const nextCheckIn = sortBy(monitor.environments, e => e.nextCheckIn)[0]?.nextCheckIn;
+
+  const timeWindowConfig = useTimeWindowConfig({
+    timelineWidth,
+    recomputeQueryKey: [nextCheckIn],
+    recomputeOnWindowFocus: true,
+  });
 
   const monitorDetailsQueryKey = makeMonitorDetailsQueryKey(
     organization,

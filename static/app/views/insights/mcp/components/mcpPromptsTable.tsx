@@ -43,6 +43,7 @@ const rightAlignColumns = new Set([
 
 export function McpPromptsTable() {
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const query = useCombinedQuery(`span.op:mcp.server has:${SpanFields.MCP_PROMPT_NAME}`);
   const tableDataRequest = useSpanTableData({
     query,
@@ -87,11 +88,10 @@ export function McpPromptsTable() {
     [handleSort]
   );
 
+  type TableData = (typeof tableDataRequest.data)[number];
+
   const renderBodyCell = useCallback(
-    (
-      column: GridColumnOrder<string>,
-      dataRow: (typeof tableDataRequest.data)[number]
-    ) => {
+    (column: GridColumnOrder<string>, dataRow: TableData) => {
       switch (column.key) {
         case SpanFields.MCP_PROMPT_NAME:
           return <McpPromptCell prompt={dataRow[SpanFields.MCP_PROMPT_NAME]} />;
@@ -102,6 +102,7 @@ export function McpPromptsTable() {
               total={dataRow['count()']}
               issuesLink={getExploreUrl({
                 query: `${query} span.status:internal_error ${SpanFields.MCP_PROMPT_NAME}:${dataRow[SpanFields.MCP_PROMPT_NAME]}`,
+                selection,
                 organization,
                 referrer: MCPReferrer.MCP_PROMPT_TABLE,
               })}
@@ -116,7 +117,7 @@ export function McpPromptsTable() {
           return <div />;
       }
     },
-    [tableDataRequest, organization, query]
+    [organization, query, selection]
   );
 
   return (
@@ -124,7 +125,7 @@ export function McpPromptsTable() {
       isLoading={tableDataRequest.isPending}
       error={tableDataRequest.error}
       data={tableDataRequest.data}
-      initialColumnOrder={defaultColumnOrder}
+      initialColumnOrder={defaultColumnOrder as Array<GridColumnOrder<keyof TableData>>}
       stickyHeader
       grid={{
         renderBodyCell,
@@ -151,7 +152,13 @@ function McpPromptCell({prompt}: {prompt: string}) {
         yAxes: ['count(span.duration)'],
       },
     ],
-    field: ['span.description', 'span.status', 'span.duration', 'timestamp'],
+    field: [
+      'span.description',
+      'span.status',
+      'mcp.prompt.result.message_content',
+      'span.duration',
+      'timestamp',
+    ],
     query: `span.op:mcp.server ${SpanFields.MCP_PROMPT_NAME}:"${prompt}"`,
     sort: `-count(span.duration)`,
   });

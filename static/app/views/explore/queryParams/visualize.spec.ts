@@ -35,6 +35,7 @@ describe('VisualizeFunction', () => {
   it('clones', () => {
     const vis1 = new VisualizeFunction('count(span.duration)', {
       chartType: ChartType.AREA,
+      visible: false,
     });
     const vis2 = vis1.clone();
     expect(vis1).toEqual(vis2);
@@ -60,16 +61,29 @@ describe('VisualizeFunction', () => {
     );
   });
 
+  it('replaces visible', () => {
+    const vis1 = new VisualizeFunction('count(span.duration)', {
+      visible: false,
+    });
+    const vis2 = vis1.replace({visible: true});
+    expect(vis2).toEqual(new VisualizeFunction('count(span.duration)', {visible: true}));
+  });
+
   it('replaces yAxes and chart type', () => {
     const vis1 = new VisualizeFunction('count(span.duration)', {
       chartType: ChartType.AREA,
+      visible: true,
     });
     const vis2 = vis1.replace({
       yAxis: 'avg(span.duration)',
       chartType: ChartType.LINE,
+      visible: false,
     });
     expect(vis2).toEqual(
-      new VisualizeFunction('avg(span.duration)', {chartType: ChartType.LINE})
+      new VisualizeFunction('avg(span.duration)', {
+        chartType: ChartType.LINE,
+        visible: false,
+      })
     );
   });
 

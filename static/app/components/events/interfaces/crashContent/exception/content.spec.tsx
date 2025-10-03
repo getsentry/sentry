@@ -177,7 +177,7 @@ describe('Exception Content', () => {
     );
   });
 
-  it('respects platform overrides in stacktrace frames', async () => {
+  it('respects platform overrides in stacktrace frames', () => {
     const event = EventFixture({
       projectID: project.id,
       platform: 'python',
@@ -218,8 +218,6 @@ describe('Exception Content', () => {
 
     // Cocoa override should render a native stack trace component
     expect(screen.getByTestId('native-stack-trace-content')).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'View Section'}));
 
     // Other stacktrace should render the normal stack trace (python)
     expect(screen.getByTestId('stack-trace-content')).toBeInTheDocument();
@@ -347,15 +345,10 @@ describe('Exception Content', () => {
       expect(within(exceptions[0]!).getByText('Related Exceptions')).toBeInTheDocument();
     });
 
-    it('displays exception group tree in first frame when there is no other context', async () => {
+    it('displays exception group tree in first frame when there is no other context', () => {
       render(<Content {...defaultProps} />, {
         deprecatedRouterMocks: true,
       });
-
-      const viewSectionButtons = screen.getAllByRole('button', {name: 'View Section'});
-      for (const button of viewSectionButtons) {
-        await userEvent.click(button); // just expand all of them so we can see the exception group tree
-      }
 
       const exceptions = screen.getAllByTestId('exception-value');
 
@@ -374,10 +367,6 @@ describe('Exception Content', () => {
       expect(screen.getAllByTestId('exception-value')).toHaveLength(3);
       expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
 
-      const viewSectionButtons = screen.getAllByRole('button', {name: 'View Section'});
-      for (const button of viewSectionButtons) {
-        await userEvent.click(button); // just expand all of them so we know the child exception group is open
-      }
       await userEvent.click(
         screen.getByRole('button', {name: /show 1 related exception/i})
       );
@@ -401,11 +390,6 @@ describe('Exception Content', () => {
       });
 
       expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
-
-      const viewSectionButtons = screen.getAllByRole('button', {name: 'View Section'});
-      for (const button of viewSectionButtons) {
-        await userEvent.click(button); // just expand all of them so we know the child exception group is open
-      }
 
       expect(
         screen.getByRole('button', {name: /show 1 related exception/i})
@@ -451,7 +435,7 @@ describe('Exception Content', () => {
       projectSlug: project.slug,
     };
 
-    it('only expands root cause exception by default', () => {
+    it('only expands the first 3 exceptions by default', () => {
       render(<Content {...defaultProps} />, {
         deprecatedRouterMocks: true,
       });
@@ -459,9 +443,11 @@ describe('Exception Content', () => {
       // both toggle headings are visible because they are not exception group chained exceptions
       expect(screen.getByRole('heading', {name: 'ValueError'})).toBeInTheDocument();
       expect(screen.getByRole('heading', {name: 'TypeError'})).toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'RuntimeError'})).toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'SyntaxError'})).toBeInTheDocument();
 
       // only ValueError is expanded by default
-      expect(screen.getAllByRole('button', {name: 'Collapse Section'})).toHaveLength(1);
+      expect(screen.getAllByRole('button', {name: 'Collapse Section'})).toHaveLength(3);
       expect(screen.getAllByRole('button', {name: 'View Section'})).toHaveLength(1);
 
       // does not show exception group UI elements
@@ -473,14 +459,6 @@ describe('Exception Content', () => {
         deprecatedRouterMocks: true,
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'View Section'}));
-
-      // all exceptions are expanded
-      expect(screen.getAllByRole('button', {name: 'Collapse Section'})).toHaveLength(2);
-      expect(
-        screen.queryByRole('button', {name: 'View Section'})
-      ).not.toBeInTheDocument();
-
       const collapseButtons = screen.getAllByRole('button', {name: 'Collapse Section'});
       for (const button of collapseButtons) {
         await userEvent.click(button);
@@ -490,7 +468,7 @@ describe('Exception Content', () => {
       expect(
         screen.queryByRole('button', {name: 'Collapse Section'})
       ).not.toBeInTheDocument();
-      expect(screen.getAllByRole('button', {name: 'View Section'})).toHaveLength(2);
+      expect(screen.getAllByRole('button', {name: 'View Section'})).toHaveLength(4);
     });
   });
 });

@@ -215,11 +215,3 @@ const categoryList = [
 export function getCategoryList(organization?: Organization) {
   return categoryList.filter(({display}) => display?.(organization) ?? true);
 }
-
-// TODO(aknaus): Drop in favour of PlatformIntegration
-export type Platform = {
-  key: PlatformKey;
-  id?: string;
-  link?: string | null;
-  name?: string;
-};

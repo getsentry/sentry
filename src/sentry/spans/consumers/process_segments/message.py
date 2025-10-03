@@ -1,11 +1,12 @@
 import logging
 import types
 import uuid
-from copy import deepcopy
-from typing import Any, cast
+from collections.abc import Mapping, Sequence
+from typing import Any
 
+import sentry_sdk
 from django.core.exceptions import ValidationError
-from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry import options
 from sentry.constants import DataCategory
@@ -26,11 +27,13 @@ from sentry.performance_issues.performance_detection import detect_performance_p
 from sentry.receivers.features import record_generic_event_processed
 from sentry.receivers.onboarding import record_release_received
 from sentry.signals import first_insight_span_received, first_transaction_received
-from sentry.spans.consumers.process_segments.enrichment import Enricher, Span, compute_breakdowns
+from sentry.spans.consumers.process_segments.enrichment import TreeEnricher, compute_breakdowns
+from sentry.spans.consumers.process_segments.shim import build_shim_event_data, make_compatible
+from sentry.spans.consumers.process_segments.types import CompatibleSpan, attribute_value
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
-from sentry.utils.outcomes import Outcome, OutcomeAggregator, track_outcome
+from sentry.utils.outcomes import Outcome, OutcomeAggregator
 from sentry.utils.projectflags import set_project_flag_and_signal
 
 logger = logging.getLogger(__name__)
@@ -39,7 +42,10 @@ outcome_aggregator = OutcomeAggregator()
 
 
 @metrics.wraps("spans.consumers.process_segments.process_segment")
-def process_segment(unprocessed_spans: list[SegmentSpan], skip_produce: bool = False) -> list[Span]:
+def process_segment(
+    unprocessed_spans: list[SpanEvent], skip_produce: bool = False
+) -> list[CompatibleSpan]:
+    _verify_compatibility(unprocessed_spans)
     segment_span, spans = _enrich_spans(unprocessed_spans)
     if segment_span is None:
         return spans
@@ -68,8 +74,47 @@ def process_segment(unprocessed_spans: list[SegmentSpan], skip_produce: bool = F
     return spans
 
 
+def _verify_compatibility(spans: Sequence[Mapping[str, Any]]) -> list[None | dict[str, Any]]:
+    result: list[None | dict[str, Any]] = [None for span in spans]
+    try:
+        for i, span in enumerate(spans):
+            # As soon as compatibility spans are fully rolled out, we can assert that attributes exist here.
+            if "attributes" in span:
+                metrics.incr("spans.consumers.process_segments.span_v2")
+
+                attributes = span.get("attributes") or {}
+                data = span.get("data") or {}
+                # Verify that all data exist also in attributes.
+                mismatches = [
+                    (key, data_value, attribute_value)
+                    for (key, data_value) in data.items()
+                    if data_value != (attribute_value := (attributes.get(key) or {}).get("value"))
+                ]
+                if mismatches:
+                    redacted = _redact(span)
+                    logger.warning("Attribute mismatch", extra={"span": redacted})
+                    result[i] = redacted
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+
+    return result
+
+
+def _redact(data: Any) -> Any:
+    if isinstance(data, list):
+        return [_redact(item) for item in data]
+    elif isinstance(data, dict):
+        return {key: _redact(value) for key, value in data.items()}
+    elif isinstance(data, str):
+        return "[redacted]"
+    else:
+        return data
+
+
 @metrics.wraps("spans.consumers.process_segments.enrich_spans")
-def _enrich_spans(unprocessed_spans: list[SegmentSpan]) -> tuple[Span | None, list[Span]]:
+def _enrich_spans(
+    unprocessed_spans: list[SpanEvent],
+) -> tuple[CompatibleSpan | None, list[CompatibleSpan]]:
     """
     Enriches all spans with data derived from the span tree and the segment.
 
@@ -80,7 +125,11 @@ def _enrich_spans(unprocessed_spans: list[SegmentSpan]) -> tuple[Span | None, li
     Returns the segment span, if any, and the list of enriched spans.
     """
 
-    segment, spans = Enricher.enrich_spans(unprocessed_spans)
+    segment_idx, tree_spans = TreeEnricher.enrich_spans(unprocessed_spans)
+
+    # Set attributes that are needed by logic shared with the event processing pipeline.
+    spans = [make_compatible(span) for span in tree_spans]
+    segment = spans[segment_idx] if segment_idx is not None else None
 
     # Calculate grouping hashes for performance issue detection
     config = load_span_grouping_config()
@@ -91,23 +140,24 @@ def _enrich_spans(unprocessed_spans: list[SegmentSpan]) -> tuple[Span | None, li
 
 
 @metrics.wraps("spans.consumers.process_segments.compute_breakdowns")
-def _compute_breakdowns(segment: Span, spans: list[Span], project: Project) -> None:
+def _compute_breakdowns(
+    segment: CompatibleSpan, spans: Sequence[CompatibleSpan], project: Project
+) -> None:
     config = project.get_option("sentry:breakdowns")
     breakdowns = compute_breakdowns(spans, config)
-    segment.setdefault("data", {}).update(breakdowns)
+    segment.setdefault("attributes", {}).update(breakdowns)
 
 
 @metrics.wraps("spans.consumers.process_segments.create_models")
-def _create_models(segment: Span, project: Project) -> None:
+def _create_models(segment: CompatibleSpan, project: Project) -> None:
     """
     Creates the Environment and Release models, along with the necessary
     relationships between them and the Project model.
     """
-
-    environment_name = segment["data"].get("sentry.environment")
-    release_name = segment["data"].get("sentry.release")
-    dist_name = segment["data"].get("sentry.dist")
-    date = to_datetime(segment["end_timestamp_precise"])
+    environment_name = attribute_value(segment, "sentry.environment")
+    release_name = attribute_value(segment, "sentry.release")
+    dist_name = attribute_value(segment, "sentry.dist")
+    date = to_datetime(segment["end_timestamp"])
 
     environment = Environment.get_or_create(project=project, name=environment_name)
 
@@ -144,11 +194,13 @@ def _create_models(segment: Span, project: Project) -> None:
 
 
 @metrics.wraps("spans.consumers.process_segments.detect_performance_problems")
-def _detect_performance_problems(segment_span: Span, spans: list[Span], project: Project) -> None:
+def _detect_performance_problems(
+    segment_span: CompatibleSpan, spans: list[CompatibleSpan], project: Project
+) -> None:
     if not options.get("spans.process-segments.detect-performance-problems.enable"):
         return
 
-    event_data = _build_shim_event_data(segment_span, spans)
+    event_data = build_shim_event_data(segment_span, spans)
     performance_problems = detect_performance_problems(event_data, project, standalone=True)
 
     if not segment_span.get("_performance_issues_spans"):
@@ -179,7 +231,7 @@ def _detect_performance_problems(segment_span: Span, spans: list[Span], project:
             culprit=event_data["transaction"],
             evidence_data=problem.evidence_data or {},
             evidence_display=problem.evidence_display,
-            detection_time=to_datetime(segment_span["end_timestamp_precise"]),
+            detection_time=to_datetime(segment_span["end_timestamp"]),
             level="info",
         )
 
@@ -191,66 +243,19 @@ def _detect_performance_problems(segment_span: Span, spans: list[Span], project:
         )
 
 
-def _build_shim_event_data(segment_span: Span, spans: list[Span]) -> dict[str, Any]:
-    data = segment_span.get("data", {})
-
-    event: dict[str, Any] = {
-        "type": "transaction",
-        "level": "info",
-        "contexts": {
-            "trace": {
-                "trace_id": segment_span["trace_id"],
-                "type": "trace",
-                "op": data.get("sentry.transaction.op"),
-                "span_id": segment_span["span_id"],
-                "hash": segment_span["hash"],
-            },
-        },
-        "event_id": uuid.uuid4().hex,
-        "project_id": segment_span["project_id"],
-        "transaction": data.get("sentry.transaction"),
-        "release": data.get("sentry.release"),
-        "dist": data.get("sentry.dist"),
-        "environment": data.get("sentry.environment"),
-        "platform": data.get("sentry.platform"),
-        "tags": [["environment", data.get("sentry.environment")]],
-        "received": segment_span["received"],
-        "timestamp": segment_span["end_timestamp_precise"],
-        "start_timestamp": segment_span["start_timestamp_precise"],
-        "datetime": to_datetime(segment_span["end_timestamp_precise"]).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
-        ),
-        "spans": [],
-    }
-
-    if (profile_id := segment_span.get("profile_id")) is not None:
-        event["contexts"]["profile"] = {"profile_id": profile_id, "type": "profile"}
-
-    # Add legacy span attributes required only by issue detectors. As opposed to
-    # real event payloads, this also adds the segment span so detectors can run
-    # topological sorting on the span tree.
-    for span in spans:
-        event_span = cast(dict[str, Any], deepcopy(span))
-        event_span["start_timestamp"] = span["start_timestamp_precise"]
-        event_span["timestamp"] = span["end_timestamp_precise"]
-        event["spans"].append(event_span)
-
-    return event
-
-
 @metrics.wraps("spans.consumers.process_segments.record_signals")
-def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> None:
-    data = segment_span.get("data", {})
-
+def _record_signals(
+    segment_span: CompatibleSpan, spans: list[CompatibleSpan], project: Project
+) -> None:
     record_generic_event_processed(
         project,
-        platform=data.get("sentry.platform"),
-        release=data.get("sentry.release"),
-        environment=data.get("sentry.environment"),
+        platform=attribute_value(segment_span, "sentry.platform"),
+        release=attribute_value(segment_span, "sentry.release"),
+        environment=attribute_value(segment_span, "sentry.environment"),
     )
 
     # signal expects an event like object with a datetime attribute
-    event_like = types.SimpleNamespace(datetime=to_datetime(segment_span["end_timestamp_precise"]))
+    event_like = types.SimpleNamespace(datetime=to_datetime(segment_span["end_timestamp"]))
 
     set_project_flag_and_signal(
         project,
@@ -260,7 +265,7 @@ def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> 
     )
 
     for module in insights_modules(
-        [FilterSpan.from_span_data(span.get("data", {})) for span in spans]
+        [FilterSpan.from_span_attributes(span.get("attributes", {})) for span in spans]
     ):
         set_project_flag_and_signal(
             project,
@@ -271,27 +276,14 @@ def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> 
 
 
 @metrics.wraps("spans.consumers.process_segments.record_outcomes")
-def _track_outcomes(segment_span: Span, spans: list[Span]) -> None:
-    if options.get("spans.process-segments.outcome-aggregator.enable"):
-        outcome_aggregator.track_outcome_aggregated(
-            org_id=segment_span["organization_id"],
-            project_id=segment_span["project_id"],
-            key_id=cast(int | None, segment_span.get("key_id", None)),
-            outcome=Outcome.ACCEPTED,
-            reason=None,
-            timestamp=to_datetime(segment_span["received"]),
-            category=DataCategory.SPAN_INDEXED,
-            quantity=len(spans),
-        )
-    else:
-        track_outcome(
-            org_id=segment_span["organization_id"],
-            project_id=segment_span["project_id"],
-            key_id=cast(int | None, segment_span.get("key_id", None)),
-            outcome=Outcome.ACCEPTED,
-            reason=None,
-            timestamp=to_datetime(segment_span["received"]),
-            event_id=None,
-            category=DataCategory.SPAN_INDEXED,
-            quantity=len(spans),
-        )
+def _track_outcomes(segment_span: CompatibleSpan, spans: list[CompatibleSpan]) -> None:
+    outcome_aggregator.track_outcome_aggregated(
+        org_id=segment_span["organization_id"],
+        project_id=segment_span["project_id"],
+        key_id=segment_span.get("key_id", None),
+        outcome=Outcome.ACCEPTED,
+        reason=None,
+        timestamp=to_datetime(segment_span["received"]),
+        category=DataCategory.SPAN_INDEXED,
+        quantity=len(spans),
+    )

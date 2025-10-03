@@ -7,7 +7,12 @@ import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
-type Props = {fields: string[]; groupBys: string[]; mode: Mode; yAxes: string[]};
+interface Props {
+  fields: readonly string[];
+  groupBys: readonly string[];
+  mode: Mode;
+  yAxes: string[];
+}
 
 export function useSortByFields({fields, yAxes, groupBys, mode}: Props) {
   const {tags: numberTags} = useTraceItemTags('number');

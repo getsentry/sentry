@@ -21,6 +21,7 @@ import type {InvoiceBase, Subscription} from 'getsentry/types';
 import {InvoiceStatus} from 'getsentry/types';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import SubscriptionHeader from './subscriptionHeader';
 import {trackSubscriptionView} from './utils';
@@ -61,24 +62,32 @@ function PaymentHistory({organization, subscription}: Props) {
 
   if (isPending) {
     return (
-      <Fragment>
+      <SubscriptionPageContainer background="primary" organization={organization}>
         <SubscriptionHeader subscription={subscription} organization={organization} />
         <LoadingIndicator />
-      </Fragment>
+      </SubscriptionPageContainer>
     );
   }
 
   if (isError) {
-    return <LoadingError />;
+    return (
+      <SubscriptionPageContainer background="primary" organization={organization}>
+        <LoadingError />
+      </SubscriptionPageContainer>
+    );
   }
 
   const hasBillingPerms = organization.access?.includes('org:billing');
   if (!hasBillingPerms) {
-    return <ContactBillingMembers />;
+    return (
+      <SubscriptionPageContainer background="primary" organization={organization}>
+        <ContactBillingMembers />
+      </SubscriptionPageContainer>
+    );
   }
 
   return (
-    <Fragment>
+    <SubscriptionPageContainer background="primary" organization={organization}>
       <SubscriptionHeader organization={organization} subscription={subscription} />
       <div className="ref-payment-list" data-test-id="payment-list">
         <PanelTable
@@ -132,7 +141,7 @@ function PaymentHistory({organization, subscription}: Props) {
 
         {paymentsPageLinks && <Pagination pageLinks={paymentsPageLinks} />}
       </div>
-    </Fragment>
+    </SubscriptionPageContainer>
   );
 }
 

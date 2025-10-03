@@ -13,22 +13,24 @@ import {
   ToolbarSection,
 } from 'sentry/views/explore/components/toolbar/styles';
 import {
-  useExploreFields,
-  useExploreGroupBys,
   useExploreSortBys,
-  useExploreVisualizes,
   useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useSortByFields} from 'sentry/views/explore/hooks/useSortByFields';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
-import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsFields,
+  useQueryParamsGroupBys,
+  useQueryParamsMode,
+  useQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
 
 export function ToolbarSortBy() {
   const mode = useQueryParamsMode();
-  const fields = useExploreFields();
-  const groupBys = useExploreGroupBys();
-  const visualizes = useExploreVisualizes();
+  const fields = useQueryParamsFields();
+  const groupBys = useQueryParamsGroupBys();
+  const visualizes = useQueryParamsVisualizes();
 
   const sorts = useExploreSortBys();
   const setSorts = useSetExploreSortBys();

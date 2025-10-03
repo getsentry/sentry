@@ -13,7 +13,6 @@ import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   hasUnsavedFilterChanges,
-  isCustomMeasurementWidget,
   isUsingPerformanceScore,
   isWidgetUsingTransactionName,
 } from 'sentry/views/dashboards/utils';
@@ -176,7 +175,7 @@ describe('Dashboards util', () => {
         OrganizationFixture()
       );
       expect(url).toBe(
-        '/organizations/org-slug/discover/results/?field=count%28%29&name=Test%20Query&query=&statsPeriod=7d&yAxis=count%28%29'
+        '/organizations/org-slug/explore/discover/results/?field=count%28%29&name=Test%20Query&query=&statsPeriod=7d&yAxis=count%28%29'
       );
     });
     it('returns the discover url of a topn widget query', () => {
@@ -203,7 +202,7 @@ describe('Dashboards util', () => {
         OrganizationFixture()
       );
       expect(url).toBe(
-        '/organizations/org-slug/discover/results/?display=top5&field=error.type&field=count%28%29&name=Test%20Query&query=error.unhandled%3Atrue&sort=-count&statsPeriod=7d&yAxis=count%28%29'
+        '/organizations/org-slug/explore/discover/results/?display=top5&field=error.type&field=count%28%29&name=Test%20Query&query=error.unhandled%3Atrue&sort=-count&statsPeriod=7d&yAxis=count%28%29'
       );
     });
     it('applies the dashboard filters to the query', () => {
@@ -325,48 +324,6 @@ describe('Dashboards util', () => {
 
     it('returns 0 if the possible equations array is empty', () => {
       expect(getNumEquations([])).toBe(0);
-    });
-  });
-
-  describe('isCustomMeasurementWidget', () => {
-    it('returns false on a non custom measurement widget', () => {
-      const widget: Widget = {
-        title: 'Title',
-        interval: '5m',
-        displayType: DisplayType.LINE,
-        widgetType: WidgetType.DISCOVER,
-        queries: [
-          {
-            conditions: '',
-            fields: [],
-            aggregates: ['count()', 'p99(measurements.lcp)'],
-            columns: [],
-            name: 'widget',
-            orderby: '',
-          },
-        ],
-      };
-      expect(isCustomMeasurementWidget(widget)).toBe(false);
-    });
-
-    it('returns true on a custom measurement widget', () => {
-      const widget: Widget = {
-        title: 'Title',
-        interval: '5m',
-        displayType: DisplayType.LINE,
-        widgetType: WidgetType.DISCOVER,
-        queries: [
-          {
-            conditions: '',
-            fields: [],
-            aggregates: ['p99(measurements.custom.measurement)'],
-            columns: [],
-            name: 'widget',
-            orderby: '',
-          },
-        ],
-      };
-      expect(isCustomMeasurementWidget(widget)).toBe(true);
     });
   });
 

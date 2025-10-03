@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconCompass(props: SVGIconProps) {
+export function IconCompass(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -21,7 +21,3 @@ function IconCompass(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconCompass.displayName = 'IconCompass';
-
-export {IconCompass};

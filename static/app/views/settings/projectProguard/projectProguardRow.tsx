@@ -16,7 +16,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import type {ProguardMappingAssociation} from 'sentry/views/settings/projectProguard';
-import {ProguardAssociations} from 'sentry/views/settings/projectProguard/associations';
 
 type Props = {
   downloadUrl: string;
@@ -26,13 +25,7 @@ type Props = {
   associations?: ProguardMappingAssociation;
 };
 
-function ProjectProguardRow({
-  associations = {releases: []},
-  mapping,
-  onDelete,
-  downloadUrl,
-  orgSlug,
-}: Props) {
+function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Props) {
   const {hasRole, roleRequired: downloadRole} = useRole({role: 'debugFilesRole'});
   const {id, debugId, uuid, size, dateCreated} = mapping;
 
@@ -44,7 +37,6 @@ function ProjectProguardRow({
     <Fragment>
       <NameColumn>
         <Name>{debugId || uuid || `(${t('empty')})`}</Name>
-        <ProguardAssociations associations={associations} />
         <TimeWrapper>
           <IconClock size="sm" />
           <TimeSince date={dateCreated} />

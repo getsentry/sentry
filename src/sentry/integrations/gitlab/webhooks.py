@@ -33,6 +33,7 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.releases.commits import create_commit
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -251,9 +252,9 @@ class PushEventWebhook(GitlabWebhook):
                 if author is not None:
                     author.preload_users()
                 with transaction.atomic(router.db_for_write(Commit)):
-                    Commit.objects.create(
-                        repository_id=repo.id,
-                        organization_id=organization.id,
+                    create_commit(
+                        organization=organization,
+                        repo_id=repo.id,
                         key=commit["id"],
                         message=commit["message"],
                         author=author,

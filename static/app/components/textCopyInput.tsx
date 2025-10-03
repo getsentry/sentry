@@ -74,7 +74,7 @@ function TextCopyInput({
       <InputGroup.TrailingItems>
         <StyledCopyButton
           borderless
-          iconSize={size === 'xs' ? 'xs' : 'sm'}
+          size={size === 'xs' ? 'xs' : 'sm'}
           onCopy={onCopy}
           text={children}
         />

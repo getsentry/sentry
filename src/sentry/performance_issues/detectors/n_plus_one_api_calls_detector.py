@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
@@ -10,20 +11,21 @@ from urllib.parse import parse_qs, urlparse
 
 from django.utils.encoding import force_bytes
 
+from sentry import features
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.performance_issues.base import (
-    DetectorType,
-    PerformanceDetector,
+from sentry.performance_issues.base import DetectorType, PerformanceDetector
+from sentry.performance_issues.detectors.utils import (
     fingerprint_http_spans,
     get_notification_attachment_body,
     get_span_evidence_value,
+    get_total_span_duration,
     get_url_from_span,
+    is_filtered_url,
     parameterize_url,
 )
-from sentry.performance_issues.detectors.utils import get_total_span_duration, has_filtered_url
 from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.performance_issues.types import Span
 
@@ -73,7 +75,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             self.spans = [span]
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return True
+        return not features.has(
+            "organizations:experimental-n-plus-one-api-detector-rollout", organization
+        )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]
@@ -128,14 +132,21 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if not url:
             return False
 
-        # Check if any spans have filtered URLs
-        if has_filtered_url(self._event, span):
+        if is_filtered_url(url):
             return False
 
         # Once most users update their SDKs to use the latest standard, we
         # won't have to do this, since the URLs will be sent in as `span.data`
         # in a parsed format
-        parsed_url = urlparse(str(url))
+        try:
+            parsed_url = urlparse(str(url))
+        except ValueError:
+            event_has_meta = "_meta" in self._event
+            logging.exception(
+                "N+1 API Calls Detector: URL parsing failed",
+                extra={"event_has_meta": event_has_meta},
+            )
+            return False
 
         # Ignore anything that looks like an asset. Some frameworks (and apps)
         # fetch assets via XHR, which is not our concern
@@ -306,6 +317,9 @@ def remove_http_client_query_string_strategy(span: Span) -> Sequence[str] | None
     method, url_str = parts
     method = method.upper()
     if method not in HTTP_METHODS:
+        return None
+
+    if is_filtered_url(url_str):
         return None
 
     url = urlparse(url_str)

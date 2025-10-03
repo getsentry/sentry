@@ -18,7 +18,7 @@ import BrowserTypeSelector from 'sentry/views/insights/browser/webVitals/compone
 import {PageOverviewSidebar} from 'sentry/views/insights/browser/webVitals/components/pageOverviewSidebar';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/pageOverviewWebVitalsDetailPanel';
 import {PageSamplePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pageSamplePerformanceTable';
-import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
+import WebVitalMetersWithIssues from 'sentry/views/insights/browser/webVitals/components/webVitalMetersWithIssues';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
@@ -164,7 +164,7 @@ function PageOverview() {
             </Flex>
             <WebVitalMetersContainer>
               {(isPending || isProjectScoresLoading) && <WebVitalMetersPlaceholder />}
-              <WebVitalMeters
+              <WebVitalMetersWithIssues
                 projectData={pageData}
                 projectScore={projectScore}
                 onClick={webVital => {
@@ -193,6 +193,7 @@ function PageOverview() {
               projectScoreIsLoading={isPending}
               browserTypes={browserTypes}
               subregions={subregions}
+              projectData={pageData}
             />
           </Layout.Side>
         </Layout.Body>

@@ -95,11 +95,6 @@ class Referrer(StrEnum):
     API_DISCOVER_TRANSACTIONS_LIST = "api.discover.transactions-list"
     API_EVENTS_MEASUREMENTS = "api.events.measurements"
     API_EVENTS_VITALS = "api.events.vitals"
-    API_EXPLORE_SPANS_AGGREGATES_TABLE = "api.explore.spans-aggregates-table"
-    API_EXPLORE_SPANS_SAMPLES_TABLE = "api.explore.spans-samples-table"
-    API_EXPLORE_SPANS_EXTRAPOLATION_META = "api.explore.spans-extrapolation-meta"
-    API_EXPLORE_LOGS_TABLE = "api.explore.logs-table"
-    API_EXPLORE_LOGS_TABLE_ROW = "api.explore.logs-table-row"
     API_GROUP_AI_AUTOFIX = "api.group_ai_autofix"
     API_GROUP_AI_SUMMARY = "api.group_ai_summary"
     API_GROUP_EVENTS_ERROR_DIRECT_HIT = "api.group-events.error.direct-hit"
@@ -112,6 +107,16 @@ class Referrer(StrEnum):
     )
     API_GROUP_HASHES_LEVELS_GET_LEVELS_OVERVIEW = "api.group_hashes_levels.get_levels_overview"
     API_GROUP_HASHES = "api.group-hashes"
+
+    # ** Explore **
+    API_EXPLORE_SPANS_STATS = "api.explore.spans-stats"
+    API_EXPLORE_SPANS_TIMESERIES = "api.explore.spans-timeseries"
+    API_EXPLORE_SPANS_AGGREGATES_TABLE = "api.explore.spans-aggregates-table"
+    API_EXPLORE_SPANS_SAMPLES_TABLE = "api.explore.spans-samples-table"
+    API_EXPLORE_SPANS_EXTRAPOLATION_META = "api.explore.spans-extrapolation-meta"
+    API_EXPLORE_LOGS_TABLE = "api.explore.logs-table"
+    API_EXPLORE_LOGS_TABLE_ROW = "api.explore.logs-table-row"
+    DATA_EXPORT_TASKS_EXPLORE = "data_export.tasks.explore"
 
     # ** Insights **
 
@@ -470,7 +475,6 @@ class Referrer(StrEnum):
     API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
     API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
     API_PROFILING_LANDING_FUNCTIONS_CARD = "api.profiling.landing-functions-card"
-    API_PROFILING_PERFORMANCE_CHANGE_EXPLORER = "api.profiling.performance-change-explorer"
     API_PROFILING_PROFILE_HAS_CHUNKS = "api.profiling.profile-has-chunks"
     API_PROFILING_PROFILE_SUMMARY_CHART = "api.profiling.profile-summary-chart"
     API_PROFILING_PROFILE_SUMMARY_TOTALS = "api.profiling.profile-summary-totals"
@@ -745,6 +749,7 @@ class Referrer(StrEnum):
     REPLAYS_FILE_REFERRER = "replays.query.download_replay_segments"
     REPLAYS_SCRIPTS_DELETE_REPLAYS = "replays.scripts.delete_replays"
     FEEDBACKS_LABEL_QUERY = "feedbacks.label_query"
+    EU_DATA_EXPORT = "sentry.internal.eu-compliance-data-export"
     REPORTS_KEY_ERRORS = "reports.key_errors"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
     REPORTS_KEY_TRANSACTIONS_P95 = "reports.key_transactions.p95"

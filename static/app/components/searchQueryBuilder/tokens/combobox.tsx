@@ -498,7 +498,16 @@ export function SearchQueryBuilderCombobox<
     isKeyboardDismissDisabled: true,
     shouldCloseOnBlur: true,
     shouldCloseOnInteractOutside: el => {
-      if (popoverRef.current?.contains(el) || wrapperRef.current?.contains(el)) {
+      if (
+        popoverRef.current?.contains(el) ||
+        wrapperRef.current?.contains(el) ||
+        // We don't want to close the menu when clicking on an anchor element that is
+        // located inside of a tooltip, as the tooltip is technically outside of the
+        // combobox. This is required to enable the Ask Seer tooltip link to work.
+        //
+        // Source: static/app/components/searchQueryBuilder/askSeer/askSeerOption.tsx:71
+        el instanceof HTMLAnchorElement
+      ) {
         return false;
       }
 

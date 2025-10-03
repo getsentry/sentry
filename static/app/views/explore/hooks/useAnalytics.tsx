@@ -11,17 +11,13 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {useLogsSearch} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   useExploreDataset,
-  useExploreFields,
   useExploreQuery,
   useExploreTitle,
-  useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
-import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
@@ -29,7 +25,13 @@ import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {type useLogsAggregatesQuery} from 'sentry/views/explore/logs/useLogsQuery';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {useQueryParamsFields} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsFields,
+  useQueryParamsQuery,
+  useQueryParamsSearch,
+  useQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
+import {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {
   combineConfidenceForSeries,
   computeVisualizeSampleTotals,
@@ -42,7 +44,7 @@ const {info, fmt} = Sentry.logger;
 interface UseTrackAnalyticsProps {
   aggregatesTableResult: AggregatesTableResult;
   dataset: DiscoverDatasets;
-  fields: string[];
+  fields: readonly string[];
   interval: string;
   isTopN: boolean;
   page_source: 'explore' | 'compare';
@@ -50,7 +52,7 @@ interface UseTrackAnalyticsProps {
   queryType: 'aggregate' | 'samples' | 'traces';
   spansTableResult: SpansTableResult;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
-  visualizes: Visualize[];
+  visualizes: readonly Visualize[];
   title?: string;
   tracesTableResult?: TracesTableResult;
 }
@@ -125,7 +127,7 @@ function useTrackAnalytics({
       result_missing_root: 0,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
-      visualizes: visualizes.map(visualize => visualize.toJSON()),
+      visualizes: visualizes.map(visualize => visualize.serialize()),
       visualizes_count: visualizes.length,
       title: title || '',
       empty_buckets_percentage: computeEmptyBuckets(yAxes, timeseriesResult.data),
@@ -135,12 +137,14 @@ function useTrackAnalytics({
       page_source,
       interval,
       gave_seer_consent: gaveSeerConsent,
+      version: 2,
     });
 
     /* eslint-disable @typescript-eslint/no-base-to-string */
     info(
       fmt`trace.explorer.metadata:
       organization: ${organization.slug}
+      dataScanned: ${dataScanned}
       dataset: ${dataset}
       query: [omitted]
       visualizes: ${visualizes.map(v => v.chartType).join(', ')}
@@ -213,7 +217,7 @@ function useTrackAnalytics({
       result_missing_root: 0,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
-      visualizes: visualizes.map(visualize => visualize.toJSON()),
+      visualizes: visualizes.map(visualize => visualize.serialize()),
       visualizes_count: visualizes.length,
       title: title || '',
       empty_buckets_percentage: computeEmptyBuckets(yAxes, timeseriesResult.data),
@@ -223,10 +227,12 @@ function useTrackAnalytics({
       page_source,
       interval,
       gave_seer_consent: gaveSeerConsent,
+      version: 2,
     });
 
     info(fmt`trace.explorer.metadata:
       organization: ${organization.slug}
+      dataScanned: ${dataScanned}
       dataset: ${dataset}
       query: ${query}
       visualizes: ${visualizes.map(v => v.chartType).join(', ')}
@@ -309,7 +315,7 @@ function useTrackAnalytics({
       result_missing_root: resultMissingRoot,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
-      visualizes: visualizes.map(visualize => visualize.toJSON()),
+      visualizes: visualizes.map(visualize => visualize.serialize()),
       visualizes_count: visualizes.length,
       title: title || '',
       empty_buckets_percentage: computeEmptyBuckets(yAxes, timeseriesResult.data),
@@ -319,6 +325,7 @@ function useTrackAnalytics({
       page_source,
       interval,
       gave_seer_consent: gaveSeerConsent,
+      version: 2,
     });
   }, [
     dataset,
@@ -362,8 +369,8 @@ export function useAnalytics({
   const dataset = useExploreDataset();
   const title = useExploreTitle();
   const query = useExploreQuery();
-  const fields = useExploreFields();
-  const visualizes = useExploreVisualizes();
+  const fields = useQueryParamsFields();
+  const visualizes = useQueryParamsVisualizes();
   const topEvents = useTopEvents();
   const isTopN = topEvents ? topEvents > 0 : false;
 
@@ -406,8 +413,11 @@ export function useCompareAnalytics({
   const dataset = DiscoverDatasets.SPANS;
   const query = queryParts.query;
   const fields = queryParts.fields;
-  const visualizes = queryParts.yAxes.map(
-    yAxis => new Visualize(yAxis, {chartType: queryParts.chartType})
+  const visualizes = queryParts.yAxes.flatMap(yAxis =>
+    Visualize.fromJSON({
+      yAxes: [yAxis],
+      chartType: queryParts.chartType,
+    })
   );
 
   return useTrackAnalytics({
@@ -457,8 +467,8 @@ export function useLogAnalytics({
 
   const dataset = DiscoverDatasets.OURLOGS;
   const dataScanned = logsTableResult.meta?.dataScanned ?? '';
-  const search = useLogsSearch();
-  const query = search.formatString();
+  const search = useQueryParamsSearch();
+  const query = useQueryParamsQuery();
   const fields = useQueryParamsFields();
   const page_source = source;
 
@@ -536,6 +546,7 @@ export function useLogAnalytics({
     info(
       fmt`log.explorer.metadata:
       organization: ${organization.slug}
+      dataScanned: ${dataScanned}
       dataset: ${dataset}
       query: ${query}
       fields: ${fieldsBox.current}
@@ -610,6 +621,7 @@ export function useLogAnalytics({
     info(
       fmt`log.explorer.metadata:
       organization: ${organization.slug}
+      dataScanned: ${dataScanned}
       dataset: ${dataset}
       query: ${query}
       fields: ${fieldsBox.current}

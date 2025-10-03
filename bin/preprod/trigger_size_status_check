@@ -1,0 +1,538 @@
+#!/usr/bin/env python
+
+from sentry.runner import configure
+
+configure()
+
+import logging
+import sys
+
+logger = logging.getLogger(__name__)
+
+from sentry.models.commitcomparison import CommitComparison
+from sentry.models.project import Project
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+    PreprodBuildConfiguration,
+)
+from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
+
+#################
+# Configuration #
+#################
+ORG_SLUG = "sentry"
+PROJECT_SLUG = "internal"
+REPO_NAME = "EmergeTools/hackernews"
+COMMIT_SHA = "db2b4ae626b458b4be651019f1a7c112406c003e"
+
+# Build configurations - set to None to disable a build
+BUILD_1 = {
+    "app_id": "com.emerge.hackernews.android",
+    "platform": "Android",
+    "build_version": "1.0.3",
+    "build_number": 42,
+    "build_configuration": "Debug",  # Head build configuration
+    "base_build_configuration": "Release",  # Base build configuration (test different configs!)
+    "state": "processed_with_metrics",  # uploading, uploaded, failed, processed_no_metrics, processed_with_metrics, metrics_pending
+    "create_base_artifacts": True,  # Create base artifacts for size comparison
+    "create_multiple_metrics": False,  # Create watch/dynamic feature metrics in addition to main
+    "error_message": None,  # Only used if state is "failed"
+}
+
+BUILD_2 = {
+    "app_id": "com.emerge.hackernews.ios",
+    "platform": "iOS",
+    "build_version": "1.0.3",
+    "build_number": 15,
+    "build_configuration": "Release",  # Head build configuration
+    "base_build_configuration": "Release",  # Base build configuration (same - should compare)
+    "state": "processed_with_metrics",  # uploading, uploaded, failed, processed_no_metrics, processed_with_metrics, metrics_pending
+    "create_base_artifacts": True,  # Create base artifacts for size comparison
+    "create_multiple_metrics": True,  # Create watch/dynamic feature metrics in addition to main
+    "error_message": None,  # Only used if state is "failed"
+}
+
+# Set to None to disable BUILD_2 for single-build testing:
+# BUILD_2 = None
+
+# Available states:
+# - "uploading": Artifact is still uploading (no metrics)
+# - "uploaded": Artifact uploaded but not processed yet (no metrics)
+# - "failed": Artifact processing failed (with error message)
+# - "processed_no_metrics": Artifact processed but no size analysis
+# - "processed_with_metrics": Artifact processed with completed size analysis
+# - "metrics_pending": Artifact processed but size analysis still pending
+
+# USAGE EXAMPLES:
+#
+# 1. Single build processing:
+#    BUILD_1 = {..., "state": "uploading"}
+#    BUILD_2 = None
+#
+# 2. Mixed states (one completed, one processing):
+#    BUILD_1 = {..., "state": "processed_with_metrics"}
+#    BUILD_2 = {..., "state": "uploading"}
+#
+# 3. Size comparison with base artifacts:
+#    BUILD_1 = {..., "state": "processed_with_metrics", "create_base_artifacts": True}
+#
+# 4. Multiple metrics per artifact:
+#    BUILD_1 = {..., "state": "processed_with_metrics", "create_multiple_metrics": True}
+#    # Creates main + watch (iOS) or main + dynamic feature (Android)
+#
+# 5. Pending size analysis:
+#    BUILD_1 = {..., "state": "metrics_pending"}  # Artifact processed, analysis pending
+#
+# 6. Build configuration testing:
+#    BUILD_1 = {..., "build_configuration": "Debug", "base_build_configuration": "Release"}
+#    # Head is Debug, base is Release - should show N/A for size changes (no comparison)
+#
+#    BUILD_1 = {..., "build_configuration": "Debug", "base_build_configuration": "Debug"}
+#    # Head is Debug, base is Debug - should show actual size changes (comparison works)
+
+
+def get_or_create_build_configuration(
+    project: "Project", config_name: str
+) -> "PreprodBuildConfiguration":
+    """Get or create a build configuration for the project."""
+    if not config_name:
+        return None
+
+    build_config, created = PreprodBuildConfiguration.objects.get_or_create(
+        project=project,
+        name=config_name,
+    )
+    if created:
+        logger.info("  ✓ Created build configuration: %s", config_name)
+    else:
+        logger.info("  ✓ Found existing build configuration: %s", config_name)
+
+    return build_config
+
+
+def create_size_metrics(
+    preprod_artifact: PreprodArtifact, build_config: dict, state: str = "completed"
+) -> None:
+    """Create size analysis metrics for testing.
+
+    Args:
+        preprod_artifact: The artifact to create metrics for
+        build_config: Build configuration dict
+        state: "completed" or "pending"
+    """
+    logger.info("📊 Creating size analysis metrics for %s...", build_config["app_id"])
+
+    # Different sizes based on platform for variety
+    if "android" in build_config["app_id"].lower():
+        main_download_size = 4 * 1024 * 1024  # 4.0 MB for Android
+        main_install_size = int(8.2 * 1024 * 1024)  # 8.2 MB for Android
+    else:
+        main_download_size = 3 * 1024 * 1024  # 3.0 MB for iOS
+        main_install_size = int(6.8 * 1024 * 1024)  # 6.8 MB for iOS
+
+    # Determine metrics state
+    metrics_state = (
+        PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        if state == "completed"
+        else PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING
+    )
+
+    # For pending state, sizes should be None
+    if state == "pending":
+        main_download_size = None
+        main_install_size = None
+
+    # Create main artifact metrics
+    main_metrics = PreprodArtifactSizeMetrics.objects.create(
+        preprod_artifact=preprod_artifact,
+        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        state=metrics_state,
+        min_download_size=main_download_size,
+        max_download_size=main_download_size,
+        min_install_size=main_install_size,
+        max_install_size=main_install_size,
+        processing_version="1.0",
+    )
+    logger.info("  ✓ Created main artifact metrics: %s (state: %s)", main_metrics.id, state)
+
+    if build_config.get("create_multiple_metrics") and state == "completed":
+        # Create additional metrics based on platform (only for completed state)
+        if "android" in build_config["app_id"].lower():
+            # Android Dynamic Feature
+            feature_download_size = 1024 * 1024  # 1.0 MB
+            feature_install_size = int(1.5 * 1024 * 1024)  # 1.5 MB
+
+            feature_metrics = PreprodArtifactSizeMetrics.objects.create(
+                preprod_artifact=preprod_artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                min_download_size=feature_download_size,
+                max_download_size=feature_download_size,
+                min_install_size=feature_install_size,
+                max_install_size=feature_install_size,
+                processing_version="1.0",
+                identifier="premium_features",
+            )
+            logger.info("  ✓ Created dynamic feature metrics: %s", feature_metrics.id)
+        else:
+            # iOS Watch App
+            watch_download_size = 512 * 1024  # 512 KB
+            watch_install_size = 1024 * 1024  # 1.0 MB
+
+            watch_metrics = PreprodArtifactSizeMetrics.objects.create(
+                preprod_artifact=preprod_artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                min_download_size=watch_download_size,
+                max_download_size=watch_download_size,
+                min_install_size=watch_install_size,
+                max_install_size=watch_install_size,
+                processing_version="1.0",
+            )
+            logger.info("  ✓ Created watch app metrics: %s", watch_metrics.id)
+
+
+def create_base_artifacts_for_comparison(
+    project: "Project", build_configs: list[dict], head_commit_comparison: "CommitComparison"
+) -> list[PreprodArtifact]:
+    """Create base artifacts for size comparison testing."""
+    logger.info("🔄 Creating base artifacts for size comparison...")
+
+    # Create a base commit comparison (simulating previous commit)
+    base_sha = "a1b2c3d4e5f6789012345678901234567890abcd"  # Fake base commit
+
+    # Clean up any existing base commit comparisons to avoid conflicts
+    existing_base_comparisons = CommitComparison.objects.filter(
+        head_sha=base_sha,
+        organization_id=head_commit_comparison.organization_id,
+    )
+    if existing_base_comparisons.exists():
+        logger.info(
+            "🧹 Cleaning up %s existing base commit comparisons", existing_base_comparisons.count()
+        )
+        # Delete associated artifacts first
+        PreprodArtifact.objects.filter(commit_comparison__in=existing_base_comparisons).delete()
+        existing_base_comparisons.delete()
+
+    base_commit_comparison, created = CommitComparison.objects.get_or_create(
+        head_repo_name=head_commit_comparison.head_repo_name,
+        head_sha=base_sha,
+        provider=head_commit_comparison.provider,
+        organization_id=head_commit_comparison.organization_id,
+    )
+    logger.info(
+        "%s base commit comparison: %s",
+        "Created" if created else "Found",
+        base_commit_comparison.id,
+    )
+
+    # Set the base_sha on the head commit comparison to link them
+    if not head_commit_comparison.base_sha:
+        head_commit_comparison.base_sha = base_sha
+        head_commit_comparison.save(update_fields=["base_sha"])
+        logger.info(
+            "Linked head commit to base commit: %s -> %s",
+            head_commit_comparison.head_sha[:8],
+            base_sha[:8],
+        )
+
+    base_artifacts = []
+
+    for build_config in build_configs:
+        # Only create base artifacts for builds that request them
+        if not build_config.get("create_base_artifacts"):
+            continue
+
+        logger.info("📦 Creating base artifact for %s...", build_config["app_id"])
+
+        # Get or create base build configuration
+        base_build_config = get_or_create_build_configuration(
+            project, build_config.get("base_build_configuration")
+        )
+
+        # Create base artifact with older build number
+        base_artifact = PreprodArtifact.objects.create(
+            project=project,
+            app_id=build_config["app_id"],
+            commit_comparison=base_commit_comparison,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            build_version=build_config["build_version"],
+            build_number=build_config["build_number"] - 1,  # Previous build number
+            build_configuration=base_build_config,
+        )
+        base_artifacts.append(base_artifact)
+        logger.info(
+            "  ✓ Created base artifact: %s (build_config: %s)",
+            base_artifact.id,
+            base_build_config.name if base_build_config else "None",
+        )
+
+        # Create base size metrics with smaller sizes (to show growth)
+        if "android" in build_config["app_id"].lower():
+            # Android: Create larger increases for easier spotting
+            base_download_size = int(3.5 * 1024 * 1024)  # 3.5 MB (vs 4.0 MB in head) = +512 KB
+            base_install_size = int(7.0 * 1024 * 1024)  # 7.0 MB (vs 8.2 MB in head) = +1.2 MB
+        else:
+            # iOS: Create smaller increases for contrast
+            base_download_size = int(2.9 * 1024 * 1024)  # 2.9 MB (vs 3.0 MB in head) = +100 KB
+            base_install_size = int(6.6 * 1024 * 1024)  # 6.6 MB (vs 6.8 MB in head) = +200 KB
+
+        # Create main artifact base metrics
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=base_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=base_download_size,
+            max_download_size=base_download_size,
+            min_install_size=base_install_size,
+            max_install_size=base_install_size,
+            processing_version="1.0",
+        )
+        logger.info("  ✓ Created base main artifact metrics")
+
+        # Create additional base metrics if the head will have multiple metrics
+        if build_config.get("create_multiple_metrics"):
+            if "android" in build_config["app_id"].lower():
+                # Android Dynamic Feature base metrics - large change for easy spotting
+                base_feature_download_size = 800 * 1024  # 800 KB (vs 1.0 MB in head) = +200 KB
+                base_feature_install_size = int(
+                    1.0 * 1024 * 1024
+                )  # 1.0 MB (vs 1.5 MB in head) = +500 KB
+
+                PreprodArtifactSizeMetrics.objects.create(
+                    preprod_artifact=base_artifact,
+                    metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
+                    state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                    min_download_size=base_feature_download_size,
+                    max_download_size=base_feature_download_size,
+                    min_install_size=base_feature_install_size,
+                    max_install_size=base_feature_install_size,
+                    processing_version="1.0",
+                    identifier="premium_features",
+                )
+                logger.info("  ✓ Created base dynamic feature metrics")
+            else:
+                # iOS Watch App base metrics - small change for contrast
+                base_watch_download_size = 480 * 1024  # 480 KB (vs 512 KB in head) = +32 KB
+                base_watch_install_size = 950 * 1024  # 950 KB (vs 1.0 MB in head) = +74 KB
+
+                PreprodArtifactSizeMetrics.objects.create(
+                    preprod_artifact=base_artifact,
+                    metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+                    state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                    min_download_size=base_watch_download_size,
+                    max_download_size=base_watch_download_size,
+                    min_install_size=base_watch_install_size,
+                    max_install_size=base_watch_install_size,
+                    processing_version="1.0",
+                )
+                logger.info("  ✓ Created base watch app metrics")
+
+    return base_artifacts
+
+
+def get_artifact_state_from_config(state_str: str) -> tuple:
+    """Convert state string to artifact state and other flags."""
+    state_map = {
+        "uploading": (PreprodArtifact.ArtifactState.UPLOADING, False, None),
+        "uploaded": (PreprodArtifact.ArtifactState.UPLOADED, False, None),
+        "failed": (PreprodArtifact.ArtifactState.FAILED, False, None),
+        "processed_no_metrics": (PreprodArtifact.ArtifactState.PROCESSED, False, None),
+        "processed_with_metrics": (PreprodArtifact.ArtifactState.PROCESSED, True, "completed"),
+        "metrics_pending": (PreprodArtifact.ArtifactState.PROCESSED, True, "pending"),
+    }
+    return state_map.get(state_str, (PreprodArtifact.ArtifactState.PROCESSED, False, None))
+
+
+def main() -> None:
+    """Main function to test size analysis status checks."""
+    try:
+        # Get project
+        project = Project.objects.get(slug=PROJECT_SLUG, organization__slug=ORG_SLUG)
+        logger.info("Found project: %s (ID: %s)", project.name, project.id)
+
+        # Get or create commit comparison
+        commit_comparison, created = CommitComparison.objects.get_or_create(
+            head_repo_name=REPO_NAME,
+            head_sha=COMMIT_SHA,
+            provider="github",
+            organization_id=project.organization.id,
+        )
+        logger.info(
+            "%s commit comparison: %s", "Created" if created else "Found", commit_comparison.id
+        )
+
+        # Clean up existing artifacts for this commit to make script idempotent
+        logger.info("\n🧹 Cleaning up existing artifacts for commit %s...", COMMIT_SHA[:8])
+        base_sha = "a1b2c3d4e5f6789012345678901234567890abcd"
+        base_commit_comparisons = CommitComparison.objects.filter(
+            head_sha=base_sha,
+            organization_id=project.organization_id,
+        )
+
+        # Get all artifacts for both head and base commits
+        all_commit_comparisons = [commit_comparison] + list(base_commit_comparisons)
+        existing_artifacts = PreprodArtifact.objects.filter(
+            commit_comparison__in=all_commit_comparisons,
+            project__organization_id=project.organization_id,
+        )
+        if existing_artifacts.exists():
+            # Delete size metrics first (foreign key constraint)
+            size_metrics_count = PreprodArtifactSizeMetrics.objects.filter(
+                preprod_artifact__in=existing_artifacts
+            ).count()
+            PreprodArtifactSizeMetrics.objects.filter(
+                preprod_artifact__in=existing_artifacts
+            ).delete()
+
+            # Delete the artifacts
+            artifact_count = existing_artifacts.count()
+            existing_artifacts.delete()
+
+            # Delete base commit comparisons if they exist
+            base_comparison_count = base_commit_comparisons.count()
+            if base_comparison_count > 0:
+                base_commit_comparisons.delete()
+                logger.info(
+                    "  ✓ Deleted %s existing artifacts, %s size metrics, and %s base commit comparisons",
+                    artifact_count,
+                    size_metrics_count,
+                    base_comparison_count,
+                )
+            else:
+                logger.info(
+                    "  ✓ Deleted %s existing artifacts and %s size metrics",
+                    artifact_count,
+                    size_metrics_count,
+                )
+        else:
+            logger.info("  ✓ No existing artifacts found (clean slate)")
+
+        # Get active build configs
+        build_configs = [BUILD_1]
+        if BUILD_2 is not None:
+            build_configs.append(BUILD_2)
+
+        logger.info("🧪 Running test with %s build(s):", len(build_configs))
+        for i, config in enumerate(build_configs, 1):
+            head_config = config.get("build_configuration", "None")
+            base_config = config.get("base_build_configuration", "None")
+            creates_base = config.get("create_base_artifacts", False)
+
+            logger.info(
+                "  📱 BUILD_%s: %s (%s, state: %s)",
+                i,
+                config["app_id"],
+                config["platform"],
+                config["state"],
+            )
+            logger.info(
+                "    Build configs: HEAD=%s, BASE=%s %s",
+                head_config,
+                base_config if creates_base else "N/A (no base)",
+                "🔄 (size comparison enabled)" if creates_base else "",
+            )
+
+            # Show expected behavior
+            if creates_base and head_config != "None" and base_config != "None":
+                if head_config == base_config:
+                    logger.info("    Expected: ✓ Size changes will be shown (matching configs)")
+                else:
+                    logger.info(
+                        "    Expected: ❌ N/A will be shown for size changes (different configs)"
+                    )
+            elif creates_base:
+                logger.info("    Expected: ⚠️  Undefined behavior (missing config info)")
+
+        created_artifacts = []
+
+        # Create base artifacts first if any build needs them
+        if any(config.get("create_base_artifacts") for config in build_configs):
+            create_base_artifacts_for_comparison(project, build_configs, commit_comparison)
+
+        # Create artifacts for each build config
+        for i, build_config in enumerate(build_configs):
+            logger.info(
+                "\n📦 Creating artifact for %s (%s)...",
+                build_config["app_id"],
+                build_config["platform"],
+            )
+
+            # Get artifact state and metrics info from config
+            artifact_state, create_metrics, metrics_state = get_artifact_state_from_config(
+                build_config["state"]
+            )
+
+            # Get or create head build configuration
+            head_build_config = get_or_create_build_configuration(
+                project, build_config.get("build_configuration")
+            )
+
+            # Create artifact data
+            artifact_data = {
+                "project": project,
+                "app_id": build_config["app_id"],
+                "commit_comparison": commit_comparison,
+                "state": artifact_state,
+                "build_version": build_config["build_version"],
+                "build_number": build_config["build_number"],
+                "build_configuration": head_build_config,
+            }
+
+            # Add error message for failed state
+            if artifact_state == PreprodArtifact.ArtifactState.FAILED:
+                artifact_data["error_message"] = build_config.get(
+                    "error_message", "Processing failed"
+                )
+                artifact_data["error_code"] = PreprodArtifact.ErrorCode.ARTIFACT_PROCESSING_TIMEOUT
+
+            # Create the preprod artifact
+            preprod_artifact = PreprodArtifact.objects.create(**artifact_data)
+            created_artifacts.append(preprod_artifact)
+            logger.info(
+                "  ✓ Created artifact: %s (state: %s, build_config: %s)",
+                preprod_artifact.id,
+                preprod_artifact.get_state_display(),
+                head_build_config.name if head_build_config else "None",
+            )
+
+            # Create size metrics if requested
+            if create_metrics:
+                create_size_metrics(preprod_artifact, build_config, metrics_state)
+
+        # Call the status check task for the first artifact (it will find all artifacts for the commit)
+        logger.info(
+            "\n🚀 Calling create_preprod_status_check_task with artifact %s...",
+            created_artifacts[0].id,
+        )
+        result = create_preprod_status_check_task(preprod_artifact_id=created_artifacts[0].id)
+        logger.info("Task result: %s", result)
+        logger.info("✅ Status check function called successfully!")
+
+        # Show GitHub link
+        logger.info("\n🔍 Check your GitHub status check at:")
+        logger.info("   https://github.com/%s/commit/%s", REPO_NAME, COMMIT_SHA)
+
+        logger.info("\n🔧 Debug: Created %s artifacts:", len(created_artifacts))
+        for artifact in created_artifacts:
+            logger.info(
+                "  - %s: ID %s, State: %s",
+                artifact.app_id,
+                artifact.id,
+                artifact.get_state_display(),
+            )
+
+    except Project.DoesNotExist:
+        logger.exception("❌ Project not found: %s/%s", ORG_SLUG, PROJECT_SLUG)
+        logger.info("Available projects:")
+        for p in Project.objects.select_related("organization").all()[:10]:
+            logger.info("  - %s/%s", p.organization.slug, p.slug)
+        sys.exit(1)
+    except Exception as e:
+        logger.exception("❌ Error: %s", e)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

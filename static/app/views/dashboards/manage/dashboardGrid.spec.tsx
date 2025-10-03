@@ -22,7 +22,7 @@ describe('Dashboards - DashboardGrid', () => {
   let dashboardUpdateMock: jest.Mock;
   let createMock: jest.Mock;
   const organization = OrganizationFixture({
-    features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
+    features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
 
   const {router} = initializeOrg();
@@ -299,7 +299,7 @@ describe('Dashboards - DashboardGrid', () => {
     expect(dashboardUpdateMock).not.toHaveBeenCalled();
   });
 
-  it('renders favorite and unfavorite buttons on cards', () => {
+  it('renders star and unstar buttons on cards', () => {
     dashboards = [
       DashboardListItemFixture({
         id: '1',
@@ -330,9 +330,9 @@ describe('Dashboards - DashboardGrid', () => {
       }
     );
 
-    expect(screen.queryAllByLabelText('Dashboards Favorite')).toHaveLength(2);
-    expect(screen.queryAllByLabelText('Favorite')).toHaveLength(1);
-    expect(screen.queryAllByLabelText('UnFavorite')).toHaveLength(1);
+    expect(screen.queryAllByLabelText('Starred Dashboard')).toHaveLength(1);
+    expect(screen.queryAllByLabelText('Star')).toHaveLength(1);
+    expect(screen.queryAllByLabelText('Unstar')).toHaveLength(1);
   });
 
   it('makes PUT requests when favoriting', async () => {
@@ -373,14 +373,14 @@ describe('Dashboards - DashboardGrid', () => {
       }
     );
 
-    expect(screen.queryAllByLabelText('Favorite')).toHaveLength(1);
-    const favoriteButton = screen.queryAllByLabelText('Favorite')[0]!;
+    expect(screen.queryAllByLabelText('Star')).toHaveLength(1);
+    const favoriteButton = screen.queryAllByLabelText('Star')[0]!;
     await userEvent.click(favoriteButton);
 
     await waitFor(() => {
       expect(putMock).toHaveBeenCalled();
     });
 
-    expect(screen.queryAllByLabelText('Favorite')).toHaveLength(0);
+    expect(screen.queryAllByLabelText('Star')).toHaveLength(0);
   });
 });

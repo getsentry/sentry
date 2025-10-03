@@ -26,6 +26,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import SubscriptionHeader from './subscriptionHeader';
 import {trackSubscriptionView} from './utils';
@@ -67,7 +68,7 @@ function LogUsername({logEntryUser}: {logEntryUser: User | undefined}) {
 }
 
 const formatEntryTitle = (name: string) => {
-  const spaceName = name.replace(/\-|\./gm, ' ');
+  const spaceName = name.replace(/-|\./gm, ' ');
   let capitalizeName = spaceName.replace(/(^\w)|([-\s]\w)/g, match =>
     match.toUpperCase()
   );
@@ -159,13 +160,12 @@ function UsageLog({location, subscription}: Props) {
   const selectedEventName = decodeScalar(location.query.event);
 
   return (
-    <Fragment>
+    <SubscriptionPageContainer background="primary" organization={organization}>
       <SubscriptionHeader subscription={subscription} organization={organization} />
       <UsageLogContainer>
         <CompactSelect
           searchable
           clearable
-          triggerLabel={selectedEventName ? undefined : t('Select Action')}
           menuTitle={t('Subscription Actions')}
           options={eventNameOptions}
           defaultValue={selectedEventName}
@@ -173,7 +173,10 @@ function UsageLog({location, subscription}: Props) {
           onChange={option => {
             handleEventFilter(option.value);
           }}
-          triggerProps={{size: 'sm'}}
+          triggerProps={{
+            size: 'sm',
+            children: selectedEventName ? undefined : t('Select Action'),
+          }}
         />
         {isError ? (
           <LoadingError onRetry={refetch} />
@@ -211,12 +214,11 @@ function UsageLog({location, subscription}: Props) {
         )}
       </UsageLogContainer>
       <Pagination pageLinks={getResponseHeader?.('Link')} onCursor={handleCursor} />
-    </Fragment>
+    </SubscriptionPageContainer>
   );
 }
 
 export default withSubscription(UsageLog);
-/** @internal exported for tests only */
 export {UsageLog};
 
 const SentryAvatar = styled(ActivityAvatar)`

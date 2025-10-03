@@ -98,7 +98,6 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
         schema = create_schema_from_issue_owners(
             project_id=self.context["ownership"].project_id,
             issue_owners=attrs["raw"],
-            add_owner_ids=True,
         )
         if schema:
             self._validate_no_codeowners(schema["rules"])
@@ -201,7 +200,6 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         ownership.schema = create_schema_from_issue_owners(
             project_id=project.id,
             issue_owners=ownership.raw,
-            add_owner_ids=True,
             remove_deleted_owners=True,
         )
         ownership.save()

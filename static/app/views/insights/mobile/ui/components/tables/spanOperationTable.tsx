@@ -5,6 +5,7 @@ import {Link} from 'sentry/components/core/link';
 import Duration from 'sentry/components/duration';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -68,7 +69,9 @@ export function SpanOperationTable({
 
   // Only show comparison when we have two different releases selected
   const showComparison =
-    primaryRelease && secondaryRelease && primaryRelease !== secondaryRelease;
+    defined(primaryRelease) &&
+    defined(secondaryRelease) &&
+    primaryRelease !== secondaryRelease;
 
   const orderby = decodeScalar(location.query.sort, '');
 

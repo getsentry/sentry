@@ -18,6 +18,7 @@ import type {
 
 interface UseDiscoverQueryOptions {
   additonalQueryKey?: string[];
+  refetchInterval?: number;
 }
 
 interface UseDiscoverOptions<Fields> {
@@ -106,6 +107,7 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     noPagination,
     samplingMode,
     additionalQueryKey: useQueryOptions?.additonalQueryKey,
+    refetchInterval: useQueryOptions?.refetchInterval,
     keepPreviousData: options.keepPreviousData,
   });
 
