@@ -300,7 +300,7 @@ function GroupSummaryCollapsed({
               visualDuration: 0.4,
             })}
           >
-            <Flex padding="sm">
+            <Flex paddingTop="lg">
               <GroupSummaryFull
                 group={group}
                 project={project}
