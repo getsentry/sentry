@@ -82,9 +82,10 @@ interface BaseRenderOptions<T extends boolean = boolean>
   deprecatedRouterMocks?: T;
 }
 
-type LocationConfig =
-  | string
-  | {pathname: string; query?: Record<string, string | number | string[]>};
+type LocationConfig = {
+  pathname: string;
+  query?: Record<string, string | number | string[]>;
+};
 
 type RouterConfig = {
   /**
@@ -362,10 +363,6 @@ function parseLocationConfig(location: LocationConfig | undefined): InitialEntry
     return LocationFixture().pathname;
   }
 
-  if (typeof location === 'string') {
-    return location;
-  }
-
   if (location.query) {
     return {
       pathname: location.pathname,
@@ -441,10 +438,7 @@ function render<T extends boolean = false>(
     router: legacyRouterConfig,
     deprecatedRouterMocks: options.deprecatedRouterMocks,
     history,
-    query:
-      typeof config?.location === 'string'
-        ? ''
-        : parseQueryString(config?.location?.query),
+    query: parseQueryString(config?.location?.query),
   });
 
   const memoryRouter = makeRouter({
@@ -502,10 +496,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
     router: legacyRouterConfig,
     deprecatedRouterMocks: false,
     history,
-    query:
-      typeof config?.location === 'string'
-        ? ''
-        : parseQueryString(config?.location?.query),
+    query: parseQueryString(config?.location?.query),
   });
 
   let memoryRouter: Router | null = null;
