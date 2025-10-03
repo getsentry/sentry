@@ -233,7 +233,7 @@ describe('NuqsTestingAdapterWithNavigate', () => {
           <Link
             to={{pathname: location.pathname, query: {...location.query, extra: '1'}}}
           >
-            Go to dest
+            add extra
           </Link>
           <div>Color: {value ?? 'None'}</div>
           <div>Extra: {location.query?.extra ?? 'None'}</div>
@@ -243,7 +243,7 @@ describe('NuqsTestingAdapterWithNavigate', () => {
 
     const {router} = render(<TestComp />);
 
-    await userEvent.click(await screen.findByRole('link', {name: 'Go to dest'}));
+    await userEvent.click(await screen.findByRole('link', {name: 'add extra'}));
 
     expect(await screen.findByText('Color: blue')).toBeInTheDocument();
     await waitFor(() =>
