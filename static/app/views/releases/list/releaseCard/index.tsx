@@ -28,6 +28,7 @@ import useFinalizeRelease from 'sentry/views/releases/components/useFinalizeRele
 import type {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
 import type {ReleasesRequestRenderProps} from 'sentry/views/releases/list/releasesRequest';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
+import {useReleaseIssueCountsByProject} from 'sentry/views/releases/utils/useReleaseIssueCountsByProject';
 
 import ReleaseCardCommits from './releaseCardCommits';
 import ReleaseCardProjectRow from './releaseCardProjectRow';
@@ -88,9 +89,16 @@ function ReleaseCard({
     dateCreated,
     versionInfo,
     adoptionStages,
-    newGroups,
     projects,
   } = release;
+
+  // Fetch issue counts for each project in this release
+  const issueCountsByProject = useReleaseIssueCountsByProject({
+    organization,
+    projects,
+    releaseVersion: version,
+    selection,
+  });
 
   const [projectsToShow, projectsToHide] = useMemo(() => {
     // sort health rows inside release card alphabetically by project name,
@@ -257,6 +265,8 @@ function ReleaseCard({
           >
             {projectsToShow.map((project, index) => {
               const key = `${project.slug}-${version}`;
+              const newGroups = issueCountsByProject[project.id] || 0;
+
               return (
                 <ReleaseCardProjectRow
                   key={`${key}-row`}
