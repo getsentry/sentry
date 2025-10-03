@@ -11,7 +11,7 @@ FEATURE_NAME = ["organizations:session-replay"]
 
 @no_silo_test
 class ReplayListTest(ReplaysAcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.user = self.create_user("foo@example.com")
