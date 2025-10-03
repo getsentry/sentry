@@ -10,9 +10,12 @@ import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   NO_ARGUMENT_SPAN_AGGREGATES,
+  prettifyTagKey,
 } from 'sentry/utils/fields';
 import {Dataset, type EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
+import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {
   DEFAULT_VISUALIZATION_FIELD,
   updateVisualizeAggregate,
@@ -64,10 +67,11 @@ function EAPFieldWrapper({aggregate, onChange, eventTypes}: Props) {
 }
 
 function EAPField({aggregate, onChange, eventTypes}: Props) {
-  const traceItemType = getTraceItemTypeForDatasetAndEventType(
-    Dataset.EVENTS_ANALYTICS_PLATFORM,
-    eventTypes
-  );
+  const traceItemType =
+    getTraceItemTypeForDatasetAndEventType(
+      Dataset.EVENTS_ANALYTICS_PLATFORM,
+      eventTypes
+    ) || TraceItemDataset.SPANS;
   // We parse out the aggregation and field from the aggregate string.
   // This only works for aggregates with <= 1 argument.
   const {
@@ -78,10 +82,19 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
   const {attributes: storedNumberTags} = useTraceItemAttributes('number');
   const {attributes: storedStringTags} = useTraceItemAttributes('string');
 
-  const storedTags =
-    aggregation === AggregationKey.COUNT_UNIQUE ? storedStringTags : storedNumberTags;
+  const storedTags = useMemo(() => {
+    return aggregation === AggregationKey.COUNT_UNIQUE
+      ? {...storedNumberTags, ...storedStringTags}
+      : storedNumberTags;
+  }, [aggregation, storedNumberTags, storedStringTags]);
 
-  const fieldsArray = Object.values(storedTags);
+  const fieldsArray = useMemo(() => {
+    return Object.values(storedTags).toSorted((a, b) => {
+      const aLabel = prettifyTagKey(a.key);
+      const bLabel = prettifyTagKey(b.key);
+      return aLabel.localeCompare(bLabel);
+    });
+  }, [storedTags]);
 
   // When using the async variant of SelectControl, we need to pass in an option object instead of just the value
   const [lockOptions, selectedOption] = useMemo(() => {
@@ -167,12 +180,25 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
           searchText === '' || name.toLowerCase().includes(searchText.toLowerCase())
       );
 
-      const options = filteredMeta.map(metric => {
-        return {label: metric.name, value: metric.key};
+      return filteredMeta.map(metric => {
+        return {
+          label: metric.name,
+          value: metric.key,
+          textValue: metric.key,
+          trailingItems: <TypeBadge kind={metric.kind} />,
+          showDetailsInOverlay: true,
+          details: (
+            <AttributeDetails
+              column={metric.key}
+              kind={metric.kind}
+              label={metric.name}
+              traceItemType={traceItemType}
+            />
+          ),
+        };
       });
-      return options;
     },
-    [fieldsArray]
+    [fieldsArray, traceItemType]
   );
 
   const operations =
