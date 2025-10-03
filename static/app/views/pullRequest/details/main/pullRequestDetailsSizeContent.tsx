@@ -97,10 +97,7 @@ export function PullRequestDetailsSizeContent({
         <Flex area="main" width="100%" justify="center">
           <BuildDetailsMainContent
             buildDetailsData={selectedBuildDetail}
-            appSizeData={appSizeQuery.data}
-            isAppSizePending={appSizeQuery.isPending}
-            isAppSizeError={appSizeQuery.isError}
-            appSizeError={appSizeQuery.error}
+            appSizeQuery={appSizeQuery}
           />
         </Flex>
       </Grid>

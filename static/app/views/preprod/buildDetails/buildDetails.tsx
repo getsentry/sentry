@@ -103,10 +103,7 @@ export default function BuildDetails() {
             </BuildDetailsSide>
             <BuildDetailsMain>
               <BuildDetailsMainContent
-                appSizeData={appSizeQuery.data}
-                isAppSizePending={appSizeQuery.isPending}
-                isAppSizeError={appSizeQuery.isError}
-                appSizeError={appSizeQuery.error}
+                appSizeQuery={appSizeQuery}
                 buildDetailsData={buildDetailsQuery.data}
                 isBuildDetailsPending={buildDetailsQuery.isPending}
               />
