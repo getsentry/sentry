@@ -3,7 +3,7 @@ from unittest.mock import patch
 from rest_framework.test import APIRequestFactory
 
 from sentry.models.repository import Repository
-from sentry.preprod.api.endpoints.organization_pullrequest_comments import (
+from sentry.preprod.api.endpoints.pull_request.organization_pullrequest_comments import (
     OrganizationPrCommentsEndpoint,
 )
 from sentry.shared_integrations.exceptions import ApiError

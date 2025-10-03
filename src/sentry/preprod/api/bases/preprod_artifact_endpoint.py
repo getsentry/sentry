@@ -8,6 +8,11 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.preprod.models import PreprodArtifact
 
 
+class PreprodArtifactResourceDoesNotExist(APIException):
+    status_code = status.HTTP_404_NOT_FOUND
+    default_detail = "The requested preprod artifact does not exist"
+
+
 class HeadPreprodArtifactResourceDoesNotExist(APIException):
     status_code = status.HTTP_404_NOT_FOUND
     default_detail = "The requested head preprod artifact does not exist"
