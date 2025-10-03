@@ -90,6 +90,11 @@ describe('ReleasesList', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-count/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: `/projects/org-slug/${projects[0]!.slug}/`,
       body: [],
     });
