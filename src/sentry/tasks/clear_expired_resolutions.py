@@ -5,20 +5,15 @@ from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.types.activity import ActivityType
 
 
 @instrumented_task(
     name="sentry.tasks.clear_expired_resolutions",
-    time_limit=15,
-    soft_time_limit=10,
+    namespace=issues_tasks,
+    processing_deadline_duration=15,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=15,
-    ),
 )
 def clear_expired_resolutions(release_id):
     """

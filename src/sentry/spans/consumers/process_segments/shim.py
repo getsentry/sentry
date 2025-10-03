@@ -11,7 +11,7 @@ from typing import Any, cast
 import sentry_sdk
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-from sentry.performance_issues.types import SentryTags as PerformanceIssuesSentryTags
+from sentry.issue_detection.types import SentryTags as PerformanceIssuesSentryTags
 from sentry.spans.consumers.process_segments.types import (
     CompatibleSpan,
     attribute_value,

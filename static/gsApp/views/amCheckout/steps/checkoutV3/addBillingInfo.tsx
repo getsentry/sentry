@@ -10,7 +10,6 @@ import BillingDetailsPanel from 'getsentry/components/billingDetails/panel';
 import CreditCardPanel from 'getsentry/components/creditCardEdit/panel';
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import {FTCConsentLocation} from 'getsentry/types';
-import {hasSomeBillingDetails} from 'getsentry/utils/billing';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {CheckoutV3StepProps} from 'getsentry/views/amCheckout/types';
 import {hasBillingInfo} from 'getsentry/views/amCheckout/utils';
@@ -58,7 +57,7 @@ function AddBillingInformation({
               subscription={subscription}
               isNewBillingUI
               analyticsEvent="checkout.updated_billing_details"
-              shouldExpandInitially={!hasSomeBillingDetails(billingDetails)}
+              shouldExpandInitially
             />
             <CreditCardPanel
               organization={organization}
@@ -68,7 +67,7 @@ function AddBillingInformation({
               ftcLocation={FTCConsentLocation.CHECKOUT}
               budgetTerm={activePlan.budgetTerm}
               analyticsEvent="checkout.updated_cc"
-              shouldExpandInitially={subscription.paymentSource === null}
+              shouldExpandInitially
             />
           </Fragment>
         ))}

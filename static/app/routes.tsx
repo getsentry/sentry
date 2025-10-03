@@ -2192,6 +2192,13 @@ function buildRoutes(): RouteObject[] {
     traceView,
   ];
 
+  const metricsChildren: SentryRouteObject[] = [
+    {
+      index: true,
+      component: make(() => import('sentry/views/explore/metrics/content')),
+    },
+  ];
+
   const profilingChildren: SentryRouteObject[] = [
     {
       index: true,
@@ -2275,6 +2282,11 @@ function buildRoutes(): RouteObject[] {
       path: 'logs/',
       component: make(() => import('sentry/views/explore/logs')),
       children: logsChildren,
+    },
+    {
+      path: 'metrics/',
+      component: make(() => import('sentry/views/explore/metrics')),
+      children: metricsChildren,
     },
     {
       path: 'saved-queries/',

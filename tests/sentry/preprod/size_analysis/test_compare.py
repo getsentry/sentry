@@ -434,3 +434,95 @@ class CompareSizeAnalysisTest(TestCase):
         assert diff_items[2].path == "app/src/utils.js"
         assert diff_items[2].size_diff == 200
         assert diff_items[2].type == DiffType.ADDED
+
+    def test_compare_size_analysis_duplicate_paths(self):
+        """Test compare_size_analysis with duplicate paths (e.g., Assets.car with multiple entries)."""
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+
+        # Simulate Assets.car with duplicate image files
+        # Head has more duplicates than base
+        head_treemap = self._create_treemap_element(
+            "Assets.car",
+            4788224,
+            path="Assets.car",
+            children=[
+                self._create_treemap_element("AppIcon", 4096, path="Assets.car/AppIcon"),
+                self._create_treemap_element(
+                    "Primary-Light@2x.png", 507904, path="Assets.car/Primary-Light@2x.png"
+                ),
+                self._create_treemap_element(
+                    "Primary-Light@2x.png", 802816, path="Assets.car/Primary-Light@2x.png"
+                ),
+                self._create_treemap_element("AppIcon", 4096, path="Assets.car/AppIcon"),
+                self._create_treemap_element(
+                    "Primary-Light@2x.png", 507904, path="Assets.car/Primary-Light@2x.png"
+                ),
+                self._create_treemap_element(
+                    "Primary-Light@2x.png", 802816, path="Assets.car/Primary-Light@2x.png"
+                ),
+                self._create_treemap_element(
+                    "Primary-Dark@2x.png", 339968, path="Assets.car/Primary-Dark@2x.png"
+                ),
+                self._create_treemap_element(
+                    "Primary-Dark@2x.png", 462848, path="Assets.car/Primary-Dark@2x.png"
+                ),
+            ],
+        )
+        base_treemap = self._create_treemap_element(
+            "Assets.car",
+            2404352,
+            path="Assets.car",
+            children=[
+                self._create_treemap_element("AppIcon", 4096, path="Assets.car/AppIcon"),
+                self._create_treemap_element(
+                    "Primary-Light@2x.png", 507904, path="Assets.car/Primary-Light@2x.png"
+                ),
+                self._create_treemap_element(
+                    "Primary-Light@2x.png", 802816, path="Assets.car/Primary-Light@2x.png"
+                ),
+                self._create_treemap_element(
+                    "Primary-Dark@2x.png", 339968, path="Assets.car/Primary-Dark@2x.png"
+                ),
+                self._create_treemap_element(
+                    "Primary-Dark@2x.png", 462848, path="Assets.car/Primary-Dark@2x.png"
+                ),
+            ],
+        )
+
+        head_results = self._create_size_analysis_results(treemap_root=head_treemap)
+        base_results = self._create_size_analysis_results(treemap_root=base_treemap)
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        # Should detect added files: 1 AppIcon, 2 Primary-Light@2x.png
+        assert len(result.diff_items) == 3
+
+        # Sort by path and size for consistent testing
+        diff_items = sorted(result.diff_items, key=lambda x: (x.path, x.size_diff))
+
+        # Assets.car/AppIcon - added (1 extra copy)
+        assert diff_items[0].path == "Assets.car/AppIcon"
+        assert diff_items[0].size_diff == 4096
+        assert diff_items[0].type == DiffType.ADDED
+
+        # Assets.car/Primary-Light@2x.png - added (2 extra copies)
+        assert diff_items[1].path == "Assets.car/Primary-Light@2x.png"
+        assert diff_items[1].size_diff == 507904
+        assert diff_items[1].type == DiffType.ADDED
+
+        assert diff_items[2].path == "Assets.car/Primary-Light@2x.png"
+        assert diff_items[2].size_diff == 802816
+        assert diff_items[2].type == DiffType.ADDED

@@ -23,7 +23,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {semverCompare} from 'sentry/utils/versions/semverCompare';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
-  /^(([\w\$]\.[\w\$]{1,2})|([\w\$]{2}\.[\w\$]\.[\w\$]))(\.|$)/g;
+  /^(([\w$]\.[\w$]{1,2})|([\w$]{2}\.[\w$]\.[\w$]))(\.|$)/g;
 
 export type ActionableItemTypes =
   | JavascriptProcessingErrors
