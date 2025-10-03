@@ -5,7 +5,7 @@ import re
 from collections.abc import Callable, Generator, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, overload
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
@@ -479,8 +479,10 @@ class SearchValue(NamedTuple):
     def value(self) -> Any:
         if self.use_raw_value:
             return self.raw_value
-        elif self.is_wildcard():
-            return translate_wildcard(cast(str, self.raw_value))
+        elif self.is_wildcard() and isinstance(self.raw_value, str):
+            return translate_wildcard(self.raw_value)
+        elif self.is_wildcard() and isinstance(self.raw_value, (list, tuple)):
+            return f"({"|".join(map(translate_wildcard, self.raw_value))})"
         elif isinstance(self.raw_value, str):
             return translate_escape_sequences(self.raw_value)
         return self.raw_value
