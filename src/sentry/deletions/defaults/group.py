@@ -11,6 +11,7 @@ from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodes
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.services.eventstore.models import Event
@@ -227,6 +228,38 @@ def delete_project_group_hashes(project_id: int) -> None:
     delete_group_hashes(project_id, issue_platform_group_ids)
 
 
+def _nullify_seer_matched_grouphash_metadata(hash_ids: Sequence[int], batch_size: int) -> None:
+    """
+    Manually update GroupHashMetadata records in batches to avoid unbounded cascade updates.
+    
+    The foreign key seer_matched_grouphash has on_delete=models.SET_NULL, which would normally
+    trigger a single large UPDATE when we delete GroupHashes. By batching the updates ourselves,
+    we prevent long-running queries that get cancelled.
+    
+    Args:
+        hash_ids: List of GroupHash IDs that will be deleted
+        batch_size: Number of metadata records to update per batch
+    """
+    iterations = 0
+    while iterations < GROUP_HASH_ITERATIONS:
+        # Find metadata records that reference any of the GroupHashes we're about to delete
+        metadata_ids = list(
+            GroupHashMetadata.objects.filter(
+                seer_matched_grouphash_id__in=hash_ids
+            ).values_list("id", flat=True)[:batch_size]
+        )
+        
+        if not metadata_ids:
+            break
+        
+        # Update this batch to NULL out the foreign key
+        GroupHashMetadata.objects.filter(id__in=metadata_ids).update(
+            seer_matched_grouphash_id=None
+        )
+        
+        iterations += 1
+
+
 def delete_group_hashes(
     project_id: int,
     group_ids: Sequence[int],
@@ -256,6 +289,12 @@ def delete_group_hashes(
             logger.warning("Error scheduling task to delete hashes from seer")
         finally:
             hash_ids = [gh[0] for gh in hashes_chunk]
+            
+            # Manually nullify seer_matched_grouphash_id references before deleting
+            _nullify_seer_matched_grouphash_metadata(hash_ids, hashes_batch_size)
+            
+            # Now delete the GroupHash records - the cascade won't affect any metadata
+            # since we've already NULLed out the foreign keys
             GroupHash.objects.filter(id__in=hash_ids).delete()
 
         iterations += 1
