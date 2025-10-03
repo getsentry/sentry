@@ -8,6 +8,8 @@ import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import type {FlexProps, StackProps} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
@@ -398,17 +400,13 @@ const CropperHovercard = styled(Hovercard)`
   width: 300px;
 `;
 
-const CropperContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
+function CropperContainer(props: StackProps) {
+  return <Stack gap="xl" {...props} />;
+}
 
-const CropperActions = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  gap: ${space(1)};
-`;
+function CropperActions(props: FlexProps) {
+  return <Flex justify="end" gap="md" {...props} />;
+}
 
 const AvatarHelp = styled('p')`
   margin-right: auto;
