@@ -12,6 +12,7 @@ import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   ALLOWED_EXPLORE_VISUALIZE_FIELDS,
+  getFieldDefinition,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
 import {decodeList} from 'sentry/utils/queryString';
@@ -181,6 +182,15 @@ export function updateVisualizeAggregate({
     NO_ARGUMENT_SPAN_AGGREGATES.includes(oldAggregate as AggregationKey)
   ) {
     return `${newAggregate}(${DEFAULT_VISUALIZATION_FIELD})`;
+  }
+  const newFieldDefinition = getFieldDefinition(newAggregate, 'span');
+  const oldFieldDefinition = oldAggregate
+    ? getFieldDefinition(oldAggregate, 'span')
+    : undefined;
+
+  if (newFieldDefinition?.parameters?.length !== oldFieldDefinition?.parameters?.length) {
+    const params = newFieldDefinition?.parameters?.map(p => p.defaultValue || '');
+    return `${newAggregate}(${params?.join(',')})`;
   }
 
   return oldArguments
