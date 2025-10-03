@@ -7,6 +7,7 @@ import {
   constructWidgetFromQuery,
   eventViewFromWidget,
   flattenErrors,
+  getCurrentPageFilters,
   getDashboardsMEPQueryParams,
   getFieldsFromEquations,
   getNumEquations,
@@ -426,6 +427,79 @@ describe('isWidgetUsingTransactionName', () => {
       );
       const widget = constructWidgetFromQuery(baseQuery)!;
       expect(isUsingPerformanceScore(widget)).toBe(true);
+    });
+  });
+
+  describe('getCurrentPageFilters', () => {
+    it('returns empty array for environment when not defined in location query', () => {
+      const location = LocationFixture({
+        query: {
+          project: '1',
+          statsPeriod: '7d',
+        },
+      });
+
+      const result = getCurrentPageFilters(location);
+
+      expect(result.environment).toEqual([]);
+      expect(result.projects).toEqual([1]);
+      expect(result.period).toBe('7d');
+    });
+
+    it('returns empty array for environment when environment is undefined', () => {
+      const location = LocationFixture({
+        query: {
+          project: '1',
+          environment: undefined,
+          statsPeriod: '7d',
+        },
+      });
+
+      const result = getCurrentPageFilters(location);
+
+      expect(result.environment).toEqual([]);
+    });
+
+    it('returns empty array for environment when environment is null', () => {
+      const location = LocationFixture({
+        query: {
+          project: '1',
+          environment: null,
+          statsPeriod: '7d',
+        },
+      });
+
+      const result = getCurrentPageFilters(location);
+
+      expect(result.environment).toEqual([]);
+    });
+
+    it('converts single environment string to array', () => {
+      const location = LocationFixture({
+        query: {
+          project: '1',
+          environment: 'production',
+          statsPeriod: '7d',
+        },
+      });
+
+      const result = getCurrentPageFilters(location);
+
+      expect(result.environment).toEqual(['production']);
+    });
+
+    it('preserves environment array when already an array', () => {
+      const location = LocationFixture({
+        query: {
+          project: '1',
+          environment: ['production', 'staging'],
+          statsPeriod: '7d',
+        },
+      });
+
+      const result = getCurrentPageFilters(location);
+
+      expect(result.environment).toEqual(['production', 'staging']);
     });
   });
 });
