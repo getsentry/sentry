@@ -1,8 +1,8 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import {clearQueryCursors} from './clearQueryCursors';
+import {unsetQueryCursors} from './unsetQueryCursors';
 
-describe('clearQueryCursors', () => {
+describe('unsetQueryCursors', () => {
   it('returns only cursor keys set to undefined', () => {
     const location = LocationFixture({
       query: {
@@ -13,7 +13,7 @@ describe('clearQueryCursors', () => {
       },
     });
 
-    expect(clearQueryCursors(location.query)).toEqual({
+    expect(unsetQueryCursors(location.query)).toEqual({
       tableCursor: undefined,
       modelsCursor: undefined,
       toolsCursor: undefined,
@@ -29,7 +29,7 @@ describe('clearQueryCursors', () => {
       },
     });
 
-    expect(clearQueryCursors(location.query)).toEqual({
+    expect(unsetQueryCursors(location.query)).toEqual({
       TableCursor: undefined,
       MODELS_CURSOR: undefined,
     });
@@ -42,7 +42,7 @@ describe('clearQueryCursors', () => {
       },
     });
 
-    expect(clearQueryCursors(location.query)).toEqual({});
+    expect(unsetQueryCursors(location.query)).toEqual({});
   });
 
   it('returns empty object when query is undefined', () => {
@@ -50,6 +50,6 @@ describe('clearQueryCursors', () => {
       query: undefined,
     });
 
-    expect(clearQueryCursors(location.query)).toEqual({});
+    expect(unsetQueryCursors(location.query)).toEqual({});
   });
 });

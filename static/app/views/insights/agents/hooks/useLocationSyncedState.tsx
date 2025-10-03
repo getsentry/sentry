@@ -13,7 +13,7 @@ import type {
 } from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {clearQueryCursors} from 'sentry/views/insights/agents/utils/clearQueryCursors';
+import {unsetQueryCursors} from 'sentry/views/insights/agents/utils/unsetQueryCursors';
 
 type KnownDecoder =
   | typeof decodeInteger
@@ -82,7 +82,7 @@ export function useLocationSyncedState<T extends Decoder>(key: string, decoder: 
           query: {
             ...prevLocation.query,
             // make sure to clear all cursors every time the query is updated
-            ...clearQueryCursors(prevLocation.query),
+            ...unsetQueryCursors(prevLocation.query),
             [key]: value,
           },
         };
