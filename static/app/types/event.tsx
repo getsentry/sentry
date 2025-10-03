@@ -27,6 +27,7 @@ export type EventGroupComponent = {
   id: string;
   name: string | null;
   values: EventGroupComponent[] | string[];
+  stacktrace_folded?: boolean;
 };
 export type EventGroupingConfig = {
   base: string | null;
