@@ -292,5 +292,5 @@ export function convertEventsStatsToTimeSeriesData(
     delayedTimeSeries.meta.order = order;
   }
 
-  return [timeSeries.meta.order ?? 0, timeSeries];
+  return [timeSeries.meta.order ?? 0, delayedTimeSeries];
 }
