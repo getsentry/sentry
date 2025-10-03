@@ -517,6 +517,18 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}/issues/{number}")
 
+    def get_issue_comments(self, repo: str, issue_number: str) -> Any:
+        """
+        https://docs.github.com/en/rest/issues/comments#list-issue-comments
+        """
+        return self.get(f"/repos/{repo}/issues/{issue_number}/comments")
+
+    def get_pullrequest_comments(self, repo: str, pull_number: str) -> Any:
+        """
+        https://docs.github.com/en/rest/pulls/comments#list-review-comments-on-a-pull-request
+        """
+        return self.get(f"/repos/{repo}/pulls/{pull_number}/comments")
+
     def create_issue(self, repo: str, data: Mapping[str, Any]) -> Any:
         """
         https://docs.github.com/en/rest/issues/issues#create-an-issue

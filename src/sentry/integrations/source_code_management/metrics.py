@@ -36,6 +36,9 @@ class SCMIntegrationInteractionType(StrEnum):
     QUEUE_COMMENT_TASK = "queue_comment_task"
     GET_PR_DIFFS = "get_pr_diffs"  # open PR comments
 
+    GET_PR_COMMENTS = "get_pr_comments"
+    GET_ISSUE_COMMENTS = "get_issue_comments"
+
     # Tasks
     LINK_ALL_REPOS = "link_all_repos"
 
