@@ -59,6 +59,7 @@ interface TraceResults {
 
 interface UseTracesOptions
   extends Pick<UseApiQueryOptions<TraceResults>, 'refetchInterval'> {
+  caseInsensitive?: boolean;
   cursor?: string;
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
@@ -73,6 +74,7 @@ type UseTracesResult = Omit<UseApiQueryResult<TraceResults, RequestError>, 'erro
 };
 
 export function useTraces({
+  caseInsensitive,
   cursor,
   datetime,
   enabled,
@@ -98,6 +100,7 @@ export function useTraces({
       per_page: limit,
       cursor,
       breakdownSlices: BREAKDOWN_SLICES,
+      caseInsensitive,
     },
   };
 

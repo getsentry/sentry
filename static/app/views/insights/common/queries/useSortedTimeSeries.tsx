@@ -41,6 +41,7 @@ import type {SpanFields, SpanFunctions} from 'sentry/views/insights/types';
 type SeriesMap = Record<string, TimeSeries[]>;
 
 interface Options<Fields> {
+  caseInsensitive?: boolean;
   disableAggregateExtrapolation?: string;
   enabled?: boolean;
   fields?: string[];
@@ -74,6 +75,7 @@ export const useSortedTimeSeries = <
     enabled,
     samplingMode,
     disableAggregateExtrapolation,
+    caseInsensitive,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -122,6 +124,7 @@ export const useSortedTimeSeries = <
       // Timeseries requests do not support cursors, overwrite it to undefined so
       // pagination does not cause extra requests
       cursor: undefined,
+      caseInsensitive,
     }),
     options: {
       enabled: enabled && pageFilters.isReady,

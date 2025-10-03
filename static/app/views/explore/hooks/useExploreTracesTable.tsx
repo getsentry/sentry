@@ -8,6 +8,7 @@ interface UseExploreTracesTableOptions {
   enabled: boolean;
   limit: number;
   query: string;
+  queryExtras?: {caseInsensitive?: boolean};
 }
 
 export interface TracesTableResult {
@@ -18,6 +19,7 @@ export function useExploreTracesTable({
   enabled,
   limit,
   query,
+  queryExtras,
 }: UseExploreTracesTableOptions): TracesTableResult {
   const location = useLocation();
   const cursor = decodeScalar(location.query.cursor);
@@ -28,6 +30,7 @@ export function useExploreTracesTable({
     limit,
     sort: '-timestamp',
     cursor,
+    caseInsensitive: queryExtras?.caseInsensitive,
   });
 
   return useMemo(() => {
