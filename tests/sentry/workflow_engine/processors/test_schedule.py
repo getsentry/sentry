@@ -9,10 +9,12 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.workflow_engine.buffer.batch_client import CohortUpdates, DelayedWorkflowClient
+from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
 from sentry.workflow_engine.processors.schedule import (
     ProjectChooser,
     bucket_num_groups,
     chosen_projects,
+    mark_projects_processed,
     process_buffered_workflows,
     process_in_batches,
 )
@@ -451,3 +453,39 @@ class TestChosenProjects:
 
         # persist_updates should not be called if fetch_updates fails
         mock_buffer_client.persist_updates.assert_not_called()
+
+
+@override_options({"workflow_engine.scheduler.use_conditional_delete": True})
+def test_mark_projects_processed_only_cleans_up_processed_projects() -> None:
+    """Test that mark_projects_processed only cleans up processed projects, not all projects."""
+    processed_project_id = 5000
+    unprocessed_project_id = 5001
+
+    current_time = 1000.0
+
+    def get_fake_time() -> float:
+        return current_time
+
+    all_project_ids_and_timestamps = {
+        processed_project_id: [1000.0],
+        unprocessed_project_id: [2000.0],
+    }
+
+    client = DelayedWorkflowClient(RedisHashSortedSetBuffer(now_fn=get_fake_time))
+
+    # Add both projects to buffer
+    for project_id, [timestamp] in all_project_ids_and_timestamps.items():
+        current_time = timestamp
+        client.add_project_ids([project_id])
+
+    # Only mark one project as processed
+    mark_projects_processed(
+        client,
+        [processed_project_id],  # Only this one was processed
+        all_project_ids_and_timestamps,
+    )
+
+    # The unprocessed project should still be in buffer
+    remaining_project_ids = client.get_project_ids(min=0, max=3000.0)
+    assert unprocessed_project_id in remaining_project_ids
+    assert processed_project_id not in remaining_project_ids
