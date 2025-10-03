@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from typing import Any
 from urllib.parse import urlparse
 
@@ -106,11 +105,9 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
     def _store_performance_problem(self) -> None:
         # Check if spans are from multiple hosts
         hosts = {self._extract_host_from_span(span) for span in self.consecutive_http_spans}
-        if len(hosts) > 1:
-            logging.info(
-                "Consecutive HTTP Spans with Multiple Hosts",
-                extra={"host_count": len(hosts), "project": self._event.get("project")},
-            )
+        if len(hosts) >= 3:
+            self._reset_variables()
+            return
 
         fingerprint = self._fingerprint()
         offender_span_ids = [span["span_id"] for span in self.consecutive_http_spans]
