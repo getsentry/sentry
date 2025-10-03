@@ -53,7 +53,6 @@ export default function PerformanceScoreBreakdownChartWidget(
   } = useFetchSpanTimeSeries(
     {
       sampling: SAMPLING_MODE.HIGH_ACCURACY,
-      interval: '12h',
       query: search,
       yAxis: [
         'performance_score(measurements.score.lcp)',
