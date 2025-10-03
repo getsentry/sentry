@@ -100,10 +100,13 @@ class BulkDeleteObjectsTest(TestCase):
         for i in range(total):
             records.append(self.create_userreport(project=self.project, event_id=str(i) * 32))
 
-        result = bulk_delete_objects(UserReport, id__in=[r.id for r in records])
-        assert result, "Could be more work to do"
+        has_more, count = bulk_delete_objects(UserReport, id__in=[r.id for r in records])
+        assert has_more, "Could be more work to do"
+        assert count == total
         assert len(UserReport.objects.all()) == 0
-        assert bulk_delete_objects(UserReport) is False
+        has_more, count = bulk_delete_objects(UserReport)
+        assert has_more is False
+        assert count == 0
 
     def test_basic_tuple(self) -> None:
         total = 10
@@ -111,8 +114,9 @@ class BulkDeleteObjectsTest(TestCase):
         for i in range(total):
             records.append(self.create_userreport(project=self.project, event_id=str(i) * 32))
 
-        result = bulk_delete_objects(UserReport, id__in=tuple([r.id for r in records]))
-        assert result, "Could be more work to do"
+        has_more, count = bulk_delete_objects(UserReport, id__in=tuple([r.id for r in records]))
+        assert has_more, "Could be more work to do"
+        assert count == total
         assert len(UserReport.objects.all()) == 0
 
     def test_basic_set(self) -> None:
@@ -121,8 +125,9 @@ class BulkDeleteObjectsTest(TestCase):
         for i in range(total):
             records.append(self.create_userreport(project=self.project, event_id=str(i) * 32))
 
-        result = bulk_delete_objects(UserReport, id__in={r.id for r in records})
-        assert result, "Could be more work to do"
+        has_more, count = bulk_delete_objects(UserReport, id__in={r.id for r in records})
+        assert has_more, "Could be more work to do"
+        assert count == total
         assert len(UserReport.objects.all()) == 0
 
     def test_limiting(self) -> None:
@@ -131,8 +136,9 @@ class BulkDeleteObjectsTest(TestCase):
         for i in range(total):
             records.append(self.create_userreport(project=self.project, event_id=str(i) * 32))
 
-        result = bulk_delete_objects(UserReport, id__in=[r.id for r in records], limit=5)
-        assert result, "Still more work to do"
+        has_more, count = bulk_delete_objects(UserReport, id__in=[r.id for r in records], limit=5)
+        assert has_more, "Still more work to do"
+        assert count == 5
         assert len(UserReport.objects.all()) == 5
 
     def test_bulk_delete_single_query(self) -> None:
@@ -143,10 +149,14 @@ class BulkDeleteObjectsTest(TestCase):
 
         assert len(Commit.objects.all()) == 1
         before = len(connections[Commit.objects.db].queries_log)
-        assert bulk_delete_objects(Commit)
+        has_more, count = bulk_delete_objects(Commit)
+        assert has_more
+        assert count == 1
         after = len(connections[Commit.objects.db].queries_log)
         assert after == before + 1
         assert len(Commit.objects.all()) == 0
 
     def test_bulk_delete_empty_queryset(self) -> None:
-        assert bulk_delete_objects(UserReport, id__in=()) is False
+        has_more, count = bulk_delete_objects(UserReport, id__in=())
+        assert has_more is False
+        assert count == 0

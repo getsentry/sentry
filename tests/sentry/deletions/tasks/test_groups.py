@@ -96,7 +96,7 @@ class DeleteGroupTest(TestCase):
             has_more = True
             calls = 0
             while has_more:
-                has_more = task.chunk()
+                has_more, _ = task.chunk()
                 calls += 1
 
             assert calls == 1
@@ -118,7 +118,7 @@ class DeleteGroupTest(TestCase):
             has_more = True
             calls = 0
             while has_more:
-                has_more = task.chunk()
+                has_more, _ = task.chunk()
                 calls += 1
 
             assert calls == 2

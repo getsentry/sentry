@@ -20,7 +20,7 @@ class DeletionTaskManager:
             model=type(instance),
             query={"id": instance.id},
         )
-        while task.chunk():
+        while task.chunk()[0]:
             pass
 
     def exec_sync_many(self, instances: list[Model]) -> None:
@@ -31,7 +31,7 @@ class DeletionTaskManager:
             model=type(instances[0]),
             query={"id__in": [i.id for i in instances]},
         )
-        while task.chunk():
+        while task.chunk()[0]:
             pass
 
     def get(

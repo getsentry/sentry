@@ -45,7 +45,7 @@ def _delete_children(
         # by collecting metrics.
         has_more = True
         while has_more:
-            has_more = task.chunk()
+            has_more, _ = task.chunk()
             if has_more:
                 metrics.incr("deletions.should_spawn", tags={"task": type(task).__name__})
     return False
@@ -103,10 +103,14 @@ class BaseDeletionTask(Generic[ModelT]):
             self.actor_id,
         )
 
-    def chunk(self, apply_filter: bool = False) -> bool:
+    def chunk(self, apply_filter: bool = False) -> tuple[bool, int]:
         """
-        Deletes a chunk of this instance's data. Return ``True`` if there is
-        more work, or ``False`` if the entity has been removed.
+        Deletes a chunk of this instance's data.
+
+        Returns:
+            tuple[bool, int]: (has_more, rows_processed)
+                - has_more: True if there is more work, False if entity has been removed
+                - rows_processed: Number of rows actually processed in this call
         """
         raise NotImplementedError
 
@@ -215,13 +219,18 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
         """
         return None
 
-    def chunk(self, apply_filter: bool = False) -> bool:
+    def chunk(self, apply_filter: bool = False) -> tuple[bool, int]:
         """
-        Deletes a chunk of this instance's data. Return ``True`` if there is
-        more work, or ``False`` if all matching entities have been removed.
+        Deletes a chunk of this instance's data.
+
+        Returns:
+            tuple[bool, int]: (has_more, rows_processed)
+                - has_more: True if there is more work, False if all matching entities removed
+                - rows_processed: Number of rows actually processed in this call
         """
         query_limit = self.query_limit
         remaining = self.chunk_size
+        total_processed = 0
 
         while remaining >= 0:
             queryset = getattr(self.model, self.manager_name).filter(**self.query)
@@ -237,13 +246,14 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
             queryset = list(queryset[:query_limit])
             # If there are no more rows we are all done.
             if not queryset:
-                return False
+                return False, total_processed
 
             self.delete_bulk(queryset)
+            total_processed += len(queryset)
             remaining = remaining - len(queryset)
 
         # We have more work to do as we didn't run out of rows to delete.
-        return True
+        return True, total_processed
 
     def delete_instance(self, instance: ModelT) -> None:
         instance_id = instance.id
@@ -285,10 +295,10 @@ class BulkModelDeletionTask(ModelDeletionTask[ModelT]):
 
     DEFAULT_CHUNK_SIZE = 10000
 
-    def chunk(self, apply_filter: bool = False) -> bool:
+    def chunk(self, apply_filter: bool = False) -> tuple[bool, int]:
         return self._delete_instance_bulk()
 
-    def _delete_instance_bulk(self) -> bool:
+    def _delete_instance_bulk(self) -> tuple[bool, int]:
         try:
             with unguarded_write(using=router.db_for_write(self.model)):
                 return bulk_delete_objects(

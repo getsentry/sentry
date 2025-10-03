@@ -74,6 +74,7 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
     configure()
 
     from sentry import deletions, models, similarity
+    from sentry.utils import metrics
 
     skip_models = [
         # Handled by other parts of cleanup
@@ -103,9 +104,19 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
                 transaction_id=uuid4().hex,
             )
 
-            while True:
-                if not task.chunk(apply_filter=True):
-                    break
+            actual_count = 0
+            with metrics.timer("cleanup.chunk_duration", tags={"model": model_name}):
+                while True:
+                    has_more, processed = task.chunk(apply_filter=True)
+                    actual_count += processed
+                    if not has_more:
+                        break
+
+            filtered_count = len(chunk) - actual_count
+            if filtered_count > 0:
+                metrics.incr(
+                    "cleanup.filtered_rows", amount=filtered_count, tags={"model": model_name}
+                )
         except Exception as e:
             logger.exception(e)
         finally:
