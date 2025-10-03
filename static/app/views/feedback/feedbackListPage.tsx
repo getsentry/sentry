@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Button} from 'sentry/components/core/button';
+import {Stack} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
@@ -87,12 +88,12 @@ export default function FeedbackListPage() {
 
   const largeScreenView = (
     <Fragment>
-      <SummaryListContainer style={{gridArea: 'list'}}>
+      <Stack style={{gridArea: 'list'}} gap="md">
         <FeedbackSummaryCategories />
         <Container>
           <FeedbackList onItemSelect={() => {}} />
         </Container>
-      </SummaryListContainer>
+      </Stack>
 
       <Container style={{gridArea: 'details'}}>
         <AnalyticsArea name="details">
@@ -111,7 +112,7 @@ export default function FeedbackListPage() {
           </AnalyticsArea>
         </Container>
       ) : (
-        <SummaryListContainer style={{gridArea: 'content'}}>
+        <Stack style={{gridArea: 'content'}} gap="md">
           <FeedbackSummaryCategories />
           <Container>
             <FeedbackList onItemSelect={handleItemSelect} />
@@ -121,7 +122,7 @@ export default function FeedbackListPage() {
               </JumpToSelectedButton>
             )}
           </Container>
-        </SummaryListContainer>
+        </Stack>
       )}
     </Fragment>
   );
@@ -186,12 +187,6 @@ const Background = styled('div')`
   flex-direction: column;
   align-items: stretch;
   gap: ${space(2)};
-`;
-
-const SummaryListContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
 `;
 
 const LayoutGrid = styled('div')<{hideTop?: boolean}>`

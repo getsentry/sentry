@@ -68,7 +68,7 @@ function LogUsername({logEntryUser}: {logEntryUser: User | undefined}) {
 }
 
 const formatEntryTitle = (name: string) => {
-  const spaceName = name.replace(/\-|\./gm, ' ');
+  const spaceName = name.replace(/-|\./gm, ' ');
   let capitalizeName = spaceName.replace(/(^\w)|([-\s]\w)/g, match =>
     match.toUpperCase()
   );
