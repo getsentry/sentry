@@ -1,4 +1,7 @@
+from datetime import timedelta
+
 import pytest
+from django.utils import timezone
 from snuba_sdk import And, Column, Condition, Entity, Function, Join, Op, Relationship
 
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
@@ -22,10 +25,8 @@ from sentry.snuba.entity_subscription import (
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
-from sentry.testutils.skips import requires_snuba
 from sentry.testutils.helpers.features import with_feature
-from django.utils import timezone
-from datetime import timedelta
+from sentry.testutils.skips import requires_snuba
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
@@ -263,11 +264,10 @@ class EntitySubscriptionTestCase(TestCase):
         Trying to reproduce https://sentry.sentry.io/issues/6654944356/events/latest/?project=1&query=is%3Aunresolved%20IncompatibleMetricsQuery&referrer=latest-event
         """
         # NOTE: both of these flags are enabled in production for the issue in question
-        # I can reproduce the error if I disable on-demand-metrics-extraction. 
+        # I can reproduce the error if I disable on-demand-metrics-extraction.
         # this causes self.use_on_demand to be False so it goes down a different code path in search/events/builder/metrics.py#L484
         # something about the OnDemandMetricSpec must be evaluating to False - this is fetched in _get_on_demand_metric_spec
-        # but all that code is very complicated and there is even a if in_random_rollout("on_demand_metrics.cache_should_use_on_demand") 
-        # wtf is that???
+        # but all that code is very complicated and there is even a if in_random_rollout("on_demand_metrics.cache_should_use_on_demand")
 
         now = timezone.now()
         aggregate = "failure_rate()"
@@ -279,14 +279,14 @@ class EntitySubscriptionTestCase(TestCase):
             time_window=3600,
             extra_fields={"org_id": self.organization.id},
         )
-        query_builder = entity_subscription.build_query_builder(
+        entity_subscription.build_query_builder(
             query="package:v-analytics",
             project_ids=[self.project.id],
             environment=None,
             params={
                 "organization_id": self.organization.id,
                 "project_id": [self.project.id],
-                "start": now - timedelta(minutes=5) ,
+                "start": now - timedelta(minutes=5),
                 "end": now,
             },
         )
