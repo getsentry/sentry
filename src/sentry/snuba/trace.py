@@ -447,7 +447,6 @@ def query_trace_data(
     trace_id: str,
     error_id: str | None = None,
     additional_attributes: list[str] | None = None,
-    include_uptime: bool = False,
 ) -> list[SerializedEvent]:
     """Queries span/error data for a given trace"""
     # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
@@ -460,10 +459,10 @@ def query_trace_data(
     # to the database preventing a DROP.
     errors_query = _errors_query(snuba_params, trace_id, error_id)
     occurrence_query = _perf_issues_query(snuba_params, trace_id)
-    uptime_query = _uptime_results_query(snuba_params, trace_id) if include_uptime else None
+    uptime_query = _uptime_results_query(snuba_params, trace_id)
 
-    # 1 worker each for spans, errors, performance issues, and optionally uptime
-    max_workers = 4 if include_uptime else 3
+    # 1 worker each for spans, errors, performance issues, and uptime
+    max_workers = 4
     query_thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=max_workers)
     with query_thread_pool:
         spans_future = query_thread_pool.submit(
@@ -482,14 +481,15 @@ def query_trace_data(
             _run_perf_issues_query,
             occurrence_query,
         )
-        uptime_future = None
-        if include_uptime and uptime_query:
-            uptime_future = query_thread_pool.submit(_run_uptime_results_query, uptime_query)
+        uptime_future = query_thread_pool.submit(
+            _run_uptime_results_query,
+            uptime_query,
+        )
 
     spans_data = spans_future.result()
     errors_data = errors_future.result()
     occurrence_data = occurrence_future.result()
-    uptime_data = uptime_future.result() if uptime_future else []
+    uptime_data = uptime_future.result()
     result: list[dict[str, Any]] = []
     root_span: dict[str, Any] | None = None
 
