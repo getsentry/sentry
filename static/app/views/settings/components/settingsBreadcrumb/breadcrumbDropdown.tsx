@@ -60,6 +60,8 @@ function BreadcrumbDropdown({
           crumbLabel={name || route.name}
           menuHasHover={isHovered}
           {...triggerProps}
+          // @ts-expect-error - TODO: Crumb component should be refactored to use a button element instead of a div
+          ref={triggerProps.ref}
         />
       )}
       {...props}

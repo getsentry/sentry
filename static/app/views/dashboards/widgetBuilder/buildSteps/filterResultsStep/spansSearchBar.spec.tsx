@@ -21,7 +21,8 @@ function renderWithProvider({
   return render(
     <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
       <SpansSearchBar widgetQuery={widgetQuery} onSearch={onSearch} onClose={onClose} />
-    </TraceItemAttributeProvider>
+    </TraceItemAttributeProvider>,
+    {organization: {features: ['search-query-builder-input-flow-changes']}}
   );
 }
 
@@ -126,10 +127,9 @@ describe('SpansSearchBar', () => {
     const searchInput = await screen.findByRole('combobox', {
       name: 'Add a search term',
     });
-    await userEvent.type(searchInput, 'span.op:function');
-
-    // It takes two enters. One to enter the search term, and one to submit the search.
+    await userEvent.type(searchInput, 'span.op:');
     await userEvent.keyboard('{enter}');
+    await userEvent.keyboard('function');
     await userEvent.keyboard('{enter}');
 
     await waitFor(() => {
