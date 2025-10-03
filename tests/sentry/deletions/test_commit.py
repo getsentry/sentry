@@ -7,6 +7,7 @@ from sentry.deletions.defaults.commit import CommitDeletionTask
 from sentry.models.commit import Commit
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.groupcommitresolution import GroupCommitResolution
+from sentry.models.grouplink import GroupLink
 from sentry.models.groupreaction import GroupReaction, GroupReactionType
 from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
 from sentry.models.releasecommit import ReleaseCommit
@@ -116,6 +117,20 @@ class CommitDeletionTaskTest(TestCase):
             environment_id=environment.id,
             release_id=release.id,
             commit_id=commit.id,
+        )
+        commits_to_delete = self._get_filtered_commits()
+        assert commit not in commits_to_delete
+
+    def test_get_query_filter_does_not_select_commit_with_grouplink(self) -> None:
+        """Test that commits linked to a group via GroupLink are NOT selected"""
+        commit = self._create_old_commit()
+        group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group=group,
+            project=self.project,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id,
+            relationship=GroupLink.Relationship.resolves,
         )
         commits_to_delete = self._get_filtered_commits()
         assert commit not in commits_to_delete
