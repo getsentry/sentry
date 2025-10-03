@@ -805,6 +805,7 @@ export default typescript.config([
     name: 'files/sentry-test',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     rules: {
+      '@typescript-eslint/await-thenable': 'off', // For awaiting act(...)
       'no-loss-of-precision': 'off', // Sometimes we have wild numbers hard-coded in tests
       'no-restricted-imports': [
         'error',
