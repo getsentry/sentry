@@ -214,15 +214,17 @@ describe('DetectorEdit', () => {
                 logicType: 'any',
               },
               config: {detectionType: 'static', thresholdPeriod: 1},
-              dataSource: {
-                aggregate: 'count_unique(tags[sentry:user])',
-                dataset: 'events',
-                environment: 'prod',
-                eventTypes: ['error'],
-                query: '',
-                queryType: 0,
-                timeWindow: 3600,
-              },
+              dataSources: [
+                {
+                  aggregate: 'count_unique(tags[sentry:user])',
+                  dataset: 'events',
+                  environment: 'prod',
+                  eventTypes: ['error'],
+                  query: '',
+                  queryType: 0,
+                  timeWindow: 3600,
+                },
+              ],
             }),
           })
         );
