@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from typing import Any
 
 from django.utils import timezone
@@ -9,12 +10,15 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.base import control_silo_endpoint
+from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationPermission
 from sentry.data_secrecy.cache import effective_grant_status_cache
 from sentry.data_secrecy.logic import data_access_grant_exists
 from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
-from sentry.models.organization import Organization
+from sentry.organizations.services.organization.model import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+)
 
 logger = logging.getLogger("sentry.data_secrecy")
 
@@ -28,16 +32,14 @@ class WaiveDataSecrecyPermission(OrganizationPermission):
 
 
 class DataSecrecyWaiverValidator(serializers.Serializer[dict[str, Any]]):
-    grant_end = serializers.DateTimeField(required=True)
+    access_end = serializers.DateTimeField(required=True)
 
-    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
-        grant_end = data["access_end"]
-        if grant_end <= timezone.now():
+    def validate_access_end(self, access_end: datetime) -> datetime:
+        if access_end <= timezone.now():
             raise serializers.ValidationError(
                 "Invalid timestamp (access_end must be in the future)."
             )
-
-        return data
+        return access_end
 
 
 def get_active_tickets_for_organization(organization_id: int) -> list[str]:
@@ -49,18 +51,17 @@ def get_active_tickets_for_organization(organization_id: int) -> list[str]:
     now = timezone.now()
     active_zendesk_tickets = DataAccessGrant.objects.filter(
         organization_id=organization_id,
-        grant_type="ZENDESK",
+        grant_type=DataAccessGrant.GrantType.ZENDESK,
         grant_start__lte=now,
         grant_end__gt=now,
         revocation_date__isnull=True,
         ticket_id__isnull=False,
     ).values_list("ticket_id", flat=True)
-
     return [ticket_id for ticket_id in active_zendesk_tickets if ticket_id is not None]
 
 
-@region_silo_endpoint
-class WaiveDataSecrecyEndpoint(OrganizationEndpoint):
+@control_silo_endpoint
+class WaiveDataSecrecyEndpoint(ControlSiloOrganizationEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (WaiveDataSecrecyPermission,)
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -69,7 +70,12 @@ class WaiveDataSecrecyEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.ENTERPRISE
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        organization: RpcOrganization,
+    ) -> Response:
         """
         Return current waiver status and a list of all active tickets for an organization.
         """
@@ -94,11 +100,16 @@ class WaiveDataSecrecyEndpoint(OrganizationEndpoint):
         }
         return Response(serialized_grant_status, status=status.HTTP_200_OK)
 
-    def put(self, request: Request, organization: Organization) -> Response:
+    def put(
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        organization: RpcOrganization,
+    ) -> Response:
         """
         Manually update or create a data secrecy waiver.
 
-        :param grant_end: the timestamp at which data secrecy is reinstated.
+        :param access_end: the timestamp at which data secrecy is reinstated.
         """
         validator = DataSecrecyWaiverValidator(data=request.data)
         if not validator.is_valid():
@@ -107,11 +118,11 @@ class WaiveDataSecrecyEndpoint(OrganizationEndpoint):
         result = validator.validated_data
 
         DataAccessGrant.objects.update_or_create(
-            organization=organization,
+            organization_id=organization.id,
             grant_type=DataAccessGrant.GrantType.MANUAL,
             defaults={
                 "grant_start": timezone.now(),
-                "grand_end": result["grant_end"],
+                "grant_end": result["access_end"],
                 "granted_by_user_id": request.user.id,
             },
         )
@@ -121,7 +132,12 @@ class WaiveDataSecrecyEndpoint(OrganizationEndpoint):
 
         return Response(status=status.HTTP_201_CREATED)
 
-    def delete(self, request: Request, organization: Organization) -> Response:
+    def delete(
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        organization: RpcOrganization,
+    ) -> Response:
         """
         Revoke all active manual data secrecy waivers for an organization.
         """
