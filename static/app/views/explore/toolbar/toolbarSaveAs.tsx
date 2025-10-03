@@ -29,7 +29,6 @@ import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ToolbarSection} from 'sentry/views/explore/components/toolbar/styles';
 import {
   useExploreId,
-  useExploreQuery,
   useExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
@@ -41,6 +40,7 @@ import {
   useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsMode,
+  useQueryParamsQuery,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
@@ -56,7 +56,7 @@ export function ToolbarSaveAs() {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
 
-  const query = useExploreQuery();
+  const query = useQueryParamsQuery();
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
   const fields = useQueryParamsFields();

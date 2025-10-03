@@ -64,6 +64,7 @@ interface ProviderOptions {
    * Sets the OrganizationContext. You may pass null to provide no organization
    */
   organization?: Partial<Organization> | null;
+  query?: string;
   /**
    * Sets the RouterContext.
    */
@@ -81,9 +82,10 @@ interface BaseRenderOptions<T extends boolean = boolean>
   deprecatedRouterMocks?: T;
 }
 
-type LocationConfig =
-  | string
-  | {pathname: string; query?: Record<string, string | number | string[]>};
+type LocationConfig = {
+  pathname: string;
+  query?: Record<string, string | number | string[]>;
+};
 
 type RouterConfig = {
   /**
@@ -173,11 +175,18 @@ function patchBrowserHistoryMocksEnabled(history: MemoryHistory, router: Injecte
   });
 }
 
-function NuqsTestingAdapterWithNavigate({children}: {children: React.ReactNode}) {
+function NuqsTestingAdapterWithNavigate({
+  children,
+  query,
+}: {
+  children: React.ReactNode;
+  query: string;
+}) {
   const location = useLocation();
   const navigate = useNavigate();
   return (
     <NuqsTestingAdapter
+      searchParams={new URLSearchParams(query)}
       defaultOptions={{shallow: false}}
       onUrlUpdate={({queryString, options: nuqsOptions}) => {
         // Pass navigation events to the test router
@@ -235,7 +244,7 @@ function makeAllTheProviders(options: ProviderOptions) {
     return (
       <CacheProvider value={{...cache, compat: true}}>
         <QueryClientProvider client={makeTestQueryClient()}>
-          <NuqsTestingAdapterWithNavigate>
+          <NuqsTestingAdapterWithNavigate query={options.query ?? ''}>
             <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
           </NuqsTestingAdapterWithNavigate>
         </QueryClientProvider>
@@ -354,19 +363,22 @@ function parseLocationConfig(location: LocationConfig | undefined): InitialEntry
     return LocationFixture().pathname;
   }
 
-  if (typeof location === 'string') {
-    return location;
-  }
-
   if (location.query) {
-    const queryString = qs.stringify(location.query);
     return {
       pathname: location.pathname,
-      search: queryString ? `?${queryString}` : '',
+      search: parseQueryString(location.query),
     };
   }
 
   return location.pathname;
+}
+
+function parseQueryString(query: Record<string, string | number | string[]> | undefined) {
+  if (!query) {
+    return '';
+  }
+  const queryString = qs.stringify(query);
+  return queryString ? `?${queryString}` : '';
 }
 
 function getInitialRouterConfig<T extends boolean = true>(
@@ -426,6 +438,7 @@ function render<T extends boolean = false>(
     router: legacyRouterConfig,
     deprecatedRouterMocks: options.deprecatedRouterMocks,
     history,
+    query: parseQueryString(config?.location?.query),
   });
 
   const memoryRouter = makeRouter({
@@ -483,6 +496,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
     router: legacyRouterConfig,
     deprecatedRouterMocks: false,
     history,
+    query: parseQueryString(config?.location?.query),
   });
 
   let memoryRouter: Router | null = null;

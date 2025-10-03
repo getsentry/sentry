@@ -106,7 +106,12 @@ describe('Subscription > BillingInformation', () => {
     expect(screen.getByText('$100 credit')).toBeInTheDocument();
   });
 
-  it('renders for new billing UI', async () => {
+  it('renders for new billing UI with pre-existing information', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+      body: BillingDetailsFixture(),
+    });
     organization.features = ['subscriptions-v3'];
 
     render(
@@ -117,7 +122,9 @@ describe('Subscription > BillingInformation', () => {
       />
     );
 
-    await screen.findByText('Payment method');
+    await screen.findByText('Billing Information');
+
+    // panels are collapsed with pre-existing information
     expect(screen.getByText(/\*\*\*\*4242/)).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Edit payment method'})).toBeInTheDocument();
     expect(screen.getByText('Business address')).toBeInTheDocument();
@@ -125,6 +132,7 @@ describe('Subscription > BillingInformation', () => {
       screen.getByRole('button', {name: 'Edit business address'})
     ).toBeInTheDocument();
     expect(screen.queryByText('Address Line 1')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Save Changes'})).not.toBeInTheDocument();
 
     // can edit both
     await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
@@ -151,11 +159,19 @@ describe('Subscription > BillingInformation', () => {
       />
     );
 
-    await screen.findByText('Payment method');
-    expect(screen.getByText('No payment method on file')).toBeInTheDocument();
-    expect(screen.queryByText(/\*\*\*\*4242/)).not.toBeInTheDocument();
-    expect(screen.getByText('Business address')).toBeInTheDocument();
-    expect(screen.getByText('No business address on file')).toBeInTheDocument();
+    await screen.findByText('Billing Information');
+
+    // panels are expanded with no pre-existing information
+    await waitFor(() => {
+      // wait for both panels to be expanded
+      expect(screen.getAllByRole('button', {name: 'Save Changes'})).toHaveLength(2);
+    });
+    expect(
+      screen.queryByRole('button', {name: 'Edit payment method'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Edit business address'})
+    ).not.toBeInTheDocument();
   });
 
   it('opens credit card form with billing failure query for new billing UI', async () => {
