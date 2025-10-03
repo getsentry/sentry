@@ -683,3 +683,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/CLAUDE.md                                     @getsentry/design-engineering
 /scripts/analyze-styled.ts                            @getsentry/design-engineering
 ## End of Frontend Platform
+
+# Prevent
+/src/sentry/prevent/                                      @getsentry/prevent
+# End of Prevent
