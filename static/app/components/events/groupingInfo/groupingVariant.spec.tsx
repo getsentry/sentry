@@ -41,6 +41,7 @@ describe('Grouping Variant', () => {
     description: 'performance issue',
     hash: 'hash3',
     hashMismatch: false,
+    hint: null,
     key: 'perf-issue',
     evidence: {
       desc: 'performance issue',

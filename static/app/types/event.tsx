@@ -61,6 +61,7 @@ interface BaseVariant {
   description: string | null;
   hash: string | null;
   hashMismatch: boolean;
+  hint: string | null;
   key: string;
   type: string;
 }
