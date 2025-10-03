@@ -18,12 +18,19 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import AutomationsList from 'sentry/views/automations/list';
 
 describe('AutomationsList', () => {
-  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const organization = OrganizationFixture({
+    features: [
+      'workflow-engine-ui',
+      'search-query-builder-wildcard-operators',
+      'search-query-builder-default-to-contains',
+    ],
+  });
   const project = ProjectFixture({id: '1', slug: 'project-1'});
   const detector = MetricDetectorFixture({
     id: '1',
@@ -166,7 +173,9 @@ describe('AutomationsList', () => {
       const mockAutomationActionSlack = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/workflows/',
         body: [AutomationFixture({name: 'Slack Automation'})],
-        match: [MockApiClient.matchQuery({query: 'action:slack'})],
+        match: [
+          MockApiClient.matchQuery({query: `action:${WildcardOperators.CONTAINS}slack`}),
+        ],
       });
 
       render(<AutomationsList />, {organization});
@@ -416,7 +425,7 @@ describe('AutomationsList', () => {
         },
         match: [
           MockApiClient.matchQuery({
-            query: 'action:slack',
+            query: `action:${WildcardOperators.CONTAINS}slack`,
           }),
         ],
       });
@@ -459,7 +468,11 @@ describe('AutomationsList', () => {
         expect(deleteRequest).toHaveBeenCalledWith(
           '/organizations/org-slug/workflows/',
           expect.objectContaining({
-            query: {id: undefined, query: 'action:slack', project: []},
+            query: {
+              id: undefined,
+              query: `action:${WildcardOperators.CONTAINS}slack`,
+              project: [],
+            },
           })
         );
       });

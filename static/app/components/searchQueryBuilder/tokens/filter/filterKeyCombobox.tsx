@@ -34,6 +34,10 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
   const [inputValue, setInputValue] = useState(getKeyLabel(token.key) ?? '');
 
   const organization = useOrganization();
+  const defaultToContains =
+    organization.features.includes('search-query-builder-wildcard-operators') &&
+    organization.features.includes('search-query-builder-default-to-contains');
+
   const {mutate: seerAcknowledgeMutate} = useSeerAcknowledgeMutation();
   const sortedFilterKeys = useSortedFilterKeyItems({
     filterValue: inputValue,
@@ -108,7 +112,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       dispatch({
         type: 'REPLACE_TOKENS_WITH_TEXT',
         tokens: [token],
-        text: getInitialFilterText(keyName, newFieldDef),
+        text: getInitialFilterText(keyName, newFieldDef, defaultToContains),
         focusOverride: {
           itemKey: item.key.toString(),
           part: 'value',
@@ -120,6 +124,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     [
       currentFilterValueType,
       currentInputValueRef,
+      defaultToContains,
       dispatch,
       getFieldDefinition,
       item.key,
