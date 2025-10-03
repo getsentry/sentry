@@ -15,7 +15,7 @@ type SpansExportProps = {
 const PAGINATION_LIMIT = 50;
 
 export function SpansExport({aggregatesTableResult, spansTableResult}: SpansExportProps) {
-  const [tab, _setTab] = useTab();
+  const [tab] = useTab();
   const location = useLocation();
 
   let eventView = null;

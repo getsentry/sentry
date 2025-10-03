@@ -102,7 +102,6 @@ export function QueriesTable({response, sort, system}: Props) {
   };
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: [...COLUMN_ORDER],
-    location,
   });
 
   return (

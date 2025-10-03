@@ -4,17 +4,13 @@ from sentry.deletions.defaults.repository import _get_repository_child_relations
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import integrations_tasks
 
 
 @instrumented_task(
     name="sentry.models.repository_cascade_delete_on_hide",
-    acks_late=True,
+    namespace=integrations_tasks,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=integrations_tasks,
-    ),
 )
 def repository_cascade_delete_on_hide(repo_id: int) -> None:
     # Manually cause a deletion cascade.

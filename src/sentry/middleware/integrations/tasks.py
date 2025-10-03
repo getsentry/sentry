@@ -14,7 +14,6 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.silo.base import SiloMode
 from sentry.silo.client import RegionSiloClient
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import integrations_control_tasks
 from sentry.taskworker.retry import Retry
 from sentry.types.region import Region, get_region_by_name
@@ -117,18 +116,9 @@ class _AsyncSlackDispatcher(_AsyncRegionDispatcher):
 
 @instrumented_task(
     name="sentry.middleware.integrations.tasks.convert_to_async_slack_response",
-    queue="integrations.control",
+    namespace=integrations_control_tasks,
+    retry=Retry(times=2, delay=5),
     silo_mode=SiloMode.CONTROL,
-    max_retries=2,
-    default_retry_delay=5,
-    record_timing=True,
-    taskworker_config=TaskworkerConfig(
-        namespace=integrations_control_tasks,
-        retry=Retry(
-            times=2,
-            delay=5,
-        ),
-    ),
 )
 def convert_to_async_slack_response(
     region_names: list[str],
@@ -153,17 +143,9 @@ class _AsyncDiscordDispatcher(_AsyncRegionDispatcher):
 
 @instrumented_task(
     name="sentry.middleware.integrations.tasks.convert_to_async_discord_response",
-    queue="integrations.control",
+    namespace=integrations_control_tasks,
+    retry=Retry(times=2, delay=5),
     silo_mode=SiloMode.CONTROL,
-    max_retries=2,
-    default_retry_delay=5,
-    taskworker_config=TaskworkerConfig(
-        namespace=integrations_control_tasks,
-        retry=Retry(
-            times=2,
-            delay=5,
-        ),
-    ),
 )
 def convert_to_async_discord_response(
     region_names: list[str],

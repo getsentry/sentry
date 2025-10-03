@@ -50,10 +50,9 @@ export function useRunSeerAnalysis({
           issueType: IssueType.WEB_VITALS,
           vital: webVital,
           score: projectScore[`${webVital}Score`],
-          value: projectData[`p75(measurements.${webVital})`],
+          value: Math.round(projectData[`p75(measurements.${webVital})`]),
           transaction,
           traceId: webVitalTraceSamples[webVital]?.trace,
-          timestamp: webVitalTraceSamples[webVital]?.timestamp,
         });
         return result.event_id;
       } catch (error) {
