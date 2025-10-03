@@ -3,12 +3,14 @@ import logging
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models.organization import Organization
+from sentry.models.repository import Repository
+from sentry.preprod.analytics import PreprodApiPrPageDetailsEvent
 from sentry.preprod.integration_utils import get_github_client
 from sentry.preprod.pull_request.adapters import PullRequestDataAdapter
 from sentry.preprod.pull_request.types import PullRequestWithFiles
@@ -31,6 +33,15 @@ class OrganizationPullRequestDetailsEndpoint(OrganizationEndpoint):
         Get files changed in a pull request and general information about the pull request.
         Returns normalized data that works across GitHub, GitLab, and Bitbucket.
         """
+        analytics.record(
+            PreprodApiPrPageDetailsEvent(
+                organization_id=organization.id,
+                user_id=request.user.id,
+                repo_name=repo_name,
+                pr_number=pr_number,
+            )
+        )
+
         if not features.has("organizations:pr-page", organization, actor=request.user):
             return Response({"error": "Feature not enabled"}, status=403)
 
