@@ -54,13 +54,13 @@ function SetupReleasesPrompt() {
 
 interface ResolveActionsProps {
   hasRelease: boolean;
+  hasSemverReleaseFeature: boolean;
   onUpdate: (data: GroupStatusResolution) => void;
   confirmLabel?: string;
   confirmMessage?: React.ReactNode;
   disableDropdown?: boolean;
   disableResolveInRelease?: boolean;
   disabled?: boolean;
-  hasSemverReleaseFeature?: boolean; // TODO(michellewzhang): this should be required eventually
   isAutoResolved?: boolean;
   isResolved?: boolean;
   latestRelease?: Project['latestRelease'];
