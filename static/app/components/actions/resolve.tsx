@@ -302,14 +302,7 @@ function ResolveActions({
         )}
         disabledKeys={
           multipleProjectsSelected
-            ? [
-                'next-release',
-                ...(hasSemverReleaseFeature && latestSemverRelease?.version
-                  ? ['semver-release']
-                  : ['current-release']),
-                'another-release',
-                'a-commit',
-              ]
+            ? ['next-release', 'current-release', 'another-release', 'a-commit']
             : disabled || !hasRelease
               ? [
                   'next-release',

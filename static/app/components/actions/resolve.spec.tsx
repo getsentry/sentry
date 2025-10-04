@@ -21,7 +21,13 @@ describe('ResolveActions', () => {
   describe('disabled', () => {
     it('does not call onUpdate when clicked', async () => {
       render(
-        <ResolveActions onUpdate={spy} disabled hasRelease={false} projectSlug="proj-1" />
+        <ResolveActions
+          hasSemverReleaseFeature={false}
+          onUpdate={spy}
+          disabled
+          hasRelease={false}
+          projectSlug="proj-1"
+        />
       );
       const button = screen.getByRole('button', {name: 'Resolve'});
       expect(button).toBeDisabled();
@@ -34,6 +40,7 @@ describe('ResolveActions', () => {
     it('main button calls onUpdate when clicked and dropdown menu disabled', async () => {
       render(
         <ResolveActions
+          hasSemverReleaseFeature={false}
           onUpdate={spy}
           disableDropdown
           hasRelease={false}
@@ -55,6 +62,7 @@ describe('ResolveActions', () => {
     it('calls onUpdate with unresolved status when clicked', async () => {
       render(
         <ResolveActions
+          hasSemverReleaseFeature={false}
           onUpdate={spy}
           disabled
           hasRelease={false}
@@ -80,6 +88,7 @@ describe('ResolveActions', () => {
     it('cannot be unresolved manually', async () => {
       render(
         <ResolveActions
+          hasSemverReleaseFeature={false}
           onUpdate={spy}
           disabled
           hasRelease={false}
@@ -96,7 +105,14 @@ describe('ResolveActions', () => {
 
   describe('without confirmation', () => {
     it('calls spy with resolved status when clicked', async () => {
-      render(<ResolveActions onUpdate={spy} hasRelease={false} projectSlug="proj-1" />);
+      render(
+        <ResolveActions
+          hasSemverReleaseFeature={false}
+          onUpdate={spy}
+          hasRelease={false}
+          projectSlug="proj-1"
+        />
+      );
       await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith({
@@ -111,6 +127,7 @@ describe('ResolveActions', () => {
     it('displays confirmation modal with message provided', async () => {
       render(
         <ResolveActions
+          hasSemverReleaseFeature={false}
           onUpdate={spy}
           hasRelease={false}
           projectSlug="proj-1"
@@ -139,7 +156,14 @@ describe('ResolveActions', () => {
       url: '/projects/org-slug/project-slug/releases/',
       body: [ReleaseFixture()],
     });
-    render(<ResolveActions hasRelease projectSlug="project-slug" onUpdate={onUpdate} />);
+    render(
+      <ResolveActions
+        hasSemverReleaseFeature={false}
+        hasRelease
+        projectSlug="project-slug"
+        onUpdate={onUpdate}
+      />
+    );
     renderGlobalModal();
 
     await userEvent.click(screen.getByLabelText('More resolve options'));
@@ -160,9 +184,10 @@ describe('ResolveActions', () => {
     });
   });
 
-  it('displays if the current release version uses semver', async () => {
+  it('displays if the current release version uses semver and flag is not enabled', async () => {
     render(
       <ResolveActions
+        hasSemverReleaseFeature={false}
         onUpdate={spy}
         hasRelease
         projectSlug="proj-1"
@@ -176,8 +201,31 @@ describe('ResolveActions', () => {
     expect(screen.getByText('(semver)')).toBeInTheDocument();
   });
 
+  it('shows resolve in semver release option when the current release version uses semver and flag is enabled', async () => {
+    render(
+      <ResolveActions
+        hasSemverReleaseFeature
+        onUpdate={spy}
+        hasRelease
+        projectSlug="proj-1"
+        latestRelease={{version: 'frontend@1.2.3'}}
+      />
+    );
+
+    await userEvent.click(screen.getByLabelText('More resolve options'));
+    expect(screen.getByText('The current semver release')).toBeInTheDocument();
+    expect(screen.getByText('1.2.3')).toBeInTheDocument();
+  });
+
   it('displays prompt to setup releases when there are no releases', async () => {
-    render(<ResolveActions onUpdate={spy} hasRelease={false} projectSlug="proj-1" />);
+    render(
+      <ResolveActions
+        hasSemverReleaseFeature={false}
+        onUpdate={spy}
+        hasRelease={false}
+        projectSlug="proj-1"
+      />
+    );
 
     await userEvent.click(screen.getByLabelText('More resolve options'));
     expect(screen.getByText('Resolving is better with Releases')).toBeInTheDocument();
@@ -186,6 +234,7 @@ describe('ResolveActions', () => {
   it('does not prompt to setup releases when multiple projects are selected', async () => {
     render(
       <ResolveActions
+        hasSemverReleaseFeature={false}
         onUpdate={spy}
         hasRelease={false}
         projectSlug="proj-1"
@@ -205,6 +254,7 @@ describe('ResolveActions', () => {
   it('does render more resolve options', () => {
     render(
       <ResolveActions
+        hasSemverReleaseFeature={false}
         onUpdate={spy}
         hasRelease={false}
         projectSlug="proj-1"
@@ -217,6 +267,7 @@ describe('ResolveActions', () => {
   it('does not render more resolve options', () => {
     render(
       <ResolveActions
+        hasSemverReleaseFeature={false}
         onUpdate={spy}
         hasRelease={false}
         projectSlug="proj-1"
@@ -232,7 +283,14 @@ describe('ResolveActions', () => {
       url: '/projects/org-slug/project-slug/releases/',
       body: [ReleaseFixture()],
     });
-    render(<ResolveActions hasRelease projectSlug="project-slug" onUpdate={onUpdate} />);
+    render(
+      <ResolveActions
+        hasSemverReleaseFeature={false}
+        hasRelease
+        projectSlug="project-slug"
+        onUpdate={onUpdate}
+      />
+    );
 
     await userEvent.click(screen.getByLabelText('More resolve options'));
     expect(await screen.findByText('The next release')).toBeInTheDocument();
