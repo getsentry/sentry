@@ -5,7 +5,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {AccessRequest} from 'sentry/types/organization';
 import {
   setApiQueryData,
@@ -18,7 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import OrganizationTeams from './organizationTeams';
 
-function OrganizationTeamsContainer(props: RouteComponentProps) {
+export default function OrganizationTeamsContainer() {
   const api = useApi();
   const organization = useOrganization({allowNull: true});
   const queryClient = useQueryClient();
@@ -89,14 +88,11 @@ function OrganizationTeamsContainer(props: RouteComponentProps) {
 
   return (
     <OrganizationTeams
-      {...props}
+      organization={organization}
       access={new Set(organization?.access)}
       features={new Set(organization?.features)}
-      organization={organization}
       requestList={requestList}
       onRemoveAccessRequest={handleRemoveAccessRequest}
     />
   );
 }
-
-export default OrganizationTeamsContainer;
