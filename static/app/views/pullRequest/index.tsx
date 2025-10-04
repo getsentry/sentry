@@ -3,6 +3,7 @@ import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
+import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
@@ -26,7 +27,9 @@ function PullRequestContainer({children}: Props) {
         </Layout.Page>
       )}
     >
-      <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
+      <NoProjectMessage organization={organization}>
+        <UrlParamBatchProvider>{children}</UrlParamBatchProvider>
+      </NoProjectMessage>
     </Feature>
   );
 }
