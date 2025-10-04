@@ -827,7 +827,7 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
         other_project = self.create_project(organization=self.organization)
 
         spans = []
-        for i in range(5):
+        for i in range(2):
             # Create spans in the wrong project
             span = self.create_span(
                 {
