@@ -820,3 +820,30 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
         # Verify parent-child relationships are preserved
         root_spans = [s for s in result.spans if s.parent_span_id is None]
         assert len(root_spans) == 1  # Should have exactly one root span
+
+    def test_get_trace_from_id_wrong_project(self) -> None:
+        transaction_name = "api/users/profile"
+        trace_id = uuid.uuid4().hex
+        other_project = self.create_project(organization=self.organization)
+
+        spans = []
+        for i in range(5):
+            # Create spans in the wrong project
+            span = self.create_span(
+                {
+                    "project_id": other_project.id,
+                    "description": f"span-{i}",
+                    "sentry_tags": {"transaction": transaction_name},
+                    "trace_id": trace_id,
+                    "parent_span_id": None if i == 0 else f"parent-{i-1}",
+                    "is_segment": i == 0,  # First span is the transaction span
+                },
+                start_ts=self.ten_mins_ago + timedelta(minutes=i),
+            )
+            spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+
+        # Call our function with shortened trace ID
+        result = get_trace_from_id(trace_id[:8], self.project.id)
+        assert result is None
