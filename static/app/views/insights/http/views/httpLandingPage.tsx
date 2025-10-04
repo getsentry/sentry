@@ -30,8 +30,6 @@ import {
 import {Referrer} from 'sentry/views/insights/http/referrers';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
-import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -105,7 +103,6 @@ export function HTTPLandingPage() {
 
   return (
     <React.Fragment>
-      {view === FRONTEND_LANDING_SUB_PATH && <FrontendHeader {...headerProps} />}
       {view === BACKEND_LANDING_SUB_PATH && <BackendHeader {...headerProps} />}
       {view === MOBILE_LANDING_SUB_PATH && <MobileHeader {...headerProps} />}
 
