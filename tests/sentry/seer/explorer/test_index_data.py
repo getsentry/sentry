@@ -9,6 +9,7 @@ from sentry.seer.explorer.index_data import (
     get_issues_for_transaction,
     get_profiles_for_trace,
     get_trace_for_transaction,
+    get_trace_from_id,
     get_transactions_for_project,
 )
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
@@ -775,3 +776,74 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
         issue2 = result2.issues[0]
         assert issue2.id == event2.group.id
         assert issue2.transaction == transaction_name_in
+
+    def test_get_trace_from_id(self) -> None:
+        transaction_name = "api/users/profile"
+        trace_id = uuid.uuid4().hex
+        spans = []
+        for i in range(5):
+            # Create spans for this trace
+            span = self.create_span(
+                {
+                    **({"description": f"span-{i}"} if i != 4 else {}),
+                    "sentry_tags": {"transaction": transaction_name},
+                    "trace_id": trace_id,
+                    "parent_span_id": None if i == 0 else f"parent-{i-1}",
+                    "is_segment": i == 0,  # First span is the transaction span
+                },
+                start_ts=self.ten_mins_ago + timedelta(minutes=i),
+            )
+            spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+
+        # Call our function with shortened trace ID
+        result = get_trace_from_id(trace_id[:8], self.project.id)
+
+        # Verify basic structure
+        assert result is not None
+        assert result.transaction_name == transaction_name
+        assert result.project_id == self.project.id
+        # assert result.trace_id == trace_id
+        assert len(result.spans) == len(spans)
+
+        # Verify all spans have correct structure and belong to the chosen trace
+        for i, result_span in enumerate(result.spans):
+            assert hasattr(result_span, "span_id")
+            assert hasattr(result_span, "span_description")
+            assert hasattr(result_span, "parent_span_id")
+            assert hasattr(result_span, "span_op")
+            assert result_span.span_description is not None
+            if i != 4:
+                assert result_span.span_description.startswith("span-")
+
+        # Verify parent-child relationships are preserved
+        root_spans = [s for s in result.spans if s.parent_span_id is None]
+        assert len(root_spans) == 1  # Should have exactly one root span
+
+    def test_get_trace_from_id_wrong_project(self) -> None:
+        transaction_name = "api/users/profile"
+        trace_id = uuid.uuid4().hex
+        other_project = self.create_project(organization=self.organization)
+
+        spans = []
+        for i in range(2):
+            # Create spans in the wrong project
+            span = self.create_span(
+                {
+                    "project_id": other_project.id,
+                    "description": f"span-{i}",
+                    "sentry_tags": {"transaction": transaction_name},
+                    "trace_id": trace_id,
+                    "parent_span_id": None if i == 0 else f"parent-{i-1}",
+                    "is_segment": i == 0,  # First span is the transaction span
+                },
+                start_ts=self.ten_mins_ago + timedelta(minutes=i),
+            )
+            spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+
+        # Call our function with shortened trace ID
+        result = get_trace_from_id(trace_id[:8], self.project.id)
+        assert result is None

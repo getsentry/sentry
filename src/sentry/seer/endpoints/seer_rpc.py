@@ -70,6 +70,7 @@ from sentry.seer.explorer.index_data import (
     rpc_get_issues_for_transaction,
     rpc_get_profiles_for_trace,
     rpc_get_trace_for_transaction,
+    rpc_get_trace_from_id,
     rpc_get_transactions_for_project,
 )
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
@@ -999,6 +1000,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_trace_for_transaction": rpc_get_trace_for_transaction,
     "get_profiles_for_trace": rpc_get_profiles_for_trace,
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
+    "get_trace_from_id": rpc_get_trace_from_id,
     #
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,
