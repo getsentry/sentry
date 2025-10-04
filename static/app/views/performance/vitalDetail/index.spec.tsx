@@ -13,44 +13,24 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {DEFAULT_STATS_PERIOD} from 'sentry/views/performance/data';
 import VitalDetail from 'sentry/views/performance/vitalDetail';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
+const mockNavigate = jest.fn();
+jest.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: () => mockNavigate,
+}));
+
 const organization = OrganizationFixture({
   features: ['discover-basic', 'performance-view'],
 });
 
-const {
-  organization: org,
-  project,
-  router,
-} = initializeOrg({
+const {organization: org, project} = initializeOrg({
   organization,
-  router: {
-    location: {
-      query: {
-        project: '1',
-      },
-    },
-  },
 });
-
-function TestComponent(props: {router?: InjectedRouter} = {}) {
-  return (
-    <VitalDetail
-      location={props.router?.location ?? router.location}
-      router={props.router ?? router}
-      params={{}}
-      route={{}}
-      routes={[]}
-      routeParams={{}}
-    />
-  );
-}
 
 const testSupportedBrowserRendering = (webVital: WebVital) => {
   Object.values(Browser).forEach(browser => {
@@ -224,10 +204,16 @@ describe('Performance > VitalDetail', () => {
   });
 
   it('renders basic UI elements', async () => {
-    render(<TestComponent />, {
-      router,
+    render(<VitalDetail />, {
       organization: org,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: '/performance/vitaldetail/',
+          query: {
+            project: '1',
+          },
+        },
+      },
     });
 
     // It shows a search bar
@@ -252,25 +238,34 @@ describe('Performance > VitalDetail', () => {
   });
 
   it('triggers a navigation on search', async () => {
-    render(<TestComponent />, {
-      router,
+    render(<VitalDetail />, {
       organization: org,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: '/performance/vitaldetail/',
+          query: {
+            project: '1',
+          },
+        },
+      },
     });
 
-    // Fill out the search box, and submit it.
+    // Clear any navigation calls from initialization
+    mockNavigate.mockClear();
+
+    // Fill out the search box, and submit it
     await userEvent.click(
       await screen.findByPlaceholderText('Search for events, users, tags, and more')
     );
     await userEvent.paste('user.email:uhoh*');
 
-    // Check the navigation.
+    // Check the navigation
     await waitFor(() => {
-      expect(router.push).toHaveBeenCalledTimes(1);
+      expect(mockNavigate).toHaveBeenCalledTimes(1);
     });
 
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: undefined,
+    expect(mockNavigate).toHaveBeenCalledWith({
+      pathname: '/performance/vitaldetail/',
       query: {
         project: '1',
         statsPeriod: '14d',
@@ -280,20 +275,16 @@ describe('Performance > VitalDetail', () => {
   });
 
   it('applies conditions when linking to transaction summary', async () => {
-    const newRouter = {
-      ...router,
-      location: {
-        ...router.location,
-        query: {
-          query: 'sometag:value',
+    render(<VitalDetail />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {
+          pathname: '/performance/vitaldetail/',
+          query: {
+            query: 'sometag:value',
+          },
         },
       },
-    };
-
-    render(<TestComponent router={newRouter} />, {
-      router: newRouter,
-      organization: org,
-      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -304,7 +295,7 @@ describe('Performance > VitalDetail', () => {
       await screen.findByLabelText('See transaction summary of the transaction something')
     );
 
-    expect(newRouter.push).toHaveBeenCalledWith({
+    expect(mockNavigate).toHaveBeenCalledWith({
       pathname: `/organizations/${organization.slug}/insights/summary/`,
       query: {
         transaction: 'something',
@@ -325,30 +316,29 @@ describe('Performance > VitalDetail', () => {
   });
 
   it('check CLS', async () => {
-    const newRouter = {
-      ...router,
-      location: {
-        ...router.location,
-        query: {
-          query: 'anothertag:value',
-          vitalName: 'measurements.cls',
+    render(<VitalDetail />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {
+          pathname: '/performance/vitaldetail/',
+          query: {
+            query: 'anothertag:value',
+            vitalName: 'measurements.cls',
+          },
         },
       },
-    };
-
-    render(<TestComponent router={newRouter} />, {
-      router: newRouter,
-      organization: org,
-      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByText('Cumulative Layout Shift')).toBeInTheDocument();
+
+    // Check cells are not in ms
+    expect(screen.getByText('0.215').closest('td')).toBeInTheDocument();
 
     await userEvent.click(
       await screen.findByLabelText('See transaction summary of the transaction something')
     );
 
-    expect(newRouter.push).toHaveBeenCalledWith({
+    expect(mockNavigate).toHaveBeenCalledWith({
       pathname: `/organizations/${organization.slug}/insights/summary/`,
       query: {
         transaction: 'something',
@@ -366,28 +356,24 @@ describe('Performance > VitalDetail', () => {
         trendColumn: undefined,
       },
     });
-
-    // Check cells are not in ms
-    expect(screen.getByText('0.215').closest('td')).toBeInTheDocument();
   });
 
   it('can switch vitals with dropdown menu', async () => {
-    const newRouter = {
-      ...router,
-      location: {
-        ...router.location,
-        query: {
-          project: 1,
-          query: 'tag:value',
+    render(<VitalDetail />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {
+          pathname: '/performance/vitaldetail/',
+          query: {
+            project: '1',
+            query: 'tag:value',
+          },
         },
       },
-    };
-
-    render(<TestComponent router={newRouter} />, {
-      router: newRouter,
-      organization: org,
-      deprecatedRouterMocks: true,
     });
+
+    // Clear any navigation calls from initialization
+    mockNavigate.mockClear();
 
     const button = screen.getByRole('button', {name: /web vitals: lcp/i});
     expect(button).toBeInTheDocument();
@@ -397,11 +383,11 @@ describe('Performance > VitalDetail', () => {
     expect(menuItem).toBeInTheDocument();
     await userEvent.click(menuItem);
 
-    expect(newRouter.push).toHaveBeenCalledTimes(1);
-    expect(newRouter.push).toHaveBeenCalledWith({
-      pathname: undefined,
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith({
+      pathname: '/performance/vitaldetail/',
       query: {
-        project: 1,
+        project: '1',
         query: 'tag:value',
         vitalName: 'measurements.fcp',
       },
@@ -409,10 +395,13 @@ describe('Performance > VitalDetail', () => {
   });
 
   it('renders LCP vital correctly', async () => {
-    render(<TestComponent />, {
-      router,
+    render(<VitalDetail />, {
       organization: org,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: '/performance/vitaldetail/',
+        },
+      },
     });
 
     expect(await screen.findByText('Largest Contentful Paint')).toBeInTheDocument();
@@ -425,10 +414,13 @@ describe('Performance > VitalDetail', () => {
   });
 
   it('correctly renders which browsers support LCP', async () => {
-    render(<TestComponent />, {
-      router,
+    render(<VitalDetail />, {
       organization: org,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: '/performance/vitaldetail/',
+        },
+      },
     });
 
     expect(await screen.findAllByText(/Largest Contentful Paint/)).toHaveLength(2);
@@ -436,20 +428,16 @@ describe('Performance > VitalDetail', () => {
   });
 
   it('correctly renders which browsers support CLS', async () => {
-    const newRouter = {
-      ...router,
-      location: {
-        ...router.location,
-        query: {
-          vitalName: 'measurements.cls',
+    render(<VitalDetail />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {
+          pathname: '/performance/vitaldetail/',
+          query: {
+            vitalName: 'measurements.cls',
+          },
         },
       },
-    };
-
-    render(<TestComponent router={newRouter} />, {
-      router,
-      organization: org,
-      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findAllByText(/Cumulative Layout Shift/)).toHaveLength(2);
@@ -457,25 +445,21 @@ describe('Performance > VitalDetail', () => {
   });
 
   it('correctly renders which browsers support FCP', async () => {
-    const newRouter = {
-      ...router,
-      location: {
-        ...router.location,
-        query: {
-          vitalName: 'measurements.fcp',
-        },
-      },
-    };
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: [],
     });
 
-    render(<TestComponent router={newRouter} />, {
-      router,
+    render(<VitalDetail />, {
       organization: org,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: '/performance/vitaldetail/',
+          query: {
+            vitalName: 'measurements.fcp',
+          },
+        },
+      },
     });
 
     expect(await screen.findAllByText(/First Contentful Paint/)).toHaveLength(2);
@@ -483,25 +467,21 @@ describe('Performance > VitalDetail', () => {
   });
 
   it('correctly renders which browsers support FID', async () => {
-    const newRouter = {
-      ...router,
-      location: {
-        ...router.location,
-        query: {
-          vitalName: 'measurements.fid',
-        },
-      },
-    };
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: [],
     });
 
-    render(<TestComponent router={newRouter} />, {
-      router,
+    render(<VitalDetail />, {
       organization: org,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: '/performance/vitaldetail/',
+          query: {
+            vitalName: 'measurements.fid',
+          },
+        },
+      },
     });
 
     expect(await screen.findAllByText(/First Input Delay/)).toHaveLength(2);

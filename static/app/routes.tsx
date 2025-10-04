@@ -2141,7 +2141,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'vitaldetail/',
       component: make(() => import('sentry/views/performance/vitalDetail')),
-      deprecatedRouteProps: true,
     },
     traceView,
     ...insightsRedirectObjects,
