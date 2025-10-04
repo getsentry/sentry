@@ -186,7 +186,6 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
             "span.op",
             "span.description",
             "precise.start_ts",
-            "transaction",
         ],
         orderby=["precise.start_ts"],
         offset=0,
