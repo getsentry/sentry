@@ -213,13 +213,13 @@ describe('ResolveActions', () => {
         onUpdate={spy}
         hasRelease
         projectSlug="proj-1"
-        latestRelease={{version: 'frontend@1.2.3'}}
       />
     );
 
     await userEvent.click(screen.getByLabelText('More resolve options'));
     expect(screen.getByText('The current semver release')).toBeInTheDocument();
-    expect(screen.getByText('1.2.3')).toBeInTheDocument();
+    expect(screen.getByText('1.2.0')).toBeInTheDocument();
+    expect(screen.queryByText('The current release')).not.toBeInTheDocument();
   });
 
   it('shows resolve in latest release option when the current release version does not use semver and flag is enabled', async () => {
@@ -241,6 +241,8 @@ describe('ResolveActions', () => {
     await userEvent.click(screen.getByLabelText('More resolve options'));
     expect(screen.getByText('The current release')).toBeInTheDocument();
     expect(screen.getByText('abc123def')).toBeInTheDocument();
+    expect(screen.getByText('(non-semver)')).toBeInTheDocument();
+    expect(screen.queryByText('The current semver release')).not.toBeInTheDocument();
   });
 
   it('displays prompt to setup releases when there are no releases', async () => {
