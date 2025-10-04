@@ -225,6 +225,7 @@ from sentry.integrations.api.endpoints.external_team_details import ExternalTeam
 from sentry.integrations.api.endpoints.external_team_index import ExternalTeamEndpoint
 from sentry.integrations.api.endpoints.external_user_details import ExternalUserDetailsEndpoint
 from sentry.integrations.api.endpoints.external_user_index import ExternalUserEndpoint
+from sentry.integrations.api.endpoints.github_team_sync import OrganizationGitHubTeamSyncEndpoint
 from sentry.integrations.api.endpoints.integration_features import IntegrationFeaturesEndpoint
 from sentry.integrations.api.endpoints.integration_proxy import InternalIntegrationProxyEndpoint
 from sentry.integrations.api.endpoints.organization_code_mapping_codeowners import (
@@ -1893,6 +1894,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/serverless-functions/$",
         OrganizationIntegrationServerlessFunctionsEndpoint.as_view(),
         name="sentry-api-0-organization-integration-serverless-functions",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/github-team-sync/$",
+        OrganizationGitHubTeamSyncEndpoint.as_view(),
+        name="sentry-api-0-organization-github-team-sync",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/members/$",

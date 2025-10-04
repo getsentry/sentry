@@ -369,6 +369,13 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}")
 
+    def get_organization_teams(self, org: str) -> Sequence[Any]:
+        """
+        Get all teams in an organization.
+        https://docs.github.com/en/rest/teams/teams#list-teams
+        """
+        return self.get_cached(f"/orgs/{org}/teams", params={"per_page": 100})
+
     # https://docs.github.com/en/rest/rate-limit?apiVersion=2022-11-28
     def get_rate_limit(self, specific_resource: str = "core") -> GithubRateLimitInfo:
         """This gives information of the current rate limit"""
