@@ -290,8 +290,19 @@ export declare namespace TraceTree {
   // All possible node types
   type Node = BaseNode;
 
-  type NodePath =
-    `${'txn' | 'span' | 'ag' | 'trace' | 'ms' | 'error' | 'empty' | 'uptimeCheck' | 'uptimeCheckTiming' | 'collapsed'}-${string}`;
+  type NodeType =
+    | 'txn'
+    | 'span'
+    | 'ag'
+    | 'trace'
+    | 'ms'
+    | 'error'
+    | 'empty'
+    | 'uptimeCheck'
+    | 'uptimeCheckTiming'
+    | 'collapsed'
+    | 'root';
+  type NodePath = `${NodeType}-${string}`;
 
   type Metadata = {
     event_id: string | undefined;

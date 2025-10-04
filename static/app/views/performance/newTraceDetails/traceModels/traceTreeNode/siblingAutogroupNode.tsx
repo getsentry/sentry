@@ -25,6 +25,10 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
     this.expanded = false;
   }
 
+  get type(): TraceTree.NodeType {
+    return 'ag';
+  }
+
   get id(): string | undefined {
     const firstChild = this.children[0];
     return firstChild?.id;
@@ -59,10 +63,6 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
 
     this._autogroupedSegments = computeCollapsedBarSpace(this.children);
     return this._autogroupedSegments;
-  }
-
-  get nodePath(): TraceTree.NodePath {
-    return `ag-${this.id}`;
   }
 
   analyticsName(): string {

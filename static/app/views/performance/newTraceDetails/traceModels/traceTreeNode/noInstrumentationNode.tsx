@@ -36,6 +36,10 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
     }
   }
 
+  get type(): TraceTree.NodeType {
+    return 'ms';
+  }
+
   get id(): string {
     return this.previous.id || this.next.id || uuid4();
   }
@@ -51,10 +55,6 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
     return {
       title: t('Trace'),
     };
-  }
-
-  get nodePath(): TraceTree.NodePath {
-    return `ms-${this.id}`;
   }
 
   matchByPath(path: TraceTree.NodePath): boolean {

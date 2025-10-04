@@ -22,6 +22,10 @@ export class CollapsedNode extends BaseNode<TraceTree.CollapsedNode> {
     this.parent?.children.push(this);
   }
 
+  get type(): TraceTree.NodeType {
+    return 'collapsed';
+  }
+
   get drawerTabsTitle(): string {
     return 'Collapsed';
   }
@@ -32,10 +36,6 @@ export class CollapsedNode extends BaseNode<TraceTree.CollapsedNode> {
 
   get id(): string {
     return uuid4();
-  }
-
-  get nodePath(): TraceTree.NodePath {
-    return `collapsed-${this.id}`;
   }
 
   printNode(): string {
