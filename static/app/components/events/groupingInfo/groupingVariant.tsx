@@ -74,7 +74,7 @@ function GroupingVariant({event, variant, showNonContributing}: GroupingVariantP
     const data: VariantData = [];
     let component: EventGroupComponent | undefined;
 
-    if (!showNonContributing && variant.hash === null) {
+    if (!showNonContributing && !variant.contributes) {
       return [data, component];
     }
 
@@ -156,7 +156,7 @@ function GroupingVariant({event, variant, showNonContributing}: GroupingVariantP
   };
 
   const renderTitle = () => {
-    const isContributing = variant.hash !== null;
+    const isContributing = variant.contributes;
 
     const hint = variant.hint;
 
