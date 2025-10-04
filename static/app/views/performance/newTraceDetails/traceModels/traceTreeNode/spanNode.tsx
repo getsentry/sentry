@@ -39,6 +39,10 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
     );
   }
 
+  get type(): TraceTree.NodeType {
+    return 'span';
+  }
+
   get id(): string {
     return this.value.span_id;
   }
@@ -68,10 +72,6 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
 
   get sdkName(): string | undefined {
     return this.event?.sdk?.name ?? undefined;
-  }
-
-  get nodePath(): TraceTree.NodePath {
-    return `span-${this.id}`;
   }
 
   makeBarColor(theme: Theme): string {

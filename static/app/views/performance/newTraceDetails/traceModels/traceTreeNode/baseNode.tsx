@@ -303,6 +303,10 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return 'default';
   }
 
+  get path(): TraceTree.NodePath {
+    return `${this.type}-${this.id}`;
+  }
+
   isRootNodeChild(): boolean {
     return this.parent?.value === null;
   }
@@ -448,7 +452,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   }
 
   pathToNode(): TraceTree.NodePath[] {
-    const path = this.nodePath;
+    const path = this.path;
 
     if (!path) {
       return [];
@@ -463,6 +467,8 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return [path];
   }
 
+  abstract get type(): TraceTree.NodeType;
+
   abstract matchByPath(path: TraceTree.NodePath): boolean;
 
   abstract get drawerTabsTitle(): string;
@@ -471,8 +477,6 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     title: string;
     subtitle?: string;
   };
-
-  abstract get nodePath(): TraceTree.NodePath | null;
 
   abstract analyticsName(): string;
 

@@ -107,6 +107,10 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
     return fakeSpans;
   }
 
+  get type(): TraceTree.NodeType {
+    return 'uptimeCheck';
+  }
+
   get description(): string | undefined {
     const otelFriendlyUi = this.extra?.organization.features.includes(
       'performance-otel-friendly-ui'

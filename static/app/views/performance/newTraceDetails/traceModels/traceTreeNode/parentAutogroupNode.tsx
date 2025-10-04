@@ -32,6 +32,10 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
     this.expanded = false;
   }
 
+  get type(): TraceTree.NodeType {
+    return 'ag';
+  }
+
   get id(): string | undefined {
     return this.head.id ?? this.tail.id;
   }
@@ -61,10 +65,6 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
 
   get op(): string {
     return this.value.autogrouped_by.op;
-  }
-
-  get nodePath(): TraceTree.NodePath {
-    return `ag-${this.id}`;
   }
 
   printNode(): string {

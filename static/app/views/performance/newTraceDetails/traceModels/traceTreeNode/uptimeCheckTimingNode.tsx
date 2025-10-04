@@ -11,6 +11,10 @@ import {TraceSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/tr
 import {BaseNode} from './baseNode';
 
 export class UptimeCheckTimingNode extends BaseNode<TraceTree.UptimeCheckTiming> {
+  get type(): TraceTree.NodeType {
+    return 'uptimeCheckTiming';
+  }
+
   get drawerTabsTitle(): string {
     return this.value.description || this.value.op;
   }

@@ -21,6 +21,10 @@ export class TraceNode extends BaseNode<TraceTree.Trace> {
     this.parent?.children.push(this);
   }
 
+  get type(): TraceTree.NodeType {
+    return 'trace';
+  }
+
   get drawerTabsTitle(): string {
     return 'Trace';
   }
