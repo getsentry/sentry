@@ -585,7 +585,6 @@ function buildRoutes(): RouteObject[] {
       path: 'tags/',
       name: t('Tags & Context'),
       component: make(() => import('sentry/views/settings/projectTags')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'issue-tracking/',
