@@ -70,6 +70,7 @@ import {useMetricDetectorLimit} from 'getsentry/hooks/useMetricDetectorLimit';
 import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
 import trackMetric from 'getsentry/utils/trackMetric';
 
+import {ChonkOptInBanner} from './components/chonkOptInBanner';
 import {CodecovSettingsLink} from './components/codecovSettingsLink';
 import PrimaryNavigationQuotaExceeded from './components/navBillingStatus';
 import OpenInDiscoverBtn from './components/openInDiscoverBtn';
@@ -132,6 +133,9 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
       organization={props.organization}
     />
   ),
+  'sidebar:chonk-opt-in-banner': () => {
+    return <ChonkOptInBanner key="chonk-opt-in-banner-sidebar-item" />;
+  },
 
   /**
    * Augment the global help search modal with a contat support button
