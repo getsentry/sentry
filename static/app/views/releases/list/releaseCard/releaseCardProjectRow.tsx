@@ -16,6 +16,7 @@ import NotAvailable from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
+import QueryCount from 'sentry/components/queryCount';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -208,7 +209,12 @@ function ReleaseCardProjectRow({
             <GlobalSelectionLink
               to={getReleaseNewIssuesUrl(organization.slug, project.id, releaseVersion)}
             >
-              <Count value={newGroups || 0} />
+              <QueryCount
+                count={newGroups || 0}
+                max={100}
+                hideParens
+                hideIfEmpty={false}
+              />
             </GlobalSelectionLink>
           </Tooltip>
         </NewIssuesColumn>
