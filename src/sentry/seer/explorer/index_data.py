@@ -186,6 +186,7 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
             "span.op",
             "span.description",
             "precise.start_ts",
+            "transaction",
         ],
         orderby=["precise.start_ts"],
         offset=0,
@@ -548,6 +549,92 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
     )
 
 
+def get_trace_from_id(trace_id: str, project_id: int) -> TraceData | None:
+    """
+    Get a trace from an ID.
+
+    Args:
+        trace_id: The ID of the trace to fetch. This can be shortened as the first 8 chars.
+        project_id: The ID of the project
+
+    Returns:
+        TraceData with all spans and relationships, or None if no trace found
+    """
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        logger.exception(
+            "Project does not exist; cannot fetch trace",
+            extra={"project_id": project_id, "trace_id": trace_id},
+        )
+        return None
+
+    end_time = datetime.now(UTC)
+    start_time = end_time - timedelta(hours=24)
+
+    snuba_params = SnubaParams(
+        start=start_time,
+        end=end_time,
+        projects=[project],
+        organization=project.organization,
+    )
+    config = SearchResolverConfig(
+        auto_fields=True,
+    )
+
+    # Get all spans in the trace
+    spans_result = Spans.run_table_query(
+        params=snuba_params,
+        query_string=f"trace:{trace_id}",
+        selected_columns=[
+            "span_id",
+            "parent_span",
+            "span.op",
+            "span.description",
+            "transaction",
+            "trace",  # Full trace ID
+            "precise.start_ts",
+        ],
+        orderby=["precise.start_ts"],
+        offset=0,
+        limit=5000,
+        referrer=Referrer.SEER_RPC,
+        config=config,
+        sampling_mode="NORMAL",
+    )
+
+    if not spans_result.get("data", []):
+        logger.info(
+            "No spans found for trace",
+            extra={"trace_id": trace_id, "project_id": project_id},
+        )
+        return None
+
+    # Build span objects
+    spans = []
+    for row in spans_result["data"]:
+        if span_id := row.get("span_id"):
+            spans.append(
+                Span(
+                    span_id=span_id,
+                    parent_span_id=row.get("parent_span"),
+                    span_op=row.get("span.op"),
+                    span_description=row.get("span.description") or "",
+                )
+            )
+
+    transaction_name = spans_result["data"][0]["transaction"]
+    full_trace_id = spans_result["data"][0]["trace"]
+
+    return TraceData(
+        trace_id=full_trace_id,
+        project_id=project_id,
+        transaction_name=transaction_name,
+        total_spans=len(spans),
+        spans=spans,
+    )
+
+
 # RPC wrappers
 
 
@@ -570,3 +657,8 @@ def rpc_get_profiles_for_trace(trace_id: str, project_id: int) -> dict[str, Any]
 def rpc_get_issues_for_transaction(transaction_name: str, project_id: int) -> dict[str, Any]:
     issues = get_issues_for_transaction(transaction_name, project_id)
     return issues.dict() if issues else {}
+
+
+def rpc_get_trace_from_id(trace_id: str, project_id: int) -> dict[str, Any]:
+    trace = get_trace_from_id(trace_id, project_id)
+    return trace.dict() if trace else {}
