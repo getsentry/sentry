@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -74,10 +74,13 @@ def serialize(
         fetch_owners=lambda owner_ids: fetch_owners(user, owner_ids),
     )
 
-    project_map = get_projects(projects, new_groups_map.values(), fetch_project_platforms)
+    project_map = get_projects(projects, fetch_project_platforms)
 
-    release_projects_map = {
-        release_id: [project_map[project_id] for project_id in mapping.keys()]
+    release_projects_map: dict[int, list[SerializedProject]] = {
+        release_id: [
+            cast(SerializedProject, {**project_map[project_id], "newGroups": count})
+            for project_id, count in mapping.items()
+        ]
         for release_id, mapping in new_groups_map.items()
     }
 
@@ -120,17 +123,11 @@ def serialize(
 @sentry_sdk.trace
 def get_projects(
     projects: Iterable[Project],
-    project_group_counts: Iterable[dict[int, int]],
     fetch_platforms: Callable[[Iterable[int]], list[tuple[int, str]]],
 ) -> dict[int, SerializedProject]:
     platforms = defaultdict(list)
     for project_id, platform in fetch_platforms([p.id for p in projects]):
         platforms[project_id].append(platform)
-
-    new_groups: defaultdict[int, int] = defaultdict(int)
-    for mapping in project_group_counts:
-        for project_id, count in mapping.items():
-            new_groups[project_id] += count
 
     return {
         project.id: {
@@ -138,7 +135,7 @@ def get_projects(
             "slug": project.slug,
             "name": project.name,
             "platform": project.platform,
-            "newGroups": new_groups[project.id],
+            "newGroups": 0,  # Default value, will be overridden per release
             "platforms": platforms[project.id],
             "hasHealthData": False,
         }
@@ -400,8 +397,10 @@ def fetch_issue_count(
         qs1 = ReleaseProjectEnvironment.objects.filter(release_id__in=release_ids)
         qs1 = qs1.filter(environment_id__in=environment_ids)
         qs1 = qs1.filter(project_id__in=project_ids)
-        qs1 = qs1.annotate(new_groups=Sum("new_issues_count"))
-        return list(qs1.values_list("project_id", "release_id", "new_groups"))
+        annotated_qs = qs1.values("project_id", "release_id").annotate(
+            new_groups=Sum("new_issues_count")
+        )
+        return list(annotated_qs.values_list("project_id", "release_id", "new_groups"))
     else:
         qs2 = ReleaseProject.objects.filter(release_id__in=release_ids)
         qs2 = qs2.filter(project_id__in=project_ids)
