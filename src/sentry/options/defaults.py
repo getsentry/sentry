@@ -3131,6 +3131,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Controls whether to update last_day_seen field in GroupSeen model
+register(
+    "groupseen.last_day_seen.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "workflow_engine.issue_alert.group.type_id.rollout",
     type=Sequence,
