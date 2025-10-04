@@ -96,7 +96,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
   const hasRelease = !!project.features?.includes('releases');
 
-  const eventReleaseVersion = event?.release?.versionInfo.version;
+  const eventReleaseVersion = event?.release?.versionInfo?.version;
 
   const projHasSemverRelease = useProjectReleaseVersionIsSemver({
     version: project.latestRelease?.version,
