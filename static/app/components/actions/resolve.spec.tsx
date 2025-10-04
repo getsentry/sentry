@@ -202,6 +202,11 @@ describe('ResolveActions', () => {
   });
 
   it('shows resolve in semver release option when the current release version uses semver and flag is enabled', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [ReleaseFixture()],
+    });
+
     render(
       <ResolveActions
         hasSemverReleaseFeature
@@ -215,6 +220,27 @@ describe('ResolveActions', () => {
     await userEvent.click(screen.getByLabelText('More resolve options'));
     expect(screen.getByText('The current semver release')).toBeInTheDocument();
     expect(screen.getByText('1.2.3')).toBeInTheDocument();
+  });
+
+  it('shows resolve in latest release option when the current release version does not use semver and flag is enabled', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+
+    render(
+      <ResolveActions
+        hasSemverReleaseFeature
+        onUpdate={spy}
+        hasRelease
+        projectSlug="proj-1"
+        latestRelease={{version: 'frontend@abc123def'}}
+      />
+    );
+
+    await userEvent.click(screen.getByLabelText('More resolve options'));
+    expect(screen.getByText('The current release')).toBeInTheDocument();
+    expect(screen.getByText('abc123def')).toBeInTheDocument();
   });
 
   it('displays prompt to setup releases when there are no releases', async () => {
