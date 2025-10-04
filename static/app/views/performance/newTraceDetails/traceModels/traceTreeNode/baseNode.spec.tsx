@@ -16,8 +16,8 @@ import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/trace
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 
 class TestNode extends BaseNode {
-  get nodePath(): TraceTree.NodePath {
-    return `test-${this.id}` as TraceTree.NodePath;
+  get type(): TraceTree.NodeType {
+    return 'test' as TraceTree.NodeType;
   }
 
   get drawerTabsTitle(): string {
@@ -690,6 +690,18 @@ describe('BaseNode', () => {
       const node = new TestNode(null, createMockValue({event_id: '1-event-id'}), extra);
 
       expect(node.pathToNode()).toEqual(['test-1-event-id']);
+    });
+
+    it('should generate path to node with canFetchChildren=true parent', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: '1-event-id'}), extra);
+      const parent = new TestNode(null, createMockValue({event_id: '2-event-id'}), extra);
+
+      node.parent = parent;
+      parent.canFetchChildren = true;
+
+      expect(node.path).toBe('test-1-event-id');
+      expect(node.pathToNode()).toEqual(['test-1-event-id', 'test-2-event-id']);
     });
 
     it('should return promise for fetchChildren', async () => {

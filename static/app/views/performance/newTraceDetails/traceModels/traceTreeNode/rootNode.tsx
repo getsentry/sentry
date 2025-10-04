@@ -9,6 +9,10 @@ import {BaseNode} from './baseNode';
 export class RootNode extends BaseNode<null> {
   canShowDetails = false;
 
+  get type(): TraceTree.NodeType {
+    return 'root';
+  }
+
   get drawerTabsTitle(): string {
     return t('Root');
   }
@@ -21,12 +25,12 @@ export class RootNode extends BaseNode<null> {
     return 'virtual root';
   }
 
-  analyticsName(): string {
-    return 'root';
+  pathToNode(): TraceTree.NodePath[] {
+    return [];
   }
 
-  get nodePath(): TraceTree.NodePath | null {
-    return null;
+  analyticsName(): string {
+    return 'root';
   }
 
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(

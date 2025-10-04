@@ -81,6 +81,10 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     }
   }
 
+  get type(): TraceTree.NodeType {
+    return 'span';
+  }
+
   get description(): string | undefined {
     const isOtelFriendlyUi = this.extra?.organization.features.includes(
       'performance-otel-friendly-ui'
@@ -252,10 +256,6 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     this.invalidate();
     this.forEachChild(child => child.invalidate());
     return true;
-  }
-
-  get nodePath(): TraceTree.NodePath {
-    return `span-${this.id}`;
   }
 
   makeBarColor(theme: Theme): string {

@@ -64,6 +64,10 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     this.parent?.children.sort(traceChronologicalSort);
   }
 
+  get type(): TraceTree.NodeType {
+    return 'txn';
+  }
+
   get id(): string {
     return this.value.event_id;
   }
@@ -99,12 +103,8 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     return {title: this.op || t('Trace'), subtitle: this.value.transaction};
   }
 
-  get nodePath(): TraceTree.NodePath {
-    return `txn-${this.id}`;
-  }
-
   pathToNode(): TraceTree.NodePath[] {
-    return [this.nodePath];
+    return [this.path];
   }
 
   matchById(id: string): boolean {

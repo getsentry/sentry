@@ -37,6 +37,10 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
     this.parent?.children.push(this);
   }
 
+  get type(): TraceTree.NodeType {
+    return 'error';
+  }
+
   get description(): string | undefined {
     return isTraceError(this.value)
       ? this.value.title || this.value.message
@@ -55,10 +59,6 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
 
   get drawerTabsTitle(): string {
     return this.description || t('Error');
-  }
-
-  get nodePath(): TraceTree.NodePath {
-    return `error-${this.id}`;
   }
 
   analyticsName(): string {
