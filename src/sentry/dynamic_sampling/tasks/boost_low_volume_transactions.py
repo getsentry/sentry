@@ -52,7 +52,6 @@ from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils.snuba import raw_snql_query
@@ -85,20 +84,10 @@ class ProjectTransactionsTotals(ProjectIdentity, total=True):
 
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=6 * 60,  # 6 minutes
-    time_limit=6 * 60 + 5,
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=6 * 60 + 5,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=telemetry_experience_tasks,
-        processing_deadline_duration=6 * 60 + 5,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @dynamic_sampling_task
 def boost_low_volume_transactions() -> None:
@@ -140,20 +129,10 @@ def boost_low_volume_transactions() -> None:
 
 @instrumented_task(
     name="sentry.dynamic_sampling.boost_low_volume_transactions_of_project",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=4 * 60,  # 4 minutes
-    time_limit=4 * 60 + 5,
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=4 * 60 + 5,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=telemetry_experience_tasks,
-        processing_deadline_duration=4 * 60 + 5,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @dynamic_sampling_task
 def boost_low_volume_transactions_of_project(project_transactions: ProjectTransactions) -> None:

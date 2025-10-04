@@ -30,7 +30,6 @@ from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.taskworker.retry import Retry
 from sentry.users.models.user import User
@@ -50,16 +49,9 @@ auto_run_source_map = {
 
 @instrumented_task(
     name="sentry.tasks.autofix.trigger_autofix_from_issue_summary",
-    max_retries=1,
-    soft_time_limit=60,  # 1 minute
-    time_limit=65,
-    taskworker_config=TaskworkerConfig(
-        namespace=seer_tasks,
-        processing_deadline_duration=65,
-        retry=Retry(
-            times=1,
-        ),
-    ),
+    namespace=seer_tasks,
+    processing_deadline_duration=65,
+    retry=Retry(times=1),
 )
 def _trigger_autofix_task(group_id: int, event_id: str, user_id: int | None, auto_run_source: str):
     """
