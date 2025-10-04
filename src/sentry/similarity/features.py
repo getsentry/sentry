@@ -91,7 +91,7 @@ class FeatureSet:
                 )
         return results
 
-    def record(self, events):
+    def record(self, events, project=None):
         if not events:
             return []
 
@@ -104,10 +104,14 @@ class FeatureSet:
                 continue
             for label, features in self.extract(event).items():
                 if scope is None:
-                    scope = self.__get_scope(event.project)
+                    # Use provided project if available, otherwise fall back to event.project
+                    event_project = project if project is not None else event.project
+                    scope = self.__get_scope(event_project)
                 else:
+                    # Use provided project if available, otherwise fall back to event.project
+                    event_project = project if project is not None else event.project
                     assert (
-                        self.__get_scope(event.project) == scope
+                        self.__get_scope(event_project) == scope
                     ), "all events must be associated with the same project"
 
                 if key is None:

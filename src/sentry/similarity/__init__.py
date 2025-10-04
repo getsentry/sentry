@@ -114,6 +114,9 @@ def _build_dispatcher(methodname):
 
     def inner(project, *args, **kwargs):
         if project is None or feature_flags.has("projects:similarity-indexing", project):
+            # Pass project as a keyword argument for methods that support it
+            if methodname in ("record", "classify") and project is not None:
+                kwargs["project"] = project
             v1_method(*args, **kwargs)
 
     inner.__name__ = methodname
