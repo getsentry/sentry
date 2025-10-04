@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
@@ -71,7 +72,7 @@ function NoProjectMessage({
   );
 
   return (
-    <Wrapper>
+    <Flex flex="1" align="center" justify="center">
       <NoProjectEmptyState />
 
       <Content>
@@ -88,7 +89,7 @@ function NoProjectMessage({
           )}
         </Actions>
       </Content>
-    </Wrapper>
+    </Flex>
   );
 }
 
@@ -96,13 +97,6 @@ export default NoProjectMessage;
 
 const HelpMessage = styled('div')`
   margin-bottom: ${space(2)};
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
 `;
 
 const Content = styled('div')`

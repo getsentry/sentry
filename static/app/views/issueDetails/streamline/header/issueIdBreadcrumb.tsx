@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -44,8 +45,8 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
   }
 
   return (
-    <BreadcrumbContainer>
-      <Wrapper>
+    <Flex align="center" gap="xs">
+      <Flex gap="md" align="center">
         <ProjectBadge
           project={project}
           avatarSize={16}
@@ -76,7 +77,7 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
             />
           )}
         </ShortIdCopyable>
-      </Wrapper>
+      </Flex>
       {!isHovered && group.isPublic && shareUrl && (
         <Button
           size="zero"
@@ -106,21 +107,9 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
           }
         />
       )}
-    </BreadcrumbContainer>
+    </Flex>
   );
 }
-
-const BreadcrumbContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
 
 const StyledShortId = styled(ShortId)`
   font-family: ${p => p.theme.text.family};

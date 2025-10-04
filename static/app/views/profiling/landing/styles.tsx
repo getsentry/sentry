@@ -31,14 +31,6 @@ export const Subtitle = styled('div')`
   display: inline-block;
 `;
 
-export const ContentContainer = styled('div')`
-  flex: 1 1 auto;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-`;
-
 export const StatusContainer = styled('div')`
   display: flex;
   align-items: center;

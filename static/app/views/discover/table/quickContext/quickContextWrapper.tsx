@@ -1,9 +1,8 @@
 import type {ComponentProps} from 'react';
-import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 
 import {NoContextWrapper} from './styles';
@@ -22,17 +21,12 @@ export function NoContext({isLoading}: NoContextProps) {
   );
 }
 
-const HoverWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.75)};
-`;
 export function QuickContextHoverWrapper(
   props: ComponentProps<typeof QuickContextHovercard>
 ) {
   return (
-    <HoverWrapper>
+    <Flex align="center" gap="sm">
       <QuickContextHovercard {...props} />
-    </HoverWrapper>
+    </Flex>
   );
 }
