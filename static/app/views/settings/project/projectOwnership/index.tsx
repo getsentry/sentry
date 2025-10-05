@@ -15,7 +15,6 @@ import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueOwnership} from 'sentry/types/group';
 import type {CodeOwner} from 'sentry/types/integrations';
-import type {Project} from 'sentry/types/project';
 import {
   setApiQueryData,
   useApiQuery,
@@ -24,6 +23,8 @@ import {
 } from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import AddCodeOwnerModal from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
@@ -32,9 +33,12 @@ import {CodeOwnerFileTable} from 'sentry/views/settings/project/projectOwnership
 import {OwnershipRulesTable} from 'sentry/views/settings/project/projectOwnership/ownershipRulesTable';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-export default function ProjectOwnership({project}: {project: Project}) {
+export default function ProjectOwnership() {
   const theme = useTheme();
   const organization = useOrganization();
+  const {projectId} = useParams<{projectId: string}>();
+  const {projects} = useProjects();
+  const project = projects.find(p => p.slug === projectId)!;
   const queryClient = useQueryClient();
   const ownershipTitle = t('Ownership Rules');
 

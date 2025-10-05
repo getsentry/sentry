@@ -5,14 +5,17 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import ProjectOwnership from 'sentry/views/settings/project/projectOwnership';
 
 jest.mock('sentry/actionCreators/modal');
 
 describe('Project Ownership', () => {
-  const {organization, project, routerProps} = initializeOrg();
+  const {organization, project} = initializeOrg();
 
   beforeEach(() => {
+    ProjectsStore.loadInitialData([project]);
+
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/ownership/`,
       method: 'GET',
@@ -45,7 +48,13 @@ describe('Project Ownership', () => {
 
   describe('without codeowners', () => {
     it('renders', async () => {
-      render(<ProjectOwnership {...routerProps} project={project} />);
+      render(<ProjectOwnership />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/settings/projects/${project.slug}/ownership/`},
+          route: '/settings/projects/:projectId/ownership/',
+        },
+      });
       expect(await screen.findByText('No ownership rules found')).toBeInTheDocument();
       // Does not render codeowners for orgs without 'integrations-codeowners' feature
       expect(
@@ -54,8 +63,12 @@ describe('Project Ownership', () => {
     });
 
     it('renders allows users to edit ownership rules', async () => {
-      render(<ProjectOwnership {...routerProps} project={project} />, {
+      render(<ProjectOwnership />, {
         organization: OrganizationFixture({access: ['project:read']}),
+        initialRouterConfig: {
+          location: {pathname: `/settings/projects/${project.slug}/ownership/`},
+          route: '/settings/projects/:projectId/ownership/',
+        },
       });
 
       expect(await screen.findByTestId('project-permission-alert')).toBeInTheDocument();
@@ -71,8 +84,12 @@ describe('Project Ownership', () => {
         features: ['integrations-codeowners'],
         access: ['org:integrations'],
       });
-      render(<ProjectOwnership {...routerProps} project={project} />, {
+      render(<ProjectOwnership />, {
         organization: org,
+        initialRouterConfig: {
+          location: {pathname: `/settings/projects/${project.slug}/ownership/`},
+          route: '/settings/projects/:projectId/ownership/',
+        },
       });
 
       // Renders button
@@ -98,7 +115,13 @@ describe('Project Ownership', () => {
         },
       });
 
-      render(<ProjectOwnership {...routerProps} project={project} />);
+      render(<ProjectOwnership />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/settings/projects/${project.slug}/ownership/`},
+          route: '/settings/projects/:projectId/ownership/',
+        },
+      });
 
       // Switch to Assign To Issue Owner
       await userEvent.click(await screen.findByText('Auto-assign to suspect commits'));
