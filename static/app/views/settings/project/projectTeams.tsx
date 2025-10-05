@@ -12,25 +12,26 @@ import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TeamSelectForProject from 'sentry/views/settings/components/teamSelect/teamSelectForProject';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-type ProjectTeamsProps = {
-  organization: Organization;
-  project: Project;
-};
-
-function ProjectTeams({organization, project}: ProjectTeamsProps) {
+export default function ProjectTeams() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const organization = useOrganization();
+  const {projectId} = useParams<{projectId: string}>();
+  const {projects} = useProjects();
+  const project = projects.find(p => p.slug === projectId)!;
 
   const {
     data: projectTeams,
@@ -116,5 +117,3 @@ function ProjectTeams({organization, project}: ProjectTeamsProps) {
     </SentryDocumentTitle>
   );
 }
-
-export default ProjectTeams;
