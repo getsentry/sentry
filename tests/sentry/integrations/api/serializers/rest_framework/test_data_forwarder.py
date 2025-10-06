@@ -9,6 +9,7 @@ from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.testutils.cases import TestCase
+from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import region_silo_test
 
 
@@ -481,9 +482,10 @@ class DataForwarderProjectSerializerTest(TestCase):
         self.create_member(user=self.user, organization=self.organization, role="member")
         self.create_team_membership(user=self.user, team=self.team)
 
-    def get_serializer_context(self):
+    def get_serializer_context(self) -> dict[str, Any]:
         request = self.make_request(user=self.user)
-        access = from_request(request, self.organization)
+        drf_request = drf_request_from_request(request)
+        access = from_request(drf_request, self.organization)
         return {
             "organization": self.organization,
             "access": access,

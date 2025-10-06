@@ -12,7 +12,7 @@ from sentry.integrations.types import DataForwarderProviderSlug
 from sentry_plugins.amazon_sqs.plugin import get_regions
 
 
-class SQSConfig(TypedDict):
+class SQSConfig(TypedDict, total=False):
     queue_url: str
     region: str
     access_key: str
@@ -20,22 +20,21 @@ class SQSConfig(TypedDict):
     message_group_id: str | None
     s3_bucket: str | None
 
-    __required_keys__ = ["queue_url", "region", "access_key", "secret_key"]
 
-
-class SegmentConfig(TypedDict):
+class SegmentConfig(TypedDict, total=False):
     write_key: str
 
-    __required_keys__ = ["write_key"]
 
-
-class SplunkConfig(TypedDict):
+class SplunkConfig(TypedDict, total=False):
     instance_url: str
     index: str
     source: str
     token: str
 
-    __required_keys__ = ["instance_url", "index", "source", "token"]
+
+SQS_REQUIRED_KEYS = ["queue_url", "region", "access_key", "secret_key"]
+SEGMENT_REQUIRED_KEYS = ["write_key"]
+SPLUNK_REQUIRED_KEYS = ["instance_url", "index", "source", "token"]
 
 
 class DataForwarderSerializer(Serializer):
@@ -66,12 +65,15 @@ class DataForwarderSerializer(Serializer):
         raise ValidationError(f"Invalid provider: {provider}")
 
     def _validate_all_fields_present(
-        self, config: dict, required_fields: list[str], provider_name: DataForwarderProviderSlug
+        self,
+        config: dict,
+        required_fields: list[str] | frozenset[str],
+        provider: DataForwarderProviderSlug,
     ) -> None:
         missing_fields = [field for field in required_fields if field not in config]
         if missing_fields:
             raise ValidationError(
-                f"Missing required {provider_name.value} fields: {', '.join(missing_fields)}"
+                f"Missing required {provider.value} fields: {', '.join(missing_fields)}"
             )
 
     def _validate_sqs_queue_url(self, config: dict, errors: list[str]) -> None:
@@ -144,9 +146,7 @@ class DataForwarderSerializer(Serializer):
         return attrs
 
     def _validate_sqs_config(self, config) -> SQSConfig:
-        self._validate_all_fields_present(
-            config, SQSConfig.__required_keys__, DataForwarderProviderSlug.SQS
-        )
+        self._validate_all_fields_present(config, SQS_REQUIRED_KEYS, DataForwarderProviderSlug.SQS)
 
         errors: list[str] = []
         self._validate_sqs_queue_url(config, errors)
@@ -161,14 +161,14 @@ class DataForwarderSerializer(Serializer):
 
     def _validate_segment_config(self, config) -> SegmentConfig:
         self._validate_all_fields_present(
-            config, SegmentConfig.__required_keys__, DataForwarderProviderSlug.SEGMENT
+            config, SEGMENT_REQUIRED_KEYS, DataForwarderProviderSlug.SEGMENT
         )
         self._validate_segment_write_key(config)
         return config
 
     def _validate_splunk_config(self, config) -> SplunkConfig:
         self._validate_all_fields_present(
-            config, SplunkConfig.__required_keys__, DataForwarderProviderSlug.SPLUNK
+            config, SPLUNK_REQUIRED_KEYS, DataForwarderProviderSlug.SPLUNK
         )
 
         errors: list[str] = []
@@ -189,7 +189,7 @@ class DataForwarderProjectSerializer(Serializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._validated_data_forwarder = None
+        self._validated_data_forwarder: DataForwarder | None = None
 
     def validate_data_forwarder_id(self, value: int) -> int:
         organization = self.context.get("organization")
@@ -207,20 +207,17 @@ class DataForwarderProjectSerializer(Serializer):
         data_forwarder_id = attrs.get("data_forwarder_id")
         project = attrs.get("project")
 
-        if self._validated_data_forwarder and project:
-            data_forwarder = self._validated_data_forwarder
+        if not data_forwarder_id:
+            raise ValidationError({"data_forwarder_id": "This field is required."})
+        if not project:
+            raise ValidationError({"project": "This field is required."})
 
-            if (
-                data_forwarder
-                and project
-                and data_forwarder.organization_id != project.organization_id
-            ):
-                raise ValidationError(
-                    "DataForwarder and Project must belong to the same organization."
-                )
+        if self._validated_data_forwarder.organization_id != project.organization_id:
+            raise ValidationError("DataForwarder and Project must belong to the same organization.")
 
         existing = DataForwarderProject.objects.filter(
-            data_forwarder_id=data_forwarder_id, project_id=project.id if project else None
+            data_forwarder_id=data_forwarder_id,
+            project_id=project.id,
         )
 
         if self.instance:
