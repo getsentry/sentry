@@ -630,13 +630,13 @@ class ReleaseSerializer(Serializer):
             has_health_data = {}
 
         for pr in project_releases:
-            # Use environment-filtered data if available, otherwise fall back to ReleaseProject data
-            environment_filtered_count = issue_counts_by_release.get(pr["release_id"], {}).get(
+            # Use environment-filtered new groups count if available, otherwise fall back to ReleaseProject data
+            new_groups_count_env_filtered = issue_counts_by_release.get(pr["release_id"], {}).get(
                 pr["project__id"]
             )
             new_groups_count = (
-                environment_filtered_count
-                if environment_filtered_count is not None
+                new_groups_count_env_filtered
+                if new_groups_count_env_filtered is not None
                 else pr["new_groups"]
             )
 
