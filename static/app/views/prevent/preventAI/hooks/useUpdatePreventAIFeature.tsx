@@ -1,5 +1,9 @@
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import type {PreventAIConfig, PreventAIFeatureTriggers} from 'sentry/types/prevent';
+import type {
+  PreventAIConfig,
+  PreventAIFeatureTriggers,
+  Sensitivity,
+} from 'sentry/types/prevent';
 import {useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -10,6 +14,7 @@ interface UpdatePreventAIFeatureParams {
   orgName: string;
   // if repoName is provided, edit repo_overrides for that repo, otherwise edit org_defaults
   repoName?: string;
+  sensitivity?: Sensitivity;
   trigger?: Partial<PreventAIFeatureTriggers>;
 }
 
@@ -69,7 +74,7 @@ export function makePreventAIConfig(
     // Merge triggers, allowing partial updates
     triggers: {...featureConfig[params.feature].triggers, ...params.trigger},
     // Preserve the existing sensitivity setting
-    sensitivity: featureConfig[params.feature].sensitivity,
+    sensitivity: params.sensitivity ?? featureConfig[params.feature].sensitivity,
   };
 
   return updatedConfig;
