@@ -79,7 +79,7 @@ export default function DetectorsList() {
   }, [pageLinks]);
 
   return (
-    <SentryDocumentTitle title={t('Monitors')}>
+    <SentryDocumentTitle title={t('Monitors')} noSuffix>
       <PageFiltersContainer>
         <ListLayout actions={<Actions />}>
           <TableHeader />
