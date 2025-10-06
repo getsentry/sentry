@@ -110,7 +110,7 @@ def send_slack(source: str, organization_slug: str) -> None:
     )
 
     try:
-        organization = OrganizationMapping.objects.get(slug=organization_slug)
+        organization_mapping = OrganizationMapping.objects.get(slug=organization_slug)
     except OrganizationMapping.DoesNotExist:
         click.echo(f"Organization {organization_slug} not found!")
         return
@@ -140,7 +140,7 @@ def send_slack(source: str, organization_slug: str) -> None:
         resource_type=NotificationTargetResourceType.CHANNEL,
         integration_id=integration.id,
         resource_id=channel_data.channel_id,
-        organization_id=organization.organization_id,
+        organization_id=organization_mapping.organization_id,
     )
 
     template_cls = template_registry.get(source)
