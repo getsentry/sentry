@@ -1,7 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import triggerChangeBalanceModal from 'admin/components/changeBalanceAction';
 
@@ -162,27 +167,31 @@ describe('BalanceChangeAction', () => {
       method: 'POST',
       statusCode: 400,
       body: {detail: 'Invalid amount'},
+      asyncDelay: 10,
     });
 
     triggerChangeBalanceModal({subscription, ...modalProps});
-
     renderGlobalModal();
-    const creditInput = screen.getByRole('spinbutton', {name: 'Credit Amount'});
-    await userEvent.type(creditInput, '10');
 
-    // Wait for button to be available after typing (prevents CI timing issues)
-    const submitButton = await screen.findByRole('button', {name: 'Submit'});
+    // Pre-grab stable references to fields using findBy to wait for modal content
+    const creditInput = await screen.findByRole('spinbutton', {name: 'Credit Amount'});
+    const urlField = await screen.findByTestId('url-field');
+    const notesField = await screen.findByTestId('notes-field');
+    const submitButton = screen.getByRole('button', {name: /submit/i});
+
+    await userEvent.type(creditInput, '10');
+    await waitFor(() => expect(creditInput).toHaveValue(10));
+
     await userEvent.click(submitButton);
 
-    // Wait for error to be processed and button to return to "Submit" state
-    await screen.findByRole('button', {name: 'Submit'});
+    // Wait for form to be re-enabled after error
+    // Don't rely on error message text as the Form component shows different messages
+    // depending on error response structure. All fields are controlled by isSubmitting
+    // state, so if one is enabled, all should be enabled.
+    await waitFor(() => expect(creditInput).toBeEnabled());
 
-    // After error, form should be re-enabled
-    expect(creditInput).toBeEnabled();
-    expect(screen.getByTestId('url-field')).toBeEnabled();
-    expect(screen.getByTestId('notes-field')).toBeEnabled();
-    expect(screen.getByRole('button', {name: 'Submit'})).not.toHaveTextContent(
-      'Submitting...'
-    );
+    // Verify all fields are re-enabled
+    expect(urlField).toBeEnabled();
+    expect(notesField).toBeEnabled();
   });
 });
