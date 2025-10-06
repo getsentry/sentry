@@ -2,6 +2,7 @@ import {connect} from 'echarts';
 import type {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
@@ -559,8 +560,9 @@ export function dashboardFiltersToString(
   dashboardFilters: DashboardFilters | null | undefined
 ): string {
   let dashboardFilterConditions = '';
-  if (dashboardFilters) {
-    for (const [key, activeFilters] of Object.entries(dashboardFilters)) {
+  const supportedFilters = omit(dashboardFilters, DashboardFilterKeys.GLOBAL_FILTER);
+  if (supportedFilters) {
+    for (const [key, activeFilters] of Object.entries(supportedFilters)) {
       if (activeFilters.length === 1) {
         dashboardFilterConditions += `${key}:"${activeFilters[0]}" `;
       } else if (activeFilters.length > 1) {
