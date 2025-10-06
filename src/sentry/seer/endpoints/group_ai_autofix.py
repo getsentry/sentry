@@ -155,6 +155,8 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         - Root Cause Analysis
         - Proposed Solution
         - Generated code changes
+
+        This endpoint although documented is still experimental and the payload may change in the future.
         """
 
         access_check_cache_key = f"autofix_access_check:{group.id}"
