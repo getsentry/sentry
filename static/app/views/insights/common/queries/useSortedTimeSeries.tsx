@@ -15,12 +15,15 @@ import {
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {getTimeSeriesInterval} from 'sentry/utils/timeSeries/getTimeSeriesInterval';
+import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
+import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   isEventsStats,
+  isGroupedMultiSeriesEventsStats,
   isMultiSeriesEventsStats,
 } from 'sentry/views/dashboards/utils/isEventsStats';
 import type {
@@ -139,8 +142,8 @@ export const useSortedTimeSeries = <
   const isFetchingOrLoading = result.isPending || result.isFetching;
 
   const data: SeriesMap = useMemo(() => {
-    return isFetchingOrLoading ? {} : transformToSeriesMap(result.data, yAxis);
-  }, [isFetchingOrLoading, result.data, yAxis]);
+    return isFetchingOrLoading ? {} : transformToSeriesMap(result.data, yAxis, fields);
+  }, [isFetchingOrLoading, result.data, yAxis, fields]);
 
   const pageLinks = result.response?.getResponseHeader('Link') ?? undefined;
 
@@ -154,97 +157,98 @@ export const useSortedTimeSeries = <
 
 export function transformToSeriesMap(
   result: MultiSeriesEventsStats | GroupedMultiSeriesEventsStats | undefined,
-  yAxis: string[]
+  yAxis: string[],
+  fields?: string[]
 ): SeriesMap {
   if (!result) {
     return {};
   }
 
-  // Single series, applies to single axis queries
+  const allTimeSeries: TimeSeries[] = [];
+
+  // Single series, applies to single axis queries. The yAxis is only knowable from the input data. There is no group
   const firstYAxis = yAxis[0] || '';
   if (isEventsStats(result)) {
-    const [, series] = convertEventsStatsToTimeSeriesData(firstYAxis, result);
-    return {
-      [firstYAxis]: [series],
-    };
+    const [, timeSeries] = convertEventsStatsToTimeSeriesData(firstYAxis, result);
+    allTimeSeries.push(timeSeries);
   }
 
   // Multiple series, applies to multi axis or topN events queries
   const hasMultipleYAxes = yAxis.length > 1;
   if (isMultiSeriesEventsStats(result)) {
-    const processedResults: Array<[number, TimeSeries]> = Object.keys(result).map(
-      seriesOrGroupName => {
-        // If this is a single-axis top N result, the keys in the response are
-        // group names. The field name is the first (and only) Y axis. If it's a
-        // multi-axis non-top-N result, the keys are the axis names. Figure out
-        // the field name and the group name (if different) and format accordingly
-        return convertEventsStatsToTimeSeriesData(
-          hasMultipleYAxes ? seriesOrGroupName : yAxis[0]!,
-          result[seriesOrGroupName]!,
-          hasMultipleYAxes ? undefined : seriesOrGroupName,
-          hasMultipleYAxes ? undefined : result[seriesOrGroupName]!.order
-        );
-      }
-    );
-
-    if (!hasMultipleYAxes) {
-      return {
-        [firstYAxis]: processedResults
-          .sort(([a], [b]) => a - b)
-          .map(([, series]) => series),
-      };
-    }
-
-    return processedResults
-      .sort(([a], [b]) => a - b)
-      .reduce((acc, [, series]) => {
-        acc[series.yAxis] = [series];
-        return acc;
-      }, {} as SeriesMap);
-  }
-
-  // Grouped multi series, applies to topN events queries with multiple y-axes
-  // First, we process the grouped multi series into a list of [seriesName, order, {[aggFunctionAlias]: EventsStats}]
-  // to enable sorting.
-  const processedResults: Array<[string, number, MultiSeriesEventsStats]> = [];
-  Object.keys(result).forEach(groupName => {
-    const {order: groupOrder, ...groupData} = result[groupName]!;
-    processedResults.push([
-      groupName,
-      groupOrder || 0,
-      groupData as MultiSeriesEventsStats,
-    ]);
-  });
-
-  return processedResults
-    .sort(([, orderA], [, orderB]) => orderA - orderB)
-    .reduce((acc, [groupName, groupOrder, groupData]) => {
-      Object.keys(groupData).forEach(seriesName => {
-        const [, series] = convertEventsStatsToTimeSeriesData(
-          seriesName,
-          groupData[seriesName]!,
-          groupName,
-          groupOrder
-        );
-
-        if (acc[seriesName]) {
-          acc[seriesName].push(series);
-        } else {
-          acc[seriesName] = [series];
+    if (hasMultipleYAxes) {
+      // This is a multi-axis query. The keys in the response are the yAxis
+      // names, we can iterate the values. There is not grouping
+      yAxis.forEach(axis => {
+        const seriesData = result[axis]; // This is technically never `undefined` but better safe than sorry
+        if (seriesData) {
+          const [, timeSeries] = convertEventsStatsToTimeSeriesData(axis, seriesData);
+          allTimeSeries.push(timeSeries);
         }
       });
-      return acc;
-    }, {} as SeriesMap);
+    } else {
+      // This is a top events query. The keys in the object will be the group names, and there is only one yAxis, known from the input
+      Object.keys(result).forEach(groupName => {
+        const seriesData = result[groupName]!;
+        const [, timeSeries] = convertEventsStatsToTimeSeriesData(
+          firstYAxis,
+          seriesData,
+          seriesData.order
+        );
+
+        if (fields) {
+          const groupByFields = fields.filter(field => !yAxis.includes(field));
+          const groupBy = parseGroupBy(groupName, groupByFields);
+          timeSeries.groupBy = groupBy;
+          timeSeries.meta.isOther = groupName === 'Other';
+        }
+
+        allTimeSeries.push(timeSeries);
+      });
+    }
+  }
+
+  // Multiple series, _and_ grouped. The top level keys are groups, the lower-level are the axes
+  if (isGroupedMultiSeriesEventsStats(result)) {
+    Object.keys(result).forEach(groupName => {
+      const groupData = result[groupName] as MultiSeriesEventsStats;
+
+      Object.keys(groupData).forEach(axis => {
+        if (axis === 'order') {
+          // `order` is a special key on grouped responses, we can skip over it
+          return;
+        }
+
+        const seriesData = groupData[axis] as EventsStats;
+        const [, timeSeries] = convertEventsStatsToTimeSeriesData(
+          axis,
+          seriesData,
+          groupData.order as unknown as number // `order` is always present
+        );
+
+        if (fields) {
+          const groupByFields = fields.filter(field => !yAxis.includes(field));
+          const groupBy = parseGroupBy(groupName, groupByFields);
+          timeSeries.groupBy = groupBy;
+          timeSeries.meta.isOther = groupName === 'Other';
+        }
+
+        allTimeSeries.push(timeSeries);
+      });
+    });
+  }
+
+  return Object.groupBy(
+    allTimeSeries.toSorted((a, b) => (a.meta.order ?? 0) - (b.meta.order ?? 0)),
+    ts => ts.yAxis
+  ) as SeriesMap;
 }
 
 export function convertEventsStatsToTimeSeriesData(
-  seriesName: string,
+  yAxis: string,
   seriesData: EventsStats,
-  alias?: string,
   order?: number
 ): [number, TimeSeries] {
-  const label = alias ?? (seriesName || FALLBACK_SERIES_NAME);
-
   const values: TimeSeriesItem[] = seriesData.data.map(
     ([timestamp, countsForTimestamp], index) => {
       const item: TimeSeriesItem = {
@@ -270,22 +274,22 @@ export function convertEventsStatsToTimeSeriesData(
     }
   );
 
-  const interval = getTimeSeriesInterval(values);
-
-  const serie: TimeSeries = {
-    yAxis: label,
+  const timeSeries: TimeSeries = {
     values,
+    yAxis: yAxis ?? FALLBACK_SERIES_NAME,
     meta: {
-      valueType: seriesData.meta?.fields?.[seriesName]!,
-      valueUnit: seriesData.meta?.units?.[seriesName] as DataUnit,
-      interval,
+      valueType: seriesData.meta?.fields?.[yAxis]!,
+      valueUnit: seriesData.meta?.units?.[yAxis] as DataUnit,
+      interval: getTimeSeriesInterval(values),
       dataScanned: seriesData.meta?.dataScanned,
     },
   };
 
+  const delayedTimeSeries = markDelayedData(timeSeries, 90);
+
   if (defined(order)) {
-    serie.meta.order = order;
+    delayedTimeSeries.meta.order = order;
   }
 
-  return [seriesData.order ?? 0, serie];
+  return [delayedTimeSeries.meta.order ?? 0, delayedTimeSeries];
 }

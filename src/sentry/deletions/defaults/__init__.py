@@ -8,6 +8,7 @@ from .commitauthor import *  # noqa: F401,F403
 from .data_source import *  # noqa: F401,F403
 from .detector import *  # noqa: F401,F403
 from .discoversavedquery import *  # noqa: F401,F403
+from .file import *  # noqa: F401,F403
 from .group import *  # noqa: F401,F403
 from .grouphash import *  # noqa: F401,F403
 from .grouphistory import *  # noqa: F401,F403
@@ -22,7 +23,6 @@ from .project import *  # noqa: F401,F403
 from .pullrequest import *  # noqa: F401,F403
 from .querysubscription import *  # noqa: F401,F403
 from .release import *  # noqa: F401,F403
-from .releasefile import *  # noqa: F401,F403
 from .repository import *  # noqa: F401,F403
 from .repositoryprojectpathconfig import *  # noqa: F401,F403
 from .rule import *  # noqa: F401,F403

@@ -25,7 +25,6 @@ import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import CursorPoller from 'sentry/utils/cursorPoller';
@@ -70,7 +69,7 @@ const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
 const MAX_ISSUES_COUNT = 100;
 
-interface Props extends RouteComponentProps<Record<PropertyKey, string | undefined>> {
+interface Props {
   headerActions?: ReactNode;
   initialQuery?: string;
   shouldFetchOnMount?: boolean;

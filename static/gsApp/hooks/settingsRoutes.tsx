@@ -68,13 +68,13 @@ const settingsRoutes = (): SentryRouteObject => ({
         },
         {
           path: 'notifications/',
-          name: 'Notifications',
+          name: 'Spend Notifications',
           component: make(() => import('../views/subscriptionPage/notifications')),
           deprecatedRouteProps: true,
         },
         {
           path: 'details/',
-          name: 'Billing Details',
+          name: 'Billing Information',
           component: make(() => import('../views/subscriptionPage/billingInformation')),
           deprecatedRouteProps: true,
         },
@@ -103,21 +103,6 @@ const settingsRoutes = (): SentryRouteObject => ({
       path: 'spike-protection/',
       name: 'Spike Protection',
       component: make(() => import('../views/spikeProtection')),
-    },
-    {
-      path: 'seer/',
-      name: 'Seer Automation',
-      children: [
-        {
-          index: true,
-          component: make(() => import('../views/seerAutomation')),
-        },
-        {
-          path: 'onboarding/',
-          name: 'Configure Seer for All Projects',
-          component: make(() => import('../views/seerAutomation/onboarding')),
-        },
-      ],
     },
     {
       path: 'subscription/spend-allocations/',

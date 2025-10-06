@@ -7,12 +7,12 @@ import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Container} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AuditLog} from 'sentry/types/organization';
@@ -23,10 +23,13 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
+import {hasNewBillingUI} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import SubscriptionHeader from './subscriptionHeader';
 import {trackSubscriptionView} from './utils';
@@ -68,7 +71,7 @@ function LogUsername({logEntryUser}: {logEntryUser: User | undefined}) {
 }
 
 const formatEntryTitle = (name: string) => {
-  const spaceName = name.replace(/\-|\./gm, ' ');
+  const spaceName = name.replace(/-|\./gm, ' ');
   let capitalizeName = spaceName.replace(/(^\w)|([-\s]\w)/g, match =>
     match.toUpperCase()
   );
@@ -158,10 +161,10 @@ function UsageLog({location, subscription}: Props) {
       value: type,
     })) ?? [];
   const selectedEventName = decodeScalar(location.query.event);
+  const isNewBillingUI = hasNewBillingUI(organization);
 
-  return (
-    <Container>
-      <SubscriptionHeader subscription={subscription} organization={organization} />
+  const usageLogContent = (
+    <Fragment>
       <UsageLogContainer>
         <CompactSelect
           searchable
@@ -214,7 +217,24 @@ function UsageLog({location, subscription}: Props) {
         )}
       </UsageLogContainer>
       <Pagination pageLinks={getResponseHeader?.('Link')} onCursor={handleCursor} />
-    </Container>
+    </Fragment>
+  );
+
+  if (!isNewBillingUI) {
+    return (
+      <SubscriptionPageContainer background="primary" organization={organization}>
+        <SubscriptionHeader subscription={subscription} organization={organization} />
+        {usageLogContent}
+      </SubscriptionPageContainer>
+    );
+  }
+
+  return (
+    <SubscriptionPageContainer background="primary" organization={organization}>
+      <SentryDocumentTitle title={t('Activity Logs')} orgSlug={organization.slug} />
+      <SettingsPageHeader title={t('Activity Logs')} />
+      {usageLogContent}
+    </SubscriptionPageContainer>
   );
 }
 

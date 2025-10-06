@@ -27,7 +27,6 @@ from sentry.snuba.metrics.extraction import (
     should_use_on_demand_metrics,
 )
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import json
@@ -721,20 +720,10 @@ def refresh_check_state(org_id):
 
 @instrumented_task(
     name="sentry.tasks.check_am2_compatibility",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=1,  # We don't want the system to retry such computations.
-    soft_time_limit=TASK_SOFT_LIMIT_IN_SECONDS,  # 30 minutes
-    time_limit=TASK_SOFT_LIMIT_IN_SECONDS + 5,  # 30 minutes + 5 seconds
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=TASK_SOFT_LIMIT_IN_SECONDS + 5,
+    retry=Retry(times=1, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=telemetry_experience_tasks,
-        processing_deadline_duration=TASK_SOFT_LIMIT_IN_SECONDS + 5,
-        retry=Retry(
-            times=1,
-            delay=5,
-        ),
-    ),
 )
 def run_compatibility_check_async(org_id):
     try:

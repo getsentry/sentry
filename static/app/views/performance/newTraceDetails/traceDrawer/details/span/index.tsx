@@ -35,6 +35,7 @@ import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnal
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
+import {AIIOAlert} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiIOAlert';
 import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {Attributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
 import {Contexts} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/contexts';
@@ -283,6 +284,7 @@ function SpanNodeDetailsContent({
           location={location}
           hideNodeActions={hideNodeActions}
         />
+        <AIIOAlert node={node} />
         <AIInputSection node={node} />
         <AIOutputSection node={node} />
         <MCPInputSection node={node} />
@@ -377,11 +379,7 @@ function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
   const transaction_event_id =
     node.value.transaction_id ??
     TraceTree.ParentEAPTransaction(node)?.value.transaction_id;
-  const {
-    data: eventTransaction,
-    isLoading: isEventTransactionLoading,
-    isError: isEventTransactionError,
-  } = useTransaction({
+  const {data: eventTransaction, isLoading: isEventTransactionLoading} = useTransaction({
     event_id: transaction_event_id,
     project_slug: node.value.project_slug,
     organization,
@@ -393,7 +391,8 @@ function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
     return <LoadingIndicator />;
   }
 
-  if (isTraceItemError || isEventTransactionError) {
+  // We ignore the error from the transaction detail query because it's not critical for EAP span details.
+  if (isTraceItemError) {
     return <LoadingError message={t('Failed to fetch span details')} />;
   }
 
@@ -479,6 +478,7 @@ function EAPSpanNodeDetailsContent({
           avgSpanDuration={avgSpanDuration}
           hideNodeActions={hideNodeActions}
         />
+        <AIIOAlert node={node} attributes={attributes} />
         <AIInputSection node={node} attributes={attributes} />
         <AIOutputSection node={node} attributes={attributes} />
         <MCPInputSection node={node} attributes={attributes} />

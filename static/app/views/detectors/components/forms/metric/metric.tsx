@@ -33,13 +33,13 @@ import {AssignSection} from 'sentry/views/detectors/components/forms/common/assi
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
-  DEFAULT_THRESHOLD_METRIC_FORM_DATA,
   METRIC_DETECTOR_FORM_FIELDS,
   metricDetectorFormDataToEndpointPayload,
   metricSavedDetectorToFormData,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
+import {useInitialMetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/useInitialMetricDetectorFormData';
 import {useIntervalChoices} from 'sentry/views/detectors/components/forms/metric/useIntervalChoices';
 import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
@@ -48,6 +48,49 @@ import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetC
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
 import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+
+function validateThresholdOrder(
+  value: number,
+  reference: number,
+  conditionType: DataConditionType,
+  isGreaterExpected: boolean
+): boolean {
+  if (conditionType === DataConditionType.GREATER) {
+    return isGreaterExpected ? value > reference : value < reference;
+  }
+  // For LESS condition type, logic is inverted
+  return isGreaterExpected ? value < reference : value > reference;
+}
+
+function validateResolutionThreshold({
+  form,
+}: {
+  form: MetricDetectorFormData;
+  id: string;
+}): Array<[string, string]> {
+  const {conditionType, conditionValue, detectionType, resolutionStrategy} = form;
+  if (!conditionType || detectionType !== 'static' || resolutionStrategy !== 'manual') {
+    return [];
+  }
+
+  const resolutionNum = Number(form.resolutionValue);
+  const conditionNum = Number(conditionValue);
+
+  if (
+    Number.isFinite(resolutionNum) &&
+    Number.isFinite(conditionNum) &&
+    !validateThresholdOrder(resolutionNum, conditionNum, conditionType, false)
+  ) {
+    const message = t(
+      'Resolution threshold must be %s than alert threshold (%s)',
+      conditionType === DataConditionType.GREATER ? t('lower') : t('higher'),
+      String(conditionNum)
+    );
+    return [[METRIC_DETECTOR_FORM_FIELDS.resolutionValue, message]];
+  }
+
+  return [];
+}
 
 function MetricDetectorForm() {
   return (
@@ -69,6 +112,7 @@ export function EditExistingMetricDetectorForm({detector}: {detector: Detector})
       previewChart={<MetricDetectorPreviewChart />}
       formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
       savedDetectorToFormData={metricSavedDetectorToFormData}
+      mapFormErrors={mapMetricDetectorFormErrors}
     >
       <MetricDetectorForm />
     </EditDetectorLayout>
@@ -76,17 +120,36 @@ export function EditExistingMetricDetectorForm({detector}: {detector: Detector})
 }
 
 export function NewMetricDetectorForm() {
+  const initialMetricFormData = useInitialMetricDetectorFormData();
+
   return (
     <NewDetectorLayout
       detectorType="metric_issue"
       previewChart={<MetricDetectorPreviewChart />}
       formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
-      initialFormData={DEFAULT_THRESHOLD_METRIC_FORM_DATA}
+      initialFormData={initialMetricFormData}
+      mapFormErrors={mapMetricDetectorFormErrors}
     >
       <MetricDetectorForm />
     </NewDetectorLayout>
   );
 }
+
+// Errors come back as nested objects, we need to flatten them
+// to match the form state
+const mapMetricDetectorFormErrors = (error: unknown) => {
+  if (typeof error !== 'object' || error === null) {
+    return error;
+  }
+
+  if ('dataSource' in error && typeof error.dataSource === 'object') {
+    return {
+      ...error,
+      ...error.dataSource,
+    };
+  }
+  return error;
+};
 
 const DETECTION_TYPE_MAP: Record<
   MetricDetectorConfig['detectionType'],
@@ -143,36 +206,96 @@ function ResolveSection() {
   const conditionComparisonAgo = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionComparisonAgo
   );
+  const resolutionStrategy = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy
+  );
+  const resolutionValue = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.resolutionValue
+  );
   const aggregate = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
   const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
 
-  const description = getResolutionDescription(
-    detectionType === 'percent'
-      ? {
-          detectionType: 'percent',
-          conditionType,
-          conditionValue,
-          comparisonDelta: conditionComparisonAgo ?? 3600, // Default to 1 hour if not set
-          thresholdSuffix,
-        }
-      : detectionType === 'static'
-        ? {
-            detectionType: 'static',
-            conditionType,
-            conditionValue,
-            thresholdSuffix,
-          }
-        : {
-            detectionType: 'dynamic',
-            thresholdSuffix,
-          }
-  );
+  const effectiveConditionValue =
+    resolutionStrategy === 'manual' &&
+    resolutionValue !== undefined &&
+    resolutionValue !== ''
+      ? resolutionValue
+      : conditionValue;
+
+  const descriptionContent =
+    detectionType === 'static' && resolutionStrategy === 'manual' ? (
+      <Flex align="center" gap="sm">
+        <div>
+          <span>
+            {t(
+              'Issue will be resolved when the query value is %s',
+              conditionType === DataConditionType.GREATER
+                ? t('less than')
+                : t('more than')
+            )}
+          </span>
+        </div>
+        <ThresholdField
+          aria-label={t('Resolution threshold')}
+          name={METRIC_DETECTOR_FORM_FIELDS.resolutionValue}
+          hideLabel
+          inline={false}
+          flexibleControlStateSize
+          placeholder="0"
+          suffix={thresholdSuffix}
+          validate={validateResolutionThreshold}
+          required
+          preserveOnUnmount
+        />
+      </Flex>
+    ) : (
+      getResolutionDescription(
+        detectionType === 'percent'
+          ? {
+              detectionType: 'percent',
+              conditionType,
+              conditionValue: effectiveConditionValue,
+              comparisonDelta: conditionComparisonAgo ?? 3600, // Default to 1 hour if not set
+              thresholdSuffix,
+            }
+          : detectionType === 'static'
+            ? {
+                detectionType: 'static',
+                conditionType,
+                conditionValue: effectiveConditionValue,
+                thresholdSuffix,
+              }
+            : {
+                detectionType: 'dynamic',
+                thresholdSuffix,
+              }
+      )
+    );
 
   return (
     <Container>
-      <Section title={t('Resolve')} description={description} />
+      <Section title={t('Resolve')}>
+        {detectionType !== 'dynamic' && (
+          <Flex direction="column" gap="sm">
+            <ResolutionStrategyField
+              name={METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy}
+              label={t('Resolution method')}
+              hideLabel
+              inline={false}
+              flexibleControlStateSize
+              preserveOnUnmount
+              defaultValue="automatic"
+              choices={[
+                ['automatic', t('Automatic')],
+                ['manual', t('Manual')],
+              ]}
+            />
+          </Flex>
+        )}
+        <DescriptionContainer>{descriptionContent}</DescriptionContainer>
+      </Section>
     </Container>
   );
 }
@@ -503,6 +626,22 @@ const DetectionTypeField = styled(SegmentedRadioField)`
     padding: 0;
   }
 `;
+
+const DescriptionContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+`;
+
+const ResolutionStrategyField = styled(SegmentedRadioField)`
+  padding: 0;
+  max-width: 350px;
+
+  > div {
+    padding: 0;
+  }
+`;
+
 const ThresholdField = styled(NumberField)`
   padding: 0;
   margin: 0;
@@ -510,7 +649,7 @@ const ThresholdField = styled(NumberField)`
 
   > div {
     padding: 0;
-    width: 10ch;
+    width: 18ch;
   }
 `;
 

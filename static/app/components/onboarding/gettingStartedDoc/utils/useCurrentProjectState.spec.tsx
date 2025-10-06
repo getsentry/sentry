@@ -37,19 +37,16 @@ function createWrapper(projectSlug?: string) {
 
 function mockPageFilterStore(projects: Project[]) {
   PageFiltersStore.init();
-  PageFiltersStore.onInitializeUrlState(
-    {
-      projects: projects.map(p => parseInt(p.id, 10)),
-      environments: [],
-      datetime: {
-        period: '7d',
-        start: null,
-        end: null,
-        utc: null,
-      },
+  PageFiltersStore.onInitializeUrlState({
+    projects: projects.map(p => parseInt(p.id, 10)),
+    environments: [],
+    datetime: {
+      period: '7d',
+      start: null,
+      end: null,
+      utc: null,
     },
-    new Set()
-  );
+  });
 }
 
 describe('useCurrentProjectState', () => {
