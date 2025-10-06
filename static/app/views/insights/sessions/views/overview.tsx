@@ -11,7 +11,6 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
@@ -65,8 +64,6 @@ function SessionsOverview() {
 
 function ViewSpecificHeader({view}: {view: DomainView | ''}) {
   switch (view) {
-    case FRONTEND_LANDING_SUB_PATH:
-      return <FrontendHeader module={ModuleName.SESSIONS} />;
     case MOBILE_LANDING_SUB_PATH:
       return <MobileHeader module={ModuleName.SESSIONS} />;
     default:

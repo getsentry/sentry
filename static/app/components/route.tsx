@@ -17,6 +17,7 @@ interface BaseRouteObject {
    * Including an `Outlet` component as a child element.
    */
   deprecatedRouteProps?: never;
+  handle?: Record<string, unknown>;
   /**
    * Is a index route
    */
