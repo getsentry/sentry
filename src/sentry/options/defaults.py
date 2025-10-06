@@ -3511,3 +3511,12 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Killswitch for treating demo user as unauthenticated
+# in our auth pipelines.
+register(
+    "demo-user.auth.pipelines.always.unauthenticated.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
