@@ -70,7 +70,7 @@ function BackendOverviewPage() {
     return <LaravelOverviewPage />;
   }
   if (isNextJsPageEnabled) {
-    return <NextJsOverviewPage performanceType="backend" />;
+    return <NextJsOverviewPage />;
   }
   if (isNewBackendExperienceEnabled) {
     return <EAPBackendOverviewPage />;
