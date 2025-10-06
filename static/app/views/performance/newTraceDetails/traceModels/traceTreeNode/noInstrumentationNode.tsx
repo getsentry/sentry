@@ -57,15 +57,6 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
     };
   }
 
-  matchByPath(path: TraceTree.NodePath): boolean {
-    const [type, id] = path.split('-');
-    if (type !== 'ms' || !id) {
-      return false;
-    }
-
-    return this.matchById(id);
-  }
-
   analyticsName(): string {
     return 'missing instrumentation';
   }

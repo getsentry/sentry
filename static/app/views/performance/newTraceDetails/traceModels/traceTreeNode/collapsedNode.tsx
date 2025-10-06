@@ -42,10 +42,6 @@ export class CollapsedNode extends BaseNode<TraceTree.CollapsedNode> {
     return 'collapsed';
   }
 
-  matchByPath(_path: TraceTree.NodePath): boolean {
-    return false;
-  }
-
   analyticsName(): string {
     return 'collapsed';
   }

@@ -92,8 +92,13 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
   }
 
   matchByPath(path: TraceTree.NodePath): boolean {
-    const [type, id] = path.split('-');
-    if (type !== 'ag' || !id) {
+    if (!path.startsWith(`${this.type}-`)) {
+      return false;
+    }
+
+    // Extract id after the first occurrence of `${this.type}-`
+    const id = path.slice(this.type.length + 1);
+    if (!id) {
       return false;
     }
 

@@ -311,8 +311,8 @@ export declare namespace TraceTree {
     | 'ms'
     | 'error'
     | 'empty'
-    | 'uptimeCheck'
-    | 'uptimeCheckTiming'
+    | 'uptime-check'
+    | 'uptime-check-timing'
     | 'collapsed'
     | 'root';
   type NodePath = `${NodeType}-${string}`;
@@ -2533,11 +2533,11 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   }
   if (isUptimeCheckNode(n)) {
     const checkId = n.value.event_id;
-    return `uptimeCheck-${checkId}`;
+    return `uptime-check-${checkId}`;
   }
   if (isUptimeCheckTimingNode(n)) {
     const checkId = n.value.event_id;
-    return `uptimeCheckTiming-${checkId}`;
+    return `uptime-check-timing-${checkId}`;
   }
 
   if (isMissingInstrumentationNode(n)) {

@@ -78,15 +78,6 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
     return pickBarColor(this.op, theme);
   }
 
-  matchByPath(path: TraceTree.NodePath): boolean {
-    const [type, id] = path.split('-');
-    if (type !== 'span' || !id) {
-      return false;
-    }
-
-    return this.matchById(id);
-  }
-
   analyticsName(): string {
     return 'span';
   }

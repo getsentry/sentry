@@ -108,7 +108,7 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
   }
 
   get type(): TraceTree.NodeType {
-    return 'uptimeCheck';
+    return 'uptime-check';
   }
 
   get description(): string | undefined {
@@ -127,19 +127,6 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
       title: t('Uptime Monitor Check'),
       subtitle: `${this.value.additional_attributes?.method} ${this.value.additional_attributes?.request_url}`,
     };
-  }
-
-  get nodePath(): TraceTree.NodePath {
-    return `uptimeCheck-${this.id}`;
-  }
-
-  matchByPath(path: TraceTree.NodePath): boolean {
-    const [type, id] = path.split('-');
-    if (type !== 'uptimeCheck' || !id) {
-      return false;
-    }
-
-    return this.matchById(id);
   }
 
   analyticsName(): string {
