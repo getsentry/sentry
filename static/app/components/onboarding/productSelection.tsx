@@ -82,17 +82,6 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
 // Since the ProductSelection component is rendered in the onboarding/project creation flow only, it is ok to have this list here
 // NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
-  android: [
-    ProductSolution.PERFORMANCE_MONITORING,
-    ProductSolution.PROFILING,
-    ProductSolution.SESSION_REPLAY,
-    ProductSolution.LOGS,
-  ],
-  'apple-ios': [
-    ProductSolution.PERFORMANCE_MONITORING,
-    ProductSolution.PROFILING,
-    ProductSolution.SESSION_REPLAY,
-  ],
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
@@ -332,12 +321,6 @@ export const platformProductAvailability = {
   'python-wsgi': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
-    ProductSolution.LOGS,
-  ],
-  'react-native': [
-    ProductSolution.PERFORMANCE_MONITORING,
-    ProductSolution.PROFILING,
-    ProductSolution.SESSION_REPLAY,
     ProductSolution.LOGS,
   ],
   ruby: [

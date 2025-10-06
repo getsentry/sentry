@@ -13,7 +13,6 @@ import {
   LOGS_AUTO_REFRESH_KEY,
   type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {
   EventsLogsResult,
@@ -69,11 +68,7 @@ describe('useVirtualStreaming', () => {
                 analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
                 source="location"
               >
-                <LogsPageParamsProvider
-                  analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-                >
-                  {children}
-                </LogsPageParamsProvider>
+                {children}
               </LogsQueryParamsProvider>
             </OrganizationContext.Provider>
           </QueryClientProvider>
@@ -116,7 +111,7 @@ describe('useVirtualStreaming', () => {
       }),
     ]);
 
-    const {result} = renderHook(() => useVirtualStreaming(mockData), {
+    const {result} = renderHook(() => useVirtualStreaming({data: mockData}), {
       wrapper: createWrapper({autoRefresh: 'enabled'}),
     });
 
@@ -140,7 +135,7 @@ describe('useVirtualStreaming', () => {
       }),
     ]);
 
-    const {result} = renderHook(() => useVirtualStreaming(mockData), {
+    const {result} = renderHook(() => useVirtualStreaming({data: mockData}), {
       wrapper: createWrapper({autoRefresh: 'idle'}),
     });
 
@@ -157,7 +152,7 @@ describe('useVirtualStreaming', () => {
       }),
     ]);
 
-    renderHook(() => useVirtualStreaming(mockData), {
+    renderHook(() => useVirtualStreaming({data: mockData}), {
       wrapper: createWrapper({autoRefresh: 'enabled'}),
     });
 
@@ -176,7 +171,7 @@ describe('useVirtualStreaming', () => {
       }),
     ]);
 
-    const {unmount} = renderHook(() => useVirtualStreaming(mockData), {
+    const {unmount} = renderHook(() => useVirtualStreaming({data: mockData}), {
       wrapper: createWrapper({autoRefresh: 'enabled'}),
     });
 
@@ -187,7 +182,7 @@ describe('useVirtualStreaming', () => {
     unmount();
 
     // Re-render with disabled autorefresh
-    renderHook(() => useVirtualStreaming(mockData), {
+    renderHook(() => useVirtualStreaming({data: mockData}), {
       wrapper: createWrapper({autoRefresh: 'idle'}),
     });
 

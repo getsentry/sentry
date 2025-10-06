@@ -82,9 +82,6 @@ class EmailNotificationProvider(NotificationProvider[EmailRenderable]):
 
     @classmethod
     def send(cls, *, target: NotificationTarget, renderable: EmailRenderable) -> None:
-        if target.resource_type != NotificationTargetResourceType.EMAIL:
-            raise ValueError(f"EmailNotificationProvider cannot send to {target.resource_type}")
-
-        message = renderable
-        message.to = [target.resource_id]
-        send_messages([message])
+        email = renderable
+        email.to = [target.resource_id]
+        send_messages([email])

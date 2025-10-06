@@ -185,8 +185,8 @@ function ScheduledChanges({
         </Flex>
       )}
       {products.map(item => {
-        const selectableProduct = utils.invoiceItemTypeToProduct(item.type);
-        if (!selectableProduct) {
+        const addOn = utils.invoiceItemTypeToAddOn(item.type);
+        if (!addOn) {
           return null;
         }
 
@@ -195,7 +195,7 @@ function ScheduledChanges({
             <ScheduledChangeItem
               firstItem={
                 <Flex align="center" gap="sm">
-                  {getProductIcon(selectableProduct)}
+                  {getProductIcon(addOn)}
                   <Text as="div" bold>
                     {item.description}
                   </Text>
@@ -304,7 +304,6 @@ function Receipt({
   dateCreated,
 }: ReceiptProps) {
   const renewalDate = moment(planItem?.periodEnd).add(1, 'day').format('MMM DD YYYY');
-  // TODO(checkout v3): This needs to be updated for non-budget products
   const successfulCharge = charges.find(charge => charge.isPaid);
 
   return (
@@ -365,12 +364,10 @@ function Receipt({
                         ? getSingularCategoryName({
                             plan,
                             category,
-                            title: true,
                           })
                         : getPlanCategoryName({
                             plan,
                             category,
-                            title: true,
                           });
                     return (
                       <ReceiptItem
@@ -482,7 +479,7 @@ function CheckoutSuccess({
   const reservedVolume = invoiceItems.filter(
     item => item.type.startsWith('reserved_') && !item.type.endsWith('_budget')
   );
-  // TODO(checkout v3): This needs to be updated for non-budget products
+  // TODO(prevent): This needs to be updated once we determine how to display Prevent enablement and PAYG changes on this page
   const products = invoiceItems.filter(
     item => item.type === InvoiceItemType.RESERVED_SEER_BUDGET
   );

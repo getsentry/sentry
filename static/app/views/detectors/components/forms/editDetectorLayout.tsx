@@ -21,6 +21,7 @@ type EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload> = {
   detector: TDetector;
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   savedDetectorToFormData: (detector: TDetector) => TFormData;
+  mapFormErrors?: (error: any) => any;
   previewChart?: React.ReactNode;
 };
 
@@ -34,6 +35,7 @@ export function EditDetectorLayout<
   children,
   formDataToEndpointPayload,
   savedDetectorToFormData,
+  mapFormErrors,
 }: EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload>) {
   const handleFormSubmit = useEditDetectorFormSubmit({
     detector,
@@ -47,6 +49,7 @@ export function EditDetectorLayout<
   const formProps = {
     initialData,
     onSubmit: handleFormSubmit,
+    mapFormErrors,
   };
 
   return (
