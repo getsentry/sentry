@@ -5,7 +5,7 @@ from typing import Any
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
-from rest_framework.exceptions import ParseError, PermissionDenied
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -117,13 +117,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         data = serializer.validated_data
 
         stopping_point = data.get("stopping_point")
-        if stopping_point is not None:
-            try:
-                stopping_point = AutofixStoppingPoint(stopping_point)
-            except ValueError:
-                raise ParseError(
-                    f"Invalid stopping_point. Must be one of: {', '.join([sp.value for sp in AutofixStoppingPoint])}."
-                )
+        stopping_point = AutofixStoppingPoint(stopping_point) if stopping_point else None
 
         return trigger_autofix(
             group=group,
