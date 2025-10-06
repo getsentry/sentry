@@ -4,6 +4,7 @@ from slack_sdk.models.blocks import (
     ActionsBlock,
     Block,
     ButtonElement,
+    ContextBlock,
     HeaderBlock,
     ImageBlock,
     MarkdownTextObject,
@@ -30,6 +31,7 @@ from sentry.organizations.services.organization.model import RpcOrganizationSumm
 
 class SlackRenderable(TypedDict):
     blocks: list[Block]
+    text: str
 
 
 class SlackRenderer(NotificationRenderer[SlackRenderable]):
@@ -56,10 +58,10 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
             )
             blocks.append(chart)
         if rendered_template.footer:
-            footer = SectionBlock(text=MarkdownTextObject(text=rendered_template.footer))
+            footer = ContextBlock(elements=[MarkdownTextObject(text=rendered_template.footer)])
             blocks.append(footer)
 
-        return SlackRenderable(blocks=blocks)
+        return SlackRenderable(blocks=blocks, text=rendered_template.subject)
 
 
 @provider_registry.register(NotificationProviderKey.SLACK)

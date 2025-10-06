@@ -48,7 +48,10 @@ class SlackRendererTest(TestCase):
                 "alt_text": "Bufo Pog",
                 "type": "image",
             },
-            {"text": {"text": "This is a mock footer", "type": "mrkdwn"}, "type": "section"},
+            {
+                "elements": [{"text": "This is a mock footer", "type": "mrkdwn"}],
+                "type": "context",
+            },
         ]
 
 
@@ -111,7 +114,8 @@ class SlackNotificationProviderSendTest(TestCase):
             blocks=[
                 HeaderBlock(text=PlainTextObject(text="Test Notification")),
                 SectionBlock(text=MarkdownTextObject(text="This is a test message")),
-            ]
+            ],
+            text="Test Notification",
         )
 
     @patch("sentry.integrations.slack.integration.SlackSdkClient")
@@ -126,7 +130,7 @@ class SlackNotificationProviderSendTest(TestCase):
         SlackNotificationProvider.send(target=target, renderable=renderable)
 
         mock_client_instance.chat_postMessage.assert_called_once_with(
-            channel="C1234567890", blocks=renderable["blocks"]
+            channel="C1234567890", blocks=renderable["blocks"], text=renderable["text"]
         )
 
     def test_send_invalid_target_class(self) -> None:
@@ -163,5 +167,5 @@ class SlackNotificationProviderSendTest(TestCase):
         SlackNotificationProvider.send(target=target, renderable=renderable)
 
         mock_client_instance.chat_postMessage.assert_called_once_with(
-            channel="U1234567890", blocks=renderable["blocks"]
+            channel="U1234567890", blocks=renderable["blocks"], text=renderable["text"]
         )
