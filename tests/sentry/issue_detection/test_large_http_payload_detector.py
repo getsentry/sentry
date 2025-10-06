@@ -307,6 +307,11 @@ class LargeHTTPPayloadDetectorTest(TestCase):
     @with_feature("organizations:large-http-payload-detector-improvements")
     def test_does_not_trigger_detection_for_filtered_paths(self) -> None:
         project = self.create_project()
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={"large_http_payload_filtered_paths": "/api/0/organizations/download/"},
+        )
         settings = get_detection_settings(project.id, organization=self.organization)
         spans = [
             create_span(
@@ -323,11 +328,6 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         ]
         event = create_event(spans)
 
-        ProjectOption.objects.set_value(
-            project=project,
-            key="sentry:performance_issue_settings",
-            value={"large_http_payload_filtered_paths": "/api/0/organizations/download/"},
-        )
         detector = LargeHTTPPayloadDetector(settings, event)
         run_detector_on_data(detector, event)
 

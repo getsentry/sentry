@@ -34,6 +34,9 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
 
         self.consecutive_http_spans: list[Span] = []
         self.organization = self.settings.get("organization")
+        self.filtered_paths = [
+            path.strip() for path in self.settings.get("filtered_paths", "").split(",") if path
+        ]
 
     def visit_span(self, span: Span) -> None:
         if not self._is_span_eligible(span):
@@ -117,17 +120,16 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         if any([x in description for x in ["_next/static/", "_next/data/"]]):
             return False
 
+        span_data = span.get("data", {})
+        if span_data and span_data.get("http.request.prefetch"):
+            return False
+
         if features.has(
             "organizations:large-http-payload-detector-improvements",
             self.organization,
         ):
-            filtered_paths = self.settings.get("filtered_paths", "").split(",")
-            if any([path.strip() in description for path in filtered_paths if path]):
+            if any([path in description for path in self.filtered_paths]):
                 return False
-
-        span_data = span.get("data", {})
-        if span_data and span_data.get("http.request.prefetch"):
-            return False
 
         return True
 
