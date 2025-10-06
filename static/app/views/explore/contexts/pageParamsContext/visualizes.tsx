@@ -176,13 +176,6 @@ export function updateVisualizeAggregate({
     return `${newAggregate}()`;
   }
 
-  // switching away from count_unique means we need to reset the field
-  if (
-    oldAggregate === AggregationKey.COUNT_UNIQUE ||
-    NO_ARGUMENT_SPAN_AGGREGATES.includes(oldAggregate as AggregationKey)
-  ) {
-    return `${newAggregate}(${DEFAULT_VISUALIZATION_FIELD})`;
-  }
   const newFieldDefinition = getFieldDefinition(newAggregate, 'span');
   const oldFieldDefinition = oldAggregate
     ? getFieldDefinition(oldAggregate, 'span')
@@ -191,6 +184,14 @@ export function updateVisualizeAggregate({
   if (newFieldDefinition?.parameters?.length !== oldFieldDefinition?.parameters?.length) {
     const params = newFieldDefinition?.parameters?.map(p => p.defaultValue || '');
     return `${newAggregate}(${params?.join(',')})`;
+  }
+
+  // switching away from count_unique means we need to reset the field
+  if (
+    oldAggregate === AggregationKey.COUNT_UNIQUE ||
+    NO_ARGUMENT_SPAN_AGGREGATES.includes(oldAggregate as AggregationKey)
+  ) {
+    return `${newAggregate}(${DEFAULT_VISUALIZATION_FIELD})`;
   }
 
   return oldArguments

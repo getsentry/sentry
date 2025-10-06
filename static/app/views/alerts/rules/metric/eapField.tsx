@@ -36,13 +36,16 @@ interface Props {
   onChange: (value: string, meta: Record<string, any>) => void;
 }
 
-// Use the same aggregates/operations available in the explore view
+const SUPPORTED_MULTI_PARAM_AGGREGATES = [
+  {label: AggregationKey.APDEX, value: AggregationKey.APDEX},
+];
+
 const SPAN_OPERATIONS = [
   ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => ({
     label: aggregate,
     value: aggregate,
   })),
-  {label: 'apdex', value: 'apdex'},
+  ...SUPPORTED_MULTI_PARAM_AGGREGATES,
 ];
 
 const LOG_OPERATIONS = [
@@ -215,7 +218,6 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
                 type="integer"
                 name={param.name}
                 value={aggregateFuncArgs?.[index] || param.defaultValue || ''}
-                data-test-id="alert-name"
                 placeholder={param.placeholder}
                 onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                   if (e.key === 'Enter') {
