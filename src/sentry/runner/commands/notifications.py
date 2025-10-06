@@ -74,19 +74,27 @@ def send_email(source: str, target: str) -> None:
     help="Registered template source (see `sentry notifications list`)",
     default="error-alert-service",
 )
-@click.option(
-    "-w", "--integration_name", help="Integration name", default="sentry-ecosystem"
-)  # default is sentry-ecosystem workspace
-@click.option("-o", "--organization_slug", help="Organization slug", default="post-db-wipe")
-@click.option("-c", "--channel", help="Channel name", default="christina-test")
-def send_slack(source: str, integration_name: str, organization_slug: str, channel: str) -> None:
+@click.option("-o", "--organization_slug", help="Organization slug", default="default")
+def send_slack(source: str, organization_slug: str) -> None:
     """
-    Send a Slack notification
-    - Default sends to sentry-ecosystem organization and #general channel
+    Send a Slack
+    - Example usage: `sentry notifications send slack -o <organization_slug> -s <source>`
+    - To change the default workspace or channel, set the options slack.default-workspace and slack.default-channel in .sentry/config.yml
     """
+    from sentry import options
     from sentry.runner import configure
 
     configure()
+
+    integration_name = options.get("slack.default-workspace")
+    channel = options.get("slack.default-channel")
+
+    if integration_name == "example-workspace-name":
+        click.echo("Please set the slack.default-workspace option in .sentry/config.yml")
+        return
+
+    if channel == "general":
+        click.echo("INFO: You have not yet set a default channel, sending to the #general")
 
     from sentry.constants import ObjectStatus
     from sentry.integrations.models.integration import Integration
@@ -102,7 +110,7 @@ def send_slack(source: str, integration_name: str, organization_slug: str, chann
     )
 
     try:
-        organization = OrganizationMapping.objects.get(slug=organization_slug)
+        organization_mapping = OrganizationMapping.objects.get(slug=organization_slug)
     except OrganizationMapping.DoesNotExist:
         click.echo(f"Organization {organization_slug} not found!")
         return
@@ -127,18 +135,18 @@ def send_slack(source: str, integration_name: str, organization_slug: str, chann
         click.echo(f"Channel {channel} not found!")
         return
 
-    discord_target = IntegrationNotificationTarget(
-        provider_key=NotificationProviderKey.DISCORD,
+    slack_target = IntegrationNotificationTarget(
+        provider_key=NotificationProviderKey.SLACK,
         resource_type=NotificationTargetResourceType.CHANNEL,
         integration_id=integration.id,
         resource_id=channel_data.channel_id,
-        organization_id=organization.organization_id,
+        organization_id=organization_mapping.organization_id,
     )
 
     template_cls = template_registry.get(source)
-    NotificationService(data=template_cls.example_data).notify(targets=[discord_target])
+    NotificationService(data=template_cls.example_data).notify(targets=[slack_target])
 
-    click.echo(f"Example '{source}' discord message sent to {integration.name}.")
+    click.echo(f"Example '{source}' slack message sent to {integration.name}.")
 
 
 @send_cmd.command("msteams")
@@ -243,3 +251,50 @@ def list_cmd() -> None:
         click.echo(f"• category: {category}")
         for source in sources:
             click.echo(f"  ◦ source: {source['source']}, class: {source['class']}")
+
+
+@click.option(
+    "-p", "--provider", help="the integration provider e.g. slack, discord, msteams", required=True
+)
+@click.option("-o", "--organization_slug", help="Organization slug", required=True)
+@notifications.command("list-integrations")
+def list_integrations(organization_slug: str, provider: str) -> None:
+    """
+    List all integrations available for a given provider
+    - Optionally can be given an organization slug to show only integrations for that org
+    """
+    from sentry.runner import configure
+
+    configure()
+
+    from sentry.constants import ObjectStatus
+    from sentry.integrations.models.organization_integration import OrganizationIntegration
+    from sentry.integrations.types import IntegrationProviderSlug
+    from sentry.models.organizationmapping import OrganizationMapping
+
+    try:
+        provider = IntegrationProviderSlug(provider)
+    except ValueError:
+        click.echo(f"Invalid provider: {provider}")
+        return
+
+    try:
+        organization_mapping = OrganizationMapping.objects.get(slug=organization_slug)
+    except OrganizationMapping.DoesNotExist:
+        click.echo(f"Organization {organization_slug} not found!")
+        return
+
+    # Get organization integrations that belong to this organization and match our provider
+    organization_integrations = OrganizationIntegration.objects.filter(
+        integration__provider=provider,
+        integration__status=ObjectStatus.ACTIVE,
+        organization_id=organization_mapping.organization_id,
+    ).select_related("integration")
+
+    click.echo(
+        f"All integrations for organization {organization_slug} with provider {provider}\n"
+        f"Integration Name | Integration ID \n"
+        f"----------------------------------"
+    )
+    for oi in organization_integrations:
+        click.echo(f"{oi.integration.name} | {oi.integration.id}")
