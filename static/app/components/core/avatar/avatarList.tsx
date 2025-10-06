@@ -158,11 +158,11 @@ function AvatarList({
 export default AvatarList;
 
 // used in releases list page to do some alignment
-const AvatarListWrapper = styled((props: FlexProps) => (
-  <Flex align="center" direction="row-reverse" {...props}>
-    {props.children}
-  </Flex>
-))``;
+const AvatarListWrapper = styled(Flex)``;
+AvatarListWrapper.defaultProps = {
+  align: 'center',
+  direction: 'row-reverse',
+};
 
 const AvatarStyle = (p: {theme: Theme}) => css`
   border: 2px solid ${p.theme.background};

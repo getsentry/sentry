@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Stack} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

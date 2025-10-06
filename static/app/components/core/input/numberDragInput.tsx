@@ -6,7 +6,6 @@ import {Flex, type FlexProps} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconArrow} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {clamp} from 'sentry/utils/profiling/colors/utils';
 
 // @TODO(jonasbadalic): Not sure this needs to be its own component,

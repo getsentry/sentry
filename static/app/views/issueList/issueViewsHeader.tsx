@@ -9,7 +9,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconEllipsis, IconPause, IconPlay, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
