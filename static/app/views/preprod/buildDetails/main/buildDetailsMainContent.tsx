@@ -34,7 +34,7 @@ interface LoadingContentProps {
 
 function LoadingContent({showSkeleton, children}: LoadingContentProps) {
   return (
-    <Flex direction="column" gap="lg" minHeight="700px">
+    <Flex direction="column" gap="lg" minHeight="700px" width="100%">
       <Grid
         columns="1fr"
         rows="1fr"
@@ -75,21 +75,21 @@ function LoadingContent({showSkeleton, children}: LoadingContentProps) {
 
 interface BuildDetailsMainContentProps {
   appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError>;
-  buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
+  buildDetailsData?: BuildDetailsApiResponse | null;
+  isBuildDetailsPending?: boolean;
 }
 
 export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
+  const {appSizeQuery, buildDetailsData, isBuildDetailsPending = false} = props;
   const {
     data: appSizeData,
     isPending: isAppSizePending,
     isError: isAppSizeError,
     error: appSizeError,
-  } = props.appSizeQuery;
+  } = appSizeQuery;
 
   // If the main data fetch fails, this component will not be rendered
   // so we don't handle 'isBuildDetailsError'.
-  const {isPending: isBuildDetailsPending, data: buildDetailsData} =
-    props.buildDetailsQuery;
 
   const [selectedContentParam, setSelectedContentParam] = useQueryParamState<
     'treemap' | 'categories'
@@ -236,7 +236,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   }
 
   return (
-    <Flex direction="column" gap="lg" minHeight="700px">
+    <Flex direction="column" gap="lg" minHeight="700px" width="100%">
       <Flex align="center" gap="md">
         {categoriesEnabled && (
           <SegmentedControl value={selectedContent} onChange={handleContentChange}>
