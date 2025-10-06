@@ -68,7 +68,7 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
                 request.user, (User, RpcUser)
             ), "User must be authenticated to install a sentry app"
             api_token = SentryAppInstallationTokenCreator(
-                sentry_app_installation=sentry_app_installation
+                sentry_app_installation=sentry_app_installation, generate_audit=True
             ).run(request=request, user=request.user)
         except ApiTokenLimitError as e:
             return Response(str(e), status=status.HTTP_403_FORBIDDEN)

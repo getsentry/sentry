@@ -92,7 +92,7 @@ class SentryAppInstallationTokenCreator:
         if request and self.generate_audit:
             create_audit_entry(
                 request=request,
-                organization=self.organization_id,
+                organization_id=self.organization_id,
                 target_object=api_token.id,
                 event=audit_log.get_event_id("INTERNAL_INTEGRATION_ADD_TOKEN"),
                 data={"sentry_app": self.sentry_app.name},
