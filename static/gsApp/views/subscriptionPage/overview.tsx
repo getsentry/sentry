@@ -24,7 +24,7 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
-import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
+import {hasAccessToSubscriptionOverview, hasNewBillingUI} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   isPartOfReservedBudget,
@@ -61,6 +61,7 @@ function Overview({location, subscription, promotionData}: Props) {
   const api = useApi();
   const organization = useOrganization();
   const navigate = useNavigate();
+  const isNewBillingUI = hasNewBillingUI(organization);
 
   const displayMode = ['cost', 'usage'].includes(location.query.displayMode as string)
     ? (location.query.displayMode as 'cost' | 'usage')
@@ -168,7 +169,7 @@ function Overview({location, subscription, promotionData}: Props) {
   // Whilst self-serve accounts do.
   if (!hasBillingPerms && !subscription.canSelfServe) {
     return (
-      <SubscriptionPageContainer background="primary" organization={organization}>
+      <SubscriptionPageContainer background="secondary" organization={organization}>
         <ContactBillingMembers />
       </SubscriptionPageContainer>
     );
@@ -325,20 +326,38 @@ function Overview({location, subscription, promotionData}: Props) {
     );
   }
 
+  function Wrapper({children}: {children: React.ReactNode}) {
+    return (
+      <SubscriptionPageContainer
+        background="secondary"
+        organization={organization}
+        header={
+          isNewBillingUI ? (
+            <SubscriptionHeader organization={organization} subscription={subscription} />
+          ) : undefined
+        }
+      >
+        {!isNewBillingUI && (
+          <SubscriptionHeader subscription={subscription} organization={organization} />
+        )}
+        {children}
+      </SubscriptionPageContainer>
+    );
+  }
+
   if (isPending) {
     return (
-      <SubscriptionPageContainer background="primary" organization={organization}>
-        <SubscriptionHeader subscription={subscription} organization={organization} />
+      <Wrapper>
         <LoadingIndicator />
-      </SubscriptionPageContainer>
+      </Wrapper>
     );
   }
 
   if (isError) {
     return (
-      <SubscriptionPageContainer background="primary" organization={organization}>
+      <Wrapper>
         <LoadingError onRetry={refetchUsage} />
-      </SubscriptionPageContainer>
+      </Wrapper>
     );
   }
 
@@ -392,14 +411,13 @@ function Overview({location, subscription, promotionData}: Props) {
   }
 
   return (
-    <SubscriptionPageContainer background="primary" organization={organization}>
-      <SubscriptionHeader organization={organization} subscription={subscription} />
+    <Wrapper>
       <div>
         {hasBillingPerms
           ? contentWithBillingPerms(usage, subscription.planDetails)
           : contentWithoutBillingPerms(usage)}
       </div>
-    </SubscriptionPageContainer>
+    </Wrapper>
   );
 }
 

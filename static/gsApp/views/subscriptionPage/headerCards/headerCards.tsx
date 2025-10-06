@@ -19,12 +19,6 @@ interface HeaderCardsProps {
 function getCards(organization: Organization, subscription: Subscription) {
   const cards: React.ReactNode[] = [];
 
-  cards.push(
-    <Container key="subscription-card" background="primary" border="primary" radius="md">
-      <SubscriptionCard organization={organization} subscription={subscription} />
-    </Container>
-  );
-
   if (subscription.canSelfServe || subscription.onDemandInvoiced) {
     cards.push(
       <BillingInfoCard
