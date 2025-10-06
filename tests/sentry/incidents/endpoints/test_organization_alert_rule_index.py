@@ -1821,6 +1821,18 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
         }
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
+    def test_eap_alert_with_invalid_time_window(self) -> None:
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "events_analytics_platform"
+        data["alertType"] = "eap_metrics"
+        data["timeWindow"] = 1
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert (
+            resp.data["nonFieldErrors"][0]
+            == "Invalid Time Window: Time window for this alert type must be at least 5 minutes."
+        )
+
 
 @freeze_time()
 class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAlert):

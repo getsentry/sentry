@@ -3,7 +3,7 @@ import logging
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -15,6 +15,7 @@ from sentry.integrations.source_code_management.metrics import (
 )
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
+from sentry.preprod.analytics import PreprodApiPrPageCommentsEvent
 from sentry.preprod.integration_utils import get_github_client
 from sentry.preprod.pull_request.comment_types import (
     IssueComment,
@@ -51,6 +52,15 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
         GET /projects/sentry/pr-comments/getsentry/sentry/12345/
         ```
         """
+        analytics.record(
+            PreprodApiPrPageCommentsEvent(
+                organization_id=organization.id,
+                user_id=request.user.id,
+                repo_name=repo_name,
+                pr_number=pr_number,
+            )
+        )
+
         if not features.has("organizations:pr-page", organization, actor=request.user):
             return Response({"error": "Feature not enabled"}, status=403)
 

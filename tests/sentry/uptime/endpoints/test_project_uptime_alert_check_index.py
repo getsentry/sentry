@@ -1,15 +1,16 @@
 import uuid
 from abc import abstractmethod
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-from sentry.testutils.cases import UptimeCheckSnubaTestCase
+from sentry.testutils.cases import UptimeCheckSnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.types import IncidentStatus
 from sentry.utils.cursors import Cursor
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
-from tests.sentry.uptime.endpoints.test_base import MOCK_DATETIME, UptimeResultEAPTestCase
+
+MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
 
 
 class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):

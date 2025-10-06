@@ -4,7 +4,6 @@ from typing import Any
 
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import workflow_engine_tasks
 from sentry.taskworker.retry import Retry
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
@@ -15,20 +14,10 @@ logger = log_context.get_logger("sentry.workflow_engine.tasks.delayed_workflows"
 
 @instrumented_task(
     name="sentry.workflow_engine.tasks.delayed_workflows",
-    queue="delayed_rules",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=50,
-    time_limit=60,
+    namespace=workflow_engine_tasks,
+    processing_deadline_duration=60,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=workflow_engine_tasks,
-        processing_deadline_duration=60,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @retry(timeouts=True)
 @log_context.root()

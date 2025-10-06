@@ -38,27 +38,12 @@ class CreateEventTestCase(TestCase):
 
 class ProcessBufferedWorkflowsTest(CreateEventTestCase):
     @override_options(
-        {"delayed_workflow.rollout": True, "workflow_engine.scheduler.use_conditional_delete": True}
+        {"delayed_workflow.rollout": True},
     )
     @patch("sentry.workflow_engine.processors.schedule.process_in_batches")
     def test_fetches_from_buffer_and_executes_with_conditional_delete(
         self, mock_process_in_batches: MagicMock
     ) -> None:
-        self._test_fetches_from_buffer_and_executes(mock_process_in_batches)
-
-    @override_options(
-        {
-            "delayed_workflow.rollout": True,
-            "workflow_engine.scheduler.use_conditional_delete": False,
-        }
-    )
-    @patch("sentry.workflow_engine.processors.schedule.process_in_batches")
-    def test_fetches_from_buffer_and_executes_without_conditional_delete(
-        self, mock_process_in_batches: MagicMock
-    ) -> None:
-        self._test_fetches_from_buffer_and_executes(mock_process_in_batches)
-
-    def _test_fetches_from_buffer_and_executes(self, mock_process_in_batches: MagicMock) -> None:
         project = self.create_project()
         project_two = self.create_project()
         group = self.create_group(project)

@@ -1881,6 +1881,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # 1MB
 register(
+    "performance.issues.large_http_payload.filtered_paths",
+    default="",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.issues.db_on_main_thread.total_spans_duration_threshold",
     default=16,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2415,33 +2420,6 @@ register(
 register(
     "metric_extraction.max_span_attribute_specs",
     default=100,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.minimetrics_sample_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# IDs of orgs that will stop ingesting custom metrics.
-register(
-    "custom-metrics-ingestion-disabled-orgs",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# IDs of projects that will stop ingesting custom metrics.
-register(
-    "custom-metrics-ingestion-disabled-projects",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# IDs of orgs that will be disabled from querying metrics via `/metrics/query` endpoint.
-register(
-    "custom-metrics-querying-disabled-orgs",
-    default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3122,6 +3100,13 @@ register(
 register(
     "workflow_engine.scheduler.use_conditional_delete",
     type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "workflow_engine.associate_error_detectors",
+    type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -3512,4 +3497,13 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch for treating demo user as unauthenticated
+# in our auth pipelines.
+register(
+    "demo-user.auth.pipelines.always.unauthenticated.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
