@@ -299,7 +299,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         ):
             SubscriptionProcessor(self.sub).process_update(message)
         self.metrics.incr.assert_called_once_with(
-            "incidents.alert_rules.no_alert_rule_for_subscription"
+            "incidents.alert_rules.no_alert_rule_for_subscription", sample_rate=1.0
         )
         assert not QuerySubscription.objects.filter(id=subscription_id).exists()
         assert SnubaQuery.objects.filter(id=snuba_query.id).exists()
@@ -324,7 +324,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         ):
             SubscriptionProcessor(subscription).process_update(message)
         self.metrics.incr.assert_called_once_with(
-            "incidents.alert_rules.no_alert_rule_for_subscription"
+            "incidents.alert_rules.no_alert_rule_for_subscription", sample_rate=1.0
         )
         assert not QuerySubscription.objects.filter(id=subscription_id).exists()
         assert not SnubaQuery.objects.filter(id=snuba_query.id).exists()

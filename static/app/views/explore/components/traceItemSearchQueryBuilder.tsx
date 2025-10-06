@@ -38,11 +38,11 @@ const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   }, {} as TagCollection);
 };
 
-const typeMap: Record<TraceItemDataset, 'span' | 'log' | 'uptime' | 'tracemetrics'> = {
+const typeMap: Record<TraceItemDataset, 'span' | 'log' | 'uptime' | 'tracemetric'> = {
   [TraceItemDataset.SPANS]: 'span',
   [TraceItemDataset.LOGS]: 'log',
   [TraceItemDataset.UPTIME_RESULTS]: 'uptime',
-  [TraceItemDataset.TRACEMETRICS]: 'tracemetrics',
+  [TraceItemDataset.TRACEMETRICS]: 'tracemetric',
 };
 
 function getTraceItemFieldDefinitionFunction(

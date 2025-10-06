@@ -31,6 +31,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useUserFromId from 'sentry/utils/useUserFromId';
+import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import AutomationHistoryList from 'sentry/views/automations/components/automationHistoryList';
 import {AutomationStatsChart} from 'sentry/views/automations/components/automationStatsChart';
 import ConditionsPanel from 'sentry/views/automations/components/conditionsPanel';
@@ -247,6 +248,7 @@ function Actions({automation}: {automation: Automation}) {
 
   return (
     <Fragment>
+      <AutomationFeedbackButton />
       <Button priority="default" size="sm" onClick={toggleDisabled} busy={isUpdating}>
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>

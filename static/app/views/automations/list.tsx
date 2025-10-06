@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {useCallback} from 'react';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -17,6 +17,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import AutomationListTable from 'sentry/views/automations/components/automationListTable';
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
 import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
@@ -136,7 +137,8 @@ function TableHeader() {
 function Actions() {
   const organization = useOrganization();
   return (
-    <Fragment>
+    <Flex gap="sm">
+      <AutomationFeedbackButton />
       <LinkButton
         to={`${makeAutomationBasePathname(organization.slug)}new/`}
         priority="primary"
@@ -145,6 +147,6 @@ function Actions() {
       >
         {t('Create Automation')}
       </LinkButton>
-    </Fragment>
+    </Flex>
   );
 }

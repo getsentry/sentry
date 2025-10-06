@@ -10,6 +10,7 @@ from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import test_tasks
 from sentry.taskworker.registry import TaskRegistry
 from sentry.taskworker.retry import Retry, RetryError
+from sentry.taskworker.state import CurrentTaskState
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 
 
@@ -215,3 +216,21 @@ def test_instrumented_task_parameters() -> None:
     assert decorated.retry
     assert decorated.retry._times == 3
     assert decorated.retry._allowed_exception_types == (RuntimeError,)
+
+
+@patch("sentry.tasks.base.current_task")
+def test_retry_raise_if_no_retries_false(mock_current_task):
+    mock_task_state = MagicMock(spec=CurrentTaskState)
+    mock_task_state.retries_remaining = False
+    mock_current_task.return_value = mock_task_state
+
+    @retry(on=(Exception,), raise_on_no_retries=False)
+    def task_that_raises_retry_error():
+        raise RetryError("try again")
+
+    # No exception.
+    task_that_raises_retry_error()
+
+    mock_task_state.retries_remaining = True
+    with pytest.raises(RetryError):
+        task_that_raises_retry_error()

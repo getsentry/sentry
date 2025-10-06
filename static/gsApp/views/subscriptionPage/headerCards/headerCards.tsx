@@ -5,6 +5,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Subscription} from 'getsentry/types';
 import {hasNewBillingUI} from 'getsentry/utils/billing';
 import BillingInfoCard from 'getsentry/views/subscriptionPage/headerCards/billingInfoCard';
+import LinksCard from 'getsentry/views/subscriptionPage/headerCards/linksCard';
 import SeerAutomationAlert from 'getsentry/views/subscriptionPage/seerAutomationAlert';
 
 import {SubscriptionCard} from './subscriptionCard';
@@ -34,6 +35,8 @@ function getCards(organization: Organization, subscription: Subscription) {
     );
   }
 
+  cards.push(<LinksCard key="links" />);
+
   return cards;
 }
 
@@ -49,7 +52,6 @@ function HeaderCards({organization, subscription}: HeaderCardsProps) {
         <Grid
           columns={{
             xs: '1fr',
-            sm: `repeat(${Math.min(cards.length, 2)}, 1fr)`,
             md: `repeat(${cards.length}, 1fr)`,
           }}
           gap="xl"

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FormContext from 'sentry/components/forms/formContext';
+import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -38,31 +39,47 @@ export function DetectorQueryFilterBuilder() {
   }, [projectId]);
 
   return (
-    <Flex direction="column" gap="xs" flex={1}>
-      <div>
-        <Tooltip
-          title={t(
-            'Filter down your search here. You can add multiple queries to compare data for each overlay.'
-          )}
-          showUnderline
-        >
-          <SectionLabel>{t('Filter')}</SectionLabel>
-        </Tooltip>{' '}
-        <SectionLabelSecondary>({t('optional')})</SectionLabelSecondary>
-      </div>
-      <QueryFieldRowWrapper>
-        <SearchBar
-          initialQuery={currentQuery}
-          projectIds={projectIds}
-          onClose={handleQueryChange}
-          onSearch={handleQueryChange}
-          dataset={datasetConfig.getDiscoverDataset()}
-          environment={environment}
-        />
-      </QueryFieldRowWrapper>
-    </Flex>
+    <NoPaddingFormField
+      name={METRIC_DETECTOR_FORM_FIELDS.query}
+      inline={false}
+      flexibleControlStateSize
+      label={t('Filter')}
+      hideLabel
+    >
+      {({ref: _ref, ...fieldProps}) => (
+        <Flex direction="column" gap="xs" flex={1}>
+          <div>
+            <Tooltip
+              title={t(
+                'Filter down your search here. You can add multiple queries to compare data for each overlay.'
+              )}
+              showUnderline
+            >
+              <SectionLabel>{t('Filter')}</SectionLabel>
+            </Tooltip>{' '}
+            <SectionLabelSecondary>({t('optional')})</SectionLabelSecondary>
+          </div>
+          <QueryFieldRowWrapper>
+            <SearchBar
+              initialQuery={currentQuery}
+              projectIds={projectIds}
+              onClose={handleQueryChange}
+              onSearch={handleQueryChange}
+              dataset={datasetConfig.getDiscoverDataset()}
+              environment={environment}
+              {...fieldProps}
+            />
+          </QueryFieldRowWrapper>
+        </Flex>
+      )}
+    </NoPaddingFormField>
   );
 }
+
+const NoPaddingFormField = styled(FormField)`
+  padding: 0;
+  width: 100%;
+`;
 
 const QueryFieldRowWrapper = styled('div')`
   display: flex;

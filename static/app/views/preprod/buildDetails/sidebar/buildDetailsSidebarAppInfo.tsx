@@ -30,6 +30,7 @@ interface Labels {
   downloadSize: string;
   installSize: string;
   installSizeText: string;
+  installUnavailableTooltip: string;
 }
 
 function getLabels(platform: Platform | undefined): Labels {
@@ -41,6 +42,7 @@ function getLabels(platform: Platform | undefined): Labels {
         installSize: t('Size on disk not including AOT DEX'),
         downloadSize: t('Bytes transferred over the network'),
         buildConfiguration: t('Build configuration'),
+        installUnavailableTooltip: t('This app cannot be installed.'),
       };
     case 'ios':
     case 'macos':
@@ -51,6 +53,9 @@ function getLabels(platform: Platform | undefined): Labels {
         installSize: t('Unencrypted install size'),
         downloadSize: t('Bytes transferred over the network'),
         buildConfiguration: t('Build configuration'),
+        installUnavailableTooltip: t(
+          'Code signature must be valid for this app to be installed.'
+        ),
       };
     default:
       return unreachable(platform);
@@ -161,7 +166,7 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
                 Installable
               </InstallableLink>
             ) : (
-              'Not Installable'
+              <Tooltip title={labels.installUnavailableTooltip}>Not Installable</Tooltip>
             )}
           </Text>
         </Flex>

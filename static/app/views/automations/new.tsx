@@ -16,6 +16,7 @@ import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import {ConnectMonitorsContent} from 'sentry/views/automations/components/editConnectedMonitors';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
@@ -59,6 +60,7 @@ export default function AutomationNew() {
             <AutomationBreadcrumbs />
             <Layout.Title>{t('New Automation')}</Layout.Title>
           </Layout.HeaderContent>
+          <AutomationFeedbackButton />
         </StyledLayoutHeader>
         <Layout.Body>
           <Layout.Main fullWidth>

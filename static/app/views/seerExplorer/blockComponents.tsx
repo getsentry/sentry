@@ -18,8 +18,18 @@ interface BlockProps {
   ref?: React.Ref<HTMLDivElement>;
 }
 
+function hasValidContent(content: string): boolean {
+  if (!content) {
+    return false;
+  }
+  const trimmed = content.trim();
+  return trimmed.length > 0 && trimmed !== '.'; // sometimes the LLM just says '.' when calling a tool
+}
+
 function BlockComponent({block, isLast, isFocused, onClick, ref}: BlockProps) {
   const toolsUsed = getToolsStringFromBlock(block);
+  const hasTools = toolsUsed.length > 0;
+  const hasContent = hasValidContent(block.message.content);
 
   return (
     <Block ref={ref} isLast={isLast} onClick={onClick}>
@@ -36,10 +46,13 @@ function BlockComponent({block, isLast, isFocused, onClick, ref}: BlockProps) {
             </BlockRow>
           ) : (
             <BlockRow>
-              <ResponseDot isLoading={block.loading} />
-              <BlockContentWrapper>
-                {block.message.content && <BlockContent text={block.message.content} />}
-                {toolsUsed.length > 0 && (
+              <ResponseDot
+                isLoading={block.loading}
+                hasOnlyTools={!hasContent && hasTools}
+              />
+              <BlockContentWrapper hasOnlyTools={!hasContent && hasTools}>
+                {hasContent && <BlockContent text={block.message.content} />}
+                {hasTools && (
                   <Stack gap="md">
                     {toolsUsed.map(tool => (
                       <Text key={tool} size="xs" variant="muted" monospace>
@@ -66,7 +79,6 @@ export default BlockComponent;
 const Block = styled('div')<{isLast?: boolean}>`
   width: 100%;
   border-bottom: ${p => (p.isLast ? 'none' : `1px solid ${p.theme.border}`)};
-  min-height: 40px;
   position: relative;
   flex-shrink: 0; /* Prevent blocks from shrinking */
   cursor: pointer;
@@ -86,11 +98,11 @@ const BlockChevronIcon = styled(IconChevron)`
   flex-shrink: 0;
 `;
 
-const ResponseDot = styled('div')<{isLoading?: boolean}>`
+const ResponseDot = styled('div')<{hasOnlyTools?: boolean; isLoading?: boolean}>`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  margin-top: 22px;
+  margin-top: ${p => (p.hasOnlyTools ? '12px' : '22px')};
   margin-left: ${space(2)};
   flex-shrink: 0;
   background: ${p => (p.isLoading ? p.theme.pink400 : p.theme.purple400)};
@@ -107,8 +119,9 @@ const ResponseDot = styled('div')<{isLoading?: boolean}>`
   `}
 `;
 
-const BlockContentWrapper = styled('div')`
-  padding: ${space(2)};
+const BlockContentWrapper = styled('div')<{hasOnlyTools?: boolean}>`
+  padding: ${p =>
+    p.hasOnlyTools ? `${p.theme.space.md} ${p.theme.space.xl}` : p.theme.space.xl};
 `;
 
 const BlockContent = styled(MarkedText)`

@@ -6,6 +6,7 @@ import {loadStripe} from '@stripe/stripe-js';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
+import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
@@ -137,13 +138,20 @@ class AMCheckout extends Component<Props, State> {
     ) {
       props.onToggleLegacy(props.subscription.planTier);
     }
-    // TODO(checkout v3): remove these checks once checkout v3 is GA'd and we remove the legacy checkout route
+    const query = props.location?.query;
+    const queryString =
+      query && Object.keys(query).length > 0 ? `?${qs.stringify(query)}` : '';
+
+    // TODO(checkout v3): remove these checks once checkout v3 is GA'd and we've remove the legacy checkout route
     if (props.location?.pathname.includes('checkout-v3') && !props.isNewCheckout) {
-      props.navigate(`/settings/${props.organization.slug}/billing/checkout/`, {
-        replace: true,
-      });
+      props.navigate(
+        `/settings/${props.organization.slug}/billing/checkout/${queryString}`,
+        {
+          replace: true,
+        }
+      );
     } else if (!props.location?.pathname.includes('checkout-v3') && props.isNewCheckout) {
-      props.navigate(`/checkout-v3/`, {replace: true});
+      props.navigate(`/checkout-v3/${queryString}`, {replace: true});
     }
     let step = 1;
     if (props.location?.hash) {

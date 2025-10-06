@@ -239,7 +239,7 @@ def update_snuba_subscription(subscription, old_query_type, old_dataset, old_agg
     return subscription
 
 
-def bulk_delete_snuba_subscriptions(subscriptions):
+def bulk_delete_snuba_subscriptions(subscriptions: Iterable[QuerySubscription]) -> None:
     """
     Deletes a list of snuba query subscriptions.
     :param subscriptions: The subscriptions to delete
@@ -250,7 +250,7 @@ def bulk_delete_snuba_subscriptions(subscriptions):
         delete_snuba_subscription(subscription)
 
 
-def delete_snuba_subscription(subscription):
+def delete_snuba_subscription(subscription: QuerySubscription) -> None:
     """
     Deletes a subscription to a snuba query.
     :param subscription: The subscription to delete

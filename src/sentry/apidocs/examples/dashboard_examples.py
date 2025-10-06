@@ -63,6 +63,7 @@ DASHBOARD_OBJECT = {
             "limit": None,
             "widgetType": "transaction-like",
             "layout": {"w": 2, "y": 0, "h": 2, "minH": 2, "x": 0},
+            "exploreUrls": None,
         }
     ],
     "projects": [1],

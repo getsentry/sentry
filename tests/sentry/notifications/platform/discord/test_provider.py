@@ -7,7 +7,10 @@ from sentry.integrations.discord.message_builder.base.component.action_row impor
 from sentry.integrations.discord.message_builder.base.component.base import (
     DiscordMessageComponentDict,
 )
-from sentry.integrations.discord.message_builder.base.component.button import DiscordButtonDict
+from sentry.integrations.discord.message_builder.base.component.button import (
+    DiscordButtonDict,
+    DiscordButtonStyle,
+)
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.discord.provider import (
     DiscordNotificationProvider,
@@ -30,13 +33,12 @@ def assert_button_properties(
     button: DiscordMessageComponentDict,
     expected_label: str,
     expected_url: str,
-    expected_custom_id: str,
 ) -> None:
-    """Helper function to assert button properties."""
+    """Helper function to assert discord link button properties."""
     assert is_button(button)
     assert button["label"] == expected_label
     assert button["url"] == expected_url
-    assert button["custom_id"] == expected_custom_id
+    assert button["style"] == DiscordButtonStyle.LINK
 
 
 from sentry.notifications.platform.types import (
@@ -86,7 +88,7 @@ class DiscordRendererTest(TestCase):
         assert len(action_row["components"]) == 1
 
         button = action_row["components"][0]
-        assert_button_properties(button, "Visit Sentry", "https://www.sentry.io", "visit_sentry")
+        assert_button_properties(button, "Visit Sentry", "https://www.sentry.io")
 
     def test_renderer_without_chart(self) -> None:
         """Test rendering when no chart is provided"""
@@ -217,11 +219,9 @@ class DiscordRendererTest(TestCase):
         assert len(buttons) == 3
 
         # Test button properties
-        assert_button_properties(buttons[0], "Action 1", "https://example1.com", "action_1")
-        assert_button_properties(buttons[1], "Action 2", "https://example2.com", "action_2")
-        assert_button_properties(
-            buttons[2], "Complex Action Name", "https://example3.com", "complex_action_name"
-        )
+        assert_button_properties(buttons[0], "Action 1", "https://example1.com")
+        assert_button_properties(buttons[1], "Action 2", "https://example2.com")
+        assert_button_properties(buttons[2], "Complex Action Name", "https://example3.com")
 
 
 class DiscordNotificationProviderTest(TestCase):

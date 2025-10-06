@@ -680,7 +680,13 @@ class SubscriptionProcessor:
         if not hasattr(self, "alert_rule"):
             # QuerySubscriptions must _always_ have an associated AlertRule
             # If the alert rule has been removed then clean up associated tables and return
-            metrics.incr("incidents.alert_rules.no_alert_rule_for_subscription")
+            metrics.incr("incidents.alert_rules.no_alert_rule_for_subscription", sample_rate=1.0)
+            logger.error(
+                "Deleting QuerySubscription due to lack of matching AlertRule",
+                extra={
+                    "subscription_id": self.subscription.id,
+                },
+            )
             delete_snuba_subscription(self.subscription)
             return
 

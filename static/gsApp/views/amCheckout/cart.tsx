@@ -15,7 +15,6 @@ import {IconChevron, IconLightning, IconLock, IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 
@@ -30,6 +29,7 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {
+  displayBudgetName,
   formatReservedWithUnits,
   getPlanIcon,
   getProductIcon,
@@ -233,18 +233,15 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                         title={t('This product is only available with a PAYG budget.')}
                       >
                         <Tag icon={<IconLock locked size="xs" />}>
-                          {isChonk || activePlan.budgetTerm === 'pay-as-you-go' ? (
+                          {isChonk ? (
                             tct('Unlock with [budgetTerm]', {
-                              budgetTerm:
-                                activePlan.budgetTerm === 'pay-as-you-go'
-                                  ? 'PAYG'
-                                  : activePlan.budgetTerm,
+                              budgetTerm: displayBudgetName(activePlan, {title: true}),
                             })
                           ) : (
                             // "Unlock with on-demand" gets cut off in non-chonk theme
                             <Text size="xs">
                               {tct('Unlock with [budgetTerm]', {
-                                budgetTerm: activePlan.budgetTerm,
+                                budgetTerm: displayBudgetName(activePlan, {title: true}),
                               })}
                             </Text>
                           )}
@@ -364,7 +361,7 @@ function SubtotalSummary({
               <ItemFlex>
                 <Text>
                   {tct('[budgetTerm] spend limit', {
-                    budgetTerm: capitalize(activePlan.budgetTerm),
+                    budgetTerm: displayBudgetName(activePlan, {title: true}),
                   })}
                 </Text>
                 <Flex direction="column" gap="sm" align="end">

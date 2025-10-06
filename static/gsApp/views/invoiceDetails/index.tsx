@@ -61,8 +61,8 @@ function InvoiceDetails({params}: Props) {
 
   return (
     <SubscriptionPageContainer background="secondary" organization={organization}>
-      <SettingsPageHeader title={t('Invoice Details')}>
-        {t('Invoice Details')}
+      <SettingsPageHeader title={t('Receipt Details')}>
+        {t('Receipt Details')}
       </SettingsPageHeader>
       <Panel>
         {isInvoiceLoading || isBillingDetailsLoading ? (

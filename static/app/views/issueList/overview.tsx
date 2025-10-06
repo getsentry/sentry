@@ -293,6 +293,7 @@ function IssueListOverview({
     async (newGroupIds: string[]) => {
       // If we have no groups to fetch, just skip stats
       if (!newGroupIds.length) {
+        setStatsLoading(false);
         return;
       }
 
