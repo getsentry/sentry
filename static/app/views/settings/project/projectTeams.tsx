@@ -30,7 +30,7 @@ export default function ProjectTeams() {
 
   const organization = useOrganization();
   const {projectId} = useParams<{projectId: string}>();
-  const {projects} = useProjects();
+  const {projects} = useProjects({slugs: [projectId]});
   const project = projects.find(p => p.slug === projectId)!;
 
   const {
