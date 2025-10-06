@@ -2,7 +2,6 @@ import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {Actor} from 'sentry/types/core';
 import type {Team} from 'sentry/types/organization';
@@ -158,10 +157,11 @@ function AvatarList({
 export default AvatarList;
 
 // used in releases list page to do some alignment
-const AvatarListWrapper = styled(Flex).attrs({
-  align: 'center',
-  direction: 'row-reverse',
-})``;
+const AvatarListWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  flex-direction: row-reverse;
+`;
 
 const AvatarStyle = (p: {theme: Theme}) => css`
   border: 2px solid ${p.theme.background};
