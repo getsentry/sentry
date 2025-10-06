@@ -4,7 +4,7 @@ import datetime
 import functools
 import logging
 from collections.abc import Callable, Iterable
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, TypeVar, cast
 
 import sentry_sdk
 from django.db.models import Model
@@ -15,14 +15,12 @@ from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.registry import TaskNamespace
 from sentry.taskworker.retry import Retry, RetryError, retry_task
 from sentry.taskworker.state import current_task
+from sentry.taskworker.task import P, R, Task
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils import metrics
 from sentry.utils.env import in_test_environment
 
 ModelT = TypeVar("ModelT", bound=Model)
-
-P = ParamSpec("P")
-R = TypeVar("R")
 
 logger = logging.getLogger(__name__)
 
@@ -38,18 +36,18 @@ class TaskSiloLimit(SiloLimit):
 
     def handle_when_unavailable(
         self,
-        original_method: Callable[..., Any],
+        original_method: Callable[P, R],
         current_mode: SiloMode,
         available_modes: Iterable[SiloMode],
-    ) -> Callable[..., Any]:
-        def handle(*args: Any, **kwargs: Any) -> Any:
+    ) -> Callable[P, R]:
+        def handle(*args: P.args, **kwargs: P.kwargs) -> Any:
             name = original_method.__name__
             message = f"Cannot call or spawn {name} in {current_mode},"
             raise self.AvailabilityError(message)
 
         return handle
 
-    def __call__(self, decorated_task: Any) -> Any:
+    def __call__(self, decorated_task: Task[P, R]) -> Task[P, R]:
         # Replace the sentry.taskworker.Task interface used to schedule tasks.
         replacements = {"delay", "apply_async"}
         for attr_name in replacements:
@@ -58,7 +56,9 @@ class TaskSiloLimit(SiloLimit):
                 limited_attr = self.create_override(task_attr)
                 setattr(decorated_task, attr_name, limited_attr)
 
-        limited_func = self.create_override(decorated_task)
+        # Cast as the super class type is just Callable, but we know here
+        # we have Task instances.
+        limited_func = cast(Task[P, R], self.create_override(decorated_task))
         if hasattr(decorated_task, "name"):
             limited_func.name = decorated_task.name  # type: ignore[attr-defined]
         return limited_func
@@ -87,7 +87,7 @@ def instrumented_task(
     silo_mode=None,
     taskworker_config=None,
     **kwargs,
-):
+) -> Callable[[Callable[P, R]], Task[P, R]]:
     """
     Decorator for defining tasks.
 
@@ -98,7 +98,7 @@ def instrumented_task(
     - hybrid cloud silo restrictions
     """
 
-    def wrapped(func):
+    def wrapped(func: Callable[P, R]) -> Task[P, R]:
         if namespace:
             task = namespace.register(
                 name=name,
