@@ -58,7 +58,7 @@ function FeedbackButton() {
 export function Drawer({boxSelectOptions, chartInfo}: Props) {
   const {data, isLoading, isError} = useSuspectAttributes({boxSelectOptions, chartInfo});
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortingMethod, setSortingMethod] = useState<SortingMethod>('rrf');
+  const [sortingMethod, setSortingMethod] = useState<SortingMethod>('rrr');
 
   const filteredRankedAttributes = useMemo(() => {
     const attrs = data?.rankedAttributes;
