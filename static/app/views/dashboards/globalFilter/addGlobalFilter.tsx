@@ -16,7 +16,7 @@ import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {WidgetType, type GlobalDashboardFilter} from 'sentry/views/dashboards/types';
 import {shouldExcludeTracingKeys} from 'sentry/views/performance/utils';
 
-const DATASET_CHOICES = new Map<WidgetType, string>([
+export const DATASET_CHOICES = new Map<WidgetType, string>([
   [WidgetType.ERRORS, t('Errors')],
   [WidgetType.SPANS, t('Spans')],
   [WidgetType.LOGS, t('Logs')],
