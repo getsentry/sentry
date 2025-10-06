@@ -1,12 +1,12 @@
 from sentry.integrations.discord.message_builder.base.component.button import (
-    DiscordButton,
     DiscordButtonStyle,
+    DiscordInteractiveButton,
     DiscordLinkButton,
 )
 
 
 def test_custom_button() -> None:
-    button = DiscordButton(
+    button = DiscordInteractiveButton(
         style=DiscordButtonStyle.PRIMARY,
         custom_id="test_button",
         label="button label",

@@ -8,8 +8,8 @@ from sentry.integrations.discord.message_builder.base.component.base import (
     DiscordMessageComponentDict,
 )
 from sentry.integrations.discord.message_builder.base.component.button import (
-    DiscordButtonDict,
     DiscordButtonStyle,
+    DiscordInteractiveButtonDict,
 )
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.discord.provider import (
@@ -24,7 +24,7 @@ def is_action_row(component: DiscordMessageComponentDict) -> TypeGuard[DiscordAc
     return component.get("type") == 1
 
 
-def is_button(component: DiscordMessageComponentDict) -> TypeGuard[DiscordButtonDict]:
+def is_button(component: DiscordMessageComponentDict) -> TypeGuard[DiscordInteractiveButtonDict]:
     """Type guard to check if component is a button."""
     return component.get("type") == 2
 

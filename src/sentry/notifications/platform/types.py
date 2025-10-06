@@ -102,6 +102,11 @@ class NotificationRenderedAction:
     """
     The underlying link of the action.
     """
+    custom_id: str | None = None
+    """
+    The custom ID to assign to the action.
+    Optional, but an example is to map an action/button to a handler in Sentry, such as Assign, Resolve, etc.
+    """
 
 
 @dataclass(frozen=True)

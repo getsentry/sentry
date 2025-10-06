@@ -72,6 +72,7 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
             buttons = [
                 DiscordLinkButton(
                     label=action.label,
+                    url=action.link,
                 )
                 for action in rendered_template.actions
             ]

@@ -5,7 +5,7 @@ from typing import NotRequired
 from .base import DiscordMessageComponent, DiscordMessageComponentDict
 
 
-class DiscordButtonDict(DiscordMessageComponentDict):
+class DiscordInteractiveButtonDict(DiscordMessageComponentDict):
     style: int
     custom_id: str
     label: NotRequired[str]
@@ -21,7 +21,7 @@ class DiscordButtonStyle:
     LINK = 5
 
 
-class DiscordButton(DiscordMessageComponent):
+class DiscordInteractiveButton(DiscordMessageComponent):
     # Note that buttons must be contained in an ActionRow!
     def __init__(
         self,
@@ -36,8 +36,10 @@ class DiscordButton(DiscordMessageComponent):
         self.disabled = disabled
         super().__init__(type=2)
 
-    def build(self) -> DiscordButtonDict:
-        button = DiscordButtonDict(type=self.type, style=self.style, custom_id=self.custom_id)
+    def build(self) -> DiscordInteractiveButtonDict:
+        button = DiscordInteractiveButtonDict(
+            type=self.type, style=self.style, custom_id=self.custom_id
+        )
 
         if self.label is not None:
             button["label"] = self.label

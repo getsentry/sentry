@@ -8,7 +8,9 @@ from sentry.integrations.discord.message_builder.base.base import (
 )
 from sentry.integrations.discord.message_builder.base.component.action_row import DiscordActionRow
 from sentry.integrations.discord.message_builder.base.component.base import DiscordMessageComponent
-from sentry.integrations.discord.message_builder.base.component.button import DiscordButton
+from sentry.integrations.discord.message_builder.base.component.button import (
+    DiscordInteractiveButton,
+)
 from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
 from sentry.integrations.discord.message_builder.base.embed.field import DiscordMessageEmbedField
 from sentry.integrations.discord.message_builder.base.embed.footer import DiscordMessageEmbedFooter
@@ -148,35 +150,35 @@ def build_components(
     project: Project,
 ) -> list[DiscordMessageComponent]:
 
-    archive_button = DiscordButton(
+    archive_button = DiscordInteractiveButton(
         custom_id=f"{CustomIds.ARCHIVE}:{group.id}",
         label="Archive",
     )
 
-    resolve_button = DiscordButton(
+    resolve_button = DiscordInteractiveButton(
         custom_id=f"{CustomIds.RESOLVE_DIALOG}:{group.id}", label="Resolve..."
     )
 
-    assign_button = DiscordButton(
+    assign_button = DiscordInteractiveButton(
         custom_id=f"{CustomIds.ASSIGN_DIALOG}:{group.id}", label="Assign..."
     )
 
     status = group.get_status()
 
     if not project.flags.has_releases:
-        resolve_button = DiscordButton(
+        resolve_button = DiscordInteractiveButton(
             custom_id=f"{CustomIds.RESOLVE}:{group.id}",
             label="Resolve",
         )
 
     if status == GroupStatus.RESOLVED:
-        resolve_button = DiscordButton(
+        resolve_button = DiscordInteractiveButton(
             custom_id=f"{CustomIds.UNRESOLVE}:{group.id}",
             label="Unresolve",
         )
 
     if status == GroupStatus.IGNORED:
-        archive_button = DiscordButton(
+        archive_button = DiscordInteractiveButton(
             custom_id=f"{CustomIds.MARK_ONGOING}:{group.id}",
             label="Mark as Ongoing",
         )
