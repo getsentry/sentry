@@ -34,7 +34,6 @@ import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDef
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {Am1BackendOverviewPage} from 'sentry/views/insights/pages/backend/am1BackendOverviewPage';
-import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {
   BackendOverviewTable,
   isAValidSort,
@@ -42,7 +41,6 @@ import {
 } from 'sentry/views/insights/pages/backend/backendTable';
 import {Referrer} from 'sentry/views/insights/pages/backend/referrers';
 import {
-  BACKEND_LANDING_TITLE,
   DEFAULT_SORT,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/backend/settings';
@@ -72,7 +70,7 @@ function BackendOverviewPage() {
     return <LaravelOverviewPage />;
   }
   if (isNextJsPageEnabled) {
-    return <NextJsOverviewPage performanceType="backend" />;
+    return <NextJsOverviewPage />;
   }
   if (isNewBackendExperienceEnabled) {
     return <EAPBackendOverviewPage />;
@@ -203,7 +201,6 @@ function EAPBackendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <BackendHeader headerTitle={BACKEND_LANDING_TITLE} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
