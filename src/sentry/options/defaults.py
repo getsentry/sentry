@@ -2416,33 +2416,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "delightful_metrics.minimetrics_sample_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# IDs of orgs that will stop ingesting custom metrics.
-register(
-    "custom-metrics-ingestion-disabled-orgs",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# IDs of projects that will stop ingesting custom metrics.
-register(
-    "custom-metrics-ingestion-disabled-projects",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# IDs of orgs that will be disabled from querying metrics via `/metrics/query` endpoint.
-register(
-    "custom-metrics-querying-disabled-orgs",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # SDK Crash Detection
 #
 # The project ID belongs to the sentry organization: https://sentry.sentry.io/projects/cocoa-sdk-crashes/?project=4505469596663808.
