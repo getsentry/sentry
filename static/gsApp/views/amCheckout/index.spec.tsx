@@ -29,8 +29,8 @@ function assertCheckoutV3Steps(tier: PlanTier) {
   [
     'Build your plan',
     [PlanTier.AM1, PlanTier.AM2].includes(tier)
-      ? /Set your On-Demand limit/
-      : /Set your Pay-as-you-go limit/,
+      ? /Set your on-demand limit/
+      : /Set your pay-as-you-go limit/,
     'Pay monthly or yearly, your choice',
     'Edit billing information',
   ].forEach(step => {

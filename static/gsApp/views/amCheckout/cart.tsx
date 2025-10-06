@@ -15,7 +15,6 @@ import {IconChevron, IconLightning, IconLock, IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 
@@ -239,7 +238,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                               budgetTerm:
                                 activePlan.budgetTerm === 'pay-as-you-go'
                                   ? 'PAYG'
-                                  : displayBudgetName(activePlan, {title: true}),
+                                  : displayBudgetName(activePlan),
                             })
                           ) : (
                             // "Unlock with on-demand" gets cut off in non-chonk theme
@@ -248,7 +247,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                                 budgetTerm:
                                   activePlan.budgetTerm === 'pay-as-you-go'
                                     ? 'PAYG'
-                                    : displayBudgetName(activePlan, {title: true}),
+                                    : displayBudgetName(activePlan),
                               })}
                             </Text>
                           )}

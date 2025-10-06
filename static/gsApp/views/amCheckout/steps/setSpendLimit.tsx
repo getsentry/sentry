@@ -56,7 +56,7 @@ function SetSpendCap({
         organization={organization}
         header={
           <StepHeader
-            title={t('Set your %s limit', displayBudgetName(activePlan, {title: true}))}
+            title={t('Set your %s limit', displayBudgetName(activePlan))}
             isActive
             stepNumber={stepNumber}
             isCompleted={false}
