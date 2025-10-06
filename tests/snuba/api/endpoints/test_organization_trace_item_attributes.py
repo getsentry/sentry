@@ -657,12 +657,12 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             },
             {
                 "key": "tags[span.duration,string]",
-                "name": "tags[span.duration,string]",
+                "name": "span.duration",
                 "attributeSource": {"source_type": "sentry"},
             },
             {
                 "key": "tags[span.op,string]",
-                "name": "tags[span.op,string]",
+                "name": "span.op",
                 "attributeSource": {"source_type": "sentry"},
             },
         ]
