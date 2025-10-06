@@ -38,7 +38,6 @@ from sentry.models.project import Project
 from sentry.services.filestore.gcs import GoogleCloudStorage
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import replays_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import json
@@ -456,16 +455,9 @@ def save_to_storage(destination_bucket: str, filename: str, contents: str) -> No
 
 @instrumented_task(
     name="sentry.replays.tasks.export_replay_row_set_async",
-    default_retry_delay=5,  # Five seconds because we want to give rate-limits some time to reset.
-    max_retries=120,  # Retry a lot because if it fails we have to start over from the beginning.
-    taskworker_config=TaskworkerConfig(
-        namespace=replays_tasks,
-        processing_deadline_duration=15 * 60,
-        retry=Retry(
-            times=120,
-            delay=5,
-        ),
-    ),
+    namespace=replays_tasks,
+    processing_deadline_duration=15 * 60,
+    retry=Retry(times=120, delay=5),
 )
 def export_replay_row_set_async(
     project_id: int,
@@ -539,7 +531,7 @@ def export_replay_row_set_async(
 
 @instrumented_task(
     name="sentry.replays.tasks.export_replay_project_async",
-    taskworker_config=TaskworkerConfig(namespace=replays_tasks),
+    namespace=replays_tasks,
 )
 def export_replay_project_async(
     project_id: int,

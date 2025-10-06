@@ -19,7 +19,6 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.release_health import release_monitor
 from sentry.release_health.release_monitor.base import Totals
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import release_health_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
@@ -35,14 +34,9 @@ logger = logging.getLogger("sentry.tasks.releasemonitor")
 
 @instrumented_task(
     name="sentry.release_health.tasks.monitor_release_adoption",
-    queue="releasemonitor",
-    default_retry_delay=5,
-    max_retries=5,
-    taskworker_config=TaskworkerConfig(
-        namespace=release_health_tasks,
-        retry=Retry(times=5, on=(Exception,)),
-        processing_deadline_duration=400,
-    ),
+    namespace=release_health_tasks,
+    retry=Retry(times=5, on=(Exception,)),
+    processing_deadline_duration=400,
 )
 def monitor_release_adoption(**kwargs) -> None:
     metrics.incr("sentry.tasks.monitor_release_adoption.start", sample_rate=1.0)
@@ -55,18 +49,9 @@ def monitor_release_adoption(**kwargs) -> None:
 
 @instrumented_task(
     name="sentry.tasks.process_projects_with_sessions",
-    queue="releasemonitor",
-    default_retry_delay=5,
-    max_retries=5,
-    taskworker_config=TaskworkerConfig(
-        namespace=release_health_tasks,
-        retry=Retry(
-            times=5,
-            on=(Exception,),
-            delay=5,
-        ),
-        processing_deadline_duration=160,
-    ),
+    namespace=release_health_tasks,
+    retry=Retry(times=5, on=(Exception,), delay=5),
+    processing_deadline_duration=160,
 )
 def process_projects_with_sessions(org_id, project_ids) -> None:
     # Takes a single org id and a list of project ids
