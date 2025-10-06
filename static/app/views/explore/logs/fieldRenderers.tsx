@@ -149,7 +149,7 @@ function TimestampRenderer(props: LogFieldRendererProps) {
   const preciseTimestamp = props.extra.attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
 
   const timestampToUse = preciseTimestamp
-    ? new Date(Number(preciseTimestamp) / 1_000_000) // Convert nanoseconds to milliseconds
+    ? new Date(Number(String(preciseTimestamp).slice(0, -6))) // Truncate last 6 digits (nanoseconds)
     : props.item.value;
 
   return (
@@ -170,7 +170,7 @@ function RelativeTimestampRenderer(props: LogFieldRendererProps) {
   const startTimestampMs = props.extra.timestampRelativeTo!;
 
   const timestampToUse = preciseTimestamp
-    ? new Date(Number(preciseTimestamp) / 1_000_000) // Convert nanoseconds to milliseconds
+    ? new Date(Number(String(preciseTimestamp).slice(0, -6))) // Truncate last 6 digits (nanoseconds)
     : props.item.value;
 
   const timestampMs = timestampToUse ? new Date(timestampToUse).getTime() : 0;

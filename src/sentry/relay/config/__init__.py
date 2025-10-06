@@ -72,6 +72,7 @@ EXPOSABLE_FEATURES = [
     "organizations:indexed-spans-extraction",
     "organizations:relay-otlp-traces-endpoint",
     "organizations:relay-otel-logs-endpoint",
+    "organizations:relay-vercel-log-drain-endpoint",
     "organizations:ourlogs-ingestion",
     "organizations:tracemetrics-ingestion",
     "organizations:view-hierarchy-scrubbing",

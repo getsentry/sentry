@@ -30,14 +30,9 @@ ONE_HOUR = 3600
 
 @instrumented_task(
     name="sentry.tasks.schedule_auto_resolution",
-    queue="auto_transition_issue_states",
-    time_limit=75,
-    soft_time_limit=60,
+    namespace=issues_tasks,
+    processing_deadline_duration=75,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=75,
-    ),
 )
 def schedule_auto_resolution():
     options_qs = ProjectOption.objects.filter(

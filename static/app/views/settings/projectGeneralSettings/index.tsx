@@ -65,11 +65,7 @@ function isPlatformAllowed({
     return true;
   }
 
-  return (
-    organization.features?.includes('project-creation-games-tab') &&
-    organization.enabledConsolePlatforms?.includes(platform) &&
-    !isSelfHosted
-  );
+  return organization.enabledConsolePlatforms?.includes(platform) && !isSelfHosted;
 }
 
 function ProjectGeneralSettings({onChangeSlug}: Props) {

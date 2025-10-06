@@ -39,7 +39,7 @@ describe('DetectorsList', () => {
       url: '/organizations/org-slug/detectors/',
       body: [MetricDetectorFixture({name: 'Detector 1'})],
     });
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}), new Set());
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
   });
 
   it('displays all detector info correctly', async () => {
@@ -295,10 +295,7 @@ describe('DetectorsList', () => {
           }),
         ],
       });
-      PageFiltersStore.onInitializeUrlState(
-        PageFiltersFixture({projects: [1]}),
-        new Set()
-      );
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
     });
 
     it('can select detectors', async () => {
