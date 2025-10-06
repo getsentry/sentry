@@ -19,7 +19,7 @@ jest.mock('sentry/actionCreators/modal', () => ({
 
 describe('OrganizationTeams', () => {
   describe('Open Membership', () => {
-    const {organization, project, routerProps} = initializeOrg({
+    const {organization} = initializeOrg({
       organization: {
         openMembership: true,
       },
@@ -30,13 +30,11 @@ describe('OrganizationTeams', () => {
     ) =>
       render(
         <OrganizationTeams
-          {...routerProps}
-          onRemoveAccessRequest={() => {}}
-          requestList={[]}
-          params={{projectId: project.slug}}
-          features={new Set(['open-membership'])}
-          access={new Set(['project:admin'])}
           organization={organization}
+          access={new Set(['project:admin'])}
+          features={new Set(['open-membership'])}
+          requestList={[]}
+          onRemoveAccessRequest={() => {}}
           {...props}
         />
       );
@@ -122,7 +120,7 @@ describe('OrganizationTeams', () => {
   });
 
   describe('Closed Membership', () => {
-    const {organization, project, routerProps} = initializeOrg({
+    const {organization} = initializeOrg({
       organization: {
         openMembership: false,
       },
@@ -132,13 +130,11 @@ describe('OrganizationTeams', () => {
     ) =>
       render(
         <OrganizationTeams
-          {...routerProps}
-          onRemoveAccessRequest={() => {}}
-          requestList={[]}
-          params={{projectId: project.slug}}
-          features={new Set([])}
-          access={new Set([])}
           organization={organization}
+          access={new Set([])}
+          features={new Set([])}
+          requestList={[]}
+          onRemoveAccessRequest={() => {}}
           {...props}
         />
       );
@@ -198,7 +194,7 @@ describe('OrganizationTeams', () => {
   });
 
   describe('Team Requests', () => {
-    const {organization, project, routerProps} = initializeOrg({
+    const {organization} = initializeOrg({
       organization: {
         openMembership: false,
       },
@@ -220,13 +216,11 @@ describe('OrganizationTeams', () => {
     ) =>
       render(
         <OrganizationTeams
-          {...routerProps}
-          onRemoveAccessRequest={() => {}}
-          params={{projectId: project.slug}}
-          features={new Set([])}
-          access={new Set([])}
           organization={organization}
+          access={new Set([])}
+          features={new Set([])}
           requestList={requestList}
+          onRemoveAccessRequest={() => {}}
           {...props}
         />
       );
@@ -298,18 +292,16 @@ describe('OrganizationTeams', () => {
     const access = new Set<string>();
 
     it('does not render alert without feature flag', () => {
-      const {organization, project, routerProps} = initializeOrg({
+      const {organization} = initializeOrg({
         organization: {orgRole: 'admin'},
       });
       render(
         <OrganizationTeams
-          {...routerProps}
+          organization={organization}
+          access={access}
+          features={new Set()}
           requestList={[]}
           onRemoveAccessRequest={() => {}}
-          params={{projectId: project.slug}}
-          features={new Set()}
-          access={access}
-          organization={organization}
         />
       );
 
@@ -317,18 +309,16 @@ describe('OrganizationTeams', () => {
     });
 
     it('renders alert with elevated org role', () => {
-      const {organization, project, routerProps} = initializeOrg({
+      const {organization} = initializeOrg({
         organization: {orgRole: 'admin'},
       });
       render(
         <OrganizationTeams
-          {...routerProps}
+          organization={organization}
+          access={access}
+          features={features}
           requestList={[]}
           onRemoveAccessRequest={() => {}}
-          params={{projectId: project.slug}}
-          features={features}
-          access={access}
-          organization={organization}
         />
       );
 
@@ -341,18 +331,16 @@ describe('OrganizationTeams', () => {
     });
 
     it('does not render alert with lowest org role', () => {
-      const {organization, project, routerProps} = initializeOrg({
+      const {organization} = initializeOrg({
         organization: {orgRole: 'member'},
       });
       render(
         <OrganizationTeams
-          {...routerProps}
+          organization={organization}
+          access={access}
+          features={features}
           requestList={[]}
           onRemoveAccessRequest={() => {}}
-          params={{projectId: project.slug}}
-          features={features}
-          access={access}
-          organization={organization}
         />
       );
 
