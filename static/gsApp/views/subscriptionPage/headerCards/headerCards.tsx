@@ -1,4 +1,4 @@
-import {Container, Grid} from 'sentry/components/core/layout';
+import {Grid} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {Organization} from 'sentry/types/organization';
 
@@ -50,7 +50,7 @@ function HeaderCards({organization, subscription}: HeaderCardsProps) {
           }}
           gap="xl"
         >
-          {cards}
+          {...cards}
         </Grid>
       ) : (
         <Grid
