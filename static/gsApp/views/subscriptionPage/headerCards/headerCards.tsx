@@ -50,7 +50,7 @@ function HeaderCards({organization, subscription}: HeaderCardsProps) {
           }}
           gap="xl"
         >
-          {...cards}
+          {cards}
         </Grid>
       ) : (
         <Grid

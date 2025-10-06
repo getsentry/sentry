@@ -326,41 +326,6 @@ function Overview({location, subscription, promotionData}: Props) {
     );
   }
 
-  function Wrapper({children}: {children: React.ReactNode}) {
-    return (
-      <SubscriptionPageContainer
-        background="secondary"
-        organization={organization}
-        header={
-          isNewBillingUI ? (
-            <SubscriptionHeader organization={organization} subscription={subscription} />
-          ) : undefined
-        }
-      >
-        {!isNewBillingUI && (
-          <SubscriptionHeader subscription={subscription} organization={organization} />
-        )}
-        {children}
-      </SubscriptionPageContainer>
-    );
-  }
-
-  if (isPending) {
-    return (
-      <Wrapper>
-        <LoadingIndicator />
-      </Wrapper>
-    );
-  }
-
-  if (isError) {
-    return (
-      <Wrapper>
-        <LoadingError onRetry={refetchUsage} />
-      </Wrapper>
-    );
-  }
-
   /**
    * It's important to separate the views for folks with billing permissions (org:billing) and those without.
    * Only owners and billing admins have the billing scope, everyone else including managers, admins, and members lack that scope.
@@ -411,13 +376,30 @@ function Overview({location, subscription, promotionData}: Props) {
   }
 
   return (
-    <Wrapper>
-      <div>
-        {hasBillingPerms
-          ? contentWithBillingPerms(usage, subscription.planDetails)
-          : contentWithoutBillingPerms(usage)}
-      </div>
-    </Wrapper>
+    <SubscriptionPageContainer
+      background="secondary"
+      organization={organization}
+      header={
+        isNewBillingUI ? (
+          <SubscriptionHeader organization={organization} subscription={subscription} />
+        ) : undefined
+      }
+    >
+      {!isNewBillingUI && (
+        <SubscriptionHeader organization={organization} subscription={subscription} />
+      )}
+      {isPending ? (
+        <LoadingIndicator />
+      ) : isError ? (
+        <LoadingError onRetry={refetchUsage} />
+      ) : (
+        <div>
+          {hasBillingPerms
+            ? contentWithBillingPerms(usage, subscription.planDetails)
+            : contentWithoutBillingPerms(usage)}
+        </div>
+      )}
+    </SubscriptionPageContainer>
   );
 }
 
