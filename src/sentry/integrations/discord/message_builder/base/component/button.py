@@ -30,7 +30,7 @@ class DiscordButton(DiscordMessageComponent):
         label: str | None = None,
         disabled: bool = False,
     ) -> None:
-        self.style = 5
+        self.style = style
         self.custom_id = custom_id
         self.label = label
         self.disabled = disabled
