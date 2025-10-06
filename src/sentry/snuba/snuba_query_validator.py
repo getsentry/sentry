@@ -344,6 +344,11 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                     "Invalid Time Window: Allowed time windows for crash rate alerts are: "
                     "30min, 1h, 2h, 4h, 12h and 24h"
                 )
+        if dataset == Dataset.EventsAnalyticsPlatform:
+            if time_window_seconds < 300:
+                raise serializers.ValidationError(
+                    "Invalid Time Window: Time window for this alert type must be at least 5 minutes."
+                )
         return time_window_seconds
 
     def _validate_performance_dataset(self, dataset):
