@@ -85,31 +85,3 @@ function findPreviousAndNextStory(
     next: stories[currentIndex + 1] ?? undefined,
   };
 }
-
-// const Card = styled(LinkButton)`
-//   display: flex;
-//   flex-direction: column;
-//   flex: 1;
-//   height: 80px;
-//   margin-bottom: ${p => p.theme.space['3xl']};
-//   span:last-child {
-//     width: 100%;
-//     display: grid;
-//     grid-template-areas:
-//       'icon label'
-//       'icon text';
-//     grid-template-columns: auto 1fr;
-//     place-content: center;
-//     gap: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-//   }
-//   &[data-flip] span:last-child {
-//     grid-template-areas:
-//       'label icon'
-//       'text icon';
-//     grid-template-columns: 1fr auto;
-//     justify-content: flex-end;
-//   }
-//   span:has(svg) {
-//     grid-area: icon;
-//   }
-// `;

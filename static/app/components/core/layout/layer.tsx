@@ -107,6 +107,13 @@ const SlabContainer = styled(Container)<{
       transform: translateY(0);
     }
   }
+
+  &:has(> *[aria-disabled='true']),
+  &[aria-disabled='true'] {
+    > * {
+      transform: translateY(0);
+    }
+  }
 `;
 
 interface WellLayoutProps {}

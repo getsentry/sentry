@@ -77,7 +77,7 @@ export const Link = styled(({disabled, to, ...props}: LinkProps) => {
   const {state: appState} = useFrontendVersion();
 
   if (disabled || !location) {
-    return <Anchor {...props} />;
+    return <Anchor {...props} aria-disabled={disabled} />;
   }
 
   return (

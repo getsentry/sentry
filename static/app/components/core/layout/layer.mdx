@@ -1,6 +1,6 @@
 ---
 title: Layer
-description: A specialized container component that provides pre-styled surface variants for layers
+description: Specialized container components for creating surfaces with different elevation levels—Slabs, Wells, and Floating Sheets
 source: 'sentry/components/core/layout/layer'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/layer.tsx
@@ -15,31 +15,35 @@ import APIReference from '!!type-loader!sentry/components/core/layout/layer';
 
 export const types = {Slab: APIReference.Slab};
 
-The `Slab` component creates interactive surfaces with an expressed thickness dimension through elevated bottom borders. Slabs are part of Sentry's [layering and elevation system](/stories/principles/layering-and-elevation), designed to make interactive elements stand out by giving them a three-dimensional appearance—like keys protruding from a keyboard.
-
-Unlike flat sheets, slabs use "chonky borders" that are thicker at the bottom, creating an isometric perspective effect. This visual design helps users identify interactive elements and establishes clear information hierarchy.
+The Layer module provides specialized container components that implement Sentry's [layering and elevation system](/stories/principles/layering-and-elevation). These components create visual hierarchy and help users identify interactive elements through three-dimensional depth effects.
 
 ## Slabs, Wells and Floating Sheets
 
-The Layer module provides three primary surface components: `Well`, `Slab` and `FloatingSheet`.
+Each component serves a specific purpose in the layering hierarchy:
+
+- **Well**: Creates debossed surfaces that appear recessed into the background. Wells have increased top borders (inset box-shadow) and use a darker background to indicate lower elevation. Use wells for grouping related content in a visually contained area.
+
+- **Slab**: Creates embossed surfaces with expressed thickness through elevated bottom borders ("chonky borders"). Slabs appear to protrude from the surface, making them ideal for interactive elements like buttons and clickable cards. The border thickness corresponds to the element's depth.
+
+- **FloatingSheet**: Creates elevated surfaces that hover above the main content layer. Unlike slabs and wells which are attached to the content surface, floating sheets cast shadows on the content beneath them to indicate higher elevation. They don't use chonky borders, making them suitable for overlays, modals, and tooltips.
 
 <Storybook.Demo>
   <Storybook.SideBySide>
     <Well padding="md" width="100px" height="100px">
-      Default Well
+      Well
     </Well>
     <Slab padding="md" width="100px" height="100px">
-      Default Slab
+      Slab
     </Slab>
     <FloatingSheet padding="md" width="100px" height="100px">
-      Default Floating Sheet
+      Floating Sheet
     </FloatingSheet>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
-<Well>Default Well</Well>
-<Slab>Default Slab</Slab>
-<FloatingSheet>Default Floating Sheet</FloatingSheet>
+<Well>Well</Well>
+<Slab>Slab</Slab>
+<FloatingSheet>Floating Sheet</FloatingSheet>
 ```
 
 ### Elevation
@@ -91,4 +95,33 @@ Control the elevation and thickness of the slab or floating sheets using the `si
 <FloatingSheet size="xs">Extra small elevation</FloatingSheet>
 <FloatingSheet size="sm">Small elevation</FloatingSheet>
 <FloatingSheet size="md">Default elevation</FloatingSheet>
+```
+
+### Slab Variants
+
+Slabs support color variants for different semantic purposes. The `variant` prop changes both the surface and background colors to indicate accent, warning, or danger states.
+
+<Storybook.Demo>
+  <Storybook.SideBySide>
+    <Flex direction="column" gap="xl">
+      <Slab padding="md" width="120px">
+        <Text align="center">Default</Text>
+      </Slab>
+      <Slab padding="md" width="120px" variant="accent">
+        <Text align="center">Accent</Text>
+      </Slab>
+      <Slab padding="md" width="120px" variant="warning">
+        <Text align="center">Warning</Text>
+      </Slab>
+      <Slab padding="md" width="120px" variant="danger">
+        <Text align="center">Danger</Text>
+      </Slab>
+    </Flex>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Slab>Default</Slab>
+<Slab variant="accent">Accent</Slab>
+<Slab variant="warning">Warning</Slab>
+<Slab variant="danger">Danger</Slab>
 ```
