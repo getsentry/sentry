@@ -2,7 +2,7 @@ import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {InputGroup, type InputProps} from 'sentry/components/core/input/inputGroup';
-import {Flex, type FlexProps} from 'sentry/components/core/layout';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconArrow} from 'sentry/icons';
 import {tct} from 'sentry/locale';
@@ -122,13 +122,14 @@ export function NumberDragInput({
           })}
           skipWrapper
         >
-          <TrailingItemsContainer
+          <Flex
+            direction={axis === 'x' ? 'row' : 'column'}
+            gap="2xs"
             onPointerDown={onPointerDown}
-            layout={axis === 'x' ? 'horizontal' : 'vertical'}
           >
             <VerySmallIconArrow direction={axis === 'x' ? 'left' : 'up'} />
             <VerySmallIconArrow direction={axis === 'x' ? 'right' : 'down'} />
-          </TrailingItemsContainer>
+          </Flex>
         </Tooltip>
       </InputGroup.TrailingItems>
     </InputGroup>
@@ -148,10 +149,3 @@ const VerySmallIconArrow = styled(IconArrow)`
   width: 8px;
   height: 8px;
 `;
-
-function TrailingItemsContainer(props: FlexProps & {layout: 'vertical' | 'horizontal'}) {
-  const {layout, ...flexProps} = props;
-  return (
-    <Flex {...flexProps} direction={layout === 'vertical' ? 'column' : 'row'} gap="2xs" />
-  );
-}
