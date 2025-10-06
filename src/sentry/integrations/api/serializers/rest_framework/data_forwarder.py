@@ -203,12 +203,13 @@ class DataForwarderProjectSerializer(Serializer):
 
     def validate(self, attrs: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         project = attrs.get("project")
-
         data_forwarder = self._validated_data_forwarder
+
         if data_forwarder is None:
             raise ValidationError("DataForwarder validation failed")
-
-        if data_forwarder.organization_id != project.organization_id:
+        elif project is None:
+            raise ValidationError("Project validation failed")
+        elif data_forwarder.organization_id != project.organization_id:
             raise ValidationError("DataForwarder and Project must belong to the same organization.")
 
         existing = DataForwarderProject.objects.filter(
