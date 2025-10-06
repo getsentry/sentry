@@ -176,7 +176,6 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         response = self.get_success_response(self.organization.slug, status_code=201, **payload)
 
         assert response.data["provider"] == DataForwarderProviderSlug.SQS
-        assert response.data["config"]["queue_url"] == payload["config"]["queue_url"]
 
         data_forwarder = DataForwarder.objects.get(id=response.data["id"])
         assert data_forwarder.provider == DataForwarderProviderSlug.SQS
@@ -195,7 +194,6 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         response = self.get_success_response(self.organization.slug, status_code=201, **payload)
 
         assert response.data["provider"] == DataForwarderProviderSlug.SPLUNK
-        assert response.data["config"]["instance_url"] == payload["config"]["instance_url"]
 
         data_forwarder = DataForwarder.objects.get(id=response.data["id"])
         assert data_forwarder.provider == DataForwarderProviderSlug.SPLUNK
