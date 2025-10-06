@@ -2,6 +2,7 @@ import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {InputGroup, type InputProps} from 'sentry/components/core/input/inputGroup';
+import {Flex, type FlexProps} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconArrow} from 'sentry/icons';
 import {tct} from 'sentry/locale';
@@ -149,10 +150,10 @@ const VerySmallIconArrow = styled(IconArrow)`
   height: 8px;
 `;
 
-const TrailingItemsContainer = styled('div')<{
-  layout: 'vertical' | 'horizontal';
-}>`
-  display: flex;
-  flex-direction: ${p => (p.layout === 'vertical' ? 'column' : 'row')};
-  gap: ${space(0.25)};
-`;
+function TrailingItemsContainer(props: FlexProps & {layout: 'vertical' | 'horizontal'}) {
+  return (
+    <Flex {...props} direction={props.layout === 'vertical' ? 'column' : 'row'} gap="2xs">
+      {props.children}
+    </Flex>
+  );
+}
