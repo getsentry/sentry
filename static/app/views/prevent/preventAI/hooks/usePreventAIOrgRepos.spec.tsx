@@ -64,7 +64,7 @@ describe('usePreventAIOrgRepos', () => {
       organization: mockOrg,
     });
 
-    await waitFor(() => result.current.isError === true);
+    await waitFor(() => expect(result.current.isError).toBe(true));
   });
 
   it('refetches data', async () => {
@@ -86,7 +86,7 @@ describe('usePreventAIOrgRepos', () => {
     });
 
     result.current.refetch();
-    await waitFor(() => result.current.data?.orgRepos?.[0]?.name === '3');
+    await waitFor(() => expect(result.current.data?.orgRepos?.[0]?.name).toBe('repo3'));
     expect(result.current.data).toEqual(newResponse);
   });
 });
