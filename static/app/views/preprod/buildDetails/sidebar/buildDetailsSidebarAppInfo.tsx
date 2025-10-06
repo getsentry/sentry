@@ -60,15 +60,11 @@ function getLabels(platform: Platform | undefined): Labels {
 interface BuildDetailsSidebarAppInfoProps {
   appInfo: BuildDetailsAppInfo;
   artifactId: string;
-  projectId: string;
+  projectId: string | null;
   sizeInfo?: BuildDetailsSizeInfo;
 }
 
 export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProps) {
-  const handleInstallClick = () => {
-    openInstallModal(props.projectId, props.artifactId);
-  };
-
   const labels = getLabels(props.appInfo.platform ?? undefined);
 
   return (
@@ -156,8 +152,14 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
             <IconLink />
           </InfoIcon>
           <Text>
-            {props.appInfo.is_installable ? (
-              <InstallableLink onClick={handleInstallClick}>Installable</InstallableLink>
+            {props.projectId && props.appInfo.is_installable ? (
+              <InstallableLink
+                onClick={() => {
+                  openInstallModal(props.projectId!, props.artifactId);
+                }}
+              >
+                Installable
+              </InstallableLink>
             ) : (
               'Not Installable'
             )}
