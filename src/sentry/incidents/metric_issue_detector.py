@@ -74,7 +74,7 @@ class MetricIssueComparisonConditionValidator(BaseDataConditionValidator):
         (Condition.GREATER, Condition.LESS, Condition.ANOMALY_DETECTION)
     )
     supported_condition_results = frozenset(
-        (DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM)
+        (DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM, DetectorPriorityLevel.OK)
     )
 
     def validate_type(self, value: str) -> Condition:
