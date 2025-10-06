@@ -1,9 +1,7 @@
-import moment from 'moment-timezone';
-
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import Placeholder from 'sentry/components/placeholder';
-import {IconSettings, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -29,18 +27,23 @@ function BillingInfoCard({
   return (
     <SubscriptionHeaderCard
       title={t('Billing information')}
-      icon={<IconUser />}
       sections={[
-        <BillingDetailsInfo key="billing-details-info" />,
-        <PaymentSourceInfo key="payment-source-info" subscription={subscription} />,
+        <Flex key="billing-info" direction="column" gap="md" align="start">
+          <BillingDetailsInfo />
+          <PaymentSourceInfo subscription={subscription} />
+        </Flex>,
+        <LinkButton
+          key="edit-billing-information"
+          aria-label={t('Edit billing information')}
+          to={`/settings/${organization.slug}/billing/details/`}
+          priority="link"
+          size="sm"
+        >
+          <Text size="sm" variant="accent">
+            {t('Edit billing information')}
+          </Text>
+        </LinkButton>,
       ]}
-      button={{
-        ariaLabel: t('Edit billing information'),
-        label: t('Edit billing information'),
-        linkTo: `/settings/${organization.slug}/billing/details/`,
-        icon: <IconSettings />,
-        priority: 'default',
-      }}
     />
   );
 }
@@ -49,14 +52,7 @@ function BillingDetailsInfo() {
   const {data: billingDetails, isLoading} = useBillingDetails();
 
   if (isLoading) {
-    return (
-      <Flex direction="column" gap="xs">
-        <Placeholder height="16px" />
-        <Placeholder height="16px" />
-        <Placeholder height="16px" />
-        <Placeholder height="16px" />
-      </Flex>
-    );
+    return <Placeholder height="14px" />;
   }
 
   if (!billingDetails || !hasSomeBillingDetails(billingDetails)) {
@@ -68,46 +64,25 @@ function BillingDetailsInfo() {
   }
 
   return (
-    <Flex direction="column" gap="xs">
-      {billingDetails.companyName && (
-        <Text variant="muted" size="sm">
-          {billingDetails.companyName}
-        </Text>
-      )}
-      {billingDetails.billingEmail && (
-        <Text variant="muted" size="sm">
-          {billingDetails.billingEmail}
-        </Text>
-      )}
-      {billingDetails.displayAddress && (
-        <Text variant="muted" size="sm">
-          {billingDetails.displayAddress}
-        </Text>
-      )}
-    </Flex>
+    <Text ellipsis size="sm" variant="muted">
+      {`${billingDetails.companyName ? `${billingDetails.companyName}, ` : ''}${billingDetails.displayAddress}`}
+    </Text>
   );
 }
 
 function PaymentSourceInfo({subscription}: {subscription: Subscription}) {
   const {paymentSource} = subscription;
-  const paymentSourceExpiryDate = paymentSource
-    ? moment(new Date(paymentSource.expYear, paymentSource.expMonth - 1))
-    : null;
 
   if (!paymentSource) {
     return <Text variant="muted">{t('No payment method on file')}</Text>;
   }
 
   return (
-    <Flex direction="column" gap="xs">
-      <Text>{tct('Card ending in [last4]', {last4: paymentSource.last4})}</Text>
-      <Text variant="muted" size="sm">
-        {tct('Expires [expMonth]/[expYear]', {
-          expMonth: paymentSourceExpiryDate?.format('MM'),
-          expYear: paymentSourceExpiryDate?.format('YY'),
-        })}
-      </Text>
-    </Flex>
+    <Text ellipsis size="sm" variant="muted">
+      {tct('Card ending in [last4]', {
+        last4: paymentSource.last4,
+      })}
+    </Text>
   );
 }
 
