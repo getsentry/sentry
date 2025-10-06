@@ -212,6 +212,9 @@ function itemTypeToRecentSearches(itemType: TraceItemDataset) {
   if (itemType === TraceItemDataset.SPANS) {
     return SavedSearchType.SPAN;
   }
+  if (itemType === TraceItemDataset.TRACEMETRICS) {
+    return SavedSearchType.METRIC;
+  }
   return SavedSearchType.LOG;
 }
 
@@ -219,12 +222,18 @@ function itemTypeToFilterKeySections(itemType: TraceItemDataset) {
   if (itemType === TraceItemDataset.SPANS) {
     return SPANS_FILTER_KEY_SECTIONS;
   }
+  if (itemType === TraceItemDataset.TRACEMETRICS) {
+    return [];
+  }
   return LOGS_FILTER_KEY_SECTIONS;
 }
 
 function itemTypeToDefaultPlaceholder(itemType: TraceItemDataset) {
   if (itemType === TraceItemDataset.SPANS) {
     return t('Search for spans, users, tags, and more');
+  }
+  if (itemType === TraceItemDataset.TRACEMETRICS) {
+    return t('Search for metrics, users, tags, and more');
   }
   return t('Search for logs, users, tags, and more');
 }
