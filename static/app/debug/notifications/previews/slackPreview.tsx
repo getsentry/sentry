@@ -1,5 +1,5 @@
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {DebugNotificationsPreview} from 'sentry/debug/notifications/components/debugNotificationsPreview';
@@ -38,9 +38,9 @@ export function SlackPreview({
             Below is the BlockKit JSON payload that will be sent to Slack. To preview it,
             use the builder link above.
           </Text>
-          <CodeSnippet language="json">
+          <CodeBlock language="json">
             {blocks ? JSON.stringify(blocks, null, 2) : ''}
-          </CodeSnippet>
+          </CodeBlock>
         </Flex>
       </Container>
     </DebugNotificationsPreview>

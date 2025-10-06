@@ -2,9 +2,9 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Image} from 'sentry/components/core/image/image';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
@@ -336,7 +336,7 @@ const BodyContentWrapper = styled('div')<{padding: string}>`
   padding: ${p => p.padding};
 `;
 
-const StyledCodeSnippet = styled(CodeSnippet)`
+const StyledCodeSnippet = styled(CodeBlock)`
   code {
     text-wrap: wrap;
   }

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {space} from 'sentry/styles/space';
 
 type Props = {
@@ -13,7 +13,7 @@ function Terminal({command}: Props) {
 
 export default Terminal;
 
-const StyledCodeSnippet = styled(CodeSnippet)`
+const StyledCodeSnippet = styled(CodeBlock)`
   padding-left: ${space(2)};
   &:before {
     content: '\0024';
