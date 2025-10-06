@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
@@ -18,24 +18,24 @@ export default Storybook.story('CodeSnippet', story => {
       </p>
 
       <p>JavaScript example:</p>
-      <CodeSnippet language="javascript">{`Sentry.init({
+      <CodeBlock language="javascript">{`Sentry.init({
   // Note, Replay is NOT instantiated below:
   integrations: [],
 });
 
 // Sometime later
 const { replayIntegration } = await import("@sentry/browser");
-Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
+Sentry.addIntegration(replayIntegration());`}</CodeBlock>
 
       <p>Python example:</p>
-      <CodeSnippet language="python">{`sentry_sdk.metrics.incr(
+      <CodeBlock language="python">{`sentry_sdk.metrics.incr(
 	key="button_click",
 	value=1,
 	tags={
 		"browser": "Firefox",
 		"app_version": "1.0.0"
 	}
-)`}</CodeSnippet>
+)`}</CodeBlock>
     </Fragment>
   ));
 
@@ -51,27 +51,27 @@ Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
         <h2>
           <Storybook.JSXProperty name="dark" value />
         </h2>
-        <CodeSnippet dark language="javascript">{`Sentry.init({
+        <CodeBlock dark language="javascript">{`Sentry.init({
   // Note, Replay is NOT instantiated below:
   integrations: [],
 });
 
 // Sometime later
 const { replayIntegration } = await import("@sentry/browser");
-Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
+Sentry.addIntegration(replayIntegration());`}</CodeBlock>
         <br />
         <h2>with filename</h2>
-        <CodeSnippet filename="index.tsx" language="javascript">
+        <CodeBlock filename="index.tsx" language="javascript">
           {`const myVariable = 'testing';`}
-        </CodeSnippet>
+        </CodeBlock>
         <br />
         <h2>dark filename</h2>
-        <CodeSnippet dark filename="index.tsx" language="javascript">
+        <CodeBlock dark filename="index.tsx" language="javascript">
           {`const myVariable = 'testing';`}
-        </CodeSnippet>
+        </CodeBlock>
         <br />
         <h2>with tabs</h2>
-        <CodeSnippet
+        <CodeBlock
           tabs={[
             {label: 'npm', value: 'npm'},
             {label: 'Yarn', value: 'yarn'},
@@ -83,69 +83,69 @@ Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
           {tab === 'npm'
             ? `npm install --save @sentry/browser`
             : 'yarn add @sentry/browser'}
-        </CodeSnippet>
+        </CodeBlock>
         <br />
         <h2>
           <Storybook.JSXProperty name="isRounded" value={false} />
         </h2>
-        <CodeSnippet isRounded={false} dark language="javascript">{`Sentry.init({
+        <CodeBlock isRounded={false} dark language="javascript">{`Sentry.init({
   // Note, Replay is NOT instantiated below:
   integrations: [],
 });
 
 // Sometime later
 const { replayIntegration } = await import("@sentry/browser");
-Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
+Sentry.addIntegration(replayIntegration());`}</CodeBlock>
         <br />
         <h2>
           <Storybook.JSXProperty name="hideCopyButton" value />
         </h2>
-        <CodeSnippet hideCopyButton language="javascript">{`Sentry.init({
+        <CodeBlock hideCopyButton language="javascript">{`Sentry.init({
   // Note, Replay is NOT instantiated below:
   integrations: [],
 });
 
 // Sometime later
 const { replayIntegration } = await import("@sentry/browser");
-Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
+Sentry.addIntegration(replayIntegration());`}</CodeBlock>
         <br />
         <h2>
           <Storybook.JSXProperty name="disableUserSelection" value />
         </h2>
-        <CodeSnippet disableUserSelection language="javascript">{`Sentry.init({
+        <CodeBlock disableUserSelection language="javascript">{`Sentry.init({
   // Note, Replay is NOT instantiated below:
   integrations: [],
 });
 
 // Sometime later
 const { replayIntegration } = await import("@sentry/browser");
-Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
+Sentry.addIntegration(replayIntegration());`}</CodeBlock>
         <br />
         <h2>
           <Storybook.JSXProperty name="filename" value="index.jsx" />
         </h2>
-        <CodeSnippet filename="index.jsx" language="javascript">{`Sentry.init({
+        <CodeBlock filename="index.jsx" language="javascript">{`Sentry.init({
   // Note, Replay is NOT instantiated below:
   integrations: [],
 });
 
 // Sometime later
 const { replayIntegration } = await import("@sentry/browser");
-Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
+Sentry.addIntegration(replayIntegration());`}</CodeBlock>
         <br />
         <h2>
           <Storybook.JSXProperty name="icon" value />
         </h2>
-        <CodeSnippet icon={<IconStar />} language="javascript">{`Sentry.init({
+        <CodeBlock icon={<IconStar />} language="javascript">{`Sentry.init({
   // Note, Replay is NOT instantiated below:
   integrations: [],
 });
 
 // Sometime later
 const { replayIntegration } = await import("@sentry/browser");
-Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
+Sentry.addIntegration(replayIntegration());`}</CodeBlock>
         <br />
-        <CodeSnippet
+        <CodeBlock
           icon={<IconStar />}
           filename="yourModule.tsx"
           language="javascript"
@@ -156,12 +156,12 @@ Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
 
 // Sometime later
 const { replayIntegration } = await import("@sentry/browser");
-Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
+Sentry.addIntegration(replayIntegration());`}</CodeBlock>
         <br />
         <h2>
           <Storybook.JSXProperty name="linesToHighlight" value={[1, 3, 4]} />
         </h2>
-        <CodeSnippet
+        <CodeBlock
           linesToHighlight={[1, 3, 4]}
           disableUserSelection
           language="javascript"
@@ -172,7 +172,7 @@ Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
 
 // Sometime later
 const { replayIntegration } = await import("@sentry/browser");
-Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
+Sentry.addIntegration(replayIntegration());`}</CodeBlock>
       </Fragment>
     );
   });
@@ -197,36 +197,33 @@ Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
           <Storybook.JSXProperty name="onCopy" value />
         </h2>
         <p>Try pressing the copy button:</p>
-        <CodeSnippet onCopy={onCopy} language="javascript">{`Sentry.init({
+        <CodeBlock onCopy={onCopy} language="javascript">{`Sentry.init({
   // Note, Replay is NOT instantiated below:
   integrations: [],
 });
 
 // Sometime later
 const { replayIntegration } = await import("@sentry/browser");
-Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
+Sentry.addIntegration(replayIntegration());`}</CodeBlock>
         <br />
         <h2>
           <Storybook.JSXProperty name="onSelectAndCopy" value />
         </h2>
         <p>Try manually selecting and copying code:</p>
-        <CodeSnippet
-          onSelectAndCopy={onSelectAndCopy}
-          language="javascript"
-        >{`Sentry.init({
+        <CodeBlock onSelectAndCopy={onSelectAndCopy} language="javascript">{`Sentry.init({
   // Note, Replay is NOT instantiated below:
   integrations: [],
 });
 
 // Sometime later
 const { replayIntegration } = await import("@sentry/browser");
-Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
+Sentry.addIntegration(replayIntegration());`}</CodeBlock>
         <br />
         <h2>
           <Storybook.JSXProperty name="onTabClick" value />
         </h2>
         <p>Try switching tabs:</p>
-        <CodeSnippet
+        <CodeBlock
           tabs={[
             {label: 'npm', value: 'npm'},
             {label: 'Yarn', value: 'yarn'},
@@ -241,7 +238,7 @@ Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
           {tab === 'npm'
             ? `npm install --save @sentry/browser`
             : 'yarn add @sentry/browser'}
-        </CodeSnippet>{' '}
+        </CodeBlock>{' '}
       </Fragment>
     );
   });
