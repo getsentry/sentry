@@ -1,5 +1,4 @@
-import copy
-from typing import Any, Literal, overload
+from typing import Any
 
 from django.db import router
 
@@ -17,45 +16,120 @@ from sentry.search.events.fields import is_function
 from sentry.utils.db import atomic_transaction
 
 
-def snapshot_widget(widget: DashboardWidget, save_widget: bool = True):
+def snapshot_widget(widget: DashboardWidget):
     if widget.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE or (
         widget.widget_type == DashboardWidgetTypes.DISCOVER
         and widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
     ):
 
         serialized_widget = serialize(widget)
-        if serialized_widget["dateCreated"]:
-            serialized_widget["dateCreated"] = serialized_widget["dateCreated"].timestamp()
-        if save_widget:
-            widget.widget_snapshot = serialized_widget
-            widget.save()
+        serialized_widget["dateCreated"] = serialized_widget["dateCreated"].timestamp()
+        widget.widget_snapshot = serialized_widget
+        widget.save()
+
+
+def translate_dashboard_widget_queries(
+    widget,
+    q_index,
+    name,
+    original_fields,
+    orderby,
+    conditions,
+    field_aliases,
+    is_hidden,
+    selected_aggregate,
+):
+    equations = [field for field in original_fields if is_equation(field)]
+    other_fields = [field for field in original_fields if not is_equation(field)]
+
+    fields_with_orderby = original_fields[:]
+    if orderby and is_equation_alias(orderby):
+        fields_with_orderby.append(orderby)
+
+    eap_query_parts, dropped_fields = translate_mep_to_eap(
+        QueryParts(
+            selected_columns=other_fields,
+            query=conditions,
+            equations=equations,
+            orderby=(
+                _format_orderby_for_translation(orderby, fields_with_orderby) if orderby else None
+            ),
+        )
+    )
+
+    dropped_cols = dropped_fields["selected_columns"]
+    dropped_equations = [dropped["equation"] for dropped in dropped_fields["equations"]]
+
+    new_conditions = eap_query_parts["query"] or ""
+    new_orderby = eap_query_parts["orderby"][0] if eap_query_parts["orderby"] else ""
+
+    new_fields = []
+    new_columns = []
+    new_aggregates = []
+    new_aliases = []
+    new_selected_aggregate = None
+    selected_aggregate_field = (
+        original_fields[selected_aggregate] if selected_aggregate is not None else None
+    )
+
+    col_index = 0
+    equation_index = 0
+    for old_index, field in enumerate(original_fields):
+        is_selected_aggregate = selected_aggregate_field == field
+        if field in dropped_cols or field in dropped_equations:
+            if is_selected_aggregate:
+                new_selected_aggregate = 0
+            continue
+
+        is_equation_field = is_equation(field)
+        is_function_field = is_function(field)
+
+        if is_equation_field:
+            new_fields.append(eap_query_parts["equations"][equation_index])
+            new_aggregates.append(eap_query_parts["equations"][equation_index])
+            equation_index += 1
+
+        elif is_function_field:
+            new_fields.append(eap_query_parts["selected_columns"][col_index])
+            new_aggregates.append(eap_query_parts["selected_columns"][col_index])
+            col_index += 1
+
         else:
-            return serialized_widget
+            new_fields.append(eap_query_parts["selected_columns"][col_index])
+            new_columns.append(eap_query_parts["selected_columns"][col_index])
+            col_index += 1
+
+        if is_selected_aggregate:
+            new_selected_aggregate = len(new_fields) - 1
+
+        if len(field_aliases) == len(original_fields):
+            new_aliases.append(field_aliases[old_index])
+
+    return (
+        DashboardWidgetQuery(
+            widget_id=widget.id,
+            order=q_index,
+            name=name,
+            fields=new_fields,
+            conditions=new_conditions,
+            aggregates=new_aggregates,
+            columns=new_columns,
+            field_aliases=new_aliases,
+            orderby=new_orderby,
+            is_hidden=is_hidden,
+            selected_aggregate=new_selected_aggregate,
+        ),
+        dropped_fields,
+    )
 
 
-@overload
-def translate_dashboard_widget(
-    widget: DashboardWidget, save_widget: Literal[True] = True
-) -> DashboardWidget: ...
+def translate_dashboard_widget(widget: DashboardWidget) -> DashboardWidget:
+    snapshot_widget(widget)
 
-
-@overload
-def translate_dashboard_widget(
-    widget: DashboardWidget, save_widget: Literal[False]
-) -> dict[str, Any]: ...
-
-
-def translate_dashboard_widget(
-    widget: DashboardWidget, save_widget: bool = True
-) -> DashboardWidget | dict[str, Any]:
-    unsaved_snapshot_widget = snapshot_widget(widget, save_widget=save_widget)
-
-    if not widget.widget_snapshot and save_widget:
+    if not widget.widget_snapshot:
         return widget
 
-    transaction_widget = (
-        unsaved_snapshot_widget if not widget.widget_snapshot else widget.widget_snapshot
-    )
+    transaction_widget = widget.widget_snapshot
     new_widget_queries = []
     dropped_fields_info = []
     for q_index, query in enumerate(transaction_widget["queries"]):
@@ -67,98 +141,21 @@ def translate_dashboard_widget(
         is_hidden = query.get("isHidden")
         selected_aggregate = query.get("selectedAggregate", None)
 
-        equations = [field for field in original_fields if is_equation(field)]
-        other_fields = [field for field in original_fields if not is_equation(field)]
-
-        fields_with_orderby = original_fields[:]
-        if orderby and is_equation_alias(orderby):
-            fields_with_orderby.append(orderby)
-
-        eap_query_parts, dropped_fields = translate_mep_to_eap(
-            QueryParts(
-                selected_columns=other_fields,
-                query=conditions,
-                equations=equations,
-                orderby=(
-                    _format_orderby_for_translation(orderby, fields_with_orderby)
-                    if orderby
-                    else None
-                ),
-            )
+        new_widget_query, dropped_fields = translate_dashboard_widget_queries(
+            widget,
+            q_index,
+            name,
+            original_fields,
+            orderby,
+            conditions,
+            field_aliases,
+            is_hidden,
+            selected_aggregate,
         )
 
-        dropped_cols = dropped_fields["selected_columns"]
-        dropped_equations = [dropped["equation"] for dropped in dropped_fields["equations"]]
-
-        new_conditions = eap_query_parts["query"] or ""
-        new_orderby = eap_query_parts["orderby"][0] if eap_query_parts["orderby"] else ""
-
-        new_fields = []
-        new_columns = []
-        new_aggregates = []
-        new_aliases = []
-        new_selected_aggregate = None
-        selected_aggregate_field = (
-            original_fields[selected_aggregate] if selected_aggregate is not None else None
-        )
-
-        col_index = 0
-        equation_index = 0
-        for old_index, field in enumerate(original_fields):
-            is_selected_aggregate = selected_aggregate_field == field
-            if field in dropped_cols or field in dropped_equations:
-                if is_selected_aggregate:
-                    new_selected_aggregate = 0
-                continue
-
-            is_equation_field = is_equation(field)
-            is_function_field = is_function(field)
-
-            if is_equation_field:
-                new_fields.append(eap_query_parts["equations"][equation_index])
-                new_aggregates.append(eap_query_parts["equations"][equation_index])
-                equation_index += 1
-
-            elif is_function_field:
-                new_fields.append(eap_query_parts["selected_columns"][col_index])
-                new_aggregates.append(eap_query_parts["selected_columns"][col_index])
-                col_index += 1
-
-            else:
-                new_fields.append(eap_query_parts["selected_columns"][col_index])
-                new_columns.append(eap_query_parts["selected_columns"][col_index])
-                col_index += 1
-
-            if is_selected_aggregate:
-                new_selected_aggregate = len(new_fields) - 1
-
-            if len(field_aliases) == len(original_fields):
-                new_aliases.append(field_aliases[old_index])
-
-        new_widget_queries.append(
-            DashboardWidgetQuery(
-                widget_id=widget.id,
-                order=q_index,
-                name=name,
-                fields=new_fields,
-                conditions=new_conditions,
-                aggregates=new_aggregates,
-                columns=new_columns,
-                field_aliases=new_aliases,
-                orderby=new_orderby,
-                is_hidden=is_hidden,
-                selected_aggregate=new_selected_aggregate,
-            )
-        )
+        new_widget_queries.append(new_widget_query)
 
         dropped_fields_info.append(dropped_fields)
-
-    if not save_widget:
-        new_widget = copy.deepcopy(widget)
-        new_widget_dict = vars(new_widget)
-        widget_dict_queries = [vars(q) for q in new_widget_queries]
-        new_widget_dict["queries"] = widget_dict_queries
-        return new_widget_dict
 
     with atomic_transaction(
         using=(
