@@ -122,6 +122,7 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
           model,
           name,
           placeholder,
+          isOptionDisabled,
           ...props
         }: any) => {
           const showTempNoneOption =
@@ -150,7 +151,12 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
                 controlShouldRenderValue={!showTempNoneOption}
                 isOptionDisabled={(option: any) => {
                   // We need to notify react-select about the disabled options here as well; otherwise, they will remain clickable.
-                  return option.label === NONE_SELECTED_LABEL;
+                  if (option.label === NONE_SELECTED_LABEL) {
+                    return true;
+                  }
+                  return typeof isOptionDisabled === 'function'
+                    ? isOptionDisabled(option)
+                    : false;
                 }}
                 components={{
                   IndicatorsContainer: ({
