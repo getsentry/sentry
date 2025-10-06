@@ -385,7 +385,7 @@ function updateVisualizeAggregate({
   return `${newAggregate}(${oldArgument})`;
 }
 
-export function getDefaultArgument(
+function getDefaultArgument(
   aggregate: string,
   firstNumberKey: string | null
 ): string | null {
