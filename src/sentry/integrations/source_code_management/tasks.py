@@ -29,7 +29,6 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -39,11 +38,9 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.integrations.source_code_management.tasks.pr_comment_workflow",
+    namespace=integrations_tasks,
+    processing_deadline_duration=45,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=integrations_tasks,
-        processing_deadline_duration=45,
-    ),
 )
 def pr_comment_workflow(pr_id: int, project_id: int) -> None:
     cache_key = _debounce_pr_comment_cache_key(pullrequest_id=pr_id)
@@ -187,11 +184,9 @@ def pr_comment_workflow(pr_id: int, project_id: int) -> None:
 
 @instrumented_task(
     name="sentry.integrations.source_code_management.tasks.open_pr_comment_workflow",
+    namespace=integrations_tasks,
+    processing_deadline_duration=150,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=integrations_tasks,
-        processing_deadline_duration=150,
-    ),
 )
 def open_pr_comment_workflow(pr_id: int) -> None:
     logger.info(

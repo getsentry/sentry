@@ -49,6 +49,7 @@ import {
   PlanName,
   PlanTier,
   type BillingConfig,
+  type CheckoutAddOns,
   type EventBucket,
   type Invoice,
   type OnDemandBudgets,
@@ -87,11 +88,7 @@ import PlanSelect from 'getsentry/views/amCheckout/steps/planSelect';
 import ReviewAndConfirm from 'getsentry/views/amCheckout/steps/reviewAndConfirm';
 import SetPayAsYouGo from 'getsentry/views/amCheckout/steps/setPayAsYouGo';
 import SetSpendLimit from 'getsentry/views/amCheckout/steps/setSpendLimit';
-import type {
-  CheckoutFormData,
-  SelectedProductData,
-} from 'getsentry/views/amCheckout/types';
-import {SelectableProduct} from 'getsentry/views/amCheckout/types';
+import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import {getBucket} from 'getsentry/views/amCheckout/utils';
 import {
   getTotalBudget,
@@ -162,22 +159,14 @@ class AMCheckout extends Component<Props, State> {
       isBizPlanFamily(props.subscription.planDetails) &&
       props.checkoutTier === props.subscription.planTier
     ) {
-      // TODO(billing): cleanup condition after backfill
-      const selectedAll = props.organization.features.includes('seer-billing')
-        ? props.subscription.reservedBudgets &&
-          props.subscription.reservedBudgets.length > 0
-          ? props.subscription.reservedBudgets.every(budget => {
-              if (
-                Object.values(SelectableProduct).includes(
-                  budget.apiName as string as SelectableProduct
-                )
-              ) {
-                return budget.reservedBudget > 0;
-              }
-              return !props.organization.features.includes(budget.billingFlag || '');
-            })
-          : false // don't skip before backfill
-        : true; // skip if seer hasn't launched
+      // skip to the next step if all available add-ons are already enabled
+      const selectedAll = Object.values(props.subscription.addOns ?? {}).every(
+        addOn =>
+          // add-on is enabled or not launched yet
+          // if there's no billing flag, we assume it's launched
+          addOn.enabled ||
+          (addOn.billingFlag && !props.organization.features.includes(addOn.billingFlag))
+      );
 
       if (selectedAll) {
         step = 2;
@@ -266,7 +255,7 @@ class AMCheckout extends Component<Props, State> {
         data: {tier: checkoutTier},
       });
 
-      const planList = this.getPaidPlans(config);
+      const planList = this.getPlans(config);
       const billingConfig = {...config, planList};
       const formData = this.getInitialData(billingConfig);
 
@@ -285,19 +274,20 @@ class AMCheckout extends Component<Props, State> {
     this.setState({loading: false});
   }
 
-  getPaidPlans(billingConfig: BillingConfig) {
-    const paidPlans = billingConfig.planList.filter(
+  getPlans(billingConfig: BillingConfig) {
+    const plans = billingConfig.planList.filter(
       plan =>
-        plan.basePrice &&
-        plan.userSelectable &&
-        ((plan.billingInterval === MONTHLY && plan.contractInterval === MONTHLY) ||
-          (plan.billingInterval === ANNUAL && plan.contractInterval === ANNUAL))
+        plan.id === billingConfig.freePlan ||
+        (plan.basePrice &&
+          plan.userSelectable &&
+          ((plan.billingInterval === MONTHLY && plan.contractInterval === MONTHLY) ||
+            (plan.billingInterval === ANNUAL && plan.contractInterval === ANNUAL)))
     );
 
-    if (!paidPlans) {
+    if (plans.length === 0) {
       throw new Error('Cannot get plan options');
     }
-    return paidPlans;
+    return plans;
   }
 
   get checkoutSteps() {
@@ -422,11 +412,11 @@ class AMCheckout extends Component<Props, State> {
     const {subscription, checkoutTier} = this.props;
     const {planList, defaultPlan} = billingConfig;
     const initialPlan = planList.find(({id}) => id === subscription.plan);
+    const businessPlan = this.getBusinessPlan(billingConfig);
 
     if (this.shouldDefaultToBusiness()) {
-      const plan = this.getBusinessPlan(billingConfig);
-      if (plan) {
-        return plan;
+      if (businessPlan) {
+        return businessPlan;
       }
     }
 
@@ -456,7 +446,10 @@ class AMCheckout extends Component<Props, State> {
           contractInterval === subscription?.planDetails?.contractInterval
       );
 
-    return legacyInitialPlan || planList.find(({id}) => id === defaultPlan);
+    // if no legacy initial plan found, we fallback to the business plan, then the default plan (usually team)
+    return (
+      legacyInitialPlan || businessPlan || planList.find(({id}) => id === defaultPlan)
+    );
   }
 
   canComparePrices(initialPlan: Plan) {
@@ -528,15 +521,18 @@ class AMCheckout extends Component<Props, State> {
       },
       ...(onDemandMaxSpend > 0 && {onDemandMaxSpend}),
       onDemandBudget: parseOnDemandBudgetsFromSubscription(subscription),
-      selectedProducts: Object.values(SelectableProduct).reduce(
-        (acc, product) => {
-          acc[product] = {
-            enabled: false,
+      addOns: Object.values(subscription.addOns ?? {})
+        .filter(
+          // only populate add-ons that are launched
+          addOn => !addOn.billingFlag || organization.features.includes(addOn.billingFlag)
+        )
+        .reduce((acc, addOn) => {
+          acc[addOn.apiName] = {
+            // don't prepopulate add-ons from trial state
+            enabled: addOn.enabled && !isTrialPlan(subscription.plan),
           };
           return acc;
-        },
-        {} as Record<SelectableProduct, SelectedProductData>
-      ),
+        }, {} as CheckoutAddOns),
     };
 
     if (
@@ -553,28 +549,13 @@ class AMCheckout extends Component<Props, State> {
       };
     }
 
-    if (!isTrialPlan(subscription.plan)) {
-      // don't prepopulate selected products from trial state
-      subscription.reservedBudgets?.forEach(budget => {
-        if (
-          Object.values(SelectableProduct).includes(
-            budget.apiName as string as SelectableProduct
-          )
-        ) {
-          data.selectedProducts[budget.apiName as string as SelectableProduct] = {
-            enabled: budget.reservedBudget > 0,
-          };
-        }
-      });
-    }
-
     return this.getValidData(initialPlan, data);
   }
 
   getValidData(plan: Plan, data: Omit<CheckoutFormData, 'plan'>): CheckoutFormData {
     const {subscription, organization, checkoutTier} = this.props;
 
-    const {onDemandMaxSpend, onDemandBudget, selectedProducts} = data;
+    const {onDemandMaxSpend, onDemandBudget, addOns} = data;
 
     // Verify next plan data volumes before updating form data
     // finds the approximate bucket if event level does not exist
@@ -620,7 +601,7 @@ class AMCheckout extends Component<Props, State> {
       onDemandMaxSpend: newOnDemandMaxSpend,
       onDemandBudget: newOnDemandBudget,
       reserved: nextReserved,
-      selectedProducts,
+      addOns,
     };
   }
 
@@ -956,7 +937,7 @@ class AMCheckout extends Component<Props, State> {
                     <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
                   ),
                   contact: hasZendesk() ? (
-                    <ZendeskButton borderless onClick={activateZendesk}>
+                    <ZendeskButton priority="link" onClick={activateZendesk}>
                       <Text variant="accent">{t('ask Support')}</Text>
                     </ZendeskButton>
                   ) : (
@@ -996,7 +977,7 @@ class AMCheckout extends Component<Props, State> {
 
     return this.renderParentComponent({
       children: (
-        <Flex width={'100%'} background={'secondary'} justify="center" padding="2xl">
+        <Flex width="100%" background="secondary" justify="center" padding="2xl">
           <SentryDocumentTitle
             title={t('Change Subscription')}
             orgSlug={organization.slug}
@@ -1027,6 +1008,8 @@ class AMCheckout extends Component<Props, State> {
           ) : (
             <Grid
               gap="2xl"
+              width="100%"
+              maxWidth="1440px"
               columns={{
                 sm: 'auto',
                 lg: '3fr 2fr',

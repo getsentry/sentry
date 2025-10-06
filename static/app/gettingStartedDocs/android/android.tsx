@@ -1,6 +1,6 @@
 import {ExternalLink} from 'sentry/components/core/link';
+import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import type {
-  BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -15,35 +15,7 @@ import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 import {getWizardInstallSnippet} from 'sentry/utils/gettingStartedDocs/mobileWizard';
 
-export enum InstallationMode {
-  AUTO = 'auto',
-  MANUAL = 'manual',
-}
-
-const platformOptions = {
-  installationMode: {
-    label: t('Installation Mode'),
-    items: [
-      {
-        label: t('Auto'),
-        value: InstallationMode.AUTO,
-      },
-      {
-        label: t('Manual'),
-        value: InstallationMode.MANUAL,
-      },
-    ],
-    defaultValue: InstallationMode.AUTO,
-  },
-} satisfies BasePlatformOptions;
-
-type PlatformOptions = typeof platformOptions;
-type Params = DocsParams<PlatformOptions>;
-
-const isAutoInstall = (params: Params) =>
-  params.platformOptions.installationMode === InstallationMode.AUTO;
-
-const getManualInstallSnippet = (params: Params) => `
+const getManualInstallSnippet = (params: DocsParams) => `
 plugins {
   id "com.android.application" // should be in the same module
   id "io.sentry.android.gradle" version "${getPackageVersion(
@@ -53,96 +25,7 @@ plugins {
   )}"
 }`;
 
-const getConfigurationSnippet = (params: Params) => `
-<application>
-  <!-- Required: set your sentry.io project identifier (DSN) -->
-  <meta-data android:name="io.sentry.dsn" android:value="${params.dsn.public}" />
-
-  <!-- Add data like request headers, user ip adress and device name, see https://docs.sentry.io/platforms/android/data-management/data-collected/ for more info -->
-  <meta-data android:name="io.sentry.send-default-pii" android:value="true" />
-
-  <!-- enable automatic breadcrumbs for user interactions (clicks, swipes, scrolls) -->
-  <meta-data android:name="io.sentry.traces.user-interaction.enable" android:value="true" />
-  <!-- enable screenshot for crashes -->
-  <meta-data android:name="io.sentry.attach-screenshot" android:value="true" />
-  <!-- enable view hierarchy for crashes -->
-  <meta-data android:name="io.sentry.attach-view-hierarchy" android:value="true" />${
-    params.isPerformanceSelected
-      ? `
-
-  <!-- enable the performance API by setting a sample-rate, adjust in production env -->
-  <meta-data android:name="io.sentry.traces.sample-rate" android:value="1.0" />`
-      : ''
-  }${
-    params.isProfilingSelected &&
-    params.profilingOptions?.defaultProfilingMode !== 'continuous'
-      ? `
-    <!-- Set sampling rate for profiling, adjust in production env - this is relative to sampled transactions -->
-    <!-- note: there is a known issue in the Android Runtime that can be triggered by Profiling in certain circumstances -->
-    <!-- see https://docs.sentry.io/platforms/android/profiling/troubleshooting/ -->
-    <meta-data android:name="io.sentry.traces.profiling.sample-rate" android:value="1.0" />
-    <!-- Enable profiling on app start -->
-    <meta-data android:name="io.sentry.traces.profiling.enable-app-start" android:value="true" />`
-      : ''
-  }${
-    params.isProfilingSelected &&
-    params.profilingOptions?.defaultProfilingMode === 'continuous'
-      ? `
-  <!-- Set sampling rate for profiling, adjust in production env - this is evaluated only once per session -->
-  <!-- note: there is a known issue in the Android Runtime that can be triggered by Profiling in certain circumstances -->
-  <!-- see https://docs.sentry.io/platforms/android/profiling/troubleshooting/ -->
-  <meta-data android:name="io.sentry.traces.profiling.session-sample-rate" android:value="1.0" />
-  <!-- Set profiling lifecycle, can be \`manual\` (controlled through \`Sentry.startProfiler()\` and \`Sentry.stopProfiler()\`) or \`trace\` (automatically starts and stop a profile whenever a sampled trace starts and finishes) -->
-  <meta-data android:name="io.sentry.traces.profiling.lifecycle" android:value="trace" />
-  <!-- Enable profiling on app start -->
-  <meta-data android:name="io.sentry.traces.profiling.start-on-app-start" android:value="true" />`
-      : ''
-  }${
-    params.isReplaySelected
-      ? `
-
-  <!-- record session replays for 100% of errors and 10% of sessions -->
-  <meta-data android:name="io.sentry.session-replay.on-error-sample-rate" android:value="1.0" />
-  <meta-data android:name="io.sentry.session-replay.session-sample-rate" android:value="0.1" />`
-      : ''
-  }${
-    params.isLogsSelected
-      ? `
-
-  <!-- enable logs to be sent to Sentry -->
-  <meta-data android:name="io.sentry.logs.enabled" android:value="true" />`
-      : ''
-  }
-</application>`;
-
-const getVerifySnippet = (params: Params) => `
-${
-  params.isProfilingSelected &&
-  params.profilingOptions?.defaultProfilingMode === 'continuous'
-    ? `
-// Start profiling, if lifecycle is set to \`manual\`
-Sentry.startProfiler()`
-    : ''
-}
-val breakWorld = Button(this).apply {
-  text = "Break the world"
-  setOnClickListener {
-    Sentry.captureException(RuntimeException("This app uses Sentry! :)"))
-  }
-}
-
-addContentView(breakWorld, ViewGroup.LayoutParams(
-  ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-${
-  params.isProfilingSelected &&
-  params.profilingOptions?.defaultProfilingMode === 'continuous'
-    ? `
-// Stop profiling, if lifecycle is set to \`manual\`. This call is optional. If you don't stop the profiler, it will keep profiling your application until the process exits.
-Sentry.stopProfiler()`
-    : ''
-}`;
-
-const getReplaySetupSnippetKotlin = (params: Params) => `
+const getReplaySetupSnippetKotlin = (params: DocsParams) => `
 SentryAndroid.init(context) { options ->
   options.dsn = "${params.dsn.public}"
   options.isDebug = true
@@ -159,222 +42,104 @@ const getReplayConfigurationSnippet = () => `
 options.sessionReplay.maskAllText = true
 options.sessionReplay.maskAllImages = true`;
 
-const onboarding: OnboardingConfig<PlatformOptions> = {
-  install: params =>
-    isAutoInstall(params)
-      ? [
-          {
-            type: StepType.INSTALL,
-            content: [
+const onboarding: OnboardingConfig = {
+  install: params => [
+    {
+      title: t('Automatic Configuration (Recommended)'),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Add Sentry automatically to your app with the [wizardLink:Sentry wizard] (call this inside your project directory).',
+            {
+              wizardLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/android/#install" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'code',
+          tabs: getWizardInstallSnippet({
+            platform: 'android',
+            params,
+          }),
+        },
+        {
+          type: 'text',
+          text: t('The Sentry wizard will automatically patch your application:'),
+        },
+        {
+          type: 'list',
+          items: [
+            tct(
+              "Update your app's [buildGradle:build.gradle] file with the Sentry Gradle plugin and configure it.",
               {
-                type: 'text',
-                text: tct(
-                  'Add Sentry automatically to your app with the [wizardLink:Sentry wizard] (call this inside your project directory).',
-                  {
-                    wizardLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/android/#install" />
-                    ),
-                  }
-                ),
-              },
-              {
-                type: 'code',
-                tabs: getWizardInstallSnippet({
-                  platform: 'android',
-                  params,
-                }),
-              },
-              {
-                type: 'text',
-                text: t('The Sentry wizard will automatically patch your application:'),
-              },
-              {
-                type: 'list',
-                items: [
-                  tct(
-                    "Update your app's [buildGradle:build.gradle] file with the Sentry Gradle plugin and configure it.",
-                    {
-                      buildGradle: <code />,
-                    }
-                  ),
-                  tct(
-                    'Update your [manifest: AndroidManifest.xml] with the default Sentry configuration',
-                    {
-                      manifest: <code />,
-                    }
-                  ),
-                  tct(
-                    'Create [code: sentry.properties] with an auth token to upload proguard mappings (this file is automatically added to [code: .gitignore])',
-                    {
-                      code: <code />,
-                    }
-                  ),
-                  t(
-                    "Add an example error to your app's Main Activity to verify your Sentry setup"
-                  ),
-                ],
-              },
-            ],
-          },
-        ]
-      : [
-          {
-            type: StepType.INSTALL,
-            content: [
-              {
-                type: 'text',
-                text: tct(
-                  'Add the [sagpLink:Sentry Android Gradle plugin] to your [app:app] module:',
-                  {
-                    sagpLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/android/configuration/gradle/" />
-                    ),
-                    app: <code />,
-                  }
-                ),
-              },
-              {
-                type: 'code',
-                tabs: [
-                  {
-                    label: 'Groovy',
-                    language: 'groovy',
-                    code: getManualInstallSnippet(params),
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-  configure: params =>
-    isAutoInstall(params)
-      ? []
-      : [
-          {
-            type: StepType.CONFIGURE,
-            content: [
-              {
-                type: 'text',
-                text: tct(
-                  'Configuration is done via the application [code: AndroidManifest.xml]. Under the hood Sentry uses a [code:ContentProvider] to initialize the SDK based on the values provided below. This way the SDK can capture important crashes and metrics right from the app start.',
-                  {
-                    code: <code />,
-                  }
-                ),
-              },
-              {
-                type: 'text',
-                text: t("Here's an example config which should get you started:"),
-              },
-              {
-                type: 'code',
-                tabs: [
-                  {
-                    label: 'XML',
-                    language: 'xml',
-                    filename: 'AndroidManifest.xml',
-                    code: getConfigurationSnippet(params),
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-  verify: params =>
-    isAutoInstall(params)
-      ? []
-      : [
-          {
-            type: StepType.VERIFY,
-            content: [
-              {
-                type: 'text',
-                text: tct(
-                  "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected. You can add it to your app's [mainActivity: MainActivity].",
-                  {
-                    mainActivity: <code />,
-                  }
-                ),
-              },
-              {
-                type: 'code',
-                tabs: [
-                  {
-                    label: 'Kotlin',
-                    language: 'kotlin',
-                    code: getVerifySnippet(params),
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-  nextSteps: params => {
-    const steps = isAutoInstall(params)
-      ? [
-          {
-            id: 'advanced-configuration',
-            name: t('Advanced Configuration'),
-            description: t('Customize the SDK initialization behavior.'),
-            link: 'https://docs.sentry.io/platforms/android/configuration/manual-init/#manual-initialization',
-          },
-          {
-            id: 'jetpack-compose',
-            name: t('Jetpack Compose'),
-            description: t(
-              'Learn about our first class integration with Jetpack Compose.'
+                buildGradle: <code />,
+              }
             ),
-            link: 'https://docs.sentry.io/platforms/android/configuration/integrations/jetpack-compose/',
-          },
-        ]
-      : [
-          {
-            id: 'advanced-configuration',
-            name: t('Advanced Configuration'),
-            description: t('Customize the SDK initialization behavior.'),
-            link: 'https://docs.sentry.io/platforms/android/configuration/manual-init/#manual-initialization',
-          },
-          {
-            id: 'proguard-r8',
-            name: t('ProGuard/R8'),
-            description: t(
-              'Deobfuscate and get readable stacktraces in your Sentry errors.'
+            tct(
+              'Update your [manifest: AndroidManifest.xml] with the default Sentry configuration',
+              {
+                manifest: <code />,
+              }
             ),
-            link: 'https://docs.sentry.io/platforms/android/configuration/gradle/#proguardr8--dexguard',
-          },
-          {
-            id: 'jetpack-compose',
-            name: t('Jetpack Compose'),
-            description: t(
-              'Learn about our first class integration with Jetpack Compose.'
+            tct(
+              'Create [code: sentry.properties] with an auth token to upload proguard mappings (this file is automatically added to [code: .gitignore])',
+              {
+                code: <code />,
+              }
             ),
-            link: 'https://docs.sentry.io/platforms/android/configuration/integrations/jetpack-compose/',
-          },
-          {
-            id: 'source-context',
-            name: t('Source Context'),
-            description: t('See your source code as part of your stacktraces in Sentry.'),
-            link: 'https://docs.sentry.io/platforms/android/enhance-errors/source-context/',
-          },
-        ];
-
-    if (params.isLogsSelected) {
-      steps.push({
-        id: 'logs',
-        name: t('Logging Integrations'),
-        description: t(
-          'Add logging integrations to automatically capture logs from your application.'
-        ),
-        link: 'https://docs.sentry.io/platforms/android/logs/#integrations',
-      });
-    }
-
-    return steps;
-  },
+            t(
+              "Add an example error to your app's Main Activity to verify your Sentry setup"
+            ),
+          ],
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      title: t('Manual Configuration'),
+      collapsible: true,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Alternatively, you can also set up the SDK manually, by following the [manualSetupLink:manual setup docs].',
+            {
+              manualSetupLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/android/manual-setup/" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'custom',
+          content: <CopyDsnField params={params} />,
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [
+    {
+      id: 'advanced-configuration',
+      name: t('Advanced Configuration'),
+      description: t('Customize the SDK initialization behavior.'),
+      link: 'https://docs.sentry.io/platforms/android/configuration/manual-init/#manual-initialization',
+    },
+    {
+      id: 'jetpack-compose',
+      name: t('Jetpack Compose'),
+      description: t('Learn about our first class integration with Jetpack Compose.'),
+      link: 'https://docs.sentry.io/platforms/android/configuration/integrations/jetpack-compose/',
+    },
+  ],
 };
 
-const replayOnboarding: OnboardingConfig<PlatformOptions> = {
-  install: (params: Params) => [
+const replayOnboarding: OnboardingConfig = {
+  install: params => [
     {
       type: StepType.INSTALL,
       content: [
@@ -513,7 +278,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   nextSteps: () => [],
 };
 
-const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
+const profilingOnboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
@@ -632,9 +397,7 @@ const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
             'For more detailed information on profiling, see the [link:profiling documentation].',
             {
               link: (
-                <ExternalLink
-                  href={`https://docs.sentry.io/platforms/android/profiling/`}
-                />
+                <ExternalLink href="https://docs.sentry.io/platforms/android/profiling/" />
               ),
             }
           ),
@@ -657,7 +420,7 @@ const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
   ],
 };
 
-const logsOnboarding: OnboardingConfig<PlatformOptions> = {
+const logsOnboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
@@ -809,9 +572,7 @@ class MyApplication : Application() {
             'You can also configure [link:logging integrations] to automatically capture logs from your application from libraries like [code:Timber] or [code:Logcat].',
             {
               link: (
-                <ExternalLink
-                  href={'https://docs.sentry.io/platforms/android/logs/#integrations'}
-                />
+                <ExternalLink href="https://docs.sentry.io/platforms/android/logs/#integrations" />
               ),
               code: <code />,
             }
@@ -854,11 +615,10 @@ Sentry.logger().error("A %s log message", "formatted")`,
   ],
 };
 
-const docs: Docs<PlatformOptions> = {
+const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiJava,
   crashReportOnboarding: feedbackOnboardingCrashApiJava,
-  platformOptions,
   profilingOnboarding,
   replayOnboarding,
   logsOnboarding,

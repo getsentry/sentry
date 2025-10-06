@@ -280,6 +280,7 @@ export declare namespace TraceTree {
     op: string;
     span_id: string;
     description?: string;
+    name?: string;
   }
 
   interface SiblingAutogroup extends BaseAutogroup {
@@ -302,8 +303,19 @@ export declare namespace TraceTree {
     | SiblingAutogroupNode
     | MissingInstrumentationNode;
 
-  type NodePath =
-    `${'txn' | 'span' | 'ag' | 'trace' | 'ms' | 'error' | 'empty' | 'uptime-check' | 'uptime-check-timing'}-${string}`;
+  type NodeType =
+    | 'txn'
+    | 'span'
+    | 'ag'
+    | 'trace'
+    | 'ms'
+    | 'error'
+    | 'empty'
+    | 'uptime-check'
+    | 'uptime-check-timing'
+    | 'collapsed'
+    | 'root';
+  type NodePath = `${NodeType}-${string}`;
 
   type Metadata = {
     event_id: string | undefined;

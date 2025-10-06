@@ -163,9 +163,11 @@ def _get_serialized_event(
     return serialized_event, event
 
 
-def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> dict[str, Any] | None:
+def _get_trace_tree_for_event(
+    event: Event | GroupEvent, project: Project, timeout: int = 15
+) -> dict[str, Any] | None:
     """
-    Returns the full trace for the given issue event with a 15-second timeout.
+    Returns the full trace for the given issue event with a timeout (default 15 seconds).
     Returns None if the timeout expires or if the trace cannot be fetched.
     """
     trace_id = event.trace_id
@@ -177,8 +179,13 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
             organization=project.organization, status=ObjectStatus.ACTIVE
         )
         projects = list(projects_qs)
-        start = event.datetime - timedelta(days=1)
         end = event.datetime + timedelta(days=1)
+        # Web Vital issues are synthetic and don't necessarily occur at the same time as associated traces
+        # Don't restrict time range in these scenarios, ie use 90 day range
+        if event.group and event.group.issue_type.slug == WebVitalsGroup.slug:
+            start = event.datetime - timedelta(days=89)
+        else:
+            start = event.datetime - timedelta(days=1)
 
         snuba_params = SnubaParams(
             start=start,
@@ -217,8 +224,6 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
             "org_id": project.organization_id,
             "trace": trace,
         }
-
-    timeout = 15  # seconds
 
     try:
         with sentry_sdk.start_span(op="seer.autofix.get_trace_tree_for_event"):

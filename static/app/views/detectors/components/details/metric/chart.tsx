@@ -1,8 +1,10 @@
 import {useMemo} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {YAXisComponentOption} from 'echarts';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
+import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Flex} from 'sentry/components/core/layout';
@@ -12,14 +14,56 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useDetectorDateParams} from 'sentry/views/detectors/components/details/metric/utils/useDetectorTimePeriods';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {
+  buildDetectorZoomQuery,
+  computeZoomRangeMs,
+} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
-import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
+import {
+  useIncidentMarkers,
+  type IncidentPeriod,
+} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
+
+interface IncidentTooltipContext {
+  period: IncidentPeriod;
+  theme: Theme;
+}
+
+function incidentSeriesTooltip(ctx: IncidentTooltipContext) {
+  const startTime = defaultFormatAxisLabel(ctx.period.start, true, false, true, false);
+  const endTime = ctx.period.end
+    ? defaultFormatAxisLabel(ctx.period.end, true, false, true, false)
+    : '-';
+  const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${ctx.theme.red400};margin-right:6px;vertical-align:middle;"></span>`;
+  return [
+    '<div class="tooltip-series">',
+    `<div><span class="tooltip-label"><strong>#${ctx.period.id}</strong></span></div>`,
+    `<div><span class="tooltip-label">${t('Started')}</span> ${startTime}</div>`,
+    `<div><span class="tooltip-label">${t('Ended')}</span> ${endTime}</div>`,
+    `<div><span class="tooltip-label">${t('Priority')}</span> ${priorityDot} ${t('Critical')}</div>`,
+    '</div>',
+    '<div class="tooltip-arrow arrow-top"></div>',
+  ].join('');
+}
+
+function incidentMarklineTooltip(ctx: IncidentTooltipContext) {
+  const time = defaultFormatAxisLabel(ctx.period.start, true, false, true, false);
+  const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${ctx.theme.red400};margin-right:6px;vertical-align:middle;"></span>`;
+  return [
+    '<div class="tooltip-series">',
+    `<div><span class="tooltip-label"><strong>${t('#%s Triggered', ctx.period.id)}</strong></span></div>`,
+    `<div><span class="tooltip-label">${t('Started')}</span> ${time}</div>`,
+    `<div><span class="tooltip-label">${t('Priority')}</span> ${priorityDot} ${t('Critical')}</div>`,
+    '</div>',
+    '<div class="tooltip-arrow arrow-top"></div>',
+  ].join('');
+}
 
 interface MetricDetectorDetailsChartProps {
   detector: MetricDetector;
@@ -46,6 +90,8 @@ function MetricDetectorChart({
   snubaQuery,
   detector,
 }: MetricDetectorChartProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const detectionType = detector.config.detectionType;
   const comparisonDelta =
     detectionType === 'percent' ? detector.config.comparisonDelta : undefined;
@@ -83,7 +129,7 @@ function MetricDetectorChart({
   const incidentPeriods = useMemo(() => {
     const endDate = end ? new Date(end).getTime() : Date.now();
 
-    return openPeriods.map(period => ({
+    return openPeriods.map<IncidentPeriod>(period => ({
       ...period,
       // TODO: When open periods return a priority, use that to determine the color
       color: 'red',
@@ -96,9 +142,27 @@ function MetricDetectorChart({
 
   const openPeriodMarkerResult = useIncidentMarkers({
     incidents: incidentPeriods,
+    includePreviousIntervalMarker: true,
     seriesName: t('Open Periods'),
     seriesId: '__incident_marker__',
     yAxisIndex: 1, // Use index 1 to avoid conflict with main chart axis
+    seriesTooltip: incidentSeriesTooltip,
+    markLineTooltip: incidentMarklineTooltip,
+    intervalMs: snubaQuery.timeWindow * 1000,
+    onClick: context => {
+      const startMs = context.period.start;
+      const endMs = context.period.end ?? Date.now();
+      const intervalSeconds = Number(snubaQuery.timeWindow) || 60;
+      const {start: zoomStart, end: zoomEnd} = computeZoomRangeMs({
+        startMs,
+        endMs,
+        intervalSeconds,
+      });
+      navigate({
+        pathname: location.pathname,
+        query: buildDetectorZoomQuery(location.query, zoomStart, zoomEnd),
+      });
+    },
   });
 
   const chartZoomProps = useChartZoom({
@@ -234,14 +298,7 @@ export function MetricDetectorDetailsChart({
   const statsPeriod = location.query?.statsPeriod as string | undefined;
   const start = location.query?.start as string | undefined;
   const end = location.query?.end as string | undefined;
-  const detectorDataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
-  const dateParams = useDetectorDateParams({
-    dataset: detectorDataset,
-    intervalSeconds: snubaQuery.timeWindow,
-    start,
-    end,
-    urlStatsPeriod: statsPeriod,
-  });
+  const dateParams = start && end ? {start, end} : {statsPeriod};
 
   return (
     <ChartContainer>

@@ -41,8 +41,10 @@ def process_in_batches(client: ProjectDelayedWorkflowClient) -> None:
     )  # TODO: Use workflow engine-specific option.
 
     event_count = client.get_hash_length()
-    metrics.incr("delayed_workflow.num_groups", tags={"num_groups": bucket_num_groups(event_count)})
-    metrics.distribution("delayed_workflow.event_count", event_count)
+    metrics.incr(
+        "workflow_engine.schedule.num_groups", tags={"num_groups": bucket_num_groups(event_count)}
+    )
+    metrics.distribution("workflow_engine.schedule.event_count", event_count)
 
     if event_count < batch_size:
         return process_delayed_workflows.apply_async(
@@ -58,7 +60,7 @@ def process_in_batches(client: ProjectDelayedWorkflowClient) -> None:
     # if the dictionary is large, get the items and chunk them.
     alertgroup_to_event_data = client.get_hash_data(batch_key=None)
 
-    with metrics.timer("delayed_workflow.process_batch.duration"):
+    with metrics.timer("workflow_engine.schedule.process_batch.duration"):
         items = iter(alertgroup_to_event_data.items())
 
         while batch := dict(islice(items, batch_size)):
@@ -83,12 +85,7 @@ def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
         logger.info("delayed_workflow.disabled", extra={"option": option_name})
         return
 
-    with metrics.timer("delayed_workflow.process_all_conditions.duration"):
-        # We need to use a very fresh timestamp here; project scores (timestamps) are
-        # updated with each relevant event, and some can be updated every few milliseconds.
-        # The staler this timestamp, the more likely it'll miss some recently updated projects,
-        # and the more likely we'll have frequently updated projects that are never actually
-        # retrieved and processed here.
+    with metrics.timer("workflow_engine.schedule.process_all_conditions.duration", sample_rate=1.0):
         fetch_time = datetime.now(tz=timezone.utc).timestamp()
         all_project_ids_and_timestamps = buffer_client.get_project_ids(
             min=0,
@@ -107,43 +104,33 @@ def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
         for project_id in project_ids:
             process_in_batches(buffer_client.for_project(project_id))
 
-        if options.get("workflow_engine.scheduler.use_conditional_delete"):
-            member_maxes = [
-                (project_id, max(timestamps))
-                for project_id, timestamps in all_project_ids_and_timestamps.items()
-            ]
-            try:
-                deleted_project_ids = set[int]()
-                with metrics.timer(
-                    "workflow_engine.conditional_delete_from_sorted_sets.total_duration"
-                ):
-                    # The conditional delete can be slow, so we break it into chunks that probably
-                    # aren't big enough to hold onto the main redis thread for too long.
-                    for chunk in chunked(member_maxes, 500):
-                        with metrics.timer(
-                            "workflow_engine.conditional_delete_from_sorted_sets.chunk_duration"
-                        ):
-                            deleted = buffer_client.mark_project_ids_as_processed(dict(chunk))
-                            deleted_project_ids.update(deleted)
+        mark_projects_processed(buffer_client, all_project_ids_and_timestamps)
 
-                logger.info(
-                    "process_buffered_workflows.project_ids_deleted",
-                    extra={
-                        "deleted_project_ids": sorted(deleted_project_ids),
-                        "processed_project_ids": sorted(project_ids),
-                    },
-                )
-            except Exception:
-                logger.exception(
-                    "process_buffered_workflows.conditional_delete_from_sorted_sets_error"
-                )
-                # Fallback.
-                buffer_client.clear_project_ids(
-                    min=0,
-                    max=fetch_time,
-                )
-        else:
-            buffer_client.clear_project_ids(
-                min=0,
-                max=fetch_time,
-            )
+
+def mark_projects_processed(
+    buffer_client: DelayedWorkflowClient,
+    all_project_ids_and_timestamps: dict[int, list[float]],
+) -> None:
+    if not all_project_ids_and_timestamps:
+        return
+    with metrics.timer("workflow_engine.scheduler.mark_projects_processed"):
+        member_maxes = [
+            (project_id, max(timestamps))
+            for project_id, timestamps in all_project_ids_and_timestamps.items()
+        ]
+        deleted_project_ids = set[int]()
+        # The conditional delete can be slow, so we break it into chunks that probably
+        # aren't big enough to hold onto the main redis thread for too long.
+        for chunk in chunked(member_maxes, 500):
+            with metrics.timer(
+                "workflow_engine.conditional_delete_from_sorted_sets.chunk_duration"
+            ):
+                deleted = buffer_client.mark_project_ids_as_processed(dict(chunk))
+                deleted_project_ids.update(deleted)
+
+        logger.info(
+            "process_buffered_workflows.project_ids_deleted",
+            extra={
+                "deleted_project_ids": sorted(deleted_project_ids),
+            },
+        )

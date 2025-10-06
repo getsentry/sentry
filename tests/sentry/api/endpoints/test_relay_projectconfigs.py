@@ -11,9 +11,10 @@ from django.urls import reverse
 from sentry_relay.auth import generate_key_pair
 
 from sentry import quotas
-from sentry.constants import ObjectStatus
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.project import Project
 from sentry.models.relay import Relay
+from sentry.quotas.base import RETENTIONS_CONFIG_MAPPING, RetentionSettings
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import safe
@@ -153,6 +154,38 @@ def test_internal_relays_should_receive_full_configs(
     assert safe.get_path(
         cfg, "config", "downsampledEventRetention"
     ) == quotas.backend.get_downsampled_event_retention(default_project.organization)
+
+    retentions = quotas.backend.get_retentions(default_project.organization)
+    assert safe.get_path(cfg, "config", "retentions") == {
+        RETENTIONS_CONFIG_MAPPING[c]: v.to_object()
+        for c, v in retentions.items()
+        if c in RETENTIONS_CONFIG_MAPPING
+    }
+
+
+@django_db_all
+def test_parse_retentions(call_endpoint, default_project):
+    with patch("sentry.quotas.backend") as quotas_mock:
+        quotas_mock.get_retentions = lambda x: {
+            DataCategory.ERROR: RetentionSettings(standard=10, downsampled=20),
+            DataCategory.REPLAY: RetentionSettings(standard=11, downsampled=21),
+            DataCategory.SPAN: RetentionSettings(standard=12, downsampled=22),
+            DataCategory.LOG_BYTE: RetentionSettings(standard=13, downsampled=23),
+        }
+        quotas_mock.get_event_retention = lambda x: 45
+        quotas_mock.get_downsampled_event_retention = lambda x: 90
+
+        result, status_code = call_endpoint()
+        assert status_code < 400
+        assert_no_snakecase_key(result)
+        cfg = safe.get_path(result, "configs", str(default_project.id))
+
+        assert safe.get_path(cfg, "config", "eventRetention") == 45
+        assert safe.get_path(cfg, "config", "downsampledEventRetention") == 90
+        assert safe.get_path(cfg, "config", "retentions") == {
+            "span": {"standard": 12, "downsampled": 22},
+            "log": {"standard": 13, "downsampled": 23},
+        }
 
 
 @django_db_all

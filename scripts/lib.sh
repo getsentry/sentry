@@ -8,10 +8,6 @@
 # shellcheck disable=SC2001 # https://github.com/koalaman/shellcheck/wiki/SC2001
 
 POSTGRES_CONTAINER="sentry-postgres-1"
-USE_OLD_DEVSERVICES=${USE_OLD_DEVSERVICES:-"0"}
-if [ "$USE_OLD_DEVSERVICES" == "1" ]; then
-    POSTGRES_CONTAINER="sentry_postgres"
-fi
 
 venv_name=".venv"
 
@@ -44,7 +40,7 @@ init-config() {
 }
 
 run-dependent-services() {
-    sentry devservices up
+    devservices up
 }
 
 create-db() {

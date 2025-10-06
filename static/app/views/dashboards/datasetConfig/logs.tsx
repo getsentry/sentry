@@ -50,8 +50,8 @@ import {
   useSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
-  TraceItemAttributeProvider,
   useTraceItemAttributes,
+  useTraceItemAttributesWithConfig,
 } from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
@@ -115,17 +115,6 @@ const EAP_AGGREGATIONS = LOG_AGGREGATES.map(
   {} as Record<AggregationKey, Aggregation>
 );
 
-function LogsSearchBarDataProviderWrapper({children}: {children: React.ReactNode}) {
-  const organization = useOrganization();
-  const enabled = isLogsEnabled(organization);
-
-  return (
-    <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled={enabled}>
-      {children}
-    </TraceItemAttributeProvider>
-  );
-}
-
 function LogsSearchBar({
   widgetQuery,
   onSearch,
@@ -163,10 +152,17 @@ function LogsSearchBar({
 
 function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
   const {pageFilters, widgetQuery} = props;
+  const organization = useOrganization();
+
+  const traceItemAttributeConfig = {
+    traceItemType: TraceItemDataset.LOGS,
+    enabled: isLogsEnabled(organization),
+  };
+
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes('string');
+    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes('number');
+    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
 
   const {filterKeys, filterKeySections, getTagValues} = useSearchQueryBuilderProps({
     itemType: TraceItemDataset.LOGS,
@@ -194,7 +190,6 @@ export const LogsConfig: DatasetConfig<
   enableEquations: false,
   SearchBar: LogsSearchBar,
   useSearchBarDataProvider: useLogsSearchBarDataProvider,
-  SearchBarDataProviderWrapper: LogsSearchBarDataProviderWrapper,
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,
   filterSeriesSortOptions,
@@ -361,7 +356,7 @@ function getEventsRequest(
     {
       retry: {
         statusCodes: [429],
-        tries: 3,
+        tries: 10,
       },
     }
   );

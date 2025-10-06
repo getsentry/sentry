@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
@@ -20,9 +20,9 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
-import type {Category, Platform} from 'sentry/components/platformPicker';
-import PlatformPicker from 'sentry/components/platformPicker';
+import PlatformPicker, {type Platform} from 'sentry/components/platformPicker';
 import TeamSelector from 'sentry/components/teamSelector';
+import {categoryList} from 'sentry/data/platformPickerCategories';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
@@ -155,7 +155,6 @@ export function CreateProject() {
     'created-project-context',
     null
   );
-
   const autoFill = useMemo(() => {
     return referrer === 'getting-started' && projectId === createdProject?.id;
   }, [referrer, projectId, createdProject?.id]);
@@ -190,6 +189,7 @@ export function CreateProject() {
   }, [autoFill, defaultTeam, createdProject]);
 
   const [formData, setFormData] = useState<FormData>(initialData);
+  const pickerKeyRef = useRef<'create-project' | 'auto-fill'>('create-project');
 
   const canCreateTeam = organization.access.includes('project:admin');
   const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
@@ -431,10 +431,7 @@ export function CreateProject() {
   const handlePlatformChange = useCallback(
     (value: Platform | null) => {
       if (!value) {
-        updateFormData('platform', {
-          // By unselecting a platform, we don't want to jump to another category
-          category: formData.platform?.category,
-        });
+        updateFormData('platform', undefined);
         return;
       }
 
@@ -444,10 +441,6 @@ export function CreateProject() {
           enabledConsolePlatforms: organization.enabledConsolePlatforms,
         })
       ) {
-        // By selecting a console platform, we don't want to jump to another category when its closed
-        updateFormData('platform', {
-          category: formData.platform?.category,
-        });
         openConsoleModal({
           organization,
           selectedPlatform: {
@@ -474,16 +467,19 @@ export function CreateProject() {
 
       updateFormData('projectName', newName);
     },
-    [
-      updateFormData,
-      formData.projectName,
-      formData.platform?.key,
-      formData.platform?.category,
-      organization,
-    ]
+    [updateFormData, formData.projectName, formData.platform?.key, organization]
   );
 
-  const category: Category = formData.platform?.category ?? 'popular';
+  const platform = formData.platform?.key;
+  const defaultCategory = platform
+    ? categoryList.find(({platforms}) => platforms.has(platform))?.id
+    : 'popular';
+
+  // Workaround to force PlatformPicker to re-render when users go back in the flow and fields should be pre-filled.
+  // Without this, the selected platform might not be visible depending on the active tab.
+  if (autoFill && platform && pickerKeyRef.current === 'create-project') {
+    pickerKeyRef.current = 'auto-fill';
+  }
 
   return (
     <Access access={canUserCreateProject ? ['project:read'] : ['project:admin']}>
@@ -502,9 +498,9 @@ export function CreateProject() {
           </HelpText>
           <StyledListItem>{t('Choose your platform')}</StyledListItem>
           <PlatformPicker
-            key={category}
-            platform={formData.platform?.key}
-            defaultCategory={formData.platform?.category}
+            key={pickerKeyRef.current}
+            platform={platform}
+            defaultCategory={defaultCategory}
             setPlatform={handlePlatformChange}
             organization={organization}
             showOther
@@ -555,7 +551,6 @@ export function CreateProject() {
                     allowCreate
                     name="team"
                     aria-label={t('Select a Team')}
-                    menuPlacement="auto"
                     clearable={false}
                     placeholder={t('Select a Team')}
                     teamFilter={(tm: Team) => tm.access.includes('team:admin')}

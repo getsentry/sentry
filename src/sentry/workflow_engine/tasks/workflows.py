@@ -12,12 +12,11 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker import config, namespaces
+from sentry.taskworker import namespaces
 from sentry.taskworker.retry import Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.models import Detector
-from sentry.workflow_engine.processors.workflow import process_workflows
 from sentry.workflow_engine.tasks.utils import (
     EventNotFoundError,
     build_workflow_event_data_from_event,
@@ -31,21 +30,10 @@ logger = log_context.get_logger(__name__)
 
 @instrumented_task(
     name="sentry.workflow_engine.tasks.process_workflow_activity",
-    queue="workflow_engine.process_workflows",
-    acks_late=True,
-    default_retry_delay=5,
-    max_retries=3,
-    soft_time_limit=50,
-    time_limit=60,
+    namespace=namespaces.workflow_engine_tasks,
+    processing_deadline_duration=60,
+    retry=Retry(times=3, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=config.TaskworkerConfig(
-        namespace=namespaces.workflow_engine_tasks,
-        processing_deadline_duration=60,
-        retry=Retry(
-            times=3,
-            delay=5,
-        ),
-    ),
 )
 @retry
 def process_workflow_activity(activity_id: int, group_id: int, detector_id: int) -> None:
@@ -56,6 +44,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
     and then process the data in `process_workflows`.
     """
     from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
+    from sentry.workflow_engine.processors.workflow import process_workflows
 
     with transaction.atomic(router.db_for_write(Detector)):
         try:
@@ -91,21 +80,10 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
 
 @instrumented_task(
     name="sentry.workflow_engine.tasks.process_workflows_event",
-    queue="workflow_engine.process_workflows",
-    acks_late=True,
-    default_retry_delay=5,
-    max_retries=3,
-    soft_time_limit=50,
-    time_limit=60,
+    namespace=namespaces.workflow_engine_tasks,
+    processing_deadline_duration=60,
+    retry=Retry(times=3, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=config.TaskworkerConfig(
-        namespace=namespaces.workflow_engine_tasks,
-        processing_deadline_duration=60,
-        retry=Retry(
-            times=3,
-            delay=5,
-        ),
-    ),
 )
 @retry(timeouts=True, exclude=EventNotFoundError, ignore=Group.DoesNotExist)
 def process_workflows_event(
@@ -120,6 +98,7 @@ def process_workflows_event(
     **kwargs: dict[str, Any],
 ) -> None:
     from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
+    from sentry.workflow_engine.processors.workflow import process_workflows
 
     recorder = scopedstats.Recorder()
     start_time = time.time()
@@ -166,11 +145,8 @@ def process_workflows_event(
 
 @instrumented_task(
     name="sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
-    queue="workflow_engine.process_workflows",
-    taskworker_config=config.TaskworkerConfig(
-        namespace=namespaces.workflow_engine_tasks,
-        processing_deadline_duration=40,
-    ),
+    namespace=namespaces.workflow_engine_tasks,
+    processing_deadline_duration=40,
 )
 def schedule_delayed_workflows(**kwargs: Any) -> None:
     """
