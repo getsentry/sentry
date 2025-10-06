@@ -32,6 +32,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.uptime.consumers.eap_converter import convert_uptime_result_to_trace_items
 from sentry.uptime.consumers.results_consumer import (
+    CHECKSTATUS_DISALLOWED_BY_ROBOTS,
     UptimeResultsStrategyFactory,
     build_last_seen_interval_key,
     build_last_update_key,
@@ -522,6 +523,31 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
+
+    @override_options({"uptime.snuba_uptime_results.enabled": False})
+    def test_disallowed(self) -> None:
+        features = [
+            "organizations:uptime",
+            "organizations:uptime-create-issues",
+        ]
+        result = self.create_uptime_result(
+            self.subscription.subscription_id, status=CHECKSTATUS_DISALLOWED_BY_ROBOTS
+        )
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger,
+            self.feature(features),
+        ):
+            assert self.detector.enabled
+
+            self.send_result(result)
+
+            logger.info.assert_any_call(
+                "disallowed_by_robots",
+                extra={**result},
+            )
+
+            self.detector.refresh_from_db()
+            assert not self.detector.enabled
 
     def test_onboarding_failure(self) -> None:
         features = [
