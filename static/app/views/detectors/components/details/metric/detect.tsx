@@ -6,12 +6,10 @@ import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   FilterWrapper,
-  FormattedQuery,
   ProvidedFormattedQuery,
 } from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   MetricDetector,
   SnubaQueryDataSource,
