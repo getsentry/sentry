@@ -733,28 +733,28 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             release=release, project=project_b, environment=staging, new_issues_count=0
         )
 
-        # 1. No environment filter - expect totals from ReleaseProject
+        # 1. No environment filter
         result = serialize(release, self.user)
         projects = {p["id"]: p for p in result["projects"]}
         assert projects[project_a.id]["newGroups"] == 4
         assert projects[project_b.id]["newGroups"] == 2
         assert result["newGroups"] == 6
 
-        # 2. Filter by production environment - expect environment-specific counts
+        # 2. Filter by production environment
         result = serialize(release, self.user, environments=["production"])
         projects = {p["id"]: p for p in result["projects"]}
         assert projects[project_a.id]["newGroups"] == 3
         assert projects[project_b.id]["newGroups"] == 2
         assert result["newGroups"] == 5
 
-        # 3. Filter by staging environment - expect environment-specific counts
+        # 3. Filter by staging environment
         result = serialize(release, self.user, environments=["staging"])
         projects = {p["id"]: p for p in result["projects"]}
         assert projects[project_a.id]["newGroups"] == 1
         assert projects[project_b.id]["newGroups"] == 0
         assert result["newGroups"] == 1
 
-        # 4. Filter by both environments - expect combined counts
+        # 4. Filter by both environments
         result = serialize(release, self.user, environments=["production", "staging"])
         projects = {p["id"]: p for p in result["projects"]}
         assert projects[project_a.id]["newGroups"] == 4
@@ -835,7 +835,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert projects[project_a.id]["newGroups"] == 1
         assert projects[project_b.id]["newGroups"] == 4
 
-        # 3. Serialize both releases together with production filter
+        # 3. Serialize both releases with production filter
         result = serialize([release_1, release_2], self.user, environments=["production"])
         assert len(result) == 2
         serialized_releases = {r["version"]: r for r in result}
@@ -850,7 +850,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert projects_2[project_a.id]["newGroups"] == 1
         assert projects_2[project_b.id]["newGroups"] == 4
 
-        # 4. Serialize Release 1.0.0 with no environment filter - verify fallback to ReleaseProject
+        # 4. Serialize Release 1.0.0 with no environment filter
         result = serialize(release_1, self.user)
         assert result["newGroups"] == 6
         projects = {p["id"]: p for p in result["projects"]}
