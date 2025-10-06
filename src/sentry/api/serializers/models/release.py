@@ -516,12 +516,9 @@ class ReleaseSerializer(Serializer):
 
         group_counts_by_release: dict[int, dict[int, int]] = {}
 
-        for project_id, release_id, new_groups in (
-            release_project_envs.order_by()
-            .values("project_id", "release_id")
-            .annotate(aggregated_new_issues_count=Sum("new_issues_count"))
-            .values_list("project_id", "release_id", "aggregated_new_issues_count")
-        ):
+        for project_id, release_id, new_groups in release_project_envs.annotate(
+            aggregated_new_issues_count=Sum("new_issues_count")
+        ).values_list("project_id", "release_id", "aggregated_new_issues_count"):
             group_counts_by_release.setdefault(release_id, {})[project_id] = new_groups
 
         return first_seen, last_seen, group_counts_by_release
