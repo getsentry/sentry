@@ -284,8 +284,14 @@ def create_feedback_issue(
                     "referrer": source.value,
                 },
             )
-            logger_message = f"Seer spam detection result: feedback_message={feedback_message[:20]!r}, is_spam={is_message_spam}, is_spam_type={type(is_message_spam)}"
-            logger.info(logger_message)
+            logger.info(
+                "Seer spam detection result",
+                extra={
+                    "feedback_message": feedback_message[:20],
+                    "is_spam": is_message_spam,
+                    "is_spam_type": type(is_message_spam),
+                },
+            )
         else:
             try:
                 is_message_spam = is_spam(feedback_message)
