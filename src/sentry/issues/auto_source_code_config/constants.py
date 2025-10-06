@@ -31,7 +31,6 @@ PLATFORMS_CONFIG: dict[str, Mapping[str, Any]] = {
     "php": {"extensions": ["php"]},
     "python": {"extensions": ["py"]},
     "ruby": {"extensions": ["rb", "rake"]},
-    "scala": {"extensions": ["scala", "sc"]},
     "clojure": {"extensions": ["clj", "cljs", "cljc"]},
     "groovy": {"extensions": ["groovy"]},
 }
