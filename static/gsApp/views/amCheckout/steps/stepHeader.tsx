@@ -66,13 +66,6 @@ function StepHeader({
           <NewCheckoutStepTitle id={`step-${stepNumber}`} data-test-id={dataTestId}>
             {title}
           </NewCheckoutStepTitle>
-          <Button
-            borderless
-            size="zero"
-            icon={<IconChevron direction={isOpen ? 'up' : 'down'} />}
-            aria-label={isOpen ? t('Collapse section') : t('Expand section')}
-            onClick={() => onToggleStep?.(!isOpen)}
-          />
         </Flex>
         {trailingItems && <div>{trailingItems}</div>}
       </Flex>
@@ -156,7 +149,7 @@ const EditStep = styled('div')`
 `;
 
 const NewCheckoutStepTitle = styled('div')`
-  font-size: 28px;
+  font-size: 24px;
   letter-spacing: -0.02em;
   font-weight: ${p => p.theme.fontWeight.bold};
 `;

@@ -131,7 +131,7 @@ interface TotalSummaryProps extends BaseSummaryProps {
 
 function ItemFlex({children}: {children: React.ReactNode}) {
   return (
-    <StyledFlex justify="between" align="start" gap="3xl">
+    <StyledFlex justify="between" align="center" gap="3xl">
       {children}
     </StyledFlex>
   );
@@ -170,7 +170,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
   const shortInterval = utils.getShortInterval(activePlan.billingInterval);
 
   return (
-    <Flex direction="column" padding="0 xl" gap="2xl">
+    <Flex direction="column" padding="0 2xl" gap="2xl">
       <ItemWithIcon data-test-id="summary-item-plan">
         <IconContainer>{getPlanIcon(activePlan)}</IconContainer>
         <Flex direction="column" gap="xs">
@@ -333,7 +333,7 @@ function SubtotalSummary({
 
   return (
     <Container borderTop="primary">
-      <Flex direction="column" padding="2xl xl" gap="md">
+      <Flex direction="column" padding="2xl 2xl" gap="md">
         <Item data-test-id="summary-item-plan-total">
           <ItemWithPrice
             item={t('Plan Total')}
@@ -539,8 +539,8 @@ function TotalSummary({
       : t('Confirm');
 
   return (
-    <Flex direction="column">
-      <Flex direction="column" padding="2xl xl 0" gap="md" borderTop="primary">
+    <Flex direction="column" height="100%" justify="end">
+      <Flex direction="column" padding="2xl 2xl 0" gap="md" borderTop="primary">
         {isOpen && (
           <Fragment>
             {!previewDataLoading && (
@@ -625,7 +625,7 @@ function TotalSummary({
           </ItemFlex>
         </Item>
       </Flex>
-      <Flex direction="column" padding="2xl xl" gap="md">
+      <Flex direction="column" padding="2xl 2xl" gap="md">
         <Flex gap="sm" justify="between" align="center">
           {isMigratingPartner && (
             <StyledButton
@@ -810,7 +810,7 @@ function Cart({
   };
 
   return (
-    <Flex data-test-id="cart" direction="column" gap="xl" marginBottom="xl">
+    <Flex data-test-id="cart" direction="column" gap="xl" height="100%" paddingTop="xl">
       <CartDiff
         activePlan={activePlan}
         formData={formData}
@@ -819,8 +819,8 @@ function Cart({
         onToggle={setChangesIsOpen}
         organization={organization}
       />
-      <Flex direction="column" gap="sm" background="primary" radius="md" border="primary">
-        <Flex justify="between" align="center" gap="sm" padding="lg xl">
+      <Flex direction="column" gap="sm" height="100%">
+        <Flex justify="between" align="center" gap="sm" padding="lg 2xl">
           <Heading as="h2" textWrap="nowrap">
             {t('Plan Summary')}
           </Heading>

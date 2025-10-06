@@ -212,18 +212,22 @@ function BuildYourPlan({
 
 export default BuildYourPlan;
 
-const BuildYourPlanContainer = styled('div')``;
+const BuildYourPlanContainer = styled('div')`
+  gap: ${p => p.theme.space.xl};
+  display: flex;
+  flex-direction: column;
+`;
 
 const Substep = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.xl};
   margin-bottom: ${p => p.theme.space.xl};
-  margin-top: ${p => p.theme.space['3xl']};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const SubstepTitle = styled('h2')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.fontSize['2xl']};
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-top: ${p => p.theme.space['2xl']};
   margin-bottom: 0;
@@ -231,11 +235,11 @@ const SubstepTitle = styled('h2')`
 
 const OptionGrid = styled('div')<{columns: number}>`
   display: grid;
-  grid-template-columns: repeat(${p => p.columns}, 1fr);
+  grid-template-columns: 1fr;
   column-gap: ${p => p.theme.space.xl};
 
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: repeat(1, 1fr);
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    grid-template-columns: repeat(${p => p.columns}, 1fr);
     row-gap: ${p => p.theme.space.xl};
   }
 `;
