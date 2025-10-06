@@ -118,7 +118,7 @@ describe('PriorityControl', () => {
     await userEvent.type(highField, '5');
 
     expect(formModel.getError(METRIC_DETECTOR_FORM_FIELDS.highThreshold)).toBe(
-      'High threshold must be higher than medium threshold'
+      'High threshold must be higher than medium threshold (10)'
     );
 
     // Test valid case: high (15) > medium (10)
