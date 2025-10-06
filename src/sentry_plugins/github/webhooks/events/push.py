@@ -15,7 +15,7 @@ from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import RepositoryProvider
-from sentry.releases.commits import create_commit
+from sentry.releases.commits import bulk_create_commit_file_changes, create_commit
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.service import user_service
 from sentry_plugins.github.client import GithubPluginClient
@@ -161,25 +161,34 @@ class PushEventWebhook(Webhook):
                     for fname in commit["added"]:
                         file_changes.append(
                             CommitFileChange(
-                                organization_id=organization_id, commit=c, filename=fname, type="A"
+                                organization_id=organization_id,
+                                commit_id=c.id,
+                                filename=fname,
+                                type="A",
                             )
                         )
 
                     for fname in commit["removed"]:
                         file_changes.append(
                             CommitFileChange(
-                                organization_id=organization_id, commit=c, filename=fname, type="D"
+                                organization_id=organization_id,
+                                commit_id=c.id,
+                                filename=fname,
+                                type="D",
                             )
                         )
                     for fname in commit["modified"]:
                         file_changes.append(
                             CommitFileChange(
-                                organization_id=organization_id, commit=c, filename=fname, type="M"
+                                organization_id=organization_id,
+                                commit_id=c.id,
+                                filename=fname,
+                                type="M",
                             )
                         )
 
                     if file_changes:
-                        CommitFileChange.objects.bulk_create(file_changes)
+                        bulk_create_commit_file_changes(file_changes)
 
             except IntegrityError:
                 pass

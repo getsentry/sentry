@@ -5,17 +5,16 @@ import useEmitTimestampChanges from 'sentry/utils/replays/playback/hooks/useEmit
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
-  useFetchReplaySummary,
-  type UseFetchReplaySummaryResult,
-} from 'sentry/views/replays/detail/ai/useFetchReplaySummary';
+  useReplaySummary,
+  type UseReplaySummaryResult,
+} from 'sentry/views/replays/detail/ai/useReplaySummary';
 
-const ReplaySummaryContext = createContext<UseFetchReplaySummaryResult>({
+const ReplaySummaryContext = createContext<UseReplaySummaryResult>({
   summaryData: undefined,
   isError: false,
   isPending: false,
-  isPolling: false,
+  isTimedOut: false,
   startSummaryRequest: () => {},
-  isStartSummaryRequestPending: false,
 });
 
 export function useReplaySummaryContext() {
@@ -35,7 +34,7 @@ export function ReplaySummaryContextProvider({
   const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
   const mobileProject = replay.isVideoReplay();
 
-  const summaryResult = useFetchReplaySummary(replay, {
+  const summaryResult = useReplaySummary(replay, {
     staleTime: 0,
     enabled: Boolean(
       replay.getReplay().id &&

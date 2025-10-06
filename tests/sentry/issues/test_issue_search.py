@@ -347,6 +347,13 @@ class ConvertSeerActionabilityValueTest(TestCase):
             convert_query_values(filters, [self.project], self.user, None)
 
 
+class ConvertDetectorValueTest(TestCase):
+    def test_valid(self) -> None:
+        filters = [SearchFilter(SearchKey("detector"), "=", SearchValue("412345"))]
+        result = convert_query_values(filters, [self.project], self.user, None)
+        assert result[0].value.raw_value == ["412345"]
+
+
 class ConvertActorOrNoneValueTest(TestCase):
     def test_user(self) -> None:
         assert convert_actor_or_none_value(

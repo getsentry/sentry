@@ -1,4 +1,5 @@
 import zlib
+from typing import Any
 
 import msgpack
 import pytest
@@ -521,5 +522,5 @@ def test_process_message_no_headers() -> None:
     assert process_message(kafka_message) is None
 
 
-def make_kafka_message(message) -> bytes:
+def make_kafka_message(message: bytes | dict[str, Any]) -> bytes:
     return msgpack.packb(message)

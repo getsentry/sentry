@@ -1,12 +1,16 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
+import Duration from 'sentry/components/duration/duration';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import Version from 'sentry/components/version';
+import {IconPlay} from 'sentry/icons';
 import {tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -16,6 +20,8 @@ import {
 } from 'sentry/utils/discover/fieldRenderers';
 import {type ColumnValueType} from 'sentry/utils/discover/fields';
 import {VersionContainer} from 'sentry/utils/discover/styles';
+import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {getShortEventId} from 'sentry/utils/events';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useRelease} from 'sentry/utils/useRelease';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
@@ -35,6 +41,7 @@ import {
   ColoredLogText,
   LogBasicRendererContainer,
   LogDate,
+  LogsFilteredHelperText,
   LogsHighlight,
   WrappingText,
   type getLogColors,
@@ -51,6 +58,7 @@ import {
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 const {fmt} = Sentry.logger;
 
@@ -65,10 +73,15 @@ export interface RendererExtra extends RenderFunctionBaggage {
   highlightTerms: string[];
   logColors: ReturnType<typeof getLogColors>;
   align?: 'left' | 'center' | 'right';
+  canAppendTemplateToBody?: boolean;
+  logEnd?: string;
+  logStart?: string;
   meta?: EventsMetaType;
+  onReplayTimeClick?: (fieldName: string) => void;
   project?: Project;
   projectSlug?: string;
   shouldRenderHoverElements?: boolean;
+  timestampRelativeTo?: number;
   traceItemMeta?: TraceItemDetailsResponse['meta'];
   useFullSeverityText?: boolean;
   wrapBody?: true;
@@ -136,7 +149,7 @@ function TimestampRenderer(props: LogFieldRendererProps) {
   const preciseTimestamp = props.extra.attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
 
   const timestampToUse = preciseTimestamp
-    ? new Date(Number(preciseTimestamp) / 1_000_000) // Convert nanoseconds to milliseconds
+    ? new Date(Number(String(preciseTimestamp).slice(0, -6))) // Truncate last 6 digits (nanoseconds)
     : props.item.value;
 
   return (
@@ -147,6 +160,54 @@ function TimestampRenderer(props: LogFieldRendererProps) {
         shouldRender={props.extra.shouldRenderHoverElements}
       >
         <DateTime seconds milliseconds date={timestampToUse} />
+      </LogsTimestampTooltip>
+    </LogDate>
+  );
+}
+
+function RelativeTimestampRenderer(props: LogFieldRendererProps) {
+  const preciseTimestamp = props.extra.attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
+  const startTimestampMs = props.extra.timestampRelativeTo!;
+
+  const timestampToUse = preciseTimestamp
+    ? new Date(Number(String(preciseTimestamp).slice(0, -6))) // Truncate last 6 digits (nanoseconds)
+    : props.item.value;
+
+  const timestampMs = timestampToUse ? new Date(timestampToUse).getTime() : 0;
+
+  const handleClick = useCallback(
+    (event: React.MouseEvent) => {
+      if (props.extra.onReplayTimeClick && timestampMs > 0) {
+        event.stopPropagation();
+        // Pass the offset time instead of just the field name
+        const offsetMs = timestampMs - startTimestampMs;
+        props.extra.onReplayTimeClick(String(offsetMs));
+      }
+    },
+    [props.extra, timestampMs, startTimestampMs]
+  );
+
+  if (!timestampToUse) {
+    return <LogDate align={props.extra.align}>--</LogDate>;
+  }
+
+  const relativeTimestampMs = timestampMs - startTimestampMs;
+
+  return (
+    <LogDate align={props.extra.align}>
+      <LogsTimestampTooltip
+        timestamp={props.item.value as string | number}
+        attributes={props.extra.attributes}
+        shouldRender={props.extra.shouldRenderHoverElements}
+        relativeTimeToReplay={relativeTimestampMs}
+      >
+        <ClickableTimestamp
+          onClick={props.extra.onReplayTimeClick ? handleClick : undefined}
+          role={props.extra.onReplayTimeClick ? 'button' : undefined}
+        >
+          <IconPlay size="xs" />
+          <Duration duration={[Math.abs(relativeTimestampMs), 'ms']} precision="ms" />
+        </ClickableTimestamp>
       </LogsTimestampTooltip>
     </LogDate>
   );
@@ -265,19 +326,45 @@ function FilteredTooltip({
   value,
   children,
   extra,
+  isAppendingTemplate,
 }: {
   children: React.ReactNode;
   extra: RendererExtra;
   value: string | number | null;
+  isAppendingTemplate?: boolean;
 }) {
   if (
     !value ||
     typeof value !== 'string' ||
-    !value.includes('[Filtered]') ||
+    value.trim() !== '[Filtered]' ||
     !extra.projectSlug
   ) {
     return <React.Fragment>{children}</React.Fragment>;
   }
+
+  if (isAppendingTemplate) {
+    return (
+      <Tooltip
+        title={tct(
+          `The log message was entirely filtered by a data scrubbing rule, its template is also been shown to help identify what was filtered. If necessary, you can turn data scrubbing off in your [settings].`,
+          {
+            settings: (
+              <Link
+                to={normalizeUrl(
+                  `/settings/${extra.organization.slug}/projects/${extra.projectSlug}/security-and-privacy/`
+                )}
+              >
+                {'Settings, under Security & Privacy'}
+              </Link>
+            ),
+          }
+        )}
+      >
+        {children}
+      </Tooltip>
+    );
+  }
+
   return (
     <Tooltip
       title={tct(
@@ -345,11 +432,27 @@ function ReleaseRenderer(props: LogFieldRendererProps) {
 export function LogBodyRenderer(props: LogFieldRendererProps) {
   const attribute_value = props.item.value as string;
   const highlightTerm = props.extra?.highlightTerms[0] ?? '';
-  // TODO: Allow more than one highlight term to be highlighted at once.
+  const template = props.extra.attributes?.[OurLogKnownFieldKey.TEMPLATE];
+  const templateText =
+    props.extra.canAppendTemplateToBody && template ? template : undefined;
+  const isBodyFiltered = props.item.value === '[Filtered]';
+
   return (
-    <FilteredTooltip value={props.item.value} extra={props.extra}>
+    <FilteredTooltip
+      value={props.item.value}
+      extra={props.extra}
+      isAppendingTemplate={!!templateText}
+    >
       <WrappingText wrapText={props.extra.wrapBody}>
         <LogsHighlight text={highlightTerm}>{stripAnsi(attribute_value)}</LogsHighlight>
+        {isBodyFiltered && templateText && (
+          <FieldReplacementHelper
+            original={attribute_value}
+            replacement={templateText as string}
+            extra={props.extra}
+            item={props.item}
+          />
+        )}
       </WrappingText>
     </FilteredTooltip>
   );
@@ -441,6 +544,16 @@ function AnnotatedAttributeWrapper(props: {
   return props.children;
 }
 
+function ProjectRenderer(props: LogFieldRendererProps) {
+  return <span>{props.item.value}</span>;
+}
+
+function FieldReplacementHelper(
+  props: {original: string; replacement: string} & LogFieldRendererProps
+) {
+  return <LogsFilteredHelperText>{props.replacement}</LogsFilteredHelperText>;
+}
+
 /**
  * Only formats the field the same as discover does, does not apply any additional rendering, but has a container to fix styling.
  */
@@ -485,11 +598,43 @@ function BasicDiscoverRenderer(props: LogFieldRendererProps) {
   );
 }
 
+function ReplayIDRenderer(props: LogFieldRendererProps) {
+  const replayId = props.item.value;
+
+  const hasFeature = props.extra.organization.features.includes('ourlogs-replay-ui');
+
+  if (typeof replayId !== 'string' || !replayId || !hasFeature) {
+    return props.basicRendered;
+  }
+
+  const target = makeReplaysPathname({
+    path: `/${replayId}/`,
+    organization: props.extra.organization,
+  });
+
+  return (
+    <Container>
+      <ViewReplayLink
+        replayId={replayId}
+        to={target}
+        start={props.extra.logStart}
+        end={props.extra.logEnd}
+      >
+        {getShortEventId(replayId)}
+      </ViewReplayLink>
+    </Container>
+  );
+}
+
 export const LogAttributesRendererMap: Record<
   OurLogFieldKey,
   (props: LogFieldRendererProps) => React.ReactNode
 > = {
   [OurLogKnownFieldKey.TIMESTAMP]: props => {
+    if (props.extra.timestampRelativeTo) {
+      // Check if we should use relative timestamps (eg. in replay)
+      return RelativeTimestampRenderer(props);
+    }
     return TimestampRenderer(props);
   },
   [OurLogKnownFieldKey.SEVERITY]: SeverityTextRenderer,
@@ -498,7 +643,9 @@ export const LogAttributesRendererMap: Record<
   [OurLogKnownFieldKey.CODE_FILE_PATH]: CodePathRenderer,
   [OurLogKnownFieldKey.RELEASE]: ReleaseRenderer,
   [OurLogKnownFieldKey.TEMPLATE]: LogTemplateRenderer,
+  [OurLogKnownFieldKey.PROJECT]: ProjectRenderer,
   [OurLogKnownFieldKey.PAYLOAD_SIZE]: BasicDiscoverRenderer,
+  [OurLogKnownFieldKey.REPLAY_ID]: ReplayIDRenderer,
 };
 
 const fullFieldToExistingField: Record<OurLogFieldKey, string> = {
@@ -514,3 +661,17 @@ const logFieldBasicMetas: EventsMetaType = {
     [OurLogKnownFieldKey.PAYLOAD_SIZE]: 'byte', // SIZE_UNITS
   },
 };
+
+const ClickableTimestamp = styled('span')`
+  display: flex;
+  align-items: flex-start;
+  align-self: baseline;
+  gap: ${space(0.25)};
+  font-variant-numeric: tabular-nums;
+  line-height: 1em;
+`;
+
+const Container = styled('div')`
+  display: flex;
+  align-items: center;
+`;

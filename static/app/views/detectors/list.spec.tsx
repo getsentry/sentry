@@ -1,3 +1,4 @@
+import {ActorFixture} from 'sentry-fixture/actor';
 import {AutomationFixture} from 'sentry-fixture/automations';
 import {ErrorDetectorFixture, MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -38,7 +39,7 @@ describe('DetectorsList', () => {
       url: '/organizations/org-slug/detectors/',
       body: [MetricDetectorFixture({name: 'Detector 1'})],
     });
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}), new Set());
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
   });
 
   it('displays all detector info correctly', async () => {
@@ -183,7 +184,12 @@ describe('DetectorsList', () => {
       const testUser = UserFixture({id: '2', email: 'test@example.com'});
       const mockDetectorsRequestAssignee = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
-        body: [MetricDetectorFixture({name: 'Assigned Detector', owner: testUser.id})],
+        body: [
+          MetricDetectorFixture({
+            name: 'Assigned Detector',
+            owner: ActorFixture({id: testUser.id, name: testUser.email, type: 'user'}),
+          }),
+        ],
         match: [MockApiClient.matchQuery({query: 'assignee:test@example.com'})],
       });
 
@@ -223,7 +229,9 @@ describe('DetectorsList', () => {
       );
 
       // Click on Name column header to sort
-      await userEvent.click(screen.getByRole('columnheader', {name: 'Name'}));
+      await userEvent.click(
+        screen.getByRole('columnheader', {name: 'Select all on page Name'})
+      );
 
       await waitFor(() => {
         expect(mockDetectorsRequest).toHaveBeenLastCalledWith(
@@ -238,7 +246,9 @@ describe('DetectorsList', () => {
       expect(router.location.query.sort).toBe('name');
 
       // Click on Name column header again to change sort direction
-      await userEvent.click(screen.getByRole('columnheader', {name: 'Name'}));
+      await userEvent.click(
+        screen.getByRole('columnheader', {name: 'Select all on page Name'})
+      );
 
       await waitFor(() => {
         expect(mockDetectorsRequest).toHaveBeenLastCalledWith(
@@ -285,10 +295,7 @@ describe('DetectorsList', () => {
           }),
         ],
       });
-      PageFiltersStore.onInitializeUrlState(
-        PageFiltersFixture({projects: [1]}),
-        new Set()
-      );
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
     });
 
     it('can select detectors', async () => {
@@ -299,7 +306,7 @@ describe('DetectorsList', () => {
       expect(rows).toHaveLength(3);
 
       // Initially no checkboxes should be checked
-      const checkboxes = screen.getAllByRole('checkbox');
+      let checkboxes = screen.getAllByRole('checkbox');
       checkboxes.forEach(checkbox => {
         expect(checkbox).not.toBeChecked();
       });
@@ -325,6 +332,7 @@ describe('DetectorsList', () => {
       expect(masterCheckbox).toBeChecked();
 
       // // All checkboxes should be checked
+      checkboxes = screen.getAllByRole('checkbox');
       checkboxes.forEach(checkbox => {
         expect(checkbox).toBeChecked();
       });
@@ -469,7 +477,7 @@ describe('DetectorsList', () => {
         MetricDetectorFixture({
           id: `filtered-${i}`,
           name: `Assigned Detector ${i + 1}`,
-          owner: testUser.id,
+          owner: ActorFixture({id: testUser.id, name: testUser.email, type: 'user'}),
         })
       );
 

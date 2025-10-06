@@ -1,18 +1,19 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import omit from 'lodash/omit';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
+import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -46,7 +47,7 @@ import {
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
-import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
 const formatter = new SQLishFormatter();
@@ -110,6 +111,22 @@ export function SpanDescription({
         resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : `${space(1)}`
       }
     >
+      {node.value.is_transaction ? (
+        <StyledLink
+          to={transactionSummaryRouteWithQuery({
+            organization,
+            transaction: node.value.transaction,
+            // Omit the query from the target url, as we dont know where it may have came from
+            // and if its syntax is supported on the target page. In this example, txn search does
+            // not support is:filter type expressions (and possibly other expressions we dont know about)
+            query: omit(location.query, Object.values(PAGE_URL_PARAM).concat('query')),
+            projectID: String(node.value.project_id),
+          })}
+        >
+          <IconGraph type="area" size="xs" />
+          {t('View Summary')}
+        </StyledLink>
+      ) : null}
       <SpanSummaryLink
         op={span.op}
         category={category}
@@ -117,27 +134,17 @@ export function SpanDescription({
         project_id={span.project_id.toString()}
         organization={organization}
       />
-      <Link
-        to={
-          hasExploreEnabled
-            ? getSearchInExploreTarget(
-                organization,
-                location,
-                node.event?.projectID,
-                exploreAttributeName,
-                exploreAttributeValue,
-                TraceDrawerActionKind.INCLUDE
-              )
-            : spanDetailsRouteWithQuery({
-                organization,
-                transaction: node.event?.title ?? '',
-                query: location.query,
-                spanSlug: {op: span.op, group: group ?? ''},
-                projectID: node.event?.projectID,
-              })
-        }
-        onClick={() => {
-          if (hasExploreEnabled) {
+      {hasExploreEnabled && (
+        <StyledLink
+          to={getSearchInExploreTarget(
+            organization,
+            location,
+            node.event?.projectID,
+            exploreAttributeName,
+            exploreAttributeValue,
+            TraceDrawerActionKind.INCLUDE
+          )}
+          onClick={() => {
             traceAnalytics.trackExploreSearch(
               organization,
               exploreAttributeName,
@@ -145,17 +152,12 @@ export function SpanDescription({
               TraceDrawerActionKind.INCLUDE,
               'drawer'
             );
-          } else {
-            trackAnalytics('trace.trace_layout.view_span_summary', {
-              organization,
-              module: resolvedModule,
-            });
-          }
-        }}
-      >
-        <StyledIconGraph type="scatter" size="xs" />
-        {hasExploreEnabled ? t('More Samples') : t('View Similar Spans')}
-      </Link>
+          }}
+        >
+          <IconGraph type="scatter" size="xs" />
+          {hasExploreEnabled ? t('More Samples') : t('View Similar Spans')}
+        </StyledLink>
+      )}
     </BodyContentWrapper>
   ) : null;
 
@@ -369,8 +371,10 @@ const CodeSnippetWrapper = styled('div')`
   flex: 1;
 `;
 
-const StyledIconGraph = styled(IconGraph)`
-  margin-right: ${space(0.5)};
+const StyledLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const BodyContentWrapper = styled('div')<{padding: string}>`

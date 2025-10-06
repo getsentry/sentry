@@ -87,8 +87,6 @@ export function WidgetCardDataLoader({
   if (widget.widgetType === WidgetType.RELEASE) {
     return (
       <ReleaseWidgetQueries
-        api={api}
-        organization={organization}
         widget={widget}
         selection={selection}
         limit={tableItemLimit}

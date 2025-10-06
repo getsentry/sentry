@@ -9,6 +9,7 @@ from sentry.api.bases.project import ProjectAndStaffPermission, ProjectEndpoint
 from sentry.api.paginator import CallbackPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.eventuser import EventUserSerializer
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.eventuser import EventUser
 
@@ -18,11 +19,13 @@ class ProjectUsersEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=60),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=60),
+            },
         },
-    }
+    )
     permission_classes = (ProjectAndStaffPermission,)
 
     def get(self, request: Request, project) -> Response:

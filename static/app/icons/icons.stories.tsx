@@ -232,8 +232,32 @@ const SECTIONS: TSection[] = [
       {
         id: 'building',
         groups: ['product'],
-        keywords: ['business', 'office', 'company', 'corporate', 'organization'],
+        keywords: [
+          'business',
+          'office',
+          'company',
+          'corporate',
+          'organization',
+          'integration',
+          'github',
+          'external',
+          'integratedOrganization',
+        ],
         name: 'Building',
+        defaultProps: {},
+      },
+      {
+        id: 'branch',
+        groups: ['product'],
+        keywords: ['git', 'version control', 'branch', 'development', 'code'],
+        name: 'Branch',
+        defaultProps: {},
+      },
+      {
+        id: 'repository',
+        groups: ['product'],
+        keywords: ['git', 'repo', 'code', 'version control', 'project'],
+        name: 'Repository',
         defaultProps: {},
       },
     ],
@@ -1032,10 +1056,24 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'case',
+        groups: ['action'],
+        keywords: ['case', 'toggle', 'search', 'case sensitive', 'A', 'Aa'],
+        name: 'Case',
+        defaultProps: {},
+      },
+      {
         id: 'show',
         groups: ['action'],
         keywords: ['visible', 'eye', 'view', 'display'],
         name: 'Show',
+        defaultProps: {},
+      },
+      {
+        id: 'hide',
+        groups: ['action'],
+        keywords: ['invisible', 'hidden'],
+        name: 'Hide',
         defaultProps: {},
       },
       {
@@ -1707,6 +1745,12 @@ const createIconFilter =
   (icon: TIcon): boolean => {
     const name = fzf(icon.name, searchTerm.toLowerCase(), false);
     if (name.score > 10) {
+      return true;
+    }
+    // Also search against the full icon name with "Icon" prefix (e.g., "IconSettings")
+    const iconName = icon.name.startsWith('Icon') ? icon.name : `Icon${icon.name}`;
+    const fullIconName = fzf(iconName, searchTerm.toLowerCase(), false);
+    if (fullIconName.score > 10) {
       return true;
     }
     for (const keyword of icon.keywords ?? []) {

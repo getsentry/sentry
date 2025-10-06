@@ -2,11 +2,9 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sentry.testutils.cases import APITestCase, UptimeCheckSnubaTestCase
+from sentry.testutils.cases import APITestCase, UptimeCheckSnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.uptime.models import get_detector
 from sentry.uptime.types import IncidentStatus
-from tests.sentry.uptime.endpoints.test_base import UptimeResultEAPTestCase
 
 MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
 
@@ -23,10 +21,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
         self.subscription = self.create_uptime_subscription(
             url="https://santry.io", subscription_id=self.subscription_id
         )
-        self.project_uptime_subscription = self.create_project_uptime_subscription(
-            uptime_subscription=self.subscription
-        )
-        self.detector = get_detector(self.subscription)
+        self.detector = self.create_uptime_detector(uptime_subscription=self.subscription)
 
         scenarios: list[dict] = [
             {"check_status": "success"},
@@ -86,8 +81,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
         subscription2 = self.create_uptime_subscription(
             url="https://example.com", subscription_id=subscription_id2
         )
-        self.create_project_uptime_subscription(uptime_subscription=subscription2)
-        detector2 = get_detector(subscription2)
+        detector2 = self.create_uptime_detector(uptime_subscription=subscription2)
 
         # Add data for second subscription
         scenarios2: list[dict[str, Any]] = [
@@ -136,8 +130,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
         empty_subscription = self.create_uptime_subscription(
             url="https://empty.com", subscription_id=empty_subscription_id
         )
-        self.create_project_uptime_subscription(uptime_subscription=empty_subscription)
-        empty_detector = get_detector(empty_subscription)
+        empty_detector = self.create_uptime_detector(uptime_subscription=empty_subscription)
 
         with self.feature(self.features):
             response = self.get_success_response(
@@ -200,10 +193,9 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
         other_subscription = self.create_uptime_subscription(
             url="https://other.com", subscription_id=other_subscription_id
         )
-        self.create_project_uptime_subscription(
+        other_detector = self.create_uptime_detector(
             uptime_subscription=other_subscription, project=other_project
         )
-        other_detector = get_detector(other_subscription)
 
         with self.feature(self.features):
             response = self.get_response(
@@ -222,8 +214,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
         success_subscription = self.create_uptime_subscription(
             url="https://success.com", subscription_id=success_subscription_id
         )
-        self.create_project_uptime_subscription(uptime_subscription=success_subscription)
-        success_detector = get_detector(success_subscription)
+        success_detector = self.create_uptime_detector(uptime_subscription=success_subscription)
 
         # Only success checks
         for _ in range(5):
@@ -253,8 +244,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
         filter_subscription = self.create_uptime_subscription(
             url="https://filter-test.com", subscription_id=filter_subscription_id
         )
-        self.create_project_uptime_subscription(uptime_subscription=filter_subscription)
-        filter_detector = get_detector(filter_subscription)
+        filter_detector = self.create_uptime_detector(uptime_subscription=filter_subscription)
 
         for i in range(10):
             check_time = datetime.now(timezone.utc) - timedelta(minutes=i * 5)
@@ -383,8 +373,7 @@ class OrganizationUptimeSummaryEAPTest(OrganizationUptimeSummaryBaseTest, Uptime
         duration_subscription = self.create_uptime_subscription(
             url="https://duration-test.com", subscription_id=duration_subscription_id
         )
-        self.create_project_uptime_subscription(uptime_subscription=duration_subscription)
-        duration_detector = get_detector(duration_subscription)
+        duration_detector = self.create_uptime_detector(uptime_subscription=duration_subscription)
 
         # Store checks with specific durations
         durations = [100000, 200000, 300000]  # 100ms, 200ms, 300ms in microseconds

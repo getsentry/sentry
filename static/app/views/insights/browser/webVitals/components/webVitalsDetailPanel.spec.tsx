@@ -35,12 +35,9 @@ describe('WebVitalsDetailPanel', () => {
       },
     });
     eventsStatsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       body: {
-        data: [
-          [1543449600, [20, 12]],
-          [1543449601, [10, 5]],
-        ],
+        timeSeries: [],
       },
     });
   });
@@ -136,7 +133,7 @@ describe('WebVitalsDetailPanel', () => {
             'opportunity_score(measurements.score.total)',
           ],
           query:
-            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,\"\"] !transaction:\"<< unparameterized >>\" avg(measurements.score.total):>=0 count_scores(measurements.score.lcp):>0',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0 count_scores(measurements.score.lcp):>0',
         }),
       })
     );

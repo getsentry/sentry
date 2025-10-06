@@ -5,6 +5,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -156,11 +157,13 @@ export function FrontendOverviewTable({displayPerfScore, response, sort}: Props)
       query: {...query, [QueryParameterNames.PAGES_CURSOR]: newCursor},
     });
   };
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: [...COLUMN_ORDER],
+  });
 
-  let column_order = [...COLUMN_ORDER];
-
+  let filteredColumns = [...columns];
   if (!displayPerfScore) {
-    column_order = column_order.filter(
+    filteredColumns = filteredColumns.filter(
       col => col.key !== 'performance_score(measurements.score.total)'
     );
   }
@@ -176,7 +179,7 @@ export function FrontendOverviewTable({displayPerfScore, response, sort}: Props)
         isLoading={isLoading}
         error={response.error}
         data={data}
-        columnOrder={column_order}
+        columnOrder={filteredColumns}
         columnSortBy={[
           {
             key: sort.field,
@@ -194,6 +197,7 @@ export function FrontendOverviewTable({displayPerfScore, response, sort}: Props)
             }),
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, organization, theme),
+          onResizeColumn: handleResizeColumn,
         }}
       />
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />

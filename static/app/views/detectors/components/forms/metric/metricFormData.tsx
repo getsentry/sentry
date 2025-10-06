@@ -1,8 +1,4 @@
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
-import type {
-  DataCondition,
-  DataConditionGroup,
-} from 'sentry/types/workflowEngine/dataConditions';
 import {
   DataConditionGroupLogicType,
   DataConditionType,
@@ -10,6 +6,8 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {
   Detector,
+  MetricCondition,
+  MetricConditionGroup,
   MetricDetector,
   MetricDetectorConfig,
   MetricDetectorUpdatePayload,
@@ -159,8 +157,8 @@ export function useMetricDetectorFormField<T extends MetricDetectorFormFieldName
 }
 
 interface NewConditionGroup {
-  conditions: Array<Omit<DataCondition, 'id'>>;
-  logicType: DataConditionGroup['logicType'];
+  conditions: Array<Omit<MetricCondition, 'id'>>;
+  logicType: MetricConditionGroup['logicType'];
 }
 
 interface NewDataSource {
@@ -361,9 +359,15 @@ function processDetectorConditions(
 
   return {
     initialPriorityLevel,
-    conditionValue: mainCondition?.comparison.toString() || '',
+    conditionValue:
+      typeof mainCondition?.comparison === 'number'
+        ? mainCondition.comparison.toString()
+        : '',
     conditionType,
-    highThreshold: highCondition?.comparison.toString() || '',
+    highThreshold:
+      typeof highCondition?.comparison === 'number'
+        ? highCondition.comparison.toString()
+        : '',
   };
 }
 
@@ -395,7 +399,7 @@ export function metricSavedDetectorToFormData(
     projectId: detector.projectId,
     workflowIds: detector.workflowIds,
     environment: getDetectorEnvironment(detector) || '',
-    owner: detector.owner || '',
+    owner: detector.owner ? `${detector.owner?.type}:${detector.owner?.id}` : '',
     query: datasetConfig.toSnubaQueryString(snubaQuery),
     aggregateFunction:
       datasetConfig.fromApiAggregate(snubaQuery?.aggregate || '') ||

@@ -33,7 +33,7 @@ export function AutomationFixture(params: Partial<Automation> = {}): Automation 
   };
 }
 
-function ActionFilterFixture(
+export function ActionFilterFixture(
   params: Partial<DataConditionGroup> = {}
 ): DataConditionGroup {
   return {
@@ -66,6 +66,7 @@ export function ActionFixture(params: Partial<Action> = {}): Action {
       targetType: ActionTarget.SPECIFIC,
     },
     data: {},
+    status: 'active',
     ...params,
   };
 }

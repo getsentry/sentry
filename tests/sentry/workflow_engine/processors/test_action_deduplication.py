@@ -3,6 +3,7 @@ from django.db.models import Value
 
 from sentry.constants import ObjectStatus
 from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.workflow_engine.models import Action
@@ -60,8 +61,8 @@ class TestActionDeduplication(TestCase):
         email_action = self.create_action(
             type=Action.Type.EMAIL,
             config={
-                "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": "test@example.com",
+                "target_type": ActionTarget.USER,
+                "target_identifier": str(self.user.id),
             },
         )
 
@@ -81,10 +82,7 @@ class TestActionDeduplication(TestCase):
         """Test that inactive actions are not deduplicated."""
         email_action = self.create_action(
             type=Action.Type.EMAIL,
-            config={
-                "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": "test@example.com",
-            },
+            config={"target_type": ActionTarget.USER, "target_identifier": str(self.user.id)},
             status=ObjectStatus.DISABLED,
         )
 
@@ -257,17 +255,14 @@ class TestActionDeduplication(TestCase):
         email_action_1 = self.create_action(
             type=Action.Type.EMAIL,
             config={
-                "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": "test@example.com",
+                "target_type": ActionTarget.USER,
+                "target_identifier": str(self.user.id),
             },
         )
 
         email_action_2 = self.create_action(
             type=Action.Type.EMAIL,
-            config={
-                "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": "test@example.com",
-            },
+            config={"target_type": ActionTarget.USER, "target_identifier": str(self.user.id)},
         )
 
         actions_queryset = Action.objects.filter(
@@ -284,18 +279,13 @@ class TestActionDeduplication(TestCase):
         """Test that email actions with different target identifiers are not deduplicated."""
         email_action_1 = self.create_action(
             type=Action.Type.EMAIL,
-            config={
-                "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": "test1@example.com",
-            },
+            config={"target_type": ActionTarget.USER, "target_identifier": str(self.user.id)},
         )
 
+        self.user_2 = self.create_user()
         email_action_2 = self.create_action(
             type=Action.Type.EMAIL,
-            config={
-                "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": "test2@example.com",
-            },
+            config={"target_type": ActionTarget.USER, "target_identifier": str(self.user_2.id)},
         )
 
         actions_queryset = Action.objects.filter(
@@ -314,18 +304,12 @@ class TestActionDeduplication(TestCase):
         """Test that email actions with different target types are not deduplicated."""
         email_action_1 = self.create_action(
             type=Action.Type.EMAIL,
-            config={
-                "target_type": ActionTarget.TEAM,
-                "target_identifier": "team-123",
-            },
+            config={"target_type": ActionTarget.USER, "target_identifier": str(self.user.id)},
         )
 
         email_action_2 = self.create_action(
             type=Action.Type.EMAIL,
-            config={
-                "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": "user-123",
-            },
+            config={"target_type": ActionTarget.TEAM, "target_identifier": str(self.team.id)},
         )
 
         actions_queryset = Action.objects.filter(
@@ -344,24 +328,16 @@ class TestActionDeduplication(TestCase):
         """Test that email actions with different fallthrough types are not deduplicated."""
         email_action_1 = self.create_action(
             type=Action.Type.EMAIL,
-            config={
-                "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": "user-123@example.com",
-            },
+            config={"target_type": ActionTarget.USER, "target_identifier": str(self.user.id)},
             data={
-                "fallthroughType": "team",
+                "fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS.value,
             },
         )
 
         email_action_2 = self.create_action(
             type=Action.Type.EMAIL,
-            config={
-                "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": "user-123@example.com",
-            },
-            data={
-                "fallthroughType": "none",
-            },
+            config={"target_type": ActionTarget.USER, "target_identifier": str(self.user.id)},
+            data={},
         )
 
         actions_queryset = Action.objects.filter(
@@ -380,22 +356,22 @@ class TestActionDeduplication(TestCase):
         email_action_1 = self.create_action(
             type=Action.Type.EMAIL,
             config={
-                "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": "user-123@example.com",
+                "target_type": ActionTarget.USER,
+                "target_identifier": str(self.user.id),
             },
             data={
-                "fallthroughType": "team",
+                "fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS.value,
             },
         )
 
         email_action_2 = self.create_action(
             type=Action.Type.EMAIL,
             config={
-                "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": "user-123@example.com",
+                "target_type": ActionTarget.USER,
+                "target_identifier": str(self.user.id),
             },
             data={
-                "fallthroughType": "team",
+                "fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS.value,
             },
         )
 

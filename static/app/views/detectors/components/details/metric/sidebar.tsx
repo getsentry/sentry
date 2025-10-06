@@ -52,9 +52,7 @@ function DetectorPriorities({detector}: {detector: MetricDetector}) {
 
     // For static/percent detectors, comparison should be a simple number
     const comparisonValue =
-      typeof condition.comparison === 'number'
-        ? String(condition.comparison)
-        : String(condition.comparison || '0');
+      typeof condition.comparison === 'number' ? String(condition.comparison) : '';
     const thresholdSuffix = getMetricDetectorSuffix(
       detector.config?.detectionType || 'static',
       detector.dataSources[0].queryObj?.snubaQuery?.aggregate || 'count()'
@@ -99,7 +97,10 @@ function DetectorResolve({detector}: {detector: MetricDetector}) {
   const description = getResolutionDescription({
     detectionType,
     conditionType: mainCondition?.type,
-    conditionValue: mainCondition?.comparison,
+    conditionValue:
+      typeof mainCondition?.comparison === 'number'
+        ? mainCondition.comparison
+        : undefined,
     comparisonDelta: (detector.config as any)?.comparison_delta,
     thresholdSuffix,
   });

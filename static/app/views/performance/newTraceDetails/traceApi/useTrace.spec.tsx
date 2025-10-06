@@ -1,10 +1,7 @@
-import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
-
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useTrace} from './useTrace';
 
@@ -25,12 +22,6 @@ describe('useTrace', () => {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
   });
-
-  const wrapper = ({children}: {children: React.ReactNode}) => (
-    <QueryClientProvider client={queryClient}>
-      <OrganizationContext value={organization}>{children}</OrganizationContext>
-    </QueryClientProvider>
-  );
 
   describe('tracing endpoint query params', () => {
     const validUUid = '550e8400e29b41d4a716446655440000';
@@ -57,12 +48,10 @@ describe('useTrace', () => {
         body: [],
       });
 
-      renderHook(
-        () =>
-          useTrace({
-            traceSlug: 'test-trace-id',
-          }),
-        {wrapper}
+      renderHookWithProviders(() =>
+        useTrace({
+          traceSlug: 'test-trace-id',
+        })
       );
 
       // Wait for the hook to make the API call
@@ -145,12 +134,10 @@ describe('useTrace', () => {
           body: [],
         });
 
-        renderHook(
-          () =>
-            useTrace({
-              traceSlug: 'trace-test-id',
-            }),
-          {wrapper}
+        renderHookWithProviders(() =>
+          useTrace({
+            traceSlug: 'trace-test-id',
+          })
         );
 
         await waitFor(() => {

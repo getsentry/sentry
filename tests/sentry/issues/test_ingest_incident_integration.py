@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest import mock
 from unittest.mock import patch
 
 from django.utils import timezone
@@ -10,20 +11,24 @@ from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
+from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.issues.status_change_consumer import update_status
 from sentry.issues.status_change_message import StatusChangeMessageData
+from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
-@with_feature("organizations:issue-open-periods")
 @with_feature("organizations:workflow-engine-single-process-metric-issues")
 class IncidentGroupOpenPeriodIntegrationTest(TestCase):
     def setUp(self) -> None:
@@ -66,7 +71,7 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
                 "project_id": self.project.id,
                 "new_status": GroupStatus.RESOLVED,
                 "new_substatus": None,
-                "detector_id": None,
+                "detector_id": self.detector.id,
                 "activity_data": {"test": "test"},
             }
 
@@ -169,3 +174,131 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         incident = Incident.objects.get(id=item.incident_id)
         activity = IncidentActivity.objects.filter(incident_id=incident.id)
         assert len(activity) == 4  # detected, created, priority change, close
+
+    def test_can_update_outstanding_incident_priority(self) -> None:
+        """Test that we link and update an incident that was opened before the org started single processing"""
+        _, group_info = self.save_issue_occurrence()
+        group = group_info.group
+        assert group is not None
+
+        assert GroupOpenPeriod.objects.filter(group=group, project=self.project).exists()
+
+        open_period = GroupOpenPeriod.objects.get(group=group, project=self.project)
+
+        dummy_relationship = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
+        incident = Incident.objects.get(id=dummy_relationship.incident_id)
+
+        # this is a little hacky, but to emulate dual processing -> single processing I will
+        # just delete the IGOP relationship
+        IncidentGroupOpenPeriod.objects.all().delete()
+
+        _, group_info = self.save_issue_occurrence(priority=DetectorPriorityLevel.MEDIUM)
+        group = group_info.group
+        assert group is not None
+
+        item = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
+        assert item.incident_id == incident.id
+        activity = IncidentActivity.objects.filter(incident_id=incident.id)
+
+        assert len(activity) == 4
+        last_activity_entry = activity[3]
+        assert last_activity_entry.type == 2
+        assert last_activity_entry.value == str(IncidentStatus.WARNING.value)
+        assert last_activity_entry.previous_value == str(IncidentStatus.CRITICAL.value)
+
+    def test_can_resolve_outstanding_incident(self) -> None:
+        """Test that we link and update an incident that was opened before the org started single processing on resolution"""
+        _, group_info = self.save_issue_occurrence()
+        group = group_info.group
+        assert group is not None
+
+        assert GroupOpenPeriod.objects.filter(group=group, project=self.project).exists()
+
+        open_period = GroupOpenPeriod.objects.get(group=group, project=self.project)
+
+        dummy_relationship = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
+        incident = Incident.objects.get(id=dummy_relationship.incident_id)
+
+        # this is a little hacky, but to emulate dual processing -> single processing I will
+        # just delete the IGOP relationship
+        IncidentGroupOpenPeriod.objects.all().delete()
+
+        with self.tasks():
+            update_status(group, self.mock_status_change_message)
+
+        open_period = GroupOpenPeriod.objects.get(group=group)
+        assert open_period.date_ended is not None
+        item = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
+        assert item.incident_id == incident.id
+        activity = IncidentActivity.objects.filter(incident_id=incident.id)
+        assert len(activity) == 4  # detected, created, priority change, close
+
+        last_activity_entry = activity[3]
+        assert last_activity_entry.type == 2
+        assert last_activity_entry.previous_value == str(IncidentStatus.CRITICAL.value)
+        assert last_activity_entry.value == str(IncidentStatus.CLOSED.value)
+
+    @mock.patch("sentry.models.group.logger")
+    def test_bulk_transition_new_group_to_ongoing__metric_issues__no_incident_activites(
+        self, mock_logger
+    ) -> None:
+        """Ensure we do not trigger an IGOP write for a new to ongoing status change"""
+        _, group_info = self.save_issue_occurrence()
+        group = group_info.group
+        assert group is not None
+
+        open_period = GroupOpenPeriod.objects.get(group=group, project=self.project)
+        assert open_period
+
+        dummy_relationship = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
+        incident = Incident.objects.get(id=dummy_relationship.incident_id)
+        assert len(IncidentActivity.objects.filter(incident_id=incident.id)) == 3
+
+        group.substatus = GroupSubStatus.NEW
+        group.save()
+
+        bulk_transition_group_to_ongoing(GroupStatus.UNRESOLVED, GroupSubStatus.NEW, [group.id])
+        assert Activity.objects.filter(
+            group=group, type=ActivityType.AUTO_SET_ONGOING.value
+        ).exists()
+        assert GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.UNRESOLVED
+        ).exists()
+        assert mock_logger.error.call_count == 0
+
+        assert (
+            len(IncidentActivity.objects.filter(incident_id=incident.id)) == 3
+        )  # no new IGOP entry
+
+    @mock.patch("sentry.models.group.logger")
+    def test_bulk_transition_regressed_group_to_ongoing__metric_issues__no_incident_activites(
+        self, mock_logger
+    ) -> None:
+        """Ensure we do not trigger an IGOP write for a regressed to ongoing status change"""
+        _, group_info = self.save_issue_occurrence()
+        group = group_info.group
+        assert group is not None
+
+        open_period = GroupOpenPeriod.objects.get(group=group, project=self.project)
+        assert open_period
+
+        dummy_relationship = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
+        incident = Incident.objects.get(id=dummy_relationship.incident_id)
+        assert len(IncidentActivity.objects.filter(incident_id=incident.id)) == 3
+        group.substatus = GroupSubStatus.REGRESSED
+        group.save()
+
+        bulk_transition_group_to_ongoing(
+            GroupStatus.UNRESOLVED, GroupSubStatus.REGRESSED, [group.id]
+        )
+        assert Activity.objects.filter(
+            group=group, type=ActivityType.AUTO_SET_ONGOING.value
+        ).exists()
+        assert GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.UNRESOLVED
+        ).exists()
+        assert mock_logger.error.call_count == 0
+
+        assert (
+            len(IncidentActivity.objects.filter(incident_id=incident.id)) == 3
+        )  # no new IGOP entry

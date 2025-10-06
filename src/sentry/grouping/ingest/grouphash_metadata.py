@@ -8,11 +8,11 @@ the `GroupHash` model file, so that existing records will get updated with the n
 from __future__ import annotations
 
 import logging
-import random
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, TypeIs, cast
 
-from sentry import options
+from django.utils import timezone
+
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.component import (
     ChainedExceptionGroupingComponent,
@@ -62,13 +62,13 @@ GROUPING_METHODS_BY_DESCRIPTION = {
     # All frames from a stacktrace at the top level of the event, in `exception`, or in
     # `threads` (top-level stacktraces come, for example, from using `attach_stacktrace`
     # together with `capture_message`)
-    "stack-trace": HashBasis.STACKTRACE,
-    "exception stack-trace": HashBasis.STACKTRACE,
-    "thread stack-trace": HashBasis.STACKTRACE,
+    "stacktrace": HashBasis.STACKTRACE,
+    "exception stacktrace": HashBasis.STACKTRACE,
+    "thread stacktrace": HashBasis.STACKTRACE,
     # Same as above, but restricted to in-app frames
-    "in-app stack-trace": HashBasis.STACKTRACE,
-    "in-app exception stack-trace": HashBasis.STACKTRACE,
-    "in-app thread stack-trace": HashBasis.STACKTRACE,
+    "in-app stacktrace": HashBasis.STACKTRACE,
+    "in-app exception stacktrace": HashBasis.STACKTRACE,
+    "in-app thread stacktrace": HashBasis.STACKTRACE,
     # The value in `message` or `log_entry`, such as from using `capture_message` or calling
     # `capture_exception` on a string
     "message": HashBasis.MESSAGE,
@@ -108,33 +108,6 @@ METRICS_TAGS_BY_HASH_BASIS = {
 }
 
 
-def should_handle_grouphash_metadata(project: Project, grouphash_is_new: bool) -> bool:
-    # Killswitches
-    if not options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
-        metrics.incr(
-            "grouping.grouphash_metadata.should_handle",
-            tags={"result": False, "reason": "killswitch"},
-        )
-        return False
-
-    # While we're backfilling metadata for existing grouphash records, if the load is too high, we
-    # want to prioritize metadata for new grouphashes because there's certain information
-    # (timestamp, Seer data) which is only available at group creation time.
-    if grouphash_is_new:
-        metrics.incr(
-            "grouping.grouphash_metadata.should_handle",
-            tags={"result": True, "reason": "new_group"},
-        )
-        return True
-    else:
-        result = random.random() <= options.get("grouping.grouphash_metadata.backfill_sample_rate")
-        metrics.incr(
-            "grouping.grouphash_metadata.should_handle",
-            tags={"result": result, "reason": f"die_roll_{result}"},
-        )
-        return result
-
-
 def create_or_update_grouphash_metadata_if_needed(
     event: Event,
     project: Project,
@@ -155,6 +128,8 @@ def create_or_update_grouphash_metadata_if_needed(
 
         # Handle race condition cases where this event lost the race to create the metadata record
         if not created:
+            grouphash.refresh_from_db()
+
             logger.info(
                 "grouphash_metadata.creation_race_condition.record_exists",
                 extra={
@@ -232,9 +207,22 @@ def create_or_update_grouphash_metadata_if_needed(
                     "new_version": GROUPHASH_METADATA_SCHEMA_VERSION,
                 }
             )
+        # If the metadata is more than 90 days old, the event upon which it's based will have aged
+        # out, so refresh the data with this new event
+        elif (
+            grouphash.metadata.date_updated
+            and grouphash.metadata.date_updated < timezone.now() - timedelta(days=90)
+        ):
+            updated_data.update(
+                get_grouphash_metadata_data(event, project, variants, grouping_config_id)
+            )
+            db_hit_metadata.update(
+                {"reason": ("stale" if not db_hit_metadata.get("reason") else "stale_and_config")}
+            )
 
         # Only hit the DB if there's something to change
         if updated_data:
+            updated_data["date_updated"] = timezone.now()
             grouphash.metadata.update(**updated_data)
 
     # If we did something, collect a metric
@@ -269,6 +257,7 @@ def get_grouphash_metadata_data(
             "schema_version": GROUPHASH_METADATA_SCHEMA_VERSION,
             "latest_grouping_config": grouping_config_id,
             "platform": event.platform or "unknown",
+            "event_id": event.event_id,
         }
         hashing_metadata: HashingMetadata = {}
 
@@ -419,7 +408,7 @@ def _get_stacktrace_hashing_metadata(
         ),
         "num_stacktraces": (
             len(contributing_component.values)
-            if contributing_component.id == "chained-exception"
+            if contributing_component.id == "chained_exception"
             else 1
         ),
     }
@@ -532,8 +521,8 @@ def _get_template_hashing_metadata(
 
     if subcomponents_by_id["filename"].values:
         metadata["template_name"] = subcomponents_by_id["filename"].values[0]
-    if subcomponents_by_id["context-line"].values:
-        metadata["template_context_line"] = subcomponents_by_id["context-line"].values[0]
+    if subcomponents_by_id["context_line"].values:
+        metadata["template_context_line"] = subcomponents_by_id["context_line"].values[0]
 
     return metadata
 
@@ -558,19 +547,19 @@ def _get_fallback_hashing_metadata(
 
     if (
         "app" in variants
-        and variants["app"].component.values[0].hint == "ignored because it contains no frames"
+        and variants["app"].root_component.values[0].hint == "ignored because it contains no frames"
     ):
         reason = "no_frames"
 
     elif (
         "system" in variants
-        and variants["system"].component.values[0].hint
+        and variants["system"].root_component.values[0].hint
         == "ignored because it contains no contributing frames"
     ):
         reason = "no_contributing_frames"
 
     elif "system" in variants and "min-frames" in (
-        variants["system"].component.values[0].hint or ""
+        variants["system"].root_component.values[0].hint or ""
     ):
         reason = "insufficient_contributing_frames"
 

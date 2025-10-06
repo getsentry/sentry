@@ -9,6 +9,7 @@ import {
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Flex} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -90,10 +91,10 @@ export default function PluginConfig({
       data-test-id="plugin-config"
     >
       <PanelHeader hasButtons>
-        <PluginName>
+        <Flex align="center" flex="1">
           <StyledPluginIcon pluginId={plugin.id} />
           <span>{plugin.name}</span>
-        </PluginName>
+        </Flex>
 
         {plugin.canDisable && isEnabled && (
           <ButtonBar>
@@ -136,12 +137,6 @@ export default function PluginConfig({
     </Panel>
   );
 }
-
-const PluginName = styled('div')`
-  display: flex;
-  align-items: center;
-  flex: 1;
-`;
 
 const StyledPluginIcon = styled(PluginIcon)`
   margin-right: ${space(1)};

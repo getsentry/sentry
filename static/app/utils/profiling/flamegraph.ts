@@ -145,7 +145,6 @@ export class Flamegraph {
       0
     );
     this.root.end = this.root.start + weight;
-    this.root.frame.totalWeight += weight;
 
     let width = 0;
 

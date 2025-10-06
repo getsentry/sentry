@@ -1,15 +1,16 @@
 import uuid
 from abc import abstractmethod
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-from sentry.testutils.cases import UptimeCheckSnubaTestCase
+from sentry.testutils.cases import UptimeCheckSnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.types import IncidentStatus
 from sentry.utils.cursors import Cursor
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
-from tests.sentry.uptime.endpoints.test_base import MOCK_DATETIME, UptimeResultEAPTestCase
+
+MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
 
 
 class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
@@ -23,9 +24,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
         self.subscription = self.create_uptime_subscription(
             url="https://santry.io", subscription_id=self.subscription_id
         )
-        self.project_uptime_subscription = self.create_project_uptime_subscription(
-            uptime_subscription=self.subscription
-        )
+        self.detector = self.create_uptime_detector(uptime_subscription=self.subscription)
 
         test_scenarios: list[dict] = [
             {"check_status": "success", "scheduled_check_time": before_now(minutes=10)},
@@ -71,7 +70,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                self.project_uptime_subscription.id,
+                self.detector.id,
             )
             assert response.data is not None
             assert len(response.data) == 6
@@ -105,7 +104,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                self.project_uptime_subscription.id,
+                self.detector.id,
                 qs_params={
                     "start": datetime.now() - timedelta(days=10),
                     "end": datetime.now() - timedelta(days=9),
@@ -116,7 +115,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                self.project_uptime_subscription.id,
+                self.detector.id,
                 qs_params={
                     "start": datetime.now() - timedelta(days=3),
                     "end": datetime.now(),
@@ -130,7 +129,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                self.project_uptime_subscription.id,
+                self.detector.id,
                 qs_params={"cursor": Cursor(0, 0), "per_page": 2},
             )
             assert response.data is not None
@@ -139,7 +138,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                self.project_uptime_subscription.id,
+                self.detector.id,
                 qs_params={"cursor": Cursor(0, 2), "per_page": 2},
             )
             assert response.data is not None
@@ -148,7 +147,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                self.project_uptime_subscription.id,
+                self.detector.id,
                 qs_params={"cursor": Cursor(0, 4), "per_page": 2},
             )
             assert response.data is not None
@@ -157,7 +156,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                self.project_uptime_subscription.id,
+                self.detector.id,
                 qs_params={"cursor": Cursor(0, 20), "per_page": 2},
             )
             assert response.data is not None
@@ -171,7 +170,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                self.project_uptime_subscription.id,
+                self.detector.id,
             )
             assert response.data is not None
             assert len(response.data) == 0
@@ -182,14 +181,12 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             subscription = self.create_uptime_subscription(
                 url="https://example.com", subscription_id=None
             )
-            project_uptime_subscription = self.create_project_uptime_subscription(
-                uptime_subscription=subscription
-            )
+            detector = self.create_uptime_detector(uptime_subscription=subscription)
 
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                project_uptime_subscription.id,
+                detector.id,
             )
             assert response.data == []
 

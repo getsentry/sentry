@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import argparse
 import subprocess
-from collections.abc import Sequence
-
 import tomllib
+from collections.abc import Sequence
 
 
 def extract_packages(package_specs: list[str]) -> set[str]:

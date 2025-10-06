@@ -3,7 +3,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import Placeholder from 'sentry/components/placeholder';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
-import {parseActorIdentifier} from 'sentry/utils/parseActorIdentifier';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import useUserFromId from 'sentry/utils/useUserFromId';
 
@@ -41,19 +41,18 @@ function AssignToUser({userId}: {userId: string}) {
   );
 }
 
-function DetectorOwner({owner}: {owner: string | null}) {
-  const parsed = parseActorIdentifier(owner);
-  if (parsed?.type === 'team') {
-    return <AssignToTeam teamId={parsed.id} />;
+function DetectorOwner({owner}: {owner: Detector['owner']}) {
+  if (owner?.type === 'team') {
+    return <AssignToTeam teamId={owner.id} />;
   }
-  if (parsed?.type === 'user') {
-    return <AssignToUser userId={parsed.id} />;
+  if (owner?.type === 'user') {
+    return <AssignToUser userId={owner.id} />;
   }
 
   return t('Unassigned');
 }
 
-export function DetectorDetailsAssignee({owner}: {owner: string | null}) {
+export function DetectorDetailsAssignee({owner}: {owner: Detector['owner']}) {
   return (
     <Section title={t('Assign')}>
       <DetectorOwner owner={owner} />

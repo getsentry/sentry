@@ -18,19 +18,17 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {
-  LogsPageParamsProvider,
-  useLogsId,
-  useLogsTitle,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {logsPickableDays} from 'sentry/views/explore/logs/utils';
+import {
+  useQueryParamsId,
+  useQueryParamsTitle,
+} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 function FeedbackButton() {
   const openForm = useFeedbackForm();
@@ -77,33 +75,32 @@ export default function LogsContent() {
           },
         }}
       >
-        <LogsQueryParamsProvider source="location">
-          <LogsPageParamsProvider
-            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-          >
-            <Layout.Page>
-              <LogsHeader />
-              <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-                <LogsPageDataProvider>
-                  {defined(onboardingProject) ? (
-                    <LogsTabOnboarding
-                      organization={organization}
-                      project={onboardingProject}
-                      defaultPeriod={defaultPeriod}
-                      maxPickableDays={maxPickableDays}
-                      relativeOptions={relativeOptions}
-                    />
-                  ) : (
-                    <LogsTabContent
-                      defaultPeriod={defaultPeriod}
-                      maxPickableDays={maxPickableDays}
-                      relativeOptions={relativeOptions}
-                    />
-                  )}
-                </LogsPageDataProvider>
-              </TraceItemAttributeProvider>
-            </Layout.Page>
-          </LogsPageParamsProvider>
+        <LogsQueryParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+          source="location"
+        >
+          <Layout.Page>
+            <LogsHeader />
+            <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+              <LogsPageDataProvider>
+                {defined(onboardingProject) ? (
+                  <LogsTabOnboarding
+                    organization={organization}
+                    project={onboardingProject}
+                    defaultPeriod={defaultPeriod}
+                    maxPickableDays={maxPickableDays}
+                    relativeOptions={relativeOptions}
+                  />
+                ) : (
+                  <LogsTabContent
+                    defaultPeriod={defaultPeriod}
+                    maxPickableDays={maxPickableDays}
+                    relativeOptions={relativeOptions}
+                  />
+                )}
+              </LogsPageDataProvider>
+            </TraceItemAttributeProvider>
+          </Layout.Page>
         </LogsQueryParamsProvider>
       </PageFiltersContainer>
     </SentryDocumentTitle>
@@ -111,13 +108,11 @@ export default function LogsContent() {
 }
 
 function LogsHeader() {
-  const prefersStackedNav = usePrefersStackedNav();
-
-  const pageId = useLogsId();
-  const title = useLogsTitle();
+  const pageId = useQueryParamsId();
+  const title = useQueryParamsTitle();
   return (
-    <Layout.Header unified={prefersStackedNav}>
-      <Layout.HeaderContent unified={prefersStackedNav}>
+    <Layout.Header unified>
+      <Layout.HeaderContent unified>
         {title && defined(pageId) ? (
           <ExploreBreadcrumb traceItemDataset={TraceItemDataset.LOGS} />
         ) : null}

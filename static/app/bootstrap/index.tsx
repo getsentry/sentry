@@ -67,10 +67,10 @@ async function promiseRequest(url: string) {
       };
       return [json, response.statusText, responseMeta];
     }
-    // eslint-disable-next-line no-throw-literal
+    // eslint-disable-next-line @typescript-eslint/only-throw-error
     throw [response.status, response.statusText];
   } catch (error: any) {
-    // eslint-disable-next-line no-throw-literal
+    // eslint-disable-next-line @typescript-eslint/only-throw-error
     throw [error.status, error.statusText];
   }
 }
@@ -93,7 +93,7 @@ function preloadOrganizationData(config: Config) {
   // When running in 'dev-ui' mode we need to use /region/$region instead of
   // subdomains so that webpack/vercel can proxy requests.
   if (host && window.__SENTRY_DEV_UI) {
-    const domainpattern = /https?\:\/\/([^.]*)\.sentry.io/;
+    const domainpattern = /https?:\/\/([^.]*)\.sentry.io/;
     const domainmatch = host.match(domainpattern);
     if (domainmatch) {
       host = `/region/${domainmatch[1]}`;

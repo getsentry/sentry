@@ -397,26 +397,24 @@ class PendingChanges extends Component<Props> {
     }
 
     return (
-      <Alert.Container>
-        <Alert type="info">
-          <PendingLists>
-            {Object.entries(changes).map(([effectiveDate, items]) => (
-              <div key={effectiveDate} data-test-id="pending-list">
-                {tct('The following changes will take effect on [date]:', {
-                  date: <strong>{moment(effectiveDate).format('ll')}</strong>,
-                })}
-                <ItemList>
-                  {items.map((item, itemIdx) => (
-                    <li key={itemIdx} data-test-id="pending-item">
-                      {item}
-                    </li>
-                  ))}
-                </ItemList>
-              </div>
-            ))}
-          </PendingLists>
-        </Alert>
-      </Alert.Container>
+      <Alert type="info">
+        <PendingLists>
+          {Object.entries(changes).map(([effectiveDate, items]) => (
+            <div key={effectiveDate} data-test-id="pending-list">
+              {tct('The following changes will take effect on [date]:', {
+                date: <strong>{moment(effectiveDate).format('ll')}</strong>,
+              })}
+              <ItemList>
+                {items.map((item, itemIdx) => (
+                  <li key={itemIdx} data-test-id="pending-item">
+                    {item}
+                  </li>
+                ))}
+              </ItemList>
+            </div>
+          ))}
+        </PendingLists>
+      </Alert>
     );
   }
 }

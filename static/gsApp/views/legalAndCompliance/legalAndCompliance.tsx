@@ -1,5 +1,3 @@
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
@@ -8,11 +6,13 @@ import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationRegionAction} from 'sentry/views/settings/organizationGeneralSettings/organizationRegionAction';
 
+import BillingDetailsPanel from 'getsentry/components/billingDetails/panel';
 import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
+import {hasNewBillingUI} from 'getsentry/utils/billing';
 import {GDPRPanel} from 'getsentry/views/legalAndCompliance/gdprPanel';
 import {TermsAndConditions} from 'getsentry/views/legalAndCompliance/termsAndConditions';
-import {BillingDetailsFormContainer} from 'getsentry/views/subscriptionPage/billingDetails';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 type Props = RouteComponentProps<unknown, unknown> & {
   organization: Organization;
@@ -20,8 +20,9 @@ type Props = RouteComponentProps<unknown, unknown> & {
 };
 
 function LegalAndCompliance(props: Props) {
+  const isNewBillingUI = hasNewBillingUI(props.organization);
   return (
-    <div>
+    <SubscriptionPageContainer background="secondary" organization={props.organization}>
       <SentryDocumentTitle title={t('Legal & Compliance')} />
       <SettingsPageHeader
         title="Legal & Compliance"
@@ -29,11 +30,14 @@ function LegalAndCompliance(props: Props) {
       />
       <TermsAndConditions {...props} />
       <GDPRPanel subscription={props.subscription} />
-      <Panel>
-        <PanelHeader>{t('Company Details')}</PanelHeader>
-        <BillingDetailsFormContainer organization={props.organization} />
-      </Panel>
-    </div>
+      <BillingDetailsPanel
+        organization={props.organization}
+        subscription={props.subscription}
+        title={t('Company Details')}
+        isNewBillingUI={isNewBillingUI}
+        analyticsEvent="legal_and_compliance.updated_billing_details"
+      />
+    </SubscriptionPageContainer>
   );
 }
 

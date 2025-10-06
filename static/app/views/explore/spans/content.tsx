@@ -3,7 +3,6 @@ import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -12,7 +11,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
@@ -37,7 +35,6 @@ import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 export function ExploreContent() {
   Sentry.setTag('explore.visited', 'yes');
@@ -52,7 +49,7 @@ export function ExploreContent() {
       <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
         <Layout.Page>
           <SpansTabWrapper>
-            <SpansTabHeader organization={organization} />
+            <SpansTabHeader />
             {defined(onboardingProject) ? (
               <SpansTabOnboarding
                 organization={organization}
@@ -122,19 +119,14 @@ function ExploreTagsProvider({children}: SpansTabContextProps) {
   );
 }
 
-interface SpansTabHeaderProps {
-  organization: Organization;
-}
-
-function SpansTabHeader({organization}: SpansTabHeaderProps) {
-  const prefersStackedNav = usePrefersStackedNav();
+function SpansTabHeader() {
   const id = useExploreId();
   const title = useExploreTitle();
   const {data: savedQuery} = useGetSavedQuery(id);
 
   return (
-    <Layout.Header unified={prefersStackedNav}>
-      <Layout.HeaderContent unified={prefersStackedNav}>
+    <Layout.Header unified>
+      <Layout.HeaderContent unified>
         {title && defined(id) ? (
           <ExploreBreadcrumb traceItemDataset={TraceItemDataset.SPANS} />
         ) : null}
@@ -151,14 +143,6 @@ function SpansTabHeader({organization}: SpansTabHeaderProps) {
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar>
-          {!prefersStackedNav && (
-            <LinkButton
-              to={`/organizations/${organization.slug}/explore/saved-queries/`}
-              size="sm"
-            >
-              {t('Saved Queries')}
-            </LinkButton>
-          )}
           <StarSavedQueryButton />
           {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
           <FeedbackWidgetButton />

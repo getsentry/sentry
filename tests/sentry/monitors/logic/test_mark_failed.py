@@ -437,3 +437,117 @@ class MarkFailedTestCase(TestCase):
         grouphash = GroupHash.objects.get(hash=issue_platform_hash)
         group_assignee = GroupAssignee.objects.get(group_id=grouphash.group_id)
         assert group_assignee.user_id == monitor.owner_user_id
+
+    @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
+    def test_mark_failed_with_consistent_fingerprint_feature_enabled(
+        self, mock_dispatch_incident_occurrence
+    ):
+        """Test that when the feature flag is enabled, the grouphash is set to the fingerprint"""
+        with self.feature("organizations:crons-consistent-fingerprint"):
+            monitor = Monitor.objects.create(
+                name="test monitor",
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                config={
+                    "schedule": [1, "hour"],
+                    "schedule_type": ScheduleType.INTERVAL,
+                    "failure_issue_threshold": 3,
+                },
+            )
+            monitor_environment = MonitorEnvironment.objects.create(
+                monitor=monitor,
+                environment_id=self.environment.id,
+                status=MonitorStatus.OK,
+            )
+
+            for i in range(3):
+                checkin = MonitorCheckIn.objects.create(
+                    monitor=monitor,
+                    monitor_environment=monitor_environment,
+                    project_id=self.project.id,
+                    status=CheckInStatus.ERROR,
+                )
+                mark_failed(checkin, failed_at=checkin.date_added)
+
+            incident = MonitorIncident.objects.get(monitor_environment=monitor_environment)
+            expected_fingerprint = f"crons:{monitor_environment.id}"
+            assert incident.grouphash == expected_fingerprint
+
+            assert mock_dispatch_incident_occurrence.call_count == 3
+            for call in mock_dispatch_incident_occurrence.call_args_list:
+                args, _ = call
+                incident = args[2]
+                assert incident.grouphash == expected_fingerprint
+
+    @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
+    @mock.patch("sentry.monitors.logic.incident_occurrence.resolve_incident_group")
+    def test_mark_failed_consistent_fingerprint_after_resolution(
+        self, mock_resolve_incident_group, mock_dispatch_incident_occurrence
+    ):
+        """Test that resolving and recreating an incident maintains the same fingerprint"""
+        with self.feature("organizations:crons-consistent-fingerprint"):
+            monitor = Monitor.objects.create(
+                name="test monitor",
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                config={
+                    "schedule": [1, "hour"],
+                    "schedule_type": ScheduleType.INTERVAL,
+                    "failure_issue_threshold": 3,
+                },
+            )
+            monitor_environment = MonitorEnvironment.objects.create(
+                monitor=monitor,
+                environment_id=self.environment.id,
+                status=MonitorStatus.OK,
+            )
+            expected_fingerprint = f"crons:{monitor_environment.id}"
+
+            for i in range(3):
+                checkin = MonitorCheckIn.objects.create(
+                    monitor=monitor,
+                    monitor_environment=monitor_environment,
+                    project_id=self.project.id,
+                    status=CheckInStatus.ERROR,
+                )
+                mark_failed(checkin, failed_at=checkin.date_added)
+
+            first_incident = MonitorIncident.objects.get(monitor_environment=monitor_environment)
+            assert first_incident.grouphash == expected_fingerprint
+
+            ok_checkin = MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                status=CheckInStatus.OK,
+            )
+
+            from sentry.monitors.logic.mark_ok import mark_ok
+
+            mark_ok(ok_checkin, ok_checkin.date_added)
+
+            monitor_environment.refresh_from_db()
+            assert monitor_environment.status == MonitorStatus.OK
+
+            first_incident.refresh_from_db()
+            assert first_incident.resolving_checkin == ok_checkin
+
+            for i in range(3):
+                checkin = MonitorCheckIn.objects.create(
+                    monitor=monitor,
+                    monitor_environment=monitor_environment,
+                    project_id=self.project.id,
+                    status=CheckInStatus.ERROR,
+                )
+                mark_failed(checkin, failed_at=checkin.date_added)
+
+            incidents = MonitorIncident.objects.filter(
+                monitor_environment=monitor_environment
+            ).order_by("date_added")
+            assert incidents.count() == 2
+
+            second_incident = incidents.last()
+            assert second_incident
+            assert second_incident.id != first_incident.id
+            assert second_incident.grouphash == expected_fingerprint
+            assert second_incident.grouphash == first_incident.grouphash

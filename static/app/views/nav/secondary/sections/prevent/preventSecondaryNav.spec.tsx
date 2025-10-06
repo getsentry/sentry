@@ -9,7 +9,7 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
-const ALL_AVAILABLE_FEATURES = ['codecov-ui'];
+const ALL_AVAILABLE_FEATURES = ['codecov-ui', 'prevent-test-analytics'];
 
 describe('PreventSecondaryNav', () => {
   beforeEach(() => {
@@ -103,17 +103,17 @@ describe('PreventSecondaryNav', () => {
         organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
         initialRouterConfig: {
           location: {
-            pathname: '/organizations/org-slug/prevent/prevent-ai/new/',
+            pathname: '/organizations/org-slug/prevent/ai-code-review/new/',
           },
         },
       }
     );
 
-    const preventAILink = screen.getByRole('link', {name: 'Prevent AI'});
+    const preventAILink = screen.getByRole('link', {name: 'AI Code Review'});
     expect(preventAILink).toBeInTheDocument();
     expect(preventAILink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/prevent/prevent-ai/new/'
+      '/organizations/org-slug/prevent/ai-code-review/new/'
     );
   });
 });

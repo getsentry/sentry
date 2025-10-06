@@ -1,4 +1,4 @@
-import {type ReactNode} from 'react';
+import {useEffect, type ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -31,7 +31,7 @@ function getReplayTabs({
       areAiFeaturesAllowed &&
       !isVideoReplay ? (
         <Flex align="center" gap="sm">
-          {t('Summary')}
+          {t('AI Summary')}
           <Tooltip
             title={t(
               'This feature is experimental! Try it out and let us know what you think. No promises!'
@@ -58,13 +58,32 @@ type Props = {
 
 export default function FocusTabs({isVideoReplay}: Props) {
   const organization = useOrganization();
-  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
+  const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
   const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
   const activeTab = getActiveTab();
 
   const tabs = Object.entries(
     getReplayTabs({isVideoReplay, organization, areAiFeaturesAllowed})
   ).filter(([_, v]) => v !== null);
+
+  useEffect(() => {
+    const isAiTabAvailable =
+      organization.features.includes('replay-ai-summaries') &&
+      areAiFeaturesAllowed &&
+      !isVideoReplay;
+
+    if (isAiTabAvailable) {
+      trackAnalytics('replay.ai_tab_shown', {
+        organization,
+        isSeerSetup: setupAcknowledgement.orgHasAcknowledged,
+      });
+    }
+  }, [
+    organization,
+    areAiFeaturesAllowed,
+    isVideoReplay,
+    setupAcknowledgement.orgHasAcknowledged,
+  ]);
 
   return (
     <TabContainer>

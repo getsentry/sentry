@@ -17,6 +17,7 @@ import type {Event, ExceptionType, ExceptionValue} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {StackType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useProjects from 'sentry/utils/useProjects';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {
@@ -256,6 +257,10 @@ export function Content({
 
   const isSampleError = useIsSampleEvent();
 
+  useRouteAnalyticsParams({
+    num_exceptions: values?.length ?? 0,
+  });
+
   // Organization context may be unavailable for the shared event view, so we
   // avoid using the `useOrganization` hook here and directly useContext
   // instead.
@@ -321,7 +326,7 @@ export function Content({
             )
           }
           disableCollapsePersistence
-          initialCollapse={excIdx !== values.length - 1}
+          initialCollapse={excIdx < values.length - 3}
           additionalIdentifier={
             exc.mechanism?.exception_id?.toString() ?? excIdx.toString()
           }
@@ -358,7 +363,7 @@ export function Content({
               numExceptions: values.length,
             })}
           </p>
-          <SectionDivider />
+          <SectionDivider orientation="horizontal" />
         </Fragment>
       )}
       {children}

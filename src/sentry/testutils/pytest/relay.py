@@ -19,9 +19,7 @@ _log = logging.getLogger(__name__)
 
 
 # This helps the Relay CI to specify the generated Docker build before it is published
-RELAY_TEST_IMAGE = environ.get(
-    "RELAY_TEST_IMAGE", "us-central1-docker.pkg.dev/sentryio/relay/relay:nightly"
-)
+RELAY_TEST_IMAGE = environ.get("RELAY_TEST_IMAGE", "ghcr.io/getsentry/relay:nightly")
 
 
 def _relay_server_container_name() -> str:
@@ -38,14 +36,16 @@ def _remove_container_if_exists(docker_client, container_name):
     except Exception:
         pass  # container not found
     else:
-        try:
-            container.kill()
-        except Exception:
-            pass  # maybe the container is already stopped
-        try:
-            container.remove()
-        except Exception:
-            pass  # could not remove the container nothing to do about it
+        actions = [
+            lambda: container.stop(timeout=1),
+            lambda: container.kill(),
+            lambda: container.remove(),
+        ]
+        for action in actions:
+            try:
+                action()
+            except Exception:
+                pass
 
 
 @pytest.fixture(scope="module")
@@ -69,7 +69,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     relay_port = ephemeral_port_reserve.reserve(ip="127.0.0.1", port=33331)
 
     redis_db = TEST_REDIS_DB
-    use_old_devservices = environ.get("USE_OLD_DEVSERVICES", "0") == "1"
+
     from sentry.relay import projectconfig_cache
     from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 
@@ -81,8 +81,8 @@ def relay_server_setup(live_server, tmpdir_factory):
     template_vars = {
         "SENTRY_HOST": f"http://host.docker.internal:{port}/",
         "RELAY_PORT": relay_port,
-        "KAFKA_HOST": "sentry_kafka" if use_old_devservices else "kafka",
-        "REDIS_HOST": "sentry_redis" if use_old_devservices else "redis",
+        "KAFKA_HOST": "kafka",
+        "REDIS_HOST": "redis",
         "REDIS_DB": redis_db,
     }
 
@@ -107,7 +107,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     options = {
         "image": RELAY_TEST_IMAGE,
         "ports": {"%s/tcp" % relay_port: relay_port},
-        "network": "sentry" if use_old_devservices else "devservices",
+        "network": "devservices",
         "detach": True,
         "name": container_name,
         "volumes": {config_path: {"bind": "/etc/relay"}},
@@ -154,10 +154,7 @@ def relay_server(relay_server_setup, settings):
     else:
         raise ValueError("relay did not start in time")
 
-    try:
-        yield {"url": relay_server_setup["url"]}
-    finally:
-        container.stop(timeout=10)
+    yield {"url": relay_server_setup["url"]}
 
 
 def adjust_settings_for_relay_tests(settings):

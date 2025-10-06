@@ -19,7 +19,6 @@ describe('Uptime Alert Form', () => {
   beforeEach(() => {
     OrganizationStore.onUpdate(organization);
     ProjectsStore.loadInitialData([project]);
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       body: [MemberFixture()],
@@ -34,12 +33,15 @@ describe('Uptime Alert Form', () => {
     return screen.getByRole('textbox', {name});
   }
 
+  function numberInput(name: string) {
+    return screen.getByRole('spinbutton', {name});
+  }
+
   it('can create a new rule', async () => {
-    render(<UptimeAlertForm organization={organization} project={project} />, {
-      organization,
-    });
+    render(<UptimeAlertForm />, {organization});
     await screen.findByText('Configure Request');
 
+    await selectEvent.select(input('Project'), project.slug);
     await selectEvent.select(input('Environment'), 'prod');
 
     const timeout = screen.getByRole('slider', {name: 'Timeout'});
@@ -59,6 +61,18 @@ describe('Uptime Alert Form', () => {
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Allow Sampling'}));
 
+    // Test threshold fields - should be empty with placeholders
+    expect(numberInput('Failure Tolerance')).toHaveValue(null);
+    expect(numberInput('Recovery Tolerance')).toHaveValue(null);
+    expect(numberInput('Failure Tolerance')).toHaveAttribute(
+      'placeholder',
+      'Defaults to 3'
+    );
+    expect(numberInput('Recovery Tolerance')).toHaveAttribute(
+      'placeholder',
+      'Defaults to 1'
+    );
+
     const name = input('Uptime rule name');
     await userEvent.clear(name);
     await userEvent.type(name, 'New Uptime Rule');
@@ -66,7 +80,7 @@ describe('Uptime Alert Form', () => {
     await selectEvent.select(input('Owner'), 'Foo Bar');
 
     const updateMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/?useDetectorId=1`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/`,
       method: 'POST',
     });
 
@@ -91,6 +105,44 @@ describe('Uptime Alert Form', () => {
     );
   });
 
+  it('can create a new rule with custom thresholds', async () => {
+    render(<UptimeAlertForm />, {organization});
+    await screen.findByText('Configure Request');
+
+    await selectEvent.select(input('Project'), project.slug);
+    await selectEvent.select(input('Environment'), 'prod');
+    await userEvent.clear(input('URL'));
+    await userEvent.type(input('URL'), 'http://example.com');
+
+    const name = input('Uptime rule name');
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Rule with Custom Thresholds');
+
+    // Set custom threshold values
+    await userEvent.type(numberInput('Failure Tolerance'), '5');
+    await userEvent.type(numberInput('Recovery Tolerance'), '2');
+
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/uptime/`,
+      method: 'POST',
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Rule'}));
+
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          environment: 'prod',
+          name: 'Rule with Custom Thresholds',
+          url: 'http://example.com',
+          downtimeThreshold: '5',
+          recoveryThreshold: '2',
+        }),
+      })
+    );
+  });
+
   it('renders existing rule', async () => {
     const rule = UptimeRuleFixture({
       name: 'Existing Rule',
@@ -106,11 +158,10 @@ describe('Uptime Alert Form', () => {
       traceSampling: true,
       timeoutMs: 7500,
       owner: ActorFixture(),
+      downtimeThreshold: 4,
+      recoveryThreshold: 2,
     });
-    render(
-      <UptimeAlertForm organization={organization} project={project} rule={rule} />,
-      {organization}
-    );
+    render(<UptimeAlertForm rule={rule} />, {organization});
     await screen.findByText('Configure Request');
 
     expect(input('Uptime rule name')).toHaveValue('Existing Rule');
@@ -126,6 +177,8 @@ describe('Uptime Alert Form', () => {
     expect(screen.getByRole('menuitemradio', {name: 'prod'})).toBeChecked();
     expect(screen.getByRole('checkbox', {name: 'Allow Sampling'})).toBeChecked();
     expect(screen.getByRole('slider', {name: 'Timeout'})).toHaveValue('7500');
+    expect(numberInput('Failure Tolerance')).toHaveValue(4);
+    expect(numberInput('Recovery Tolerance')).toHaveValue(2);
   });
 
   it('handles simple edits', async () => {
@@ -141,16 +194,13 @@ describe('Uptime Alert Form', () => {
       url: 'https://existing-url.com',
       owner: ActorFixture(),
     });
-    render(
-      <UptimeAlertForm organization={organization} project={project} rule={rule} />,
-      {organization}
-    );
+    render(<UptimeAlertForm rule={rule} />, {organization});
     await screen.findByText('Configure Request');
 
     await userEvent.type(input('URL'), '/test');
 
     const updateMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.detectorId}/?useDetectorId=1`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.id}/`,
       method: 'PUT',
     });
 
@@ -167,19 +217,16 @@ describe('Uptime Alert Form', () => {
   });
 
   it('can edit an existing rule', async () => {
-    OrganizationStore.onUpdate(organization);
-
     const rule = UptimeRuleFixture({
       name: 'Existing Rule',
       projectSlug: project.slug,
       url: 'https://existing-url.com',
       owner: ActorFixture(),
       traceSampling: false,
+      downtimeThreshold: 4,
+      recoveryThreshold: 2,
     });
-    render(
-      <UptimeAlertForm organization={organization} project={project} rule={rule} />,
-      {organization}
-    );
+    render(<UptimeAlertForm rule={rule} />, {organization});
     await screen.findByText('Configure Request');
 
     await selectEvent.select(input('Interval'), 'Every 10 minutes');
@@ -205,6 +252,12 @@ describe('Uptime Alert Form', () => {
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Allow Sampling'}));
 
+    // Update threshold values
+    await userEvent.clear(numberInput('Failure Tolerance'));
+    await userEvent.type(numberInput('Failure Tolerance'), '6');
+    await userEvent.clear(numberInput('Recovery Tolerance'));
+    await userEvent.type(numberInput('Recovery Tolerance'), '3');
+
     const name = input('Uptime rule name');
     await userEvent.clear(name);
     await userEvent.type(name, 'Updated name');
@@ -212,7 +265,7 @@ describe('Uptime Alert Form', () => {
     await selectEvent.select(input('Owner'), 'Foo Bar');
 
     const updateMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.detectorId}/?useDetectorId=1`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.id}/`,
       method: 'PUT',
     });
 
@@ -235,22 +288,19 @@ describe('Uptime Alert Form', () => {
           intervalSeconds: 60 * 10,
           traceSampling: true,
           timeoutMs: 7500,
+          downtimeThreshold: '6',
+          recoveryThreshold: '3',
         }),
       })
     );
   }, 20_000);
 
   it('does not show body for GET and HEAD', async () => {
-    OrganizationStore.onUpdate(organization);
-
     const rule = UptimeRuleFixture({
       projectSlug: project.slug,
       owner: ActorFixture(),
     });
-    render(
-      <UptimeAlertForm organization={organization} project={project} rule={rule} />,
-      {organization}
-    );
+    render(<UptimeAlertForm rule={rule} />, {organization});
     await screen.findByText('Configure Request');
 
     // GET
@@ -270,8 +320,6 @@ describe('Uptime Alert Form', () => {
   });
 
   it('updates environments for different projects', async () => {
-    OrganizationStore.onUpdate(organization);
-
     const project1 = ProjectFixture({
       slug: 'project-1',
       environments: ['dev-1', 'prod-1'],
@@ -282,9 +330,7 @@ describe('Uptime Alert Form', () => {
     });
 
     ProjectsStore.loadInitialData([project, project1, project2]);
-    render(<UptimeAlertForm organization={organization} project={project} />, {
-      organization,
-    });
+    render(<UptimeAlertForm />, {organization});
     await screen.findByText('Configure Request');
 
     // Select project 1
@@ -309,17 +355,16 @@ describe('Uptime Alert Form', () => {
   });
 
   it('can create a new environment', async () => {
-    OrganizationStore.onUpdate(organization);
-
-    render(<UptimeAlertForm organization={organization} project={project} />, {
-      organization,
-    });
+    render(<UptimeAlertForm />, {organization});
     await screen.findByText('Configure Request');
 
+    await selectEvent.select(input('Project'), project.slug);
     await userEvent.type(input('Environment'), 'my-custom-env');
     await userEvent.click(
       screen.getByRole('menuitemradio', {name: 'Create "my-custom-env"'})
     );
+
+    await selectEvent.select(input('Interval'), 'Every 10 minutes');
 
     await userEvent.clear(input('URL'));
     await userEvent.type(input('URL'), 'http://example.com');
@@ -328,14 +373,14 @@ describe('Uptime Alert Form', () => {
     await userEvent.clear(name);
     await userEvent.type(name, 'New Uptime Rule');
 
-    const updateMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/?useDetectorId=1`,
+    const createMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/uptime/`,
       method: 'POST',
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Rule'}));
 
-    expect(updateMock).toHaveBeenCalledWith(
+    expect(createMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         data: expect.objectContaining({}),
@@ -344,9 +389,7 @@ describe('Uptime Alert Form', () => {
   });
 
   it('sets a default name from the url', async () => {
-    render(<UptimeAlertForm organization={organization} project={project} />, {
-      organization,
-    });
+    render(<UptimeAlertForm />, {organization});
     await userEvent.clear(input('URL'));
     await userEvent.type(input('URL'), 'http://my-cool-site.com/');
 

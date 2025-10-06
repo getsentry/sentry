@@ -9,7 +9,7 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
-  getCrashReportPHPInstallStep,
+  getCrashReportPHPInstallSteps,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {
   feedbackOnboardingJsLoader,
@@ -174,7 +174,7 @@ SENTRY_DSN="${params.dsn.public}"
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportPHPInstallStep(params),
+  install: (params: Params) => getCrashReportPHPInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -281,7 +281,6 @@ SENTRY_DSN="${params.dsn.public}"
       description: t(
         'Verify that profiling is working correctly by simply using your application.'
       ),
-      configurations: [],
     },
   ],
   nextSteps: () => [],

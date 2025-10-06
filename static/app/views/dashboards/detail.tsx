@@ -903,9 +903,8 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   renderDefaultDashboardDetail() {
-    const {organization, dashboard, dashboards, params, router, location} = this.props;
+    const {organization, dashboard, dashboards, location} = this.props;
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
-    const {dashboardId} = params;
     return (
       <PageFiltersContainer
         disablePersistence
@@ -970,18 +969,13 @@ class DashboardDetail extends Component<Props, State> {
                         forceTransactions={metricsDataSide.forceTransactionsOnly}
                       >
                         <Dashboard
-                          theme={this.props.theme}
-                          paramDashboardId={dashboardId}
                           dashboard={modifiedDashboard ?? dashboard}
-                          organization={organization}
                           isEditingDashboard={this.isEditingDashboard}
                           widgetLimitReached={widgetLimitReached}
                           onUpdate={this.onUpdateWidget}
                           handleUpdateWidgetList={this.handleUpdateWidgetList}
                           handleAddCustomWidget={this.handleAddCustomWidget}
                           isPreview={this.isPreview}
-                          router={router}
-                          location={location}
                           widgetLegendState={this.state.widgetLegendState}
                         />
                       </MEPSettingProvider>
@@ -1014,7 +1008,6 @@ class DashboardDetail extends Component<Props, State> {
       organization,
       dashboard,
       dashboards,
-      params,
       router,
       location,
       newWidget,
@@ -1031,7 +1024,6 @@ class DashboardDetail extends Component<Props, State> {
       newlyAddedWidget,
       isCommittingChanges,
     } = this.state;
-    const {dashboardId} = params;
 
     const hasUnsavedFilters =
       dashboard.id !== 'default-overview' &&
@@ -1054,12 +1046,12 @@ class DashboardDetail extends Component<Props, State> {
             const checkDashboardRoute = (path: string) => {
               const dashboardRoutes = [
                 // Legacy routes
-                new RegExp('^\/organizations\/.+\/dashboards\/new\/'),
-                new RegExp(`^\/organizations\/.+\/dashboard\/${dashboard.id}\/`),
+                new RegExp('^/organizations/.+/dashboards/new/'),
+                new RegExp(`^/organizations/.+/dashboard/${dashboard.id}/`),
 
                 // Customer domain routes
-                new RegExp('^\/dashboards\/new\/'),
-                new RegExp(`^\/dashboard\/${dashboard.id}\/`),
+                new RegExp('^/dashboards/new/'),
+                new RegExp(`^/dashboard/${dashboard.id}/`),
               ];
 
               return dashboardRoutes.some(route => route.test(path ?? location.pathname));
@@ -1248,18 +1240,13 @@ class DashboardDetail extends Component<Props, State> {
                               <WidgetViewerContext value={{seriesData, setData}}>
                                 <Fragment>
                                   <Dashboard
-                                    theme={this.props.theme}
-                                    paramDashboardId={dashboardId}
                                     dashboard={modifiedDashboard ?? dashboard}
-                                    organization={organization}
                                     isEditingDashboard={this.isEditingDashboard}
                                     widgetLimitReached={widgetLimitReached}
                                     onUpdate={this.onUpdateWidget}
                                     handleUpdateWidgetList={this.handleUpdateWidgetList}
                                     handleAddCustomWidget={this.handleAddCustomWidget}
                                     onAddWidget={this.onAddWidget}
-                                    router={router}
-                                    location={location}
                                     newWidget={newWidget}
                                     onSetNewWidget={onSetNewWidget}
                                     isPreview={this.isPreview}

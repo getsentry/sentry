@@ -100,7 +100,9 @@ jest.mock('@stripe/stripe-js', () => ({
 }));
 jest.mock('@stripe/react-stripe-js', () => ({
   Elements: jest.fn(({children}: {children: any}) => children),
+  AddressElement: jest.fn(() => null),
   CardElement: jest.fn(() => null),
+  PaymentElement: jest.fn(() => null),
   useStripe: jest.fn(() => ({
     confirmCardPayment: jest.fn(() =>
       Promise.resolve({error: undefined, paymentIntent: {id: 'test-payment'}})

@@ -201,9 +201,10 @@ export class VideoReplayer {
     el.style.zIndex = index.toString();
     el.style.position = 'absolute';
     sourceEl.setAttribute('type', 'video/mp4');
-    sourceEl.setAttribute('src', `${this._videoApiPrefix}${segmentData.id}/`);
+    // the #t=0.001 is a hack for mobile safari to show the first frame of the video as a placeholder
+    sourceEl.setAttribute('src', `${this._videoApiPrefix}${segmentData.id}/#t=0.001`);
     el.setAttribute('muted', '');
-    el.setAttribute('playinline', '');
+    el.setAttribute('playsinline', '');
     el.setAttribute('preload', 'auto');
     el.setAttribute('playbackRate', `${this.config.speed}`);
     el.appendChild(sourceEl);

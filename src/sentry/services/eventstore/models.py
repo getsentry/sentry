@@ -89,10 +89,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def trace_id(self) -> str | None:
-        ret_value = None
-        if self.data:
-            ret_value = self.data.get("contexts", {}).get("trace", {}).get("trace_id")
-        return ret_value
+        return get_path(self.data, "contexts", "trace", "trace_id")
 
     @property
     def platform(self) -> str | None:
@@ -181,7 +178,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         from sentry.models.environment import Environment
 
         if not hasattr(self, "_environment_cache"):
-            self._environment_cache = Environment.objects.get(
+            self._environment_cache = Environment.get_for_organization_id(
                 organization_id=self.project.organization_id,
                 name=Environment.get_name_or_default(self.get_tag("environment")),
             )

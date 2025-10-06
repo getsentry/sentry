@@ -7,12 +7,16 @@ import responses
 from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamAction
+from sentry.integrations.opsgenie.analytics import OpsgenieIntegrationNotificationSent
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
-from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.analytics import (
+    assert_any_analytics_event,
+    assert_last_analytics_event,
+)
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 
@@ -90,14 +94,16 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
                 notification_uuid=notification_uuid,
             ),
         )
-        mock_record.assert_any_call(
-            "integrations.opsgenie.notification_sent",
-            category="issue_alert",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id=event.group_id,
-            notification_uuid=notification_uuid,
-            alert_id=None,
+        assert_any_analytics_event(
+            mock_record,
+            OpsgenieIntegrationNotificationSent(
+                category="issue_alert",
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=event.group_id,
+                notification_uuid=notification_uuid,
+                alert_id=None,
+            ),
         )
 
     def test_render_label(self) -> None:

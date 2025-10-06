@@ -110,7 +110,26 @@ class OAuthAuthorizeView(AuthLoginView):
                 err_response="client_id",
             )
 
+        # Spec references:
+        #   - RFC 6749 §3.1.2.3 (Redirection Endpoint): redirect_uri must match a pre-registered value; if
+        #     multiple redirect URIs are registered, the client MUST include redirect_uri in the request.
+        #     https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.2.3
+        #   - RFC 8252 §8.4 (Native Apps): loopback redirect considerations (ephemeral ports).
+        #     https://datatracker.ietf.org/doc/html/rfc8252#section-8.4
         if not redirect_uri:
+            # If multiple redirect URIs are registered, require the client to provide an
+            # exact redirect_uri.
+            # See RFC 6749 §3.1.2.3: https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.2.3
+            uris = application.get_redirect_uris()
+            if len(uris) != 1:
+                return self.error(
+                    request=request,
+                    client_id=client_id,
+                    response_type=response_type,
+                    redirect_uri=redirect_uri,
+                    name="invalid_request",
+                    err_response="redirect_uri",
+                )
             redirect_uri = application.get_default_redirect_uri()
         elif not application.is_valid_redirect_uri(redirect_uri):
             return self.error(

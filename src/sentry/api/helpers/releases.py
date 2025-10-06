@@ -11,7 +11,7 @@ def get_group_ids_resolved_in_release(
     organization: Organization | RpcOrganization, version: str
 ) -> set[int]:
     try:
-        release = Release.objects.get(version=version, organization=organization)
+        release = Release.objects.get(version=version, organization_id=organization.id)
     except Release.DoesNotExist:
         raise ResourceDoesNotExist
 

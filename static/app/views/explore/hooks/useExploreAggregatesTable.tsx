@@ -12,7 +12,10 @@ import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggrega
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {SpansRPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useProgressiveQuery} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useQueryParamsAggregateFields} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsAggregateFields,
+  useQueryParamsExtrapolate,
+} from 'sentry/views/explore/queryParams/context';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 interface UseExploreAggregatesTableOptions {
@@ -33,6 +36,8 @@ export function useExploreAggregatesTable({
   limit,
   query,
 }: UseExploreAggregatesTableOptions) {
+  const extrapolate = useQueryParamsExtrapolate();
+
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useSpansQuery<any[]>>) => {
       const canGoToHigherAccuracyTier = results.meta?.dataScanned === 'partial';
@@ -46,6 +51,7 @@ export function useExploreAggregatesTable({
     queryHookArgs: {enabled, limit, query},
     queryOptions: {
       canTriggerHighAccuracy,
+      disableExtrapolation: !extrapolate,
     },
   });
 }

@@ -6,15 +6,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  PRIMARY_RELEASE_COLOR,
-  SECONDARY_RELEASE_COLOR,
-} from 'sentry/views/insights/colors';
 
-import StartDurationWidget, {transformData} from './startDurationWidget';
+import StartDurationWidget from './startDurationWidget';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
@@ -94,91 +89,5 @@ describe('StartDurationWidget', () => {
 
     render(<StartDurationWidget />);
     expect(await screen.findByText('Average Warm Start')).toBeInTheDocument();
-  });
-
-  describe('transformData', () => {
-    it('properly sets the release color and transforms timestamps', () => {
-      const mockData = {
-        'com.example.vu.android@2.10.5': {
-          data: [
-            [
-              1703937600,
-              [
-                {
-                  count: 100,
-                },
-              ],
-            ],
-          ],
-          order: 0,
-          isMetricsData: false,
-          start: 1703937600,
-          end: 1706529600,
-          meta: {
-            fields: {},
-            units: {},
-            isMetricsData: false,
-            isMetricsExtractedData: false,
-            tips: {},
-            datasetReason: 'unchanged',
-            dataset: 'spans',
-          },
-        },
-        'com.example.vu.android@2.10.3+42': {
-          data: [
-            [
-              1703937600,
-              [
-                {
-                  count: 200,
-                },
-              ],
-            ],
-          ],
-          order: 1,
-          isMetricsData: false,
-          start: 1703937600,
-          end: 1706529600,
-          meta: {
-            fields: {},
-            units: {},
-            isMetricsData: false,
-            isMetricsExtractedData: false,
-            tips: {},
-            datasetReason: 'unchanged',
-            dataset: 'spans',
-          },
-        },
-      } as MultiSeriesEventsStats;
-
-      // com.example.vu.android@2.10.5 is noted as the primary, so the series with
-      // com.example.vu.android@2.10.3+42 should be colored differently.
-      const transformedData = transformData(mockData, 'com.example.vu.android@2.10.5');
-      expect(transformedData).toEqual({
-        'com.example.vu.android@2.10.5': {
-          seriesName: 'com.example.vu.android@2.10.5',
-          color: PRIMARY_RELEASE_COLOR,
-          data: [
-            {
-              name: 1703937600000,
-              value: 100,
-            },
-          ],
-        },
-        'com.example.vu.android@2.10.3+42': {
-          seriesName: 'com.example.vu.android@2.10.3+42',
-          color: SECONDARY_RELEASE_COLOR,
-          data: [
-            {
-              name: 1703937600000,
-              value: 200,
-            },
-          ],
-          lineStyle: {
-            type: 'dashed',
-          },
-        },
-      });
-    });
   });
 });
