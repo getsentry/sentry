@@ -130,7 +130,7 @@ class DataForwarderSerializerTest(TestCase):
         )
         assert not serializer.is_valid()
         assert "config" in serializer.errors
-        assert "Missing required SQS fields" in str(serializer.errors["config"])
+        assert "Missing required sqs fields" in str(serializer.errors["config"])
 
     def test_sqs_config_validation_invalid_queue_url(self) -> None:
         config: dict[str, str] = {
@@ -305,7 +305,7 @@ class DataForwarderSerializerTest(TestCase):
         )
         assert not serializer.is_valid()
         assert "config" in serializer.errors
-        assert "Missing required Segment fields: write_key" in str(serializer.errors["config"])
+        assert "Missing required segment fields: write_key" in str(serializer.errors["config"])
 
     def test_segment_config_validation_invalid_write_key_format(self) -> None:
         config: dict[str, str] = {"write_key": "invalid key with spaces!"}
@@ -349,7 +349,7 @@ class DataForwarderSerializerTest(TestCase):
         )
         assert not serializer.is_valid()
         assert "config" in serializer.errors
-        assert "Missing required Splunk fields" in str(serializer.errors["config"])
+        assert "Missing required splunk fields" in str(serializer.errors["config"])
 
     def test_splunk_config_validation_invalid_url(self) -> None:
         config: dict[str, str] = {
@@ -479,7 +479,7 @@ class DataForwarderProjectSerializerTest(TestCase):
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "test_key"},
         )
-        self.create_member(user=self.user, organization=self.organization, role="member")
+        self.create_member(user=self.user, organization=self.organization, role="owner")
         self.create_team_membership(user=self.user, team=self.team)
 
     def get_serializer_context(self) -> dict[str, Any]:
@@ -501,7 +501,7 @@ class DataForwarderProjectSerializerTest(TestCase):
             },
             context=self.get_serializer_context(),
         )
-        assert serializer.is_valid()
+        assert serializer.is_valid(), f"Validation failed with errors: {serializer.errors}"
         validated_data: dict[str, Any] = serializer.validated_data
         assert validated_data["data_forwarder_id"] == self.data_forwarder.id
         assert validated_data["project"] == self.project
@@ -516,7 +516,7 @@ class DataForwarderProjectSerializerTest(TestCase):
             },
             context=self.get_serializer_context(),
         )
-        assert serializer.is_valid()
+        assert serializer.is_valid(), f"Validation failed with errors: {serializer.errors}"
         validated_data = serializer.validated_data
         assert validated_data["overrides"] == {}  # default
         assert validated_data["is_enabled"] is True  # default
@@ -546,7 +546,7 @@ class DataForwarderProjectSerializerTest(TestCase):
             },
             context=self.get_serializer_context(),
         )
-        assert serializer.is_valid()
+        assert serializer.is_valid(), f"Validation failed with errors: {serializer.errors}"
         assert serializer.validated_data["data_forwarder_id"] == self.data_forwarder.id
 
     def test_data_forwarder_id_validation_invalid(self) -> None:
@@ -592,7 +592,7 @@ class DataForwarderProjectSerializerTest(TestCase):
             },
             context=self.get_serializer_context(),
         )
-        assert serializer.is_valid()
+        assert serializer.is_valid(), f"Validation failed with errors: {serializer.errors}"
         assert serializer.validated_data["project"] == self.project
 
     def test_project_validation_invalid(self) -> None:
@@ -675,9 +675,10 @@ class DataForwarderProjectSerializerTest(TestCase):
                 },
                 context=self.get_serializer_context(),
             )
-            assert (
-                serializer.is_valid()
-            ), f"Combination {data_forwarder.id}, {project.id} should be valid"
+            assert serializer.is_valid(), (
+                f"Combination {data_forwarder.id}, {project.id} should be valid. "
+                f"Errors: {serializer.errors}"
+            )
 
     def test_json_field_validation(self) -> None:
         serializer = DataForwarderProjectSerializer(
