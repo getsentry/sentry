@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import logging
 import os
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from datetime import timedelta
 from multiprocessing import JoinableQueue as Queue
 from multiprocessing import Process
@@ -16,11 +15,8 @@ from django.conf import settings
 from django.db.models import Model, QuerySet
 from django.utils import timezone
 
-from sentry.runner import configure
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
-
-logger = logging.getLogger("sentry.cleanup")
 
 
 def get_project(value: str) -> int | None:
@@ -73,9 +69,9 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
 
     logger = logging.getLogger("sentry.cleanup")
 
-    # Only configure if necessary (during test execution apps are already initialized)
-    if not settings.configured:
-        configure()
+    from sentry.runner import configure
+
+    configure()
 
     from sentry import deletions, models, similarity
 
@@ -110,8 +106,8 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             while True:
                 if not task.chunk(apply_filter=True):
                     break
-        except Exception:
-            logger.exception("Error in multiprocess_worker.")
+        except Exception as e:
+            logger.exception(e)
         finally:
             task_queue.task_done()
 
@@ -158,28 +154,6 @@ def cleanup(
     this can be done with the `--project` or `--organization` flags respectively,
     which accepts a project/organization ID or a string with the form `org/project` where both are slugs.
     """
-    _cleanup(
-        model=model,
-        days=days,
-        project=project,
-        organization=organization,
-        concurrency=concurrency,
-        silent=silent,
-        router=router,
-        timed=timed,
-    )
-
-
-def _cleanup(
-    model: tuple[str, ...],
-    days: int = 30,
-    project: str | None = None,
-    organization: str | None = None,
-    concurrency: int = 1,
-    silent: bool = False,
-    router: str | None = None,
-    timed: bool = False,
-) -> None:
     import logging
 
     logger = logging.getLogger("sentry.cleanup")
@@ -192,13 +166,22 @@ def _cleanup(
     if silent:
         os.environ["SENTRY_CLEANUP_SILENT"] = "1"
 
-    pool, task_queue = start_pool(concurrency)
+    # Make sure we fork off multiprocessing pool
+    # before we import or configure the app
 
-    # Only configure if necessary (during test execution apps are already initialized)
-    if not settings.configured:
-        configure()
+    pool = []
+    task_queue: _WorkQueue = Queue(1000)
+    for _ in range(concurrency):
+        p = Process(target=multiprocess_worker, args=(task_queue,))
+        p.daemon = True
+        p.start()
+        pool.append(p)
 
     try:
+        from sentry.runner import configure
+
+        configure()
+
         from django.db import router as db_router
 
         from sentry.db.deletion import BulkDeleteQuery
@@ -357,7 +340,13 @@ def _cleanup(
         remove_file_blobs(is_filtered, silent, models_attempted)
 
     finally:
-        stop_pool(pool, task_queue)
+        # Shut down our pool
+        for _ in pool:
+            task_queue.put(_STOP_WORKER)
+
+        # And wait for it to drain
+        for p in pool:
+            p.join()
 
     if timed and start_time:
         duration = int(time.time() - start_time)
@@ -383,28 +372,6 @@ def _cleanup(
 
     if transaction:
         transaction.__exit__(None, None, None)
-
-
-def start_pool(concurrency: int) -> tuple[list[Process], _WorkQueue]:
-    pool: list[Process] = []
-    task_queue: _WorkQueue = Queue(1000)
-    for _ in range(concurrency):
-        p = Process(target=multiprocess_worker, args=(task_queue,))
-        p.daemon = True
-        p.start()
-        pool.append(p)
-    return pool, task_queue
-
-
-def stop_pool(pool: Sequence[Process] | None, task_queue: _WorkQueue | None) -> None:
-    if pool is None or task_queue is None:
-        return
-    # Stop the pool
-    for _ in pool:
-        task_queue.put(_STOP_WORKER)
-    # And wait for it to drain
-    for p in pool:
-        p.join()
 
 
 def remove_expired_values_for_lost_passwords(
@@ -482,6 +449,7 @@ def exported_data(
 
 def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]:
     from sentry.models.artifactbundle import ArtifactBundle
+    from sentry.models.commit import Commit
     from sentry.models.eventattachment import EventAttachment
     from sentry.models.files.file import File
     from sentry.models.grouprulestatus import GroupRuleStatus
@@ -503,6 +471,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]
         (RuleFireHistory, "date_added", "date_added"),
         (Release, "date_added", "date_added"),
         (File, "timestamp", "timestamp"),
+        (Commit, "date_added", "date_added"),
     ]
 
 
