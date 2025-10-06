@@ -9,6 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.integrations.msteams.card_builder.block import AdaptiveCard
+from sentry.notifications.platform.discord.provider import DiscordRenderer
 from sentry.notifications.platform.email.provider import EmailRenderer
 from sentry.notifications.platform.msteams.provider import MSTeamsRenderer
 from sentry.notifications.platform.registry import template_registry
@@ -73,8 +74,7 @@ def serialize_msteams_preview[T: NotificationData](
 ) -> AdaptiveCard:
     data = template.example_data
     rendered_template = template.render_example()
-    card = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
-    return card
+    return MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
 
 
 def serialize_slack_preview[T: NotificationData](
@@ -91,6 +91,14 @@ def serialize_slack_preview[T: NotificationData](
     return {"blocks": serialized_blocks}
 
 
+def serialize_discord_preview[T: NotificationData](
+    template: NotificationTemplate[T],
+) -> dict[str, Any]:
+    data = template.example_data
+    rendered_template = template.render_example()
+    return DiscordRenderer.render(data=data, rendered_template=rendered_template)
+
+
 def serialize_template[T: NotificationData](
     template: NotificationTemplate[T], source: str
 ) -> dict[str, Any]:
@@ -102,6 +110,7 @@ def serialize_template[T: NotificationData](
             NotificationProviderKey.EMAIL: serialize_email_preview(template=template),
             NotificationProviderKey.MSTEAMS: serialize_msteams_preview(template=template),
             NotificationProviderKey.SLACK: serialize_slack_preview(template=template),
+            NotificationProviderKey.DISCORD: serialize_discord_preview(template=template),
         },
     }
     return response
