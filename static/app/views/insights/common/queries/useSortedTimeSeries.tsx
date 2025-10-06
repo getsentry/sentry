@@ -29,7 +29,6 @@ import {
 import type {
   TimeSeries,
   TimeSeriesItem,
-  TimeSeriesMeta,
 } from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
