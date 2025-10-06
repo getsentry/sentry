@@ -192,8 +192,8 @@ def send_historical_data_to_seer(
         # this won't happen because we've already gone through the serializer, but mypy insists
         raise ValidationError("Missing expected configuration for a dynamic alert.")
 
-    source_id = QuerySubscription.objects.filter(snuba_query_id=snuba_query.id).first()
-    if source_id is None:
+    query_subscription = QuerySubscription.objects.filter(snuba_query_id=snuba_query.id).first()
+    if query_subscription is None:
         raise ValidationError("No QuerySubscription found for snuba query ID")
 
     anomaly_detection_config = AnomalyDetectionConfig(
@@ -203,7 +203,9 @@ def send_historical_data_to_seer(
         expected_seasonality=alert_rule.seasonality,
     )
     alert = AlertInSeer(
-        id=alert_rule.id, source_id=source_id, source_type=DataSourceType.SNUBA_QUERY_SUBSCRIPTION
+        id=alert_rule.id,
+        source_id=query_subscription.id,
+        source_type=DataSourceType.SNUBA_QUERY_SUBSCRIPTION,
     )
     body = StoreDataRequest(
         organization_id=alert_rule.organization.id,
