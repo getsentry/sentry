@@ -1,10 +1,9 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {GroupStatsFixture} from 'sentry-fixture/groupStats';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MemberFixture} from 'sentry-fixture/member';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -38,26 +37,13 @@ describe('IssueList -> Polling', () => {
     MockApiClient.clearMockResponses();
   });
 
-  const {organization, project, routerProps} = initializeOrg({
-    organization: {
-      access: ['project:releases'],
-    },
-  });
+  const project = ProjectFixture();
   const group = GroupFixture({project});
   const group2 = GroupFixture({project, id: '2'});
 
-  const defaultProps = {
-    location: LocationFixture({
-      query: {query: 'is:unresolved'},
-      search: 'query=is:unresolved',
-    }),
-    params: {},
-    organization,
-  };
-
   /* helpers */
   const renderComponent = async () => {
-    render(<IssueList {...routerProps} {...defaultProps} />, {
+    render(<IssueList />, {
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/',
