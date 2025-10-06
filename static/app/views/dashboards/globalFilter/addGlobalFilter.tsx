@@ -24,13 +24,9 @@ const DATASET_CHOICES = new Map<WidgetType, string>([
   [WidgetType.ISSUE, t('Issues')],
 ]);
 
-export function getDatasetLabel(dataset: WidgetType) {
-  return DATASET_CHOICES.get(dataset);
-}
-
 const UNSUPPORTED_FIELD_KINDS = [FieldKind.FUNCTION, FieldKind.MEASUREMENT];
 
-export function getTagType(tag: Tag, dataset: WidgetType | null) {
+function getTagType(tag: Tag, dataset: WidgetType | null) {
   const fieldType =
     dataset === WidgetType.SPANS ? 'span' : dataset === WidgetType.LOGS ? 'log' : 'event';
   const fieldDefinition = getFieldDefinition(tag.key, fieldType, tag.kind);
