@@ -416,6 +416,12 @@ x: str | None = "hello"
 if isinstance(x, str):
     x = x.replace("e", "a")
 
+# WRONG: Importing inside function bodies.
+# RIGHT: Import at the top of python modules. ONLY import in a function body if
+# to avoid a circular import (very rare)
+def my_function():
+    from sentry.models.project import Project # NO!
+    ...
 ```
 
 ## Performance Considerations
