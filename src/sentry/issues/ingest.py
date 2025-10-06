@@ -35,7 +35,8 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import json, metrics, redis
 from sentry.utils.strings import truncatechars
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
-from sentry.workflow_engine.models import DetectorGroup, IncidentGroupOpenPeriod
+from sentry.workflow_engine.models import IncidentGroupOpenPeriod
+from sentry.workflow_engine.processors.detector import associate_new_group_with_detector
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS
@@ -255,10 +256,7 @@ def save_issue_from_occurrence(
                 project, event, primary_hash, **issue_kwargs
             )
             if is_new and occurrence.evidence_data and "detector_id" in occurrence.evidence_data:
-                DetectorGroup.objects.get_or_create(
-                    detector_id=occurrence.evidence_data["detector_id"],
-                    group_id=group.id,
-                )
+                associate_new_group_with_detector(group, occurrence.evidence_data["detector_id"])
 
             open_period = get_latest_open_period(group)
             if open_period is not None:
