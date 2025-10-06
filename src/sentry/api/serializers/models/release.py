@@ -644,7 +644,6 @@ class ReleaseSerializer(Serializer):
                 "slug": pr["project__slug"],
                 "name": pr["project__name"],
                 "new_groups": new_groups_count,
-                # "new_groups": pr["new_groups"],
                 "platform": pr["project__platform"],
                 "platforms": platforms_by_project.get(pr["project__id"]) or [],
             }
