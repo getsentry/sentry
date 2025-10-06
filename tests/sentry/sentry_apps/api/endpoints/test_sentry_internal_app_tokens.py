@@ -40,7 +40,6 @@ class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
         api_token = ApiToken.objects.get(token=response.data["token"])
         assert api_token
 
-        # Verify audit log entry was created
         assert_org_audit_log_exists(
             organization=self.org,
             event=audit_log.get_event_id("INTERNAL_INTEGRATION_ADD_TOKEN"),
