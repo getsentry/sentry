@@ -1,0 +1,94 @@
+---
+title: Layer
+description: A specialized container component that provides pre-styled surface variants for layers
+source: 'sentry/components/core/layout/layer'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/layer.tsx
+---
+
+import {Container, Flex} from 'sentry/components/core/layout';
+import {FloatingSheet, Slab, Well} from 'sentry/components/core/layout/layer';
+import {Text} from 'sentry/components/core/text';
+import * as Storybook from 'sentry/stories';
+
+import APIReference from '!!type-loader!sentry/components/core/layout/layer';
+
+export const types = {Slab: APIReference.Slab};
+
+The `Slab` component creates interactive surfaces with an expressed thickness dimension through elevated bottom borders. Slabs are part of Sentry's [layering and elevation system](/stories/principles/layering-and-elevation), designed to make interactive elements stand out by giving them a three-dimensional appearance—like keys protruding from a keyboard.
+
+Unlike flat sheets, slabs use "chonky borders" that are thicker at the bottom, creating an isometric perspective effect. This visual design helps users identify interactive elements and establishes clear information hierarchy.
+
+## Slabs, Wells and Floating Sheets
+
+The Layer module provides three primary surface components: `Well`, `Slab` and `FloatingSheet`.
+
+<Storybook.Demo>
+  <Storybook.SideBySide>
+    <Well padding="md" width="100px" height="100px">
+      Default Well
+    </Well>
+    <Slab padding="md" width="100px" height="100px">
+      Default Slab
+    </Slab>
+    <FloatingSheet padding="md" width="100px" height="100px">
+      Default Floating Sheet
+    </FloatingSheet>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Well>Default Well</Well>
+<Slab>Default Slab</Slab>
+<FloatingSheet>Default Floating Sheet</FloatingSheet>
+```
+
+### Elevation
+
+Control the elevation and thickness of the slab or floating sheets using the `size` prop. Available sizes are `xs`, `sm`, and `md` (default). Smaller sizes create a more subtle elevated effect.
+
+<Storybook.Demo>
+  <Storybook.SideBySide>
+    <Flex
+      background="primary"
+      padding="xl"
+      radius="md"
+      direction="row"
+      gap="xl"
+      border="primary"
+    >
+      <Flex direction="column" gap="xl">
+        <strong>Slab</strong>
+        <Slab padding="md" size="xs" width="100px">
+          <Text align="center">xs</Text>
+        </Slab>
+        <Slab padding="md" size="sm" width="100px">
+          <Text align="center">sm</Text>
+        </Slab>
+        <Slab padding="md" size="md" width="100px">
+          <Text align="center">md</Text>
+        </Slab>
+      </Flex>
+      <Flex direction="column" gap="xl">
+        <strong>Floating Sheet</strong>
+        <FloatingSheet padding="md" size="xs" width="100px">
+          <Text align="center">xs</Text>
+        </FloatingSheet>
+        <FloatingSheet padding="md" size="sm" width="100px">
+          <Text align="center">sm</Text>
+        </FloatingSheet>
+        <FloatingSheet padding="md" size="md" width="100px">
+          <Text align="center">md</Text>
+        </FloatingSheet>
+      </Flex>
+    </Flex>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Slab size="xs">Extra small elevation</Slab>
+<Slab size="sm">Small elevation</Slab>
+<Slab size="md">Default elevation</Slab>
+
+<FloatingSheet size="xs">Extra small elevation</FloatingSheet>
+<FloatingSheet size="sm">Small elevation</FloatingSheet>
+<FloatingSheet size="md">Default elevation</FloatingSheet>
+```
