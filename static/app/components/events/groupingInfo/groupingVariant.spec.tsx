@@ -38,6 +38,7 @@ describe('Grouping Variant', () => {
   });
   const performanceIssueVariant = {
     type: EventGroupVariantType.PERFORMANCE_PROBLEM,
+    contributes: true,
     description: 'performance issue',
     hash: 'hash3',
     hashMismatch: false,

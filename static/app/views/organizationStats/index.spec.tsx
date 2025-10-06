@@ -40,7 +40,7 @@ describe('OrganizationStats', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(defaultSelection, new Set());
+    PageFiltersStore.onInitializeUrlState(defaultSelection);
     OrganizationStore.onUpdate(organization, {replace: true});
     ProjectsStore.loadInitialData(projects);
     mockRequest = MockApiClient.addMockResponse({

@@ -110,7 +110,7 @@ function EventOrGroupHeader({
     const {status} = data as Group;
 
     const commonEleProps = {
-      'data-test-id': status === 'resolved' ? 'resolved-issue' : null,
+      'data-test-id': status === 'resolved' ? 'resolved-issue' : undefined,
     };
 
     if (isTombstone(data)) {

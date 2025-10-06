@@ -15,6 +15,7 @@ from sentry.auth.providers.dummy import (
 )
 from sentry.auth.providers.saml2.generic.provider import GenericSAML2Provider
 from sentry.auth.providers.saml2.provider import Attributes
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -636,6 +637,9 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
                     "default_role": "member",
                 },
             )
+
+        with self.tasks():
+            run_scheduled_deletions_control()
 
         assert resp.status_code == 200
         auth_provider = AuthProvider.objects.get(organization_id=organization.id)

@@ -7,7 +7,7 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex, type FlexProps} from 'sentry/components/core/layout/flex';
+import {Flex} from 'sentry/components/core/layout';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
@@ -269,7 +269,7 @@ function OnboardingContent({
             [
               'npm',
               backendPlatform ? (
-                <PlatformSelect key="platform-select">
+                <Flex gap="md" align="center" wrap="wrap" key="platform-select">
                   {tct('I use [platformSelect]', {
                     platformSelect: (
                       <CompactSelect
@@ -290,7 +290,7 @@ function OnboardingContent({
                       disabled={setupMode() === 'jsLoader'}
                     />
                   )}
-                </PlatformSelect>
+                </Flex>
               ) : (
                 t('I use NPM or Yarn')
               ),
@@ -304,7 +304,7 @@ function OnboardingContent({
         !mobilePlatform &&
         (docs?.platformOptions?.siblingOption || docs?.platformOptions?.packageManager) &&
         !isProjKeysLoading && (
-          <PlatformSelect>
+          <Flex gap="md" align="center" wrap="wrap">
             {tct("I'm using [platformSelect]", {
               platformSelect: (
                 <PlatformOptionDropdown
@@ -312,7 +312,7 @@ function OnboardingContent({
                 />
               ),
             })}
-          </PlatformSelect>
+          </Flex>
         )
       )}
     </Header>
@@ -441,10 +441,6 @@ const StyledIdBadge = styled(IdBadge)`
   white-space: nowrap;
   flex-shrink: 1;
 `;
-
-function PlatformSelect(props: FlexProps) {
-  return <Flex gap="md" align="center" wrap="wrap" {...props} />;
-}
 
 const StyledRadioGroup = styled(RadioGroup)`
   padding: ${space(1)} 0;

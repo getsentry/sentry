@@ -8,8 +8,6 @@ import {
 } from 'sentry/components/keyValueData';
 import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import {BuildDetailsSidebarAppInfo} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarAppInfo';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -22,13 +20,13 @@ import {
 
 interface BuildDetailsSidebarContentProps {
   artifactId: string;
-  buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
-  projectId: string;
+  projectId: string | null;
+  buildDetailsData?: BuildDetailsApiResponse | null;
+  isBuildDetailsPending?: boolean;
 }
 
 export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProps) {
-  const {data: buildDetailsData, isPending: isBuildDetailsPending} =
-    props.buildDetailsQuery;
+  const {buildDetailsData, isBuildDetailsPending = false, artifactId, projectId} = props;
 
   if (isBuildDetailsPending || !buildDetailsData) {
     return <SidebarLoadingSkeleton data-testid="sidebar-loading-skeleton" />;
@@ -128,8 +126,8 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
         <BuildDetailsSidebarAppInfo
           appInfo={buildDetailsData.app_info}
           sizeInfo={buildDetailsData.size_info}
-          projectId={props.projectId}
-          artifactId={props.artifactId}
+          projectId={projectId}
+          artifactId={artifactId}
         />
       )}
 

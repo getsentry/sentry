@@ -11,8 +11,10 @@ from bitfield import TypedClassBitField
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import SentryAppStatus
 from sentry.db.models import BoundedPositiveIntegerField, control_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -164,7 +166,6 @@ class AuthProvider(ReplicatedControlModel):
         ]
 
     def disable_scim(self):
-        from sentry import deletions
         from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
             SentryAppInstallationForProvider,
         )
@@ -185,7 +186,8 @@ class AuthProvider(ReplicatedControlModel):
                 assert (
                     sentry_app.is_internal
                 ), "scim sentry apps should always be internal, thus deleting them without triggering InstallationNotifier is correct."
-                deletions.exec_sync(sentry_app)
+                sentry_app.update(status=SentryAppStatus.DELETION_IN_PROGRESS)
+                ScheduledDeletion.schedule(sentry_app, days=0)
             except SentryAppInstallationForProvider.DoesNotExist:
                 pass
             self.flags.scim_enabled = False

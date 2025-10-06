@@ -367,11 +367,6 @@ describe('HTTPLandingPage', () => {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Backend');
-    const tab = screen.getByRole('tab', {name: 'Outbound API Requests'});
-    expect(tab).toBeInTheDocument();
-    expect(tab).toHaveAttribute('aria-selected', 'true');
-
     expect(screen.getByRole('table', {name: 'Domains'})).toBeInTheDocument();
 
     expect(screen.getByRole('columnheader', {name: 'Domain'})).toBeInTheDocument();

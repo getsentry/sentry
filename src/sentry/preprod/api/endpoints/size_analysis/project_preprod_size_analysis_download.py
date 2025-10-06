@@ -1,5 +1,7 @@
+import logging
+
 from django.conf import settings
-from django.http.response import FileResponse, HttpResponseBase
+from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,10 +9,17 @@ from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.models.files.file import File
+from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiSizeAnalysisDownloadEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
-from sentry.preprod.models import PreprodArtifactSizeMetrics
+from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.size_analysis.download import (
+    SizeAnalysisError,
+    get_size_analysis_error_response,
+    get_size_analysis_file_response,
+)
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -20,7 +29,13 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(PreprodArtifactEndpoint
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def get(self, request: Request, project, head_artifact_id, head_artifact) -> HttpResponseBase:
+    def get(
+        self,
+        request: Request,
+        project: Project,
+        head_artifact_id: str,
+        head_artifact: PreprodArtifact,
+    ) -> HttpResponseBase:
         """
         Download size analysis results for a preprod artifact
         ````````````````````````````````````````````````````
@@ -50,9 +65,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(PreprodArtifactEndpoint
             return Response({"error": "Feature not enabled"}, status=403)
 
         try:
-            size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-                preprod_artifact=head_artifact,
-            )
+            size_metrics_qs = head_artifact.get_size_metrics()
             size_metrics_count = size_metrics_qs.count()
             if size_metrics_count == 0:
                 return Response(
@@ -64,31 +77,18 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(PreprodArtifactEndpoint
                     {"error": "Multiple size analysis results found for this artifact"},
                     status=409,
                 )
+
             size_metrics = size_metrics_qs.first()
-        except Exception:
-            return Response(
-                {"error": "Failed to retrieve size analysis results"},
-                status=500,
-            )
+            if size_metrics is None or size_metrics.analysis_file_id is None:
+                logger.info(
+                    "preprod.size_analysis.download.no_size_metrics",
+                    extra={"artifact_id": head_artifact_id},
+                )
+                return Response(
+                    {"error": "Size analysis not found"},
+                    status=404,
+                )
 
-        if size_metrics is None or size_metrics.analysis_file_id is None:
-            return Response(
-                {"error": "Size analysis file not available for this artifact"}, status=404
-            )
-
-        try:
-            file_obj = File.objects.get(id=size_metrics.analysis_file_id)
-        except File.DoesNotExist:
-            return Response({"error": "Size analysis file not found"}, status=404)
-
-        try:
-            fp = file_obj.getfile()
-        except Exception:
-            return Response({"error": "Failed to retrieve size analysis file"}, status=500)
-
-        response = FileResponse(
-            fp,
-            content_type="application/json",
-        )
-        response["Content-Length"] = file_obj.size
-        return response
+            return get_size_analysis_file_response(size_metrics)
+        except SizeAnalysisError as e:
+            return get_size_analysis_error_response(e)

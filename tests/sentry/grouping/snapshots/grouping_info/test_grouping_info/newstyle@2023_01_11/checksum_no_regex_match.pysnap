@@ -1,11 +1,12 @@
 ---
-created: '2025-09-24T22:53:02.206227+00:00'
+created: '2025-10-03T16:56:42.876169+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
   "hashed_checksum": {
     "checksum": "de46d023e69b171b90ccf3ebca7aede4",
+    "contributes": true,
     "description": "hashed legacy checksum",
     "hash": "de46d023e69b171b90ccf3ebca7aede4",
     "hint": null,

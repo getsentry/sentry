@@ -39,7 +39,6 @@ from sentry.monitors.models import (
     MONITOR_ENVIRONMENT_ORDERING,
     Monitor,
     MonitorEnvironment,
-    MonitorLimitsExceeded,
     MonitorStatus,
 )
 from sentry.monitors.serializers import (
@@ -268,11 +267,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        try:
-            monitor = validator.save()
-        except MonitorLimitsExceeded as e:
-            return self.respond({type(e).__name__: str(e)}, status=403)
-
+        monitor = validator.save()
         ensure_cron_detector(monitor)
         return self.respond(serialize(monitor, request.user), status=201)
 

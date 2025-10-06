@@ -1,5 +1,5 @@
 ---
-created: '2025-09-25T07:58:54.356898+00:00'
+created: '2025-10-03T17:19:39.756477+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -23,11 +23,13 @@ variants:
     component:
       contributes: true
       hint: null
+    contributes: true
     hint: null
     type: component
   system:
     component:
       contributes: true
       hint: null
+    contributes: true
     hint: null
     type: component

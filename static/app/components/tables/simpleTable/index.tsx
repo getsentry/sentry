@@ -58,7 +58,7 @@ function HeaderCell({
     >
       {divider && <HeaderDivider />}
       {canSort && <InteractionStateLayer />}
-      <HeadingText>{children}</HeadingText>
+      <Flex align="center">{children}</Flex>
       {isSorted && (
         <SortIndicator
           aria-hidden
@@ -147,11 +147,6 @@ const StyledRow = styled('div', {
         opacity: 0.8;
       }
     `}
-`;
-
-const HeadingText = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const HeaderDivider = styled('div')`

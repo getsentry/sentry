@@ -20,7 +20,6 @@ import {ModulesOnboarding} from 'sentry/views/insights/common/components/modules
 import QueuesLandingLatencyChartWidget from 'sentry/views/insights/common/components/widgets/queuesLandingLatencyChartWidget';
 import QueuesLandingThroughputChartWidget from 'sentry/views/insights/common/components/widgets/queuesLandingThroughputChartWidget';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {
   isAValidSort,
   QueuesTable,
@@ -72,8 +71,6 @@ function QueuesLandingPage() {
 
   return (
     <Fragment>
-      <BackendHeader module={ModuleName.QUEUE} />
-
       <ModuleFeature moduleName={ModuleName.QUEUE}>
         <Layout.Body>
           <Layout.Main fullWidth>

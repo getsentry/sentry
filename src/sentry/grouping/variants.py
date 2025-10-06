@@ -56,6 +56,7 @@ class BaseVariant(ABC):
             "description": self.description,
             "hash": self.get_hash(),
             "hint": self.hint,
+            "contributes": self.contributes,
         }
         rv.update(self._get_metadata_as_dict())
         return rv

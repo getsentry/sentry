@@ -1,13 +1,12 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sentry.testutils.cases import APITestCase, UptimeCheckSnubaTestCase
+from sentry.testutils.cases import APITestCase, UptimeCheckSnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.uptime.endpoints.organization_uptime_stats import add_extra_buckets_for_epoch_cutoff
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import json
-from tests.sentry.uptime.endpoints.test_base import UptimeResultEAPTestCase
 
 MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
 

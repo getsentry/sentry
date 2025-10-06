@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import List from 'sentry/components/list';
@@ -144,7 +145,7 @@ export function OnboardingLayout({
   return (
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <Wrapper>
-        <Header>
+        <Stack gap="xl">
           {introduction && <Introduction>{introduction}</Introduction>}
           {configType === 'onboarding' && (
             <ProductSelectionAvailabilityHook
@@ -160,7 +161,7 @@ export function OnboardingLayout({
               onChange={onPlatformOptionsChange}
             />
           ) : null}
-        </Header>
+        </Stack>
         <Divider withBottomMargin />
         <div>
           {steps.map(step => (
@@ -202,12 +203,6 @@ export function OnboardingLayout({
     </AuthTokenGeneratorProvider>
   );
 }
-
-const Header = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
 
 const Divider = styled('hr')<{withBottomMargin?: boolean}>`
   height: 1px;

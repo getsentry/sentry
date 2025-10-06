@@ -15,7 +15,6 @@ from sentry.search.events.types import SnubaParams
 from sentry.silo.base import SiloMode
 from sentry.snuba import discover
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.taskworker.retry import Retry
 from sentry.users.services.user.service import user_service
@@ -26,20 +25,10 @@ MIN_SAMPLES_FOR_NOTIFICATION = 10
 
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.custom_rule_notifications",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=1 * 60,  # 1 minute
-    time_limit=1 * 60 + 5,
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=1 * 60 + 5,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=telemetry_experience_tasks,
-        processing_deadline_duration=1 * 60 + 5,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @dynamic_sampling_task
 def custom_rule_notifications() -> None:
@@ -177,20 +166,10 @@ def create_discover_link(rule: CustomDynamicSamplingRule, projects: list[int]) -
 
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.clean_custom_rule_notifications",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=3 * 60,  # 3 minutes
-    time_limit=3 * 60 + 5,
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=3 * 60 + 5,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=telemetry_experience_tasks,
-        processing_deadline_duration=3 * 60 + 5,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @dynamic_sampling_task
 def clean_custom_rule_notifications() -> None:

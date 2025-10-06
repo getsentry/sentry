@@ -1,5 +1,5 @@
 ---
-created: '2025-09-24T22:53:02.589406+00:00'
+created: '2025-10-03T16:56:43.315683+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -815,6 +815,7 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
+    "contributes": false,
     "description": "in-app exception stacktrace",
     "hash": null,
     "hint": "ignored because custom server fingerprint takes precedence",
@@ -822,6 +823,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     "type": "component"
   },
   "custom_fingerprint": {
+    "contributes": true,
     "description": "custom fingerprint",
     "hash": "554e214208f0372603dc9fa6c1c0965f",
     "hint": null,
@@ -1643,6 +1645,7 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
+    "contributes": false,
     "description": "exception stacktrace",
     "hash": null,
     "hint": "ignored because custom server fingerprint takes precedence",

@@ -390,7 +390,7 @@ export const TopSectionBody = styled(Body)`
   }
 `;
 
-export const BottomSectionBody = styled('div')<{sidebarOpen: boolean}>`
+export const BottomSectionBody = styled('div')<{sidebarOpen?: boolean}>`
   flex: 1;
   padding: ${space(1)} ${space(2)} ${space(3)} ${space(2)};
   background-color: ${p => p.theme.backgroundSecondary};

@@ -15,6 +15,7 @@ import {
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {getTimeSeriesInterval} from 'sentry/utils/timeSeries/getTimeSeriesInterval';
+import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -199,9 +200,7 @@ export function transformToSeriesMap(
           const groupByFields = fields.filter(field => !yAxis.includes(field));
           const groupBy = parseGroupBy(groupName, groupByFields);
           timeSeries.groupBy = groupBy;
-          if (groupName === 'Other') {
-            timeSeries.meta.isOther = true;
-          }
+          timeSeries.meta.isOther = groupName === 'Other';
         }
 
         allTimeSeries.push(timeSeries);
@@ -224,16 +223,14 @@ export function transformToSeriesMap(
         const [, timeSeries] = convertEventsStatsToTimeSeriesData(
           axis,
           seriesData,
-          seriesData.order
+          groupData.order as unknown as number // `order` is always present
         );
 
         if (fields) {
           const groupByFields = fields.filter(field => !yAxis.includes(field));
           const groupBy = parseGroupBy(groupName, groupByFields);
           timeSeries.groupBy = groupBy;
-          if (groupName === 'Other') {
-            timeSeries.meta.isOther = true;
-          }
+          timeSeries.meta.isOther = groupName === 'Other';
         }
 
         allTimeSeries.push(timeSeries);
@@ -277,22 +274,22 @@ export function convertEventsStatsToTimeSeriesData(
     }
   );
 
-  const interval = getTimeSeriesInterval(values);
-
-  const serie: TimeSeries = {
-    yAxis: yAxis ?? FALLBACK_SERIES_NAME,
+  const timeSeries: TimeSeries = {
     values,
+    yAxis: yAxis ?? FALLBACK_SERIES_NAME,
     meta: {
       valueType: seriesData.meta?.fields?.[yAxis]!,
       valueUnit: seriesData.meta?.units?.[yAxis] as DataUnit,
-      interval,
+      interval: getTimeSeriesInterval(values),
       dataScanned: seriesData.meta?.dataScanned,
     },
   };
 
+  const delayedTimeSeries = markDelayedData(timeSeries, 90);
+
   if (defined(order)) {
-    serie.meta.order = order;
+    delayedTimeSeries.meta.order = order;
   }
 
-  return [serie.meta.order ?? 0, serie];
+  return [delayedTimeSeries.meta.order ?? 0, delayedTimeSeries];
 }

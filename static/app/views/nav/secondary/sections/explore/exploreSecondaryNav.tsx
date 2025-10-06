@@ -65,6 +65,15 @@ export function ExploreSecondaryNav() {
               {t('Logs')}
             </SecondaryNav.Item>
           </Feature>
+          <Feature features="tracemetrics-enabled">
+            <SecondaryNav.Item
+              to={`${baseUrl}/metrics/`}
+              analyticsItemName="explore_metrics"
+              trailingItems={<FeatureBadge type="alpha" />}
+            >
+              {t('Metrics')}
+            </SecondaryNav.Item>
+          </Feature>
           <Feature
             features="discover-basic"
             hookName="feature-disabled:discover2-sidebar-item"

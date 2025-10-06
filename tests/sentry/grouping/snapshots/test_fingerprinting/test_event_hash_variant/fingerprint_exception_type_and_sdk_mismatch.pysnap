@@ -1,5 +1,5 @@
 ---
-created: '2025-09-25T07:58:54.558415+00:00'
+created: '2025-10-03T17:19:40.002764+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -27,6 +27,7 @@ variants:
     component:
       contributes: true
       hint: null
+    contributes: true
     hint: null
     type: salted_component
     values:
@@ -39,6 +40,7 @@ variants:
     component:
       contributes: false
       hint: ignored because app exception takes precedence
+    contributes: false
     hint: ignored because app exception takes precedence
     type: salted_component
     values:

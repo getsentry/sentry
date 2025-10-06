@@ -46,7 +46,7 @@ export function SelectionKeyHandler({
       const text = e.clipboardData.getData('text/plain').replace('\n', '').trim();
 
       dispatch({
-        type: 'REPLACE_TOKENS_WITH_TEXT',
+        type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE',
         tokens: selectedTokens,
         text,
       });
@@ -62,7 +62,7 @@ export function SelectionKeyHandler({
           e.preventDefault();
           e.stopPropagation();
           dispatch({
-            type: 'REPLACE_TOKENS_WITH_TEXT',
+            type: 'REPLACE_TOKENS_WITH_TEXT_ON_DELETE',
             tokens: selectedTokens,
             text: '',
           });
@@ -128,7 +128,7 @@ export function SelectionKeyHandler({
               state.selectionManager.clearSelection();
               copySelectedTokens();
               dispatch({
-                type: 'REPLACE_TOKENS_WITH_TEXT',
+                type: 'REPLACE_TOKENS_WITH_TEXT_ON_CUT',
                 tokens: selectedTokens,
                 text: '',
               });
@@ -145,7 +145,7 @@ export function SelectionKeyHandler({
           // If the key pressed will generate a symbol, replace the selection with it
           if (/^.$/u.test(e.key)) {
             dispatch({
-              type: 'REPLACE_TOKENS_WITH_TEXT',
+              type: 'REPLACE_TOKENS_WITH_TEXT_ON_KEY_DOWN',
               text: e.key,
               tokens: selectedTokens,
             });

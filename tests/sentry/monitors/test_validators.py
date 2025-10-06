@@ -10,7 +10,7 @@ from django.utils import timezone
 from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
-from sentry.monitors.models import Monitor, MonitorLimitsExceeded, MonitorStatus, ScheduleType
+from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType
 from sentry.monitors.validators import (
     MonitorDataSourceValidator,
     MonitorIncidentDetectorValidator,
@@ -165,10 +165,15 @@ class MonitorValidatorCreateTest(MonitorTestCase):
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
         }
         validator = MonitorValidator(data=data, context=self.context)
-        assert validator.is_valid()
+        assert not validator.is_valid()
+        from rest_framework.exceptions import ErrorDetail
 
-        with pytest.raises(MonitorLimitsExceeded):
-            validator.save()
+        assert validator.errors["nonFieldErrors"] == [
+            ErrorDetail(
+                f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization",
+                code="invalid",
+            )
+        ]
 
     def test_simple_with_alert_rule(self):
         data = {

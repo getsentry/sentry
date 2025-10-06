@@ -31,27 +31,16 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.recalibrate_orgs",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=1 * 60,  # 1 minute
-    time_limit=1 * 60 + 5,
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=1 * 60 + 5,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=telemetry_experience_tasks,
-        processing_deadline_duration=1 * 60 + 5,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @dynamic_sampling_task
 def recalibrate_orgs() -> None:
@@ -79,20 +68,10 @@ def recalibrate_orgs() -> None:
 
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.recalibrate_orgs_batch",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=6 * 60,  # 6 minutes
-    time_limit=6 * 60 + 5,
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=6 * 60 + 5,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=telemetry_experience_tasks,
-        processing_deadline_duration=6 * 60 + 5,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @dynamic_sampling_task
 def recalibrate_orgs_batch(orgs: Sequence[tuple[OrganizationId, int, int]]) -> None:
@@ -166,20 +145,10 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
 
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.recalibrate_projects_batch",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=2 * 60,
-    time_limit=2 * 60 + 5,
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=2 * 60 + 5,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=telemetry_experience_tasks,
-        processing_deadline_duration=2 * 60 + 5,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @dynamic_sampling_task
 def recalibrate_projects_batch(orgs: list[OrganizationId]) -> None:

@@ -33,11 +33,7 @@ function isTableType(value: any): value is TableType {
 const TableControl = SegmentedControl<TableType>;
 const TableControlItem = SegmentedControl.Item<TableType>;
 
-export function NextJsOverviewPage({
-  performanceType,
-}: {
-  performanceType: 'backend' | 'frontend';
-}) {
+export function NextJsOverviewPage() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
@@ -89,7 +85,7 @@ export function NextJsOverviewPage({
   );
 
   return (
-    <PlatformLandingPageLayout performanceType={performanceType}>
+    <PlatformLandingPageLayout>
       <WidgetGrid>
         <WidgetGrid.Position1>
           <OverviewPageloadsChartWidget />

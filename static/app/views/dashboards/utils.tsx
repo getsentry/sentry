@@ -437,7 +437,7 @@ export function hasSavedPageFilters(
 ) {
   return !(
     (dashboard.projects === undefined || dashboard.projects.length === 0) &&
-    dashboard.environment === undefined &&
+    (dashboard.environment === undefined || dashboard.environment.length === 0) &&
     dashboard.start === undefined &&
     dashboard.end === undefined &&
     dashboard.period === undefined
@@ -533,8 +533,7 @@ export function getCurrentPageFilters(
         : typeof project === 'string'
           ? [Number(project)]
           : project.map(Number),
-    environment:
-      typeof environment === 'string' ? [environment] : (environment ?? undefined),
+    environment: decodeList(environment),
     period: statsPeriod as string | undefined,
     start: defined(start) ? normalizeDateTimeString(start as string) : undefined,
     end: defined(end) ? normalizeDateTimeString(end as string) : undefined,

@@ -253,15 +253,7 @@ function PlatformPicker({
                     organization: organization ?? null,
                   });
 
-                  const itemCategories = categoryList
-                    .filter(cat => cat.platforms.has(item.id))
-                    .map(cat => cat.id);
-
-                  if (itemCategories.includes(category)) {
-                    setPlatform({...item, category});
-                  } else {
-                    setPlatform({...item, category: itemCategories[0] ?? 'all'});
-                  }
+                  setPlatform({...item, category});
                 }}
               />
             </div>

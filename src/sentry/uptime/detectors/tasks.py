@@ -12,7 +12,6 @@ from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import uptime_tasks
 from sentry.uptime.detectors.ranking import (
     _get_cluster,
@@ -53,13 +52,8 @@ logger = logging.getLogger("sentry.uptime-url-autodetection")
 
 @instrumented_task(
     name="sentry.uptime.detectors.tasks.schedule_detections",
-    queue="uptime",
-    time_limit=60,
-    soft_time_limit=55,
-    taskworker_config=TaskworkerConfig(
-        namespace=uptime_tasks,
-        processing_deadline_duration=60,
-    ),
+    namespace=uptime_tasks,
+    processing_deadline_duration=60,
 )
 def schedule_detections():
     """
@@ -99,10 +93,7 @@ def schedule_detections():
 
 @instrumented_task(
     name="sentry.uptime.detectors.tasks.process_detection_bucket",
-    queue="uptime",
-    taskworker_config=TaskworkerConfig(
-        namespace=uptime_tasks,
-    ),
+    namespace=uptime_tasks,
 )
 def process_detection_bucket(bucket: str):
     """
@@ -118,11 +109,8 @@ def process_detection_bucket(bucket: str):
 
 @instrumented_task(
     name="sentry.uptime.detectors.tasks.process_organization_url_ranking",
-    queue="uptime",
-    taskworker_config=TaskworkerConfig(
-        namespace=uptime_tasks,
-        processing_deadline_duration=20,
-    ),
+    namespace=uptime_tasks,
+    processing_deadline_duration=20,
 )
 def process_organization_url_ranking(organization_id: int):
     org = Organization.objects.get_from_cache(id=organization_id)

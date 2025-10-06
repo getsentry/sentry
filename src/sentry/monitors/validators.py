@@ -32,7 +32,9 @@ from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
+    MonitorLimitsExceeded,
     ScheduleType,
+    check_organization_monitor_limit,
 )
 from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
 from sentry.monitors.types import CrontabSchedule, slugify_monitor_slug
@@ -304,6 +306,16 @@ class MonitorValidator(CamelSnakeSerializer):
     )
     config = ConfigValidator(help_text="The configuration for the monitor.")
     alert_rule = MonitorAlertRuleValidator(required=False)
+
+    def validate(self, attrs):
+        # When creating a new monitor, check if we would exceed the organization limit
+        if not self.instance:
+            organization = self.context["organization"]
+            try:
+                check_organization_monitor_limit(organization.id)
+            except MonitorLimitsExceeded as e:
+                raise serializers.ValidationError(str(e))
+        return attrs
 
     def validate_status(self, value):
         status = MONITOR_STATUSES.get(value, value)

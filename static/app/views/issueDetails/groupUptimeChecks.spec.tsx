@@ -51,14 +51,11 @@ describe('GroupUptimeChecks', () => {
       url: `/organizations/${organization.slug}/detectors/123/`,
       body: UptimeDetectorFixture({id: '123'}),
     });
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [Number(project.id)],
-        environments: [],
-        datetime: {period: '24h', start: null, end: null, utc: null},
-      },
-      new Set()
-    );
+    PageFiltersStore.onInitializeUrlState({
+      projects: [Number(project.id)],
+      environments: [],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
   });
 
   it('renders the empty uptime check table', async () => {

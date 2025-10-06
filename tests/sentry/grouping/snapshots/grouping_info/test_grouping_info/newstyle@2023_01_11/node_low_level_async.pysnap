@@ -1,5 +1,5 @@
 ---
-created: '2025-09-24T22:53:05.299328+00:00'
+created: '2025-10-03T16:56:45.879247+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -135,6 +135,7 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
+    "contributes": true,
     "description": "in-app exception",
     "hash": "be36642f41f047346396f018f62375d3",
     "hint": null,
@@ -272,6 +273,7 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
+    "contributes": false,
     "description": "system",
     "hash": null,
     "hint": "ignored because app exception takes precedence",

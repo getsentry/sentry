@@ -13,6 +13,12 @@ class OpenPeriodActivityType(IntEnum):
     STATUS_CHANGE = 2
     CLOSED = 3
 
+    def to_str(self) -> str:
+        """
+        Return the string representation of the activity type.
+        """
+        return self.name.lower()
+
 
 def generate_random_uuid() -> UUID:
     return uuid4()

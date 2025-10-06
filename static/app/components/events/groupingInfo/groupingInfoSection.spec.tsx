@@ -31,6 +31,7 @@ describe('EventGroupingInfo', () => {
       url: `/projects/org-slug/project-slug/events/${event.id}/grouping-info/`,
       body: {
         app: {
+          contributes: true,
           description: 'variant description',
           hash: '123',
           hashMismatch: false,

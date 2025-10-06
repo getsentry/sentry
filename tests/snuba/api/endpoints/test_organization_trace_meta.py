@@ -3,8 +3,8 @@ from uuid import uuid4
 import pytest
 from django.urls import NoReverseMatch, reverse
 
+from sentry.testutils.cases import UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now
-from tests.sentry.uptime.endpoints.test_base import UptimeResultEAPTestCase
 from tests.snuba.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
 )
