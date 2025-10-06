@@ -233,21 +233,15 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                         title={t('This product is only available with a PAYG budget.')}
                       >
                         <Tag icon={<IconLock locked size="xs" />}>
-                          {isChonk || activePlan.budgetTerm === 'pay-as-you-go' ? (
+                          {isChonk ? (
                             tct('Unlock with [budgetTerm]', {
-                              budgetTerm:
-                                activePlan.budgetTerm === 'pay-as-you-go'
-                                  ? 'PAYG'
-                                  : displayBudgetName(activePlan),
+                              budgetTerm: displayBudgetName(activePlan, {title: true}),
                             })
                           ) : (
                             // "Unlock with on-demand" gets cut off in non-chonk theme
                             <Text size="xs">
                               {tct('Unlock with [budgetTerm]', {
-                                budgetTerm:
-                                  activePlan.budgetTerm === 'pay-as-you-go'
-                                    ? 'PAYG'
-                                    : displayBudgetName(activePlan),
+                                budgetTerm: displayBudgetName(activePlan, {title: true}),
                               })}
                             </Text>
                           )}
