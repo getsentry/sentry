@@ -515,9 +515,13 @@ class ReleaseSerializer(Serializer):
                 last_seen[release_project_env.release.version] = release_project_env.last_seen
 
         group_counts_by_release: dict[int, dict[int, int]] = {}
-        for project_id, release_id, new_groups in release_project_envs.annotate(
-            aggregated_new_issues_count=Sum("new_issues_count")
-        ).values_list("project_id", "release_id", "aggregated_new_issues_count"):
+
+        for project_id, release_id, new_groups in (
+            release_project_envs.order_by()
+            .values("project_id", "release_id")
+            .annotate(aggregated_new_issues_count=Sum("new_issues_count"))
+            .values_list("project_id", "release_id", "aggregated_new_issues_count")
+        ):
             group_counts_by_release.setdefault(release_id, {})[project_id] = new_groups
 
         return first_seen, last_seen, group_counts_by_release
@@ -626,11 +630,21 @@ class ReleaseSerializer(Serializer):
             has_health_data = {}
 
         for pr in project_releases:
+            # Use environment-filtered data if available, otherwise fall back to ReleaseProject data
+            environment_filtered_count = issue_counts_by_release.get(pr["release_id"], {}).get(
+                pr["project__id"]
+            )
+            new_groups_count = (
+                environment_filtered_count
+                if environment_filtered_count is not None
+                else pr["new_groups"]
+            )
+
             pr_rv: _ProjectDict = {
                 "id": pr["project__id"],
                 "slug": pr["project__slug"],
                 "name": pr["project__name"],
-                "new_groups": pr["new_groups"],
+                "new_groups": new_groups_count,
                 "platform": pr["project__platform"],
                 "platforms": platforms_by_project.get(pr["project__id"]) or [],
             }
