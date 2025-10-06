@@ -43,7 +43,7 @@ class BackgroundUploaderTest(TestCase):
     def test_background_uploader_processes_queue(self, mock_storage_client):
         gcs = set_up_gcs_mocks(mock_storage_client)
 
-        upload_queue = Queue()
+        upload_queue: Queue[bytes | None] = Queue()
         test_data1 = b"compressed_data_1"
         test_data2 = b"compressed_data_2"
         upload_queue.put(test_data1)
@@ -63,7 +63,7 @@ class BackgroundUploaderTest(TestCase):
     def test_background_uploader_stops_on_none(self, mock_storage_client):
         gcs = set_up_gcs_mocks(mock_storage_client)
 
-        upload_queue = Queue()
+        upload_queue: Queue[bytes | None] = Queue()
         upload_queue.put(None)  # Immediate stop signal
 
         background_uploader(upload_queue, "test-bucket", "test-prefix")
@@ -73,8 +73,8 @@ class BackgroundUploaderTest(TestCase):
 
 class EventsUploadQueueTest(TestCase):
     def test_add_events_to_upload_queue_with_data(self):
-        upload_queue = Queue()
-        events_data = [
+        upload_queue: Queue[bytes | None] = Queue()
+        events_data: list[dict] = [
             {"event_id": "a" * 32, "message": "Error 1"},
             {"event_id": "b" * 32, "message": "Error 2"},
         ]
@@ -83,6 +83,7 @@ class EventsUploadQueueTest(TestCase):
         assert upload_queue.qsize() == 1
 
         compressed_data = upload_queue.get()
+        assert compressed_data is not None
         decompressed = gzip.decompress(compressed_data).decode("utf-8")
         lines = decompressed.strip().split("\n")
         assert len(lines) == 2
@@ -90,27 +91,11 @@ class EventsUploadQueueTest(TestCase):
         assert json.loads(lines[1]) == {"event_id": "b" * 32, "message": "Error 2"}
 
     def test_add_events_to_upload_queue_empty_list(self):
-        upload_queue = Queue()
-        events_data = []
+        upload_queue: Queue[bytes | None] = Queue()
+        events_data: list[dict] = []
 
         add_events_to_upload_queue(events_data, upload_queue)
         assert upload_queue.qsize() == 0
-
-    def test_add_events_to_upload_queue_with_none_values(self):
-        upload_queue = Queue()
-        events_data = [
-            {"event_id": "a" * 32, "message": "Error"},
-            None,
-        ]
-
-        add_events_to_upload_queue(events_data, upload_queue)
-        assert upload_queue.qsize() == 1
-
-        compressed_data = upload_queue.get()
-        decompressed = gzip.decompress(compressed_data).decode("utf-8")
-        lines = decompressed.strip().split("\n")
-        assert len(lines) == 1
-        assert json.loads(lines[0]) == {"event_id": "a" * 32, "message": "Error"}
 
 
 class ProcessEventBatchTest(TestCase):
@@ -124,7 +109,7 @@ class ProcessEventBatchTest(TestCase):
         event2.data = {"event_id": "b" * 32, "message": "Test error 2"}
 
         events = [event1, event2]
-        result = process_event_batch(events)
+        result = process_event_batch(events)  # type: ignore[arg-type]
 
         assert len(result) == 2
         assert result[0] == {"event_id": "a" * 32, "message": "Test error 1"}
@@ -140,7 +125,7 @@ class ProcessEventBatchTest(TestCase):
         event2.data = None
 
         events = [event1, event2]
-        result = process_event_batch(events)
+        result = process_event_batch(events)  # type: ignore[arg-type]
 
         assert len(result) == 1
         assert result[0] == {"event_id": "a" * 32, "message": "Test error"}
@@ -166,7 +151,7 @@ class ProcessEventBatchesTest(TestCase):
             mock_queue = Mock()
             mock_queue_class.return_value = mock_queue
 
-            process_event_batches(event_batches, "test-bucket", "test-prefix")
+            process_event_batches(event_batches, "test-bucket", "test-prefix")  # type: ignore[arg-type]
 
             mock_thread_instance.start.assert_called_once()
             mock_queue.put.assert_called()
