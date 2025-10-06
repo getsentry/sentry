@@ -44,13 +44,14 @@ from sentry.uptime.detectors.result_handler import (
 )
 from sentry.uptime.detectors.tasks import is_failed_url
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.uptime.models import UptimeStatus, UptimeSubscription, UptimeSubscriptionRegion
+from sentry.uptime.models import UptimeSubscription, UptimeSubscriptionRegion
 from sentry.uptime.subscriptions.subscriptions import (
     UptimeMonitorNoSeatAvailable,
     build_detector_fingerprint_component,
 )
 from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
 from sentry.utils import json
+from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
 
 
@@ -164,8 +165,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert group.issue_type == UptimeDomainCheckFailure
         assignee = group.get_assignee()
         assert assignee and (assignee.id == self.user.id)
-        self.subscription.refresh_from_db()
-        assert self.subscription.uptime_status == UptimeStatus.FAILED
+        self.detector.refresh_from_db()
+        detector_state = self.detector.detectorstate_set.first()
+        assert detector_state is not None
+        assert detector_state.priority_level == DetectorPriorityLevel.HIGH
+        assert detector_state.is_triggered
 
         # Issue is resolved
         with (self.feature(features),):
@@ -246,8 +250,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
-        self.subscription.refresh_from_db()
-        assert self.subscription.uptime_status == UptimeStatus.FAILED
+        self.detector.refresh_from_db()
+        detector_state = self.detector.detectorstate_set.first()
+        assert detector_state is not None
+        assert detector_state.priority_level == DetectorPriorityLevel.HIGH
+        assert detector_state.is_triggered
 
     def test_no_subscription(self) -> None:
         features = [
