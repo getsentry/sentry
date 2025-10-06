@@ -155,7 +155,6 @@ type GetsentryEventParameters = {
   'growth.upsell_feature.clicked': UpsellProvider;
   'growth.upsell_feature.confirmed': UpsellProvider;
   'learn_more_link.clicked': {source?: string};
-  'legal_and_compliance.updated_billing_details': BillingInfoUpdateEvent;
   'ondemand_budget_modal.ondemand_budget.turned_off': Record<PropertyKey, unknown>;
   'ondemand_budget_modal.ondemand_budget.update': OnDemandBudgetUpdate;
   'partner_billing_migration.banner.clicked_cta': {
@@ -257,8 +256,6 @@ const getsentryEventMap: Record<GetsentryEventKey, string> = {
   'growth.metric_alert_banner.dismissed': 'Growth: Dismissed Metric Alert Banner',
   'growth.promo_modal_accept': 'Growth: Promo Modal Accept',
   'growth.promo_modal_decline': 'Growth: Promo Modal Decline',
-  'legal_and_compliance.updated_billing_details':
-    'Legal and Compliance: Updated Billing Details',
   'growth.promo_reminder_modal_keep': 'Growth: Promo Reminder Modal Keep',
   'growth.promo_reminder_modal_continue_downgrade':
     'Growth: Promo Reminder Modal Continue Downgrade',
