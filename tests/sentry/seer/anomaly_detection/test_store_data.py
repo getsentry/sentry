@@ -12,7 +12,7 @@ from sentry.snuba.models import SnubaQuery
 from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.performance_issues.event_generators import get_event
+from sentry.testutils.issue_detection.event_generators import get_event
 from sentry.utils.snuba import SnubaTSResult
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 

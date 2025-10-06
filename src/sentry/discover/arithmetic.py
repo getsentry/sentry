@@ -419,3 +419,11 @@ def categorize_columns(columns) -> tuple[list[str], list[str]]:
 
 def is_equation_alias(alias: str) -> bool:
     return EQUATION_ALIAS_REGEX.match(alias) is not None
+
+
+def get_equation_alias_index(alias: str) -> int | None:
+    """Extract the index from an equation alias like 'equation[5]' -> 5"""
+    match = re.match(r"^equation\[(\d+)\]$", alias)
+    if match:
+        return int(match.group(1))
+    return None
