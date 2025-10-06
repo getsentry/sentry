@@ -1,6 +1,7 @@
 import type {Layout} from 'react-grid-layout';
 
 import {t} from 'sentry/locale';
+import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
 
@@ -147,10 +148,18 @@ export type DashboardListItem = {
 
 export enum DashboardFilterKeys {
   RELEASE = 'release',
+  GLOBAL_FILTER = 'globalFilter',
 }
 
 export type DashboardFilters = {
   [DashboardFilterKeys.RELEASE]?: string[];
+  [DashboardFilterKeys.GLOBAL_FILTER]?: GlobalFilter[];
+};
+
+export type GlobalFilter = {
+  dataset: WidgetType;
+  tag: Tag;
+  value: string;
 };
 
 /**

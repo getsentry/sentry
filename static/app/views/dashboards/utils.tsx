@@ -2,6 +2,7 @@ import {connect} from 'echarts';
 import type {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
@@ -544,6 +545,10 @@ export function getCurrentPageFilters(
 export function getDashboardFiltersFromURL(location: Location): DashboardFilters | null {
   const dashboardFilters: DashboardFilters = {};
   Object.values(DashboardFilterKeys).forEach(key => {
+    // Skip global filters for now, URL parameter persistence will be added later on
+    if (key === DashboardFilterKeys.GLOBAL_FILTER) {
+      return;
+    }
     if (defined(location.query?.[key])) {
       dashboardFilters[key] = decodeList(location.query?.[key]);
     }
@@ -555,8 +560,9 @@ export function dashboardFiltersToString(
   dashboardFilters: DashboardFilters | null | undefined
 ): string {
   let dashboardFilterConditions = '';
-  if (dashboardFilters) {
-    for (const [key, activeFilters] of Object.entries(dashboardFilters)) {
+  const supportedFilters = omit(dashboardFilters, DashboardFilterKeys.GLOBAL_FILTER);
+  if (supportedFilters) {
+    for (const [key, activeFilters] of Object.entries(supportedFilters)) {
       if (activeFilters.length === 1) {
         dashboardFilterConditions += `${key}:"${activeFilters[0]}" `;
       } else if (activeFilters.length > 1) {
