@@ -68,11 +68,77 @@ def send_email(source: str, target: str) -> None:
 
 
 @send_cmd.command("slack")
-def send_slack() -> None:
+@click.option(
+    "-s",
+    "--source",
+    help="Registered template source (see `sentry notifications list`)",
+    default="error-alert-service",
+)
+@click.option(
+    "-w", "--integration_name", help="Integration name", default="sentry-ecosystem"
+)  # default is sentry-ecosystem workspace
+@click.option("-o", "--organization_slug", help="Organization slug", default="post-db-wipe")
+@click.option("-c", "--channel", help="Channel name", default="christina-test")
+def send_slack(source: str, integration_name: str, organization_slug: str, channel: str) -> None:
     """
     Send a Slack notification
+    - Default sends to sentry-ecosystem organization and #general channel
     """
-    click.echo("Not implemented yet!")
+    from sentry.runner import configure
+
+    configure()
+
+    from sentry.constants import ObjectStatus
+    from sentry.integrations.models.integration import Integration
+    from sentry.integrations.slack.utils.channel import get_channel_id
+    from sentry.integrations.types import IntegrationProviderSlug
+    from sentry.models.organizationmapping import OrganizationMapping
+    from sentry.notifications.platform.registry import template_registry
+    from sentry.notifications.platform.service import NotificationService
+    from sentry.notifications.platform.target import IntegrationNotificationTarget
+    from sentry.notifications.platform.types import (
+        NotificationProviderKey,
+        NotificationTargetResourceType,
+    )
+
+    try:
+        organization = OrganizationMapping.objects.get(slug=organization_slug)
+    except OrganizationMapping.DoesNotExist:
+        click.echo(f"Organization {organization_slug} not found!")
+        return
+
+    try:
+        integration = Integration.objects.get(
+            name=integration_name,
+            provider=IntegrationProviderSlug.SLACK,
+            status=ObjectStatus.ACTIVE,
+        )
+    except Integration.DoesNotExist:
+        click.echo(f"Integration {integration_name} not found!")
+        return
+
+    try:
+        channel_data = get_channel_id(integration=integration, channel_name=channel)
+    except Exception as e:
+        click.echo(f"Error getting channel id: {e}")
+        return
+
+    if channel_data.channel_id is None:
+        click.echo(f"Channel {channel} not found!")
+        return
+
+    discord_target = IntegrationNotificationTarget(
+        provider_key=NotificationProviderKey.DISCORD,
+        resource_type=NotificationTargetResourceType.CHANNEL,
+        integration_id=integration.id,
+        resource_id=channel_data.channel_id,
+        organization_id=organization.organization_id,
+    )
+
+    template_cls = template_registry.get(source)
+    NotificationService(data=template_cls.example_data).notify(targets=[discord_target])
+
+    click.echo(f"Example '{source}' discord message sent to {integration.name}.")
 
 
 @send_cmd.command("msteams")
@@ -84,11 +150,65 @@ def send_msteams() -> None:
 
 
 @send_cmd.command("discord")
-def send_discord() -> None:
+@click.option(
+    "-s",
+    "--source",
+    help="Registered template source (see `sentry notifications list`)",
+    default="error-alert-service",
+)
+@click.option("-w", "--integration_name", help="Integration name", default="sentry-ecosystem")
+@click.option("-o", "--organization_slug", help="Organization slug", default="default")
+@click.option("-c", "--channel", help="Channel id", default="123456")
+def send_discord(source: str, integration_name: str, organization_slug: str, channel: str) -> None:
     """
-    Send a Discord notification.
+    Send a Discord notification
+    - To get a Discord channel id - follow step 6 of the metric alert instructions
+        - https://docs.sentry.io/organization/integrations/notification-incidents/discord/#metric-alerts
     """
-    click.echo("Not implemented yet!")
+    from sentry.runner import configure
+
+    configure()
+
+    from sentry.constants import ObjectStatus
+    from sentry.integrations.models.integration import Integration
+    from sentry.integrations.types import IntegrationProviderSlug
+    from sentry.models.organizationmapping import OrganizationMapping
+    from sentry.notifications.platform.registry import template_registry
+    from sentry.notifications.platform.service import NotificationService
+    from sentry.notifications.platform.target import IntegrationNotificationTarget
+    from sentry.notifications.platform.types import (
+        NotificationProviderKey,
+        NotificationTargetResourceType,
+    )
+
+    try:
+        organization = OrganizationMapping.objects.get(slug=organization_slug)
+    except OrganizationMapping.DoesNotExist:
+        click.echo(f"Organization {organization_slug} not found!")
+        return
+
+    try:
+        integration = Integration.objects.get(
+            name=integration_name,
+            provider=IntegrationProviderSlug.DISCORD,
+            status=ObjectStatus.ACTIVE,
+        )
+    except Integration.DoesNotExist:
+        click.echo(f"Integration {integration_name} not found!")
+        return
+
+    discord_target = IntegrationNotificationTarget(
+        provider_key=NotificationProviderKey.DISCORD,
+        resource_type=NotificationTargetResourceType.CHANNEL,
+        integration_id=integration.id,
+        resource_id=channel,
+        organization_id=organization.organization_id,
+    )
+
+    template_cls = template_registry.get(source)
+    NotificationService(data=template_cls.example_data).notify(targets=[discord_target])
+
+    click.echo(f"Example '{source}' discord message sent to {integration.name}.")
 
 
 @notifications.command("list")

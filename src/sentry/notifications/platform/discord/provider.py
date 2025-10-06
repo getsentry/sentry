@@ -71,7 +71,6 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
                 DiscordButton(
                     custom_id=action.label.lower().replace(" ", "_"),
                     label=action.label,
-                    url=action.link,
                 )
                 for action in rendered_template.actions
             ]
