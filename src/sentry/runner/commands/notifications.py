@@ -158,11 +158,47 @@ def send_msteams() -> None:
 
 
 @send_cmd.command("discord")
-def send_discord() -> None:
+@click.option(
+    "-s",
+    "--source",
+    help="Registered template source (see `sentry notifications list`)",
+    default="error-alert-service",
+)
+# TODO: Remove this test data
+@click.option("-t", "--target", help="Recipient discord channel ID", default="1169351776722501645")
+def send_discord(source: str, target: str) -> None:
     """
     Send a Discord notification.
     """
-    click.echo("Not implemented yet!")
+    from sentry.runner import configure
+
+    configure()
+
+    from sentry.integrations.models.integration import Integration
+    from sentry.models.organizationmapping import OrganizationMapping
+    from sentry.notifications.platform.registry import template_registry
+    from sentry.notifications.platform.service import NotificationService
+    from sentry.notifications.platform.target import IntegrationNotificationTarget
+    from sentry.notifications.platform.types import (
+        NotificationProviderKey,
+        NotificationTargetResourceType,
+    )
+
+    # TODO: Remove this test data
+    mapping = OrganizationMapping.objects.get(slug="acme")
+    integration = Integration.objects.get(provider="discord", name="leander-test-sentry")
+
+    discord_target = IntegrationNotificationTarget(
+        provider_key=NotificationProviderKey.DISCORD,
+        resource_type=NotificationTargetResourceType.CHANNEL,
+        resource_id=target,
+        integration_id=integration.id,
+        organization_id=mapping.organization_id,
+    )
+
+    template_cls = template_registry.get(source)
+    NotificationService(data=template_cls.example_data).notify(targets=[discord_target])
+    click.echo(f"Example '{source}' discord message sent to channel with ID {target}.")
 
 
 @notifications.command("list")
