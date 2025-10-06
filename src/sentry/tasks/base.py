@@ -17,6 +17,7 @@ from sentry.taskworker.retry import Retry, RetryError, retry_task
 from sentry.taskworker.state import current_task
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils import metrics
+from sentry.utils.env import in_test_environment
 
 ModelT = TypeVar("ModelT", bound=Model)
 
@@ -109,6 +110,11 @@ def instrumented_task(
                 compression_type=compression_type,
             )(func)
         elif taskworker_config:
+            if in_test_environment():
+                raise AssertionError(
+                    "Usage of taskworker_config is deprecated. "
+                    "Pass the parameters of `TaskworkerConfig` to instrumented_task() directly."
+                )
             task = taskworker_config.namespace.register(
                 name=name,
                 retry=taskworker_config.retry,
