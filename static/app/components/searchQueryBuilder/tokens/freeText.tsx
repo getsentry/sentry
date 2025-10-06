@@ -383,7 +383,7 @@ function SearchQueryBuilderInputInternal({
         .trim();
 
       dispatch({
-        type: 'REPLACE_TOKENS_WITH_TEXT',
+        type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE',
         tokens: [token],
         text: clipboardText,
       });
@@ -429,7 +429,7 @@ function SearchQueryBuilderInputInternal({
 
           if (option.type === 'raw-search') {
             dispatch({
-              type: 'UPDATE_FREE_TEXT',
+              type: 'UPDATE_FREE_TEXT_ON_SELECT',
               tokens: [token],
               text: option.value,
               shouldCommitQuery: true,
@@ -440,7 +440,7 @@ function SearchQueryBuilderInputInternal({
 
           if (option.type === 'filter-value' && option.textValue) {
             dispatch({
-              type: 'UPDATE_FREE_TEXT',
+              type: 'UPDATE_FREE_TEXT_ON_SELECT',
               tokens: [token],
               text: replaceFocusedWord(inputValue, selectionIndex, option.textValue),
               focusOverride: calculateNextFocusForInsertedToken(item),
@@ -452,7 +452,7 @@ function SearchQueryBuilderInputInternal({
 
           if (option.type === 'raw-search-filter-is-value' && option.textValue) {
             dispatch({
-              type: 'UPDATE_FREE_TEXT',
+              type: 'UPDATE_FREE_TEXT_ON_SELECT',
               tokens: [token],
               text: option.textValue,
               focusOverride: calculateNextFocusForInsertedToken(item),
@@ -465,7 +465,7 @@ function SearchQueryBuilderInputInternal({
           const value = option.value;
 
           dispatch({
-            type: 'UPDATE_FREE_TEXT',
+            type: 'UPDATE_FREE_TEXT_ON_SELECT',
             tokens: [token],
             text: replaceFocusedWordWithFilter(
               inputValue,
@@ -497,7 +497,7 @@ function SearchQueryBuilderInputInternal({
         }}
         onCustomValueBlurred={value => {
           dispatch({
-            type: 'UPDATE_FREE_TEXT',
+            type: 'UPDATE_FREE_TEXT_ON_BLUR',
             tokens: [token],
             text: value,
             focusOverride: calculateNextFocusForCommittedCustomValue({
@@ -517,7 +517,7 @@ function SearchQueryBuilderInputInternal({
 
           // Otherwise, commit the query (which will trigger a search)
           dispatch({
-            type: 'UPDATE_FREE_TEXT',
+            type: 'UPDATE_FREE_TEXT_ON_COMMIT',
             tokens: [token],
             text: value,
             focusOverride: calculateNextFocusForCommittedCustomValue({
@@ -531,7 +531,7 @@ function SearchQueryBuilderInputInternal({
         onExit={() => {
           if (inputValue !== token.value.trim()) {
             dispatch({
-              type: 'UPDATE_FREE_TEXT',
+              type: 'UPDATE_FREE_TEXT_ON_EXIT',
               tokens: [token],
               text: inputValue,
               shouldCommitQuery: false,
@@ -568,7 +568,7 @@ function SearchQueryBuilderInputInternal({
                 getFieldDefinition(maybeFunction.value)?.kind === FieldKind.FUNCTION
               ) {
                 dispatch({
-                  type: 'UPDATE_FREE_TEXT',
+                  type: 'UPDATE_FREE_TEXT_ON_FUNCTION',
                   tokens: [token],
                   text: replaceFocusedWordWithFilter(
                     inputValue,
@@ -591,7 +591,7 @@ function SearchQueryBuilderInputInternal({
 
             // It's not a function so treat it as just a parenthesis
             dispatch({
-              type: 'UPDATE_FREE_TEXT',
+              type: 'UPDATE_FREE_TEXT_ON_PARENTHESIS',
               tokens: [token],
               text: e.target.value,
               focusOverride: calculateNextFocusForInsertedToken(item),
@@ -611,7 +611,7 @@ function SearchQueryBuilderInputInternal({
             const filterKey = getSuggestedFilterKey(filterValue) ?? filterValue;
             const key = filterKeys[filterKey];
             dispatch({
-              type: 'UPDATE_FREE_TEXT',
+              type: 'UPDATE_FREE_TEXT_ON_COLON',
               tokens: [token],
               text: replaceFocusedWordWithFilter(
                 inputValue,
