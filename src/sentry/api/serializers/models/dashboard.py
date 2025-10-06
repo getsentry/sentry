@@ -20,10 +20,12 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
     DatasetSourcesTypes,
 )
+from sentry.organizations.absolute_url import has_customer_domain, organization_absolute_url
 from sentry.search.events.fields import is_function, parse_arguments
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
+from sentry.utils import json
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
 DATASET_SOURCES = dict(DatasetSourcesTypes.as_choices())
@@ -110,25 +112,37 @@ class DashboardWidgetSerializer(Serializer):
         return result
 
     def get_explore_urls(self, obj, attrs):
-        from sentry.explore.translation.dashboards_translation import translate_dashboard_widget
+        from sentry.explore.translation.dashboards_translation import (
+            translate_dashboard_widget_queries,
+        )
 
-        spans_widget = translate_dashboard_widget(obj, save_widget=False)
-        queries = spans_widget["queries"]
+        transaction_queries = attrs["queries"]
         urls = []
 
-        for query in queries:
+        for q_index, transaction_query in enumerate(transaction_queries):
+            spans_query, _ = translate_dashboard_widget_queries(
+                obj,
+                q_index,
+                transaction_query["name"],
+                transaction_query["fields"],
+                transaction_query["orderby"],
+                transaction_query["conditions"],
+                transaction_query["fieldAliases"],
+                transaction_query["isHidden"],
+                transaction_query["selectedAggregate"],
+            )
             aggregate_equation_fields = [
-                field for field in query["fields"] if is_function(field) or is_equation(field)
+                field for field in spans_query.fields if is_function(field) or is_equation(field)
             ]
             y_axes = (
                 aggregate_equation_fields
-                if spans_widget.display_type == DashboardWidgetDisplayTypes.TABLE
-                else query["aggregates"]
+                if obj.display_type == DashboardWidgetDisplayTypes.TABLE
+                else spans_query.aggregates
             )
 
             explore_mode = "aggregate"
             chart_type = 1
-            match spans_widget.display_type:
+            match obj.display_type:
                 case DashboardWidgetDisplayTypes.BAR_CHART:
                     explore_mode = "aggregate"
                     chart_type = 0
@@ -152,25 +166,30 @@ class DashboardWidgetSerializer(Serializer):
                     explore_mode = "samples"
 
             filters = obj.dashboard.filters
+            environment = []
+            release = []
+            end = None
+            start = None
+            period = None
+            utc = None
             if filters:
-                datetime = {
-                    "end": filters.get("end"),
-                    "period": filters.get("period"),
-                    "start": filters.get("start"),
-                    "utc": filters.get("utc"),
-                }
+                environment = filters.get("environment", [])
+                release = filters.get("release", [])
+                end = filters.get("end")
+                start = filters.get("start")
+                period = filters.get("period")
+                utc = filters.get("utc")
 
             non_aggregate_group_by_fields = [
                 field
-                for field in query["fields"]
+                for field in spans_query.fields
                 if not is_function(field) and not is_equation(field) and field != "timestamp"
             ]
 
             group_by = (
                 non_aggregate_group_by_fields
-                if query["fields"]
-                and spans_widget.display_type == DashboardWidgetDisplayTypes.TABLE
-                else query["columns"]
+                if spans_query.fields and obj.display_type == DashboardWidgetDisplayTypes.TABLE
+                else spans_query.columns
             )
             if len(group_by) == 0:
                 group_by = [""]
@@ -184,8 +203,8 @@ class DashboardWidgetSerializer(Serializer):
 
             fields = list(set(group_by + y_axis_fields))
 
-            sort_direction = "-" if query["orderby"].startswith("-") else ""
-            sort_column = query["orderby"].lstrip("-")
+            sort_direction = "-" if spans_query.orderby.startswith("-") else ""
+            sort_column = spans_query.orderby.lstrip("-")
             sort = None
 
             if match := is_function(sort_column):
@@ -194,9 +213,9 @@ class DashboardWidgetSerializer(Serializer):
                     if args:
                         sort = f"{sort_direction}{args[0]}"
                 elif explore_mode == "aggregate":
-                    sort = query["orderby"]
+                    sort = spans_query.orderby
             elif is_equation_alias(sort_column) and explore_mode == "aggregate":
-                equations = [field for field in query["fields"] if is_equation(field)]
+                equations = [field for field in spans_query.fields if is_equation(field)]
                 equation_index = get_equation_alias_index(sort_column)
                 if equation_index is not None:
                     orderby = equations[equation_index]
@@ -204,40 +223,66 @@ class DashboardWidgetSerializer(Serializer):
                 else:
                     sort = None
             elif not is_function(sort_column) and not is_equation(sort_column):
-                sort = query["orderby"]
+                sort = spans_query.orderby
 
-            visualize = [
-                {
-                    "chartType": chart_type,
-                    "yAxes": y_axis,
-                }
-                for y_axis in y_axes
-            ]
+            # making the visualize as json strings because urlencode does not format this properly
+            # also JSON.stringify doesn't have spaces so we need to remove them
+            if len(y_axes) > 0:
+                visualize = [
+                    json.dumps(
+                        {
+                            "groupBy": group,
+                        }
+                    ).replace(" ", "")
+                    for group in group_by
+                ] + [
+                    json.dumps(
+                        {
+                            "yAxes": [y_axis],
+                            "chartType": chart_type,
+                        }
+                    ).replace(" ", "")
+                    for y_axis in y_axes
+                ]
+            else:
+                visualize = [
+                    json.dumps(
+                        {
+                            "yAxes": [y_axis],
+                            "chartType": chart_type,
+                        }
+                    ).replace(" ", "")
+                    for y_axis in y_axes
+                ]
 
-            projects = obj.dashboard.projects.all().values_list("id", flat=True)
-            environment = obj.dashboard.filters.get("environment", [])
-            release = obj.dashboard.filters.get("release", [])
+            projects = list(obj.dashboard.projects.all().values_list("id", flat=True))
 
-            query_params = {
+            all_query_params = {
                 "project": projects,
                 "environment": environment,
-                "statsPeriod": datetime.get("period"),
-                "start": datetime.get("start"),
-                "end": datetime.get("end"),
-                "utc": datetime.get("utc"),
-                "organization": obj.dashboard.organization,
+                "statsPeriod": period,
+                "start": start,
+                "end": end,
+                "utc": utc,
                 "mode": explore_mode,
-                "visualize": visualize,
-                "groupBy": group_by if len(visualize) > 0 else [],
+                # using aggregateField instead of visualize + groupBy because that format will be deprecated
+                "aggregateField": visualize,
                 "field": fields,
-                "query": f"{query["conditions"]} {f"AND release:{",".join(release)}" if release else ""}",
+                "query": f"{spans_query.conditions}{f" AND release:{",".join(release)}" if release else ""}",
                 "sort": sort,
                 "interval": obj.interval,
                 "referrer": "dashboards.widget-transaction-deprecation-warning",
             }
 
-            url = obj.dashboard.organization.absolute_url(
-                "/explore/traces/", query=urlencode(query_params)
+            filtered_query_params = {
+                k: v for k, v in all_query_params.items() if v is not None and v != []
+            }
+
+            url = organization_absolute_url(
+                has_customer_domain=has_customer_domain(),
+                slug=obj.dashboard.organization.slug,
+                path="/explore/traces/",
+                query=urlencode(filtered_query_params, doseq=True),
             )
 
             urls.append(url)
