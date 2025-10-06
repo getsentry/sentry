@@ -65,6 +65,9 @@ def _check_for_mismatched_hashes(
 
 def get_grouping_info_from_variants(
     variants: dict[str, BaseVariant],
+    # Shim to keep the output (which we also use for getting the Seer stacktrace string) stable
+    # until we can switch `get_stacktrace_string` to use variants directly
+    use_legacy_format: bool = True,
 ) -> dict[str, dict[str, Any]]:
     """
     Given a dictionary of variant objects, create and return a copy of the dictionary in which each
