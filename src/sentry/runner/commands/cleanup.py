@@ -15,7 +15,6 @@ from django.conf import settings
 from django.db.models import Model, QuerySet
 from django.utils import timezone
 
-from sentry.models.commit import Commit
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
 
@@ -450,6 +449,7 @@ def exported_data(
 
 def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]:
     from sentry.models.artifactbundle import ArtifactBundle
+    from sentry.models.commit import Commit
     from sentry.models.eventattachment import EventAttachment
     from sentry.models.files.file import File
     from sentry.models.grouprulestatus import GroupRuleStatus
