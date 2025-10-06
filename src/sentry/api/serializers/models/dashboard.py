@@ -237,7 +237,7 @@ class DashboardWidgetSerializer(Serializer):
                         {
                             "groupBy": group,
                         }
-                    ).replace(" ", "")
+                    )
                     for group in group_by
                 ] + [
                     json.dumps(
@@ -245,7 +245,7 @@ class DashboardWidgetSerializer(Serializer):
                             "yAxes": [y_axis],
                             "chartType": chart_type,
                         }
-                    ).replace(" ", "")
+                    )
                     for y_axis in y_axes
                 ]
             else:
@@ -255,7 +255,7 @@ class DashboardWidgetSerializer(Serializer):
                             "yAxes": [y_axis],
                             "chartType": chart_type,
                         }
-                    ).replace(" ", "")
+                    )
                     for y_axis in y_axes
                 ]
 
