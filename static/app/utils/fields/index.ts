@@ -2999,7 +2999,7 @@ export const getFieldDefinition = (
     | 'span'
     | 'log'
     | 'uptime'
-    | 'tracemetrics' = 'event',
+    | 'tracemetric' = 'event',
   kind?: FieldKind
 ): FieldDefinition | null => {
   switch (type) {
