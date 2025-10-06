@@ -120,8 +120,7 @@ def get_release_projects(
     release_projects_map: defaultdict[int, list[SerializedProject]] = defaultdict(list)
     for release_id, mapping in new_groups_map.items():
         for project_id, count in mapping.items():
-            project_data: SerializedProject = {**project_map[project_id], "newGroups": count}
-            release_projects_map[release_id].append(project_data)
+            release_projects_map[release_id].append({**project_map[project_id], "newGroups": count})
     return release_projects_map
 
 
