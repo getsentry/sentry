@@ -58,7 +58,7 @@ export function AppSizeLegend({
               style={{backgroundColor: categoryInfo.color}}
               isActive={isActive}
             />
-            <LegendLabel isActive={isActive}>{categoryInfo.displayName}</LegendLabel>
+            <LegendLabel>{categoryInfo.displayName}</LegendLabel>
           </LegendItem>
         );
       })}
@@ -93,7 +93,7 @@ const LegendDot = styled('div')<{isActive: boolean}>`
   transform: scale(${p => (p.isActive ? 1 : 0.8)});
 `;
 
-const LegendLabel = styled('span')<{isActive: boolean}>`
+const LegendLabel = styled('span')`
   font-size: 12px;
   color: ${p => p.theme.textColor};
   font-weight: 400;
