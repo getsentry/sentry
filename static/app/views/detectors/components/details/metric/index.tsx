@@ -1,3 +1,4 @@
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import type {Project} from 'sentry/types/project';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
@@ -26,6 +27,8 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
   const interval = snubaQuery?.timeWindow;
   const detectorDataset = getDetectorDataset(snubaDataset, eventTypes);
 
+  const intervalSeconds = dataSource.queryObj?.snubaQuery.timeWindow;
+
   return (
     <DetailLayout>
       <DetectorDetailsHeader detector={detector} project={project} />
@@ -35,8 +38,15 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
             <TransactionsDatasetWarning />
           )}
           <MetricTimePeriodSelect dataset={detectorDataset} interval={interval} />
-          <MetricDetectorDetailsChart detector={detector} />
-          <DetectorDetailsOngoingIssues detectorId={detector.id} />
+          {snubaQuery && (
+            <MetricDetectorDetailsChart detector={detector} snubaQuery={snubaQuery} />
+          )}
+          <ErrorBoundary mini>
+            <DetectorDetailsOngoingIssues
+              detector={detector}
+              intervalSeconds={intervalSeconds}
+            />
+          </ErrorBoundary>
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>
         <DetailLayout.Sidebar>

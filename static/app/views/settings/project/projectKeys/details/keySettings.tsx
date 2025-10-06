@@ -69,8 +69,9 @@ export function KeySettings({
     }
   }, [organization, api, onRemove, keyId, projectId]);
 
-  const showOtlp =
-    useOTelFriendlyUI() && project.features.includes('relay-otel-endpoint');
+  const showOtlpTraces =
+    useOTelFriendlyUI() && organization.features.includes('relay-otlp-traces-endpoint');
+  const showOtlpLogs = organization.features.includes('relay-otel-logs-endpoint');
 
   return (
     <Fragment>
@@ -116,6 +117,7 @@ export function KeySettings({
               params={params}
               data={data}
               disabled={!hasAccess}
+              updateData={updateData}
             />
 
             <Panel>
@@ -149,7 +151,8 @@ export function KeySettings({
                 <ProjectKeyCredentials
                   projectId={`${data.projectId}`}
                   data={data}
-                  showOtlp={showOtlp}
+                  showOtlpTraces={showOtlpTraces}
+                  showOtlpLogs={showOtlpLogs}
                   showPublicKey
                   showSecretKey
                   showProjectId

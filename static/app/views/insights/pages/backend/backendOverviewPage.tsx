@@ -5,7 +5,6 @@ import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -19,6 +18,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
@@ -27,13 +27,13 @@ import OverviewApiLatencyChartWidget from 'sentry/views/insights/common/componen
 import OverviewCacheMissChartWidget from 'sentry/views/insights/common/components/widgets/overviewCacheMissChartWidget';
 import OverviewJobsChartWidget from 'sentry/views/insights/common/components/widgets/overviewJobsChartWidget';
 import OverviewRequestsChartWidget from 'sentry/views/insights/common/components/widgets/overviewRequestsChartWidget';
-import OverviewSlowQueriesChartWidget from 'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget';
+import OverviewTimeConsumingQueriesWidget from 'sentry/views/insights/common/components/widgets/overviewTimeConsumingQueriesWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {Am1BackendOverviewPage} from 'sentry/views/insights/pages/backend/am1BackendOverviewPage';
-import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {
   BackendOverviewTable,
   isAValidSort,
@@ -41,13 +41,15 @@ import {
 } from 'sentry/views/insights/pages/backend/backendTable';
 import {Referrer} from 'sentry/views/insights/pages/backend/referrers';
 import {
-  BACKEND_LANDING_TITLE,
   DEFAULT_SORT,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
-import {OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/frontend/settings';
-import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
+import {
+  OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS,
+  WEB_VITALS_OPS,
+} from 'sentry/views/insights/pages/frontend/settings';
+import {OVERVIEW_PAGE_ALLOWED_OPS as MOBILE_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
@@ -68,7 +70,7 @@ function BackendOverviewPage() {
     return <LaravelOverviewPage />;
   }
   if (isNextJsPageEnabled) {
-    return <NextJsOverviewPage performanceType="backend" />;
+    return <NextJsOverviewPage />;
   }
   if (isNewBackendExperienceEnabled) {
     return <EAPBackendOverviewPage />;
@@ -84,6 +86,7 @@ function EAPBackendOverviewPage() {
   const navigate = useNavigate();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
+  useDefaultToAllProjects();
 
   const {query: searchBarQuery} = useLocationQuery({
     fields: {
@@ -92,7 +95,11 @@ function EAPBackendOverviewPage() {
   });
 
   const disallowedOps = [
-    ...new Set([...FRONTEND_OVERVIEW_PAGE_OPS, ...BACKEND_OVERVIEW_PAGE_OPS]),
+    ...new Set([
+      ...FRONTEND_OVERVIEW_PAGE_OPS,
+      ...MOBILE_OVERVIEW_PAGE_OPS,
+      ...WEB_VITALS_OPS,
+    ]),
   ];
 
   const {
@@ -194,7 +201,6 @@ function EAPBackendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <BackendHeader headerTitle={BACKEND_LANDING_TITLE} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -202,7 +208,7 @@ function EAPBackendOverviewPage() {
               <ToolRibbon>
                 <PageFilterBar condensed>
                   <InsightsProjectSelector />
-                  <EnvironmentPageFilter />
+                  <InsightsEnvironmentSelector />
                   <DatePageFilter />
                 </PageFilterBar>
                 {!showOnboarding && (
@@ -237,7 +243,7 @@ function EAPBackendOverviewPage() {
                       <OverviewJobsChartWidget />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
-                      <OverviewSlowQueriesChartWidget />
+                      <OverviewTimeConsumingQueriesWidget />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
                       <OverviewCacheMissChartWidget />

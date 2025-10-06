@@ -28,7 +28,6 @@ import {
   LOGS_FIELDS_KEY,
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
-  setLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -42,7 +41,10 @@ import {
   LogAttributesHumanLabel,
   LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
 } from 'sentry/views/explore/logs/constants';
-import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
+import {
+  getTargetWithReadableQueryParams,
+  LOGS_AGGREGATE_FIELD_KEY,
+} from 'sentry/views/explore/logs/logsQueryParams';
 import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
@@ -281,6 +283,14 @@ export function getLogRowTimestampMillis(row: OurLogsResponseItem): number {
   return Number(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000;
 }
 
+export function quantizeTimestampToMinutes(
+  timestampMs: number,
+  quantizeMinutes: number
+): number {
+  const quantizeMs = quantizeMinutes * 60 * 1000;
+  return Math.floor(timestampMs / quantizeMs) * quantizeMs;
+}
+
 export function getLogTimestampBucketIndex(
   rowTimestampMillis: number,
   periodStartMillis: number,
@@ -344,6 +354,26 @@ export function calculateAverageLogsPerSecond(
   return totalLogs / totalDurationSeconds;
 }
 
+type BaseGetLogsUrlParams = {
+  aggregateFields?: Array<GroupBy | BaseVisualize>;
+  aggregateFn?: string;
+  aggregateParam?: string;
+  field?: string[];
+  groupBy?: string[];
+  id?: number;
+  interval?: string;
+  mode?: Mode;
+  query?: string;
+  referrer?: string;
+  selection?: PageFilters;
+  sortBy?: string;
+  title?: string;
+};
+
+export function getLogsUrl(
+  params: BaseGetLogsUrlParams & {organization: Organization}
+): string;
+export function getLogsUrl(params: BaseGetLogsUrlParams & {organization: string}): string;
 export function getLogsUrl({
   organization,
   selection,
@@ -359,22 +389,7 @@ export function getLogsUrl({
   aggregateFields,
   aggregateFn,
   aggregateParam,
-}: {
-  organization: Organization;
-  aggregateFields?: Array<GroupBy | BaseVisualize>;
-  aggregateFn?: string;
-  aggregateParam?: string;
-  field?: string[];
-  groupBy?: string[];
-  id?: number;
-  interval?: string;
-  mode?: Mode;
-  query?: string;
-  referrer?: string;
-  selection?: PageFilters;
-  sortBy?: string;
-  title?: string;
-}) {
+}: BaseGetLogsUrlParams & {organization: Organization | string}) {
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
   const queryParams = {
@@ -400,20 +415,21 @@ export function getLogsUrl({
     title,
   };
 
+  const orgSlug = typeof organization === 'string' ? organization : organization.slug;
   return (
-    makeLogsPathname({organization, path: '/'}) +
+    makeLogsPathname({organizationSlug: orgSlug, path: '/'}) +
     `?${qs.stringify(queryParams, {skipNull: true})}`
   );
 }
 
 export function makeLogsPathname({
-  organization,
+  organizationSlug,
   path,
 }: {
-  organization: Organization;
+  organizationSlug: string;
   path: string;
 }) {
-  return normalizeUrl(`/organizations/${organization.slug}/explore/logs${path}`);
+  return normalizeUrl(`/organizations/${organizationSlug}/explore/logs${path}`);
 }
 
 export function getLogsUrlFromSavedQueryUrl({
@@ -535,10 +551,10 @@ export function viewLogsSamplesTarget({
     yAxes: visualizes.map(visualize => visualize.yAxis),
   });
 
-  return setLogsPageParams(location, {
+  return getTargetWithReadableQueryParams(location, {
     mode: Mode.SAMPLES,
     fields: newFields,
-    search: newSearch,
+    query: newSearch.formatString(),
     sortBys: newSortBys,
   });
 }

@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconGraphCircle(props: SVGIconProps) {
+export function IconGraphCircle(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -22,7 +22,3 @@ function IconGraphCircle(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconGraphCircle.displayName = 'IconGraphCircle';
-
-export {IconGraphCircle};

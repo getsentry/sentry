@@ -1,3 +1,4 @@
+from typing import TypedDict
 from unittest.mock import patch
 
 import pytest
@@ -14,8 +15,8 @@ from sentry.integrations.source_code_management.tasks import open_pr_comment_wor
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.group import Group
 from sentry.models.pullrequest import CommentType, PullRequestComment
-from sentry.shared_integrations.exceptions import ApiError
-from sentry.testutils.asserts import assert_slo_metric
+from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError
+from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric, assert_slo_metric
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
@@ -23,6 +24,13 @@ from sentry.utils import json
 from tests.sentry.integrations.gitlab.tasks.test_pr_comment import GitlabCommentTestCase
 
 pytestmark = [requires_snuba]
+
+
+class _GroupDict(TypedDict):
+    group_id: int
+    event_count: int
+    function_name: str
+
 
 DIFFS = {
     "pure_addition": """diff --git a/test.py b/test.py
@@ -369,7 +377,7 @@ class TestOpenPRCommentWorkflow(GitlabCommentTestCase):
             for i in range(6)
         ][0].group.id
 
-        self.groups = [
+        self.groups: list[_GroupDict] = [
             {
                 "group_id": g.id,
                 "event_count": 1000 * (i + 1),
@@ -598,3 +606,50 @@ Your merge request is modifying functions with the following pre-existing issues
             open_pr_comment_workflow(self.pr.id)
 
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.FAILURE)
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_comment_workflow_mysterious_validation_errors(
+        self,
+        mock_record_event,
+        mock_analytics,
+        mock_commit_context_metrics,
+        mock_task_metrics,
+        mock_integration_metrics,
+        mock_extract_functions_from_patch,
+        mock_get_top_5_issues_by_count_for_file,
+        mock_get_projects_and_filenames_from_source_file,
+        mock_get_pr_files_safe_for_comment,
+    ):
+        # Tests a case where Gitlab decides to return a 400 with an empty body.
+        # We haven't found a definitive reason for these failures, so we record
+        # this as a halt instead of a failure.
+        mock_get_pr_files_safe_for_comment.side_effect = ApiInvalidRequestError("")
+
+        with pytest.raises(ApiInvalidRequestError):
+            open_pr_comment_workflow(self.pr.id)
+
+        assert_halt_metric(mock_record_event, ApiInvalidRequestError(""))
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_comment_workflow_api_invalid_request_error_with_text(
+        self,
+        mock_record_event,
+        mock_analytics,
+        mock_commit_context_metrics,
+        mock_task_metrics,
+        mock_integration_metrics,
+        mock_extract_functions_from_patch,
+        mock_get_top_5_issues_by_count_for_file,
+        mock_get_projects_and_filenames_from_source_file,
+        mock_get_pr_files_safe_for_comment,
+    ):
+        mock_get_pr_files_safe_for_comment.side_effect = ApiInvalidRequestError(
+            "Some actual valid error"
+        )
+
+        with pytest.raises(ApiInvalidRequestError):
+            open_pr_comment_workflow(self.pr.id)
+
+        assert_failure_metric(mock_record_event, ApiInvalidRequestError("Some actual valid error"))

@@ -296,7 +296,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     for (const error of this.errors) {
       if (error.level === 'error' || error.level === 'fatal') {
         this._max_severity = error.level;
-        return this.maxIssueSeverity;
+        return this._max_severity;
       }
     }
 
@@ -467,9 +467,20 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return [path];
   }
 
-  abstract get type(): TraceTree.NodeType;
+  matchByPath(path: TraceTree.NodePath): boolean {
+    if (!path.startsWith(`${this.type}-`)) {
+      return false;
+    }
 
-  abstract matchByPath(path: TraceTree.NodePath): boolean;
+    // Extract id after the first occurrence of `${this.type}-`
+    const id = path.slice(this.type.length + 1);
+    if (!id) {
+      return false;
+    }
+    return this.matchById(id);
+  }
+
+  abstract get type(): TraceTree.NodeType;
 
   abstract get drawerTabsTitle(): string;
 

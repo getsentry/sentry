@@ -12,7 +12,7 @@ import sys
 from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor
 from string import Template
-from typing import Any, Protocol, overload
+from typing import Any, ContextManager, Protocol, overload
 
 import pytest
 import requests
@@ -21,10 +21,10 @@ from django.core.cache import cache
 from django.utils import timezone
 
 import sentry
+from sentry.types.activity import ActivityType
 
 # These chars cannot be used in Windows paths so replace them:
 # https://docs.microsoft.com/en-us/windows/desktop/FileIO/naming-a-file#naming-conventions
-from sentry.types.activity import ActivityType
 
 UNSAFE_PATH_CHARS = ("<", ">", ":", '"', " | ", "?", "*")
 
@@ -72,10 +72,10 @@ def factories():
 
 
 @pytest.fixture
-def task_runner():
-    """Context manager that ensures Celery tasks run directly inline where invoked.
+def task_runner() -> Callable[[], ContextManager[None]]:
+    """Context manager that ensures tasks run directly inline where invoked.
 
-    While this context manager is active any Celery tasks created will run immediately at
+    While this context manager is active any tasks created will run immediately at
     the callsite rather than being sent to RabbitMQ and handled by a worker.
     """
     from sentry.testutils.helpers.task_runner import TaskRunner

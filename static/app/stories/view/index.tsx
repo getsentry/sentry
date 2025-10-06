@@ -6,7 +6,6 @@ import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';
 import {useStoryRedirect} from 'sentry/stories/view/useStoryRedirect';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
@@ -136,7 +135,7 @@ const Layout = styled('div')`
   grid-template-columns: 256px minmax(auto, 1fr);
   place-items: stretch;
   min-height: calc(100dvh - 52px);
-  padding-bottom: ${space(4)};
+  padding-bottom: ${p => p.theme.space['3xl']};
   position: absolute;
   top: 52px;
   left: 0;
@@ -158,7 +157,7 @@ const VerticalScroll = styled('main')`
 
   grid-row: 1;
   grid-column: 2;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const StoryMainContainer = styled('div')`
@@ -167,7 +166,7 @@ const StoryMainContainer = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   h1,
   h2,
@@ -184,7 +183,7 @@ const StoryMainContainer = styled('div')`
     margin: 0;
   }
 
-  code:not(pre > code) {
+  code:not([class]):not(pre > code) {
     background: ${p => p.theme.tokens.background.secondary};
     color: ${p => p.theme.tokens.content.primary};
   }
@@ -198,7 +197,7 @@ const StoryMainContainer = styled('div')`
     border-collapse: collapse;
     border-radius: ${p => p.theme.borderRadius};
     box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.primary};
-    margin-bottom: 32px;
+    margin-bottom: ${p => p.theme.space['3xl']};
 
     & thead {
       height: 36px;
@@ -208,8 +207,8 @@ const StoryMainContainer = styled('div')`
     }
 
     & th {
-      padding-inline: ${space(2)};
-      padding-block: ${space(0.75)};
+      padding-inline: ${p => p.theme.space.xl};
+      padding-block: ${p => p.theme.space.sm};
 
       &:first-of-type {
         border-radius: ${p => p.theme.borderRadius} 0 0 0;
@@ -241,8 +240,8 @@ const StoryMainContainer = styled('div')`
     }
 
     td {
-      padding-inline: ${space(2)};
-      padding-block: ${space(1.5)};
+      padding-inline: ${p => p.theme.space.xl};
+      padding-block: ${p => p.theme.space.lg};
     }
   }
 
@@ -254,7 +253,7 @@ const StoryMainContainer = styled('div')`
   }
 
   .expressive-code .frame {
-    margin-bottom: 32px;
+    margin-bottom: ${p => p.theme.space['3xl']};
     box-shadow: none;
     border: 1px solid #000000;
     pre {

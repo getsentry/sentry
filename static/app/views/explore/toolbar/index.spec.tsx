@@ -16,17 +16,17 @@ import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {
   PageParamsProvider,
-  useExploreFields,
   useExploreSortBys,
-  useSetExploreMode,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
   useQueryParamsAggregateFields,
+  useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsVisualizes,
+  useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
@@ -230,10 +230,10 @@ describe('ExploreToolbar', () => {
   });
 
   it('allows changing visualizes', async () => {
-    let fields!: string[];
+    let fields!: readonly string[];
     let visualizes: any;
     function Component() {
-      fields = useExploreFields();
+      fields = useQueryParamsFields();
       visualizes = useQueryParamsVisualizes();
       return <ExploreToolbar />;
     }
@@ -482,7 +482,7 @@ describe('ExploreToolbar', () => {
     let sortBys: any;
     let setMode: any;
     function Component() {
-      setMode = useSetExploreMode();
+      setMode = useSetQueryParamsMode();
       sortBys = useExploreSortBys();
       return <ExploreToolbar />;
     }
@@ -556,7 +556,7 @@ describe('ExploreToolbar', () => {
     let sortBys: any;
     let setMode: any;
     function Component() {
-      setMode = useSetExploreMode();
+      setMode = useSetQueryParamsMode();
       sortBys = useExploreSortBys();
       return <ExploreToolbar />;
     }
@@ -620,7 +620,7 @@ describe('ExploreToolbar', () => {
 
     await userEvent.click(within(section).getByText(/Compare/));
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/traces/compare/',
+      pathname: '/organizations/org-slug/explore/traces/compare/',
       query: expect.objectContaining({
         queries: [
           '{"chartType":0,"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
@@ -665,7 +665,7 @@ describe('ExploreToolbar', () => {
     );
     expect(router.push).toHaveBeenCalledWith({
       pathname:
-        '/organizations/org-slug/alerts/new/metric/?aggregate=count%28span.duration%29&dataset=events_analytics_platform&eventTypes=transaction&interval=1h&project=proj-slug&query=&statsPeriod=7d',
+        '/organizations/org-slug/issues/alerts/new/metric/?aggregate=count%28span.duration%29&dataset=events_analytics_platform&eventTypes=transaction&interval=1h&project=proj-slug&query=&statsPeriod=7d',
     });
   });
 

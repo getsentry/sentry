@@ -275,28 +275,6 @@ def prep_search(
     return result, query_kwargs
 
 
-def get_first_last_release(
-    request: Request,
-    group: Group,
-) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
-    first_release_s = group.get_first_release()
-    if first_release_s is not None:
-        last_release_s = group.get_last_release()
-    else:
-        last_release_s = None
-
-    if first_release_s is not None and last_release_s is not None:
-        first_release, last_release = serialize_releases(
-            request, group, [first_release_s, last_release_s]
-        )
-        return first_release, last_release
-    elif first_release_s is not None:
-        (first_release,) = serialize_releases(request, group, [first_release_s])
-        return (first_release, None)
-    else:
-        return None, None
-
-
 def serialize_releases(request: Request, group: Group, versions: list[str]) -> list[dict[str, Any]]:
     releases = {
         release.version: release
@@ -315,3 +293,26 @@ def serialize_releases(request: Request, group: Group, versions: list[str]) -> l
         item if item is not None else {"version": version}
         for item, version in zip(serialized_releases, versions)
     ]
+
+
+def get_first_last_release(
+    request: Request,
+    group: Group,
+    environment_names: list[str] | None = None,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    first_release_s = group.get_first_release(environment_names=environment_names)
+    if first_release_s is not None:
+        last_release_s = group.get_last_release(environment_names=environment_names)
+    else:
+        last_release_s = None
+
+    if first_release_s is not None and last_release_s is not None:
+        first_release, last_release = serialize_releases(
+            request, group, [first_release_s, last_release_s]
+        )
+        return first_release, last_release
+    elif first_release_s is not None:
+        (first_release,) = serialize_releases(request, group, [first_release_s])
+        return (first_release, None)
+    else:
+        return None, None

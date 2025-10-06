@@ -6,13 +6,16 @@ import EventView from 'sentry/utils/discover/eventView';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   useExploreDataset,
-  useExploreFields,
   useExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {
   useProgressiveQuery,
   type SpansRPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {
+  useQueryParamsExtrapolate,
+  useQueryParamsFields,
+} from 'sentry/views/explore/queryParams/context';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 interface UseExploreSpansTableOptions {
@@ -32,6 +35,8 @@ export function useExploreSpansTable({
   limit,
   query,
 }: UseExploreSpansTableOptions) {
+  const extrapolate = useQueryParamsExtrapolate();
+
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useSpansQuery<any[]>>) => {
       const canGoToHigherAccuracyTier = results.meta?.dataScanned === 'partial';
@@ -40,11 +45,13 @@ export function useExploreSpansTable({
     },
     []
   );
+
   return useProgressiveQuery<typeof useExploreSpansTableImp>({
     queryHookImplementation: useExploreSpansTableImp,
     queryHookArgs: {enabled, limit, query},
     queryOptions: {
       canTriggerHighAccuracy,
+      disableExtrapolation: !extrapolate,
     },
   });
 }
@@ -58,7 +65,7 @@ function useExploreSpansTableImp({
   const {selection} = usePageFilters();
 
   const dataset = useExploreDataset();
-  const fields = useExploreFields();
+  const fields = useQueryParamsFields();
   const sortBys = useExploreSortBys();
 
   const visibleFields = useMemo(

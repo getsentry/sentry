@@ -58,9 +58,12 @@ function SetPayAsYouGo({
     return activePlan.checkoutCategories;
   }, [activePlan]);
 
-  const availableReservedBudgetTypes = useMemo(() => {
-    return activePlan.availableReservedBudgetTypes;
-  }, [activePlan]);
+  const addOnCategories = useMemo(() => {
+    return Object.values(activePlan.addOnCategories).filter(
+      addOnInfo =>
+        !addOnInfo.billingFlag || organization.features.includes(addOnInfo.billingFlag)
+    );
+  }, [activePlan, organization.features]);
 
   const paygOnlyCategories = useMemo(() => {
     return activePlan.categories.filter(
@@ -92,6 +95,7 @@ function SetPayAsYouGo({
           plan: formData.plan,
           cents: totalBudget || 0,
           method: fromButton ? 'button' : 'textbox',
+          isNewCheckout: false,
         });
       }
       setCurrentBudget(totalBudget);
@@ -157,11 +161,11 @@ function SetPayAsYouGo({
                   </span>
                 </li>
               ))}
-            {Object.values(availableReservedBudgetTypes).map(product => (
-              <li key={product.apiName}>
+            {addOnCategories.map(addOnInfo => (
+              <li key={addOnInfo.apiName}>
                 <IconSubtract size="xs" />
                 <span>
-                  {toTitleCase(product.productCheckoutName, {allowInnerUpperCase: true})}
+                  {toTitleCase(addOnInfo.productName, {allowInnerUpperCase: true})}
                 </span>
               </li>
             ))}
@@ -312,7 +316,7 @@ function SetPayAsYouGo({
 
   const renderFooter = () => {
     return (
-      <StepFooter data-test-id={'footer-set-payg'}>
+      <StepFooter data-test-id="footer-set-payg">
         <Button priority="primary" onClick={() => onCompleteStep(stepNumber)}>
           {t('Continue')}
         </Button>

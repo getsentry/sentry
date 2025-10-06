@@ -1,9 +1,8 @@
 export const TABLE_FIELD_NAME_TO_SORT_KEY = {
   averageDurationMs: 'AVG_DURATION',
   flakeRate: 'FLAKE_RATE',
-  commitsFailed: 'COMMITS_WHERE_FAIL',
+  totalFailCount: 'RUNS_FAILED',
   lastRun: 'UPDATED_AT',
-  testName: 'NAME',
 };
 
 export const SUMMARY_TO_TA_TABLE_FILTER_KEY = {

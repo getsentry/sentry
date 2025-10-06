@@ -99,6 +99,10 @@ export function AutomationListRowSkeleton() {
 const AutomationSimpleTableRow = styled(SimpleTable.Row)`
   min-height: 54px;
 
+  &:hover {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
+
   @media (hover: hover) {
     &:not(:has(:hover)):not(:has(input:checked)) {
       .select-row {

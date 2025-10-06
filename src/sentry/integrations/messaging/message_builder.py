@@ -13,7 +13,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.team import Team
-from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.links import create_link_to_workflow
@@ -109,6 +108,8 @@ def fetch_environment_name(rule_env: int) -> str | None:
 def get_rule_environment_param_from_rule(
     rule_id: int, rule_environment_id: int | None, organization: Organization, type_id: int
 ) -> dict[str, str]:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     params = {}
     if should_fire_workflow_actions(organization, type_id):
         if (
@@ -270,6 +271,8 @@ def build_attachment_replay_link(
 
 
 def build_rule_url(rule: Any, group: Group, project: Project) -> str:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     org_slug = group.organization.slug
     project_slug = project.slug
     if should_fire_workflow_actions(group.organization, group.type):

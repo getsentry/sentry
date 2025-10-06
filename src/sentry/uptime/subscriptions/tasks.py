@@ -7,7 +7,6 @@ from uuid import uuid4
 from django.utils import timezone
 
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import uptime_tasks
 from sentry.taskworker.retry import Retry
 from sentry.uptime.config_producer import produce_config, produce_config_removal
@@ -31,16 +30,8 @@ BROKEN_MONITOR_AGE_LIMIT = timedelta(days=7)
 
 @instrumented_task(
     name="sentry.uptime.subscriptions.tasks.create_uptime_subscription",
-    queue="uptime",
-    default_retry_delay=5,
-    max_retries=5,
-    taskworker_config=TaskworkerConfig(
-        namespace=uptime_tasks,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
+    namespace=uptime_tasks,
+    retry=Retry(times=5, delay=5),
 )
 def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     try:
@@ -64,16 +55,8 @@ def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
 
 @instrumented_task(
     name="sentry.uptime.subscriptions.tasks.update_remote_uptime_subscription",
-    queue="uptime",
-    default_retry_delay=5,
-    max_retries=5,
-    taskworker_config=TaskworkerConfig(
-        namespace=uptime_tasks,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
+    namespace=uptime_tasks,
+    retry=Retry(times=5, delay=5),
 )
 def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     """
@@ -108,16 +91,8 @@ def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
 
 @instrumented_task(
     name="sentry.uptime.subscriptions.tasks.delete_uptime_subscription",
-    queue="uptime",
-    default_retry_delay=5,
-    max_retries=5,
-    taskworker_config=TaskworkerConfig(
-        namespace=uptime_tasks,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
+    namespace=uptime_tasks,
+    retry=Retry(times=5, delay=5),
 )
 def delete_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     try:
@@ -186,10 +161,7 @@ def send_uptime_config_deletion(destination_region_slug: str, subscription_id: s
 
 @instrumented_task(
     name="sentry.uptime.tasks.subscription_checker",
-    queue="uptime",
-    taskworker_config=TaskworkerConfig(
-        namespace=uptime_tasks,
-    ),
+    namespace=uptime_tasks,
 )
 def subscription_checker(**kwargs):
     """
@@ -219,10 +191,7 @@ def subscription_checker(**kwargs):
 
 @instrumented_task(
     name="sentry.uptime.tasks.broken_monitor_checker",
-    queue="uptime",
-    taskworker_config=TaskworkerConfig(
-        namespace=uptime_tasks,
-    ),
+    namespace=uptime_tasks,
 )
 def broken_monitor_checker(**kwargs):
     """

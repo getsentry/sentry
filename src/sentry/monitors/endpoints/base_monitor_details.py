@@ -12,14 +12,18 @@ from sentry.api.base import BaseEndpointMixin
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorSerializer
+from sentry.monitors.utils import ensure_cron_detector_deletion
 from sentry.monitors.validators import MonitorValidator
 from sentry.utils.auth import AuthenticatedHttpRequest
+from sentry.utils.db import atomic_transaction
+from sentry.workflow_engine.models import Detector
 
 
 class MonitorDetailsMixin(BaseEndpointMixin):
@@ -132,8 +136,19 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                     quotas.backend.update_monitor_slug(monitor.slug, new_slug, monitor.project_id)
                     monitor_object.update(slug=new_slug)
 
-        with transaction.atomic(router.db_for_write(Rule)):
+        with (
+            in_test_hide_transaction_boundary(),
+            atomic_transaction(
+                [
+                    router.db_for_write(Rule),
+                    router.db_for_write(Monitor),
+                    router.db_for_write(Detector),
+                ]
+            ),
+        ):
             for monitor_object in monitor_objects_list:
+                if isinstance(monitor_object, Monitor):
+                    ensure_cron_detector_deletion(monitor_object)
                 schedule = RegionScheduledDeletion.schedule(
                     monitor_object, days=0, actor=request.user
                 )

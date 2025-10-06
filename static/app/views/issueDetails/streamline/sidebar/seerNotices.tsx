@@ -28,7 +28,6 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
 import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 interface SeerNoticesProps {
   groupId: string;
@@ -96,9 +95,8 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     projectSlug: project.slug,
   });
 
-  const hasStackedNav = usePrefersStackedNav();
   const hasIssueViews = useHasIssueViews();
-  const isStarredViewAllowed = hasStackedNav && hasIssueViews;
+  const isStarredViewAllowed = hasIssueViews;
 
   const unreadableRepos = repos.filter(repo => repo.is_readable === false);
   const githubRepos = unreadableRepos.filter(repo => repo.provider.includes('github'));
@@ -173,7 +171,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
               <IconSeer variant="waiting" size="xl" />
               Debug Faster with Seer
             </StepsHeader>
-            <GuidedSteps>
+            <StyledGuidedSteps>
               {/* Step 1: GitHub Integration */}
               <GuidedSteps.Step
                 key="github-setup"
@@ -361,7 +359,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   </CustomStepButtons>
                 </GuidedSteps.Step>
               )}
-            </GuidedSteps>
+            </StyledGuidedSteps>
             <StepsDivider />
           </motion.div>
         </AnimatePresence>
@@ -415,6 +413,10 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     </NoticesContainer>
   );
 }
+
+const StyledGuidedSteps = styled(GuidedSteps)`
+  background: transparent;
+`;
 
 const StyledAlert = styled(Alert)`
   margin-bottom: ${space(2)};

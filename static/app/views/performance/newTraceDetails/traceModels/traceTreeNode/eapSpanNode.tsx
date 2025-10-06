@@ -262,15 +262,6 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     return pickBarColor(this.op, theme);
   }
 
-  matchByPath(path: TraceTree.NodePath): boolean {
-    const [type, id] = path.split('-');
-    if (type !== 'span' || !id) {
-      return false;
-    }
-
-    return this.matchById(id);
-  }
-
   analyticsName(): string {
     return 'eap span';
   }

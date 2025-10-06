@@ -108,7 +108,6 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'yml',
-          partialLoading: params.sourcePackageRegistries.isLoading,
           code: getInstallSnippet(params),
         },
       ],

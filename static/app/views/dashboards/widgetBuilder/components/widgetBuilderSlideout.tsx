@@ -7,15 +7,16 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
-import {t, tct, tctCode} from 'sentry/locale';
+import {t, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useValidateWidgetQuery} from 'sentry/views/dashboards/hooks/useValidateWidget';
@@ -43,9 +44,11 @@ import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/com
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useCacheBuilderState';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
@@ -80,6 +83,7 @@ function WidgetBuilderSlideout({
   thresholdMetaState,
 }: WidgetBuilderSlideoutProps) {
   const organization = useOrganization();
+  const location = useLocation();
   const {state, dispatch} = useWidgetBuilderContext();
   const [initialState] = useState(state);
   const [customizeFromLibrary, setCustomizeFromLibrary] = useState(false);
@@ -87,6 +91,8 @@ function WidgetBuilderSlideout({
   const theme = useTheme();
   const isEditing = useIsEditingWidget();
   const source = useDashboardWidgetSource();
+  const {cacheBuilderState} = useCacheBuilderState();
+  const {setSegmentSpanBuilderState} = useSegmentSpanWidgetState();
   const disableTransactionWidget = useDisableTransactionWidget();
   const isTransactionsWidget = state.dataset === WidgetType.TRANSACTIONS;
   const [showTransactionsDeprecationAlert, setShowTransactionsDeprecationAlert] =
@@ -235,9 +241,31 @@ function WidgetBuilderSlideout({
               }
             >
               {disableTransactionWidget && isEditing
-                ? tct(
-                    'Editing of transaction-based widgets is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, switch to the spans dataset below. Please read these [FAQLink:FAQs] for more information.',
+                ? tctCode(
+                    'Editing of transaction-based widgets is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, switch to the [spans] dataset below with the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
                     {
+                      spans: (
+                        <Link
+                          // We need to do this otherwise the dashboard filters will change
+                          to={{
+                            pathname: location.pathname,
+                            query: {
+                              project: location.query.project,
+                              start: location.query.start,
+                              end: location.query.end,
+                              statsPeriod: location.query.statsPeriod,
+                              environment: location.query.environment,
+                              utc: location.query.utc,
+                            },
+                          }}
+                          onClick={() => {
+                            cacheBuilderState(state.dataset ?? WidgetType.ERRORS);
+                            setSegmentSpanBuilderState();
+                          }}
+                        >
+                          {t('spans')}
+                        </Link>
+                      ),
                       FAQLink: (
                         <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
                       ),

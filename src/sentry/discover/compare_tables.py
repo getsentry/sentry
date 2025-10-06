@@ -233,7 +233,7 @@ def compare_tables_for_dashboard_widget_queries(
         logger.info("Metrics query failed: %s", e)
         has_metrics_error = True
 
-    eap_query_parts = translate_mep_to_eap(
+    eap_query_parts, dropped_fields = translate_mep_to_eap(
         QueryParts(
             query=query,
             selected_columns=selected_columns,

@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -8,7 +9,6 @@ import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {SpanFields} from 'sentry/views/insights/types';
 import {
   filterToColor,
@@ -16,7 +16,6 @@ import {
 } from 'sentry/views/performance/transactionSummary/filter';
 import {transformData} from 'sentry/views/performance/transactionSummary/transactionOverview/durationPercentileChart/utils';
 import {EAPWidgetType} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
-import {eapSeriesDataToTimeSeries} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
 import DurationPercentileChart from './durationPercentileChart/chart';
 
@@ -98,7 +97,7 @@ function useDurationBreakdownVisualization({
     data: spanSeriesData,
     isPending: isSpanSeriesPending,
     isError: isSpanSeriesError,
-  } = useSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
       yAxis: [
         'avg(span.duration)',
@@ -109,8 +108,7 @@ function useDurationBreakdownVisualization({
         'p75(span.duration)',
         'p50(span.duration)',
       ],
-      search: newQuery,
-      transformAliasToInputFormat: true,
+      query: newQuery,
       enabled,
     },
     REFERRER
@@ -124,8 +122,7 @@ function useDurationBreakdownVisualization({
     return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
   }
 
-  const timeSeries = eapSeriesDataToTimeSeries(spanSeriesData);
-  const plottables = timeSeries.map(series => new Line(series));
+  const plottables = spanSeriesData?.timeSeries.map(series => new Line(series));
 
   return (
     <TimeSeriesWidgetVisualization

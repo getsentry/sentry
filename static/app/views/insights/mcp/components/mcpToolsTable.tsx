@@ -43,6 +43,7 @@ const rightAlignColumns = new Set([
 
 export function McpToolsTable() {
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const query = useCombinedQuery(`span.op:mcp.server has:${SpanFields.MCP_TOOL_NAME}`);
   const tableDataRequest = useSpanTableData({
     query,
@@ -87,11 +88,10 @@ export function McpToolsTable() {
     [handleSort]
   );
 
+  type TableData = (typeof tableDataRequest.data)[number];
+
   const renderBodyCell = useCallback(
-    (
-      column: GridColumnOrder<string>,
-      dataRow: (typeof tableDataRequest.data)[number]
-    ) => {
+    (column: GridColumnOrder<string>, dataRow: TableData) => {
       switch (column.key) {
         case SpanFields.MCP_TOOL_NAME:
           return <McpToolCell tool={dataRow[SpanFields.MCP_TOOL_NAME]} />;
@@ -102,6 +102,7 @@ export function McpToolsTable() {
               total={dataRow['count()']}
               issuesLink={getExploreUrl({
                 query: `${query} span.status:internal_error ${SpanFields.MCP_TOOL_NAME}:${dataRow[SpanFields.MCP_TOOL_NAME]}`,
+                selection,
                 organization,
                 referrer: MCPReferrer.MCP_TOOL_TABLE,
               })}
@@ -116,7 +117,7 @@ export function McpToolsTable() {
           return <div />;
       }
     },
-    [tableDataRequest, organization, query]
+    [organization, query, selection]
   );
 
   return (
@@ -124,7 +125,7 @@ export function McpToolsTable() {
       isLoading={tableDataRequest.isPending}
       error={tableDataRequest.error}
       data={tableDataRequest.data}
-      initialColumnOrder={defaultColumnOrder}
+      initialColumnOrder={defaultColumnOrder as Array<GridColumnOrder<keyof TableData>>}
       stickyHeader
       grid={{
         renderBodyCell,

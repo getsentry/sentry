@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -251,7 +252,7 @@ const setupMockRequests = (organization: Organization) => {
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/events-stats/`,
+    url: `/organizations/${organization.slug}/events-timeseries/`,
     method: 'GET',
     match: [
       MockApiClient.matchQuery({
@@ -259,34 +260,14 @@ const setupMockRequests = (organization: Organization) => {
       }),
     ],
     body: {
-      [`${EPM}()`]: {
-        data: [
-          [1699907700, [{count: 7810.2}]],
-          [1699908000, [{count: 1216.8}]],
-        ],
-        meta: {
-          fields: {
-            [`${EPM}()`]: 'rate',
-          },
-          units: {
-            [`${EPM}()`]: '1/second',
-          },
-        },
-      },
-      [`avg(${SPAN_SELF_TIME})`]: {
-        data: [
-          [1699907700, [{count: 1111.2}]],
-          [1699908000, [{count: 2222.8}]],
-        ],
-        meta: {
-          fields: {
-            [`avg(${SPAN_SELF_TIME})`]: 'duration',
-          },
-          units: {
-            [`avg(${SPAN_SELF_TIME})`]: 'millisecond',
-          },
-        },
-      },
+      timeSeries: [
+        TimeSeriesFixture({
+          yAxis: `${EPM}()`,
+        }),
+        TimeSeriesFixture({
+          yAxis: `avg(${SPAN_SELF_TIME})`,
+        }),
+      ],
     },
   });
 

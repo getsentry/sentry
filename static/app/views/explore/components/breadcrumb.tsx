@@ -3,6 +3,7 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeLogsPathname} from 'sentry/views/explore/logs/utils';
+import {makeMetricsPathname} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
@@ -17,8 +18,14 @@ function ExploreBreadcrumb({traceItemDataset}: {traceItemDataset: TraceItemDatas
   }
   if (traceItemDataset === TraceItemDataset.LOGS) {
     crumbs.push({
-      to: makeLogsPathname({organization, path: '/'}),
+      to: makeLogsPathname({organizationSlug: organization.slug, path: '/'}),
       label: t('Logs'),
+    });
+  }
+  if (traceItemDataset === TraceItemDataset.TRACEMETRICS) {
+    crumbs.push({
+      to: makeMetricsPathname({organizationSlug: organization.slug, path: '/'}),
+      label: t('Metrics'),
     });
   }
   crumbs.push({

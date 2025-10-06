@@ -1,12 +1,14 @@
-import {useMemo, type ReactNode} from 'react';
+import {useLayoutEffect, useMemo, useRef, useState, type ReactNode} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
+import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
@@ -31,7 +33,6 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -77,16 +78,19 @@ function FilterKeyOperatorLabel({
   }
 
   return (
-    <KeyOpLabelWrapper>
+    <Flex align="center" gap="sm">
       <Tooltip title={fieldDefinition?.desc}>
         <span>{keyLabel}</span>
         {opLabel ? <OpLabel> {opLabel}</OpLabel> : null}
       </Tooltip>
-    </KeyOpLabelWrapper>
+    </Flex>
   );
 }
 
-export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
+export function getOperatorInfo(
+  token: TokenResult<Token.FILTER>,
+  hasWildcardOperators: boolean
+): {
   label: ReactNode;
   operator: TermOperator;
   options: Array<SelectOption<TermOperator>>;
@@ -111,7 +115,7 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
     };
   }
 
-  const {operator, label} = getLabelAndOperatorFromToken(token);
+  const {operator, label} = getLabelAndOperatorFromToken(token, hasWildcardOperators);
 
   if (token.filter === FilterType.IS) {
     return {
@@ -194,7 +198,7 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
   return {
     operator,
     label: <OpLabel>{label}</OpLabel>,
-    options: getValidOpsForFilter(token)
+    options: getValidOpsForFilter(token, hasWildcardOperators)
       .filter(op => op !== TermOperator.EQUAL)
       .map((op): SelectOption<TermOperator> => {
         const optionOpLabel = OP_LABELS[op] ?? op;
@@ -210,29 +214,72 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
 
 export function FilterOperator({state, item, token, onOpenChange}: FilterOperatorProps) {
   const organization = useOrganization();
-  const {dispatch, searchSource, query, recentSearches, disabled} =
+  const hasWildcardOperators = organization.features.includes(
+    'search-query-builder-wildcard-operators'
+  );
+
+  const {dispatch, searchSource, query, recentSearches, disabled, focusOverride} =
     useSearchQueryBuilder();
   const filterButtonProps = useFilterButtonProps({state, item});
+  const {focusWithinProps} = useFocusWithin({});
 
-  const {operator, label, options} = useMemo(() => getOperatorInfo(token), [token]);
+  const {operator, label, options} = useMemo(
+    () => getOperatorInfo(token, hasWildcardOperators),
+    [token, hasWildcardOperators]
+  );
 
   const onlyOperator = token.filter === FilterType.IS || token.filter === FilterType.HAS;
+
+  const [autoFocus, setAutoFocus] = useState(false);
+  // track to see if we have already clicked the button
+  const initialOpClickedRef = useRef(false);
+  // track to see if we have already set the initial operator
+  const initialOpSettingRef = useRef(false);
+
+  useLayoutEffect(() => {
+    if (focusOverride?.itemKey === item.key && focusOverride.part === 'op') {
+      setAutoFocus(true);
+      initialOpSettingRef.current = true;
+      dispatch({type: 'RESET_FOCUS_OVERRIDE'});
+    }
+  }, [dispatch, focusOverride, item.key, onOpenChange]);
 
   return (
     <CompactSelect
       disabled={disabled}
-      trigger={triggerProps => (
-        <OpButton
-          disabled={disabled}
-          aria-label={t('Edit operator for filter: %s', token.key.text)}
-          onlyOperator={onlyOperator}
-          {...mergeProps(triggerProps, filterButtonProps)}
-        >
-          <InteractionStateLayer />
-          {label}
-        </OpButton>
-      )}
+      trigger={triggerProps => {
+        return (
+          <OpButton
+            disabled={disabled}
+            aria-label={t('Edit operator for filter: %s', token.key.text)}
+            onlyOperator={onlyOperator}
+            {...mergeProps(triggerProps, filterButtonProps, focusWithinProps)}
+            ref={r => {
+              if (!r || !triggerProps.ref) return;
+
+              if (typeof triggerProps.ref === 'function') {
+                triggerProps.ref(r);
+              } else {
+                triggerProps.ref.current = r;
+              }
+
+              if (
+                autoFocus &&
+                !initialOpClickedRef.current &&
+                initialOpSettingRef.current
+              ) {
+                r.click();
+                initialOpClickedRef.current = true;
+              }
+            }}
+          >
+            <InteractionStateLayer />
+            {label}
+          </OpButton>
+        );
+      }}
       size="sm"
+      autoFocus={autoFocus}
       options={options}
       value={operator}
       onOpenChange={onOpenChange}
@@ -250,9 +297,20 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
           type: 'UPDATE_FILTER_OP',
           token,
           op: option.value,
+          focusOverride: initialOpSettingRef.current
+            ? {
+                itemKey: `${item.key}`,
+                part: 'value',
+              }
+            : undefined,
         });
+        initialOpSettingRef.current = false;
+        setAutoFocus(false);
       }}
       offset={MENU_OFFSET}
+      onInteractOutside={() => {
+        setAutoFocus(false);
+      }}
     />
   );
 }
@@ -260,7 +318,7 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
 const OpButton = styled(UnstyledButton, {
   shouldForwardProp: isPropValid,
 })<{onlyOperator?: boolean}>`
-  padding: 0 ${space(0.25)} 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space['2xs']} 0 ${p => p.theme.space.xs};
   height: 100%;
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
@@ -272,12 +330,6 @@ const OpButton = styled(UnstyledButton, {
     border-right: 1px solid ${p => p.theme.innerBorder};
     border-left: 1px solid ${p => p.theme.innerBorder};
   }
-`;
-
-const KeyOpLabelWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.75)};
 `;
 
 const OpLabel = styled('span')`

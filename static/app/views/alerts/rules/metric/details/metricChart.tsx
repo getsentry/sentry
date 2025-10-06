@@ -2,8 +2,7 @@ import {Fragment, useCallback} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
-import type {LineSeriesOption} from 'echarts';
-import type {TopLevelFormatterParams} from 'echarts/types/src/component/tooltip/TooltipModel';
+import type {LineSeriesOption, TooltipComponentOption} from 'echarts';
 import moment from 'moment-timezone';
 
 import Feature from 'sentry/components/acl/feature';
@@ -533,7 +532,7 @@ export function getMetricChartTooltipFormatter({
 }): AreaChartProps['tooltip'] {
   const {dateModified, timeWindow} = rule;
 
-  function formatter(seriesParams: TopLevelFormatterParams) {
+  const formatter: TooltipComponentOption['formatter'] = seriesParams => {
     // seriesParams can be object instead of array
     const pointSeries = toArray(seriesParams);
     // @ts-expect-error TS(2339): Property 'marker' does not exist on type 'Callback... Remove this comment to see the full error message
@@ -611,7 +610,7 @@ export function getMetricChartTooltipFormatter({
     ]
       .filter(e => e)
       .join('');
-  }
+  };
 
   return {formatter};
 }

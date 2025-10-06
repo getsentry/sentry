@@ -1,10 +1,10 @@
 import type {PageFilters} from 'sentry/types/core';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {EMPTY_OPTION_VALUE, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getResourceTypeFilter} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/types';
 import type {SearchHook} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -66,14 +66,13 @@ export function useResourceLandingSeriesSearch(): SearchHook {
 export function useResourceLandingSeries(props: Props) {
   const {search, pageFilters, enabled} = props;
 
-  return useSpanSeries(
+  return useFetchSpanTimeSeries(
     {
-      search,
+      query: search,
       yAxis: ['epm()', `avg(${SPAN_SELF_TIME})`],
-      transformAliasToInputFormat: true,
       enabled,
+      pageFilters,
     },
-    Referrer.RESOURCE_LANDING_SERIES,
-    pageFilters
+    Referrer.RESOURCE_LANDING_SERIES
   );
 }

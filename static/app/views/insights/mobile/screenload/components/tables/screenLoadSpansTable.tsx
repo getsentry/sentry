@@ -10,6 +10,7 @@ import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t, tct} from 'sentry/locale';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
@@ -41,6 +42,7 @@ import {MODULE_DOC_LINK} from 'sentry/views/insights/mobile/screenload/settings'
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} = SpanFields;
+const COLUMN_RESIZE_PARAM_NAME = 'events';
 
 type Props = {
   primaryRelease?: string;
@@ -338,6 +340,25 @@ export function ScreenLoadSpansTable({
     });
   };
 
+  // Create dynamic column order for the hook
+  const gridColumnOrder = [
+    String(SPAN_OP),
+    String(SPAN_DESCRIPTION),
+    `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
+    `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
+    ...(organization.features.includes('insight-modules') ? ['affects'] : []),
+    ...['count()', `sum(${SPAN_SELF_TIME})`],
+  ].map(col => ({
+    key: col,
+    name: columnNameMap[col] ?? col,
+    width: COL_WIDTH_UNDEFINED,
+  }));
+
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: gridColumnOrder,
+    paramName: COLUMN_RESIZE_PARAM_NAME,
+  });
+
   return (
     <Fragment>
       <SpanOpSelector
@@ -348,20 +369,12 @@ export function ScreenLoadSpansTable({
       <GridEditable
         isLoading={isPending || hasTTFDLoading}
         data={data}
-        columnOrder={[
-          String(SPAN_OP),
-          String(SPAN_DESCRIPTION),
-          `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
-          `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
-          ...(organization.features.includes('insight-modules') ? ['affects'] : []),
-          ...['count()', `sum(${SPAN_SELF_TIME})`],
-        ].map(col => {
-          return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};
-        })}
+        columnOrder={columns}
         columnSortBy={[{key: sort.field, order: sort.kind}]}
         grid={{
           renderHeadCell: column => renderHeadCell(column, meta),
           renderBodyCell,
+          onResizeColumn: handleResizeColumn,
         }}
       />
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />

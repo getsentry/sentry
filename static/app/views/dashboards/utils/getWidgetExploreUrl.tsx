@@ -6,8 +6,11 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {
   getAggregateAlias,
+  getEquationAliasIndex,
   isAggregateField,
   isAggregateFieldOrEquation,
+  isEquation,
+  isEquationAlias,
   parseFunction,
 } from 'sentry/utils/discover/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
@@ -84,6 +87,9 @@ const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.LOGS]: getWidgetExploreUrlWithDataset(TraceItemDataset.LOGS),
   [TraceItemDataset.SPANS]: getWidgetExploreUrlWithDataset(TraceItemDataset.SPANS),
   [TraceItemDataset.UPTIME_RESULTS]: undefined,
+  [TraceItemDataset.TRACEMETRICS]: getWidgetExploreUrlWithDataset(
+    TraceItemDataset.TRACEMETRICS
+  ),
 };
 
 export function getWidgetLogURL(
@@ -336,6 +342,14 @@ function _getWidgetExploreUrl(
     } else if (exploreMode === Mode.AGGREGATE) {
       sort = widget.queries[0]?.orderby;
     }
+  } else if (isEquationAlias(sortColumn) && exploreMode === Mode.AGGREGATE) {
+    const equations = query.fields?.filter(isEquation) ?? [];
+    const equationIndex = getEquationAliasIndex(sortColumn);
+
+    const orderby = equations[equationIndex];
+    if (orderby) {
+      sort = `${sortDirection}${orderby}`;
+    }
   } else if (!isAggregateFieldOrEquation(sortColumn)) {
     sort = widget.queries[0]?.orderby;
   }
@@ -451,7 +465,7 @@ export function getWidgetTableRowExploreUrlFunction(
       );
     }
 
-    const query = new MutableSearch('');
+    const query = new MutableSearch(widget.queries[0]?.conditions ?? '');
     fields.map(field => {
       const value = dataRow[field];
       if (!defined(value)) {

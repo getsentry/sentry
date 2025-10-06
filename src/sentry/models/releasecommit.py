@@ -17,7 +17,7 @@ class ReleaseCommit(Model):
     # DEPRECATED
     project_id = BoundedBigIntegerField(null=True)
     release = FlexibleForeignKey("sentry.Release")
-    commit = FlexibleForeignKey("sentry.Commit")
+    commit = FlexibleForeignKey("sentry.Commit", db_constraint=False)
     order = BoundedPositiveIntegerField()
 
     class Meta:

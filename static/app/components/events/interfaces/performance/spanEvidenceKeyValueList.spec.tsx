@@ -70,7 +70,7 @@ describe('SpanEvidenceKeyValueList', () => {
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
+        '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
       );
 
       expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
@@ -144,7 +144,7 @@ describe('SpanEvidenceKeyValueList', () => {
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
+        '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
       );
 
       expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
@@ -226,7 +226,7 @@ describe('SpanEvidenceKeyValueList', () => {
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
+        '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
       );
 
       expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
@@ -315,7 +315,7 @@ describe('SpanEvidenceKeyValueList', () => {
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=0.65'
+        '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=0.65'
       );
 
       expect(screen.getByRole('cell', {name: 'Starting Span'})).toBeInTheDocument();
@@ -467,7 +467,7 @@ describe('SpanEvidenceKeyValueList', () => {
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=2100'
+        '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=2100'
       );
 
       expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
@@ -627,7 +627,7 @@ describe('SpanEvidenceKeyValueList', () => {
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=10100'
+        '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=10100'
       );
 
       expect(screen.getByRole('cell', {name: 'Slow DB Query'})).toBeInTheDocument();
@@ -680,7 +680,7 @@ describe('SpanEvidenceKeyValueList', () => {
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=3'
+        '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=3'
       );
 
       expect(screen.getByRole('cell', {name: 'Slow Resource Span'})).toBeInTheDocument();
@@ -744,7 +744,7 @@ describe('SpanEvidenceKeyValueList', () => {
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=0.931'
+        '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=0.931'
       );
 
       expect(screen.getByRole('cell', {name: 'Slow Resource Span'})).toBeInTheDocument();
@@ -844,7 +844,7 @@ describe('SpanEvidenceKeyValueList', () => {
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=0.487'
+        '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=0.487'
       );
 
       expect(

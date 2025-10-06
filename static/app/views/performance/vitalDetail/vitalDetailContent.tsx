@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -7,8 +7,8 @@ import omit from 'lodash/omit';
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {getInterval} from 'sentry/components/charts/utils';
-import {Alert} from 'sentry/components/core/alert';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Flex} from 'sentry/components/core/layout';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -73,7 +73,6 @@ function getSummaryConditions(query: string) {
 
 function VitalDetailContent(props: Props) {
   const theme = useTheme();
-  const [error, setError] = useState<string | undefined>(undefined);
   function handleSearch(query: string) {
     const {location} = props;
 
@@ -162,18 +161,6 @@ function VitalDetailContent(props: Props) {
     );
   }
 
-  function renderError() {
-    if (!error) {
-      return null;
-    }
-
-    return (
-      <Alert.Container>
-        <Alert type="error">{error}</Alert>
-      </Alert.Container>
-    );
-  }
-
   function renderContent(vital: WebVital) {
     const {location, organization, eventView, projects} = props;
 
@@ -245,7 +232,6 @@ function VitalDetailContent(props: Props) {
                   projects={projects}
                   organization={organization}
                   location={location}
-                  setError={setError}
                   summaryConditions={summaryConditions}
                 />
               </TeamKeyTransactionManager.Provider>
@@ -283,19 +269,18 @@ function VitalDetailContent(props: Props) {
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
-        {renderError()}
         <Layout.Main fullWidth>
           <StyledDescription>{vitalDescription[vitalName]}</StyledDescription>
           <SupportedBrowsers>
             {Object.values(Browser).map(browser => (
-              <BrowserItem key={browser}>
+              <Flex key={browser} align="center" gap="md">
                 {vitalSupportedBrowsers[vitalName]?.includes(browser) ? (
                   <IconCheckmark color="successText" size="sm" />
                 ) : (
                   <IconClose color="dangerText" size="sm" />
                 )}
                 {browser}
-              </BrowserItem>
+              </Flex>
             ))}
           </SupportedBrowsers>
           {renderContent(vital)}
@@ -320,12 +305,6 @@ const SupportedBrowsers = styled('div')`
   display: inline-flex;
   gap: ${space(2)};
   margin-bottom: ${space(3)};
-`;
-
-const BrowserItem = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const FilterActions = styled('div')`

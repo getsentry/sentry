@@ -14,7 +14,6 @@ import type {
 } from 'sentry/types/organization';
 import {defined, escape} from 'sentry/utils';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {decodeList} from 'sentry/utils/queryString';
@@ -200,8 +199,8 @@ const issuesFidelityLadder = new GranularityLadder([
 const spansFidelityLadder = new GranularityLadder([
   [SIXTY_DAYS, '1d'],
   [THIRTY_DAYS, '12h'],
-  [TWO_WEEKS, '4h'],
-  [ONE_WEEK, '2h'],
+  [TWO_WEEKS, '3h'],
+  [ONE_WEEK, '1h'],
   [FORTY_EIGHT_HOURS, '30m'],
   [TWENTY_FOUR_HOURS, '15m'],
   [SIX_HOURS, '15m'],
@@ -212,11 +211,10 @@ const spansFidelityLadder = new GranularityLadder([
 const spansLowFidelityLadder = new GranularityLadder([
   [THIRTY_DAYS, '1d'],
   [TWO_WEEKS, '12h'],
-  [ONE_WEEK, '4h'],
-  [FORTY_EIGHT_HOURS, '2h'],
+  [ONE_WEEK, '3h'],
   [TWENTY_FOUR_HOURS, '1h'],
   [SIX_HOURS, '30m'],
-  [ONE_HOUR, '10m'],
+  [ONE_HOUR, '15m'],
   [THIRTY_MINUTES, '5m'],
   [0, '1m'],
 ]);
@@ -349,42 +347,6 @@ export const lightenHexToRgb = (colors: readonly string[]) =>
     ];
     return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
   });
-
-const DEFAULT_GEO_DATA = {
-  title: '',
-  data: [],
-};
-export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
-  if (!tableResults?.length) {
-    return DEFAULT_GEO_DATA;
-  }
-
-  const tableResult = tableResults[0]!;
-
-  const {data} = tableResult;
-
-  if (!data?.length) {
-    return DEFAULT_GEO_DATA;
-  }
-
-  const preAggregate = Object.keys(data[0]!).find(column => {
-    return column !== 'geo.country_code';
-  });
-
-  if (!preAggregate) {
-    return DEFAULT_GEO_DATA;
-  }
-
-  return {
-    title: tableResult.title ?? '',
-    data: data.map(row => {
-      return {
-        name: row['geo.country_code'] as string,
-        value: row[preAggregate] as number,
-      };
-    }),
-  };
-};
 
 export const getPreviousSeriesName = (seriesName: string) => {
   return `previous ${seriesName}`;

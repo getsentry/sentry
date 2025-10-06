@@ -12,7 +12,11 @@ import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import {PRIMARY_SIDEBAR_WIDTH, SECONDARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
+import {
+  NAV_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
+  PRIMARY_SIDEBAR_WIDTH,
+  SECONDARY_SIDEBAR_WIDTH,
+} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
 import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
 import {PrimaryNavigationItems} from 'sentry/views/nav/primary/index';
@@ -39,7 +43,7 @@ export function Sidebar() {
   const {isOpen} = useCollapsedNav();
 
   const [secondarySidebarWidth] = useSyncedLocalStorageState(
-    'secondary-sidebar-width',
+    NAV_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
     SECONDARY_SIDEBAR_WIDTH
   );
 

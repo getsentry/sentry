@@ -111,6 +111,7 @@ describe('BuildDetails', () => {
           base_repo_name: 'test/repo',
         },
         size_info: {
+          state: 2, // COMPLETED
           install_size_bytes: 1024000,
           download_size_bytes: 512000,
         },
@@ -139,5 +140,44 @@ describe('BuildDetails', () => {
 
     expect(await screen.findByText('v1.0.0 (123)')).toBeInTheDocument();
     expect(await screen.findByText('Git details')).toBeInTheDocument();
+  });
+
+  it('shows "Your app is still being analyzed..." text when size analysis is processing', async () => {
+    MockApiClient.clearMockResponses();
+
+    const buildDetailsMock = MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-1/preprodartifacts/artifact-1/build-details/`,
+      method: 'GET',
+      body: {
+        id: 'artifact-1',
+        state: 3, // PROCESSED
+        app_info: {
+          version: '1.0.0',
+          build_number: '123',
+          name: 'Test App',
+        },
+        vcs_info: {
+          head_sha: 'abc123',
+        },
+        size_info: {
+          state: 1, // PROCESSING
+        },
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-1/files/preprodartifacts/artifact-1/size-analysis/`,
+      method: 'GET',
+      body: new Promise(() => {}), // Keep pending
+    });
+
+    render(<BuildDetails />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(1));
+
+    expect(await screen.findByText('Running size analysis')).toBeInTheDocument();
   });
 });

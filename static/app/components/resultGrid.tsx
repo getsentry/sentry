@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 
 import type {RequestOptions} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
@@ -37,8 +38,8 @@ function Filter({name, options, path, queryKey, value}: FilterProps) {
       triggerProps={{
         size: 'sm',
         borderless: true,
+        children: currentLabel,
       }}
-      triggerLabel={currentLabel}
       options={[
         {
           value: 'any',
@@ -95,10 +96,10 @@ function SortBy({options, path, value}: SortByProps) {
   const sortBySelector = (
     <div className="sort-options">
       <CompactSelect
-        triggerLabel={currentSortLabel}
         triggerProps={{
           size: 'sm',
           borderless: true,
+          children: currentSortLabel,
         }}
         options={options.map(option => ({
           value: option[0],
@@ -285,7 +286,7 @@ function ResultGrid(props: Props) {
     state.rows.map(row => <tr key={keyForRow?.(row)}>{columnsForRow?.(row)}</tr>);
 
   return (
-    <div className="result-grid">
+    <ResultGridContainer>
       <div className="table-options">
         {hasSearch && (
           <div className="result-grid-search">
@@ -339,8 +340,169 @@ function ResultGrid(props: Props) {
         </tbody>
       </table>
       {hasPagination && state.pageLinks && <Pagination pageLinks={state.pageLinks} />}
-    </div>
+    </ResultGridContainer>
   );
 }
 
 export default ResultGrid;
+
+/**
+ * Styles migrated from sentry/result-grid.less
+ */
+const ResultGridContainer = styled('div')`
+  clear: both;
+
+  .table-grid {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .table-grid > thead > tr > th,
+  .table-grid > tbody > tr > th,
+  .table-grid > tfoot > tr > th,
+  .table-grid > thead > tr > td,
+  .table-grid > tbody > tr > td,
+  .table-grid > tfoot > tr > td {
+    vertical-align: top;
+    border-top: 1px solid #f1eff3;
+    padding: 15px 20px;
+    line-height: 1.42857;
+  }
+
+  .table-grid > thead > tr > th {
+    vertical-align: bottom;
+    border-bottom: 2px solid #f1eff3;
+  }
+
+  .table-grid > caption + thead > tr:first-child > th,
+  .table-grid > colgroup + thead > tr:first-child > th,
+  .table-grid > thead:first-child > tr:first-child > th,
+  .table-grid > caption + thead > tr:first-child > td,
+  .table-grid > colgroup + thead > tr:first-child > td,
+  .table-grid > thead:first-child > tr:first-child > td {
+    border-top: 0;
+  }
+
+  .table-grid > tbody + tbody {
+    border-top: 2px solid #f1eff3;
+  }
+
+  .table-grid .table {
+    background-color: #fff;
+  }
+
+  .table-grid .label {
+    text-transform: uppercase;
+    margin-left: 10px;
+    font-size: 0.5em;
+    font-weight: 400;
+  }
+
+  .table-grid thead th {
+    text-transform: uppercase;
+    font-size: 12px;
+  }
+
+  td small {
+    font-size: 0.8em;
+  }
+
+  .table-options {
+    margin-bottom: 20px;
+    position: relative;
+  }
+
+  .filter-options,
+  .sort-options {
+    margin-right: 5px;
+    display: inline-block;
+  }
+
+  .sorted-by,
+  .filter-options {
+    color: inherit;
+    background: #f9f9f9;
+    margin-left: 5px;
+    padding: 0 10px;
+    font-weight: 600;
+    display: inline-block;
+  }
+
+  .sorted-by:hover,
+  .filter-options:hover {
+    color: inherit;
+  }
+
+  .result-grid-search {
+    float: right !important;
+  }
+
+  @media (min-width: 768px) {
+    .result-grid-search .form-group {
+      vertical-align: middle;
+      margin-bottom: 0;
+      display: inline-block;
+    }
+
+    .result-grid-search .form-control {
+      vertical-align: middle;
+      width: auto;
+      display: inline-block;
+    }
+
+    .result-grid-search .form-control-static {
+      display: inline-block;
+    }
+
+    .result-grid-search .control-label {
+      vertical-align: middle;
+      margin-bottom: 0;
+    }
+
+    .result-grid-search .radio,
+    .result-grid-search .checkbox {
+      vertical-align: middle;
+      margin-top: 0;
+      margin-bottom: 0;
+      display: inline-block;
+    }
+
+    .result-grid-search .radio label,
+    .result-grid-search .checkbox label {
+      padding-left: 0;
+    }
+
+    .result-grid-search .radio input[type='radio'] {
+      margin-left: 0;
+      position: relative;
+    }
+
+    .result-grid-search .checkbox input[type='checkbox'] {
+      margin-left: 0;
+      position: relative;
+    }
+
+    .result-grid-search .has-feedback .form-control-feedback {
+      top: 0;
+    }
+  }
+
+  .result-grid-search .input-search {
+    vertical-align: middle;
+    padding: 3px 8px;
+    font-size: 14px;
+  }
+
+  .result-grid-search .btn,
+  .result-grid-search .btn-primary,
+  .result-grid-search .btn-default {
+    border: 0;
+    margin-left: -10px;
+    position: relative;
+  }
+
+  .result-grid-search .btn-sm {
+    padding: 5px 10px;
+  }
+`;

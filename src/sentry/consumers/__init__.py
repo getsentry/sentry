@@ -81,6 +81,9 @@ def ingest_replay_recordings_options() -> list[click.Option]:
     """Return a list of ingest-replay-recordings options."""
     options = multiprocessing_options(default_max_batch_size=10)
     options.append(click.Option(["--threads", "num_threads"], type=int, default=4))
+    options.append(
+        click.Option(["--max-pending-futures", "max_pending_futures"], type=int, default=100)
+    )
     return options
 
 
@@ -172,19 +175,6 @@ def ingest_events_options() -> list[click.Option]:
             ["--stop-at-timestamp", "stop_at_timestamp"],
             type=int,
             help="Unix timestamp after which to stop processing messages",
-        )
-    )
-    return options
-
-
-def ingest_transactions_options() -> list[click.Option]:
-    options = ingest_events_options()
-    options.append(
-        click.Option(
-            ["--no-celery-mode", "no_celery_mode"],
-            default=False,
-            is_flag=True,
-            help="Save event directly in consumer without celery",
         )
     )
     return options
@@ -354,7 +344,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-transactions": {
         "topic": Topic.INGEST_TRANSACTIONS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestTransactionsStrategyFactory",
-        "click_options": ingest_transactions_options(),
+        "click_options": ingest_events_options(),
         "dlq_topic": Topic.INGEST_TRANSACTIONS_DLQ,
         "stale_topic": Topic.INGEST_TRANSACTIONS_BACKLOG,
     },

@@ -14,7 +14,6 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
 ):
     feature_list = (
         "organizations:discover-basic",
-        "organizations:global-views",
         "organizations:performance-view",
     )
 

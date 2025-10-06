@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconMoon(props: SVGIconProps) {
+export function IconMoon(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -15,7 +15,3 @@ function IconMoon(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconMoon.displayName = 'IconMoon';
-
-export {IconMoon};

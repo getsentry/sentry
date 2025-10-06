@@ -1,4 +1,4 @@
-import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
+import {makeCombinedReducers} from 'sentry/utils/makeCombinedReducer';
 import {tracePreferencesReducer} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {traceRovingTabIndexReducer} from 'sentry/views/performance/newTraceDetails/traceState/traceRovingTabIndex';
 import {traceSearchReducer} from 'sentry/views/performance/newTraceDetails/traceState/traceSearch';

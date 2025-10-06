@@ -1,8 +1,8 @@
 import logging
 import re
-from collections.abc import Mapping
 from typing import Any
 
+from sentry.lang.java.exceptions import Exceptions
 from sentry.lang.java.utils import JAVA_PLATFORMS, get_jvm_images, get_proguard_images
 from sentry.lang.java.view_hierarchies import ViewHierarchies
 from sentry.lang.native.error import SymbolicationFailed, write_error
@@ -105,16 +105,6 @@ def _normalize_frame(raw_frame: dict[str, Any], index: int) -> dict[str, Any]:
     return frame
 
 
-def _get_exceptions_for_symbolication(data: Mapping[str, Any]) -> list[dict[str, Any]]:
-    "Returns those exceptions in all_exceptions that should be symbolicated."
-
-    return [
-        exc
-        for exc in get_path(data, "exception", "values", filter=True, default=())
-        if exc.get("type", None) and exc.get("module", None)
-    ]
-
-
 def _handle_response_status(event_data: Any, response_json: dict[str, Any]) -> bool | None:
     """Checks the response from Symbolicator and reports errors.
     Returns `True` on success."""
@@ -201,9 +191,12 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         for sinfo in stacktrace_infos
     ]
 
-    processable_exceptions = _get_exceptions_for_symbolication(data)
     view_hierarchies = ViewHierarchies(data)
     window_class_names = view_hierarchies.get_window_class_names()
+
+    exceptions = Exceptions(data)
+    processable_exceptions = exceptions.get_processable_exceptions()
+    exception_class_names = exceptions.get_exception_class_names()
 
     metrics.incr("proguard.symbolicator.events")
 
@@ -211,6 +204,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         not any(stacktrace["frames"] for stacktrace in stacktraces)
         and not processable_exceptions
         and not window_class_names
+        and not exception_class_names
     ):
         metrics.incr("proguard.symbolicator.events.skipped")
         return
@@ -225,7 +219,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         stacktraces=stacktraces,
         modules=modules,
         release_package=release_package,
-        classes=window_class_names,
+        classes=window_class_names + exception_class_names,
     )
 
     if not _handle_response_status(data, response):
@@ -259,13 +253,8 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
                 "frames": raw_frames,
             }
 
-    for raw_exc, exc in zip(processable_exceptions, response["exceptions"]):
-        raw_exc["raw_module"] = raw_exc["module"]
-        raw_exc["raw_type"] = raw_exc["type"]
-        raw_exc["module"] = exc["module"]
-        raw_exc["type"] = exc["type"]
-
     classes = response.get("classes")
     view_hierarchies.deobfuscate_and_save(classes)
+    exceptions.deobfuscate_and_save(classes, response["exceptions"])
 
     return data

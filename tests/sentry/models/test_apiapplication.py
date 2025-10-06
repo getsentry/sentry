@@ -7,7 +7,9 @@ from sentry.testutils.silo import control_silo_test
 class ApiApplicationTest(TestCase):
     def test_is_valid_redirect_uri(self) -> None:
         app = ApiApplication.objects.create(
-            owner=self.user, redirect_uris="http://example.com\nhttp://sub.example.com/path"
+            owner=self.user,
+            redirect_uris="http://example.com\nhttp://sub.example.com/path",
+            version=0,  # legacy behavior allows prefix match
         )
 
         assert app.is_valid_redirect_uri("http://example.com/")
@@ -25,6 +27,67 @@ class ApiApplicationTest(TestCase):
         assert not app.is_valid_redirect_uri("http://sub.example.com")
         assert not app.is_valid_redirect_uri("http://sub.example.com/path/../baz")
         assert not app.is_valid_redirect_uri("https://sub.example.com")
+
+    def test_is_valid_redirect_uri_strict_version(self) -> None:
+        # In strict policy version, require exact matching (no prefix, no trailing-slash equivalence).
+        app = ApiApplication.objects.create(
+            owner=self.user, redirect_uris="http://sub.example.com/path", version=1
+        )
+
+        # Exact match required
+        assert app.is_valid_redirect_uri("http://sub.example.com/path")
+        assert not app.is_valid_redirect_uri("http://sub.example.com/path/")
+
+        # Prefix match should be rejected in strict mode
+        assert not app.is_valid_redirect_uri("http://sub.example.com/path/bar")
+
+    def test_is_valid_redirect_uri_loopback_ephemeral_port(self) -> None:
+        # Register loopback redirect URIs without a port; incoming URIs may use
+        # ephemeral ports (RFC 8252 §8.4 / §7).
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris=(
+                "http://127.0.0.1/callback\n"
+                "http://localhost/callback\n"
+                "http://[::1]/callback\n"
+                "https://127.0.0.1/callback\n"
+                "https://localhost/callback\n"
+                "https://[::1]/callback"
+            ),
+        )
+
+        assert app.is_valid_redirect_uri("http://127.0.0.1:55321/callback")
+        assert app.is_valid_redirect_uri("http://localhost:23456/callback")
+        assert app.is_valid_redirect_uri("http://[::1]:43123/callback")
+        assert app.is_valid_redirect_uri("https://127.0.0.1:55321/callback")
+        assert app.is_valid_redirect_uri("https://localhost:23456/callback")
+        assert app.is_valid_redirect_uri("https://[::1]:43123/callback")
+
+        # Still exact on other parts
+        assert not app.is_valid_redirect_uri("http://127.0.0.1:55321/callback/extra")
+        assert not app.is_valid_redirect_uri("http://127.0.0.2:55321/callback")
+
+    def test_is_valid_redirect_uri_loopback_ephemeral_port_scheme_mismatch(self) -> None:
+        # If only http is registered, https must not be accepted (scheme must match).
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris=(
+                "http://127.0.0.1/callback\n" "http://localhost/callback\n" "http://[::1]/callback"
+            ),
+        )
+
+        assert not app.is_valid_redirect_uri("https://127.0.0.1:55321/callback")
+
+    def test_is_valid_redirect_uri_loopback_fixed_port_requires_exact(self) -> None:
+        # When a port is registered, require exact port match.
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="http://127.0.0.1:3000/callback",
+        )
+
+        assert app.is_valid_redirect_uri("http://127.0.0.1:3000/callback")
+        assert not app.is_valid_redirect_uri("http://127.0.0.1:3001/callback")
+        assert not app.is_valid_redirect_uri("http://127.0.0.1/callback")
 
     def test_get_default_redirect_uri(self) -> None:
         app = ApiApplication.objects.create(

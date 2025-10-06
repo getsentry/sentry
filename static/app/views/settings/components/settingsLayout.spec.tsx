@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
@@ -30,50 +30,11 @@ describe('SettingsLayout', () => {
     });
   });
 
-  function getTestnav() {
-    return screen.queryByRole('navigation', {name: 'Test Nav'});
-  }
-
   it('renders', () => {
     render(
       <BreadcrumbProvider>
         <SettingsLayout {...routerProps}>content</SettingsLayout>
       </BreadcrumbProvider>
     );
-  });
-
-  it('can render navigation', () => {
-    render(
-      <BreadcrumbProvider>
-        <SettingsLayout
-          {...routerProps}
-          renderNavigation={() => <nav aria-label="Test Nav" />}
-        >
-          content
-        </SettingsLayout>
-      </BreadcrumbProvider>
-    );
-
-    expect(getTestnav()).toBeInTheDocument();
-  });
-
-  it('can toggle mobile navigation', async () => {
-    render(
-      <BreadcrumbProvider>
-        <SettingsLayout
-          {...routerProps}
-          renderNavigation={opts =>
-            opts.isMobileNavVisible ? <nav aria-label="Test Nav" /> : null
-          }
-        >
-          content
-        </SettingsLayout>
-      </BreadcrumbProvider>
-    );
-
-    expect(getTestnav()).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Open the menu'}));
-    expect(getTestnav()).toBeInTheDocument();
   });
 });

@@ -21,7 +21,7 @@ CONFIGS_DIR: Path = Path(__file__).with_name("configs")
 DEFAULT_GROUPING_FINGERPRINTING_BASES: list[str] = []
 
 
-class FingerprintingRules:
+class FingerprintingConfig:
     def __init__(
         self,
         rules: Sequence[FingerprintRule],
@@ -93,7 +93,7 @@ class FingerprintingRules:
     @classmethod
     def from_config_string(
         cls, s: Any, bases: Sequence[str] | None = None, mark_as_built_in: bool = False
-    ) -> FingerprintingRules:
+    ) -> FingerprintingConfig:
         try:
             tree = fingerprinting_grammar.parse(s)
         except ParseError as e:
@@ -134,7 +134,7 @@ def _load_configs() -> dict[str, list[FingerprintRule]]:
             with open(config_file_path) as config_file:
                 str_conf = config_file.read().rstrip()
                 configs[config_name].extend(
-                    FingerprintingRules.from_config_string(str_conf, mark_as_built_in=True).rules
+                    FingerprintingConfig.from_config_string(str_conf, mark_as_built_in=True).rules
                 )
         except InvalidFingerprintingConfig:
             logger.exception(

@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -75,7 +74,7 @@ function GroupingVariant({event, variant, showNonContributing}: GroupingVariantP
     const data: VariantData = [];
     let component: EventGroupComponent | undefined;
 
-    if (!showNonContributing && variant.hash === null) {
+    if (!showNonContributing && !variant.contributes) {
       return [data, component];
     }
 
@@ -157,30 +156,19 @@ function GroupingVariant({event, variant, showNonContributing}: GroupingVariantP
   };
 
   const renderTitle = () => {
-    const isContributing = variant.hash !== null;
+    const isContributing = variant.contributes;
 
-    let title: string;
-    if (isContributing) {
-      title = t('Contributing variant');
-    } else {
-      const hint = 'component' in variant ? variant.component?.hint : undefined;
-      if (hint) {
-        title = t('Non-contributing variant: %s', hint);
-      } else {
-        title = t('Non-contributing variant');
-      }
-    }
+    const hint = variant.hint;
 
     return (
-      <Tooltip title={title}>
-        <VariantTitle>
-          <ContributionIcon isContributing={isContributing} />
-          {variant.description
-            ?.split(' ')
-            .map(i => capitalize(i))
-            .join(' ') ?? t('Nothing')}
-        </VariantTitle>
-      </Tooltip>
+      <VariantTitle>
+        <ContributionIcon isContributing={isContributing} />
+        {variant.description
+          ?.split(' ')
+          .map(i => capitalize(i))
+          .join(' ') ?? t('Nothing')}
+        <VariantHint>{hint && t('(%s)', hint)}</VariantHint>
+      </VariantTitle>
     );
   };
 
@@ -221,6 +209,13 @@ const VariantTitle = styled('h5')`
   margin: 0;
   display: flex;
   align-items: center;
+`;
+
+const VariantHint = styled('span')`
+  font-size: ${p => p.theme.fontSize.sm};
+  margin-left: ${p => p.theme.space.xs};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.subText};
 `;
 
 const ContributionIcon = styled(({isContributing, ...p}: any) =>

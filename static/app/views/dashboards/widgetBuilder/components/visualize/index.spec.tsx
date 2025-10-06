@@ -2,7 +2,13 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
@@ -1463,6 +1469,116 @@ describe('Visualize', () => {
       expect(
         await screen.findByRole('button', {name: 'Aggregate Selection'})
       ).toHaveTextContent(/^count$/);
+    });
+
+    it('adds equations', async () => {
+      const organizationWithFlag = OrganizationFixture();
+      organizationWithFlag.features.push('visibility-explore-equations');
+
+      render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization: organizationWithFlag,
+          router: RouterFixture({
+            location: LocationFixture({
+              query: {
+                dataset: WidgetType.SPANS,
+                displayType: DisplayType.TABLE,
+                yAxis: ['count(span.duration)'],
+              },
+            }),
+          }),
+
+          deprecatedRouterMocks: true,
+        }
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Equation'}));
+
+      expect(screen.getByLabelText('Enter an equation')).toBeInTheDocument();
+
+      const input = screen.getByRole('combobox', {
+        name: 'Add a term',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      await userEvent.type(input, 'avg(');
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg(span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Select an attribute')).toHaveFocus();
+      });
+      await userEvent.type(input, '{ArrowDown}{Enter}');
+
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({field: ['equation|( avg(span.duration)']}),
+        }),
+        expect.anything()
+      );
+    });
+
+    it('adds equations line chart', async () => {
+      const organizationWithFlag = OrganizationFixture();
+      organizationWithFlag.features.push('visibility-explore-equations');
+
+      render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization: organizationWithFlag,
+          router: RouterFixture({
+            location: LocationFixture({
+              query: {
+                dataset: WidgetType.SPANS,
+                displayType: DisplayType.TABLE,
+                yAxis: ['count(span.duration)'],
+              },
+            }),
+          }),
+
+          deprecatedRouterMocks: true,
+        }
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Equation'}));
+
+      expect(screen.getByLabelText('Enter an equation')).toBeInTheDocument();
+
+      const input = screen.getByRole('combobox', {
+        name: 'Add a term',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      await userEvent.type(input, 'avg(');
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg(span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Select an attribute')).toHaveFocus();
+      });
+      await userEvent.type(input, '{ArrowDown}{Enter}');
+
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({field: ['equation|( avg(span.duration)']}),
+        }),
+        expect.anything()
+      );
     });
   });
 

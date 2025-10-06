@@ -12,8 +12,7 @@
         "value": {
           "type": "valueText",
           "value": "500s",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}

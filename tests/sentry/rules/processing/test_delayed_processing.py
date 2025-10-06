@@ -415,9 +415,7 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
-        self.log_config = LogConfig(
-            workflow_engine_process_workflows=True, num_events_issue_debugging=True
-        )
+        self.log_config = LogConfig(num_events_issue_debugging=True)
         self.rule = self.create_alert_rule(self.organization, [self.project])
 
         # Create some groups
@@ -1507,12 +1505,11 @@ class CleanupRedisBufferTest(CreateEventTestCase):
         self.project = self.create_project()
         self.group = self.create_group(self.project)
         self.rule = self.create_alert_rule()
-        self.log_config = LogConfig(
-            workflow_engine_process_workflows=True, num_events_issue_debugging=True
-        )
+        self.log_config = LogConfig(num_events_issue_debugging=True)
 
     def test_cleanup_redis(self) -> None:
         self.push_to_hash(self.project.id, self.rule.id, self.group.id)
+
         rules_to_groups: defaultdict[int, set[int]] = defaultdict(set)
         rules_to_groups[self.rule.id].add(self.group.id)
 

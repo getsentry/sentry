@@ -229,7 +229,7 @@ describe('UptimeCheckNode', () => {
       const parentNode = new RootNode(null, null, extra);
       const node = new UptimeCheckNode(parentNode, uptimeValue, extra);
 
-      expect(node.pathToNode()).toEqual(['uptimeCheck-check123']);
+      expect(node.pathToNode()).toEqual(['uptime-check-check123']);
     });
   });
 
@@ -269,8 +269,8 @@ describe('UptimeCheckNode', () => {
       const parentNode = new RootNode(null, null, extra);
       const node = new UptimeCheckNode(parentNode, uptimeValue, extra);
 
-      expect(node.matchByPath('uptimeCheck-check123')).toBe(true);
-      expect(node.matchByPath('uptimeCheck-check456')).toBe(false);
+      expect(node.matchByPath('uptime-check-check123')).toBe(true);
+      expect(node.matchByPath('uptime-check-check456')).toBe(false);
     });
 
     it('should match by operation', () => {
