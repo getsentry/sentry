@@ -1,7 +1,7 @@
-import {useCallback, useEffect, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
@@ -14,7 +14,9 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useIsLive from 'sentry/utils/replays/hooks/useIsLive';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import usePollReplayRecord from 'sentry/utils/replays/hooks/usePollReplayRecord';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
@@ -25,33 +27,17 @@ interface Props {
 export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const organization = useOrganization();
   const replayRecord = readerResult.replayRecord;
-  const replay = readerResult.replay;
+  const replayReader = readerResult.replay;
 
-  const [isLive, setIsLive] = useState(replay?.getIsLive());
-
-  const computeIsLive = useCallback(() => replay?.getIsLive(), [replay]);
-
-  useEffect(() => {
-    // Immediately update if props change
-    setIsLive(computeIsLive());
-
-    let tickerRef: number | undefined = undefined;
-
-    // If the replay is live, start the ticker
-    if (computeIsLive()) {
-      const ONE_MINUTE_INTERVAL = 60 * 1000;
-      tickerRef = window.setInterval(() => {
-        const computedIsLive = computeIsLive();
-        setIsLive(computedIsLive);
-        if (!computedIsLive) {
-          window.clearInterval(tickerRef);
-        }
-      }, ONE_MINUTE_INTERVAL);
-    }
-
-    return () => window.clearInterval(tickerRef);
-  }, [computeIsLive]);
-
+  const {slug: orgSlug} = organization;
+  const replayId = readerResult.replayId;
+  const isLive = useIsLive({replayReader});
+  const replayUpdated = usePollReplayRecord({
+    isLive,
+    replayId,
+    orgSlug,
+    replayReader,
+  });
   // Generate search query based on available user data
   const getUserSearchQuery = () => {
     if (!replayRecord?.user) {
@@ -71,6 +57,10 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
 
   const searchQuery = getUserSearchQuery();
   const userDisplayName = replayRecord?.user.display_name || t('Anonymous User');
+
+  const handleRefresh = () => {
+    window.location.reload();
+  };
 
   const badge = replayRecord ? (
     <UserBadge
@@ -114,6 +104,22 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                 >
                   <Live />
                 </Tooltip>
+              ) : null}
+              {replayUpdated ? (
+                <Button
+                  title={t('Refresh for latest data')}
+                  size="xs"
+                  priority="primary"
+                  onClick={handleRefresh}
+                  borderless
+                  style={{
+                    backgroundColor: '#fff1e5',
+                    color: '#bc4c00',
+                    marginLeft: '20px',
+                  }}
+                >
+                  {t('Refresh')}
+                </Button>
               ) : null}
             </TimeContainer>
           ) : null}
