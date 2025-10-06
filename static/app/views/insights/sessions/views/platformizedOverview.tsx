@@ -1,0 +1,137 @@
+import {t} from 'sentry/locale';
+import {useLocation} from 'sentry/utils/useLocation';
+import useRouter from 'sentry/utils/useRouter';
+import DashboardDetail from 'sentry/views/dashboards/detail';
+import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
+import {DashboardState, DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+
+const RELEASE_HEALTH_WIDGETS: Widget[] = [
+  {
+    id: 'unhealthy-sessions',
+    title: t('Unhealthy Sessions'),
+    description: t('Percentage of sessions that did not crash.'),
+    displayType: DisplayType.LINE,
+    widgetType: WidgetType.RELEASE,
+    interval: '',
+    queries: [
+      {
+        name: '',
+        conditions: '',
+        fields: ['session.status', 'sum(session)'],
+        aggregates: ['sum(session)'],
+        columns: ['session.status'],
+        orderby: '',
+      },
+    ],
+    layout: {x: 0, y: 0, w: 3, h: 2, minH: 2},
+  },
+  {
+    id: 'user-health',
+    title: t('User Health'),
+    description: t('Number of users by status.'),
+    displayType: DisplayType.AREA,
+    widgetType: WidgetType.RELEASE,
+    interval: '',
+    queries: [
+      {
+        name: '',
+        conditions: '',
+        fields: ['session.status', 'count_unique(user)'],
+        aggregates: ['count_unique(user)'],
+        columns: ['session.status'],
+        orderby: '',
+      },
+    ],
+    layout: {x: 3, y: 0, w: 3, h: 2, minH: 2},
+  },
+  {
+    id: 'session-health',
+    title: t('Session Health'),
+    description: t('Number of sessions by status.'),
+    displayType: DisplayType.LINE,
+    widgetType: WidgetType.RELEASE,
+    interval: '',
+    queries: [
+      {
+        name: '',
+        conditions: '',
+        fields: ['session.status', 'sum(session)'],
+        aggregates: ['sum(session)'],
+        columns: ['session.status'],
+        orderby: '',
+      },
+    ],
+    layout: {x: 0, y: 2, w: 2, h: 2, minH: 2},
+  },
+  {
+    id: 'session-counts',
+    title: t('Session Counts'),
+    description: t('Number of sessions by status.'),
+    displayType: DisplayType.LINE,
+    widgetType: WidgetType.RELEASE,
+    interval: '',
+    queries: [
+      {
+        name: '',
+        conditions: '',
+        fields: ['session.status', 'sum(session)'],
+        aggregates: ['sum(session)'],
+        columns: ['session.status'],
+        orderby: '',
+      },
+    ],
+    layout: {x: 2, y: 2, w: 2, h: 2, minH: 2},
+  },
+  {
+    id: 'user-counts',
+    title: t('User Counts'),
+    description: t('Number of users by status.'),
+    displayType: DisplayType.LINE,
+    widgetType: WidgetType.RELEASE,
+    interval: '',
+    queries: [
+      {
+        name: '',
+        conditions: '',
+        fields: ['session.status', 'count_unique(user)'],
+        aggregates: ['count_unique(user)'],
+        columns: ['session.status'],
+        orderby: '',
+      },
+    ],
+    layout: {x: 4, y: 2, w: 2, h: 2, minH: 2},
+  },
+];
+
+const DASHBOARD: DashboardDetails = {
+  id: 'session-health-overview',
+  title: t('Session Health'),
+  widgets: RELEASE_HEALTH_WIDGETS,
+  dateCreated: '',
+  filters: {},
+  projects: undefined,
+};
+
+export function PlatformizedSessionsOverview() {
+  const location = useLocation();
+  const router = useRouter();
+
+  return (
+    <DashboardDetail
+      dashboard={DASHBOARD}
+      location={location}
+      params={{
+        dashboardId: undefined,
+        templateId: undefined,
+        widgetId: undefined,
+        widgetIndex: undefined,
+      }}
+      route={{}}
+      routeParams={{}}
+      router={router}
+      routes={[]}
+      dashboards={[]}
+      initialState={DashboardState.VIEW}
+    />
+  );
+}
