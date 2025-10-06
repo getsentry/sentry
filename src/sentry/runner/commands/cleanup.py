@@ -15,6 +15,7 @@ from django.conf import settings
 from django.db.models import Model, QuerySet
 from django.utils import timezone
 
+from sentry.models.commit import Commit
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
 
@@ -470,6 +471,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]
         (RuleFireHistory, "date_added", "date_added"),
         (Release, "date_added", "date_added"),
         (File, "timestamp", "timestamp"),
+        (Commit, "date_added", "date_added"),
     ]
 
 
