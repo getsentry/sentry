@@ -976,6 +976,7 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
                 "flow": self.state.flow,
                 "provider": self.provider.key,
                 "error_message": message,
+                "organization_id": self.organization.id if self.organization else None,
             },
         )
 
