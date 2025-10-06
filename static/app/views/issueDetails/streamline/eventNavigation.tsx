@@ -110,7 +110,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
 
   return (
     <EventNavigationWrapper role="navigation" ref={navigationRef}>
-      <Flex align="center" gap="2xs">
+      <Flex align="center" gap="2xs" flexShrink={0}>
         <DropdownMenu
           onAction={key => {
             trackAnalytics('issue_details.issue_content_selected', {
