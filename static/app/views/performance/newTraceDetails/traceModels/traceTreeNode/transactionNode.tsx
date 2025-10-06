@@ -59,6 +59,10 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     return 'txn';
   }
 
+  get type(): TraceTree.NodeType {
+    return 'txn';
+  }
+
   get id(): string {
     return this.value.event_id;
   }
