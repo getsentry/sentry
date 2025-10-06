@@ -25,6 +25,7 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useParams} from 'sentry/utils/useParams';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -121,6 +122,7 @@ function WidgetCard(props: Props) {
   const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
   const navigate = useNavigate();
+  const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const onDataFetched = (newData: Data) => {
@@ -225,9 +227,7 @@ function WidgetCard(props: Props) {
 
       navigate(
         {
-          pathname: `${location.pathname}${
-            location.pathname.endsWith('/') ? '' : '/'
-          }widget/${props.index}/`,
+          pathname: `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`,
           query: {
             ...location.query,
             sort:
