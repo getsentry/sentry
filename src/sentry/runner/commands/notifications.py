@@ -165,7 +165,7 @@ def send_msteams() -> None:
     default="error-alert-service",
 )
 @click.option("-o", "--organization_slug", help="Organization slug", default="default")
-def send_discord(source: str, integration_name: str, organization_slug: str, channel: str) -> None:
+def send_discord(source: str, organization_slug: str) -> None:
     """
     Send a Discord notification
     - Requires configuring Discord default-server-id and default-channel-id in .sentry/config.yml
@@ -178,7 +178,7 @@ def send_discord(source: str, integration_name: str, organization_slug: str, cha
     configure()
 
     channel = options.get("discord.default-channel-id")
-    integration_name = options.get("discord.default-server-id")
+    integration_name = options.get("discord.default-server-name")
 
     from sentry.constants import ObjectStatus
     from sentry.integrations.models.integration import Integration
@@ -193,7 +193,7 @@ def send_discord(source: str, integration_name: str, organization_slug: str, cha
     )
 
     try:
-        organization = OrganizationMapping.objects.get(slug=organization_slug)
+        organization_mapping = OrganizationMapping.objects.get(slug=organization_slug)
     except OrganizationMapping.DoesNotExist:
         click.echo(f"Organization {organization_slug} not found!")
         return
@@ -213,7 +213,7 @@ def send_discord(source: str, integration_name: str, organization_slug: str, cha
         resource_type=NotificationTargetResourceType.CHANNEL,
         integration_id=integration.id,
         resource_id=channel,
-        organization_id=organization.organization_id,
+        organization_id=organization_mapping.organization_id,
     )
 
     template_cls = template_registry.get(source)
