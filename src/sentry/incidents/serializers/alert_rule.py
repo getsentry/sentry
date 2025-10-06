@@ -188,7 +188,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             time_window = data["time_window"]
             if time_window < 5:
                 raise serializers.ValidationError(
-                    "Time window for this alert type must be at least 5 minutes."
+                    "Invalid Time Window: Time window for this alert type must be at least 5 minutes."
                 )
 
         return data

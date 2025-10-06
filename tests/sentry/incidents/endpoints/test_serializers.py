@@ -180,7 +180,11 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
 
         self.run_fail_validation_test(
             params,
-            {"nonFieldErrors": ["Time window for this alert type must be at least 5 minutes."]},
+            {
+                "nonFieldErrors": [
+                    "Invalid Time Window: Time window for this alert type must be at least 5 minutes."
+                ]
+            },
         )
 
     def test_dataset(self) -> None:
