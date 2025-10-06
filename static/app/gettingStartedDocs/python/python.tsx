@@ -699,6 +699,7 @@ sentry_sdk.init(
           code: `
 import sentry_sdk
 from sentry_sdk.integrations.openai import OpenAIIntegration
+from sentry_sdk.integrations.litellm import LiteLLMIntegration
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
@@ -962,7 +963,7 @@ with sentry_sdk.start_transaction(name="langgraph-openai"):
           code: `
 from litellm import completion
 
-response completions(
+response = completion(
     model="gpt-4o-mini",
     messages=[{"role": "user", "content": "Tell me a joke"}],
 )
