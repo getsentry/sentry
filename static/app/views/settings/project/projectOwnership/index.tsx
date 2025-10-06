@@ -37,7 +37,7 @@ export default function ProjectOwnership() {
   const theme = useTheme();
   const organization = useOrganization();
   const {projectId} = useParams<{projectId: string}>();
-  const {projects} = useProjects();
+  const {projects} = useProjects({slugs: [projectId]});
   const project = projects.find(p => p.slug === projectId)!;
   const queryClient = useQueryClient();
   const ownershipTitle = t('Ownership Rules');
