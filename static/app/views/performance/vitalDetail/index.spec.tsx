@@ -19,11 +19,6 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/views/performance/data';
 import VitalDetail from 'sentry/views/performance/vitalDetail';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
-const mockNavigate = jest.fn();
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: () => mockNavigate,
-}));
-
 const organization = OrganizationFixture({
   features: ['discover-basic', 'performance-view'],
 });
@@ -238,7 +233,7 @@ describe('Performance > VitalDetail', () => {
   });
 
   it('triggers a navigation on search', async () => {
-    render(<VitalDetail />, {
+    const {router} = render(<VitalDetail />, {
       organization: org,
       initialRouterConfig: {
         location: {
@@ -250,9 +245,6 @@ describe('Performance > VitalDetail', () => {
       },
     });
 
-    // Clear any navigation calls from initialization
-    mockNavigate.mockClear();
-
     // Fill out the search box, and submit it
     await userEvent.click(
       await screen.findByPlaceholderText('Search for events, users, tags, and more')
@@ -261,21 +253,21 @@ describe('Performance > VitalDetail', () => {
 
     // Check the navigation
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledTimes(1);
-    });
-
-    expect(mockNavigate).toHaveBeenCalledWith({
-      pathname: '/performance/vitaldetail/',
-      query: {
-        project: '1',
-        statsPeriod: '14d',
-        query: 'user.email:uhoh*',
-      },
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: '/performance/vitaldetail/',
+          query: {
+            project: '1',
+            statsPeriod: '14d',
+            query: 'user.email:uhoh*',
+          },
+        })
+      );
     });
   });
 
   it('applies conditions when linking to transaction summary', async () => {
-    render(<VitalDetail />, {
+    const {router} = render(<VitalDetail />, {
       organization: org,
       initialRouterConfig: {
         location: {
@@ -291,32 +283,43 @@ describe('Performance > VitalDetail', () => {
       await screen.findByRole('heading', {name: 'Largest Contentful Paint'})
     ).toBeInTheDocument();
 
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: '/performance/vitaldetail/',
+        query: {
+          query: 'sometag:value',
+        },
+      })
+    );
+
     await userEvent.click(
       await screen.findByLabelText('See transaction summary of the transaction something')
     );
 
-    expect(mockNavigate).toHaveBeenCalledWith({
-      pathname: `/organizations/${organization.slug}/insights/summary/`,
-      query: {
-        transaction: 'something',
-        project: undefined,
-        environment: undefined,
-        statsPeriod: DEFAULT_STATS_PERIOD,
-        start: undefined,
-        end: undefined,
-        query: 'sometag:value has:measurements.lcp',
-        referrer: 'performance-transaction-summary',
-        unselectedSeries: ['p100()', 'avg()'],
-        showTransactions: 'recent',
-        display: 'vitals',
-        trendFunction: undefined,
-        trendColumn: undefined,
-      },
-    });
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: `/organizations/${organization.slug}/insights/summary/`,
+        query: {
+          transaction: 'something',
+          project: undefined,
+          environment: undefined,
+          statsPeriod: DEFAULT_STATS_PERIOD,
+          start: undefined,
+          end: undefined,
+          query: 'sometag:value has:measurements.lcp',
+          referrer: 'performance-transaction-summary',
+          unselectedSeries: ['p100()', 'avg()'],
+          showTransactions: 'recent',
+          display: 'vitals',
+          trendFunction: undefined,
+          trendColumn: undefined,
+        },
+      })
+    );
   });
 
   it('check CLS', async () => {
-    render(<VitalDetail />, {
+    const {router} = render(<VitalDetail />, {
       organization: org,
       initialRouterConfig: {
         location: {
@@ -338,28 +341,35 @@ describe('Performance > VitalDetail', () => {
       await screen.findByLabelText('See transaction summary of the transaction something')
     );
 
-    expect(mockNavigate).toHaveBeenCalledWith({
-      pathname: `/organizations/${organization.slug}/insights/summary/`,
-      query: {
-        transaction: 'something',
-        project: undefined,
-        environment: undefined,
-        statsPeriod: DEFAULT_STATS_PERIOD,
-        start: undefined,
-        end: undefined,
-        query: 'anothertag:value has:measurements.cls',
-        referrer: 'performance-transaction-summary',
-        unselectedSeries: ['p100()', 'avg()'],
-        showTransactions: 'recent',
-        display: 'vitals',
-        trendFunction: undefined,
-        trendColumn: undefined,
-      },
-    });
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: `/organizations/${organization.slug}/insights/summary/`,
+        query: {
+          transaction: 'something',
+          project: undefined,
+          environment: undefined,
+          statsPeriod: DEFAULT_STATS_PERIOD,
+          start: undefined,
+          end: undefined,
+          query: 'anothertag:value has:measurements.cls',
+          referrer: 'performance-transaction-summary',
+          unselectedSeries: ['p100()', 'avg()'],
+          showTransactions: 'recent',
+          display: 'vitals',
+          trendFunction: undefined,
+          trendColumn: undefined,
+        },
+      })
+    );
   });
 
   it('can switch vitals with dropdown menu', async () => {
-    render(<VitalDetail />, {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: [],
+    });
+
+    const {router} = render(<VitalDetail />, {
       organization: org,
       initialRouterConfig: {
         location: {
@@ -372,9 +382,6 @@ describe('Performance > VitalDetail', () => {
       },
     });
 
-    // Clear any navigation calls from initialization
-    mockNavigate.mockClear();
-
     const button = screen.getByRole('button', {name: /web vitals: lcp/i});
     expect(button).toBeInTheDocument();
     await userEvent.click(button);
@@ -383,15 +390,16 @@ describe('Performance > VitalDetail', () => {
     expect(menuItem).toBeInTheDocument();
     await userEvent.click(menuItem);
 
-    expect(mockNavigate).toHaveBeenCalledTimes(1);
-    expect(mockNavigate).toHaveBeenCalledWith({
-      pathname: '/performance/vitaldetail/',
-      query: {
-        project: '1',
-        query: 'tag:value',
-        vitalName: 'measurements.fcp',
-      },
-    });
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: '/performance/vitaldetail/',
+        query: {
+          project: '1',
+          query: 'tag:value',
+          vitalName: 'measurements.fcp',
+        },
+      })
+    );
   });
 
   it('renders LCP vital correctly', async () => {
