@@ -1,6 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -21,7 +22,6 @@ import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {keepPreviousData} from 'sentry/utils/queryClient';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
@@ -55,7 +55,19 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const {eventCount} = useIssueDetails();
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const theme = useTheme();
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
+
+  function checkNavIsSmall() {
+    const navEl = navigationRef.current;
+    return !!navEl && navEl.clientWidth < parseInt(theme.breakpoints.sm, 10);
+  }
+
+  const navigationRef = useRef<HTMLDivElement>(null);
+  const [isSmallNav, setSmallNav] = useState(checkNavIsSmall);
+
+  useResizeObserver({
+    ref: navigationRef,
+    onResize: () => setSmallNav(checkNavIsSmall),
+  });
 
   const hideDropdownButton =
     !issueTypeConfig.pages.attachments.enabled &&
@@ -97,7 +109,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const isListView = LIST_VIEW_TABS.has(currentTab);
 
   return (
-    <EventNavigationWrapper role="navigation">
+    <EventNavigationWrapper role="navigation" ref={navigationRef}>
       <Flex align="center" gap="2xs">
         <DropdownMenu
           onAction={key => {
@@ -211,7 +223,11 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
         <NavigationWrapper>
           {currentTab === Tab.DETAILS && (
             <Fragment>
-              <IssueDetailsEventNavigation event={event} group={group} />
+              <IssueDetailsEventNavigation
+                event={event}
+                group={group}
+                isSmallNav={isSmallNav}
+              />
               {issueTypeConfig.pages.events.enabled && (
                 <LinkButton
                   to={{
@@ -222,7 +238,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   analyticsEventKey="issue_details.all_events_clicked"
                   analyticsEventName="Issue Details: All Events Clicked"
                 >
-                  {isSmallScreen
+                  {isSmallNav
                     ? t('More %s', issueTypeConfig.customCopy.eventUnits)
                     : t('View More %s', issueTypeConfig.customCopy.eventUnits)}
                 </LinkButton>
@@ -237,7 +253,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   analyticsEventKey="issue_details.all_open_periods_clicked"
                   analyticsEventName="Issue Details: All Open Periods Clicked"
                 >
-                  {isSmallScreen ? t('More Open Periods') : t('View More Open Periods')}
+                  {isSmallNav ? t('More Open Periods') : t('View More Open Periods')}
                 </LinkButton>
               )}
               {issueTypeConfig.pages.checkIns.enabled && (
@@ -250,7 +266,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   analyticsEventKey="issue_details.all_checks_ins_clicked"
                   analyticsEventName="Issue Details: All Checks-Ins Clicked"
                 >
-                  {isSmallScreen ? t('More Check-Ins') : t('View More Check-Ins')}
+                  {isSmallNav ? t('More Check-Ins') : t('View More Check-Ins')}
                 </LinkButton>
               )}
               {issueTypeConfig.pages.uptimeChecks.enabled && (
@@ -263,7 +279,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   analyticsEventKey="issue_details.all_uptime_checks_clicked"
                   analyticsEventName="Issue Details: All Uptime Checks Clicked"
                 >
-                  {isSmallScreen ? t('More Uptime Checks') : t('View More Uptime Checks')}
+                  {isSmallNav ? t('More Uptime Checks') : t('View More Uptime Checks')}
                 </LinkButton>
               )}
             </Fragment>
@@ -329,6 +345,7 @@ const LargeInThisIssueText = styled('div')`
 const EventNavigationWrapper = styled('div')`
   flex-grow: 1;
   display: flex;
+  flex-wrap: wrap;
   flex-direction: column;
   justify-content: space-between;
   font-size: ${p => p.theme.fontSize.sm};
