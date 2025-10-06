@@ -40,7 +40,13 @@ export function GroupInfoSummary({
       : null;
 
   if (isPending && !hasPerformanceGrouping) {
-    return <Placeholder height="20px" style={{marginBottom: '20px'}} />;
+    return (
+      <Placeholder
+        height="20px"
+        width="unset"
+        style={{flexGrow: 1, marginBottom: '20px'}}
+      />
+    );
   }
 
   return (
