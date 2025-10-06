@@ -14,11 +14,17 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
 
-function ProjectLoaderScript({project}: {project: Project}) {
+export default function ProjectLoaderScript() {
+  const {projectId} = useParams<{projectId: string}>();
+  const {projects} = useProjects({slugs: [projectId]});
+  const project = projects.find(p => p.slug === projectId)!;
+
   const organization = useOrganization();
   const apiEndpoint = `/projects/${organization.slug}/${project.slug}/keys/`;
   const [updatedProjectKeys, setUpdatedProjectKeys] = useState<ProjectKey[]>([]);
@@ -136,5 +142,3 @@ function LoaderItem({
     </Panel>
   );
 }
-
-export default ProjectLoaderScript;
