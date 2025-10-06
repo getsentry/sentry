@@ -3,15 +3,13 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import AddGlobalFilter, {
-  DATASET_CHOICES,
-} from 'sentry/views/dashboards/globalFilter/addGlobalFilter';
+import AddFilter, {DATASET_CHOICES} from 'sentry/views/dashboards/globalFilter/addFilter';
 import {WidgetType} from 'sentry/views/dashboards/types';
 
 // Mock getDatasetConfig
 jest.mock('sentry/views/dashboards/datasetConfig/base');
 
-describe('AddGlobalFilter', () => {
+describe('AddFilter', () => {
   // Mock filter keys returned by the search bar data provider
   const mockFilterKeys: TagCollection = {
     browser: {
@@ -25,13 +23,13 @@ describe('AddGlobalFilter', () => {
       kind: FieldKind.FIELD,
     },
     unsupportedFunction: {
-      key: 'unsupported',
-      name: 'Unsupported',
+      key: 'unsupported.function',
+      name: 'Unsupported Function',
       kind: FieldKind.FUNCTION,
     },
     unsupportedMeasurement: {
-      key: 'unsupported',
-      name: 'Unsupported',
+      key: 'unsupported.measurement',
+      name: 'Unsupported Measurement',
       kind: FieldKind.MEASUREMENT,
     },
   };
@@ -54,7 +52,7 @@ describe('AddGlobalFilter', () => {
   });
 
   it('renders all dataset options', async () => {
-    render(<AddGlobalFilter onAddFilter={() => {}} />);
+    render(<AddFilter onAddFilter={() => {}} />);
     await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
     for (const dataset of DATASET_CHOICES.values()) {
       expect(screen.getByText(dataset)).toBeInTheDocument();
@@ -62,7 +60,7 @@ describe('AddGlobalFilter', () => {
   });
 
   it('retrieves filter keys for each dataset', async () => {
-    render(<AddGlobalFilter onAddFilter={() => {}} />);
+    render(<AddFilter onAddFilter={() => {}} />);
 
     // Open the add global filter drop down
     await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
@@ -78,7 +76,7 @@ describe('AddGlobalFilter', () => {
       await userEvent.click(screen.getByText(datasetLabel));
 
       // Should see filter key options for the dataset
-      expect(screen.getByText('Select filter tag')).toBeInTheDocument();
+      expect(screen.getByText('Select Filter Tag')).toBeInTheDocument();
       expect(screen.getByText(mockFilterKeys.browser!.key)).toBeInTheDocument();
       expect(screen.getByText(mockFilterKeys.environment!.key)).toBeInTheDocument();
 
@@ -88,7 +86,7 @@ describe('AddGlobalFilter', () => {
   });
 
   it('does not render unsupported filter keys', async () => {
-    render(<AddGlobalFilter onAddFilter={() => {}} />);
+    render(<AddFilter onAddFilter={() => {}} />);
 
     // Open the dropdown and select an arbitrary dataset
     await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
@@ -105,7 +103,7 @@ describe('AddGlobalFilter', () => {
 
   it('calls onAddFilter with expected global filter object', async () => {
     const onAddFilter = jest.fn();
-    render(<AddGlobalFilter onAddFilter={onAddFilter} />);
+    render(<AddFilter onAddFilter={onAddFilter} />);
 
     // Open add global filter drop down
     await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));

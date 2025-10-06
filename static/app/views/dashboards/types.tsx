@@ -153,10 +153,10 @@ export enum DashboardFilterKeys {
 
 export type DashboardFilters = {
   [DashboardFilterKeys.RELEASE]?: string[];
-  [DashboardFilterKeys.GLOBAL_FILTER]?: GlobalDashboardFilter[];
+  [DashboardFilterKeys.GLOBAL_FILTER]?: GlobalFilter[];
 };
 
-export type GlobalDashboardFilter = {
+export type GlobalFilter = {
   dataset: WidgetType;
   tag: Tag;
   value: string;

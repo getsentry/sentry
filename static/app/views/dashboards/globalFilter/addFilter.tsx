@@ -6,14 +6,14 @@ import {Button} from 'sentry/components/core/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
 import {ValueType} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
-import {IconArrow, IconFilter} from 'sentry/icons';
+import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {FieldKind, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {WidgetType, type GlobalDashboardFilter} from 'sentry/views/dashboards/types';
+import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {shouldExcludeTracingKeys} from 'sentry/views/performance/utils';
 
 export const DATASET_CHOICES = new Map<WidgetType, string>([
@@ -34,11 +34,11 @@ function getTagType(tag: Tag, dataset: WidgetType | null) {
   return <ValueType fieldDefinition={fieldDefinition} fieldKind={tag.kind} />;
 }
 
-type AddGlobalFilterProps = {
-  onAddFilter: (filter: GlobalDashboardFilter) => void;
+type AddFilterProps = {
+  onAddFilter: (filter: GlobalFilter) => void;
 };
 
-function AddGlobalFilter({onAddFilter}: AddGlobalFilterProps) {
+function AddFilter({onAddFilter}: AddFilterProps) {
   const [selectedDataset, setSelectedDataset] = useState<WidgetType | null>(null);
   const [selectedFilterKey, setSelectedFilterKey] = useState<Tag | null>(null);
   const [isSelectingFilterKey, setIsSelectingFilterKey] = useState(false);
@@ -100,7 +100,7 @@ function AddGlobalFilter({onAddFilter}: AddGlobalFilterProps) {
           priority="primary"
           disabled={!selectedFilterKey}
           onClick={() => {
-            const newFilter: GlobalDashboardFilter = {
+            const newFilter: GlobalFilter = {
               dataset: selectedDataset!,
               tag: selectedFilterKey!,
               value: '',
@@ -136,21 +136,21 @@ function AddGlobalFilter({onAddFilter}: AddGlobalFilterProps) {
       size="md"
       menuWidth="300px"
       menuTitle={
-        isSelectingFilterKey ? t('Select filter tag') : t('Select Filter Dataset')
+        isSelectingFilterKey ? t('Select Filter Tag') : t('Select Filter Dataset')
       }
       menuFooter={isSelectingFilterKey && filterOptionsMenuFooter}
       trigger={triggerProps => (
         <Button
           {...triggerProps}
           aria-label={t('Add Global Filter')}
-          icon={<IconFilter color="subText" size="xs" />}
+          icon={<IconAdd size="sm" />}
         />
       )}
     />
   );
 }
 
-export default AddGlobalFilter;
+export default AddFilter;
 
 const FooterWrap = styled('div')`
   display: grid;
