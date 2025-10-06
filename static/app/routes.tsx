@@ -1001,7 +1001,6 @@ function buildRoutes(): RouteObject[] {
               component: make(
                 () => import('sentry/views/settings/organizationTeams/teamMembers')
               ),
-              deprecatedRouteProps: true,
             },
             {
               path: 'notifications/',

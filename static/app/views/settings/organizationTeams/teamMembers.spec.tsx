@@ -10,6 +10,7 @@ import {
   openInviteMembersModal,
   openTeamAccessRequestModal,
 } from 'sentry/actionCreators/modal';
+import TeamStore from 'sentry/stores/teamStore';
 import TeamMembers from 'sentry/views/settings/organizationTeams/teamMembers';
 
 jest.mock('sentry/actionCreators/modal', () => ({
@@ -39,6 +40,9 @@ describe('TeamMembers', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    TeamStore.reset();
+
+    TeamStore.loadInitialData([team, managerTeam]);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/`,
       method: 'GET',
@@ -68,7 +72,7 @@ describe('TeamMembers', () => {
 
   it('can add member to team with open membership', async () => {
     const org = OrganizationFixture({access: [], openMembership: true});
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
       initialRouterConfig,
       organization: org,
     });
@@ -83,7 +87,7 @@ describe('TeamMembers', () => {
 
   it('can add multiple members with one click on dropdown', async () => {
     const org = OrganizationFixture({access: [], openMembership: true});
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
       initialRouterConfig,
       organization: org,
     });
@@ -99,7 +103,7 @@ describe('TeamMembers', () => {
 
   it('can add member to team with team:admin permission', async () => {
     const org = OrganizationFixture({access: ['team:admin'], openMembership: false});
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
       initialRouterConfig,
       organization: org,
     });
@@ -114,7 +118,7 @@ describe('TeamMembers', () => {
 
   it('can add member to team with org:write permission', async () => {
     const org = OrganizationFixture({access: ['org:write'], openMembership: false});
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
       initialRouterConfig,
       organization: org,
     });
@@ -129,7 +133,7 @@ describe('TeamMembers', () => {
 
   it('can request access to add member to team without permission', async () => {
     const org = OrganizationFixture({access: [], openMembership: false});
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
       initialRouterConfig,
       organization: org,
     });
@@ -149,7 +153,7 @@ describe('TeamMembers', () => {
         openMembership: false,
       }),
     });
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
       initialRouterConfig,
       organization: org,
     });
@@ -169,7 +173,7 @@ describe('TeamMembers', () => {
         openMembership: true,
       }),
     });
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
       initialRouterConfig,
       organization: org,
     });
@@ -186,7 +190,7 @@ describe('TeamMembers', () => {
     const {organization: org} = initializeOrg({
       organization: OrganizationFixture({access: [], openMembership: true}),
     });
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
       initialRouterConfig,
       organization: org,
     });
@@ -203,7 +207,7 @@ describe('TeamMembers', () => {
     const {organization: org} = initializeOrg({
       organization: OrganizationFixture({access: [], openMembership: false}),
     });
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
       initialRouterConfig,
       organization: org,
     });
@@ -221,7 +225,7 @@ describe('TeamMembers', () => {
       url: `/organizations/${organization.slug}/members/${members[0]!.id}/teams/${team.slug}/`,
       method: 'DELETE',
     });
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
       initialRouterConfig,
       organization,
     });
@@ -251,7 +255,7 @@ describe('TeamMembers', () => {
     });
     const organizationMember = OrganizationFixture({access: []});
 
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
       initialRouterConfig,
       organization: organizationMember,
     });
@@ -283,7 +287,7 @@ describe('TeamMembers', () => {
       body: [...members, owner],
     });
 
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
       initialRouterConfig,
       organization,
     });
@@ -309,7 +313,7 @@ describe('TeamMembers', () => {
 
     const orgWithTeamRoles = OrganizationFixture({features: ['team-roles']});
 
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
       initialRouterConfig,
       organization: orgWithTeamRoles,
     });
@@ -338,6 +342,9 @@ describe('TeamMembers', () => {
     }));
 
     MockApiClient.clearMockResponses();
+    TeamStore.reset();
+
+    TeamStore.loadInitialData([team2]);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/`,
       method: 'GET',
@@ -354,8 +361,15 @@ describe('TeamMembers', () => {
       body: team2,
     });
 
-    render(<TeamMembers team={team2} />, {
-      initialRouterConfig,
+    const team2RouterConfig = {
+      location: {
+        pathname: `/settings/${organization.slug}/teams/${team2.slug}/members/`,
+      },
+      route: '/settings/:orgId/teams/:teamId/members/',
+    };
+
+    render(<TeamMembers />, {
+      initialRouterConfig: team2RouterConfig,
       organization,
     });
 
@@ -383,6 +397,9 @@ describe('TeamMembers', () => {
     }));
 
     MockApiClient.clearMockResponses();
+    TeamStore.reset();
+
+    TeamStore.loadInitialData([team2]);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/`,
       method: 'GET',
@@ -399,8 +416,15 @@ describe('TeamMembers', () => {
       body: team2,
     });
 
-    render(<TeamMembers team={team2} />, {
-      initialRouterConfig,
+    const team2RouterConfig = {
+      location: {
+        pathname: `/settings/${organization.slug}/teams/${team2.slug}/members/`,
+      },
+      route: '/settings/:orgId/teams/:teamId/members/',
+    };
+
+    render(<TeamMembers />, {
+      initialRouterConfig: team2RouterConfig,
       organization,
     });
 
@@ -411,7 +435,7 @@ describe('TeamMembers', () => {
   });
 
   it('renders a "Pending" tag for pending team members', async () => {
-    render(<TeamMembers team={team} />, {
+    render(<TeamMembers />, {
       initialRouterConfig,
       organization,
     });

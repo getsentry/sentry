@@ -35,6 +35,7 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import TeamMembersRow, {
@@ -43,10 +44,6 @@ import TeamMembersRow, {
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {getButtonHelpText} from './utils';
-
-interface TeamMembersProps {
-  team: Team;
-}
 
 function getTeamMembersQueryKey({
   organization,
@@ -186,13 +183,16 @@ function AddMemberDropdown({
   );
 }
 
-function TeamMembers({team}: TeamMembersProps) {
+export default function TeamMembers() {
   const user = useUser();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const {teamId} = useParams<{teamId: string}>();
   const location = useLocation();
+
+  const {teamId} = useParams<{teamId: string}>();
+  const {teams, isLoading: isTeamsLoading} = useTeamsById({slugs: [teamId]});
+  const team = teams.find(tm => tm.slug === teamId);
 
   const {
     data: teamMembers = [],
@@ -311,6 +311,14 @@ function TeamMembers({team}: TeamMembersProps) {
     return <LoadingError onRetry={refetchTeamMembers} />;
   }
 
+  if (isTeamsLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (!team) {
+    return null;
+  }
+
   const renderPageTextBlock = () => {
     const {openMembership} = organization;
     const isIdpProvisioned = team.flags['idp:provisioned'];
@@ -391,5 +399,3 @@ function TeamMembers({team}: TeamMembersProps) {
 const StyledPanelHeader = styled(PanelHeader)`
   ${GRID_TEMPLATE}
 `;
-
-export default TeamMembers;
