@@ -544,6 +544,10 @@ export function getCurrentPageFilters(
 export function getDashboardFiltersFromURL(location: Location): DashboardFilters | null {
   const dashboardFilters: DashboardFilters = {};
   Object.values(DashboardFilterKeys).forEach(key => {
+    // Skip global filters for now, URL parameter persistence will be added later on
+    if (key === DashboardFilterKeys.GLOBAL_FILTER) {
+      return;
+    }
     if (defined(location.query?.[key])) {
       dashboardFilters[key] = decodeList(location.query?.[key]);
     }
