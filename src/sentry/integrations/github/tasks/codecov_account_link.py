@@ -37,11 +37,9 @@ def codecov_account_link(
 @instrumented_task(
     name="sentry.integrations.github.tasks.backfill_codecov_account_link",
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(
-        namespace=integrations_control_throttled_tasks,
-        retry=Retry(times=3),
-        processing_deadline_duration=60,
-    ),
+    namespace=integrations_control_throttled_tasks,
+    retry=Retry(times=3),
+    processing_deadline_duration=60,
 )
 @retry(exclude=(ConfigurationError,))
 def backfill_codecov_account_link(
