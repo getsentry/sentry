@@ -5,7 +5,6 @@ from django.test import override_settings
 
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import test_tasks
 from sentry.taskworker.registry import TaskRegistry
@@ -215,18 +214,3 @@ def test_instrumented_task_parameters() -> None:
     assert decorated.retry
     assert decorated.retry._times == 3
     assert decorated.retry._allowed_exception_types == (RuntimeError,)
-
-
-def test_instrumented_task_deprecated_taskworker_config() -> None:
-    registry = TaskRegistry()
-    namespace = registry.create_namespace("registertest")
-
-    with pytest.raises(AssertionError) as err:
-
-        @instrumented_task(
-            name="hello_task", taskworker_config=TaskworkerConfig(namespace=namespace)
-        )
-        def hello_task():
-            pass
-
-    assert "taskworker_config is deprecated" in str(err)
