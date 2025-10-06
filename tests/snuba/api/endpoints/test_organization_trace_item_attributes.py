@@ -201,6 +201,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                     "sentry.message.parameter.0": {"bool_value": 1},
                     "sentry.message.parameter.1": {"int_value": 5},
                     "sentry.message.parameter.2": {"double_value": 10},
+                    "sentry.message.parameter.value": {"double_value": 15},
                 },
             ),
         ]
@@ -210,15 +211,15 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         response = self.do_request(query={"attributeType": "string"})
 
         assert response.status_code == 200, response.content
-        keys = {item["key"] for item in response.data}
+        keys = {(item["key"], item["name"]) for item in response.data}
         assert keys == {
-            "project",
-            "message",
-            "severity",
-            "message.parameter.username",
-            "message.parameter.ip",
-            "message.parameter.0",
-            "message.parameter.1",
+            ("project", "project"),
+            ("message", "message"),
+            ("severity", "severity"),
+            ("message.parameter.username", "message.parameter.username"),
+            ("message.parameter.ip", "message.parameter.ip"),
+            ("message.parameter.0", "message.parameter.0"),
+            ("message.parameter.1", "message.parameter.1"),
         }
 
         sources = {item["attributeSource"]["source_type"] for item in response.data}
@@ -233,14 +234,15 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         response = self.do_request(query={"attributeType": "number"})
 
         assert response.status_code == 200, response.content
-        keys = {item["key"] for item in response.data}
+        keys = {(item["key"], item["name"]) for item in response.data}
         assert keys == {
-            "tags[message.parameter.0,number]",
-            "tags[message.parameter.1,number]",
-            "tags[message.parameter.2,number]",
-            "severity_number",
-            "observed_timestamp",
-            "timestamp_precise",
+            ("tags[message.parameter.0,number]", "message.parameter.0"),
+            ("tags[message.parameter.1,number]", "message.parameter.1"),
+            ("tags[message.parameter.2,number]", "message.parameter.2"),
+            ("tags[message.parameter.value,number]", "message.parameter.value"),
+            ("severity_number", "severity_number"),
+            ("observed_timestamp", "observed_timestamp"),
+            ("timestamp_precise", "timestamp_precise"),
         }
 
         sources = {item["attributeSource"]["source_type"] for item in response.data}
