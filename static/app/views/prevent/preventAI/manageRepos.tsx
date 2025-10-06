@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -22,28 +22,30 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
   const theme = useTheme();
   const [isPanelOpen, setIsPanelOpen] = useState(false);
 
-  const [selectedOrg, setSelectedOrg] = useState(() => installedOrgs[0]?.id ?? '');
-  const [selectedRepo, setSelectedRepo] = useState(
-    () => installedOrgs[0]?.repos?.[0]?.id ?? ''
+  const [selectedOrgName, setSelectedOrgName] = useState(
+    () => installedOrgs[0]?.name ?? ''
+  );
+  const [selectedRepoName, setSelectedRepoName] = useState(
+    () => installedOrgs[0]?.repos?.[0]?.name ?? ''
   );
 
-  const selectedOrgData = useMemo(
-    () => installedOrgs.find(org => org.id === selectedOrg),
-    [installedOrgs, selectedOrg]
+  let selectedOrgData = useMemo(
+    () => installedOrgs.find(org => org.name === selectedOrgName),
+    [installedOrgs, selectedOrgName]
   );
-  const selectedRepoData = useMemo(
-    () => selectedOrgData?.repos?.find(repo => repo.id === selectedRepo),
-    [selectedOrgData, selectedRepo]
-  );
+  if (!selectedOrgData) {
+    setSelectedOrgName(installedOrgs[0]?.name ?? '');
+    selectedOrgData = installedOrgs[0];
+  }
 
-  // Reset repo selection when org changes
-  useEffect(() => {
-    const org = installedOrgs.find(o => o.id === selectedOrg);
-    if (org && !org.repos.some(repo => repo.id === selectedRepo)) {
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-      setSelectedRepo(org.repos[0]?.id ?? '');
-    }
-  }, [selectedOrg, installedOrgs, selectedRepo]);
+  let selectedRepoData = useMemo(
+    () => selectedOrgData?.repos?.find(repo => repo.name === selectedRepoName),
+    [selectedOrgData, selectedRepoName]
+  );
+  if (!selectedRepoData) {
+    setSelectedRepoName(selectedOrgData?.repos?.[0]?.name ?? '');
+    selectedRepoData = selectedOrgData?.repos?.[0];
+  }
 
   const isOrgSelected = !!selectedOrgData;
   const isRepoSelected = !!selectedRepoData;
@@ -53,10 +55,10 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
       <Flex align="center" justify="between">
         <ManageReposToolbar
           installedOrgs={installedOrgs}
-          selectedOrg={selectedOrg}
-          selectedRepo={selectedRepo}
-          onOrgChange={setSelectedOrg}
-          onRepoChange={setSelectedRepo}
+          selectedOrg={selectedOrgName}
+          selectedRepo={selectedRepoName}
+          onOrgChange={setSelectedOrgName}
+          onRepoChange={setSelectedRepoName}
         />
         <Flex style={{transform: 'translateY(-70px)'}}>
           <Tooltip
@@ -125,7 +127,7 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
       </Flex>
 
       <ManageReposPanel
-        key={`${selectedOrg || 'no-org'}-${selectedRepo || 'no-repo'}`}
+        key={`${selectedOrgName || 'no-org'}-${selectedRepoName || 'no-repo'}`}
         collapsed={!isPanelOpen}
         onClose={() => setIsPanelOpen(false)}
         orgName={selectedOrgData?.name ?? ''}
