@@ -87,6 +87,7 @@ function extractThresholdsFromConditions(
     type: DataConditionType;
     value: number;
   }>;
+  resolution?: {type: DataConditionType; value: number};
 } {
   const thresholds = conditions
     .filter(
@@ -95,13 +96,22 @@ function extractThresholdsFromConditions(
         typeof condition.comparison === 'number'
     )
     .map(condition => ({
-      value: condition.comparison as number,
+      value: Number(condition.comparison),
       priority: condition.conditionResult || DetectorPriorityLevel.MEDIUM,
       type: condition.type,
     }))
     .sort((a, b) => a.value - b.value);
 
-  return {thresholds};
+  const resolutionCondition = conditions.find(
+    condition => condition.conditionResult === DetectorPriorityLevel.OK
+  );
+
+  const resolution =
+    resolutionCondition && typeof resolutionCondition.comparison === 'number'
+      ? {type: resolutionCondition.type, value: Number(resolutionCondition.comparison)}
+      : undefined;
+
+  return {thresholds, resolution};
 }
 
 interface UseMetricDetectorThresholdSeriesProps {
@@ -133,7 +143,7 @@ export function useMetricDetectorThresholdSeries({
       return {maxValue: undefined, additionalSeries: []};
     }
 
-    const {thresholds} = extractThresholdsFromConditions(conditions);
+    const {thresholds, resolution} = extractThresholdsFromConditions(conditions);
     const additional: LineSeriesOption[] = [];
 
     if (detectionType === 'percent') {
@@ -216,7 +226,26 @@ export function useMetricDetectorThresholdSeries({
       });
 
       additional.push(...thresholdSeries);
-      const maxValue = Math.max(...thresholds.map(threshold => threshold.value));
+      // Add manual resolution line and safe area if present (green)
+      if (resolution) {
+        const resolutionSeries: LineSeriesOption = {
+          type: 'line',
+          markLine: createThresholdMarkLine(theme.green300, resolution.value),
+          markArea: createThresholdMarkArea(
+            theme.green300,
+            resolution.value,
+            resolution.type === DataConditionType.GREATER
+          ),
+          data: [],
+        };
+        additional.push(resolutionSeries);
+      }
+
+      const valuesForMax = [
+        ...thresholds.map(threshold => threshold.value),
+        ...(resolution ? [resolution.value] : []),
+      ];
+      const maxValue = valuesForMax.length > 0 ? Math.max(...valuesForMax) : undefined;
       return {maxValue, additionalSeries: additional};
     }
 

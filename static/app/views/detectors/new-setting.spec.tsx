@@ -291,6 +291,61 @@ describe('DetectorEdit', () => {
         );
       });
     }, 10_000);
+
+    it('submits manual resolution threshold when selected', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '321'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: metricRouterConfig,
+      });
+
+      // Set initial trigger threshold
+      await userEvent.type(screen.getByRole('spinbutton', {name: 'Threshold'}), '100');
+
+      // Enable manual resolution and set resolution threshold
+      await userEvent.click(screen.getByRole('radio', {name: 'Manual'}));
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'Resolution threshold'}),
+        '80'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalled();
+      });
+
+      expect(mockCreateDetector).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/detectors/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            type: 'metric_issue',
+            conditionGroup: {
+              logicType: 'any',
+              conditions: [
+                // Main trigger condition at HIGH
+                {
+                  comparison: 100,
+                  conditionResult: 75,
+                  type: 'gt',
+                },
+                // Manual resolution condition at OK
+                {
+                  comparison: 80,
+                  conditionResult: 0,
+                  type: 'lt',
+                },
+              ],
+            },
+          }),
+        })
+      );
+    });
   });
 
   describe('Uptime Detector', () => {

@@ -114,8 +114,9 @@ function validateHighThreshold({
     !validateThresholdOrder(highNum, conditionNum, conditionType, true)
   ) {
     const message = t(
-      'High threshold must be %s than medium threshold',
-      conditionType === DataConditionType.GREATER ? t('higher') : t('lower')
+      'High threshold must be %s than medium threshold (%s)',
+      conditionType === DataConditionType.GREATER ? t('higher') : t('lower'),
+      String(conditionNum)
     );
     return [createValidationError(METRIC_DETECTOR_FORM_FIELDS.highThreshold, message)];
   }
