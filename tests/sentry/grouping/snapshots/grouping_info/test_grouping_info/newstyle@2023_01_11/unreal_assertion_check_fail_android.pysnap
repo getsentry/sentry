@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:20:24.722143+00:00'
+created: '2025-10-03T16:56:46.447895+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -21,7 +21,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": false,
@@ -807,8 +807,10 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app exception stack-trace",
+    "contributes": true,
+    "description": "in-app exception stacktrace",
     "hash": "8c134ce2a43a0b2c55654902491307c2",
+    "hint": null,
     "key": "app",
     "type": "component"
   },
@@ -829,7 +831,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": false,
@@ -1615,8 +1617,10 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "exception stack-trace",
+    "contributes": true,
+    "description": "exception stacktrace",
     "hash": "f203e9bc12df86bb01fbd92a45643f86",
+    "hint": null,
     "key": "system",
     "type": "component"
   }

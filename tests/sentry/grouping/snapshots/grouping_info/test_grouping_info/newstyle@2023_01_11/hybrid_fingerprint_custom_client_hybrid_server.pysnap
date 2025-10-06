@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:52:19.308138+00:00'
+created: '2025-10-03T16:56:45.007521+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -26,7 +26,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": true,
@@ -45,7 +45,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -89,7 +89,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -133,7 +133,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -177,7 +177,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -221,7 +221,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -265,7 +265,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -309,7 +309,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -353,7 +353,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -397,7 +397,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -441,7 +441,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -485,7 +485,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -529,7 +529,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -573,7 +573,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -617,7 +617,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -661,7 +661,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -705,7 +705,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -749,7 +749,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -820,8 +820,10 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "modified in-app exception stack-trace",
+    "contributes": true,
+    "description": "modified in-app exception stacktrace",
     "hash": "19163f3ca34f5995c69d85351ce3d697",
+    "hint": null,
     "key": "app",
     "matched_rule": "type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\"",
     "type": "salted_component",
@@ -852,7 +854,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": true,
@@ -871,7 +873,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -915,7 +917,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -959,7 +961,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -1003,7 +1005,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -1047,7 +1049,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -1091,7 +1093,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -1135,7 +1137,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -1179,7 +1181,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -1223,7 +1225,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -1267,7 +1269,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -1311,7 +1313,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -1355,7 +1357,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -1399,7 +1401,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -1443,7 +1445,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -1487,7 +1489,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -1531,7 +1533,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -1575,7 +1577,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -1646,8 +1648,10 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "modified exception stack-trace",
+    "contributes": true,
+    "description": "modified exception stacktrace",
     "hash": "847950eb44d280e6758d136c763d6ddc",
+    "hint": null,
     "key": "system",
     "matched_rule": "type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\"",
     "type": "salted_component",

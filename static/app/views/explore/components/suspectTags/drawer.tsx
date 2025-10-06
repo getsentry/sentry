@@ -123,6 +123,8 @@ export function Drawer({boxSelectOptions, chartInfo}: Props) {
             </ControlsContainer>
             {filteredRankedAttributes.length > 0 ? (
               <Charts
+                cohort1Total={data?.cohort1Total ?? 0}
+                cohort2Total={data?.cohort2Total ?? 0}
                 rankedAttributes={filteredRankedAttributes}
                 searchQuery={debouncedSearchQuery}
               />

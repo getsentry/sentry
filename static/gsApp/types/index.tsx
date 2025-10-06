@@ -34,6 +34,12 @@ declare global {
      */
     pendo?: any; // TODO: use types package
   }
+
+  namespace React {
+    interface DOMAttributes<T> {
+      'data-test-id'?: string;
+    }
+  }
 }
 
 /**
@@ -133,13 +139,23 @@ export enum AddOnCategory {
   PREVENT = 'prevent',
 }
 
-type AddOnCategoryInfo = {
+export type AddOnCategoryInfo = {
   apiName: AddOnCategory;
+  billingFlag: string | null;
   dataCategories: DataCategory[];
   name: string;
   order: number;
   productName: string;
 };
+
+type AddOn = AddOnCategoryInfo & {
+  enabled: boolean;
+};
+
+type AddOns = Partial<Record<AddOnCategory, AddOn>>;
+
+// how addons are represented in the checkout form data
+export type CheckoutAddOns = Partial<Record<AddOnCategory, Pick<AddOn, 'enabled'>>>;
 
 export type Plan = {
   addOnCategories: Partial<Record<AddOnCategory, AddOnCategoryInfo>>;
@@ -186,6 +202,7 @@ export type Plan = {
     Record<DataCategory, {plural: string; singular: string}>
   >;
   checkoutType?: CheckoutType;
+  retentions?: Partial<Record<DataCategory, {downsampled: number; standard: number}>>;
 };
 
 type PendingChanges = {
@@ -394,6 +411,7 @@ export type Subscription = {
   // Seats
   usedLicenses: number;
   acv?: number;
+  addOns?: AddOns;
   // Billing information
   billingEmail?: string | null;
   channel?: string;
@@ -418,6 +436,7 @@ export type Subscription = {
 
   owner?: {email: string; name: string};
   previousPaidPlans?: string[];
+
   productTrials?: ProductTrial[];
   reservedBudgets?: ReservedBudget[];
   // Added by SubscriptionStore
@@ -481,7 +500,6 @@ export type PromotionData = {
   completedPromotions: PromotionClaimed[];
 };
 
-/** @internal exported for tests only */
 export type Feature = {
   description: string;
   name: string;
@@ -670,6 +688,7 @@ export enum InvoiceItemType {
   RESERVED_SEER_AUTOFIX = 'reserved_seer_autofix',
   RESERVED_SEER_SCANNER = 'reserved_seer_scanner',
   RESERVED_SEER_BUDGET = 'reserved_seer_budget',
+  RESERVED_PREVENT_USERS = 'reserved_prevent_users',
   RESERVED_LOG_BYTES = 'reserved_log_bytes',
 }
 
@@ -701,6 +720,7 @@ export type BillingMetricHistory = {
   trueForward: boolean;
   usage: number;
   usageExceeded: boolean;
+  retention?: {downsampled: number | null; standard: number};
 };
 
 export type BillingHistory = {
@@ -808,7 +828,6 @@ export enum CohortId {
   TEST_ONE = 111,
 }
 
-/** @internal exported for tests only */
 export type Cohort = {
   cohortId: CohortId;
   nextPlan: NextPlanInfo | null;
@@ -1015,6 +1034,10 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   canProductTrial: boolean;
   /**
+   * The tooltip text for the checkout page
+   */
+  checkoutTooltip: string | null;
+  /**
    * The feature flag that enables the category
    */
   feature: string | null;
@@ -1035,16 +1058,11 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   maxAdminGift: number;
   /**
-   * The multiplier to use on the category to display
-   * its PAYG pricing
-   */
-  paygPriceMultiplier: number;
-  /**
-   * The tooltip text for the checkout page
-   */
-  reservedVolumeTooltip: string | null;
-  /**
    * How usage is tallied for the category
    */
   tallyType: 'usage' | 'seat';
+  /**
+   * The shortened form of the singular unit name (ie. 'error', 'hour', 'monitor').
+   */
+  shortenedUnitName?: string;
 }

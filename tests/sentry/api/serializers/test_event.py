@@ -13,7 +13,7 @@ from sentry.models.release import Release
 from sentry.sdk_updates import SdkIndexState
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.performance_issues.event_generators import get_event
+from sentry.testutils.issue_detection.event_generators import get_event
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin

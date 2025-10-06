@@ -70,7 +70,6 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import type {
   DashboardFilters,
   DashboardPermissions,
@@ -85,7 +84,6 @@ import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
-  hasDatasetSelector,
   isUsingPerformanceScore,
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
@@ -571,8 +569,6 @@ function WidgetViewerModal(props: Props) {
         }
         return (
           <ReleaseWidgetQueries
-            api={api}
-            organization={organization}
             widget={tableWidget}
             selection={modalSelection}
             limit={
@@ -803,7 +799,6 @@ function WidgetViewerModal(props: Props) {
                   <WidgetHeader>
                     <WidgetTitleRow>
                       <h3>{widget.title}</h3>
-                      <DiscoverSplitAlert widget={widget} />
                     </WidgetTitleRow>
                     {widget.description && (
                       <Tooltip
@@ -924,23 +919,12 @@ function OpenButton({
       break;
   }
 
-  const buttonDisabled =
-    hasDatasetSelector(organization) && widget.widgetType === WidgetType.DISCOVER;
-
   return (
-    <Tooltip
-      title={
-        disabledTooltip ??
-        t(
-          'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
-        )
-      }
-      disabled={defined(disabled) ? !disabled : !buttonDisabled}
-    >
+    <Tooltip title={disabledTooltip} disabled={!disabled}>
       <LinkButton
         to={path}
         priority="primary"
-        disabled={disabled || buttonDisabled}
+        disabled={disabled}
         onClick={() => {
           trackAnalytics('dashboards_views.widget_viewer.open_source', {
             organization,

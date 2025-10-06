@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
 import orjson
@@ -206,14 +206,25 @@ class GithubProxyClient(IntegrationProxyClient):
         return metadata["access_token"]
 
     @control_silo_function
-    def get_access_token(self) -> AccessTokenData | None:
+    def get_access_token(
+        self, token_minimum_validity_time: timedelta | None = None
+    ) -> AccessTokenData | None:
+        """
+        Retrieves an access token for the given integration with an optional
+        minimum validity time. This will guarantee that the token is valid for
+        at least the timedelta provided.
+        """
+        token_minimum_validity_time = token_minimum_validity_time or timedelta(minutes=0)
         now = datetime.utcnow()
         access_token: str | None = self.integration.metadata.get("access_token")
         expires_at: str | None = self.integration.metadata.get("expires_at")
-        is_expired = (
-            expires_at is not None and datetime.fromisoformat(expires_at).replace(tzinfo=None) < now
+
+        close_to_expiry = (
+            expires_at
+            and datetime.fromisoformat(expires_at).replace(tzinfo=None)
+            < now + token_minimum_validity_time
         )
-        should_refresh = not access_token or not expires_at or is_expired
+        should_refresh = not access_token or not expires_at or close_to_expiry
 
         if should_refresh:
             return self._refresh_access_token()
@@ -505,6 +516,18 @@ class GitHubBaseClient(
         https://docs.github.com/en/rest/issues/issues#get-an-issue
         """
         return self.get(f"/repos/{repo}/issues/{number}")
+
+    def get_issue_comments(self, repo: str, issue_number: str) -> Any:
+        """
+        https://docs.github.com/en/rest/issues/comments#list-issue-comments
+        """
+        return self.get(f"/repos/{repo}/issues/{issue_number}/comments")
+
+    def get_pullrequest_comments(self, repo: str, pull_number: str) -> Any:
+        """
+        https://docs.github.com/en/rest/pulls/comments#list-review-comments-on-a-pull-request
+        """
+        return self.get(f"/repos/{repo}/pulls/{pull_number}/comments")
 
     def create_issue(self, repo: str, data: Mapping[str, Any]) -> Any:
         """

@@ -4,17 +4,20 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import ConfigStore from 'sentry/stores/configStore';
+import type {Config} from 'sentry/types/system';
+
 import PreventAIOnboarding from './onboarding';
 
 jest.mock('sentry-images/features/prevent-hero.svg', () => 'prevent-hero-mock.svg');
 jest.mock(
-  'sentry-images/features/prevent-pr-comments-light.png',
-  () => 'prevent-pr-comments-light-mock.png',
+  'sentry-images/features/prevent-pr-comments-light.svg',
+  () => 'prevent-pr-comments-light-mock.svg',
   {virtual: true}
 );
 jest.mock(
-  'sentry-images/features/prevent-pr-comments-dark.png',
-  () => 'prevent-pr-comments-dark-mock.png',
+  'sentry-images/features/prevent-pr-comments-dark.svg',
+  () => 'prevent-pr-comments-dark-mock.svg',
   {virtual: true}
 );
 
@@ -22,9 +25,21 @@ describe('PreventAIOnboarding', () => {
   const organization = OrganizationFixture({
     slug: 'test-org',
   });
+  let configState: Config;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    configState = ConfigStore.getState();
+    // Set up default regions for tests
+    ConfigStore.set('regions', [
+      {url: 'https://us.sentry.io', name: 'us'},
+      {url: 'https://de.sentry.io', name: 'de'},
+    ]);
+  });
+
+  afterEach(() => {
+    // Restore ConfigStore to its previous state
+    ConfigStore.loadInitialData(configState);
   });
 
   it('renders the main onboarding content', () => {
@@ -94,7 +109,7 @@ describe('PreventAIOnboarding', () => {
     const learnMoreLink = screen.getByRole('link', {name: 'Learn more'});
     expect(learnMoreLink).toHaveAttribute(
       'href',
-      'https://docs.sentry.io/product/ai-in-sentry/sentry-prevent-ai/'
+      'https://docs.sentry.io/product/ai-in-sentry/ai-code-review/'
     );
   });
 
@@ -152,7 +167,7 @@ describe('PreventAIOnboarding', () => {
 
     const prCommentsImage = screen.getByAltText('Prevent PR Comments');
     expect(prCommentsImage).toBeInTheDocument();
-    expect(prCommentsImage).toHaveAttribute('src', 'prevent-pr-comments-light-mock.png');
+    expect(prCommentsImage).toHaveAttribute('src', 'prevent-pr-comments-light-mock.svg');
   });
 
   it('renders admin notice text', () => {
@@ -241,8 +256,8 @@ describe('PreventAIOnboarding', () => {
   });
 
   it.each([
-    [{type: 'dark'}, 'prevent-pr-comments-dark-mock.png'],
-    [{type: 'light'}, 'prevent-pr-comments-light-mock.png'],
+    [{type: 'dark'}, 'prevent-pr-comments-dark-mock.svg'],
+    [{type: 'light'}, 'prevent-pr-comments-light-mock.svg'],
   ])('renders the correct image in %p theme', (theme, expectedSrc) => {
     render(
       <ThemeProvider theme={theme as Theme}>
@@ -253,5 +268,41 @@ describe('PreventAIOnboarding', () => {
     const prCommentsImage = screen.getByAltText('Prevent PR Comments');
     expect(prCommentsImage).toBeInTheDocument();
     expect(prCommentsImage).toHaveAttribute('src', expectedSrc);
+  });
+
+  it('shows EU data storage alert when organization region is EU', () => {
+    const euOrg = OrganizationFixture({
+      slug: 'eu-org',
+      links: {
+        organizationUrl: 'https://eu-org.sentry.io',
+        regionUrl: 'https://de.sentry.io',
+      },
+    });
+
+    render(<PreventAIOnboarding />, {organization: euOrg});
+
+    expect(
+      screen.getByText(
+        'AI Code Review data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('does not show region alert for US organizations', () => {
+    const usOrg = OrganizationFixture({
+      slug: 'us-org',
+      links: {
+        organizationUrl: 'https://us-org.sentry.io',
+        regionUrl: 'https://us.sentry.io',
+      },
+    });
+
+    render(<PreventAIOnboarding />, {organization: usOrg});
+
+    expect(
+      screen.queryByText(
+        'AI Code Review data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
+      )
+    ).not.toBeInTheDocument();
   });
 });

@@ -5,6 +5,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import * as formIndicatorActions from 'sentry/components/forms/formIndicators';
 import Indicators from 'sentry/components/indicators';
+import ConfigStore from 'sentry/stores/configStore';
 import * as RegionUtils from 'sentry/utils/regions';
 import OrganizationSettingsForm from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
@@ -270,7 +271,7 @@ describe('OrganizationSettingsForm', () => {
     expect(learnMoreLink).toBeInTheDocument();
     expect(learnMoreLink).toHaveAttribute(
       'href',
-      'https://docs.sentry.io/product/ai-in-sentry/sentry-prevent-ai/'
+      'https://docs.sentry.io/product/ai-in-sentry/ai-code-review/'
     );
   });
 
@@ -334,5 +335,154 @@ describe('OrganizationSettingsForm', () => {
 
     // PR Review field should be hidden again
     expect(screen.queryByText('Enable AI Code Review')).not.toBeInTheDocument();
+  });
+
+  describe('AI Code Review field', () => {
+    it('is enabled when US region', () => {
+      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
+        name: 'us',
+        displayName: 'United States of America (US)',
+        url: 'https://sentry.example.com',
+      });
+
+      render(
+        <OrganizationSettingsForm
+          {...routerProps}
+          initialData={OrganizationFixture({hideAiFeatures: true})}
+          onSave={onSave}
+        />
+      );
+
+      const preventAiField = screen.getByRole('checkbox', {
+        name: /Enable AI Code Review/i,
+      });
+      expect(preventAiField).toBeInTheDocument();
+      expect(preventAiField).toBeEnabled();
+      expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
+    });
+
+    it('is disabled when non US region', async () => {
+      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
+        name: 'de',
+        displayName: 'Europe (Frankfurt)',
+        url: 'https://sentry.de.example.com',
+      });
+
+      render(
+        <OrganizationSettingsForm
+          {...routerProps}
+          initialData={OrganizationFixture({hideAiFeatures: true})}
+          onSave={onSave}
+        />
+      );
+
+      const preventAiField = screen.getByRole('checkbox', {
+        name: /Enable AI Code Review/i,
+      });
+      expect(preventAiField).toBeInTheDocument();
+      expect(preventAiField).toBeDisabled();
+
+      // Hover over the disabled tag to show the tooltip
+      const disabledTag = screen.getByTestId('prevent-ai-disabled-tag');
+      expect(disabledTag).toBeInTheDocument();
+      await userEvent.hover(disabledTag);
+      expect(
+        await screen.findByText('This feature is only available in the US region')
+      ).toBeInTheDocument();
+    });
+
+    it('is enabled when user is an admin (has org:write access)', () => {
+      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
+        name: 'us',
+        displayName: 'United States of America (US)',
+        url: 'https://sentry.example.com',
+      });
+
+      render(
+        <OrganizationSettingsForm
+          {...routerProps}
+          initialData={OrganizationFixture({
+            hideAiFeatures: true,
+          })}
+          onSave={onSave}
+        />,
+        {
+          organization: {
+            ...organization,
+            access: ['org:write'],
+          },
+        }
+      );
+
+      const preventAiField = screen.getByRole('checkbox', {
+        name: /Enable AI Code Review/i,
+      });
+      expect(preventAiField).toBeInTheDocument();
+      expect(preventAiField).toBeEnabled();
+      expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
+    });
+
+    it('is disabled when user is a member (does not have org:write access)', async () => {
+      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
+        name: 'us',
+        displayName: 'United States of America (US)',
+        url: 'https://sentry.example.com',
+      });
+
+      render(
+        <OrganizationSettingsForm
+          {...routerProps}
+          initialData={OrganizationFixture({
+            hideAiFeatures: true,
+          })}
+          onSave={onSave}
+        />,
+        {
+          organization: {
+            access: ['org:read'],
+          },
+        }
+      );
+
+      const preventAiField = await screen.findByRole('checkbox', {
+        name: /Enable AI Code Review/i,
+      });
+      expect(preventAiField).toBeInTheDocument();
+      expect(preventAiField).toBeDisabled();
+      expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
+    });
+
+    it('is disabled when self-hosted', async () => {
+      ConfigStore.set('isSelfHosted', true);
+
+      render(
+        <OrganizationSettingsForm
+          {...routerProps}
+          initialData={OrganizationFixture({
+            hideAiFeatures: true,
+          })}
+          onSave={onSave}
+        />,
+        {
+          organization: {
+            access: ['org:write'],
+          },
+        }
+      );
+
+      const preventAiField = screen.getByRole('checkbox', {
+        name: /Enable AI Code Review/i,
+      });
+      expect(preventAiField).toBeInTheDocument();
+      expect(preventAiField).toBeDisabled();
+
+      // Hover over the disabled tag to show the tooltip
+      const disabledTag = screen.getByTestId('prevent-ai-disabled-tag');
+      expect(disabledTag).toBeInTheDocument();
+      await userEvent.hover(disabledTag);
+      expect(
+        await screen.findByText('This feature is not available for self-hosted instances')
+      ).toBeInTheDocument();
+    });
   });
 });

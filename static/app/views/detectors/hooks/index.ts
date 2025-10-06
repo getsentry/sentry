@@ -5,12 +5,7 @@ import {
   type Detector,
 } from 'sentry/types/workflowEngine/detectors';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {
-  useApiQueries,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -134,22 +129,4 @@ export function useDetectorQuery<T extends Detector = Detector>(
     retry: false,
     ...queryOptions,
   });
-}
-
-export function useDetectorQueriesByIds<T extends Detector = Detector>(
-  detectorId: string[],
-  queryOptions: Partial<UseApiQueryOptions<T>> = {}
-) {
-  const org = useOrganization();
-
-  return useApiQueries<T>(
-    detectorId.map(id =>
-      makeDetectorDetailsQueryKey({orgSlug: org.slug, detectorId: id})
-    ),
-    {
-      staleTime: 0,
-      retry: false,
-      ...queryOptions,
-    }
-  );
 }

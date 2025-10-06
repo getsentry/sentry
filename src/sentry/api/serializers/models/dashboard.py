@@ -267,7 +267,9 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
     def get_attrs(self, item_list, user, **kwargs):
         organization = kwargs.get("context", {}).get("organization")
         item_dict = {i.id: i for i in item_list}
-        prefetch_related_objects(item_list, "projects", "dashboardlastvisited_set__member")
+        prefetch_related_objects(
+            item_list, "projects__organization", "dashboardlastvisited_set__member"
+        )
 
         widgets = DashboardWidget.objects.filter(dashboard_id__in=item_dict.keys()).order_by("id")
 
@@ -277,7 +279,9 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             ).values_list("dashboard_id", flat=True)
         )
 
-        permissions = DashboardPermissions.objects.filter(dashboard_id__in=item_dict.keys())
+        permissions = DashboardPermissions.objects.filter(
+            dashboard_id__in=item_dict.keys()
+        ).prefetch_related("teams_with_edit_access")
 
         result: dict[int, _Widget]
         result = defaultdict(

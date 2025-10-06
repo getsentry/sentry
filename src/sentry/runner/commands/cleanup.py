@@ -450,7 +450,9 @@ def exported_data(
 def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]:
     from sentry.models.artifactbundle import ArtifactBundle
     from sentry.models.eventattachment import EventAttachment
+    from sentry.models.files.file import File
     from sentry.models.grouprulestatus import GroupRuleStatus
+    from sentry.models.pullrequest import PullRequest
     from sentry.models.release import Release
     from sentry.models.rulefirehistory import RuleFireHistory
     from sentry.monitors.models import MonitorCheckIn
@@ -464,8 +466,10 @@ def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]
         (ArtifactBundle, "date_added", "date_added"),
         (MonitorCheckIn, "date_added", "date_added"),
         (GroupRuleStatus, "date_added", "date_added"),
+        (PullRequest, "date_added", "date_added"),
         (RuleFireHistory, "date_added", "date_added"),
         (Release, "date_added", "date_added"),
+        (File, "timestamp", "timestamp"),
     ]
 
 
@@ -473,9 +477,11 @@ def remove_cross_project_models(
     deletes: list[tuple[type[Model], str, str]],
 ) -> list[tuple[type[Model], str, str]]:
     from sentry.models.artifactbundle import ArtifactBundle
+    from sentry.models.files.file import File
 
     # These models span across projects, so let's skip them
     deletes.remove((ArtifactBundle, "date_added", "date_added"))
+    deletes.remove((File, "timestamp", "timestamp"))
     return deletes
 
 

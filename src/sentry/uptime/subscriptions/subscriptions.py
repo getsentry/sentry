@@ -10,12 +10,14 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 from sentry import quotas
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.environment import Environment
+from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.types.actor import Actor
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
-from sentry.uptime.grouptype import UptimeDomainCheckFailure, resolve_uptime_issue
 from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
@@ -55,8 +57,49 @@ MAX_MANUAL_SUBSCRIPTIONS_PER_ORG = 100
 MAX_MONITORS_PER_DOMAIN = 100
 
 
+def build_detector_fingerprint_component(detector: Detector) -> str:
+    return f"uptime-detector:{detector.id}"
+
+
+def build_fingerprint(detector: Detector) -> list[str]:
+    return [build_detector_fingerprint_component(detector)]
+
+
+def resolve_uptime_issue(detector: Detector) -> None:
+    """
+    Sends an update to the issue platform to resolve the uptime issue for this
+    monitor.
+    """
+    status_change = StatusChangeMessage(
+        fingerprint=build_fingerprint(detector),
+        project_id=detector.project_id,
+        new_status=GroupStatus.RESOLVED,
+        new_substatus=None,
+    )
+    produce_occurrence_to_kafka(
+        payload_type=PayloadType.STATUS_CHANGE,
+        status_change=status_change,
+    )
+
+
 class MaxManualUptimeSubscriptionsReached(ValueError):
     pass
+
+
+def check_uptime_subscription_limit(organization_id: int) -> None:
+    """
+    Check if adding a new manual uptime monitor would exceed the organization's limit.
+    Raises MaxManualUptimeSubscriptionsReached if the limit would be exceeded.
+    """
+    manual_subscription_count = Detector.objects.filter(
+        status=ObjectStatus.ACTIVE,
+        type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+        project__organization_id=organization_id,
+        config__mode=UptimeMonitorMode.MANUAL,
+    ).count()
+
+    if manual_subscription_count >= MAX_MANUAL_SUBSCRIPTIONS_PER_ORG:
+        raise MaxManualUptimeSubscriptionsReached
 
 
 class UptimeMonitorNoSeatAvailable(Exception):
@@ -207,13 +250,6 @@ def create_uptime_detector(
     Creates an UptimeSubscription and associated Detector
     """
     if mode == UptimeMonitorMode.MANUAL:
-        manual_subscription_count = Detector.objects.filter(
-            status=ObjectStatus.ACTIVE,
-            type=UptimeDomainCheckFailure.slug,
-            project__organization=project.organization,
-            config__mode=UptimeMonitorMode.MANUAL,
-        ).count()
-
         # Once a user has created a subscription manually, make sure we disable all autodetection, and remove any
         # onboarding monitors
         if project.organization.get_option("sentry:uptime_autodetection", False):
@@ -223,11 +259,8 @@ def create_uptime_detector(
             ):
                 delete_uptime_detector(detector)
 
-        if (
-            not override_manual_org_limit
-            and manual_subscription_count >= MAX_MANUAL_SUBSCRIPTIONS_PER_ORG
-        ):
-            raise MaxManualUptimeSubscriptionsReached
+        if not override_manual_org_limit:
+            check_uptime_subscription_limit(project.organization_id)
 
     with atomic_transaction(
         using=(
@@ -521,7 +554,7 @@ def is_url_auto_monitored_for_project(project: Project, url: str) -> bool:
     auto_detected_subscription_ids = list(
         Detector.objects.filter(
             status=ObjectStatus.ACTIVE,
-            type=UptimeDomainCheckFailure.slug,
+            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
             project=project,
             config__mode__in=(
                 UptimeMonitorMode.AUTO_DETECTED_ONBOARDING.value,
@@ -549,7 +582,7 @@ def get_auto_monitored_detectors_for_project(
         ]
     return list(
         Detector.objects.filter(
-            type=UptimeDomainCheckFailure.slug, project=project, config__mode__in=modes
+            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, project=project, config__mode__in=modes
         )
     )
 

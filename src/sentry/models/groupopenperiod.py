@@ -8,13 +8,14 @@ from django.contrib.postgres.fields.ranges import RangeBoundary, RangeOperators
 from django.db import models, router, transaction
 from django.utils import timezone
 
-from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
+from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +94,12 @@ class GroupOpenPeriod(DefaultFieldsModel):
             user_id=resolution_activity.user_id,
         )
 
+        if get_group_type_by_type_id(self.group.type).detector_settings is not None:
+            GroupOpenPeriodActivity.objects.create(
+                group_open_period=self,
+                type=OpenPeriodActivityType.CLOSED,
+            )
+
     def reopen_open_period(self) -> None:
         if self.date_ended is None:
             logger.warning("Open period is not closed", extra={"group_id": self.group.id})
@@ -126,9 +133,6 @@ def get_open_periods_for_group(
     query_end: datetime | None = None,
     limit: int | None = None,
 ) -> BaseQuerySet[GroupOpenPeriod] | list[None]:
-    if not features.has("organizations:issue-open-periods", group.organization):
-        return []
-
     if not query_start:
         # use whichever date is more recent to reduce the query range. first_seen could be > 90 days ago
         query_start = max(group.first_seen, timezone.now() - timedelta(days=90))
@@ -144,14 +148,13 @@ def get_open_periods_for_group(
 
 
 def create_open_period(group: Group, start_time: datetime) -> None:
-    if not features.has("organizations:issue-open-periods", group.project.organization):
-        return
-
     latest_open_period = get_latest_open_period(group)
     if latest_open_period and latest_open_period.date_ended is None:
         logger.warning("Latest open period is not closed", extra={"group_id": group.id})
         return
 
+    # There are some historical cases where we log multiple regressions for the same group,
+    # but we only want to create a new open period for the first regression
     with transaction.atomic(router.db_for_write(Group)):
         # Force a Group lock before the create to establish consistent lock ordering
         # This prevents deadlocks by ensuring we always acquire the Group lock first
@@ -159,13 +162,22 @@ def create_open_period(group: Group, start_time: datetime) -> None:
 
         # There are some historical cases where we log multiple regressions for the same group,
         # but we only want to create a new open period for the first regression
-        GroupOpenPeriod.objects.create(
+        open_period = GroupOpenPeriod.objects.create(
             group=group,
             project=group.project,
             date_started=start_time,
             date_ended=None,
             resolution_activity=None,
         )
+
+        # If we care about this group's activity, create activity entry
+        if get_group_type_by_type_id(group.type).detector_settings is not None:
+            GroupOpenPeriodActivity.objects.create(
+                date_added=start_time,
+                group_open_period=open_period,
+                type=OpenPeriodActivityType.OPENED,
+                value=group.priority,
+            )
 
 
 def update_group_open_period(
@@ -182,9 +194,6 @@ def update_group_open_period(
     is unresolved manually without a regression. If the group is unresolved due to a regression, the
     open periods will be updated during ingestion.
     """
-    if not features.has("organizations:issue-open-periods", group.project.organization):
-        return
-
     # If a group was missed during backfill, we can create a new open period for it on unresolve.
     if not has_any_open_period(group) and new_status == GroupStatus.UNRESOLVED:
         create_open_period(group, timezone.now())

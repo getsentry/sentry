@@ -30,6 +30,7 @@ import OverviewRequestsChartWidget from 'sentry/views/insights/common/components
 import OverviewTimeConsumingQueriesWidget from 'sentry/views/insights/common/components/widgets/overviewTimeConsumingQueriesWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {Am1BackendOverviewPage} from 'sentry/views/insights/pages/backend/am1BackendOverviewPage';
@@ -46,8 +47,11 @@ import {
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
-import {OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/frontend/settings';
-import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
+import {
+  OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS,
+  WEB_VITALS_OPS,
+} from 'sentry/views/insights/pages/frontend/settings';
+import {OVERVIEW_PAGE_ALLOWED_OPS as MOBILE_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
@@ -84,6 +88,7 @@ function EAPBackendOverviewPage() {
   const navigate = useNavigate();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
+  useDefaultToAllProjects();
 
   const {query: searchBarQuery} = useLocationQuery({
     fields: {
@@ -92,7 +97,11 @@ function EAPBackendOverviewPage() {
   });
 
   const disallowedOps = [
-    ...new Set([...FRONTEND_OVERVIEW_PAGE_OPS, ...BACKEND_OVERVIEW_PAGE_OPS]),
+    ...new Set([
+      ...FRONTEND_OVERVIEW_PAGE_OPS,
+      ...MOBILE_OVERVIEW_PAGE_OPS,
+      ...WEB_VITALS_OPS,
+    ]),
   ];
 
   const {

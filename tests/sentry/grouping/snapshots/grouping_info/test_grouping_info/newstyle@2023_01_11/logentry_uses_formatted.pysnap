@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:20:23.600117+00:00'
+created: '2025-10-03T16:56:45.524626+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -42,8 +42,10 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
+    "contributes": true,
     "description": "message",
     "hash": "329b29efcf1f77067a063e34f56e7791",
+    "hint": null,
     "key": "default",
     "type": "component"
   }

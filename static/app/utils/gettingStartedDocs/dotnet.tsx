@@ -95,7 +95,6 @@ export const getDotnetProfilingOnboarding = ({
       ),
       configurations: [
         {
-          partialLoading: params.sourcePackageRegistries.isLoading,
           code: [
             {
               language: 'shell',

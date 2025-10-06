@@ -166,8 +166,8 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
     }
 
     FAKE_EMAIL_CONFIG = {
-        "target_identifier": "foo@bar.com",
-        "target_type": ActionTarget.SPECIFIC,
+        "target_identifier": None,
+        "target_type": ActionTarget.ISSUE_OWNERS,
     }
 
     def _create_action_for_workflow(
@@ -514,7 +514,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
                         "config": {
                             "targetIdentifier": "test",
                             "targetDisplay": "Test",
-                            "targetType": 0,
+                            "targetType": "specific",
                         },
                         "data": {},
                         "integrationId": self.integration.id,

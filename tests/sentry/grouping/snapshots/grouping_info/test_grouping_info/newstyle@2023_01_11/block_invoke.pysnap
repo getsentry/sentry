@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:20:19.718058+00:00'
+created: '2025-10-03T16:56:42.779301+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -21,7 +21,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": true,
@@ -142,21 +142,23 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app thread stack-trace",
+    "contributes": true,
+    "description": "in-app thread stacktrace",
     "hash": "ff6c4ee7c54f118a9647ee86f0c2b0b0",
+    "hint": null,
     "key": "app",
     "type": "component"
   },
   "default": {
     "component": {
       "contributes": false,
-      "hint": "threads of app take precedence",
+      "hint": "ignored because app threads take precedence",
       "id": "default",
       "name": null,
       "values": [
         {
           "contributes": false,
-          "hint": "threads of app take precedence",
+          "hint": "ignored because app threads take precedence",
           "id": "message",
           "name": "message",
           "values": [
@@ -185,15 +187,17 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
+    "contributes": false,
     "description": "default",
     "hash": null,
+    "hint": "ignored because app threads take precedence",
     "key": "default",
     "type": "component"
   },
   "system": {
     "component": {
       "contributes": false,
-      "hint": "threads of app take precedence",
+      "hint": "ignored because app threads take precedence",
       "id": "system",
       "name": null,
       "values": [
@@ -207,7 +211,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": true,
@@ -328,8 +332,10 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
+    "contributes": false,
     "description": "system",
     "hash": null,
+    "hint": "ignored because app threads take precedence",
     "key": "system",
     "type": "component"
   }

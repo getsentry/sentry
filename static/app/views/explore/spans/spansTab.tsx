@@ -16,6 +16,7 @@ import {
   EAPSpanSearchQueryBuilder,
   useEAPSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
+import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -48,11 +49,8 @@ import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
-import {SeerComboBox} from 'sentry/views/explore/components/seerComboBox/seerComboBox';
 import {
-  useExploreFields,
   useExploreId,
-  useExploreQuery,
   useSetExplorePageParams,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -67,7 +65,9 @@ import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
   useQueryParamsExtrapolate,
+  useQueryParamsFields,
   useQueryParamsMode,
+  useQueryParamsQuery,
   useQueryParamsVisualizes,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
@@ -203,7 +203,7 @@ function SpansTabSeerComboBox() {
       initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
   }
 
-  return <SeerComboBox initialQuery={initialSeerQuery} />;
+  return <AskSeerComboBox initialQuery={initialSeerQuery} />;
 }
 
 interface SpanTabSearchSectionProps {
@@ -226,8 +226,8 @@ function SpansSearchBar({
 
 function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) {
   const mode = useQueryParamsMode();
-  const fields = useExploreFields();
-  const query = useExploreQuery();
+  const fields = useQueryParamsFields();
+  const query = useQueryParamsQuery();
   const setExplorePageParams = useSetExplorePageParams();
 
   const organization = useOrganization();
@@ -401,12 +401,11 @@ function SpanTabContentSection({
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
   const {selection} = usePageFilters();
+  const query = useQueryParamsQuery();
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
   const extrapolate = useQueryParamsExtrapolate();
   const [tab, setTab] = useTab();
-
-  const query = useExploreQuery();
 
   const queryType: 'aggregate' | 'samples' | 'traces' =
     tab === Mode.AGGREGATE ? 'aggregate' : tab === Tab.TRACE ? 'traces' : 'samples';

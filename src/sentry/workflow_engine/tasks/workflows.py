@@ -6,7 +6,6 @@ from typing import Any
 from django.db import router, transaction
 from google.api_core.exceptions import RetryError
 
-from sentry import options
 from sentry.eventstream.base import GroupState
 from sentry.locks import locks
 from sentry.models.activity import Activity
@@ -18,7 +17,6 @@ from sentry.taskworker.retry import Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.models import Detector
-from sentry.workflow_engine.processors.workflow import process_workflows
 from sentry.workflow_engine.tasks.utils import (
     EventNotFoundError,
     build_workflow_event_data_from_event,
@@ -56,6 +54,9 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
     The task will get the Activity from the database, create a WorkflowEventData object,
     and then process the data in `process_workflows`.
     """
+    from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
+    from sentry.workflow_engine.processors.workflow import process_workflows
+
     with transaction.atomic(router.db_for_write(Detector)):
         try:
             activity = Activity.objects.get(id=activity_id)
@@ -77,7 +78,10 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
         group=group,
     )
     with quiet_redis_noise():
-        process_workflows(event_data, event_start_time=activity.datetime, detector=detector)
+        batch_client = DelayedWorkflowClient()
+        process_workflows(
+            batch_client, event_data, event_start_time=activity.datetime, detector=detector
+        )
     metrics.incr(
         "workflow_engine.tasks.process_workflows.activity_update.executed",
         tags={"activity_type": activity.type, "detector_type": detector.type},
@@ -115,6 +119,9 @@ def process_workflows_event(
     start_timestamp_seconds: float | None = None,
     **kwargs: dict[str, Any],
 ) -> None:
+    from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
+    from sentry.workflow_engine.processors.workflow import process_workflows
+
     recorder = scopedstats.Recorder()
     start_time = time.time()
     with recorder.record():
@@ -128,8 +135,9 @@ def process_workflows_event(
                 has_reappeared=has_reappeared,
                 has_escalated=has_escalated,
             )
-        except RetryError as e:
+        except (RetryError, OSError) as e:
             # We want to quietly retry these.
+            # Both are expected transient errors from Bigtable interactions.
             retry_task(e)
 
         event_start_time = (
@@ -138,7 +146,8 @@ def process_workflows_event(
             else datetime.now(tz=UTC)
         )
         with quiet_redis_noise():
-            process_workflows(event_data, event_start_time=event_start_time)
+            batch_client = DelayedWorkflowClient()
+            process_workflows(batch_client, event_data, event_start_time=event_start_time)
     duration = time.time() - start_time
     is_slow = duration > 1.0
     # We want full coverage for particularly slow cases, plus a random sampling.
@@ -168,6 +177,7 @@ def schedule_delayed_workflows(**kwargs: Any) -> None:
     """
     Schedule delayed workflow buffers in a batch.
     """
+    from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
     from sentry.workflow_engine.processors.schedule import process_buffered_workflows
 
     lock_name = "schedule_delayed_workflows"
@@ -175,14 +185,7 @@ def schedule_delayed_workflows(**kwargs: Any) -> None:
 
     try:
         with lock.acquire():
-            # Only process delayed_workflow type
-            use_new_scheduling = options.get("workflow_engine.use_new_scheduling_task")
-            if not use_new_scheduling:
-                logger.info(
-                    "Configured to use process_pending_batch for delayed_workflow; exiting."
-                )
-                return
             with quiet_redis_noise():
-                process_buffered_workflows()
+                process_buffered_workflows(DelayedWorkflowClient())
     except UnableToAcquireLock as error:
         logger.warning("schedule_delayed_workflows.fail", extra={"error": error})

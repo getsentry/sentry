@@ -1,5 +1,5 @@
 ---
-created: '2025-06-23T19:43:15.008448+00:00'
+created: '2025-10-03T17:19:39.652223+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -18,6 +18,8 @@ fingerprint:
 title: Es Dee Kay
 variants:
   custom_fingerprint:
+    contributes: true
+    hint: null
     matched_rule: sdk:"sentry.javascript.nextjs" -> "sdk-nextjs"
     type: custom_fingerprint
     values:
@@ -25,5 +27,7 @@ variants:
   default:
     component:
       contributes: false
-      hint: custom server fingerprint takes precedence
+      hint: ignored because custom server fingerprint takes precedence
+    contributes: false
+    hint: ignored because custom server fingerprint takes precedence
     type: component

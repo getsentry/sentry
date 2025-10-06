@@ -28,6 +28,7 @@ import {
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
+import {SpanFields} from 'sentry/views/insights/types';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 export default function TokenUsageWidget() {
@@ -53,7 +54,7 @@ export default function TokenUsageWidget() {
     {
       ...pageFilterChartParams,
       search: fullQuery,
-      fields: ['gen_ai.request.model', 'sum(gen_ai.usage.total_tokens)'],
+      fields: [SpanFields.GEN_AI_REQUEST_MODEL, 'count(span.duration)'],
       yAxis: ['sum(gen_ai.usage.total_tokens)'],
       sort: {field: 'sum(gen_ai.usage.total_tokens)', kind: 'desc'},
       topN: 3,
@@ -62,7 +63,7 @@ export default function TokenUsageWidget() {
     Referrer.TOKEN_USAGE_WIDGET
   );
 
-  const timeSeries = timeSeriesRequest.data;
+  const timeSeries = timeSeriesRequest.data || [];
 
   const isLoading = timeSeriesRequest.isLoading || tokensRequest.isLoading;
   const error = timeSeriesRequest.error || tokensRequest.error;

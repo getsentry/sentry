@@ -43,7 +43,6 @@ const {organization, projects, router} = initializeOrg({
   organization: {
     id: '1337',
     slug: 'org-slug',
-    features: ['global-views'],
     access: [],
   },
   router: {
@@ -144,14 +143,11 @@ describe('IssueList', () => {
       body: [project],
     });
 
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(projects[0]!.id, 10)],
-        environments: [],
-        datetime: {period: '14d', start: null, end: null, utc: null},
-      },
-      new Set()
-    );
+    PageFiltersStore.onInitializeUrlState({
+      projects: [parseInt(projects[0]!.id, 10)],
+      environments: [],
+      datetime: {period: '14d', start: null, end: null, utc: null},
+    });
 
     TagStore.init?.();
   });
@@ -257,14 +253,11 @@ describe('IssueList', () => {
         },
       });
 
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [],
-          environments: [],
-          datetime: {period: '14d', start: null, end: null, utc: null},
-        },
-        new Set()
-      );
+      PageFiltersStore.onInitializeUrlState({
+        projects: [],
+        environments: [],
+        datetime: {period: '14d', start: null, end: null, utc: null},
+      });
 
       const {unmount} = render(<IssueListOverview {...routerProps} />, {
         organization,
@@ -430,14 +423,11 @@ describe('IssueList', () => {
       });
 
       act(() =>
-        PageFiltersStore.onInitializeUrlState(
-          {
-            projects: [99],
-            environments: [],
-            datetime: {period: '24h', start: null, end: null, utc: null},
-          },
-          new Set()
-        )
+        PageFiltersStore.onInitializeUrlState({
+          projects: [99],
+          environments: [],
+          datetime: {period: '24h', start: null, end: null, utc: null},
+        })
       );
 
       rerender(<IssueListOverview {...routerProps} />);
@@ -459,14 +449,11 @@ describe('IssueList', () => {
       });
 
       act(() =>
-        PageFiltersStore.onInitializeUrlState(
-          {
-            projects: [99],
-            environments: [],
-            datetime: {period: '14d', start: null, end: null, utc: null},
-          },
-          new Set()
-        )
+        PageFiltersStore.onInitializeUrlState({
+          projects: [99],
+          environments: [],
+          datetime: {period: '14d', start: null, end: null, utc: null},
+        })
       );
 
       rerender(<IssueListOverview {...routerProps} />);
@@ -493,14 +480,11 @@ describe('IssueList', () => {
       });
 
       act(() =>
-        PageFiltersStore.onInitializeUrlState(
-          {
-            projects: [99],
-            environments: [],
-            datetime: {period: '24h', start: null, end: null, utc: null},
-          },
-          new Set()
-        )
+        PageFiltersStore.onInitializeUrlState({
+          projects: [99],
+          environments: [],
+          datetime: {period: '24h', start: null, end: null, utc: null},
+        })
       );
       rerender(<IssueListOverview {...routerProps} />);
 
@@ -583,14 +567,11 @@ describe('IssueList', () => {
 
   describe('Error Robot', () => {
     beforeEach(() => {
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [],
-          environments: [],
-          datetime: {period: '14d', start: null, end: null, utc: null},
-        },
-        new Set()
-      );
+      PageFiltersStore.onInitializeUrlState({
+        projects: [],
+        environments: [],
+        datetime: {period: '14d', start: null, end: null, utc: null},
+      });
     });
 
     const createWrapper = async (moreProps: any) => {

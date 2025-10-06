@@ -1,7 +1,6 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from datetime import datetime
-from typing import Any, ClassVar, DefaultDict, cast
+from typing import Any, DefaultDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Subquery
@@ -9,25 +8,17 @@ from django.db.models import Subquery
 from sentry.api.serializers import Serializer, serialize
 from sentry.incidents.endpoints.serializers.incident import (
     DetailedIncidentSerializerResponse,
+    IncidentSerializer,
     IncidentSerializerResponse,
 )
-from sentry.incidents.models.incident import (
-    IncidentActivityType,
-    IncidentStatus,
-    IncidentStatusMethod,
-    IncidentType,
-)
-from sentry.models.activity import Activity
+from sentry.incidents.models.incident import Incident
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.models import QuerySubscription, SnubaQuery
-from sentry.types.activity import ActivityType
-from sentry.types.group import PriorityLevel
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.workflow_engine.models import (
     Action,
-    AlertRuleDetector,
     DataCondition,
     DataConditionGroupAction,
     DataSourceDetector,
@@ -40,153 +31,8 @@ from sentry.workflow_engine.models.workflow_action_group_status import WorkflowA
 
 
 class WorkflowEngineIncidentSerializer(Serializer):
-    priority_to_incident_status: ClassVar[dict[int, int]] = {
-        PriorityLevel.HIGH.value: IncidentStatus.CRITICAL.value,
-        PriorityLevel.MEDIUM.value: IncidentStatus.WARNING.value,
-        PriorityLevel.LOW.value: IncidentStatus.OPEN.value,
-    }
-
     def __init__(self, expand=None):
         self.expand = expand or []
-
-    def get_attrs(
-        self,
-        item_list: Sequence[GroupOpenPeriod],
-        user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> defaultdict[GroupOpenPeriod, dict[str, Any]]:
-
-        from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
-            WorkflowEngineDetectorSerializer,
-        )
-
-        results: DefaultDict[GroupOpenPeriod, dict[str, Any]] = defaultdict()
-        open_periods_to_detectors = self.get_open_periods_to_detectors(item_list)
-        alert_rules = {
-            d["id"]: d
-            for d in serialize(
-                list(open_periods_to_detectors.values()),
-                user,
-                WorkflowEngineDetectorSerializer(expand=self.expand),
-            )
-        }
-        alert_rule_detectors = AlertRuleDetector.objects.filter(
-            detector__in=list(open_periods_to_detectors.values())
-        )
-        open_periods_to_alert_rules: DefaultDict[GroupOpenPeriod, int] = defaultdict()
-        for open_period, detector in open_periods_to_detectors.items():
-            for ard in alert_rule_detectors:
-                if ard.detector == detector:
-                    open_periods_to_alert_rules[open_period] = ard.alert_rule_id
-
-        for open_period in item_list:
-            results[open_period] = {"projects": [open_period.project.slug]}
-            results[open_period]["alert_rule"] = alert_rules.get(
-                str(open_periods_to_alert_rules.get(open_period))
-            )
-
-        if "activities" in self.expand:
-            for open_period in item_list:
-                results[open_period]["activities"] = self.get_open_period_activities(open_period)
-
-        return results
-
-    def get_incident_status(self, priority: int | None, date_ended: datetime | None) -> int:
-        if priority is None:
-            raise ValueError("Priority is required to get an incident status")
-
-        if date_ended:
-            return IncidentStatus.CLOSED.value
-
-        return self.priority_to_incident_status[priority]
-
-    def get_open_period_activities(self, open_period: GroupOpenPeriod) -> list[dict[str, Any]]:
-        # XXX: an incident will be 1:1 with open periods, but there can be multiple open periods per metric issue
-        # XXX: this won't actually work until we start writing to the table for metric issues (or are we planning a backfill?)
-
-        open_period_activities = []
-        incident_activity_id = "-1"  # temp until we add lookup table
-        incident_group_open_period = IncidentGroupOpenPeriod.objects.get(
-            group_open_period=open_period
-        )
-        incident_identifier = str(incident_group_open_period.incident_identifier)
-
-        # if we are here we have both IncidentActivityType.CREATED and IncidentActivityType.DETECTED
-        created = {
-            "id": incident_activity_id,
-            "incidentIdentifier": incident_identifier,
-            "type": IncidentActivityType.CREATED,
-            "value": None,
-            "previousValue": None,
-            "user": None,
-            "comment": None,
-            "dateCreated": open_period.date_started,
-        }
-        detected = created.copy()
-        detected["type"] = IncidentActivityType.DETECTED
-        open_period_activities.append(created)
-        open_period_activities.append(detected)
-
-        # look up Activity rows for other status changes (warning, critical, and resolved)
-        activity_status_to_incident_status: dict[str, Any] = {
-            "high": IncidentStatus.CRITICAL,
-            "medium": IncidentStatus.WARNING,
-        }
-        status_change_activities = Activity.objects.filter(
-            group=open_period.group,
-            type__in=[ActivityType.SET_PRIORITY.value, ActivityType.SET_RESOLVED.value],
-        ).order_by("datetime")
-
-        previous_activity: Activity | None = None
-        previous_priority: str | None = None
-
-        for activity in status_change_activities:
-            current_activity = activity
-            current_priority = cast(str, current_activity.data.get("priority"))
-
-            if previous_activity:
-                previous_priority = previous_activity.data.get("priority")
-
-            if current_activity.type == ActivityType.SET_PRIORITY.value:
-                status_change = {
-                    "id": incident_activity_id,
-                    "incidentIdentifier": incident_identifier,
-                    "type": IncidentActivityType.STATUS_CHANGE,
-                    "value": activity_status_to_incident_status.get(current_priority),
-                    "previousValue": (
-                        activity_status_to_incident_status.get(previous_priority)
-                        if previous_priority
-                        else None
-                    ),
-                    "user": None,
-                    "comment": None,
-                    "dateCreated": open_period.date_started,
-                }
-                open_period_activities.append(status_change)
-
-            elif (
-                current_activity.type == ActivityType.SET_RESOLVED.value
-                and open_period.resolution_activity
-            ):
-                resolved = {
-                    "id": incident_activity_id,
-                    "incidentIdentifier": incident_identifier,
-                    "type": IncidentActivityType.STATUS_CHANGE,
-                    "value": IncidentStatus.CLOSED,
-                    "previousValue": (
-                        activity_status_to_incident_status.get(previous_priority)
-                        if previous_priority
-                        else None
-                    ),
-                    "user": open_period.user_id,
-                    "comment": None,
-                    "dateCreated": open_period.date_started,
-                }
-                open_period_activities.append(resolved)
-
-            previous_activity = current_activity
-
-        return open_period_activities
 
     def get_open_periods_to_detectors(
         self, open_periods: Sequence[GroupOpenPeriod]
@@ -257,28 +103,10 @@ class WorkflowEngineIncidentSerializer(Serializer):
         """
         Temporary serializer to take a GroupOpenPeriod and serialize it for the old incident endpoint
         """
-        incident_group_open_period = IncidentGroupOpenPeriod.objects.get(group_open_period=obj)
-        date_closed = obj.date_ended.replace(second=0, microsecond=0) if obj.date_ended else None
-        return {
-            "id": str(incident_group_open_period.incident_id),
-            "identifier": str(incident_group_open_period.incident_identifier),
-            "organizationId": str(obj.project.organization.id),
-            "projects": attrs["projects"],
-            "alertRule": attrs["alert_rule"],
-            "activities": attrs["activities"] if "activities" in self.expand else None,
-            "status": self.get_incident_status(obj.group.priority, obj.date_ended),
-            "statusMethod": (
-                IncidentStatusMethod.RULE_TRIGGERED.value
-                if not date_closed
-                else IncidentStatusMethod.RULE_UPDATED.value
-            ),
-            "type": IncidentType.ALERT_TRIGGERED.value,  # IncidentType.Detected isn't used anymore
-            "title": obj.group.title,
-            "dateStarted": obj.date_started,
-            "dateDetected": obj.date_started,  # In workflow engine, date_started is the date the incident was detected
-            "dateCreated": obj.date_added,
-            "dateClosed": date_closed,
-        }
+        incident = Incident.objects.get(
+            id=IncidentGroupOpenPeriod.objects.get(group_open_period=obj).incident_id
+        )
+        return serialize(incident, user=user, serializer=IncidentSerializer(expand=self.expand))
 
 
 class WorkflowEngineDetailedIncidentSerializer(WorkflowEngineIncidentSerializer):

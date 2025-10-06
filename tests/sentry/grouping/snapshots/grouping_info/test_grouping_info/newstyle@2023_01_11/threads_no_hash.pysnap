@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:20:24.655707+00:00'
+created: '2025-10-03T16:56:46.382467+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -40,14 +40,18 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
+    "contributes": false,
     "description": "in-app",
     "hash": null,
+    "hint": null,
     "key": "app",
     "type": "component"
   },
   "fallback": {
+    "contributes": true,
     "description": "fallback",
     "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "hint": null,
     "key": "fallback",
     "type": "fallback"
   }

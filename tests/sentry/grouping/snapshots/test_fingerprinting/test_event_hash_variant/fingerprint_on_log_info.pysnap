@@ -1,5 +1,5 @@
 ---
-created: '2025-06-23T19:43:17.133621+00:00'
+created: '2025-10-03T17:19:40.020080+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -26,6 +26,8 @@ fingerprint:
 title: Love not found.
 variants:
   custom_fingerprint:
+    contributes: true
+    hint: null
     matched_rule: logger:"sentry.*" level:"ERROR" -> "log-{{ logger }}-{{ level }}"
     type: custom_fingerprint
     values:
@@ -36,5 +38,7 @@ variants:
   default:
     component:
       contributes: false
-      hint: custom server fingerprint takes precedence
+      hint: ignored because custom server fingerprint takes precedence
+    contributes: false
+    hint: ignored because custom server fingerprint takes precedence
     type: component

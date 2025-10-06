@@ -13,10 +13,7 @@ from sentry.integrations.github.integration import (
     GitHubIntegrationProvider,
     GitHubOpenPRCommentWorkflow,
 )
-from sentry.integrations.github.tasks.pr_comment import (
-    github_comment_reactions,
-    github_comment_workflow,
-)
+from sentry.integrations.github.tasks.pr_comment import github_comment_workflow
 from sentry.integrations.models.integration import Integration
 from sentry.models.commit import Commit
 from sentry.models.group import Group
@@ -374,9 +371,7 @@ This pull request was merged and Sentry observed the following issues:
 * ‼️ [**issue 2**](http://testserver/organizations/{self.organization.slug}/issues/{ev2.group.id}/?referrer=github-pr-bot)
 
 * ‼️ [**issue 3**](http://testserver/organizations/{self.organization.slug}/issues/{ev3.group.id}/?referrer=github-pr-bot) in `prod`
-
-
-<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+"""
         assert formatted_comment == expected_comment
 
 
@@ -409,7 +404,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         github_comment_workflow(self.pr.id, self.project.id)
 
         assert (
-            f'"body": "## Issues attributed to commits in this pull request\\nThis pull request was merged and Sentry observed the following issues:\\n\\n* \\u203c\\ufe0f [**{titles[0]}**](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n\\n* \\u203c\\ufe0f [**{titles[1]}**](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"'.encode()
+            f'"body": "## Issues attributed to commits in this pull request\\nThis pull request was merged and Sentry observed the following issues:\\n\\n* \\u203c\\ufe0f [**{titles[0]}**](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n\\n* \\u203c\\ufe0f [**{titles[1]}**](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n"'.encode()
             in responses.calls[0].request.body
         )
         pull_request_comment_query = PullRequestComment.objects.all()
@@ -459,7 +454,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         github_comment_workflow(self.pr.id, self.project.id)
 
         assert (
-            f'"body": "## Issues attributed to commits in this pull request\\nThis pull request was merged and Sentry observed the following issues:\\n\\n* \\u203c\\ufe0f [**{titles[0]}**](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n\\n* \\u203c\\ufe0f [**{titles[1]}**](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"'.encode()
+            f'"body": "## Issues attributed to commits in this pull request\\nThis pull request was merged and Sentry observed the following issues:\\n\\n* \\u203c\\ufe0f [**{titles[0]}**](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n\\n* \\u203c\\ufe0f [**{titles[1]}**](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n"'.encode()
             in responses.calls[0].request.body
         )
         pull_request_comment.refresh_from_db()
@@ -658,233 +653,3 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
         assert mock_issues.called
         assert not mock_get_comment_body.called
-
-
-class TestCommentReactionsTask(GithubCommentTestCase):
-    base_url = "https://api.github.com"
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.user_id = "user_1"
-        self.app_id = "app_1"
-        self.pr = self.create_pr_issues()
-        self.comment = PullRequestComment.objects.create(
-            external_id="2",
-            pull_request=self.pr,
-            created_at=timezone.now(),
-            updated_at=timezone.now(),
-            group_ids=[4, 5],
-        )
-        self.expired_pr = self.create_pr_issues()
-        self.expired_pr.date_added = timezone.now() - timedelta(days=35)
-        self.expired_pr.save()
-        self.comment_reactions = {
-            "reactions": {
-                "url": "abcdef",
-                "hooray": 1,
-                "+1": 2,
-                "-1": 0,
-            }
-        }
-
-    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
-    @responses.activate
-    def test_comment_reactions_task(self, mock_metrics: MagicMock) -> None:
-        old_comment = PullRequestComment.objects.create(
-            external_id="1",
-            pull_request=self.expired_pr,
-            created_at=timezone.now() - timedelta(days=35),
-            updated_at=timezone.now() - timedelta(days=35),
-            group_ids=[1, 2, 3],
-        )
-
-        responses.add(
-            responses.GET,
-            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
-            json=self.comment_reactions,
-        )
-
-        github_comment_reactions()
-
-        old_comment.refresh_from_db()
-        assert old_comment.reactions is None
-
-        self.comment.refresh_from_db()
-        stored_reactions = self.comment_reactions["reactions"]
-        del stored_reactions["url"]
-        assert self.comment.reactions == stored_reactions
-
-        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.success")
-
-    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
-    @responses.activate
-    def test_comment_reactions_task_missing_repo(self, mock_metrics: MagicMock) -> None:
-        self.gh_repo.delete()
-
-        responses.add(
-            responses.GET,
-            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
-            status=400,
-            json={},
-        )
-
-        github_comment_reactions()
-
-        self.comment.refresh_from_db()
-        assert self.comment.reactions is None
-        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.missing_repo")
-
-    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
-    @responses.activate
-    def test_comment_reactions_task_missing_integration(self, mock_metrics: MagicMock) -> None:
-        # invalid integration id
-        self.gh_repo.integration_id = 0
-        self.gh_repo.save()
-
-        responses.add(
-            responses.GET,
-            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
-            status=400,
-            json={},
-        )
-
-        github_comment_reactions()
-
-        self.comment.refresh_from_db()
-        assert self.comment.reactions is None
-        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.missing_integration")
-
-    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
-    @responses.activate
-    def test_comment_reactions_task_api_error_one(self, mock_metrics: MagicMock) -> None:
-        gh_repo = self.create_repo(
-            name="getsentry/santry",
-            provider="integrations:github",
-            integration_id=self.integration.id,
-            project=self.project,
-            url="https://github.com/getsentry/santry",
-        )
-        no_error_comment = PullRequestComment.objects.create(
-            external_id="3",
-            pull_request=self.create_pr_issues(gh_repo=gh_repo),
-            created_at=timezone.now(),
-            updated_at=timezone.now(),
-            group_ids=[7, 8],
-        )
-
-        responses.add(
-            responses.GET,
-            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
-            status=400,
-            json={},
-        )
-        responses.add(
-            responses.GET,
-            self.base_url + "/repos/getsentry/santry/issues/comments/3",
-            json=self.comment_reactions,
-        )
-
-        github_comment_reactions()
-
-        self.comment.refresh_from_db()
-        assert self.comment.reactions is None
-
-        no_error_comment.refresh_from_db()
-        stored_reactions = self.comment_reactions["reactions"]
-        del stored_reactions["url"]
-        assert no_error_comment.reactions == stored_reactions
-
-        # assert the last metric emitted is a success
-        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.success")
-
-    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
-    @responses.activate
-    def test_comment_reactions_task_api_error_rate_limited(self, mock_metrics: MagicMock) -> None:
-        responses.add(
-            responses.GET,
-            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
-            status=400,
-            json={
-                "message": "API rate limit exceeded",
-                "documentation_url": "https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting",
-            },
-        )
-
-        github_comment_reactions()
-
-        self.comment.refresh_from_db()
-        assert self.comment.reactions is None
-        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.rate_limited_error")
-
-    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
-    @responses.activate
-    def test_comment_reactions_task_api_error_404(self, mock_metrics: MagicMock) -> None:
-        responses.add(
-            responses.GET,
-            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
-            status=404,
-            json={},
-        )
-
-        github_comment_reactions()
-
-        self.comment.refresh_from_db()
-        assert self.comment.reactions is None
-        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.not_found_error")
-
-    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
-    @responses.activate
-    def test_comment_reactions_clears_existing_when_empty_returned(
-        self, mock_metrics: MagicMock
-    ) -> None:
-        self.comment.reactions = {"hooray": 1}
-        self.comment.save()
-
-        responses.add(
-            responses.GET,
-            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
-            json={},
-        )
-
-        github_comment_reactions()
-
-        self.comment.refresh_from_db()
-        assert self.comment.reactions == {}
-
-    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
-    @responses.activate
-    def test_comment_reactions_does_not_save_when_already_empty_and_empty_returned(
-        self, mock_metrics: MagicMock
-    ) -> None:
-        self.comment.reactions = {}
-        self.comment.save()
-
-        responses.add(
-            responses.GET,
-            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
-            json={},
-        )
-
-        with patch.object(PullRequestComment, "save", autospec=True) as mock_save:
-            github_comment_reactions()
-            # save should not be called to avoid unnecessary writes
-            assert not mock_save.called
-
-    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
-    @responses.activate
-    def test_comment_reactions_does_not_save_when_already_none_and_empty_returned(
-        self, mock_metrics: MagicMock
-    ) -> None:
-        self.comment.reactions = None
-        self.comment.save()
-
-        responses.add(
-            responses.GET,
-            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
-            json={},
-        )
-
-        with patch.object(PullRequestComment, "save", autospec=True) as mock_save:
-            github_comment_reactions()
-            # save should not be called to avoid unnecessary writes
-            assert not mock_save.called
