@@ -101,6 +101,22 @@ describe('ManageReposPanel', () => {
     expect(await screen.findByText(/Could not update settings/i)).toBeInTheDocument();
   });
 
+  it('shows sensitivity options when feature is enabled', async () => {
+    render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
+    const prReviewCheckbox = await screen.findByLabelText(/Enable PR Review/i);
+    const errorPredictionCheckbox = await screen.findByLabelText(
+      /Enable Error Prediction/i
+    );
+    expect(prReviewCheckbox).toBeChecked();
+    expect(errorPredictionCheckbox).toBeChecked();
+    expect(
+      await screen.findByTestId(/pr-review-sensitivity-dropdown/i)
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByTestId(/error-prediction-sensitivity-dropdown/i)
+    ).toBeInTheDocument();
+  });
+
   describe('getRepoConfig', () => {
     it('returns repo override config when present', () => {
       const orgConfig: PreventAIOrgConfig = {

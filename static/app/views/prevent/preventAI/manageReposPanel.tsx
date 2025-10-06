@@ -32,7 +32,7 @@ const sensitivityOptions: SensitivityOption[] = [
   {
     value: 'medium',
     label: 'Medium',
-    details: 'Post likely issues for a balance of thoroughness and noise',
+    details: 'Post likely issues for a balance of thoroughness and noise.',
   },
   {
     value: 'high',
@@ -159,15 +159,8 @@ function ManageReposPanel({
               />
             </Flex>
             {repoConfig.vanilla.enabled && (
-              // width 150% because FieldGroup > FieldDescription has fixed width 50%
-              <Flex paddingLeft="xl" width="150%" maxWidth="140%">
-                <Flex
-                  direction="column"
-                  borderLeft="muted"
-                  radius="md"
-                  paddingLeft="md"
-                  width="100%"
-                >
+              <Flex paddingLeft="xl">
+                <Flex direction="column" borderLeft="muted" paddingLeft="md" width="100%">
                   <FieldGroup
                     label={<Text size="md">{t('Sensitivity')}</Text>}
                     help={
@@ -179,20 +172,21 @@ function ManageReposPanel({
                     flexibleControlStateSize
                   >
                     <CompactSelect
-                      value={repoConfig.vanilla.sensitivity}
+                      value={repoConfig.vanilla.sensitivity ?? 'medium'}
                       options={sensitivityOptions}
-                      onChange={option =>
-                        enableFeature({
+                      onChange={async option =>
+                        await enableFeature({
                           feature: 'vanilla',
-                          enabled: repoConfig.vanilla.enabled,
+                          enabled: true,
                           orgName,
                           repoName,
                           sensitivity: option.value,
                         })
                       }
                       aria-label="PR Review Sensitivity"
-                      menuWidth="350px"
-                      maxMenuWidth="500px"
+                      menuWidth={350}
+                      maxMenuWidth={500}
+                      data-test-id="pr-review-sensitivity-dropdown"
                     />
                   </FieldGroup>
                 </Flex>
@@ -256,7 +250,6 @@ function ManageReposPanel({
                 disabled={isLoading || !canEditSettings}
                 onChange={async () => {
                   const newValue = !repoConfig.bug_prediction.enabled;
-                  // Enable/disable the main bug prediction feature
                   await enableFeature({
                     feature: 'bug_prediction',
                     enabled: newValue,
@@ -268,15 +261,8 @@ function ManageReposPanel({
               />
             </Flex>
             {repoConfig.bug_prediction.enabled && (
-              // width 150% because FieldGroup > FieldDescription has fixed width 50%
-              <Flex paddingLeft="xl" width="150%" maxWidth="140%">
-                <Flex
-                  direction="column"
-                  borderLeft="muted"
-                  radius="md"
-                  paddingLeft="md"
-                  width="100%"
-                >
+              <Flex paddingLeft="xl">
+                <Flex direction="column" borderLeft="muted" paddingLeft="md" width="100%">
                   <FieldGroup
                     label={<Text size="md">{t('Sensitivity')}</Text>}
                     help={
@@ -288,20 +274,21 @@ function ManageReposPanel({
                     flexibleControlStateSize
                   >
                     <CompactSelect
-                      value={repoConfig.bug_prediction.sensitivity}
+                      value={repoConfig.bug_prediction.sensitivity ?? 'medium'}
                       options={sensitivityOptions}
-                      onChange={option =>
-                        enableFeature({
+                      onChange={async option =>
+                        await enableFeature({
                           feature: 'bug_prediction',
-                          enabled: repoConfig.bug_prediction.enabled,
+                          enabled: true,
                           orgName,
                           repoName,
                           sensitivity: option.value,
                         })
                       }
                       aria-label="Error Prediction Sensitivity"
-                      menuWidth="350px"
-                      maxMenuWidth="500px"
+                      menuWidth={350}
+                      maxMenuWidth={500}
+                      data-test-id="error-prediction-sensitivity-dropdown"
                     />
                   </FieldGroup>
                   <FieldGroup
