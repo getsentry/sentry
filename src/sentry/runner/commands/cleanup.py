@@ -189,10 +189,6 @@ def _cleanup(
     pool, task_queue = _start_pool(concurrency)
 
     try:
-        from sentry.runner import configure
-
-        configure()
-
         start_time = None
         if timed:
             start_time = time.time()
