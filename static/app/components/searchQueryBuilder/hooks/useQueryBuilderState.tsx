@@ -77,7 +77,7 @@ type DeleteTokensAction = {
   focusOverride?: FocusOverride;
 };
 
-type UpdateFreeTextAction = {
+export type UpdateFreeTextAction = {
   shouldCommitQuery: boolean;
   text: string;
   tokens: ParseResultToken[];
@@ -85,10 +85,38 @@ type UpdateFreeTextAction = {
   focusOverride?: FocusOverride;
 };
 
-type ReplaceTokensWithTextAction = {
+export type ReplaceTokensWithTextOnPasteAction = {
   text: string;
   tokens: ParseResultToken[];
-  type: 'REPLACE_TOKENS_WITH_TEXT';
+  type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE';
+  focusOverride?: FocusOverride;
+};
+
+type ReplaceTokensWithTextOnDeleteAction = {
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'REPLACE_TOKENS_WITH_TEXT_ON_DELETE';
+  focusOverride?: FocusOverride;
+};
+
+type ReplaceTokensWithTextOnCutAction = {
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'REPLACE_TOKENS_WITH_TEXT_ON_CUT';
+  focusOverride?: FocusOverride;
+};
+
+type ReplaceTokensWithTextOnKeyDownAction = {
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'REPLACE_TOKENS_WITH_TEXT_ON_KEY_DOWN';
+  focusOverride?: FocusOverride;
+};
+
+type ReplaceTokensWithTextOnSelectAction = {
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT';
   focusOverride?: FocusOverride;
 };
 
@@ -133,7 +161,11 @@ export type QueryBuilderActions =
   | DeleteTokenAction
   | DeleteTokensAction
   | UpdateFreeTextAction
-  | ReplaceTokensWithTextAction
+  | ReplaceTokensWithTextOnPasteAction
+  | ReplaceTokensWithTextOnDeleteAction
+  | ReplaceTokensWithTextOnCutAction
+  | ReplaceTokensWithTextOnKeyDownAction
+  | ReplaceTokensWithTextOnSelectAction
   | UpdateFilterKeyAction
   | UpdateFilterOpAction
   | UpdateTokenValueAction
@@ -643,7 +675,11 @@ export function useQueryBuilderState({
               newState.query !== state.query && displayAskSeerFeedback ? true : false,
           };
         }
-        case 'REPLACE_TOKENS_WITH_TEXT':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_CUT':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_DELETE':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_KEY_DOWN':
           return replaceTokensWithText(state, {
             tokens: action.tokens,
             text: action.text,
