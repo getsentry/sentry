@@ -937,7 +937,7 @@ class AMCheckout extends Component<Props, State> {
                     <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
                   ),
                   contact: hasZendesk() ? (
-                    <ZendeskButton borderless onClick={activateZendesk}>
+                    <ZendeskButton priority="link" onClick={activateZendesk}>
                       <Text variant="accent">{t('ask Support')}</Text>
                     </ZendeskButton>
                   ) : (

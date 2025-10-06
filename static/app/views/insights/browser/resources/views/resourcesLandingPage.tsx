@@ -20,7 +20,6 @@ import {ModulesOnboarding} from 'sentry/views/insights/common/components/modules
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
@@ -31,7 +30,6 @@ function ResourcesLandingPage() {
   return (
     <React.Fragment>
       <PageAlertProvider>
-        <FrontendHeader module={ModuleName.RESOURCE} />
         <ModuleFeature moduleName={ModuleName.RESOURCE}>
           <Layout.Body>
             <Layout.Main fullWidth>

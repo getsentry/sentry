@@ -1,4 +1,7 @@
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+
+import {Disclosure} from 'sentry/components/core/disclosure';
 import {Heading} from 'sentry/components/core/text';
 
 export function DebugNotificationsPreview({
@@ -11,14 +14,30 @@ export function DebugNotificationsPreview({
   actions?: React.ReactNode;
 }) {
   return (
-    <Container>
-      <Flex justify="between" gap="md" padding="md 0">
-        <Heading as="h2">{title}</Heading>
-        <Flex>{actions}</Flex>
-      </Flex>
-      <Flex direction="column" gap="sm">
-        {children}
-      </Flex>
-    </Container>
+    <Fragment>
+      <PreviewDisclosure defaultExpanded>
+        <Disclosure.Title trailingItems={actions}>
+          <Heading as="h2">{title}</Heading>
+        </Disclosure.Title>
+        <Disclosure.Content>{children}</Disclosure.Content>
+      </PreviewDisclosure>
+      <Divider />
+    </Fragment>
   );
 }
+
+const PreviewDisclosure = styled(Disclosure)`
+  flex: 0;
+  pre,
+  code {
+    white-space: pre-wrap;
+  }
+`;
+
+const Divider = styled('hr')`
+  border-top: 1px solid ${p => p.theme.border};
+  width: 100%;
+  &:last-child {
+    display: none;
+  }
+`;

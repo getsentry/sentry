@@ -79,7 +79,7 @@ export const fields = {
     options: platforms.map(({id, name}) => ({
       value: id,
       label: (
-        <Flex align="center" key={id}>
+        <Flex key={id} align="center">
           <StyledPlatformIcon platform={id} />
           {name}
         </Flex>

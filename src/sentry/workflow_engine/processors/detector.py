@@ -241,7 +241,10 @@ def process_detectors[T](
             tags={"detector_type": detector.type},
         )
 
-        detector_results = handler.evaluate(data_packet)
+        with metrics.timer(
+            "workflow_engine.process_detectors.evaluate", tags={"detector_type": detector.type}
+        ):
+            detector_results = handler.evaluate(data_packet)
 
         if detector_results is None:
             return results
