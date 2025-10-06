@@ -5,6 +5,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import TeamStore from 'sentry/stores/teamStore';
 import OrganizationTeamProjects from 'sentry/views/settings/organizationTeams/teamProjects';
 
 describe('OrganizationTeamProjects', () => {
@@ -25,13 +26,23 @@ describe('OrganizationTeamProjects', () => {
     access: ['project:read', 'project:write', 'project:admin'],
   });
 
-  const {routerProps, organization} = initializeOrg({
+  const {organization} = initializeOrg({
     organization: OrganizationFixture({slug: 'org-slug'}),
     projects: [project, project2],
-    router: {params: {teamId: team.slug}},
   });
 
+  const initialRouterConfig = {
+    location: {
+      pathname: `/settings/${organization.slug}/teams/${team.slug}/projects/`,
+    },
+    route: '/settings/:orgId/teams/:teamId/projects/',
+  };
+
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    TeamStore.reset();
+
+    TeamStore.loadInitialData([team]);
     getMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project, project2],
@@ -58,13 +69,10 @@ describe('OrganizationTeamProjects', () => {
     });
   });
 
-  afterEach(() => {
-    MockApiClient.clearMockResponses();
-  });
-
   it('should fetch linked and unlinked projects', async () => {
-    render(<OrganizationTeamProjects {...routerProps} team={team} />, {
+    render(<OrganizationTeamProjects />, {
       organization,
+      initialRouterConfig,
     });
 
     expect(await screen.findByText('project-slug')).toBeInTheDocument();
@@ -76,8 +84,9 @@ describe('OrganizationTeamProjects', () => {
   });
 
   it('should allow bookmarking', async () => {
-    render(<OrganizationTeamProjects {...routerProps} team={team} />, {
+    render(<OrganizationTeamProjects />, {
       organization,
+      initialRouterConfig,
     });
 
     const stars = await screen.findAllByRole('button', {name: 'Bookmark'});
@@ -98,8 +107,9 @@ describe('OrganizationTeamProjects', () => {
   });
 
   it('should allow adding and removing projects', async () => {
-    render(<OrganizationTeamProjects {...routerProps} team={team} />, {
+    render(<OrganizationTeamProjects />, {
       organization,
+      initialRouterConfig,
     });
 
     expect(getMock).toHaveBeenCalledTimes(2);
@@ -117,8 +127,9 @@ describe('OrganizationTeamProjects', () => {
   });
 
   it('handles filtering unlinked projects', async () => {
-    render(<OrganizationTeamProjects {...routerProps} team={team} />, {
+    render(<OrganizationTeamProjects />, {
       organization,
+      initialRouterConfig,
     });
 
     expect(getMock).toHaveBeenCalledTimes(2);

@@ -19,25 +19,27 @@ import {IconFlag, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
 import ProjectListItem from 'sentry/views/settings/components/settingsProjectItem';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-interface TeamProjectsProps extends RouteComponentProps<{teamId: string}> {
-  team: Team;
-}
-
-function TeamProjects({team, location, params}: TeamProjectsProps) {
+export default function TeamProjects() {
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
+  const location = useLocation();
   const [query, setQuery] = useState<string>('');
-  const teamId = params.teamId;
+
+  const {teamId} = useParams<{teamId: string}>();
+  const {teams, isLoading: isTeamsLoading} = useTeamsById({slugs: [teamId]});
+  const team = teams.find(tm => tm.slug === teamId);
+
   const {
     data: linkedProjects,
     isError: linkedProjectsError,
@@ -101,6 +103,14 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
         hideCheck: true,
       }));
   }, [unlinkedProjects]);
+
+  if (isTeamsLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (!team) {
+    return null;
+  }
 
   return (
     <Fragment>
@@ -186,5 +196,3 @@ const StyledPanelItem = styled(PanelItem)`
   padding: ${space(2)};
   max-width: 100%;
 `;
-
-export default TeamProjects;
