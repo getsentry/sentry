@@ -295,15 +295,15 @@ function PlanFeatures({
   return (
     <Flex
       background="primary"
-      padding="xl"
+      padding="2xl"
       radius="lg"
       border="primary"
       gap="xl"
       direction="column"
     >
-      <Heading as="h3">
+      <Heading as="h2">
         {tct('What you get on the [planName] plan:', {
-          planName: <Text underline>{activePlan.name}</Text>,
+          planName: <Text>{activePlan.name}</Text>,
         })}
       </Heading>
       <Grid columns={{xs: '1fr', sm: `repeat(${planOptions.length}, 1fr)`}} gap="md xl">

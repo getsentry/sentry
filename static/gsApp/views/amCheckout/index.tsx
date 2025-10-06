@@ -12,7 +12,7 @@ import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex, Grid, Stack} from 'sentry/components/core/layout';
+import {Container, Flex, Grid, Stack} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import LoadingError from 'sentry/components/loadingError';
@@ -888,7 +888,7 @@ class AMCheckout extends Component<Props, State> {
 
     const renderCheckoutContent = () => (
       <Fragment>
-        <CheckoutBody>
+        <CheckoutBody isNewCheckout={!!isNewCheckout}>
           {!isNewCheckout && (
             <SettingsPageHeader
               title="Change Subscription"
@@ -921,7 +921,7 @@ class AMCheckout extends Component<Props, State> {
             {this.renderSteps()}
           </CheckoutStepsContainer>
         </CheckoutBody>
-        <SidePanel>
+        <SidePanel isNewCheckout={!!isNewCheckout}>
           <OverviewContainer isNewCheckout={!!isNewCheckout}>
             {isNewCheckout ? (
               <Cart
@@ -937,25 +937,27 @@ class AMCheckout extends Component<Props, State> {
             ) : (
               <CheckoutOverview {...overviewProps} />
             )}
-            <SupportPrompt>
-              {t('Have a question?')}
-              <TextOverflow>
-                {tct('[help:Find an answer] or [contact]', {
-                  help: (
-                    <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
-                  ),
-                  contact: hasZendesk() ? (
-                    <ZendeskButton priority="link" onClick={activateZendesk}>
-                      <Text variant="accent">{t('ask Support')}</Text>
-                    </ZendeskButton>
-                  ) : (
-                    <ZendeskLink subject="Billing Question" source="checkout">
-                      {t('ask Support')}
-                    </ZendeskLink>
-                  ),
-                })}
-              </TextOverflow>
-            </SupportPrompt>
+            <Flex padding={`0 ${isNewCheckout ? '2xl' : '0'}`}>
+              <SupportPrompt>
+                {t('Have a question?')}
+                <TextOverflow>
+                  {tct('[help:Find an answer] or [contact]', {
+                    help: (
+                      <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
+                    ),
+                    contact: hasZendesk() ? (
+                      <ZendeskButton borderless onClick={activateZendesk}>
+                        <Text variant="accent">{t('ask Support')}</Text>
+                      </ZendeskButton>
+                    ) : (
+                      <ZendeskLink subject="Billing Question" source="checkout">
+                        {t('ask Support')}
+                      </ZendeskLink>
+                    ),
+                  })}
+                </TextOverflow>
+              </SupportPrompt>
+            </Flex>
           </OverviewContainer>
           <DisclaimerText>{discountInfo?.disclaimerText}</DisclaimerText>
           {subscription.canCancel && (
@@ -985,7 +987,11 @@ class AMCheckout extends Component<Props, State> {
 
     return this.renderParentComponent({
       children: (
-        <Flex width="100%" background="secondary" justify="center" padding="2xl">
+        <Flex
+          width={'100%'}
+          background={'secondary'}
+          justify={isNewCheckout ? 'start' : 'center'}
+        >
           <SentryDocumentTitle
             title={t('Change Subscription')}
             orgSlug={organization.slug}
@@ -1007,9 +1013,11 @@ class AMCheckout extends Component<Props, State> {
             </Alert.Container>
           )}
           {isNewCheckout ? (
-            <Stack gap="2xl" align="start" width="100%" maxWidth="1440px">
-              <LogoSentry height="24px" />
-              <Flex gap="2xl" wrap="wrap" width="100%" align="start" paddingTop="xl">
+            <Stack gap="xl" align="center" width={{xs: '100%', lg: 'calc(100% - 520px)'}}>
+              <Container padding="2xl" width="100%" maxWidth="1000px">
+                <LogoSentry height="24px" />
+              </Container>
+              <Flex gap="2xl" wrap="wrap" width="100%" justify="center">
                 {renderCheckoutContent()}
               </Flex>
             </Stack>
@@ -1039,19 +1047,56 @@ const BackButton = styled(Link)`
   display: inline-flex;
 `;
 
-const CheckoutBody = styled('div')`
-  flex-basis: 0;
-  flex-grow: 999;
-  min-inline-size: 60%;
+const CheckoutBody = styled('div')<{isNewCheckout: boolean}>`
+  ${p =>
+    !p.isNewCheckout &&
+    css`
+      flex-basis: 0;
+      flex-grow: 999;
+      min-inline-size: 60%;
+    `}
+
+  ${p =>
+    p.isNewCheckout &&
+    css`
+      padding: ${p.theme.space['2xl']};
+      width: 100%;
+      max-width: 1000px;
+    `}
 `;
 
-const SidePanel = styled('aside')`
-  height: max-content;
-  position: sticky;
-  top: 30px;
-  align-self: start;
-  flex-grow: 1;
-  flex-basis: 25rem;
+const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
+  ${p =>
+    p.isNewCheckout &&
+    css`
+      width: 100%;
+      border-top: 1px solid ${p.theme.border};
+      background-color: ${p.theme.background};
+      display: flex;
+      flex-direction: column;
+
+      @media (min-width: ${p.theme.breakpoints.lg}) {
+        position: fixed;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        height: 100vh;
+        max-width: 520px;
+        border-top: none;
+        border-left: 1px solid ${p.theme.border};
+      }
+    `}
+
+  ${p =>
+    !p.isNewCheckout &&
+    css`
+      height: max-content;
+      position: sticky;
+      top: 30px;
+      align-self: start;
+      flex-grow: 1;
+      flex-basis: 25rem;
+    `}
 `;
 
 /**
@@ -1067,6 +1112,14 @@ const OverviewContainer = styled('div')<{isNewCheckout: boolean}>`
         display: none;
       }
     `}
+
+  ${p =>
+    p.isNewCheckout &&
+    css`
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    `}
 `;
 
 const SupportPrompt = styled(Panel)`
@@ -1078,6 +1131,7 @@ const SupportPrompt = styled(Panel)`
   font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   align-items: center;
+  width: 100%;
 `;
 
 const CancelSubscription = styled('div')`
@@ -1114,12 +1168,10 @@ const CheckoutStepsContainer = styled('div')<{isNewCheckout: boolean}>`
     css`
       display: flex;
       flex-direction: column;
-      gap: 40px;
-      margin-top: ${p.theme.space.md};
+      gap: 80px;
 
-      & > :not(:first-child) {
-        padding-top: 48px;
-        border-top: 2px dashed ${p.theme.border};
+      & > * {
+        margin-top: ${p.theme.space.md};
       }
     `}
 `;
