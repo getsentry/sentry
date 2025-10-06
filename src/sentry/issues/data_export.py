@@ -4,8 +4,8 @@ import threading
 from collections.abc import Iterator
 from queue import Queue
 
-from google.cloud import storage
 from google.cloud.storage.bucket import Bucket
+from google.cloud.storage.client import Client
 
 from sentry.models.organization import Organization
 from sentry.services import eventstore
@@ -35,14 +35,15 @@ def upload_to_gcs(compressed_data: bytes, file_counter: int, bucket: Bucket, gcs
         compressed_data,
         content_type="application/gzip",
         timeout=300,  # 5 minute timeout
-        retry=storage.retry.DEFAULT_RETRY,
     )
 
 
 # TODO: uploader will probably change
-def background_uploader(upload_queue: Queue, destination_bucket: str, gcs_prefix: str):
+def background_uploader(
+    upload_queue: Queue[bytes | None], destination_bucket: str, gcs_prefix: str
+):
     file_counter = 0
-    storage_client = storage.Client()
+    storage_client = Client()
     bucket = storage_client.bucket(destination_bucket)
 
     while True:
@@ -56,7 +57,7 @@ def background_uploader(upload_queue: Queue, destination_bucket: str, gcs_prefix
         upload_to_gcs(data, file_counter, bucket, gcs_prefix)
 
 
-def add_events_to_upload_queue(events_data: list[dict], upload_queue: Queue):
+def add_events_to_upload_queue(events_data: list[dict], upload_queue: Queue[bytes | None]):
     jsonl_data = []
     for event_data in events_data:
         if event_data:
@@ -90,7 +91,7 @@ def process_event_batches(
     gcs_prefix: str,
 ):
     # Create upload queue and background uploader
-    upload_queue = Queue(maxsize=UPLOAD_QUEUE_SIZE)
+    upload_queue: Queue[bytes | None] = Queue(maxsize=UPLOAD_QUEUE_SIZE)
     upload_thread = threading.Thread(
         target=background_uploader,
         args=(upload_queue, destination_bucket, gcs_prefix),
