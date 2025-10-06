@@ -1,3 +1,5 @@
+/** @knipignore */
+
 import type {Theme} from '@emotion/react';
 import {uuid4} from '@sentry/core';
 
@@ -77,6 +79,7 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
+    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
     return <TraceMissingInstrumentationRow {...props} node={props.node} />;
   }
 

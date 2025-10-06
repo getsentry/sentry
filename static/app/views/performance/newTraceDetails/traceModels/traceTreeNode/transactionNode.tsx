@@ -1,3 +1,5 @@
+/** @knipignore */
+
 import type {Theme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 
@@ -123,6 +125,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
   }
 
   expand(expanding: boolean, tree: TraceTree): boolean {
+    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
     const index = tree.list.indexOf(this);
 
     // Expanding is not allowed for zoomed in nodes
@@ -135,6 +138,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
       this.expanded = expanding;
 
       // Flip expanded so that we can collect visible children
+      // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
       tree.list.splice(index + 1, 0, ...this.visibleChildren);
     } else {
       tree.list.splice(index + 1, this.visibleChildren.length);
@@ -142,6 +146,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
       this.expanded = expanding;
 
       // When transaction nodes are collapsed, they still render child transactions
+      // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
       tree.list.splice(index + 1, 0, ...this.visibleChildren);
     }
 
@@ -158,6 +163,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
   }
 
   renderWaterfallRow<T extends TraceTree.Node>(props: TraceRowProps<T>): React.ReactNode {
+    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
     return <TraceTransactionRow {...props} node={props.node} />;
   }
 
@@ -213,6 +219,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     }
 
     if (!fetching) {
+      // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
       const index = tree.list.indexOf(this);
 
       // Remove currently visible children
@@ -225,10 +232,12 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
       // Find all transactions that are children of the current transaction
       // remove all non transaction events from current node and its children
       // point transactions back to their parents
+      // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
       const transactions = this.findAllChildren(c => isTransactionNode(c) && c !== this);
 
       for (const trace of transactions) {
         // point transactions back to their parents
+        // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
         const parent = trace.findParent(p => isTransactionNode(p));
 
         // If they already have the correct parent, then we can skip this
@@ -248,9 +257,11 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
         parent.children.push(trace);
       }
 
+      // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
       this.children = this.children.filter(c => isTransactionNode(c));
       this.children.sort(traceChronologicalSort);
 
+      // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
       tree.list.splice(index + 1, 0, ...this.visibleChildren);
 
       this.invalidate();
@@ -277,6 +288,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
         // happens, dont update the tree with the resolved data. Alternatively, we could implement
         // a cancellable promise and avoid this cumbersome heuristic.
         // Remove existing entries from the list
+        // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
         const index = tree.list.indexOf(this);
         this.fetchStatus = 'resolved';
 
@@ -291,8 +303,10 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
         const spans = data.entries.find(s => s.type === 'spans') ?? {data: []};
         spans.data.sort((a: any, b: any) => a.start_timestamp - b.start_timestamp);
 
+        // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
         const [root, spanTreeSpaceBounds] = this._fromSpans(this, spans.data, data);
 
+        // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
         root.hasFetchedChildren = true;
         // Spans contain millisecond precision, which means that it is possible for the
         // children spans of a transaction to extend beyond the start and end of the transaction
@@ -326,6 +340,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
         });
 
         if (index !== -1) {
+          // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
           tree.list.splice(index + 1, 0, ...this.visibleChildren);
         }
         return data;

@@ -1,3 +1,5 @@
+/** @knipignore */
+
 import type {Theme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
@@ -78,6 +80,7 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
+    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
     return <TraceAutogroupedRow {...props} node={props.node} />;
   }
 
@@ -155,6 +158,7 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
   }
 
   expand(expanding: boolean, tree: TraceTree): boolean {
+    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
     const index = tree.list.indexOf(this);
 
     // Expanding is not allowed for zoomed in nodes
@@ -182,6 +186,7 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
       // The node is part of the tree, but not visible yet.Check can be pushed to the top of the function
       // when we no longer have to support non-eap traces.
       if (index !== -1) {
+        // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
         tree.list.splice(index + 1, 0, this.head, ...this.head.visibleChildren);
       }
     } else {
@@ -193,6 +198,7 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
         c.parent = this;
       }
 
+      // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
       tree.list.splice(index + 1, 0, ...this.tail.visibleChildren);
     }
 

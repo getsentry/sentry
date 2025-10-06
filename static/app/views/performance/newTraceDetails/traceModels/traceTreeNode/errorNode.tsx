@@ -1,3 +1,5 @@
+/** @knipignore */
+
 import type {Theme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
@@ -81,6 +83,7 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
+    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
     return <TraceErrorRow {...props} node={props.node} />;
   }
 

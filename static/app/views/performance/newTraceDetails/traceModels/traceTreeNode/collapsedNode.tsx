@@ -1,3 +1,5 @@
+/** @knipignore */
+
 import {uuid4} from '@sentry/core';
 
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -53,6 +55,7 @@ export class CollapsedNode extends BaseNode<TraceTree.CollapsedNode> {
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
+    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
     return <TraceCollapsedRow {...props} node={props.node} />;
   }
 

@@ -1,3 +1,5 @@
+/** @knipignore */
+
 import type {Theme} from '@emotion/react';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
@@ -5,7 +7,6 @@ import {t} from 'sentry/locale';
 import {SpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
-  isBrowserRequestNode,
   isEAPSpan,
   isEAPSpanNode,
   isEAPTransaction,
@@ -69,11 +70,14 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   private _updateAncestorOpsBreakdown(node: EapSpanNode, op: string) {
     let current = node.parent;
     while (current) {
+      // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
       if (isEAPSpanNode(current)) {
+        // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
         const existing = current.opsBreakdown.find(b => b.op === op);
         if (existing) {
           existing.count++;
         } else {
+          // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
           current.opsBreakdown.push({op, count: 1});
         }
       }
@@ -158,6 +162,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   }
 
   expand(expanding: boolean, tree: TraceTree): boolean {
+    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
     const index = tree.list.indexOf(this);
 
     // Expanding is not allowed for zoomed in nodes
@@ -209,13 +214,18 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
           }
         }
 
-        const browserRequestSpan = this.children.find(c => isBrowserRequestNode(c));
+        const browserRequestSpan = this.children.find(
+          c =>
+            c.op === 'browser.request' ||
+            (c.op === 'browser' && c.description === 'request')
+        );
         if (browserRequestSpan) {
           this._reparentSSRUnderBrowserRequestSpan(browserRequestSpan);
         }
       }
 
       // Flip expanded so that we can collect visible children
+      // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
       tree.list.splice(index + 1, 0, ...this.visibleChildren);
     } else {
       tree.list.splice(index + 1, this.visibleChildren.length);
@@ -249,6 +259,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
 
       // When transaction nodes are collapsed, they still render child transactions
       if (this.value.is_transaction) {
+        // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
         tree.list.splice(index + 1, 0, ...this.visibleChildren);
       }
     }
@@ -287,6 +298,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<T>
   ): React.ReactNode {
+    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
     return <TraceSpanRow {...props} node={props.node} />;
   }
 

@@ -2533,11 +2533,11 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   }
   if (isUptimeCheckNode(n)) {
     const checkId = n.value.event_id;
-    return `uptime-check-${checkId}`;
+    return `uptimeCheck-${checkId}`;
   }
   if (isUptimeCheckTimingNode(n)) {
     const checkId = n.value.event_id;
-    return `uptime-check-timing-${checkId}`;
+    return `uptimeCheckTiming-${checkId}`;
   }
 
   if (isMissingInstrumentationNode(n)) {

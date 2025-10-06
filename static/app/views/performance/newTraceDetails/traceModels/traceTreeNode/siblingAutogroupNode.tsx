@@ -1,3 +1,5 @@
+/** @knipignore */
+
 import type {Theme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
@@ -76,12 +78,14 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
+    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
     return <TraceAutogroupedRow {...props} node={props.node} />;
   }
 
   renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
+    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
     return <AutogroupNodeDetails {...props} node={props.node} />;
   }
 

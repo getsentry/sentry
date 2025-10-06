@@ -1,3 +1,5 @@
+/** @knipignore */
+
 import type {Theme} from '@emotion/react';
 
 import type {Client} from 'sentry/api';
@@ -409,6 +411,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   }
 
   expand(expanding: boolean, tree: TraceTree): boolean {
+    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
     const index = tree.list.indexOf(this);
 
     // Expanding is not allowed for zoomed in nodes
@@ -421,6 +424,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       this.expanded = expanding;
 
       // Flip expanded so that we can collect visible children
+      // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
       tree.list.splice(index + 1, 0, ...this.visibleChildren);
     } else {
       tree.list.splice(index + 1, this.visibleChildren.length);

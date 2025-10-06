@@ -1,3 +1,5 @@
+/** @knipignore */
+
 import type {Theme} from '@emotion/react';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
@@ -153,6 +155,7 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
+    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
     return <TraceSpanRow {...props} node={props.node} />;
   }
 
