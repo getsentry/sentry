@@ -75,4 +75,7 @@ def get_grouping_info_from_variants(
     key under which it lives.
     """
 
-    return {key: {"key": key, **variant.as_dict()} for key, variant in variants.items()}
+    if use_legacy_format:
+        return {key: {"key": key, **variant.as_dict()} for key, variant in variants.items()}
+
+    return {variant.key: variant.as_dict() for variant in variants.values()}
