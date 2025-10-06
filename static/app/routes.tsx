@@ -487,7 +487,6 @@ function buildRoutes(): RouteObject[] {
               component: make(
                 () => import('sentry/views/settings/account/apiApplications')
               ),
-              deprecatedRouteProps: true,
             },
             {
               path: ':appId/',
