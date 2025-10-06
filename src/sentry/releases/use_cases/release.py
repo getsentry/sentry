@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timezone
-from typing import Any, cast
+from typing import Any
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -76,13 +76,7 @@ def serialize(
 
     project_map = get_projects(projects, fetch_project_platforms)
 
-    release_projects_map: dict[int, list[SerializedProject]] = {
-        release_id: [
-            cast(SerializedProject, {**project_map[project_id], "newGroups": count})
-            for project_id, count in mapping.items()
-        ]
-        for release_id, mapping in new_groups_map.items()
-    }
+    release_projects_map = get_release_projects(new_groups_map, project_map)
 
     adoption_stage_map: dict[int, dict[str, AdoptionStage]] = {
         rid: {project_map[pid]["slug"]: adoption_stage for pid, adoption_stage in mapping}
@@ -118,6 +112,17 @@ def serialize(
         current_project_meta=current_project_meta or {},
         owner_map=owners_map,
     )
+
+
+def get_release_projects(
+    new_groups_map: defaultdict[int, dict[int, int]], project_map: dict[int, SerializedProject]
+) -> defaultdict[int, list[SerializedProject]]:
+    release_projects_map: defaultdict[int, list[SerializedProject]] = defaultdict(list)
+    for release_id, mapping in new_groups_map.items():
+        for project_id, count in mapping.items():
+            project_data: SerializedProject = {**project_map[project_id], "newGroups": count}
+            release_projects_map[release_id].append(project_data)
+    return release_projects_map
 
 
 @sentry_sdk.trace
