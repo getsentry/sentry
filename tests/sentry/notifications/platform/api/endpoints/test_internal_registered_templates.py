@@ -136,7 +136,7 @@ class SerializeSlackPreviewTest(TestCase):
         assert_button_element(actions_block["elements"][0], "Visit Sentry", "https://www.sentry.io")
 
         # Check footer block exists
-        footer_block = find_section_block_by_text(blocks, "This is a mock footer")
+        footer_block = find_block_by_type(blocks, "context")
         assert footer_block is not None
 
         # Check image block exists

@@ -74,19 +74,27 @@ def send_email(source: str, target: str) -> None:
     help="Registered template source (see `sentry notifications list`)",
     default="error-alert-service",
 )
-@click.option(
-    "-w", "--integration_name", help="Integration name", default="sentry-ecosystem"
-)  # default is sentry-ecosystem workspace
 @click.option("-o", "--organization_slug", help="Organization slug", default="default")
-@click.option("-c", "--channel", help="Channel name", default="general")
-def send_slack(source: str, integration_name: str, organization_slug: str, channel: str) -> None:
+def send_slack(source: str, organization_slug: str) -> None:
     """
-    Send a Slack notification
-    - Default sends to sentry-ecosystem organization and #general channel
+    Send a Slack
+    - Example usage: `sentry notifications send slack -o <organization_slug> -s <source>`
+    - To change the default workspace or channel, set the options slack.default-workspace and slack.default-channel in .sentry/config.yml
     """
+    from sentry import options
     from sentry.runner import configure
 
     configure()
+
+    integration_name = options.get("slack.default-workspace")
+    channel = options.get("slack.default-channel")
+
+    if integration_name == "example-workspace-name":
+        click.echo("Please set the slack.default-workspace option in .sentry/config.yml")
+        return
+
+    if channel == "general":
+        click.echo("INFO: You have not yet set a default channel, sending to the #general")
 
     from sentry.constants import ObjectStatus
     from sentry.integrations.models.integration import Integration
