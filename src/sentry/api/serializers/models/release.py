@@ -515,9 +515,12 @@ class ReleaseSerializer(Serializer):
                 last_seen[release_project_env.release.version] = release_project_env.last_seen
 
         group_counts_by_release: dict[int, dict[int, int]] = {}
-        for project_id, release_id, new_groups in release_project_envs.annotate(
-            aggregated_new_issues_count=Sum("new_issues_count")
-        ).values_list("project_id", "release_id", "aggregated_new_issues_count"):
+        for project_id, release_id, new_groups in (
+            release_project_envs.order_by()
+            .values("project_id", "release_id")
+            .annotate(aggregated_new_issues_count=Sum("new_issues_count"))
+            .values_list("project_id", "release_id", "aggregated_new_issues_count")
+        ):
             group_counts_by_release.setdefault(release_id, {})[project_id] = new_groups
 
         return first_seen, last_seen, group_counts_by_release
@@ -641,6 +644,7 @@ class ReleaseSerializer(Serializer):
                 "slug": pr["project__slug"],
                 "name": pr["project__name"],
                 "new_groups": new_groups_count,
+                # "new_groups": pr["new_groups"],
                 "platform": pr["project__platform"],
                 "platforms": platforms_by_project.get(pr["project__id"]) or [],
             }
