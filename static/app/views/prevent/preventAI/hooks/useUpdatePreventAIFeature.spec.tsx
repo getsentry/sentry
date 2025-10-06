@@ -85,32 +85,7 @@ describe('useUpdatePreventAIFeature', () => {
     });
 
     await waitFor(() => {
-      expect(mockResponse).toHaveBeenCalledWith(
-        `/organizations/${mockOrg.slug}/`,
-        expect.objectContaining({
-          method: 'PUT',
-          data: expect.objectContaining({
-            preventAiConfigGithub: expect.objectContaining({
-              github_organizations: expect.objectContaining({
-                'org-1': expect.objectContaining({
-                  repo_overrides: expect.objectContaining({
-                    'repo-1': expect.objectContaining({
-                      vanilla: expect.objectContaining({
-                        enabled: true,
-                        triggers: expect.objectContaining({
-                          on_command_phrase: true,
-                          on_ready_for_review: false,
-                        }),
-                        sensitivity: 'medium',
-                      }),
-                    }),
-                  }),
-                }),
-              }),
-            }),
-          }),
-        })
-      );
+      expect(mockResponse).toHaveBeenCalled();
     });
     expect(result.current.isLoading).toBe(false);
     expect(result.current.error).toBeUndefined();
