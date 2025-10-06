@@ -77,7 +77,7 @@ type DeleteTokensAction = {
   focusOverride?: FocusOverride;
 };
 
-export type UpdateFreeTextAction = {
+type UpdateFreeTextAction = {
   shouldCommitQuery: boolean;
   text: string;
   tokens: ParseResultToken[];
@@ -85,7 +85,7 @@ export type UpdateFreeTextAction = {
   focusOverride?: FocusOverride;
 };
 
-export type ReplaceTokensWithTextOnPasteAction = {
+type ReplaceTokensWithTextOnPasteAction = {
   text: string;
   tokens: ParseResultToken[];
   type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE';
