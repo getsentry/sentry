@@ -12,6 +12,7 @@ import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject} from 'sentry/components/forms/types';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -23,44 +24,23 @@ import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-interface TeamSettingsProps {
-  team: Team;
-}
-
-function TeamSettings({team}: TeamSettingsProps) {
-  const params = useParams<{teamId: string}>();
+export default function TeamSettings() {
   const navigate = useNavigate();
   const organization = useOrganization();
   const api = useApi();
 
-  const handleSubmitSuccess: FormProps['onSubmitSuccess'] = (resp: Team, _model, id) => {
-    // Use the old slug when triggering the update so we correctly replace the
-    // previous team in the store
-    updateTeamSuccess(team.slug, resp);
-    if (id === 'slug') {
-      addSuccessMessage(t('Team name changed'));
-      navigate(`/settings/${organization.slug}/teams/${resp.slug}/settings/`, {
-        replace: true,
-      });
-    }
-  };
-
-  const handleRemoveTeam = async () => {
-    try {
-      await removeTeam(api, {orgId: organization.slug, teamId: params.teamId});
-      navigate(`/settings/${organization.slug}/teams/`, {replace: true});
-    } catch {
-      // removeTeam already displays an error message
-    }
-  };
-
-  const hasTeamWrite = hasEveryAccess(['team:write'], {organization, team});
-  const hasTeamAdmin = hasEveryAccess(['team:admin'], {organization, team});
-  const isIdpProvisioned = team.flags['idp:provisioned'];
+  const {teamId} = useParams<{teamId: string}>();
+  const {teams, isLoading} = useTeamsById({slugs: [teamId]});
+  const team = teams.find(tm => tm.slug === teamId);
 
   const forms = useMemo(() => {
+    if (!team) {
+      return [];
+    }
+
     const formsConfig = cloneDeep(teamSettingsFields);
 
     const teamIdField: FieldObject = {
@@ -78,6 +58,39 @@ function TeamSettings({team}: TeamSettingsProps) {
 
     return formsConfig;
   }, [team]);
+
+  const hasTeamWrite = hasEveryAccess(['team:write'], {organization, team});
+  const hasTeamAdmin = hasEveryAccess(['team:admin'], {organization, team});
+  const isIdpProvisioned = team?.flags?.['idp:provisioned'];
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (!team) {
+    return null;
+  }
+
+  const handleSubmitSuccess: FormProps['onSubmitSuccess'] = (resp: Team, _model, id) => {
+    // Use the old slug when triggering the update so we correctly replace the
+    // previous team in the store
+    updateTeamSuccess(team.slug, resp);
+    if (id === 'slug') {
+      addSuccessMessage(t('Team name changed'));
+      navigate(`/settings/${organization.slug}/teams/${resp.slug}/settings/`, {
+        replace: true,
+      });
+    }
+  };
+
+  const handleRemoveTeam = async () => {
+    try {
+      await removeTeam(api, {orgId: organization.slug, teamId});
+      navigate(`/settings/${organization.slug}/teams/`, {replace: true});
+    } catch {
+      // removeTeam already displays an error message
+    }
+  };
 
   return (
     <Fragment>
@@ -149,5 +162,3 @@ function TeamSettings({team}: TeamSettingsProps) {
     </Fragment>
   );
 }
-
-export default TeamSettings;

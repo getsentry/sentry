@@ -1026,7 +1026,6 @@ function buildRoutes(): RouteObject[] {
               component: make(
                 () => import('sentry/views/settings/organizationTeams/teamSettings')
               ),
-              deprecatedRouteProps: true,
             },
           ],
         },

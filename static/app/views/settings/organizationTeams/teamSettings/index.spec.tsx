@@ -10,6 +10,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
+import type {Organization, Team} from 'sentry/types/organization';
 import TeamSettings from 'sentry/views/settings/organizationTeams/teamSettings';
 
 describe('TeamSettings', () => {
@@ -17,6 +18,29 @@ describe('TeamSettings', () => {
     TeamStore.reset();
     MockApiClient.clearMockResponses();
   });
+
+  const renderTeamSettings = (
+    team: Team,
+    organization: Organization = OrganizationFixture()
+  ) => {
+    TeamStore.loadInitialData([team]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      method: 'GET',
+      body: [team],
+    });
+
+    return render(<TeamSettings />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/teams/${team.slug}/settings/`,
+        },
+        route: '/settings/:orgId/teams/:teamId/settings/',
+      },
+    });
+  };
 
   it('can change slug', async () => {
     const organization = OrganizationFixture();
@@ -29,14 +53,7 @@ describe('TeamSettings', () => {
       },
     });
 
-    const {router} = render(<TeamSettings team={team} />, {
-      initialRouterConfig: {
-        location: {
-          pathname: `/settings/${organization.slug}/teams/${team.slug}/settings/`,
-        },
-        route: '/settings/:orgId/teams/:teamId/settings/',
-      },
-    });
+    const {router} = renderTeamSettings(team, organization);
 
     const input = screen.getByRole('textbox', {name: 'Team Slug'});
 
@@ -67,15 +84,7 @@ describe('TeamSettings', () => {
     const team = TeamFixture();
     const organization = OrganizationFixture({access: []});
 
-    render(<TeamSettings team={team} />, {
-      organization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/settings/${organization.slug}/teams/${team.slug}/settings/`,
-        },
-        route: '/settings/:orgId/teams/:teamId/settings/',
-      },
-    });
+    renderTeamSettings(team, organization);
 
     expect(screen.getByTestId('button-remove-team')).toBeDisabled();
   });
@@ -87,16 +96,8 @@ describe('TeamSettings', () => {
       url: `/teams/org-slug/${team.slug}/`,
       method: 'DELETE',
     });
-    TeamStore.loadInitialData([team]);
 
-    const {router} = render(<TeamSettings team={team} />, {
-      initialRouterConfig: {
-        location: {
-          pathname: `/settings/${organization.slug}/teams/${team.slug}/settings/`,
-        },
-        route: '/settings/:orgId/teams/:teamId/settings/',
-      },
-    });
+    const {router} = renderTeamSettings(team, organization);
     renderGlobalModal();
 
     // Click "Remove Team button
@@ -123,15 +124,7 @@ describe('TeamSettings', () => {
     const team = TeamFixture({hasAccess: true, flags: {'idp:provisioned': true}});
     const organization = OrganizationFixture({access: []});
 
-    render(<TeamSettings team={team} />, {
-      organization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/settings/${organization.slug}/teams/${team.slug}/settings/`,
-        },
-        route: '/settings/:orgId/teams/:teamId/settings/',
-      },
-    });
+    renderTeamSettings(team, organization);
 
     expect(
       screen.getByText(
