@@ -1,10 +1,10 @@
 ---
-created: '2025-10-03T16:56:44.626663+00:00'
+created: '2025-10-03T22:58:46.488303+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_stacktrace": {
     "component": {
       "contributes": false,
       "hint": "ignored because system stacktrace takes precedence",
@@ -76,10 +76,10 @@ source: tests/sentry/grouping/test_grouping_info.py
     "description": "in-app",
     "hash": null,
     "hint": "ignored because system stacktrace takes precedence",
-    "key": "app",
+    "key": "app_stacktrace",
     "type": "component"
   },
-  "system": {
+  "system_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -151,7 +151,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     "description": "stacktrace",
     "hash": "1effb24729ae4c43efa36b460511136a",
     "hint": null,
-    "key": "system",
+    "key": "system_stacktrace",
     "type": "component"
   }
 }
