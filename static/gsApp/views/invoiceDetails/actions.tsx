@@ -86,7 +86,7 @@ function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
 
   const isSelfServePartner =
     'isSelfServePartner' in invoice.customer && invoice.customer.isSelfServePartner;
-  const showPayNowButton = true; // !invoice.isPaid && !invoice.isClosed && !isSelfServePartner;
+  const showPayNowButton = !invoice.isPaid && !invoice.isClosed && !isSelfServePartner;
 
   return (
     <Fragment>
