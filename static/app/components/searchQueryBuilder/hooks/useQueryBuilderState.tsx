@@ -102,6 +102,7 @@ type UpdateFilterOpAction = {
   op: TermOperator;
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_FILTER_OP';
+  focusOverride?: FocusOverride;
 };
 
 type UpdateTokenValueAction = {
@@ -213,12 +214,13 @@ function modifyFilterOperator(
     hasWildcardOperators
   );
 
-  if (newQuery === state.query) {
+  if (newQuery === state.query && !action.focusOverride) {
     return state;
   }
 
   return {
     ...state,
+    focusOverride: action.focusOverride ?? null,
     query: newQuery,
     committedQuery: newQuery,
   };

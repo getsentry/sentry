@@ -25,7 +25,7 @@ import DetectorsList from 'sentry/views/detectors/list';
 
 describe('DetectorsList', () => {
   const organization = OrganizationFixture({
-    features: ['workflow-engine-ui'],
+    features: ['workflow-engine-ui', 'search-query-builder-input-flow-changes'],
     access: ['org:write'],
   });
 
@@ -168,6 +168,10 @@ describe('DetectorsList', () => {
       // Click through menus to select type:error
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(await screen.findByRole('option', {name: 'type'}));
+
+      const isOption = await screen.findByRole('option', {name: 'is'});
+      await userEvent.click(isOption);
+
       const options = await screen.findAllByRole('option');
       expect(options).toHaveLength(4);
       expect(options[0]).toHaveTextContent('error');
@@ -200,10 +204,12 @@ describe('DetectorsList', () => {
       const searchInput = await screen.findByRole('combobox', {
         name: 'Add a search term',
       });
-      await userEvent.type(searchInput, 'assignee:test@example.com');
+      await userEvent.type(searchInput, 'assignee:');
 
-      // It takes two enters. One to enter the search term, and one to submit the search.
       await userEvent.keyboard('{enter}');
+
+      await userEvent.keyboard('test@example.com');
+
       await userEvent.keyboard('{enter}');
 
       await screen.findByText('Assigned Detector');
@@ -494,10 +500,9 @@ describe('DetectorsList', () => {
       const searchInput = await screen.findByRole('combobox', {
         name: 'Add a search term',
       });
-      await userEvent.type(searchInput, 'assignee:test@example.com');
-
-      // It takes two enters. One to enter the search term, and one to submit the search.
+      await userEvent.type(searchInput, 'assignee:');
       await userEvent.keyboard('{enter}');
+      await userEvent.keyboard('test@example.com');
       await userEvent.keyboard('{enter}');
 
       // Wait for filtered results to load
