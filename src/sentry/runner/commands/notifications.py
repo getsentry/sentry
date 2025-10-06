@@ -156,18 +156,21 @@ def send_msteams() -> None:
     help="Registered template source (see `sentry notifications list`)",
     default="error-alert-service",
 )
-@click.option("-w", "--integration_name", help="Integration name", default="sentry-ecosystem")
 @click.option("-o", "--organization_slug", help="Organization slug", default="default")
-@click.option("-c", "--channel", help="Channel id", default="123456")
 def send_discord(source: str, integration_name: str, organization_slug: str, channel: str) -> None:
     """
     Send a Discord notification
+    - Requires configuring Discord default-server-id and default-channel-id in .sentry/config.yml
     - To get a Discord channel id - follow step 6 of the metric alert instructions
         - https://docs.sentry.io/organization/integrations/notification-incidents/discord/#metric-alerts
     """
+    from sentry import options
     from sentry.runner import configure
 
     configure()
+
+    channel = options.get("discord.default-channel-id")
+    integration_name = options.get("discord.default-server-id")
 
     from sentry.constants import ObjectStatus
     from sentry.integrations.models.integration import Integration
