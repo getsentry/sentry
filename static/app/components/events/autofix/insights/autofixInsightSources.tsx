@@ -69,6 +69,37 @@ function getCodeSourceName(url: string): string {
   return ellipsize(url, 30);
 }
 
+// Helper to extract commit SHA from a commit URL and truncate to 7 characters
+function getCommitSha(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    const pathParts = urlObj.pathname.split('/');
+
+    // Look for common commit URL patterns
+    // GitHub: /user/repo/commit/SHA
+    // GitLab: /user/repo/-/commit/SHA
+    // Bitbucket: /user/repo/commits/SHA
+    const commitIndex = pathParts.findIndex(
+      part => part === 'commit' || part === 'commits'
+    );
+
+    if (commitIndex !== -1 && commitIndex < pathParts.length - 1) {
+      const sha = pathParts[commitIndex + 1];
+      // Truncate to first 7 characters
+      if (sha) {
+        return sha.substring(0, 7);
+      }
+    }
+
+    // Fallback: use the last part of the path
+    const lastPart = pathParts[pathParts.length - 1];
+    return lastPart ? lastPart.substring(0, 7) : ellipsize(url, 7);
+  } catch (e) {
+    // Fallback if URL parsing fails
+    return ellipsize(url, 7);
+  }
+}
+
 function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSourcesProps) {
   const [showThoughtsPopup, setShowThoughtsPopup] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -405,7 +436,7 @@ export function generateSourceCards(
       key: `diff-${url}`,
       onClick: () => window.open(url, '_blank'),
       icon: <IconCommit size="xs" />,
-      label: t('Commit %s', getCodeSourceName(url)),
+      label: t('Commit %s', getCommitSha(url)),
       isPrimary,
     });
   });

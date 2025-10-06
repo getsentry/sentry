@@ -1870,6 +1870,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
+          handle: {module: ModuleName.HTTP},
           component: make(
             () => import('sentry/views/insights/http/views/httpLandingPage')
           ),
@@ -1887,6 +1888,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
+          handle: {module: ModuleName.VITAL},
           component: make(
             () =>
               import('sentry/views/insights/browser/webVitals/views/webVitalsLandingPage')
@@ -1905,6 +1907,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
+          handle: {module: ModuleName.RESOURCE},
           component: make(
             () =>
               import('sentry/views/insights/browser/resources/views/resourcesLandingPage')
@@ -1924,6 +1927,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
+          handle: {module: ModuleName.DB},
           component: make(
             () => import('sentry/views/insights/database/views/databaseLandingPage')
           ),
@@ -1941,6 +1945,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
+          handle: {module: ModuleName.CACHE},
           component: make(
             () => import('sentry/views/insights/cache/views/cacheLandingPage')
           ),
@@ -1952,6 +1957,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
+          handle: {module: ModuleName.QUEUE},
           component: make(
             () => import('sentry/views/insights/queues/views/queuesLandingPage')
           ),
@@ -1985,6 +1991,7 @@ function buildRoutes(): RouteObject[] {
       path: `${MODULE_BASE_URLS[ModuleName.SESSIONS]}/`,
       children: [
         {
+          handle: {module: ModuleName.SESSIONS},
           index: true,
           component: make(() => import('sentry/views/insights/sessions/views/overview')),
         },
@@ -2021,9 +2028,11 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: `${FRONTEND_LANDING_SUB_PATH}/`,
+      component: make(() => import('sentry/views/insights/pages/frontend/layout')),
       children: [
         {
           index: true,
+          handle: {module: undefined},
           component: make(
             () => import('sentry/views/insights/pages/frontend/frontendOverviewPage')
           ),
@@ -2038,9 +2047,11 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: `${BACKEND_LANDING_SUB_PATH}/`,
+      component: make(() => import('sentry/views/insights/pages/backend/layout')),
       children: [
         {
           index: true,
+          handle: {module: undefined},
           component: make(
             () => import('sentry/views/insights/pages/backend/backendOverviewPage')
           ),
@@ -2192,6 +2203,13 @@ function buildRoutes(): RouteObject[] {
     traceView,
   ];
 
+  const metricsChildren: SentryRouteObject[] = [
+    {
+      index: true,
+      component: make(() => import('sentry/views/explore/metrics/content')),
+    },
+  ];
+
   const profilingChildren: SentryRouteObject[] = [
     {
       index: true,
@@ -2275,6 +2293,11 @@ function buildRoutes(): RouteObject[] {
       path: 'logs/',
       component: make(() => import('sentry/views/explore/logs')),
       children: logsChildren,
+    },
+    {
+      path: 'metrics/',
+      component: make(() => import('sentry/views/explore/metrics')),
+      children: metricsChildren,
     },
     {
       path: 'saved-queries/',
