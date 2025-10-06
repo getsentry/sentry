@@ -29,7 +29,6 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const DEFAULT_EAP_AGGREGATION = 'count';
 const DEFAULT_EAP_FIELD = 'span.duration';
-const DEFAULT_EAP_METRICS_ALERT_FIELD = `${DEFAULT_EAP_AGGREGATION}(${DEFAULT_EAP_FIELD})`;
 
 interface Props {
   aggregate: string;
@@ -67,17 +66,11 @@ function EAPFieldWrapper({aggregate, onChange, eventTypes}: Props) {
   return <EAPField aggregate={aggregate} onChange={onChange} eventTypes={eventTypes} />;
 }
 
-function EAPField({aggregate, onChange, eventTypes}: Props) {
+export function EAPField({aggregate, onChange, eventTypes}: Props) {
   const traceItemType = getTraceItemTypeForDatasetAndEventType(
     Dataset.EVENTS_ANALYTICS_PLATFORM,
     eventTypes
   );
-  // We parse out the aggregation and field from the aggregate string.
-  // This only works for aggregates with <= 1 arguments
-
-  const {
-    arguments: [field],
-  } = parseFunction(aggregate) ?? {arguments: [undefined]};
 
   const {name: aggregation, arguments: aggregateFuncArgs} = parseFunction(aggregate) ?? {
     arguments: undefined,
@@ -92,41 +85,50 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
   const fieldsArray = Object.values(storedTags);
 
   // When using the async variant of SelectControl, we need to pass in an option object instead of just the value
-  const [lockOptions, selectedOption] = useMemo(() => {
+  const lockOptions = useMemo(() => {
     if (aggregation === AggregationKey.COUNT && traceItemType === TraceItemDataset.LOGS) {
-      return [true, {label: t('logs'), value: 'message'}];
+      return true;
     }
 
     if (aggregation === AggregationKey.COUNT) {
-      return [true, {label: t('spans'), value: DEFAULT_VISUALIZATION_FIELD}];
+      return true;
     }
 
     if (
       aggregation &&
       NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregation as AggregationKey)
     ) {
-      return [true, {label: t('spans'), value: ''}];
+      return true;
     }
 
-    const fieldName = fieldsArray.find(f => f.key === field)?.name;
-    return [false, field && {label: fieldName, value: field}];
-  }, [aggregation, field, fieldsArray, traceItemType]);
+    return false;
+  }, [aggregation, traceItemType]);
 
-  useEffect(() => {
-    if (lockOptions) {
-      return;
-    }
-
-    const selectedMeta = field ? storedTags[field] : undefined;
-    if (!field || !selectedMeta) {
-      const newSelection = fieldsArray[0];
-      if (newSelection) {
-        onChange(`count(${newSelection.name})`, {});
-      } else if (aggregate !== DEFAULT_EAP_METRICS_ALERT_FIELD) {
-        onChange(DEFAULT_EAP_METRICS_ALERT_FIELD, {});
+  const getSelectedOption = useCallback(
+    (option: string | undefined) => {
+      if (
+        aggregation === AggregationKey.COUNT &&
+        traceItemType === TraceItemDataset.LOGS
+      ) {
+        return {label: t('logs'), value: 'message'};
       }
-    }
-  }, [lockOptions, onChange, aggregate, aggregation, field, storedTags, fieldsArray]);
+
+      if (aggregation === AggregationKey.COUNT) {
+        return {label: t('spans'), value: DEFAULT_VISUALIZATION_FIELD};
+      }
+
+      if (
+        aggregation &&
+        NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregation as AggregationKey)
+      ) {
+        return {label: t('spans'), value: ''};
+      }
+
+      const fieldName = fieldsArray.find(f => f.key === option)?.name;
+      return {label: fieldName, value: option};
+    },
+    [aggregation, fieldsArray, traceItemType]
+  );
 
   const handleArgumentChange = useCallback(
     (index: number, value: string) => {
@@ -152,8 +154,8 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
           newAggregate = `${option.value}()`;
         } else {
           const argument =
-            field && defined(storedNumberTags[field])
-              ? field
+            aggregateFuncArgs?.[0] && defined(storedNumberTags[aggregateFuncArgs?.[0]])
+              ? aggregateFuncArgs?.[0]
               : (Object.values(storedNumberTags)?.[0]?.key ?? '');
           newAggregate = `${option.value}(${argument})`;
         }
@@ -166,7 +168,7 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
       }
       onChange(newAggregate, {});
     },
-    [aggregateFuncArgs, aggregation, field, onChange, storedNumberTags, traceItemType]
+    [aggregateFuncArgs, aggregation, onChange, storedNumberTags, traceItemType]
   );
 
   // As SelectControl does not support an options size limit out of the box
@@ -243,8 +245,10 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
               loadOptions={(searchText: any) =>
                 Promise.resolve(getFieldOptions(searchText))
               }
-              value={selectedOption}
-              onChange={(value: string) => handleArgumentChange(index, value)}
+              value={getSelectedOption(aggregateFuncArgs?.[index])}
+              onChange={(option: {value: string}) =>
+                handleArgumentChange(index, option.value)
+              }
               disabled={lockOptions}
             />
           </FlexWrapper>
@@ -264,8 +268,8 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
             loadOptions={(searchText: any) =>
               Promise.resolve(getFieldOptions(searchText))
             }
-            value={selectedOption}
-            onChange={(value: string) => handleArgumentChange(0, value)}
+            value={getSelectedOption(undefined)}
+            onChange={(option: {value: string}) => handleArgumentChange(0, option.value)}
             disabled={lockOptions}
           />
         </FlexWrapper>
