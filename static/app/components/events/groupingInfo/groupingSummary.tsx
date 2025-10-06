@@ -24,7 +24,7 @@ export function GroupInfoSummary({
   });
   const groupedBy = groupInfo
     ? Object.values(groupInfo)
-        .filter(variant => variant.hash !== null && variant.description !== null)
+        .filter(variant => variant.contributes && variant.description !== null)
         .map(variant => variant.description!)
         .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
         .join(', ')
