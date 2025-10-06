@@ -964,7 +964,7 @@ with sentry_sdk.start_transaction(name="langgraph-openai"):
 from litellm import completion
 
 response = completion(
-    model="gpt-4o-mini",
+    model="openai/gpt-4o-mini",
     messages=[{"role": "user", "content": "Tell me a joke"}],
 )
 print(response.choices[0].message.content)
