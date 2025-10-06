@@ -10,6 +10,7 @@ import {
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface MetricsQueryParamsProviderProps {
   children: ReactNode;
@@ -29,8 +30,10 @@ export function MetricsQueryParamsProvider({children}: MetricsQueryParamsProvide
       sortBys: [{field: 'timestamp', kind: 'desc'}],
 
       aggregateCursor: '',
-      aggregateFields: [new VisualizeFunction('sum(value)')],
-      aggregateSortBys: [{field: 'sum(value)', kind: 'desc'}],
+      aggregateFields: [
+        new VisualizeFunction('count(span.duration)', {chartType: ChartType.BAR}),
+      ],
+      aggregateSortBys: [{field: 'count(span.duration)', kind: 'desc'}],
     });
   }, [query]);
 
