@@ -33,6 +33,12 @@ export interface LinkProps
    * Indicator if the link should be disabled
    */
   disabled?: boolean;
+  /**
+   * If true, will reload the page when the frontend app is stale.
+   * Use this for primary navigation links where you want to ensure
+   * the user gets the latest version of the app.
+   */
+  reloadIfStale?: boolean;
 }
 
 const getLinkStyles = ({
@@ -69,7 +75,7 @@ const Anchor = styled('a', {
  * A context-aware version of Link (from react-router) that falls
  * back to <a> if there is no router present
  */
-export const Link = styled(({disabled, to, ...props}: LinkProps) => {
+export const Link = styled(({disabled, to, reloadIfStale, ...props}: LinkProps) => {
   const location = useLocation();
 
   // If the frontend app is stale we can force the link to reload the page,
@@ -82,7 +88,7 @@ export const Link = styled(({disabled, to, ...props}: LinkProps) => {
 
   return (
     <RouterLink
-      reloadDocument={appState === 'stale'}
+      reloadDocument={reloadIfStale && appState === 'stale'}
       to={locationDescriptorToTo(normalizeUrl(to, location))}
       {...props}
     />

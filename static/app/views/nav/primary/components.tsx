@@ -180,6 +180,7 @@ function SidebarNavLink({
   return (
     <NavLink
       to={to}
+      reloadIfStale
       state={{source: SIDEBAR_NAVIGATION_SOURCE}}
       aria-selected={activePrimaryNavGroup === group ? true : isActive}
       aria-current={isActive ? 'page' : undefined}

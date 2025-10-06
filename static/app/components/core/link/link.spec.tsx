@@ -35,10 +35,24 @@ describe('Link', () => {
     expect(router.location.pathname).toBe('/issues/');
   });
 
-  it('links do full page reload when frontend is outdated', () => {
-    render(
+  it('links do NOT do full page reload when frontend is outdated and reloadIfStale is false', async () => {
+    const {router} = render(
       <FrontendVersionProvider releaseVersion="frontend@abc123" force="stale">
         <Link to="/issues/">Link</Link>
+      </FrontendVersionProvider>
+    );
+
+    // Normal router navigation even when stale
+    await userEvent.click(screen.getByRole('link'));
+    expect(router.location.pathname).toBe('/issues/');
+  });
+
+  it('links do full page reload when frontend is outdated and reloadIfStale is true', () => {
+    render(
+      <FrontendVersionProvider releaseVersion="frontend@abc123" force="stale">
+        <Link to="/issues/" reloadIfStale>
+          Link
+        </Link>
       </FrontendVersionProvider>
     );
 
