@@ -219,8 +219,11 @@ class DashboardWidgetSerializer(Serializer):
                 equations = [field for field in spans_query.fields if is_equation(field)]
                 equation_index = get_equation_alias_index(sort_column)
                 if equation_index is not None:
-                    orderby = equations[equation_index]
-                    sort = f"{sort_direction}{orderby}"
+                    try:
+                        orderby = equations[equation_index]
+                        sort = f"{sort_direction}{orderby}"
+                    except IndexError:
+                        sort = None
                 else:
                     sort = None
             elif not is_function(sort_column) and not is_equation(sort_column):
