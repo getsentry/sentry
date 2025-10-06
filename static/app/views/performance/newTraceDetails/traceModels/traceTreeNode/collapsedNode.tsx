@@ -1,5 +1,3 @@
-/** @knipignore */
-
 import {uuid4} from '@sentry/core';
 
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';

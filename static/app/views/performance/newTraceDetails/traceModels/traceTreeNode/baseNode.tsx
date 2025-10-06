@@ -1,5 +1,3 @@
-/** @knipignore */
-
 import type {Theme} from '@emotion/react';
 
 import type {Client} from 'sentry/api';

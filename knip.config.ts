@@ -59,6 +59,8 @@ const config: KnipConfig = {
     '!static/app/components/core/disclosure/index.tsx',
     '!static/app/components/core/disclosure/disclosure.tsx',
     '!static/app/utils/timeSeries/useFetchEventsTimeSeries.tsx',
+    // TEMPORARY! Abdullah Khan: WILL BE REMOVING IN STACKED PRs. Trying to merge PRs in smaller batches.
+    '!static/app/views/performance/newTraceDetails/traceModels/traceTreeNode/**/*.{js,mjs,ts,tsx}!',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),

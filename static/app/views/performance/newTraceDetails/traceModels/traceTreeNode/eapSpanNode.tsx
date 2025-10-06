@@ -1,5 +1,3 @@
-/** @knipignore */
-
 import type {Theme} from '@emotion/react';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';

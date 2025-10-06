@@ -1,5 +1,3 @@
-/** @knipignore */
-
 import type {Theme} from '@emotion/react';
 import {uuid4} from '@sentry/core';
 

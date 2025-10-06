@@ -1,5 +1,3 @@
-/** @knipignore */
-
 import type {Theme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 
