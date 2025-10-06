@@ -28,7 +28,6 @@ from sentry.models.userreport import UserReport
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
@@ -421,9 +420,11 @@ def collect_tsdb_data(
 
         user = event.data.get("user")
         if user:
-            sets[event.datetime][TSDBModel.users_affected_by_group][
-                (event.group_id, environment.id)
-            ].add(get_event_user_from_interface(user, project).tag_value)
+            tag_value = get_event_user_from_interface(user, project).tag_value
+            if tag_value is not None:
+                sets[event.datetime][TSDBModel.users_affected_by_group][
+                    (event.group_id, environment.id)
+                ].add(tag_value)
 
         frequencies[event.datetime][TSDBModel.frequent_environments_by_group][str(event.group_id)][
             str(environment.id)
@@ -515,12 +516,9 @@ def unlock_hashes(project_id: int, locked_primary_hashes: Sequence[str]) -> None
 
 @instrumented_task(
     name="sentry.tasks.unmerge",
-    queue="unmerge",
+    namespace=issues_tasks,
+    processing_deadline_duration=60,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=60,
-    ),
 )
 def unmerge(*posargs: Any, **kwargs: Any) -> None:
     args = UnmergeArgsBase.parse_arguments(*posargs, **kwargs)

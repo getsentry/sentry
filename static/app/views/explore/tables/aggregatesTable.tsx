@@ -31,7 +31,6 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {
-  useExploreQuery,
   useExploreSortBys,
   useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
@@ -45,6 +44,7 @@ import {
   useQueryParamsAggregateFields,
   useQueryParamsFields,
   useQueryParamsGroupBys,
+  useQueryParamsQuery,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
@@ -68,7 +68,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const visualizes = useQueryParamsVisualizes();
   const sorts = useExploreSortBys();
   const setSorts = useSetExploreSortBys();
-  const query = useExploreQuery();
+  const query = useQueryParamsQuery();
   const cursor = useQueryParamsAggregateCursor();
 
   const visibleAggregateFields = useMemo(

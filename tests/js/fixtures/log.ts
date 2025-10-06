@@ -176,7 +176,7 @@ export function initializeLogsTest({
   const setupPageFilters = () => {
     ProjectsStore.loadInitialData([project]);
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(initialPageFilters, new Set());
+    PageFiltersStore.onInitializeUrlState(initialPageFilters);
   };
 
   const setupEventsMock = (logFixtures: OurLogsResponseItem[]) => {

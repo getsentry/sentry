@@ -10,7 +10,7 @@ from sentry.grouping.ingest.grouphash_metadata import (
     record_grouphash_metadata_metrics,
 )
 from sentry.grouping.strategies.base import StrategyConfiguration
-from sentry.grouping.variants import BaseVariant, ComponentVariant
+from sentry.grouping.variants import BaseVariant, ComponentVariant, SaltedComponentVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata, HashBasis
 from sentry.models.project import Project
@@ -93,6 +93,27 @@ def _assert_and_snapshot_results(
     metadata = get_grouphash_metadata_data(event, event.project, variants, config_name)
     hash_basis = metadata["hash_basis"]
     hashing_metadata = metadata["hashing_metadata"]
+
+    # Sanity checks for key values. This doesn't check every detail of what goes into the key
+    # (chained vs not, for instance), but checks enough that we can be confident the UI will show
+    # the right thing.
+    for variant_name, variant in variants.items():
+        if variant_name in ["app", "system"]:
+            assert variant.key.startswith(variant_name)
+        if isinstance(variant, SaltedComponentVariant):
+            assert variant.key.endswith("_hybrid_fingerprint")
+        if variant.contributes and hash_basis != HashBasis.UNKNOWN:
+            # Look for (no pun intended) keywords in the key to show that it agrees with the hash basis
+            search_strings = (
+                ["message", "type", "ns_error"]
+                if hash_basis == HashBasis.MESSAGE
+                else (
+                    ["csp", "expect", "hpkp"]
+                    if hash_basis == HashBasis.SECURITY_VIOLATION
+                    else [hash_basis]
+                )
+            )
+            assert any(search_string in variant.key for search_string in search_strings)
 
     # Check that the right metrics are being recorded
     with patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr") as mock_metrics_incr:

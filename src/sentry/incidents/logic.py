@@ -1835,6 +1835,7 @@ EAP_FUNCTIONS = [
     "epm",
     "failure_rate",
     "eps",
+    "apdex",
 ]
 
 
