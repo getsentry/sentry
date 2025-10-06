@@ -184,6 +184,13 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             )
             self._validate_critical_warning_triggers(threshold_type, critical, warning)
 
+        if data.get("dataset") == Dataset.EventsAnalyticsPlatform:
+            time_window = data["time_window"]
+            if time_window < 5:
+                raise serializers.ValidationError(
+                    "Time window for this alert type must be at least 5 minutes."
+                )
+
         return data
 
     def _translate_thresholds(self, threshold_type, comparison_delta, triggers, data):
