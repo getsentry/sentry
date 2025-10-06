@@ -1879,6 +1879,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # 1MB
 register(
+    "performance.issues.large_http_payload.filtered_paths",
+    default="",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.issues.db_on_main_thread.total_spans_duration_threshold",
     default=16,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
