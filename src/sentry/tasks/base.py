@@ -166,10 +166,12 @@ def retry(
             except ignore:
                 return
             except RetryError:
-                if not raise_on_no_retries:
-                    if task_state := current_task():
-                        if not task_state.retries_remaining:
-                            return
+                if (
+                    not raise_on_no_retries
+                    and (task_state := current_task())
+                    and not task_state.retries_remaining
+                ):
+                    return
                 # If we haven't been asked to ignore no-retries, pass along the RetryError.
                 raise
             except timeout_exceptions:
