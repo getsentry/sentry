@@ -1058,7 +1058,7 @@ export const ALLOWED_EXPLORE_EQUATION_AGGREGATES: AggregationKey[] = [
   AggregationKey.USER_MISERY,
 ];
 
-export const LOG_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
+const LOG_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   [AggregationKey.COUNT]: {
     ...AGGREGATION_FIELDS[AggregationKey.COUNT],

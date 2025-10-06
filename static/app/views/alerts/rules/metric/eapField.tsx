@@ -66,7 +66,7 @@ function EAPFieldWrapper({aggregate, onChange, eventTypes}: Props) {
   return <EAPField aggregate={aggregate} onChange={onChange} eventTypes={eventTypes} />;
 }
 
-export function EAPField({aggregate, onChange, eventTypes}: Props) {
+function EAPField({aggregate, onChange, eventTypes}: Props) {
   const traceItemType = getTraceItemTypeForDatasetAndEventType(
     Dataset.EVENTS_ANALYTICS_PLATFORM,
     eventTypes
