@@ -1,7 +1,9 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useEffect, useLayoutEffect, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
+import {getItemId} from '@react-aria/listbox';
 import {isMac} from '@react-aria/utils';
+import type {Key} from '@react-types/shared';
 
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import type {SelectOptionOrSectionWithKey} from 'sentry/components/core/compactSelect/types';
@@ -118,6 +120,47 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
   token,
   wrapperRef,
 }: ValueListBoxProps<T>) {
+  // Track and restore focused option if react-aria clears it during multi-select updates
+  const lastFocusedKeyRef = useRef<Key | null>(null);
+
+  const centerKeyInView = useCallback(
+    (key: Key | null) => {
+      if (key === null) return;
+      const container = listBoxRef.current;
+      if (!container) return;
+      const elId = getItemId(state as any, key as any);
+      if (!elId) return;
+      const el = document.getElementById(elId);
+      if (!el) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const offsetTopWithinContainer =
+        container.scrollTop + (elRect.top - containerRect.top);
+      const targetScrollTop =
+        offsetTopWithinContainer - container.clientHeight / 2 + elRect.height / 2;
+
+      container.scrollTop = Math.max(0, targetScrollTop);
+    },
+    [listBoxRef, state]
+  );
+
+  useEffect(() => {
+    lastFocusedKeyRef.current = state.selectionManager.focusedKey;
+  }, [state.selectionManager.focusedKey]);
+
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    if (
+      lastFocusedKeyRef.current !== null &&
+      state.selectionManager.focusedKey === null
+    ) {
+      const keyToRestore = lastFocusedKeyRef.current;
+      state.selectionManager.setFocusedKey(keyToRestore);
+      // Center the restored option on next tick
+      setTimeout(() => centerKeyInView(keyToRestore), 0);
+    }
+  }, [isOpen, state, centerKeyInView]);
   const totalOptions = items.reduce(
     (acc, item) => acc + (itemIsSection(item) ? item.options.length : 1),
     0

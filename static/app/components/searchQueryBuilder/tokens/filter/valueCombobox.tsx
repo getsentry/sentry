@@ -323,10 +323,12 @@ function useFilterSuggestions({
   token,
   filterValue,
   selectedValues,
+  initialSelectedValues,
   ctrlKeyPressed,
 }: {
   ctrlKeyPressed: boolean;
   filterValue: string;
+  initialSelectedValues: Array<{selected: boolean; value: string}>;
   selectedValues: Array<{selected: boolean; value: string}>;
   token: TokenResult<Token.FILTER>;
 }) {
@@ -381,8 +383,13 @@ function useFilterSuggestions({
     enabled: shouldFetchValues,
   });
 
+  // Create a ref to hold current selected values for the checkbox to access
+  // without causing item recreation
+  const selectedValuesRef = useRef(selectedValues);
+  selectedValuesRef.current = selectedValues;
+
   const createItem = useCallback(
-    (suggestion: SuggestionItem, selected = false) => {
+    (suggestion: SuggestionItem) => {
       return {
         label: suggestion.label ?? suggestion.value,
         value: suggestion.value,
@@ -394,6 +401,11 @@ function useFilterSuggestions({
           if (!canSelectMultipleValues) {
             return null;
           }
+
+          // Look up selected state dynamically from ref to avoid recreating items
+          const selected = selectedValuesRef.current.some(
+            v => v.value === suggestion.value && v.selected
+          );
 
           return (
             <ItemCheckbox
@@ -434,27 +446,31 @@ function useFilterSuggestions({
   }, [data, predefinedValues, shouldFetchValues, key?.key]);
 
   // Grouped sections for rendering purposes
+  // Use initialSelectedValues for ordering (to avoid re-ordering during selection)
+  // Selected state is looked up dynamically in the checkbox render to avoid recreating items
   const suggestionSectionItems = useMemo<SuggestionSectionItem[]>(() => {
     const itemsWithoutSection = suggestionGroups
       .filter(group => group.sectionText === '')
       .flatMap(group => group.suggestions)
-      .filter(suggestion => !selectedValues.some(v => v.value === suggestion.value));
+      .filter(
+        suggestion => !initialSelectedValues.some(v => v.value === suggestion.value)
+      );
     const sections = suggestionGroups.filter(group => group.sectionText !== '');
 
     return [
       {
         sectionText: '',
         items: getItemsWithKeys([
-          ...selectedValues.map(value => {
+          ...initialSelectedValues.map(value => {
             const matchingSuggestion = suggestionGroups
               .flatMap(group => group.suggestions)
               .find(suggestion => suggestion.value === value.value);
 
             if (matchingSuggestion) {
-              return createItem(matchingSuggestion, value.selected);
+              return createItem(matchingSuggestion);
             }
 
-            return createItem({value: value.value}, value.selected);
+            return createItem({value: value.value});
           }),
           ...itemsWithoutSection.map(suggestion => createItem(suggestion)),
         ]),
@@ -463,12 +479,14 @@ function useFilterSuggestions({
         sectionText: group.sectionText,
         items: getItemsWithKeys(
           group.suggestions
-            .filter(suggestion => !selectedValues.some(v => v.value === suggestion.value))
+            .filter(
+              suggestion => !initialSelectedValues.some(v => v.value === suggestion.value)
+            )
             .map(suggestion => createItem(suggestion))
         ),
       })),
     ];
-  }, [createItem, selectedValues, suggestionGroups]);
+  }, [createItem, initialSelectedValues, suggestionGroups]);
 
   // Flat list used for state management
   const items = useMemo(() => {
@@ -546,6 +564,7 @@ export function SearchQueryBuilderValueCombobox({
 }: SearchQueryValueBuilderProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const comboboxStateRef = useRef<any>(null);
   const organization = useOrganization();
   const {
     getFieldDefinition,
@@ -613,10 +632,14 @@ export function SearchQueryBuilderValueCombobox({
     }
   }, []);
 
+  // Track the initial selected values when the combobox is mounted to preserve list order during selection
+  const initialSelectedValues = useRef(selectedValuesUnescaped);
+
   const {items, suggestionSectionItems, isFetching} = useFilterSuggestions({
     token,
     filterValue,
     selectedValues: selectedValuesUnescaped,
+    initialSelectedValues: initialSelectedValues.current,
     ctrlKeyPressed,
   });
 
@@ -933,14 +956,30 @@ export function SearchQueryBuilderValueCombobox({
         token={token}
         inputLabel={t('Edit filter value')}
         onInputChange={e => setInputValue(e.target.value)}
-        onKeyDown={onKeyDown}
+        onKeyDown={(e, {state}) => {
+          comboboxStateRef.current = state;
+          onKeyDown(e);
+        }}
         onKeyUp={updateSelectionIndex}
-        onClick={updateSelectionIndex}
+        onClick={() => {
+          updateSelectionIndex();
+          // Also capture state on click to ensure it's available for mouse selections
+          if (inputRef.current) {
+            inputRef.current.focus();
+          }
+        }}
+        onOpenChange={(_isOpen, state) => {
+          // Capture the combobox state so we can restore focus after selections
+          if (state) {
+            comboboxStateRef.current = state;
+          }
+        }}
         autoFocus
         maxOptions={50}
         openOnFocus
         customMenu={customMenu}
         shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
+        preserveFocusOnInputChange={canSelectMultipleValues}
       >
         {suggestionSectionItems.map(section => (
           <Section key={section.sectionText} title={section.sectionText}>
