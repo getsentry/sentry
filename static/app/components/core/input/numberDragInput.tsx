@@ -150,9 +150,8 @@ const VerySmallIconArrow = styled(IconArrow)`
 `;
 
 function TrailingItemsContainer(props: FlexProps & {layout: 'vertical' | 'horizontal'}) {
+  const {layout, ...flexProps} = props;
   return (
-    <Flex {...props} direction={props.layout === 'vertical' ? 'column' : 'row'} gap="2xs">
-      {props.children}
-    </Flex>
+    <Flex {...flexProps} direction={layout === 'vertical' ? 'column' : 'row'} gap="2xs" />
   );
 }
