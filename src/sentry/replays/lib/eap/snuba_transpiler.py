@@ -193,7 +193,7 @@ TRACE_ITEM_TYPE_MAP = {
 }
 
 TRACE_ITEM_TYPES = TLiteral[
-    "span", "error", "log", "uptime_check", "uptime_result", "replay"  # noqa
+    "span", "error", "log", "uptime_check", "uptime_result", "replay", "metric"  # noqa
 ]
 
 
