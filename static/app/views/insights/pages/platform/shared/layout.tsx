@@ -16,8 +16,6 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
-import {FRONTEND_LANDING_TITLE} from 'sentry/views/insights/pages/frontend/settings';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
@@ -60,9 +58,7 @@ export function PlatformLandingPageLayout({
     >
       {performanceType === 'backend' ? (
         <BackendHeader headerTitle={BACKEND_LANDING_TITLE} />
-      ) : (
-        <FrontendHeader headerTitle={FRONTEND_LANDING_TITLE} />
-      )}
+      ) : null}
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
