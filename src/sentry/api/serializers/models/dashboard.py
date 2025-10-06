@@ -197,9 +197,10 @@ class DashboardWidgetSerializer(Serializer):
             y_axis_fields = []
             for function in y_axes:
                 match = is_function(function)
-                args_string = match.group("columns") if match else ""
-                args = parse_arguments(match.group("columns"), args_string)
-                y_axis_fields.extend(args)
+                if match:
+                    args_string = match.group("columns")
+                    args = parse_arguments(match.group("columns"), args_string)
+                    y_axis_fields.extend(args)
 
             fields = list(set(group_by + y_axis_fields))
 
