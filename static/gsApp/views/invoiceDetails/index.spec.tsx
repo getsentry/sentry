@@ -191,7 +191,7 @@ describe('InvoiceDetails', () => {
 
     await waitFor(() => expect(mockapiInvoice).toHaveBeenCalled());
 
-    expect(screen.getByText(/Invoice Details/)).toBeInTheDocument();
+    expect(screen.getByText(/Receipt Details/)).toBeInTheDocument();
     expect(screen.getByText(/AWAITING PAYMENT/)).toBeInTheDocument();
     expect(screen.queryByText(/Pay Now/)).not.toBeInTheDocument();
   });
@@ -272,9 +272,9 @@ describe('InvoiceDetails', () => {
     await waitFor(() => expect(mockapiInvoice).toHaveBeenCalled());
     await waitFor(() => expect(mockapiPayments).toHaveBeenCalled());
 
-    expect(screen.getByText(/Invoice Details/)).toBeInTheDocument();
+    expect(screen.getByText(/Receipt Details/)).toBeInTheDocument();
     expect(screen.getAllByText(/Pay Now/)).toHaveLength(2);
-    expect(screen.getByText(/Pay Invoice/)).toBeInTheDocument();
+    expect(screen.getByText(/Pay Bill/)).toBeInTheDocument();
     expect(screen.getByText(/Card Details/)).toBeInTheDocument();
     expect(screen.getByTestId('modal-backdrop')).toBeInTheDocument();
     expect(screen.getByTestId('cancel')).toBeInTheDocument();
