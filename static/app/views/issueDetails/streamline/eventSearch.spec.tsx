@@ -5,6 +5,7 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
 
@@ -47,7 +48,14 @@ describe('EventSearch', () => {
   });
 
   it('handles basic inputs for tags', async () => {
-    render(<EventSearch {...defaultProps} />);
+    render(<EventSearch {...defaultProps} />, {
+      organization: {
+        features: [
+          'search-query-builder-wildcard-operators',
+          'search-query-builder-default-to-contains',
+        ],
+      },
+    });
     const search = screen.getByRole('combobox', {name: 'Add a search term'});
     expect(search).toBeInTheDocument();
     await userEvent.type(search, `${tagKey}:`);
@@ -57,7 +65,7 @@ describe('EventSearch', () => {
       expect(mockTagKeyQuery).toHaveBeenCalled();
     });
     expect(mockHandleSearch).toHaveBeenCalledWith(
-      `${tagKey}:${tagValue}`,
+      `${tagKey}:${WildcardOperators.CONTAINS}${tagValue}`,
       expect.anything()
     );
   }, 10_000);

@@ -3,6 +3,7 @@ import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import type {TagValue} from 'sentry/types/group';
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -21,7 +22,15 @@ function renderWithProvider({
   return render(
     <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
       <SpansSearchBar widgetQuery={widgetQuery} onSearch={onSearch} onClose={onClose} />
-    </TraceItemAttributeProvider>
+    </TraceItemAttributeProvider>,
+    {
+      organization: {
+        features: [
+          'search-query-builder-wildcard-operators',
+          'search-query-builder-default-to-contains',
+        ],
+      },
+    }
   );
 }
 
@@ -133,7 +142,10 @@ describe('SpansSearchBar', () => {
     await userEvent.keyboard('{enter}');
 
     await waitFor(() => {
-      expect(onSearch).toHaveBeenCalledWith('span.op:function', expect.anything());
+      expect(onSearch).toHaveBeenCalledWith(
+        `span.op:${WildcardOperators.CONTAINS}function`,
+        expect.anything()
+      );
     });
   });
 
