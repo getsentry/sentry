@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {inlineCodeStyles} from 'sentry/components/core/inlineCode';
+
 type ProsePropsWithChildren<T extends keyof HTMLElementTagNameMap = 'div'> = {
   as?: T;
   children?: React.ReactNode;
@@ -40,6 +42,9 @@ export const Prose = styled(
     &:last-child {
       margin-bottom: 0;
     }
+  }
+  code:not(pre code) {
+    ${p => inlineCodeStyles(p.theme)};
   }
   /* stylelint-enable */
 `;

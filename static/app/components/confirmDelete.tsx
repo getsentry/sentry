@@ -2,6 +2,7 @@ import {Fragment, useId} from 'react';
 
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
+import {InlineCode} from 'sentry/components/core/inlineCode';
 import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
@@ -37,7 +38,7 @@ function ConfirmDelete({message, confirmInput, ...props}: Props) {
             id={id}
             label={t(
               'Please enter %s to confirm the deletion',
-              <code>{confirmInput}</code>
+              <InlineCode>{confirmInput}</InlineCode>
             )}
           >
             <Input
