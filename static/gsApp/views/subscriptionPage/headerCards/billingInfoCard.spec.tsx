@@ -27,7 +27,7 @@ describe('BillingInfoCard', () => {
     render(<BillingInfoCard organization={organization} subscription={subscription} />);
 
     expect(screen.getByText('Billing information')).toBeInTheDocument();
-    await screen.findByText('Test company');
+    await screen.findByText('Test company, Display Address');
     expect(screen.getByText('Card ending in 4242')).toBeInTheDocument();
   });
 
