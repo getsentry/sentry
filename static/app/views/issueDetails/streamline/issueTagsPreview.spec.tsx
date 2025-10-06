@@ -26,7 +26,9 @@ describe('IssueTagsPreview', () => {
     );
 
     expect(await screen.findByText('prod')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'View all tags'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {name: 'View all tags and feature flags'})
+    ).toBeInTheDocument();
   });
 
   it('renders no tags', async () => {

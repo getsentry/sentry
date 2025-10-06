@@ -57,6 +57,22 @@ class InternalRegisteredTemplatesEndpointTest(APITestCase):
                 assert isinstance(template["previews"]["email"]["text_content"], str)
                 assert isinstance(template["previews"]["email"]["html_content"], str)
 
+    def test_discord_preview(self) -> None:
+        self.login_as(self.user)
+        response = self.get_response()
+        for templates_by_category in response.data.values():
+            for template in templates_by_category:
+                assert "discord" in template["previews"]
+                if template["example"]["actions"]:
+                    num_actions = len(template["example"]["actions"])
+                    # The first component is an action row, the contents of the row are the buttons
+                    assert (
+                        len(template["previews"]["discord"]["components"][0]["components"])
+                        == num_actions
+                    )
+                assert template["previews"]["discord"]["content"] == ""
+                assert len(template["previews"]["discord"]["embeds"]) == 1
+
 
 def find_block_by_type(blocks: list[dict[str, Any]], block_type: str) -> dict[str, Any] | None:
     """Find the first block with the specified type."""

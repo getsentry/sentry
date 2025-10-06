@@ -19,7 +19,7 @@ export default function useFinalizeRelease() {
 
       return fetchMutation({
         method: 'PUT',
-        url: `/organizations/${organization.slug}/releases/${release.version}/`,
+        url: `/organizations/${organization.slug}/releases/${encodeURIComponent(release.version)}/`,
         options: {},
         data: payload,
       });
