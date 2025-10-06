@@ -526,6 +526,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert "org.slf4j.helpers.Util$ClassContextSecurityManager" in exc.value
         assert "org.a.b.g$a" not in exc.value
 
+    @pytest.mark.skip(reason="flaky: #100976")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_value_only_multiple_exceptions_are_all_deobfuscated(self) -> None:
