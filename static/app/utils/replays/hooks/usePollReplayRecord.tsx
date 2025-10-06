@@ -1,3 +1,5 @@
+import {useRef} from 'react';
+
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import type {ReplayRecord} from 'sentry/views/replays/types';
@@ -9,14 +11,14 @@ type Props = {
   replayReader: ReplayReader | null;
   pollInterval?: number;
 };
-// A react hook to poll the replay record on the backend every minute to
+// A react hook to poll the replay record on the backend every POLL_INTERVAL to
 // check if the replay record has been updated based on count_segments field.
 function usePollReplayRecord({
   isLive,
   orgSlug,
   replayId,
   replayReader,
-  pollInterval = 30 * 1000,
+  pollInterval = 30 * 1000, // Default to every 30 seconds
 }: Props): boolean {
   const queryKey: ApiQueryKey = [
     `/organizations/${orgSlug}/replays/${replayId}/`,
@@ -27,11 +29,11 @@ function usePollReplayRecord({
     },
   ];
 
-  let isUpdated = false;
+  const isUpdated = useRef(false);
 
   const {data: replayData} = useApiQuery<{data: ReplayRecord}>(queryKey, {
     refetchInterval: () => {
-      return !isUpdated && isLive ? pollInterval : false;
+      return !isUpdated.current && isLive ? pollInterval : false;
     },
     refetchIntervalInBackground: true,
     staleTime: Infinity,
@@ -43,10 +45,10 @@ function usePollReplayRecord({
     replayReader &&
     replayRecord.count_segments !== replayReader.getReplay().count_segments
   ) {
-    isUpdated = true;
+    isUpdated.current = true;
   }
 
-  return isUpdated;
+  return isUpdated.current;
 }
 
 export default usePollReplayRecord;
