@@ -236,7 +236,7 @@ function FrontendOverviewPageWithProviders() {
 
   let overviewPage = <Am1FrontendOverviewPage />;
   if (isNextJsPageEnabled) {
-    overviewPage = <NextJsOverviewPage performanceType="frontend" />;
+    overviewPage = <NextJsOverviewPage />;
   } else if (useEap) {
     overviewPage = <FrontendOverviewPage />;
   }

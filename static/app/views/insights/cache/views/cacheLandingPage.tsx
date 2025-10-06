@@ -24,7 +24,6 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {combineMeta} from 'sentry/views/insights/common/utils/combineMeta';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
@@ -100,8 +99,6 @@ export function CacheLandingPage() {
 
   return (
     <React.Fragment>
-      <BackendHeader module={ModuleName.CACHE} />
-
       <ModuleFeature moduleName={ModuleName.CACHE}>
         <Layout.Body>
           <Layout.Main fullWidth>
