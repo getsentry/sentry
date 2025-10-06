@@ -29,6 +29,7 @@ interface CreditCardPanelProps {
   subscription: Subscription;
   analyticsEvent?: GetsentryEventKey;
   isNewBillingUI?: boolean;
+  shouldExpandInitially?: boolean;
 }
 
 function TextForField({children}: {children: React.ReactNode}) {
@@ -50,12 +51,14 @@ function CreditCardPanel({
   budgetTerm,
   ftcLocation,
   analyticsEvent,
+  shouldExpandInitially,
 }: CreditCardPanelProps) {
   const [cardLastFourDigits, setCardLastFourDigits] = useState<string | null>(null);
   const [cardZipCode, setCardZipCode] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [fromBillingFailure, setFromBillingFailure] = useState(false);
   const [referrer, setReferrer] = useState<string | undefined>(undefined);
+  const [expandInitially, setExpandInitially] = useState(shouldExpandInitially);
 
   const handleCardUpdated = useCallback((data: Subscription) => {
     setCardLastFourDigits(data.paymentSource?.last4 || null);
@@ -67,8 +70,11 @@ function CreditCardPanel({
     if (subscription.paymentSource) {
       setCardLastFourDigits(prev => prev ?? (subscription.paymentSource?.last4 || null));
       setCardZipCode(prev => prev ?? (subscription.paymentSource?.zipCode || null));
+    } else if (expandInitially) {
+      setIsEditing(true);
+      setExpandInitially(false);
     }
-  }, [subscription]);
+  }, [subscription.paymentSource, expandInitially]);
 
   useEffect(() => {
     // Open credit card update form/modal and track clicks from payment failure notifications (in app, email, etc.)
@@ -151,6 +157,7 @@ function CreditCardPanel({
       background="primary"
       border="primary"
       radius="md"
+      data-test-id="credit-card-panel"
     >
       <Flex direction="column" gap="lg" width="100%">
         <Heading as="h2" size="lg">

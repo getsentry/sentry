@@ -22,6 +22,7 @@ import * as mdx from 'eslint-plugin-mdx';
 import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
+import reactYouMightNotNeedAnEffect from 'eslint-plugin-react-you-might-not-need-an-effect';
 // @ts-expect-error TS(7016): Could not find a declaration file
 import sentry from 'eslint-plugin-sentry';
 import testingLibrary from 'eslint-plugin-testing-library';
@@ -387,7 +388,7 @@ export default typescript.config([
       ...eslint.configs.recommended.rules,
       'no-cond-assign': ['error', 'always'],
       'no-prototype-builtins': 'off',
-      'no-useless-escape': 'off',
+      'no-useless-escape': 'error',
     },
   },
   {
@@ -463,6 +464,10 @@ export default typescript.config([
       // https://github.com/jsx-eslint/eslint-plugin-react/blob/master/index.js
       ...react.configs.flat.recommended.rules,
       ...react.configs.flat['jsx-runtime'].rules,
+      'react/jsx-curly-brace-presence': [
+        'error',
+        {props: 'never', children: 'ignore', propElementValues: 'always'},
+      ],
       'react/display-name': 'off', // TODO(ryan953): Fix violations and delete this line
       'react/no-unescaped-entities': 'off',
       'react/no-unknown-property': ['error', {ignore: ['css']}],
@@ -710,6 +715,22 @@ export default typescript.config([
       'import/newline-after-import': 'off',
       // prettier-plugin-sort-imports always combines imports
       'import/no-duplicates': 'off',
+    },
+  },
+  {
+    name: 'plugin/you-might-not-need-an-effect',
+    ...reactYouMightNotNeedAnEffect.configs.recommended,
+    rules: {
+      'react-you-might-not-need-an-effect/no-derived-state': 'error',
+      'react-you-might-not-need-an-effect/no-chain-state-updates': 'off',
+      'react-you-might-not-need-an-effect/no-event-handler': 'off',
+      'react-you-might-not-need-an-effect/no-adjust-state-on-prop-change': 'off',
+      'react-you-might-not-need-an-effect/no-reset-all-state-on-prop-change': 'off',
+      'react-you-might-not-need-an-effect/no-pass-live-state-to-parent': 'off',
+      'react-you-might-not-need-an-effect/no-pass-data-to-parent': 'off',
+      'react-you-might-not-need-an-effect/no-initialize-state': 'off',
+      'react-you-might-not-need-an-effect/no-manage-parent': 'off',
+      'react-you-might-not-need-an-effect/no-empty-effect': 'off',
     },
   },
   {

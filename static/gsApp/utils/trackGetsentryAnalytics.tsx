@@ -4,8 +4,7 @@ import type {Organization} from 'sentry/types/organization';
 import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
 
 import type {EventType} from 'getsentry/components/addEventsCTA';
-import type {CheckoutType, Subscription} from 'getsentry/types';
-import type {SelectableProduct} from 'getsentry/views/amCheckout/types';
+import type {AddOnCategory, CheckoutType, Subscription} from 'getsentry/types';
 
 type HasSub = {subscription: Subscription};
 type QuotaAlert = {event_types: string; is_warning: boolean; source?: string} & HasSub;
@@ -91,12 +90,14 @@ type GetsentryEventParameters = {
   'checkout.ondemand_changed': {cents: number} & Checkout;
   'checkout.payg_changed': {cents: number; method?: 'button' | 'textbox'} & Checkout &
     CheckoutUI;
-  'checkout.product_select': Record<
-    SelectableProduct,
-    {
-      enabled: boolean;
-      previously_enabled: boolean;
-    }
+  'checkout.product_select': Partial<
+    Record<
+      AddOnCategory,
+      {
+        enabled: boolean;
+        previously_enabled: boolean;
+      }
+    >
   > &
     HasSub &
     CheckoutUI;
@@ -199,6 +200,9 @@ type GetsentryEventParameters = {
     CheckoutUI;
   'spend_allocations.open_form': {create_or_edit: string} & HasSub;
   'spend_allocations.submit': {create_or_edit: string} & HasSub;
+  'subscription_page.display_mode.changed': {
+    display_mode: 'usage' | 'cost';
+  } & HasSub;
   'subscription_page.usagelog_filter.clicked': {selection: string};
   'subscription_page.viewed': {
     page_tab: string;
@@ -347,6 +351,7 @@ const getsentryEventMap: Record<GetsentryEventKey, string> = {
   'gen_ai_consent.settings_clicked': 'Gen AI Consent: Settings Toggle Clicked',
   'gen_ai_consent.in_drawer_clicked': 'Gen AI Consent: Clicked In Drawer',
   'gen_ai_consent.view_in_settings_clicked': 'Gen AI Consent: View in Settings Clicked',
+  'subscription_page.display_mode.changed': 'Subscription Page: Display Mode Changed',
 };
 
 const trackGetsentryAnalytics = makeAnalyticsFunction<

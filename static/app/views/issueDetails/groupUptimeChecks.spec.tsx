@@ -51,14 +51,11 @@ describe('GroupUptimeChecks', () => {
       url: `/organizations/${organization.slug}/detectors/123/`,
       body: UptimeDetectorFixture({id: '123'}),
     });
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [Number(project.id)],
-        environments: [],
-        datetime: {period: '24h', start: null, end: null, utc: null},
-      },
-      new Set()
-    );
+    PageFiltersStore.onInitializeUrlState({
+      projects: [Number(project.id)],
+      environments: [],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
   });
 
   it('renders the empty uptime check table', async () => {
@@ -111,8 +108,8 @@ describe('GroupUptimeChecks', () => {
     expect(screen.getByText(getShortEventId(uptimeCheck.traceId))).toBeInTheDocument();
     expect(screen.getByText(uptimeCheck.regionName)).toBeInTheDocument();
 
-    // Span counts also need to load
-    expect(await screen.findByText('0 spans')).toBeInTheDocument();
+    // Span counts also need to load (includes 7 system spans)
+    expect(await screen.findByText('7 spans')).toBeInTheDocument();
   });
 
   it('indicates when there are spans in a trace', async () => {
@@ -139,7 +136,8 @@ describe('GroupUptimeChecks', () => {
 
     const traceId = getShortEventId(uptimeCheck.traceId);
 
-    expect(await screen.findByText('10 spans')).toBeInTheDocument();
+    // 10 user spans + 7 system spans = 17 total
+    expect(await screen.findByText('17 spans')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: traceId})).toBeInTheDocument();
   });
 });

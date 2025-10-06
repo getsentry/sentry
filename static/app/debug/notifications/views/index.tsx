@@ -8,22 +8,22 @@ import {DebugNotificationsHeader} from 'sentry/debug/notifications/components/de
 import {DebugNotificationsLanding} from 'sentry/debug/notifications/components/debugNotificationsLanding';
 import {DebugNotificationsSidebar} from 'sentry/debug/notifications/components/debugNotificationsSidebar';
 import {useRegistry} from 'sentry/debug/notifications/hooks/useRegistry';
+import {useRouteSource} from 'sentry/debug/notifications/hooks/useRouteSource';
 import {DiscordPreview} from 'sentry/debug/notifications/previews/discordPreview';
 import {EmailPreview} from 'sentry/debug/notifications/previews/emailPreview';
 import {SlackPreview} from 'sentry/debug/notifications/previews/slackPreview';
 import {TeamsPreview} from 'sentry/debug/notifications/previews/teamsPreview';
-import {useLocation} from 'sentry/utils/useLocation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
 const HEADER_HEIGHT = 52;
 
 export default function DebugNotificationsIndex() {
-  const location = useLocation();
+  const {routeSource} = useRouteSource();
   const {data: registry = {}} = useRegistry();
   const registrations = Object.values(registry).flat();
   const selectedRegistration = registrations.find(
-    registration => location.query.source === registration.source
+    registration => routeSource === registration.source
   );
   return (
     <RouteAnalyticsContextProvider>
@@ -54,17 +54,22 @@ export default function DebugNotificationsIndex() {
                     <Tag type="success">{selectedRegistration.category}</Tag>
                   </Flex>
                 </Heading>
-                <Flex gap="xl" justify="between" wrap="wrap" position="relative">
-                  <Flex direction="column" gap="2xl" position="relative">
-                    <EmailPreview />
-                    <SlackPreview />
+                <Grid columns="1fr 300px" gap="2xl" position="relative">
+                  <Flex
+                    direction="column"
+                    position="relative"
+                    minWidth="0"
+                    justify="start"
+                  >
+                    <EmailPreview registration={selectedRegistration} />
+                    <SlackPreview registration={selectedRegistration} />
                     <DiscordPreview />
-                    <TeamsPreview />
+                    <TeamsPreview registration={selectedRegistration} />
                   </Flex>
                   <ExampleContainer>
                     <DebugNotificationsExample registration={selectedRegistration} />
                   </ExampleContainer>
-                </Flex>
+                </Grid>
               </Flex>
             ) : (
               <DebugNotificationsLanding />
@@ -102,6 +107,6 @@ const SidebarContainer = styled('nav')`
 const ExampleContainer = styled('div')`
   position: sticky;
   top: ${p => `calc(${HEADER_HEIGHT}px + ${p.theme.space.xl})`};
-  max-width: 450px;
+  max-width: 375px;
   align-self: flex-start;
 `;

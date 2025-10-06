@@ -24,8 +24,8 @@ from sentry.grouping.component import (
     ThreadsGroupingComponent,
 )
 from sentry.grouping.strategies.base import (
+    ComponentsByVariant,
     GroupingContext,
-    ReturnedVariants,
     call_with_variants,
     strategy,
 )
@@ -301,7 +301,7 @@ def get_function_component(
 )
 def frame(
     interface: Frame, event: Event, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+) -> ComponentsByVariant:
     frame = interface
     platform = frame.platform or event.platform
     variant_name = context["variant_name"]
@@ -412,7 +412,7 @@ def get_contextline_component(
 @strategy(ids=["stacktrace:v1"], interface=Stacktrace, score=1800)
 def stacktrace(
     interface: Stacktrace, event: Event, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+) -> ComponentsByVariant:
     assert context.get("variant_name") is None
 
     return call_with_variants(
@@ -427,7 +427,7 @@ def stacktrace(
 
 def _single_stacktrace_variant(
     stacktrace: Stacktrace, event: Event, context: GroupingContext, kwargs: dict[str, Any]
-) -> ReturnedVariants:
+) -> ComponentsByVariant:
     variant_name = context["variant_name"]
     assert variant_name is not None
 
@@ -506,8 +506,8 @@ def _single_stacktrace_variant(
 
 @stacktrace.variant_processor
 def stacktrace_variant_processor(
-    variants: ReturnedVariants, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+    variants: ComponentsByVariant, context: GroupingContext, **kwargs: Any
+) -> ComponentsByVariant:
     return remove_non_stacktrace_variants(variants)
 
 
@@ -517,7 +517,7 @@ def stacktrace_variant_processor(
 )
 def single_exception(
     interface: SingleException, event: Event, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+) -> ComponentsByVariant:
     exception = interface
 
     type_component = ErrorTypeGroupingComponent(
@@ -605,7 +605,7 @@ def single_exception(
 @strategy(ids=["chained-exception:v1"], interface=ChainedException, score=2000)
 def chained_exception(
     interface: ChainedException, event: Event, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+) -> ComponentsByVariant:
     # Get all the exceptions to consider.
     all_exceptions = interface.exceptions()
 
@@ -811,28 +811,28 @@ def filter_exceptions_for_exception_groups(
 
 @chained_exception.variant_processor
 def chained_exception_variant_processor(
-    variants: ReturnedVariants, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+    variants: ComponentsByVariant, context: GroupingContext, **kwargs: Any
+) -> ComponentsByVariant:
     return remove_non_stacktrace_variants(variants)
 
 
 @strategy(ids=["threads:v1"], interface=Threads, score=1900)
 def threads(
     interface: Threads, event: Event, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+) -> ComponentsByVariant:
     crashed_threads = [thread for thread in interface.values if thread.get("crashed")]
-    thread_variants = _filtered_threads(crashed_threads, event, context, **kwargs)
-    if thread_variants is not None:
-        return thread_variants
+    thread_components = _get_thread_components(crashed_threads, event, context, **kwargs)
+    if thread_components is not None:
+        return thread_components
 
     current_threads = [thread for thread in interface.values if thread.get("current")]
-    thread_variants = _filtered_threads(current_threads, event, context, **kwargs)
-    if thread_variants is not None:
-        return thread_variants
+    thread_components = _get_thread_components(current_threads, event, context, **kwargs)
+    if thread_components is not None:
+        return thread_components
 
-    thread_variants = _filtered_threads(interface.values, event, context, **kwargs)
-    if thread_variants is not None:
-        return thread_variants
+    thread_components = _get_thread_components(interface.values, event, context, **kwargs)
+    if thread_components is not None:
+        return thread_components
 
     return {
         "app": ThreadsGroupingComponent(
@@ -847,9 +847,9 @@ def threads(
     }
 
 
-def _filtered_threads(
+def _get_thread_components(
     threads: list[dict[str, Any]], event: Event, context: GroupingContext, **kwargs: dict[str, Any]
-) -> ReturnedVariants | None:
+) -> ComponentsByVariant | None:
     if len(threads) != 1:
         return None
 
@@ -875,8 +875,8 @@ def _filtered_threads(
 
 @threads.variant_processor
 def threads_variant_processor(
-    variants: ReturnedVariants, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+    variants: ComponentsByVariant, context: GroupingContext, **kwargs: Any
+) -> ComponentsByVariant:
     return remove_non_stacktrace_variants(variants)
 
 

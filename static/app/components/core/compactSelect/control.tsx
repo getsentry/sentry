@@ -204,11 +204,6 @@ export interface ControlProps
     isOpen: boolean
   ) => React.ReactNode;
   /**
-   * Label text inside the default trigger button. This is optional — by default the
-   * selected option's label will be used.
-   */
-  triggerLabel?: React.ReactNode;
-  /**
    * Props to be passed to the default trigger button.
    */
   triggerProps?: DropdownButtonProps;
@@ -221,8 +216,7 @@ export function Control({
   // Control props
   autoFocus,
   trigger,
-  triggerLabel: triggerLabelProp,
-  triggerProps,
+  triggerProps: {children: triggerLabelProp, ...triggerProps} = {},
   isOpen,
   onClose,
   isDismissable,

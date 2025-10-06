@@ -1,11 +1,12 @@
 ---
-created: '2025-09-24T22:53:02.223315+00:00'
+created: '2025-10-03T16:56:42.891907+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
   "checksum": {
     "checksum": "11212012123120120415201309082013",
+    "contributes": true,
     "description": "legacy checksum",
     "hash": "11212012123120120415201309082013",
     "hint": null,

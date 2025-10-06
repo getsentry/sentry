@@ -12,31 +12,25 @@ from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.process_buffer import buffer_incr
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
-from sentry.utils.query import CeleryBulkQueryState, celery_run_batch_query
+from sentry.utils.query import TaskBulkQueryState, task_run_batch_query
 
 
 @instrumented_task(
     name="sentry.tasks.reprocessing2.reprocess_group",
-    queue="events.reprocessing.process_event",
-    time_limit=120,
-    soft_time_limit=110,
+    namespace=issues_tasks,
+    processing_deadline_duration=120,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=120,
-    ),
 )
 def reprocess_group(
     project_id: int,
     group_id: int,
     remaining_events: str = "delete",
     new_group_id: int | None = None,
-    query_state: CeleryBulkQueryState | None = None,
+    query_state: TaskBulkQueryState | None = None,
     start_time: float | None = None,
     max_events: int | None = None,
     acting_user_id: int | None = None,
@@ -70,7 +64,7 @@ def reprocess_group(
 
     assert new_group_id is not None
 
-    query_state, events = celery_run_batch_query(
+    query_state, events = task_run_batch_query(
         filter=eventstore.Filter(project_ids=[project_id], group_ids=[group_id]),
         batch_size=settings.SENTRY_REPROCESSING_PAGE_SIZE,
         state=query_state,
@@ -142,17 +136,10 @@ def reprocess_group(
 
 @instrumented_task(
     name="sentry.tasks.reprocessing2.handle_remaining_events",
-    queue="events.reprocessing.process_event",
-    time_limit=60 * 5,
-    max_retries=5,
+    namespace=issues_tasks,
+    processing_deadline_duration=60 * 5,
+    retry=Retry(times=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=60 * 5,
-        retry=Retry(
-            times=5,
-        ),
-    ),
 )
 @retry
 def handle_remaining_events(
@@ -234,13 +221,8 @@ def handle_remaining_events(
 
 @instrumented_task(
     name="sentry.tasks.reprocessing2.finish_reprocessing",
-    queue="events.reprocessing.process_event",
-    time_limit=(60 * 5) + 5,
-    soft_time_limit=60 * 5,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=(60 * 5) + 5,
-    ),
+    namespace=issues_tasks,
+    processing_deadline_duration=(60 * 5) + 5,
 )
 def finish_reprocessing(project_id: int, group_id: int) -> None:
     from sentry.models.activity import Activity
