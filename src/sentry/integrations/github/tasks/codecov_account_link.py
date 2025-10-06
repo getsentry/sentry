@@ -7,7 +7,6 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import (
     integrations_control_tasks,
     integrations_control_throttled_tasks,
