@@ -3098,7 +3098,7 @@ register(
 register(
     "workflow_engine.scheduler.use_conditional_delete",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
