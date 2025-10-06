@@ -192,8 +192,8 @@ export default typescript.config([
     },
     settings: {
       react: {
-        version: '19.1.0',
-        defaultVersion: '19.1',
+        version: '19.2.0',
+        defaultVersion: '19.2',
       },
       'import/parsers': {'@typescript-eslint/parser': ['.ts', '.tsx']},
       'import/resolver': {typescript: {}},
@@ -805,7 +805,6 @@ export default typescript.config([
     name: 'files/sentry-test',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     rules: {
-      '@typescript-eslint/await-thenable': 'off', // For awaiting act(...)
       'no-loss-of-precision': 'off', // Sometimes we have wild numbers hard-coded in tests
       'no-restricted-imports': [
         'error',

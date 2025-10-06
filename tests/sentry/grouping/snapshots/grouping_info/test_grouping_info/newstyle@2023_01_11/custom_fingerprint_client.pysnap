@@ -1,5 +1,5 @@
 ---
-created: '2025-09-24T22:53:02.571090+00:00'
+created: '2025-10-03T16:56:43.290191+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -815,6 +815,7 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
+    "contributes": false,
     "description": "in-app exception stacktrace",
     "hash": null,
     "hint": "ignored because custom client fingerprint takes precedence",
@@ -827,6 +828,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       "SoftTimeLimitExceeded",
       "sentry.tasks.store.process_event"
     ],
+    "contributes": true,
     "description": "custom fingerprint",
     "hash": "f30afa00b85f5cac5ee0bce01b31f08d",
     "hint": null,
@@ -1649,6 +1651,7 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
+    "contributes": false,
     "description": "exception stacktrace",
     "hash": null,
     "hint": "ignored because custom client fingerprint takes precedence",

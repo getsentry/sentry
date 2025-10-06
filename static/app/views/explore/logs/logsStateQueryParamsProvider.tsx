@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo, useState} from 'react';
 
-import {defined} from 'sentry/utils';
+import {useResettableState} from 'sentry/utils/useResettableState';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {defaultSortBys} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {
@@ -90,21 +90,4 @@ export function LogsStateQueryParamsProvider({
 
 function defaultAggregateFields() {
   return [...defaultGroupBys(), ...defaultVisualizes()];
-}
-
-function useResettableState<T>(defaultValue: () => T) {
-  const [state, _setState] = useState<T>(defaultValue());
-
-  const setState = useCallback(
-    (newState: T | null | undefined) => {
-      if (defined(newState)) {
-        _setState(newState);
-      } else if (newState === null) {
-        _setState(defaultValue());
-      }
-    },
-    [defaultValue]
-  );
-
-  return [state, setState] as const;
 }

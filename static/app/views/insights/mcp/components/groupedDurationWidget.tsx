@@ -86,7 +86,9 @@ export default function GroupedDurationWidget(props: GroupedDurationWidgetProps)
           message={tct(
             'No MCP spans found. Try updating your filters or learn more about MCP monitoring in our [link:documentation].',
             {
-              link: <ExternalLink href="https://docs.sentry.io/product/insights/mcp/" />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/insights/ai/mcp/" />
+              ),
             }
           )}
         />

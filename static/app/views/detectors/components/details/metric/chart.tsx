@@ -19,7 +19,6 @@ import {
   buildDetectorZoomQuery,
   computeZoomRangeMs,
 } from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
-import {useDetectorDateParams} from 'sentry/views/detectors/components/details/metric/utils/useDetectorTimePeriods';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {
@@ -143,11 +142,13 @@ function MetricDetectorChart({
 
   const openPeriodMarkerResult = useIncidentMarkers({
     incidents: incidentPeriods,
+    includePreviousIntervalMarker: true,
     seriesName: t('Open Periods'),
     seriesId: '__incident_marker__',
     yAxisIndex: 1, // Use index 1 to avoid conflict with main chart axis
     seriesTooltip: incidentSeriesTooltip,
     markLineTooltip: incidentMarklineTooltip,
+    intervalMs: snubaQuery.timeWindow * 1000,
     onClick: context => {
       const startMs = context.period.start;
       const endMs = context.period.end ?? Date.now();
@@ -297,14 +298,7 @@ export function MetricDetectorDetailsChart({
   const statsPeriod = location.query?.statsPeriod as string | undefined;
   const start = location.query?.start as string | undefined;
   const end = location.query?.end as string | undefined;
-  const detectorDataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
-  const dateParams = useDetectorDateParams({
-    dataset: detectorDataset,
-    intervalSeconds: snubaQuery.timeWindow,
-    start,
-    end,
-    urlStatsPeriod: statsPeriod,
-  });
+  const dateParams = start && end ? {start, end} : {statsPeriod};
 
   return (
     <ChartContainer>
