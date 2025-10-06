@@ -60,7 +60,7 @@ class TaskSiloLimit(SiloLimit):
         # we have Task instances.
         limited_func = cast(Task[P, R], self.create_override(decorated_task))
         if hasattr(decorated_task, "name"):
-            limited_func.name = decorated_task.name  # type: ignore[attr-defined]
+            limited_func.name = decorated_task.name
         return limited_func
 
 
