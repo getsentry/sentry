@@ -139,7 +139,8 @@ class AMCheckout extends Component<Props, State> {
       props.onToggleLegacy(props.subscription.planTier);
     }
     const query = props.location?.query;
-    const queryString = query ? `?${qs.stringify(query)}` : '';
+    const queryString =
+      query && Object.keys(query).length > 0 ? `?${qs.stringify(query)}` : '';
 
     // TODO(checkout v3): remove these checks once checkout v3 is GA'd and we've remove the legacy checkout route
     if (props.location?.pathname.includes('checkout-v3') && !props.isNewCheckout) {
