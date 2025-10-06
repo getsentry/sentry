@@ -48,9 +48,7 @@ class DataForwarderSerializer(Serializer):
             (DataForwarderProviderSlug.SPLUNK, "Splunk"),
         ]
     )
-    config = serializers.DictField(
-        child=serializers.CharField(allow_blank=False, allow_null=True), default=dict
-    )
+    config = serializers.DictField(child=serializers.CharField(allow_blank=False), default=dict)
 
     def validate_config(self, config) -> SQSConfig | SegmentConfig | SplunkConfig:
         provider = self.initial_data.get("provider")
@@ -206,14 +204,15 @@ class DataForwarderProjectSerializer(Serializer):
     def validate(self, attrs: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         project = attrs.get("project")
 
-        if self._validated_data_forwarder is None:
+        data_forwarder = self._validated_data_forwarder
+        if data_forwarder is None:
             raise ValidationError("DataForwarder validation failed")
 
-        if self._validated_data_forwarder.organization_id != project.organization_id:
+        if data_forwarder.organization_id != project.organization_id:
             raise ValidationError("DataForwarder and Project must belong to the same organization.")
 
         existing = DataForwarderProject.objects.filter(
-            data_forwarder_id=self._validated_data_forwarder.id,
+            data_forwarder_id=data_forwarder.id,
             project_id=project.id,
         )
 
