@@ -318,7 +318,7 @@ function modifyFilterOperator(
     ...state,
     focusOverride: action.focusOverride ?? null,
     query: newQuery,
-    committedQuery: action.shouldCommitQuery ? newQuery : state.committedQuery,
+    committedQuery: (action.shouldCommitQuery ?? true) ? newQuery : state.committedQuery,
   };
 }
 
