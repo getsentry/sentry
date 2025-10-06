@@ -2,6 +2,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Stack} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -24,18 +25,12 @@ const REFERRER = 'eap-sidebar-charts';
 
 export function EAPSidebarCharts({transactionName, hasWebVitals}: Props) {
   return (
-    <ChartContainer>
+    <Stack gap="md">
       {hasWebVitals && <Widget Title={t('Web Vitals')} />}
       <FailureRateWidget transactionName={transactionName} />
-    </ChartContainer>
+    </Stack>
   );
 }
-
-const ChartContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
 
 type FailureRateWidgetProps = {
   transactionName: string;
