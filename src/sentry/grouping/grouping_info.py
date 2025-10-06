@@ -20,7 +20,7 @@ def get_grouping_info(
 
     variants = event.get_grouping_variants(grouping_config, normalize_stacktraces=True)
 
-    grouping_info = get_grouping_info_from_variants(variants)
+    grouping_info = get_grouping_info_from_variants(variants, use_legacy_format=False)
 
     # One place we use this info is in the grouping info section of the event details page, and for
     # that we recalculate hashes/variants on the fly since we don't store the variants as part of
