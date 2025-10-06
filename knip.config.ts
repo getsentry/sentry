@@ -56,6 +56,8 @@ const config: KnipConfig = {
     // helper files for stories - it's fine that they are only used in tests
     '!static/app/**/__stories__/*.{js,mjs,ts,tsx}!',
     '!static/app/stories/**/*.{js,mjs,ts,tsx}!',
+    // TEMPORARY! Abdullah Khan: WILL BE REMOVING IN STACKED PRs. Trying to merge PRs in smaller batches.
+    '!static/app/views/performance/newTraceDetails/traceModels/traceTreeNode/**/*.{js,mjs,ts,tsx}!',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),

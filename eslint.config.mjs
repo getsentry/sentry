@@ -192,8 +192,8 @@ export default typescript.config([
     },
     settings: {
       react: {
-        version: '19.1.0',
-        defaultVersion: '19.1',
+        version: '19.2.0',
+        defaultVersion: '19.2',
       },
       'import/parsers': {'@typescript-eslint/parser': ['.ts', '.tsx']},
       'import/resolver': {typescript: {}},
@@ -388,7 +388,7 @@ export default typescript.config([
       ...eslint.configs.recommended.rules,
       'no-cond-assign': ['error', 'always'],
       'no-prototype-builtins': 'off',
-      'no-useless-escape': 'off',
+      'no-useless-escape': 'error',
     },
   },
   {

@@ -51,7 +51,6 @@ import SchemaHintsList, {
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
   useExploreId,
-  useExploreQuery,
   useSetExplorePageParams,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -68,6 +67,7 @@ import {
   useQueryParamsExtrapolate,
   useQueryParamsFields,
   useQueryParamsMode,
+  useQueryParamsQuery,
   useQueryParamsVisualizes,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
@@ -227,7 +227,7 @@ function SpansSearchBar({
 function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) {
   const mode = useQueryParamsMode();
   const fields = useQueryParamsFields();
-  const query = useExploreQuery();
+  const query = useQueryParamsQuery();
   const setExplorePageParams = useSetExplorePageParams();
 
   const organization = useOrganization();
@@ -401,12 +401,11 @@ function SpanTabContentSection({
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
   const {selection} = usePageFilters();
+  const query = useQueryParamsQuery();
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
   const extrapolate = useQueryParamsExtrapolate();
   const [tab, setTab] = useTab();
-
-  const query = useExploreQuery();
 
   const queryType: 'aggregate' | 'samples' | 'traces' =
     tab === Mode.AGGREGATE ? 'aggregate' : tab === Tab.TRACE ? 'traces' : 'samples';

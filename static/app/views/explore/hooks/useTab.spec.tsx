@@ -56,7 +56,6 @@ describe('useTab', () => {
       expect.objectContaining({
         query: {
           mode: Mode.SAMPLES,
-          table: Tab.SPAN,
         },
       })
     );

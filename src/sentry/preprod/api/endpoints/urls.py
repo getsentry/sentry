@@ -6,15 +6,11 @@ from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_co
 from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare_download import (
     ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint,
 )
-from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare_run import (
-    ProjectPreprodArtifactSizeAnalysisCompareRunEndpoint,
-)
 from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_download import (
     ProjectPreprodArtifactSizeAnalysisDownloadEndpoint,
 )
 
 from .organization_preprod_artifact_assemble import ProjectPreprodArtifactAssembleEndpoint
-from .organization_pullrequest_details import OrganizationPullRequestDetailsEndpoint
 from .preprod_artifact_admin_batch_delete import PreprodArtifactAdminBatchDeleteEndpoint
 from .preprod_artifact_admin_info import PreprodArtifactAdminInfoEndpoint
 from .preprod_artifact_admin_rerun_analysis import PreprodArtifactAdminRerunAnalysisEndpoint
@@ -33,13 +29,13 @@ from .project_preprod_size import (
     ProjectPreprodSizeEndpoint,
     ProjectPreprodSizeWithIdentifierEndpoint,
 )
+from .pull_request.organization_pullrequest_comments import OrganizationPrCommentsEndpoint
+from .pull_request.organization_pullrequest_details import OrganizationPullRequestDetailsEndpoint
+from .pull_request.organization_pullrequest_size_analysis_download import (
+    OrganizationPullRequestSizeAnalysisDownloadEndpoint,
+)
 
 preprod_urlpatterns = [
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/pullrequest-details/(?P<repo_name>.+?)/(?P<pr_number>\d+)/$",
-        OrganizationPullRequestDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-pullrequest-details",
-    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/assemble/$",
         ProjectPreprodArtifactAssembleEndpoint.as_view(),
@@ -87,14 +83,25 @@ preprod_urlpatterns = [
         name="sentry-api-0-project-preprod-artifact-size-analysis-compare",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/size-analysis/compare/(?P<head_artifact_id>[^/]+)/(?P<base_artifact_id>[^/]+)/run/$",
-        ProjectPreprodArtifactSizeAnalysisCompareRunEndpoint.as_view(),
-        name="sentry-api-0-project-preprod-artifact-size-analysis-compare-run",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/size-analysis/compare/(?P<head_size_metric_id>[^/]+)/(?P<base_size_metric_id>[^/]+)/download/$",
         ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint.as_view(),
         name="sentry-api-0-project-preprod-artifact-size-analysis-compare-download",
+    ),
+    # PR page
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/pullrequest-details/(?P<repo_name>.+?)/(?P<pr_number>\d+)/$",
+        OrganizationPullRequestDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-pullrequest-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/pull-requests/size-analysis/(?P<artifact_id>[^/]+)/$",
+        OrganizationPullRequestSizeAnalysisDownloadEndpoint.as_view(),
+        name="sentry-api-0-organization-pullrequest-size-analysis-download",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/pr-comments/(?P<repo_name>.+?)/(?P<pr_number>\d+)/$",
+        OrganizationPrCommentsEndpoint.as_view(),
+        name="sentry-api-0-organization-pr-comments",
     ),
 ]
 

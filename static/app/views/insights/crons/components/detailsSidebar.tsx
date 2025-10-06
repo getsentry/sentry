@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {Alert} from 'sentry/components/core/alert';
@@ -65,11 +66,15 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
         </div>
         <div>
           {monitor.status !== 'disabled' && monitorEnv?.nextCheckIn ? (
-            <TimeSince
-              unitStyle="regular"
-              liveUpdateInterval="second"
-              date={monitorEnv.nextCheckIn}
-            />
+            moment(monitorEnv.nextCheckIn).isAfter(moment()) ? (
+              <TimeSince
+                unitStyle="regular"
+                liveUpdateInterval="second"
+                date={monitorEnv.nextCheckIn}
+              />
+            ) : (
+              t('Expected Now')
+            )
           ) : (
             '-'
           )}

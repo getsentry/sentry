@@ -45,14 +45,11 @@ describe('EventGraph', () => {
       body: [project],
     });
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [],
-        environments: [],
-        datetime: {start: null, end: null, period: '14d', utc: null},
-      },
-      new Set(['environments'])
-    );
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
     ProjectsStore.loadInitialData([project]);
     mockEventStats = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
