@@ -318,8 +318,7 @@ def _merge_full_response(data, response):
 def process_minidump(symbolicator: Symbolicator, data: Any) -> Any:
     minidump = get_event_attachment(data, MINIDUMP_ATTACHMENT_TYPE)
     if not minidump:
-        # This happens when an org runs out of attachment quota.
-        logger.warning("Missing minidump for minidump event")
+        logger.error("Missing minidump for minidump event")
         return
 
     # We do module rewriting only for Electron minidumps.
@@ -333,9 +332,7 @@ def process_minidump(symbolicator: Symbolicator, data: Any) -> Any:
         rewrite_first_module = []
 
     metrics.incr("process.native.symbolicate.request")
-    response = symbolicator.process_minidump(
-        data.get("platform"), minidump.data, rewrite_first_module
-    )
+    response = symbolicator.process_minidump(data.get("platform"), minidump, rewrite_first_module)
 
     if _handle_response_status(data, response):
         _merge_full_response(data, response)
@@ -358,7 +355,7 @@ def process_applecrashreport(symbolicator: Symbolicator, data: Any) -> Any:
         return
 
     metrics.incr("process.native.symbolicate.request")
-    response = symbolicator.process_applecrashreport(data.get("platform"), report.data)
+    response = symbolicator.process_applecrashreport(data.get("platform"), report)
 
     if _handle_response_status(data, response):
         _merge_full_response(data, response)

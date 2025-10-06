@@ -1,3 +1,35 @@
+25.9.0
+------
+
+### Various fixes & improvements
+
+- ref(feedback): simplify categories test coverage to be more efficient (#99451) by @aliu39
+- fix(checkout v3): Keep customers on current tiers (#99423) by @isabellaenriquez
+- fix(billing): Use ff for prevent notification (#99489) by @brendanhsentry
+- feat(aci): Allow specific detector types to be passed to fetching hooks (#99486) by @malwilley
+- perf(aci): Avoid unnecessary organization db load (#99487) by @kcons
+- chore(detectors): Reset noise config limit for query injection issues  (#99427) by @roggenkemper
+- feat(on-demand): Add feature flag check before cardinality check (#98726) by @narsaynorath
+- chore(issue-details): Add `num_exceptions` to issue details viewed analytics event (#99436) by @roggenkemper
+- perf(aci): Cache Group lookup for process_workflows/trigger_action (#99449) by @kcons
+- ref(search): Remove spaces from wildcard operators (#99399) by @nsdeschenes
+- feat: add explore equation to dashboards (#99404) by @shruthilayaj
+- ref(billing): remove cross-project selection upsells (#99444) by @cvxluo
+- feat(flamegraph): Cycle through flamegraph search results with enter (#99424) by @Zylphrex
+- ref: use pickle protocol 5 (#99119) by @asottile-sentry
+- ref: upgrade django-stubs and move cache hax to plugin (#99482) by @asottile-sentry
+- fix(js): Directly access process.env.NODE_ENV (#99481) by @evanpurkhiser
+- feat(tasks) Enable taskworkers by default in self-hosted (#99374) by @markstory
+- feat(analytics): log an error when an Event class was instantiated that lacks the eventclass decorator (#98922) by @constantinius
+- feat: Add taskbroker mode that doesn't start workers (#99474) by @markstory
+- ci(jest): regenerate jest-balance.json (#99453) by @getsentry-bot
+- feat(dashboards): Remove PlanFeature feature flag workaround (#99372) by @narsaynorath
+- feat(performance): Add beta badge to web vitals seer suggestions (#99476) by @edwardgou-sentry
+- chore(feedback) remove `Feedback` model (#99380) by @jerryzhou196
+- ref: upgrade pydantic (#99473) by @asottile-sentry
+
+_Plus 1112 more_
+
 25.8.0
 ------
 

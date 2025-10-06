@@ -25,13 +25,16 @@ export default function ResourceSummaryDurationChartWidget(
     referrer,
   });
 
+  const timeSeries = data?.timeSeries || [];
+  const durationSeries = timeSeries.find(ts => ts.yAxis === `avg(${SPAN_SELF_TIME})`);
+
   return (
     <InsightsLineChartWidget
       {...props}
       queryInfo={{search, referrer}}
       id="resourceSummaryDurationChartWidget"
       title={getDurationChartTitle('resource')}
-      series={[data?.[`avg(${SPAN_SELF_TIME})`]]}
+      timeSeries={durationSeries ? [durationSeries] : []}
       isLoading={isPending}
       error={error}
     />

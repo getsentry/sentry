@@ -1,11 +1,14 @@
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Stack} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 
 import type {Block} from './types';
+import {getToolsStringFromBlock} from './utils';
 
 interface BlockProps {
   block: Block;
@@ -16,6 +19,8 @@ interface BlockProps {
 }
 
 function BlockComponent({block, isLast, isFocused, onClick, ref}: BlockProps) {
+  const toolsUsed = getToolsStringFromBlock(block);
+
   return (
     <Block ref={ref} isLast={isLast} onClick={onClick}>
       <AnimatePresence>
@@ -27,12 +32,23 @@ function BlockComponent({block, isLast, isFocused, onClick, ref}: BlockProps) {
           {block.message.role === 'user' ? (
             <BlockRow>
               <BlockChevronIcon direction="right" size="sm" />
-              <UserBlockContent>{block.message.content}</UserBlockContent>
+              <UserBlockContent>{block.message.content ?? ''}</UserBlockContent>
             </BlockRow>
           ) : (
             <BlockRow>
               <ResponseDot isLoading={block.loading} />
-              <BlockContent text={block.message.content} />
+              <BlockContentWrapper>
+                {block.message.content && <BlockContent text={block.message.content} />}
+                {toolsUsed.length > 0 && (
+                  <Stack gap="md">
+                    {toolsUsed.map(tool => (
+                      <Text key={tool} size="xs" variant="muted" monospace>
+                        {tool}
+                      </Text>
+                    ))}
+                  </Stack>
+                )}
+              </BlockContentWrapper>
             </BlockRow>
           )}
           {isFocused && <FocusIndicator />}
@@ -91,12 +107,17 @@ const ResponseDot = styled('div')<{isLoading?: boolean}>`
   `}
 `;
 
+const BlockContentWrapper = styled('div')`
+  padding: ${space(2)};
+`;
+
 const BlockContent = styled(MarkedText)`
   width: 100%;
-  padding: ${space(2)};
   color: ${p => p.theme.textColor};
   white-space: pre-wrap;
   word-wrap: break-word;
+  padding-bottom: 0;
+  margin-bottom: -${space(1)};
 
   p,
   li,

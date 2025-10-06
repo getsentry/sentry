@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import IdBadge from 'sentry/components/idBadge';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TeamRoleSelect from 'sentry/components/teamRoleSelect';
@@ -34,9 +36,10 @@ function TeamMembersRow({
 
   return (
     <TeamRolesPanelItem key={member.id}>
-      <div>
+      <Flex gap="md">
         <IdBadge avatarSize={36} member={member} />
-      </div>
+        {member.pending ? <Tag>{t('Pending')}</Tag> : null}
+      </Flex>
       <RoleSelectWrapper>
         <TeamRoleSelect
           disabled={isSelf || !hasWriteAccess}

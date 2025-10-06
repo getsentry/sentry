@@ -126,9 +126,7 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
                 )
 
         self.query.update({"vital": ["measurements.lcp"]})
-        response = self.do_request(
-            features={"organizations:global-views": True, "organizations:discover-basic": True}
-        )
+        response = self.do_request(features={"organizations:discover-basic": True})
 
         assert response.status_code == 200, response.content
         assert not response.data["meta"]["isMetricsData"]
@@ -141,9 +139,7 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
         }
 
         self.query.update({"query": "user_misery():<0.04"})
-        response = self.do_request(
-            features={"organizations:global-views": True, "organizations:discover-basic": True}
-        )
+        response = self.do_request(features={"organizations:discover-basic": True})
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2

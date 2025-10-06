@@ -24,6 +24,7 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName, stringifyToken} from 'sentry/components/searchSyntax/utils';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type QueryBuilderState = {
   /**
@@ -76,18 +77,94 @@ type DeleteTokensAction = {
   focusOverride?: FocusOverride;
 };
 
-type UpdateFreeTextAction = {
+type UpdateFreeTextActionOnSelect = {
   shouldCommitQuery: boolean;
   text: string;
   tokens: ParseResultToken[];
-  type: 'UPDATE_FREE_TEXT';
+  type: 'UPDATE_FREE_TEXT_ON_SELECT';
   focusOverride?: FocusOverride;
 };
 
-type ReplaceTokensWithTextAction = {
+type UpdateFreeTextActionOnBlur = {
+  shouldCommitQuery: boolean;
   text: string;
   tokens: ParseResultToken[];
-  type: 'REPLACE_TOKENS_WITH_TEXT';
+  type: 'UPDATE_FREE_TEXT_ON_BLUR';
+  focusOverride?: FocusOverride;
+};
+
+type UpdateFreeTextActionOnCommit = {
+  shouldCommitQuery: boolean;
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'UPDATE_FREE_TEXT_ON_COMMIT';
+  focusOverride?: FocusOverride;
+};
+
+type UpdateFreeTextActionOnExit = {
+  shouldCommitQuery: boolean;
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'UPDATE_FREE_TEXT_ON_EXIT';
+  focusOverride?: FocusOverride;
+};
+
+type UpdateFreeTextActionOnFunction = {
+  shouldCommitQuery: boolean;
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'UPDATE_FREE_TEXT_ON_FUNCTION';
+  focusOverride?: FocusOverride;
+};
+
+type UpdateFreeTextActionOnParenthesis = {
+  shouldCommitQuery: boolean;
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'UPDATE_FREE_TEXT_ON_PARENTHESIS';
+  focusOverride?: FocusOverride;
+};
+
+type UpdateFreeTextActionOnColon = {
+  shouldCommitQuery: boolean;
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'UPDATE_FREE_TEXT_ON_COLON';
+  focusOverride?: FocusOverride;
+};
+
+type ReplaceTokensWithTextOnPasteAction = {
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE';
+  focusOverride?: FocusOverride;
+};
+
+type ReplaceTokensWithTextOnDeleteAction = {
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'REPLACE_TOKENS_WITH_TEXT_ON_DELETE';
+  focusOverride?: FocusOverride;
+};
+
+type ReplaceTokensWithTextOnCutAction = {
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'REPLACE_TOKENS_WITH_TEXT_ON_CUT';
+  focusOverride?: FocusOverride;
+};
+
+type ReplaceTokensWithTextOnKeyDownAction = {
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'REPLACE_TOKENS_WITH_TEXT_ON_KEY_DOWN';
+  focusOverride?: FocusOverride;
+};
+
+type ReplaceTokensWithTextOnSelectAction = {
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT';
   focusOverride?: FocusOverride;
 };
 
@@ -101,6 +178,7 @@ type UpdateFilterOpAction = {
   op: TermOperator;
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_FILTER_OP';
+  focusOverride?: FocusOverride;
 };
 
 type UpdateTokenValueAction = {
@@ -124,6 +202,15 @@ type UpdateAggregateArgsAction = {
 
 type ResetClearAskSeerFeedbackAction = {type: 'RESET_CLEAR_ASK_SEER_FEEDBACK'};
 
+type UpdateFreeTextActions =
+  | UpdateFreeTextActionOnSelect
+  | UpdateFreeTextActionOnBlur
+  | UpdateFreeTextActionOnCommit
+  | UpdateFreeTextActionOnExit
+  | UpdateFreeTextActionOnFunction
+  | UpdateFreeTextActionOnParenthesis
+  | UpdateFreeTextActionOnColon;
+
 export type QueryBuilderActions =
   | ClearAction
   | CommitQueryAction
@@ -131,8 +218,18 @@ export type QueryBuilderActions =
   | ResetFocusOverrideAction
   | DeleteTokenAction
   | DeleteTokensAction
-  | UpdateFreeTextAction
-  | ReplaceTokensWithTextAction
+  | UpdateFreeTextActionOnSelect
+  | UpdateFreeTextActionOnBlur
+  | UpdateFreeTextActionOnCommit
+  | UpdateFreeTextActionOnExit
+  | UpdateFreeTextActionOnFunction
+  | UpdateFreeTextActionOnParenthesis
+  | UpdateFreeTextActionOnColon
+  | ReplaceTokensWithTextOnPasteAction
+  | ReplaceTokensWithTextOnDeleteAction
+  | ReplaceTokensWithTextOnCutAction
+  | ReplaceTokensWithTextOnKeyDownAction
+  | ReplaceTokensWithTextOnSelectAction
   | UpdateFilterKeyAction
   | UpdateFilterOpAction
   | UpdateTokenValueAction
@@ -172,33 +269,53 @@ function deleteQueryTokens(
 function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: TermOperator
+  newOperator: TermOperator,
+  hasWildcardOperators: boolean
 ): string {
   if (isDateToken(token)) {
     return modifyFilterOperatorDate(query, token, newOperator);
   }
 
-  const isNotEqual = newOperator === TermOperator.NOT_EQUAL;
   const newToken: TokenResult<Token.FILTER> = {...token};
-  newToken.negated = isNotEqual;
+  newToken.negated =
+    newOperator === TermOperator.NOT_EQUAL ||
+    newOperator === TermOperator.DOES_NOT_CONTAIN ||
+    newOperator === TermOperator.DOES_NOT_START_WITH ||
+    newOperator === TermOperator.DOES_NOT_END_WITH;
 
-  newToken.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
+  if (hasWildcardOperators && newOperator === TermOperator.DOES_NOT_CONTAIN) {
+    newToken.operator = TermOperator.CONTAINS;
+  } else if (hasWildcardOperators && newOperator === TermOperator.DOES_NOT_START_WITH) {
+    newToken.operator = TermOperator.STARTS_WITH;
+  } else if (hasWildcardOperators && newOperator === TermOperator.DOES_NOT_END_WITH) {
+    newToken.operator = TermOperator.ENDS_WITH;
+  } else {
+    newToken.operator =
+      newOperator === TermOperator.NOT_EQUAL ? TermOperator.DEFAULT : newOperator;
+  }
 
   return replaceQueryToken(query, token, stringifyToken(newToken));
 }
 
 function modifyFilterOperator(
   state: QueryBuilderState,
-  action: UpdateFilterOpAction
+  action: UpdateFilterOpAction,
+  hasWildcardOperators: boolean
 ): QueryBuilderState {
-  const newQuery = modifyFilterOperatorQuery(state.query, action.token, action.op);
+  const newQuery = modifyFilterOperatorQuery(
+    state.query,
+    action.token,
+    action.op,
+    hasWildcardOperators
+  );
 
-  if (newQuery === state.query) {
+  if (newQuery === state.query && !action.focusOverride) {
     return state;
   }
 
   return {
     ...state,
+    focusOverride: action.focusOverride ?? null,
     query: newQuery,
     committedQuery: newQuery,
   };
@@ -339,7 +456,7 @@ function replaceTokensWithPadding(
 
 function updateFreeText(
   state: QueryBuilderState,
-  action: UpdateFreeTextAction
+  action: UpdateFreeTextActions
 ): QueryBuilderState {
   const newQuery = replaceTokensWithPadding(state.query, action.tokens, action.text);
 
@@ -551,6 +668,11 @@ export function useQueryBuilderState({
   initialQuery: string;
   setDisplayAskSeerFeedback: (value: boolean) => void;
 }) {
+  const organization = useOrganization();
+  const hasWildcardOperators = organization.features.includes(
+    'search-query-builder-wildcard-operators'
+  );
+
   const initialState: QueryBuilderState = {
     query: initialQuery,
     committedQuery: initialQuery,
@@ -609,7 +731,13 @@ export function useQueryBuilderState({
             clearAskSeerFeedback: displayAskSeerFeedback ? true : false,
           };
         }
-        case 'UPDATE_FREE_TEXT': {
+        case 'UPDATE_FREE_TEXT_ON_SELECT':
+        case 'UPDATE_FREE_TEXT_ON_BLUR':
+        case 'UPDATE_FREE_TEXT_ON_COMMIT':
+        case 'UPDATE_FREE_TEXT_ON_EXIT':
+        case 'UPDATE_FREE_TEXT_ON_FUNCTION':
+        case 'UPDATE_FREE_TEXT_ON_PARENTHESIS':
+        case 'UPDATE_FREE_TEXT_ON_COLON': {
           const newState = updateFreeText(state, action);
 
           return {
@@ -618,7 +746,11 @@ export function useQueryBuilderState({
               newState.query !== state.query && displayAskSeerFeedback ? true : false,
           };
         }
-        case 'REPLACE_TOKENS_WITH_TEXT':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_CUT':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_DELETE':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_KEY_DOWN':
           return replaceTokensWithText(state, {
             tokens: action.tokens,
             text: action.text,
@@ -628,7 +760,7 @@ export function useQueryBuilderState({
         case 'UPDATE_FILTER_KEY':
           return updateFilterKey(state, action);
         case 'UPDATE_FILTER_OP':
-          return modifyFilterOperator(state, action);
+          return modifyFilterOperator(state, action, hasWildcardOperators);
         case 'UPDATE_TOKEN_VALUE':
           return {
             ...state,
@@ -644,7 +776,7 @@ export function useQueryBuilderState({
           return state;
       }
     },
-    [disabled, displayAskSeerFeedback, getFieldDefinition]
+    [disabled, displayAskSeerFeedback, getFieldDefinition, hasWildcardOperators]
   );
 
   const [state, dispatch] = useReducer(reducer, initialState);

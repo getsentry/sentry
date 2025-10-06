@@ -170,7 +170,7 @@ describe('EventTagsTree', () => {
         const linkElement = screen.getByRole('link', {name: 'def456'});
         expect(linkElement).toHaveAttribute(
           'href',
-          `/organizations/${organization.slug}/replays/def456/?referrer=${referrer}`
+          `/organizations/${organization.slug}/explore/replays/def456/?referrer=${referrer}`
         );
       },
     },

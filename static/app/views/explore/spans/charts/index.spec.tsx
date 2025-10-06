@@ -21,8 +21,9 @@ describe('ExploreCharts', () => {
       <SpansQueryParamsProvider>
         <PageParamsProvider>
           <ExploreCharts
+            extrapolate
             confidences={[]}
-            query={''}
+            query=""
             timeseriesResult={mockTimeseriesResult}
             visualizes={defaultVisualizes()}
             setVisualizes={() => {}}

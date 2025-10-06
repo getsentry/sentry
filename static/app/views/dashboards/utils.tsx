@@ -55,11 +55,11 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
-export type ValidationError = {
+type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
 };
 
-export type FlatValidationError = {
+type FlatValidationError = {
   [key: string]: string | FlatValidationError[] | FlatValidationError;
 };
 
@@ -403,27 +403,6 @@ export function isCustomMeasurement(field: string) {
   return !DEFINED_MEASUREMENTS.has(field) && isMeasurement(field);
 }
 
-export function isCustomMeasurementWidget(widget: Widget) {
-  return (
-    widget.widgetType === WidgetType.DISCOVER &&
-    widget.queries.some(({aggregates, columns, fields}) => {
-      const aggregateArgs = aggregates.reduce((acc: string[], aggregate) => {
-        // Should be ok to use getAggregateArg. getAggregateArg only returns the first arg
-        // but there aren't any custom measurement aggregates that use custom measurements
-        // outside of the first arg.
-        const aggregateArg = getAggregateArg(aggregate);
-        if (aggregateArg) {
-          acc.push(aggregateArg);
-        }
-        return acc;
-      }, []);
-      return [...aggregateArgs, ...columns, ...(fields ?? [])].some(field =>
-        isCustomMeasurement(field)
-      );
-    })
-  );
-}
-
 export function isWidgetUsingTransactionName(widget: Widget) {
   return (
     widget.widgetType === WidgetType.DISCOVER &&
@@ -458,7 +437,7 @@ export function hasSavedPageFilters(
 ) {
   return !(
     (dashboard.projects === undefined || dashboard.projects.length === 0) &&
-    dashboard.environment === undefined &&
+    (dashboard.environment === undefined || dashboard.environment.length === 0) &&
     dashboard.start === undefined &&
     dashboard.end === undefined &&
     dashboard.period === undefined
@@ -554,8 +533,7 @@ export function getCurrentPageFilters(
         : typeof project === 'string'
           ? [Number(project)]
           : project.map(Number),
-    environment:
-      typeof environment === 'string' ? [environment] : (environment ?? undefined),
+    environment: decodeList(environment),
     period: statsPeriod as string | undefined,
     start: defined(start) ? normalizeDateTimeString(start as string) : undefined,
     end: defined(end) ? normalizeDateTimeString(end as string) : undefined,

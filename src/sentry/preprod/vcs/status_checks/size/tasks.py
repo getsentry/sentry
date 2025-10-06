@@ -26,7 +26,6 @@ from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
 
@@ -35,13 +34,10 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_status_check",
-    queue="integrations",
-    silo_mode=SiloMode.REGION,
+    namespace=integrations_tasks,
+    processing_deadline_duration=30,
     retry=Retry(times=3),
-    taskworker_config=TaskworkerConfig(
-        namespace=integrations_tasks,
-        processing_deadline_duration=30,
-    ),
+    silo_mode=SiloMode.REGION,
 )
 def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
     try:
@@ -185,13 +181,12 @@ def _get_status_check_client(
     Returns None for expected failure cases (missing repo, integration, etc).
     Raises exceptions for unexpected errors that should be handled upstream.
     """
-    try:
-        repository = Repository.objects.get(
-            organization_id=project.organization_id,
-            name=commit_comparison.head_repo_name,
-            provider=f"integrations:{commit_comparison.provider}",
-        )
-    except Repository.DoesNotExist:
+    repository = Repository.objects.filter(
+        organization_id=project.organization_id,
+        name=commit_comparison.head_repo_name,
+        provider=f"integrations:{commit_comparison.provider}",
+    ).first()
+    if not repository:
         logger.info(
             "preprod.status_checks.create.no_repository",
             extra={
@@ -338,7 +333,13 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                 check_data["conclusion"] = mapped_conclusion.value
 
             if target_url:
-                check_data["details_url"] = target_url
+                if target_url.startswith("http"):
+                    check_data["details_url"] = target_url
+                else:
+                    logger.warning(
+                        "preprod.status_checks.create.invalid_target_url",
+                        extra={"target_url": target_url},
+                    )
 
             try:
                 response = self.client.create_check_run(repo=repo, data=check_data)

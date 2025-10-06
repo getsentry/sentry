@@ -4,6 +4,7 @@ import moment from 'moment-timezone';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Container} from 'sentry/components/core/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -12,6 +13,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconChevron, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,6 +23,7 @@ import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import {RESERVED_BUDGET_QUOTA, UNLIMITED, UNLIMITED_ONDEMAND} from 'getsentry/constants';
@@ -36,10 +39,12 @@ import {
   formatReservedWithUnits,
   formatUsageWithUnits,
   getSoftCapType,
+  hasNewBillingUI,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import {StripedTable} from './styles';
 import SubscriptionHeader from './subscriptionHeader';
@@ -84,6 +89,7 @@ function getCategoryDisplay({
 function UsageHistory({subscription}: Props) {
   const organization = useOrganization();
   const location = useLocation();
+  const isNewBillingUI = hasNewBillingUI(organization);
 
   useEffect(() => {
     trackSubscriptionView(organization, subscription, 'usage');
@@ -107,39 +113,72 @@ function UsageHistory({subscription}: Props) {
     }
   );
 
-  if (isPending) {
+  const usageListPageLinks = getResponseHeader?.('Link');
+  const hasBillingPerms = organization.access?.includes('org:billing');
+
+  if (!isNewBillingUI) {
+    if (isPending) {
+      return (
+        <SubscriptionPageContainer background="primary" organization={organization}>
+          <SubscriptionHeader subscription={subscription} organization={organization} />
+          <LoadingIndicator />
+        </SubscriptionPageContainer>
+      );
+    }
+
+    if (isError) {
+      return (
+        <SubscriptionPageContainer background="primary" organization={organization}>
+          <LoadingError onRetry={refetch} />
+        </SubscriptionPageContainer>
+      );
+    }
+
+    if (!hasBillingPerms) {
+      return (
+        <SubscriptionPageContainer background="primary" organization={organization}>
+          <ContactBillingMembers />
+        </SubscriptionPageContainer>
+      );
+    }
+
     return (
-      <Fragment>
+      <SubscriptionPageContainer background="primary" organization={organization}>
         <SubscriptionHeader subscription={subscription} organization={organization} />
-        <LoadingIndicator />
-      </Fragment>
+        <Panel>
+          <PanelHeader>{t('Usage History')}</PanelHeader>
+          <PanelBody data-test-id="history-table">
+            {usageList.map(row => (
+              <UsageHistoryRow key={row.id} history={row} subscription={subscription} />
+            ))}
+          </PanelBody>
+        </Panel>
+        {usageListPageLinks && <Pagination pageLinks={usageListPageLinks} />}
+      </SubscriptionPageContainer>
     );
   }
 
-  if (isError) {
-    return <LoadingError onRetry={refetch} />;
-  }
-
-  const usageListPageLinks = getResponseHeader?.('Link');
-
-  const hasBillingPerms = organization.access?.includes('org:billing');
-  if (!hasBillingPerms) {
-    return <ContactBillingMembers />;
-  }
-
   return (
-    <Fragment>
-      <SubscriptionHeader subscription={subscription} organization={organization} />
-      <Panel>
-        <PanelHeader>{t('Usage History')}</PanelHeader>
-        <PanelBody data-test-id="history-table">
-          {usageList.map(row => (
-            <UsageHistoryRow key={row.id} history={row} subscription={subscription} />
-          ))}
-        </PanelBody>
-      </Panel>
-      {usageListPageLinks && <Pagination pageLinks={usageListPageLinks} />}
-    </Fragment>
+    <SubscriptionPageContainer background="primary" organization={organization}>
+      <SentryDocumentTitle title={t('Usage History')} orgSlug={organization.slug} />
+      <SettingsPageHeader title={t('Usage History')} />
+      {isPending ? (
+        <LoadingIndicator />
+      ) : isError ? (
+        <LoadingError onRetry={refetch} />
+      ) : hasBillingPerms ? (
+        <Fragment>
+          <Container background="primary" border="primary" radius="md">
+            {usageList.map(row => (
+              <UsageHistoryRow key={row.id} history={row} subscription={subscription} />
+            ))}
+          </Container>
+          {usageListPageLinks && <Pagination pageLinks={usageListPageLinks} />}
+        </Fragment>
+      ) : (
+        <ContactBillingMembers />
+      )}
+    </SubscriptionPageContainer>
   );
 }
 

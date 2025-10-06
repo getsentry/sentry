@@ -1,7 +1,5 @@
-import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -10,6 +8,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {BuildError} from 'sentry/views/preprod/components/buildError';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
@@ -52,8 +51,10 @@ export default function BuildDetails() {
   let title = t('Build details');
   if (
     version !== undefined &&
+    version !== null &&
     version !== '' &&
     buildNumber !== undefined &&
+    buildNumber !== null &&
     buildNumber !== ''
   ) {
     title = t('Build details v%s (%s)', version, buildNumber);
@@ -86,51 +87,51 @@ export default function BuildDetails() {
           <BuildDetailsHeaderContent
             buildDetailsQuery={buildDetailsQuery}
             projectId={projectId}
+            artifactId={artifactId}
           />
         </Layout.Header>
 
-        <Layout.Body>
+        <BuildDetailsBody>
           <UrlParamBatchProvider>
-            <Layout.Main>
-              <BuildDetailsMainContent
-                appSizeQuery={appSizeQuery}
-                buildDetailsQuery={buildDetailsQuery}
-              />
-            </Layout.Main>
-
-            <Layout.Side>
+            <BuildDetailsSide>
               <BuildDetailsSidebarContent
-                buildDetailsQuery={buildDetailsQuery}
+                buildDetailsData={buildDetailsQuery.data}
+                isBuildDetailsPending={buildDetailsQuery.isPending}
                 artifactId={artifactId}
                 projectId={projectId}
               />
-            </Layout.Side>
+            </BuildDetailsSide>
+            <BuildDetailsMain>
+              <BuildDetailsMainContent
+                appSizeQuery={appSizeQuery}
+                buildDetailsData={buildDetailsQuery.data}
+                isBuildDetailsPending={buildDetailsQuery.isPending}
+              />
+            </BuildDetailsMain>
           </UrlParamBatchProvider>
-        </Layout.Body>
+        </BuildDetailsBody>
       </Layout.Page>
     </SentryDocumentTitle>
   );
 }
 
-function BuildError({title, message}: {message: string; title: string}) {
-  const theme = useTheme();
-  return (
-    <Flex
-      direction="column"
-      align="center"
-      justify="center"
-      style={{minHeight: '60vh', padding: theme.space.md}}
-    >
-      <Flex
-        direction="column"
-        align="center"
-        gap="lg"
-        style={{maxWidth: '500px', textAlign: 'center'}}
-      >
-        <div style={{fontSize: '64px'}}>⚠️</div>
-        <Heading as="h2">{title}</Heading>
-        <Text>{message}</Text>
-      </Flex>
-    </Flex>
-  );
-}
+const BuildDetailsBody = styled(Layout.Body)`
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    display: flex;
+    flex-direction: row-reverse;
+    gap: ${p => p.theme.space['3xl']};
+  }
+`;
+
+const BuildDetailsMain = styled(Layout.Main)`
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    width: 100%;
+  }
+`;
+
+const BuildDetailsSide = styled(Layout.Side)`
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    min-width: 325px;
+    max-width: 325px;
+  }
+`;

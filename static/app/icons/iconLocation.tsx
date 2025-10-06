@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconLocation(props: SVGIconProps) {
+export function IconLocation(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -22,7 +22,3 @@ function IconLocation(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconLocation.displayName = 'IconLocation';
-
-export {IconLocation};

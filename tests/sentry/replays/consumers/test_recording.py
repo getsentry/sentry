@@ -4,7 +4,7 @@ import time
 import uuid
 import zlib
 from datetime import datetime
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import msgpack
 from arroyo.backends.kafka import KafkaPayload
@@ -27,7 +27,7 @@ class RecordingTestCase(TransactionTestCase):
     replay_recording_id = uuid.uuid4().hex
     force_synchronous = True
 
-    def get_recording_data(self, segment_id):
+    def get_recording_data(self, segment_id: int) -> memoryview:
         result = storage_kv.get(
             _make_recording_filename(
                 project_id=self.project.id,
@@ -36,10 +36,10 @@ class RecordingTestCase(TransactionTestCase):
                 retention_days=30,
             )
         )
-        if result:
-            return unpack(zlib.decompress(result))[1]
+        assert result is not None, "Expecting non-None result here"
+        return unpack(zlib.decompress(result))[1]
 
-    def get_video_data(self, segment_id):
+    def get_video_data(self, segment_id: int) -> None | tuple[None | memoryview, memoryview]:
         result = storage_kv.get(
             _make_recording_filename(
                 project_id=self.project.id,
@@ -50,8 +50,9 @@ class RecordingTestCase(TransactionTestCase):
         )
         if result:
             return unpack(zlib.decompress(result))[0]
+        return None
 
-    def processing_factory(self):
+    def processing_factory(self) -> ProcessReplayRecordingStrategyFactory:
         return ProcessReplayRecordingStrategyFactory(
             input_block_size=1,
             max_batch_size=1,
@@ -62,10 +63,8 @@ class RecordingTestCase(TransactionTestCase):
             force_synchronous=self.force_synchronous,
         )
 
-    def submit(self, messages):
-        strategy = self.processing_factory().create_with_partitions(
-            lambda x, force=False: None, None
-        )
+    def submit(self, messages: list[ReplayRecording]) -> None:
+        strategy = self.processing_factory().create_with_partitions(lambda x, force=False: None, {})
 
         for message in messages:
             strategy.submit(
@@ -114,11 +113,11 @@ class RecordingTestCase(TransactionTestCase):
     @thread_leak_allowlist(reason="replays", issue=97033)
     def test_end_to_end_consumer_processing(
         self,
-        report_hydration_issue,
-        track_outcome,
-        mock_record,
-        mock_onboarding_task,
-    ):
+        report_hydration_issue: MagicMock,
+        track_outcome: MagicMock,
+        mock_record: MagicMock,
+        mock_onboarding_task: MagicMock,
+    ) -> None:
         data = [
             {
                 "type": 5,

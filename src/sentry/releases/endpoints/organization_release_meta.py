@@ -16,6 +16,8 @@ from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releases.release_project import ReleaseProject
+from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.utils import parse_release_version
 
 
 class _ProjectDict(TypedDict):
@@ -74,6 +76,18 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
             "project__platform",
         )
 
+        release_project_ids = [pr["project__id"] for pr in project_releases]
+
+        parsed_version = parse_release_version(release.version)
+        if parsed_version and release_project_ids:
+            number_of_preprod_builds = PreprodArtifact.objects.filter(
+                app_id=parsed_version.app_id,
+                build_version=parsed_version.build_version,
+                project_id__in=release_project_ids,
+            ).count()
+        else:
+            number_of_preprod_builds = 0
+
         platforms = ProjectPlatform.objects.filter(
             project_id__in={x["project__id"] for x in project_releases}
         ).values_list("project_id", "platform")
@@ -117,5 +131,6 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
                     else release.count_artifacts()
                 ),
                 "isArtifactBundle": weakly_associated_count is not None,
+                "preprodBuildCount": number_of_preprod_builds,
             }
         )

@@ -118,6 +118,7 @@ export async function fetchOrganizationDetails(api: Client, slug: string): Promi
 
         if (errMessage) {
           addErrorMessage(errMessage);
+          // eslint-disable-next-line @typescript-eslint/only-throw-error
           throw errMessage;
         }
 

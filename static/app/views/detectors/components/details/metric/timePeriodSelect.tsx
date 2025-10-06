@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import moment from 'moment-timezone';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -6,13 +6,12 @@ import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
-import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {
-  getTimePeriodLabel,
-  MetricDetectorInterval,
-  MetricDetectorTimePeriod,
-} from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
+  useDetectorResolvedStatsPeriod,
+  useDetectorTimePeriodOptions,
+} from 'sentry/views/detectors/components/details/metric/utils/useDetectorTimePeriods';
+import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+import {MetricDetectorTimePeriod} from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 
 type BaseOption = {label: React.ReactNode; value: MetricDetectorTimePeriod};
 
@@ -32,54 +31,38 @@ export function MetricTimePeriodSelect({dataset, interval}: TimePeriodSelectProp
 
   const hasCustomRange = Boolean(start && end);
 
-  function mapIntervalToMetricInterval(
-    intervalSeconds: number
-  ): MetricDetectorInterval | undefined {
-    const intervalMinutes = Math.floor(intervalSeconds / 60);
-    const validIntervals = Object.values(MetricDetectorInterval).filter(
-      value => typeof value === 'number'
-    );
-    if (validIntervals.includes(intervalMinutes)) {
-      return intervalMinutes as MetricDetectorInterval;
-    }
-    return undefined;
-  }
+  const options: BaseOption[] = useDetectorTimePeriodOptions({
+    dataset,
+    intervalSeconds: interval,
+  });
 
-  const options: BaseOption[] = useMemo(() => {
-    if (!dataset || !interval) {
-      return [];
-    }
-    const metricInterval = mapIntervalToMetricInterval(interval);
-    if (!metricInterval) {
-      return [];
-    }
-    const datasetConfig = getDatasetConfig(dataset);
-    const timePeriods = datasetConfig.getTimePeriods(metricInterval);
-    return timePeriods.map(period => ({
-      value: period,
-      label: getTimePeriodLabel(period),
-    }));
-  }, [dataset, interval]);
+  // Determine selected period from query or fallback to largest option
+  const selected: MetricDetectorTimePeriod = useDetectorResolvedStatsPeriod({
+    dataset,
+    intervalSeconds: interval,
+    urlStatsPeriod: location.query?.statsPeriod as string | undefined,
+  });
 
-  // Determine selected period from query or fallback (prefer statsPeriod, else default 7d, else largest)
-  const selected: MetricDetectorTimePeriod = useMemo(() => {
-    const urlStatsPeriod = location.query?.statsPeriod as string | undefined;
-    const optionValues = new Set(options.map(o => o.value));
-    if (
-      urlStatsPeriod &&
-      optionValues.has(urlStatsPeriod as unknown as MetricDetectorTimePeriod)
-    ) {
-      return urlStatsPeriod as unknown as MetricDetectorTimePeriod;
+  // If there is no time selection in the URL, sync the resolved default period
+  // into the query params so that the rest of the page (chart, links, etc.)
+  // has a consistent source of truth.
+  useEffect(() => {
+    const hasStatsPeriod = Boolean(location.query?.statsPeriod);
+    if (!hasCustomRange && !hasStatsPeriod && selected) {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            statsPeriod: selected,
+            start: undefined,
+            end: undefined,
+          },
+        },
+        {replace: true}
+      );
     }
-    if (optionValues.has(MetricDetectorTimePeriod.SEVEN_DAYS)) {
-      return MetricDetectorTimePeriod.SEVEN_DAYS;
-    }
-    const largestOption = options[options.length - 1];
-    return (
-      (largestOption?.value as MetricDetectorTimePeriod) ??
-      MetricDetectorTimePeriod.SEVEN_DAYS
-    );
-  }, [location.query, options]);
+  }, [hasCustomRange, selected, navigate, location.pathname, location.query]);
 
   const selectOptions = useMemo(() => {
     if (hasCustomRange) {

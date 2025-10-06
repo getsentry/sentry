@@ -69,6 +69,7 @@ from sentry.integrations.models.integration_feature import (
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
+from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
@@ -125,7 +126,7 @@ from sentry.notifications.models.notificationaction import (
 )
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
-from sentry.performance_issues.performance_problem import PerformanceProblem
+from sentry.preprod.models import PreprodArtifactSizeMetrics
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -151,17 +152,14 @@ from sentry.tempest.models import TempestCredentials
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
-from sentry.types.actor import Actor
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
 from sentry.uptime.models import (
     IntervalSecondsLiteral,
-    ProjectUptimeSubscription,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
-from sentry.uptime.types import UptimeMonitorMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
@@ -991,7 +989,7 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_commit_file_change(commit, filename):
         return CommitFileChange.objects.get_or_create(
-            organization_id=commit.organization_id, commit=commit, filename=filename, type="M"
+            organization_id=commit.organization_id, commit_id=commit.id, filename=filename, type="M"
         )
 
     @staticmethod
@@ -2122,39 +2120,6 @@ class Factories:
         )
 
     @staticmethod
-    def create_project_uptime_subscription(
-        project: Project,
-        env: Environment | None,
-        uptime_subscription: UptimeSubscription,
-        status: int,
-        mode: UptimeMonitorMode,
-        name: str | None,
-        owner: Actor | None,
-        id: int | None,
-    ):
-        if name is None:
-            name = petname.generate().title()
-        owner_team_id = None
-        owner_user_id = None
-        if owner:
-            if owner.is_team:
-                owner_team_id = owner.id
-            elif owner.is_user:
-                owner_user_id = owner.id
-
-        return ProjectUptimeSubscription.objects.create(
-            uptime_subscription=uptime_subscription,
-            project=project,
-            environment=env,
-            status=status,
-            mode=mode,
-            name=name,
-            owner_team_id=owner_team_id,
-            owner_user_id=owner_user_id,
-            pk=id,
-        )
-
-    @staticmethod
     def create_uptime_subscription_region(
         subscription: UptimeSubscription,
         region_slug: str,
@@ -2188,7 +2153,6 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_dashboard_widget(
-        order: int,
         dashboard: Dashboard | None = None,
         title: str | None = None,
         display_type: int | None = None,
@@ -2202,7 +2166,7 @@ class Factories:
             title = petname.generate(2, " ", letters=10).title()
 
         return DashboardWidget.objects.create(
-            dashboard=dashboard, title=title, display_type=display_type, order=order, **kwargs
+            dashboard=dashboard, title=title, display_type=display_type, **kwargs
         )
 
     @staticmethod
@@ -2214,7 +2178,7 @@ class Factories:
         **kwargs,
     ):
         if widget is None:
-            widget = Factories.create_dashboard_widget(order=order)
+            widget = Factories.create_dashboard_widget()
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
         return DashboardWidgetQuery.objects.create(widget=widget, name=name, order=order, **kwargs)
@@ -2466,4 +2430,48 @@ class Factories:
             condition_group = Factories.create_data_condition_group()
         return DataConditionGroupAction.objects.create(
             action=action, condition_group=condition_group, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_preprod_artifact_size_metrics(
+        artifact,
+        metrics_type=None,
+        state=None,
+        identifier=None,
+        min_download_size=1024 * 1024,  # 1 MB
+        max_download_size=1024 * 1024,  # 1 MB
+        min_install_size=2 * 1024 * 1024,  # 2 MB
+        max_install_size=2 * 1024 * 1024,  # 2 MB
+    ):
+        if metrics_type is None:
+            metrics_type = PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        if state is None:
+            state = PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+
+        return PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=metrics_type,
+            state=state,
+            identifier=identifier,
+            min_download_size=(
+                min_download_size
+                if state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+                else None
+            ),
+            max_download_size=(
+                max_download_size
+                if state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+                else None
+            ),
+            min_install_size=(
+                min_install_size
+                if state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+                else None
+            ),
+            max_install_size=(
+                max_install_size
+                if state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+                else None
+            ),
         )

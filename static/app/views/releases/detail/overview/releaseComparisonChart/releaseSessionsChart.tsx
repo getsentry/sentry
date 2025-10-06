@@ -71,11 +71,13 @@ class ReleaseSessionsChart extends Component<Props> {
       case ReleaseComparisonChartType.HEALTHY_SESSIONS:
       case ReleaseComparisonChartType.ABNORMAL_SESSIONS:
       case ReleaseComparisonChartType.ERRORED_SESSIONS:
+      case ReleaseComparisonChartType.UNHANDLED_SESSIONS:
       case ReleaseComparisonChartType.CRASHED_SESSIONS:
       case ReleaseComparisonChartType.CRASH_FREE_USERS:
       case ReleaseComparisonChartType.HEALTHY_USERS:
       case ReleaseComparisonChartType.ABNORMAL_USERS:
       case ReleaseComparisonChartType.ERRORED_USERS:
+      case ReleaseComparisonChartType.UNHANDLED_USERS:
       case ReleaseComparisonChartType.CRASHED_USERS:
         return defined(value) ? `${value}%` : '\u2015';
       case ReleaseComparisonChartType.SESSION_COUNT:
@@ -101,10 +103,12 @@ class ReleaseSessionsChart extends Component<Props> {
       case ReleaseComparisonChartType.HEALTHY_SESSIONS:
       case ReleaseComparisonChartType.ABNORMAL_SESSIONS:
       case ReleaseComparisonChartType.ERRORED_SESSIONS:
+      case ReleaseComparisonChartType.UNHANDLED_SESSIONS:
       case ReleaseComparisonChartType.CRASHED_SESSIONS:
       case ReleaseComparisonChartType.HEALTHY_USERS:
       case ReleaseComparisonChartType.ABNORMAL_USERS:
       case ReleaseComparisonChartType.ERRORED_USERS:
+      case ReleaseComparisonChartType.UNHANDLED_USERS:
       case ReleaseComparisonChartType.CRASHED_USERS:
         return {
           scale: true,
@@ -129,11 +133,13 @@ class ReleaseSessionsChart extends Component<Props> {
       case ReleaseComparisonChartType.HEALTHY_SESSIONS:
       case ReleaseComparisonChartType.ABNORMAL_SESSIONS:
       case ReleaseComparisonChartType.ERRORED_SESSIONS:
+      case ReleaseComparisonChartType.UNHANDLED_SESSIONS:
       case ReleaseComparisonChartType.CRASHED_SESSIONS:
       case ReleaseComparisonChartType.CRASH_FREE_USERS:
       case ReleaseComparisonChartType.HEALTHY_USERS:
       case ReleaseComparisonChartType.ABNORMAL_USERS:
       case ReleaseComparisonChartType.ERRORED_USERS:
+      case ReleaseComparisonChartType.UNHANDLED_USERS:
       case ReleaseComparisonChartType.CRASHED_USERS:
       default:
         return AreaChart;
@@ -155,6 +161,8 @@ class ReleaseSessionsChart extends Component<Props> {
         return [colors[15]];
       case ReleaseComparisonChartType.ERRORED_SESSIONS:
         return [colors[12]];
+      case ReleaseComparisonChartType.UNHANDLED_SESSIONS:
+        return [colors[13]];
       case ReleaseComparisonChartType.CRASHED_SESSIONS:
         return [theme.red300];
       case ReleaseComparisonChartType.CRASH_FREE_USERS:
@@ -165,6 +173,8 @@ class ReleaseSessionsChart extends Component<Props> {
         return [colors[15]];
       case ReleaseComparisonChartType.ERRORED_USERS:
         return [colors[12]];
+      case ReleaseComparisonChartType.UNHANDLED_USERS:
+        return [colors[13]];
       case ReleaseComparisonChartType.CRASHED_USERS:
         return [theme.red300];
       case ReleaseComparisonChartType.SESSION_COUNT:
@@ -291,6 +301,33 @@ class ReleaseSessionsChart extends Component<Props> {
           ],
           markLines,
         };
+      case ReleaseComparisonChartType.UNHANDLED_SESSIONS:
+        return {
+          series: [
+            {
+              seriesName: t('This Release'),
+              connectNulls: true,
+              data: getSessionStatusRateSeries(
+                releaseSessions?.groups,
+                releaseSessions?.intervals,
+                SessionFieldWithOperation.SESSIONS,
+                SessionStatus.UNHANDLED
+              ),
+            },
+          ],
+          previousSeries: [
+            {
+              seriesName: t('All Releases'),
+              data: getSessionStatusRateSeries(
+                allSessions?.groups,
+                allSessions?.intervals,
+                SessionFieldWithOperation.SESSIONS,
+                SessionStatus.UNHANDLED
+              ),
+            },
+          ],
+          markLines,
+        };
       case ReleaseComparisonChartType.CRASHED_SESSIONS:
         return {
           series: [
@@ -424,6 +461,33 @@ class ReleaseSessionsChart extends Component<Props> {
           ],
           markLines,
         };
+      case ReleaseComparisonChartType.UNHANDLED_USERS:
+        return {
+          series: [
+            {
+              seriesName: t('This Release'),
+              connectNulls: true,
+              data: getSessionStatusRateSeries(
+                releaseSessions?.groups,
+                releaseSessions?.intervals,
+                SessionFieldWithOperation.USERS,
+                SessionStatus.UNHANDLED
+              ),
+            },
+          ],
+          previousSeries: [
+            {
+              seriesName: t('All Releases'),
+              data: getSessionStatusRateSeries(
+                allSessions?.groups,
+                allSessions?.intervals,
+                SessionFieldWithOperation.USERS,
+                SessionStatus.UNHANDLED
+              ),
+            },
+          ],
+          markLines,
+        };
       case ReleaseComparisonChartType.CRASHED_USERS:
         return {
           series: [
@@ -475,6 +539,16 @@ class ReleaseSessionsChart extends Component<Props> {
               ),
             },
             {
+              ...countCharts[SessionStatus.UNHANDLED],
+              data: getCountSeries(
+                SessionFieldWithOperation.SESSIONS,
+                releaseSessions.groups.find(
+                  g => g.by['session.status'] === SessionStatus.UNHANDLED
+                ),
+                releaseSessions.intervals
+              ),
+            },
+            {
               ...countCharts[SessionStatus.ABNORMAL],
               data: getCountSeries(
                 SessionFieldWithOperation.SESSIONS,
@@ -516,6 +590,16 @@ class ReleaseSessionsChart extends Component<Props> {
                 SessionFieldWithOperation.USERS,
                 releaseSessions.groups.find(
                   g => g.by['session.status'] === SessionStatus.ERRORED
+                ),
+                releaseSessions.intervals
+              ),
+            },
+            {
+              ...countCharts[SessionStatus.UNHANDLED],
+              data: getCountSeries(
+                SessionFieldWithOperation.USERS,
+                releaseSessions.groups.find(
+                  g => g.by['session.status'] === SessionStatus.UNHANDLED
                 ),
                 releaseSessions.intervals
               ),

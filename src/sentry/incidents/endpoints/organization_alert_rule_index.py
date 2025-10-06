@@ -72,10 +72,14 @@ from sentry.relay.config.metric_extraction import (
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.snuba.dataset import Dataset
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeStatus
-from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.types import (
+    DATA_SOURCE_UPTIME_SUBSCRIPTION,
+    GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+    UptimeMonitorMode,
+)
 from sentry.utils.cursors import Cursor, StringCursor
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import Detector, DetectorState
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -274,12 +278,19 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             project__in=projects,
         )
 
-        uptime_rules = ProjectUptimeSubscription.objects.filter(
-            project__in=projects,
-            mode__in=(
-                UptimeMonitorMode.MANUAL,
-                UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
-            ),
+        uptime_rules = (
+            Detector.objects.filter(
+                type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+                project__in=projects,
+                config__mode__in=(
+                    UptimeMonitorMode.MANUAL.value,
+                    UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value,
+                ),
+                data_sources__type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+                status=ObjectStatus.ACTIVE,
+            )
+            .select_related("project")
+            .prefetch_related("data_sources")
         )
         crons_rules = (
             Monitor.objects.filter(project_id__in=[p.id for p in projects])
@@ -367,15 +378,18 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 incident_status=Value(-2, output_field=IntegerField())
             )
             uptime_rules = uptime_rules.annotate(
+                detector_priority=Subquery(
+                    DetectorState.objects.filter(detector=OuterRef("pk")).values("state")[:1]
+                ),
                 incident_status=Case(
-                    # If an uptime monitor is failing we want to treat it the same as if an alert is failing, so sort
-                    # by the critical status
+                    # If an uptime detector is in HIGH priority (failing)
+                    # state, treat it like a critical incident
                     When(
-                        uptime_subscription__uptime_status=UptimeStatus.FAILED,
+                        detector_priority=DetectorPriorityLevel.HIGH,
                         then=IncidentStatus.CRITICAL.value,
                     ),
                     default=-2,
-                )
+                ),
             )
             crons_rules = crons_rules.annotate(
                 incident_status=Case(

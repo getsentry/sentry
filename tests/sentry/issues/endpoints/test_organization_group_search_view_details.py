@@ -427,7 +427,7 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
             kwargs={"organization_id_or_slug": self.organization.slug, "view_id": self.view_id},
         )
 
-    @with_feature({"organizations:issue-views": True, "organizations:global-views": True})
+    @with_feature({"organizations:issue-views": True})
     def test_put_view_success(self) -> None:
         data = {
             "name": "Updated View Name",

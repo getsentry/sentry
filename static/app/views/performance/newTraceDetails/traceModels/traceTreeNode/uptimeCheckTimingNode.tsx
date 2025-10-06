@@ -12,7 +12,7 @@ import {BaseNode} from './baseNode';
 
 export class UptimeCheckTimingNode extends BaseNode<TraceTree.UptimeCheckTiming> {
   get type(): TraceTree.NodeType {
-    return 'uptimeCheckTiming';
+    return 'uptime-check-timing';
   }
 
   get drawerTabsTitle(): string {
@@ -21,19 +21,6 @@ export class UptimeCheckTimingNode extends BaseNode<TraceTree.UptimeCheckTiming>
 
   get traceHeaderTitle(): {title: string; subtitle?: string} {
     return {title: this.value.description || this.value.op};
-  }
-
-  get nodePath(): TraceTree.NodePath {
-    return `uptimeCheckTiming-${this.id}`;
-  }
-
-  matchByPath(path: TraceTree.NodePath): boolean {
-    const [type, id] = path.split('-');
-    if (type !== 'uptimeCheckTiming' || !id) {
-      return false;
-    }
-
-    return this.matchById(id);
   }
 
   analyticsName(): string {

@@ -28,6 +28,7 @@ import {
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
+import {SpanFields} from 'sentry/views/insights/types';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 export default function LLMCallsWidget() {
@@ -53,7 +54,7 @@ export default function LLMCallsWidget() {
     {
       ...pageFilterChartParams,
       search: fullQuery,
-      fields: ['gen_ai.request.model', 'count(span.duration)'],
+      fields: [SpanFields.GEN_AI_REQUEST_MODEL, 'count(span.duration)'],
       yAxis: ['count(span.duration)'],
       sort: {field: 'count(span.duration)', kind: 'desc'},
       topN: 3,
@@ -62,7 +63,7 @@ export default function LLMCallsWidget() {
     Referrer.LLM_CALLS_WIDGET
   );
 
-  const timeSeries = timeSeriesRequest.data;
+  const timeSeries = timeSeriesRequest?.data;
 
   const isLoading = timeSeriesRequest.isLoading || generationsRequest.isLoading;
   const error = timeSeriesRequest.error || generationsRequest.error;

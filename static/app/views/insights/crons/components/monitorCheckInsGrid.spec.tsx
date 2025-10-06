@@ -189,4 +189,80 @@ describe('CheckInRow', () => {
     expect(screen.getByText('Timed Out')).toBeInTheDocument();
     expect(screen.queryByText(/late/)).not.toBeInTheDocument();
   });
+
+  it('shows processing latency indicator when check-in has high processing latency', async () => {
+    const checkIn = CheckInFixture({
+      status: CheckInStatus.OK,
+      dateAdded: '2025-01-01T00:00:00Z', // When check-in was received by relay
+      dateClock: '2025-01-01T00:02:00Z', // When check-in was placed in kafka (2 minutes later - high latency)
+      dateUpdated: '2025-01-01T00:02:10Z',
+      dateInProgress: '2025-01-01T00:00:01Z',
+      duration: 9000,
+    });
+
+    render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
+
+    // Should show the processing latency info icon
+    const infoIcon = screen.getByTestId('more-information');
+    expect(infoIcon).toBeInTheDocument();
+
+    await userEvent.hover(infoIcon);
+
+    const expectedTooltip =
+      'This check-in was processed late due to abnormal system latency in Sentry. The status of this check-in may be inaccurate.';
+    expect(await screen.findByText(expectedTooltip)).toBeInTheDocument();
+  });
+
+  it('shows processing latency indicator for abnormally late check-in', async () => {
+    const checkIn = CheckInFixture({
+      status: CheckInStatus.TIMEOUT,
+      dateAdded: '2025-01-01T00:00:01Z',
+      dateClock: '2025-01-01T00:00:01Z', // No processing latency
+      dateUpdated: '2025-01-01T00:05:00Z',
+      dateInProgress: '2025-01-01T00:00:01Z',
+      duration: 5 * 60 * 1000, // 5 minutes - less than max_runtime of 10 minutes (abnormally late)
+    });
+
+    render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
+
+    // Should show the processing latency info icon for abnormally late timing
+    const infoIcon = screen.getByTestId('more-information');
+    expect(infoIcon).toBeInTheDocument();
+
+    await userEvent.hover(infoIcon);
+
+    const expectedTooltip =
+      'This check-in was incorrectly marked as timed-out. The check-in was processed late due to abnormal system latency in Sentry.';
+    expect(await screen.findByText(expectedTooltip)).toBeInTheDocument();
+  });
+
+  it('does not show processing latency indicator for normal check-ins', () => {
+    const checkIn = CheckInFixture({
+      status: CheckInStatus.OK,
+      dateAdded: '2025-01-01T00:00:01Z',
+      dateClock: '2025-01-01T00:00:02Z', // Only 1 second processing latency
+      dateUpdated: '2025-01-01T00:00:10Z',
+      dateInProgress: '2025-01-01T00:00:01Z',
+      duration: null, // No duration to avoid abnormal late condition
+    });
+
+    render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
+    expect(screen.queryByTestId('more-information')).not.toBeInTheDocument();
+  });
+
+  it('displays check-in ID and copy button', () => {
+    const checkIn = CheckInFixture({
+      id: 'abcd1234-5678-90ef-ghij-klmnopqrstuv',
+      status: CheckInStatus.OK,
+    });
+
+    render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
+
+    // Check that the short ID is displayed
+    expect(screen.getByText('abcd1234')).toBeInTheDocument();
+
+    // Check that the copy button is present with the correct accessible name
+    const copyButton = screen.getByRole('button', {name: 'Copy Check-In ID'});
+    expect(copyButton).toBeInTheDocument();
+  });
 });

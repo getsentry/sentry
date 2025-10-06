@@ -602,6 +602,9 @@ if (
       '.localhost',
       '127.0.0.1',
       '.docker.internal',
+      // SEO: ngrok, hot reload, SENTRY_UI_HOT_RELOAD. Uncomment this to allow hot-reloading when using ngrok. This is disabled by default
+      // since ngrok urls are public and can be accessed by anyone.
+      // '.ngrok.io',
     ],
     static: {
       directory: './src/sentry/static/sentry',
@@ -697,7 +700,7 @@ if (IS_UI_DEV_ONLY) {
   // - static/index.ejs
   // - static/app/utils/extractSlug.tsx
   const KNOWN_DOMAINS =
-    /(?:\.?)((?:localhost|dev\.getsentry\.net|sentry\.dev)(?:\:\d*)?)$/;
+    /(?:\.?)((?:localhost|dev\.getsentry\.net|sentry\.dev)(?::\d*)?)$/;
 
   const extractSlug = (hostname: string) => {
     const match = hostname.match(KNOWN_DOMAINS);
@@ -775,7 +778,7 @@ if (IS_UI_DEV_ONLY) {
           '^/region/[^/]*': '',
         },
         router: (req: any) => {
-          const regionPathPattern = /^\/region\/([^\/]+)/;
+          const regionPathPattern = /^\/region\/([^/]+)/;
           const regionname = req.path.match(regionPathPattern);
           if (regionname) {
             return `https://${regionname[1]}.sentry.io`;

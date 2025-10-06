@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Literal, NotRequired, TypedDict
 
 import sentry_sdk
@@ -43,6 +43,10 @@ TOP_EVENTS_DATASETS = {
     transactions,
 }
 
+# Assumed ingestion delay for timeseries, this is a static number for now just to match how the frontend was doing it
+INGESTION_DELAY = 90
+INGESTION_DELAY_MESSAGE = "INCOMPLETE_BUCKET"
+
 
 class StatsMeta(TypedDict):
     dataset: str
@@ -53,16 +57,18 @@ class StatsMeta(TypedDict):
 class Row(TypedDict):
     timestamp: float
     value: float
+    incomplete: bool
     comparisonValue: NotRequired[float]
     sampleCount: NotRequired[float]
     sampleRate: NotRequired[float]
     confidence: NotRequired[Literal["low", "high"] | None]
+    incompleteReason: NotRequired[str]
 
 
 class SeriesMeta(TypedDict):
     order: NotRequired[int]
     isOther: NotRequired[str]
-    valueUnit: NotRequired[str]
+    valueUnit: str | None
     dataScanned: NotRequired[Literal["partial", "full"]]
     valueType: str
     interval: float
@@ -231,6 +237,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
 
         if top_events > 0:
             raw_groupby = self.get_field_list(organization, request, param_name="groupBy")
+            if len(raw_groupby) == 0:
+                raise ParseError("groupBy is a required parameter when doing topEvents")
             if "timestamp" in raw_groupby:
                 raise ParseError("Cannot group by timestamp")
             if dataset in RPC_DATASETS:
@@ -241,6 +249,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     raw_groupby=raw_groupby,
                     orderby=self.get_orderby(request),
                     limit=top_events,
+                    include_other=include_other,
                     referrer=referrer,
                     config=SearchResolverConfig(
                         auto_fields=False,
@@ -308,37 +317,44 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         rollup: int,
         dataset,
     ) -> StatsResponse:
+        # We need the current timestamp for the Ingestion Delay incomplete reason
+        now = datetime.now().timestamp()
         response = StatsResponse(
             meta=StatsMeta(
                 dataset=DATASET_LABELS[dataset],
                 start=snuba_params.start_date.timestamp() * 1000,
                 end=snuba_params.end_date.timestamp() * 1000,
             ),
-            timeSeries=self.serialize_result(result, axes, rollup),
+            timeSeries=self.serialize_result(result, axes, rollup, now),
         )
         return response
 
     def serialize_result(
-        self, result: SnubaTSResult | dict[str, SnubaTSResult], axes: list[str], rollup: int
+        self,
+        result: SnubaTSResult | dict[str, SnubaTSResult],
+        axes: list[str],
+        rollup: int,
+        now: float,
     ) -> list[TimeSeries]:
         serialized_result = []
         if isinstance(result, SnubaTSResult):
             for axis in axes:
-                serialized_result.append(self.serialize_timeseries(result, axis, rollup))
+                serialized_result.append(self.serialize_timeseries(result, axis, rollup, now))
         else:
             for key, value in result.items():
                 for axis in axes:
-                    serialized_result.append(self.serialize_timeseries(value, axis, rollup))
+                    serialized_result.append(self.serialize_timeseries(value, axis, rollup, now))
         return serialized_result
 
-    def serialize_timeseries(self, result: SnubaTSResult, axis: str, rollup: int) -> TimeSeries:
+    def serialize_timeseries(
+        self, result: SnubaTSResult, axis: str, rollup: int, now: float
+    ) -> TimeSeries:
         unit, field_type = self.get_unit_and_type(axis, result.data["meta"]["fields"][axis])
         series_meta = SeriesMeta(
             valueType=field_type,
+            valueUnit=unit,
             interval=rollup * 1000,
         )
-        if unit is not None:
-            series_meta["valueUnit"] = unit
         if "is_other" in result.data:
             series_meta["isOther"] = result.data["is_other"]
         if "order" in result.data:
@@ -354,7 +370,11 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
 
         timeseries_values = []
         for row in result.data["data"]:
-            value_row = Row(timestamp=row["time"] * 1000, value=row.get(axis, 0))
+            value_row = Row(timestamp=row["time"] * 1000, value=row.get(axis, 0), incomplete=False)
+
+            if incomplete := self.check_incomplete(row, now, rollup):
+                value_row["incomplete"] = True
+                value_row["incompleteReason"] = incomplete
             if "comparisonCount" in row:
                 value_row["comparisonValue"] = row["comparisonCount"]
             timeseries_values.append(value_row)
@@ -377,3 +397,9 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         timeseries["values"] = timeseries_values
 
         return timeseries
+
+    def check_incomplete(self, row: dict[str, Any], now: float, rollup: int) -> str | None:
+        if row["time"] + rollup >= now - INGESTION_DELAY:
+            return INGESTION_DELAY_MESSAGE
+        else:
+            return None

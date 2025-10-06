@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -165,7 +166,7 @@ describe('HTTPLandingPage', () => {
     });
 
     throughputRequestMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
@@ -173,23 +174,20 @@ describe('HTTPLandingPage', () => {
         }),
       ],
       body: {
-        data: [
-          [1699907700, [{count: 7810.2}]],
-          [1699908000, [{count: 1216.8}]],
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'epm()',
+            values: [
+              {value: 7810.2, timestamp: 1699907700000},
+              {value: 1216.8, timestamp: 1699908000000},
+            ],
+          }),
         ],
-        meta: {
-          fields: {
-            'epm()': 'rate',
-          },
-          units: {
-            'epm()': '1/second',
-          },
-        },
       },
     });
 
     durationRequestMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
@@ -197,23 +195,20 @@ describe('HTTPLandingPage', () => {
         }),
       ],
       body: {
-        data: [
-          [1699907700, [{count: 710.2}]],
-          [1699908000, [{count: 116.8}]],
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'avg(span.self_time)',
+            values: [
+              {value: 710.2, timestamp: 1699907700000},
+              {value: 1216.8, timestamp: 1699908000000},
+            ],
+          }),
         ],
-        meta: {
-          fields: {
-            'avg(span.duration)': 'duration',
-          },
-          units: {
-            'avg(span.duration)': 'millisecond',
-          },
-        },
       },
     });
 
     statusRequestMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
@@ -221,33 +216,20 @@ describe('HTTPLandingPage', () => {
         }),
       ],
       body: {
-        'http_response_rate(3)': {
-          data: [[1699908000, [{count: 0.2}]]],
-          meta: {
-            fields: {
-              'http_response_rate(3)': 'percentage',
-            },
-            units: {},
-          },
-        },
-        'http_response_rate(4)': {
-          data: [[1699908000, [{count: 0.1}]]],
-          meta: {
-            fields: {
-              'http_response_rate(4)': 'percentage',
-            },
-            units: {},
-          },
-        },
-        'http_response_rate(5)': {
-          data: [[1699908000, [{count: 0.3}]]],
-          meta: {
-            fields: {
-              'http_response_rate(5)': 'percentage',
-            },
-            units: {},
-          },
-        },
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'http_response_rate(3)',
+            values: [{value: 0.2, timestamp: 1699908000000}],
+          }),
+          TimeSeriesFixture({
+            yAxis: 'http_response_rate(4)',
+            values: [{value: 0.1, timestamp: 1699908000000}],
+          }),
+          TimeSeriesFixture({
+            yAxis: 'http_response_rate(5)',
+            values: [{value: 0.1, timestamp: 1699908000000}],
+          }),
+        ],
       },
     });
   });
@@ -263,27 +245,22 @@ describe('HTTPLandingPage', () => {
 
     expect(throughputRequestMock).toHaveBeenNthCalledWith(
       1,
-      `/organizations/${organization.slug}/events-stats/`,
+      `/organizations/${organization.slug}/events-timeseries/`,
       expect.objectContaining({
         method: 'GET',
         query: {
-          cursor: undefined,
           dataset: 'spans',
           sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
-          field: [],
+          groupBy: undefined,
           interval: '30m',
-          orderby: undefined,
           partial: 1,
-          per_page: 50,
           project: [],
           query: 'span.op:http.client',
           referrer: 'api.insights.http.landing-throughput-chart',
           statsPeriod: '10d',
-          topEvents: undefined,
-          yAxis: 'epm()',
-          transformAliasToInputFormat: '1',
+          yAxis: ['epm()'],
         },
       })
     );
@@ -309,58 +286,48 @@ describe('HTTPLandingPage', () => {
 
     expect(durationRequestMock).toHaveBeenNthCalledWith(
       1,
-      `/organizations/${organization.slug}/events-stats/`,
+      `/organizations/${organization.slug}/events-timeseries/`,
       expect.objectContaining({
         method: 'GET',
         query: {
-          cursor: undefined,
           dataset: 'spans',
           sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
-          field: [],
+          groupBy: undefined,
           interval: '30m',
-          orderby: undefined,
           partial: 1,
-          per_page: 50,
           project: [],
           query: 'span.op:http.client',
           referrer: 'api.insights.http.landing-duration-chart',
           statsPeriod: '10d',
-          topEvents: undefined,
-          yAxis: 'avg(span.self_time)',
-          transformAliasToInputFormat: '1',
+          yAxis: ['avg(span.self_time)'],
         },
       })
     );
 
     expect(statusRequestMock).toHaveBeenNthCalledWith(
       1,
-      `/organizations/${organization.slug}/events-stats/`,
+      `/organizations/${organization.slug}/events-timeseries/`,
       expect.objectContaining({
         method: 'GET',
         query: {
-          cursor: undefined,
           dataset: 'spans',
           sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
-          field: [],
+          groupBy: undefined,
           interval: '30m',
-          orderby: undefined,
           partial: 1,
-          per_page: 50,
           project: [],
           query: 'span.op:http.client',
           referrer: 'api.insights.http.landing-response-code-chart',
           statsPeriod: '10d',
-          topEvents: undefined,
           yAxis: [
             'http_response_rate(3)',
             'http_response_rate(4)',
             'http_response_rate(5)',
           ],
-          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -400,11 +367,6 @@ describe('HTTPLandingPage', () => {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Backend');
-    const tab = screen.getByRole('tab', {name: 'Outbound API Requests'});
-    expect(tab).toBeInTheDocument();
-    expect(tab).toHaveAttribute('aria-selected', 'true');
-
     expect(screen.getByRole('table', {name: 'Domains'})).toBeInTheDocument();
 
     expect(screen.getByRole('columnheader', {name: 'Domain'})).toBeInTheDocument();
@@ -428,7 +390,10 @@ describe('HTTPLandingPage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getAllByRole('link', {name: 'View Project Details'})[0]
-    ).toHaveAttribute('href', '/organizations/org-slug/projects/backend/?project=1');
+    ).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/insights/projects/backend/?project=1'
+    );
     expect(screen.getByRole('cell', {name: '40.8K/s'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '0.04%'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '39.32%'})).toBeInTheDocument();

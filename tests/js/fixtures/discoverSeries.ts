@@ -1,6 +1,8 @@
-import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/types';
 
-export function TimeSeriesFixture(params: Partial<DiscoverSeries> = {}): DiscoverSeries {
+export function DiscoverSeriesFixture(
+  params: Partial<DiscoverSeries> = {}
+): DiscoverSeries {
   return {
     seriesName: 'avg(span.duration)',
     data: [

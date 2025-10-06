@@ -69,15 +69,6 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
     return this.id || this.value.level || 'unknown trace error';
   }
 
-  matchByPath(path: TraceTree.NodePath): boolean {
-    const [type, id] = path.split('-');
-    if (type !== 'error' || !id) {
-      return false;
-    }
-
-    return this.matchById(id);
-  }
-
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {

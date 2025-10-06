@@ -1,9 +1,9 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -89,7 +89,7 @@ export function StreamlinedExternalIssueList({
   }
 
   return (
-    <Fragment>
+    <Flex direction="row" gap="md">
       {linkedIssues.length > 0 && (
         <IssueActionWrapper>
           {linkedIssues.map(linkedIssue => (
@@ -200,11 +200,11 @@ export function StreamlinedExternalIssueList({
           })}
         </IssueActionWrapper>
       )}
-    </Fragment>
+    </Flex>
   );
 }
 
-const IssueActionWrapper = styled('div')`
+const IssueActionWrapper = styled('span')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(1)};

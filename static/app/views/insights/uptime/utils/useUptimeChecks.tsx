@@ -35,8 +35,6 @@ function makeUptimeChecksQueryKey({
         start,
         end,
         statsPeriod,
-        // TODO(epurkhiser): Can be removed once these APIs only take detectors
-        useDetectorId: 1,
       },
     },
   ];
@@ -48,7 +46,7 @@ export function useUptimeChecks(
 ) {
   // TODO(Leander): Add querying and sorting, when the endpoint supports it
   return useApiQuery<UptimeCheck[]>(makeUptimeChecksQueryKey(params), {
-    staleTime: 10000,
+    staleTime: 10_000,
     retry: true,
     ...options,
   });

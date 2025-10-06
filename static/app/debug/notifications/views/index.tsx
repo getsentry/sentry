@@ -3,29 +3,28 @@ import styled from '@emotion/styled';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex, Grid} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
+import {DebugNotificationsExample} from 'sentry/debug/notifications/components/debugNotificationsExample';
 import {DebugNotificationsHeader} from 'sentry/debug/notifications/components/debugNotificationsHeader';
 import {DebugNotificationsLanding} from 'sentry/debug/notifications/components/debugNotificationsLanding';
 import {DebugNotificationsSidebar} from 'sentry/debug/notifications/components/debugNotificationsSidebar';
-import {notificationCategories} from 'sentry/debug/notifications/data';
+import {useRegistry} from 'sentry/debug/notifications/hooks/useRegistry';
+import {useRouteSource} from 'sentry/debug/notifications/hooks/useRouteSource';
 import {DiscordPreview} from 'sentry/debug/notifications/previews/discordPreview';
 import {EmailPreview} from 'sentry/debug/notifications/previews/emailPreview';
 import {SlackPreview} from 'sentry/debug/notifications/previews/slackPreview';
 import {TeamsPreview} from 'sentry/debug/notifications/previews/teamsPreview';
-import {useLocation} from 'sentry/utils/useLocation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
 const HEADER_HEIGHT = 52;
 
 export default function DebugNotificationsIndex() {
-  const location = useLocation();
-  const notificationSources = notificationCategories.flatMap(
-    category => category.sources
+  const {routeSource} = useRouteSource();
+  const {data: registry = {}} = useRegistry();
+  const registrations = Object.values(registry).flat();
+  const selectedRegistration = registrations.find(
+    registration => routeSource === registration.source
   );
-  const selectedSource = notificationSources.find(
-    source => location.query.source === source.value
-  );
-
   return (
     <RouteAnalyticsContextProvider>
       <OrganizationContainer>
@@ -47,18 +46,30 @@ export default function DebugNotificationsIndex() {
             <DebugNotificationsSidebar />
           </SidebarContainer>
           <Flex direction="column" area="body">
-            {selectedSource ? (
-              <Flex direction="column" gap="xl" padding="2xl">
+            {selectedRegistration ? (
+              <Flex direction="column" gap="xl" padding="2xl" maxWidth="2000px">
                 <Heading as="h2" variant="success">
                   <Flex gap="md" align="center">
-                    {selectedSource.label}
-                    <Tag type="success">{selectedSource.category.label}</Tag>
+                    {selectedRegistration.source}
+                    <Tag type="success">{selectedRegistration.category}</Tag>
                   </Flex>
                 </Heading>
-                <EmailPreview />
-                <SlackPreview />
-                <DiscordPreview />
-                <TeamsPreview />
+                <Grid columns="1fr 300px" gap="2xl" position="relative">
+                  <Flex
+                    direction="column"
+                    position="relative"
+                    minWidth="0"
+                    justify="start"
+                  >
+                    <EmailPreview registration={selectedRegistration} />
+                    <SlackPreview registration={selectedRegistration} />
+                    <DiscordPreview />
+                    <TeamsPreview registration={selectedRegistration} />
+                  </Flex>
+                  <ExampleContainer>
+                    <DebugNotificationsExample registration={selectedRegistration} />
+                  </ExampleContainer>
+                </Grid>
               </Flex>
             ) : (
               <DebugNotificationsLanding />
@@ -91,4 +102,11 @@ const SidebarContainer = styled('nav')`
   scrollbar-color: ${p => p.theme.tokens.border.primary} ${p => p.theme.background};
   display: flex;
   flex-direction: column;
+`;
+
+const ExampleContainer = styled('div')`
+  position: sticky;
+  top: ${p => `calc(${HEADER_HEIGHT}px + ${p.theme.space.xl})`};
+  max-width: 375px;
+  align-self: flex-start;
 `;

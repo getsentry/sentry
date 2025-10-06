@@ -87,7 +87,9 @@ class Commit(Model):
 
 class CommitFileChangeManager(BaseManager["CommitFileChange"]):
     def get_count_for_commits(self, commits: Iterable[Any]) -> int:
-        return int(self.filter(commit__in=commits).values("filename").distinct().count())
+        return int(
+            self.filter(commit_id__in=[c.id for c in commits]).values("filename").distinct().count()
+        )
 
 
 @region_silo_model

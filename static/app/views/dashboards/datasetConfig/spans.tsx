@@ -1,4 +1,5 @@
 import pickBy from 'lodash/pickBy';
+import trimStart from 'lodash/trimStart';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
@@ -17,7 +18,13 @@ import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQue
 import type {EventData} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
+import {
+  getEquationAliasIndex,
+  isEquation,
+  isEquationAlias,
+  type Aggregation,
+  type QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import {
   doDiscoverQuery,
   type DiscoverQueryExtras,
@@ -34,9 +41,12 @@ import {
 } from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   handleOrderByReset,
   type DatasetConfig,
+  type SearchBarData,
+  type SearchBarDataProviderProps,
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {
   getTableSortOptions,
@@ -52,7 +62,10 @@ import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/fil
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+import {useSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
@@ -123,14 +136,47 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
   {} as Record<AggregationKey, Aggregation>
 );
 
+function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
+  const {pageFilters, widgetQuery} = props;
+  const organization = useOrganization();
+
+  const traceItemAttributeConfig = {
+    traceItemType: TraceItemDataset.SPANS,
+    enabled: organization.features.includes('visibility-explore-view'),
+  };
+
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+
+  const {filterKeys, filterKeySections, getTagValues} = useSearchQueryBuilderProps({
+    itemType: TraceItemDataset.SPANS,
+    numberAttributes,
+    stringAttributes,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
+    searchSource: 'dashboards',
+    initialQuery: widgetQuery?.conditions ?? '',
+    projects: pageFilters.projects,
+    supportedAggregates: ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  });
+  return {
+    getFilterKeys: () => filterKeys,
+    getFilterKeySections: () => filterKeySections,
+    getTagValues,
+  };
+}
+
 export const SpansConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
-  enableEquations: false,
+  enableEquations: true,
   SearchBar: SpansSearchBar,
+  useSearchBarDataProvider: useSpansSearchBarDataProvider,
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,
   filterSeriesSortOptions,
@@ -287,8 +333,19 @@ function getEventsRequest(
     ...queryExtras,
   };
 
-  if (query.orderby) {
-    params.sort = toArray(query.orderby);
+  let orderBy = query.orderby;
+
+  if (orderBy) {
+    if (isEquationAlias(trimStart(orderBy, '-'))) {
+      const equations = query.fields?.filter(isEquation) ?? [];
+      const equationIndex = getEquationAliasIndex(trimStart(orderBy, '-'));
+
+      const orderby = equations[equationIndex];
+      if (orderby) {
+        orderBy = orderBy.startsWith('-') ? `-${orderby}` : orderby;
+      }
+    }
+    params.sort = toArray(orderBy);
   }
 
   return doDiscoverQuery<EventsTableData>(
@@ -303,7 +360,7 @@ function getEventsRequest(
     {
       retry: {
         statusCodes: [429],
-        tries: 3,
+        tries: 10,
       },
     }
   );
@@ -359,7 +416,10 @@ function getSeriesRequest(
 // Filters the primary options in the sort by selector
 function filterSeriesSortOptions(columns: Set<string>) {
   return (option: FieldValueOption) => {
-    if (option.value.kind === FieldValueKind.FUNCTION) {
+    if (
+      option.value.kind === FieldValueKind.FUNCTION ||
+      option.value.kind === FieldValueKind.EQUATION
+    ) {
       return true;
     }
 

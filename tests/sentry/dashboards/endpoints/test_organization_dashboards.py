@@ -35,7 +35,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         )
         DashboardWidget.objects.create(
             dashboard=self.dashboard_2,
-            order=0,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -1506,7 +1505,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         expected_layout = {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2}
         DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -1531,7 +1529,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def test_widget_preview_still_provides_display_type_if_no_layout(self) -> None:
         DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -1884,14 +1881,12 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     @patch("sentry.quotas.backend.get_dashboard_limit")
     def test_dashboard_limit_prevents_creation(self, mock_get_dashboard_limit) -> None:
         mock_get_dashboard_limit.return_value = 1
-        with self.feature("organizations:dashboards-plan-limits"):
-            response = self.do_request("post", self.url, data={"title": "New Dashboard w/ Limit"})
+        response = self.do_request("post", self.url, data={"title": "New Dashboard w/ Limit"})
         assert response.status_code == 400
         assert response.data == "You may not exceed 1 dashboards on your current plan."
 
         mock_get_dashboard_limit.return_value = 5
-        with self.feature("organizations:dashboards-plan-limits"):
-            response = self.do_request("post", self.url, data={"title": "New Dashboard w/ Limit"})
+        response = self.do_request("post", self.url, data={"title": "New Dashboard w/ Limit"})
         assert response.status_code == 201
 
     def test_prebuilt_dashboard_is_shown_when_favorites_pinned_and_no_dashboards(self) -> None:

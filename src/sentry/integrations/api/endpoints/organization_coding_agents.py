@@ -16,7 +16,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationEventPermission
 from sentry.constants import ObjectStatus
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
@@ -33,6 +33,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
 
@@ -73,13 +74,17 @@ def sanitize_branch_name(branch_name: str) -> str:
     return f"{sanitized}-{random_suffix}" if sanitized else f"branch-{random_suffix}"
 
 
-def store_coding_agent_state_to_seer(run_id: int, coding_agent_state: CodingAgentState) -> None:
-    """Store coding agent state via Seer API."""
-    path = "/v1/automation/autofix/coding-agent/state"
+def store_coding_agent_states_to_seer(
+    run_id: int, coding_agent_states: list[CodingAgentState]
+) -> None:
+    """Store multiple coding agent states via Seer batch API."""
+    if not coding_agent_states:
+        return
+    path = "/v1/automation/autofix/coding-agent/state/set"
     body = orjson.dumps(
         {
             "run_id": run_id,
-            "coding_agent_state": coding_agent_state.dict(),
+            "coding_agent_states": [state.dict() for state in coding_agent_states],
         }
     )
 
@@ -95,10 +100,11 @@ def store_coding_agent_state_to_seer(run_id: int, coding_agent_state: CodingAgen
         raise SeerApiError(response.data.decode("utf-8"), response.status)
 
     logger.info(
-        "coding_agent.state_stored_to_seer",
+        "coding_agent.states_stored_to_seer",
         extra={
             "run_id": run_id,
             "status_code": response.status,
+            "num_states": len(coding_agent_states),
         },
     )
 
@@ -120,6 +126,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
+    permission_classes = (OrganizationEventPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
         """Get all available coding agent integrations for the organization."""
@@ -258,6 +265,22 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
 
         return autofix_state
 
+    def _extract_repos_from_root_cause(self, autofix_state: AutofixState) -> list[str]:
+        """Extract repository names from autofix state root cause."""
+        root_cause_step = next(
+            (step for step in autofix_state.steps if step["key"] == "root_cause_analysis"), None
+        )
+
+        if not root_cause_step or not root_cause_step["causes"]:
+            return []
+
+        cause = root_cause_step["causes"][0]
+
+        if "relevant_repos" not in cause:
+            return []
+
+        return list(set(cause["relevant_repos"])) or []
+
     def _extract_repos_from_solution(self, autofix_state: AutofixState) -> list[str]:
         """Extract repository names from autofix state solution."""
         repos = set()
@@ -287,23 +310,29 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         trigger_source: AutofixTriggerSource,
     ) -> list[dict]:
         """Launch coding agents for all repositories in the solution."""
-        solution_repos = set(self._extract_repos_from_solution(autofix_state))
+
+        repos = set(
+            self._extract_repos_from_root_cause(autofix_state)
+            if trigger_source == AutofixTriggerSource.ROOT_CAUSE
+            else self._extract_repos_from_solution(autofix_state)
+        )
+
         autofix_state_repos = {f"{repo.owner}/{repo.name}" for repo in autofix_state.request.repos}
 
-        # Repos that were in the solution but not in the autofix state
-        solution_repos_not_found = solution_repos - autofix_state_repos
+        # Repos that were in the repos but not in the autofix state
+        repos_not_found = repos - autofix_state_repos
         logger.warning(
-            "coding_agent.post.solution_repos_not_found",
+            "coding_agent.post.repos_not_found",
             extra={
                 "organization_id": organization.id,
                 "run_id": run_id,
-                "solution_repos_not_found": solution_repos_not_found,
+                "repos_not_found": repos_not_found,
             },
         )
 
-        validated_solution_repos = solution_repos - solution_repos_not_found
+        validated_repos = repos - repos_not_found
 
-        repos_to_launch = validated_solution_repos or autofix_state_repos
+        repos_to_launch = validated_repos or autofix_state_repos
 
         if not repos_to_launch:
             raise NotFound("No repos to run agents")
@@ -314,6 +343,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             raise APIException("No prompt to send to agents.")
 
         results = []
+        states_to_store: list[CodingAgentState] = []
 
         for repo_name in repos_to_launch:
             repo = next(
@@ -344,7 +374,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
 
             try:
                 coding_agent_state = installation.launch(launch_request)
-            except HTTPError:
+            except (HTTPError, ApiError):
                 logger.exception(
                     "coding_agent.repo_launch_error",
                     extra={
@@ -355,26 +385,25 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
                 )
                 continue
 
-            try:
-                store_coding_agent_state_to_seer(
-                    run_id=run_id,
-                    coding_agent_state=coding_agent_state,
-                )
-            except SeerApiError:
-                logger.exception(
-                    "coding_agent.seer_storage_error",
-                    extra={
-                        "organization_id": organization.id,
-                        "run_id": run_id,
-                        "repo_name": repo_name,
-                    },
-                )
+            states_to_store.append(coding_agent_state)
 
             results.append(
                 {
                     "repo_name": repo_name,
                     "coding_agent_state": coding_agent_state,
                 }
+            )
+
+        try:
+            store_coding_agent_states_to_seer(run_id=run_id, coding_agent_states=states_to_store)
+        except SeerApiError:
+            logger.exception(
+                "coding_agent.seer_storage_error",
+                extra={
+                    "organization_id": organization.id,
+                    "run_id": run_id,
+                    "repos": list(repos_to_launch),
+                },
             )
 
         return results

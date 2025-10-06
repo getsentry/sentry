@@ -12,7 +12,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
@@ -43,7 +42,6 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
-import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
 const formatter = new SQLishFormatter();
@@ -114,27 +112,17 @@ export function SpanDescription({
         project_id={node.event?.projectID}
         organization={organization}
       />
-      <Link
-        to={
-          hasExploreEnabled
-            ? getSearchInExploreTarget(
-                organization,
-                location,
-                node.event?.projectID,
-                SpanFields.SPAN_DESCRIPTION,
-                span.description!,
-                TraceDrawerActionKind.INCLUDE
-              )
-            : spanDetailsRouteWithQuery({
-                organization,
-                transaction: node.event?.title ?? '',
-                query: location.query,
-                spanSlug: {op: span.op!, group: groupHash},
-                projectID: node.event?.projectID,
-              })
-        }
-        onClick={() => {
-          if (hasExploreEnabled) {
+      {hasExploreEnabled && (
+        <StyledLink
+          to={getSearchInExploreTarget(
+            organization,
+            location,
+            node.event?.projectID,
+            SpanFields.SPAN_DESCRIPTION,
+            span.description!,
+            TraceDrawerActionKind.INCLUDE
+          )}
+          onClick={() => {
             traceAnalytics.trackExploreSearch(
               organization,
               SpanFields.SPAN_DESCRIPTION,
@@ -142,25 +130,12 @@ export function SpanDescription({
               TraceDrawerActionKind.INCLUDE,
               'drawer'
             );
-          } else if (hasNewSpansUIFlag) {
-            trackAnalytics('trace.trace_layout.view_span_summary', {
-              organization,
-              module: resolvedModule,
-            });
-          } else {
-            trackAnalytics('trace.trace_layout.view_similar_spans', {
-              organization,
-              module: resolvedModule,
-              source: 'span_description',
-            });
-          }
-        }}
-      >
-        <StyledIconGraph type="scatter" size="xs" />
-        {hasNewSpansUIFlag || hasExploreEnabled
-          ? t('More Samples')
-          : t('View Similar Spans')}
-      </Link>
+          }}
+        >
+          <IconGraph type="scatter" size="xs" />
+          {t('More Samples')}
+        </StyledLink>
+      )}
     </BodyContentWrapper>
   ) : null;
 
@@ -356,10 +331,6 @@ const CodeSnippetWrapper = styled('div')`
   flex: 1;
 `;
 
-const StyledIconGraph = styled(IconGraph)`
-  margin-right: ${space(0.5)};
-`;
-
 const BodyContentWrapper = styled('div')<{padding: string}>`
   display: flex;
   gap: ${space(1)};
@@ -388,4 +359,10 @@ const DescriptionWrapper = styled('div')`
 const StyledDescriptionWrapper = styled(DescriptionWrapper)`
   padding: ${space(1)};
   justify-content: center;
+`;
+
+const StyledLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;

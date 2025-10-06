@@ -4,7 +4,6 @@ from pytest import raises
 
 from sentry.testutils.cases import TestCase
 from sentry.uptime.endpoints.utils import authorize_and_map_uptime_detector_subscription_ids
-from sentry.uptime.models import get_detector
 
 
 class AuthorizeAndMapUptimeDetectorSubscriptionIdsTest(TestCase):
@@ -14,10 +13,9 @@ class AuthorizeAndMapUptimeDetectorSubscriptionIdsTest(TestCase):
         subscription = self.create_uptime_subscription(
             url="https://example.com", subscription_id=subscription_id
         )
-        self.create_project_uptime_subscription(
+        detector = self.create_uptime_detector(
             uptime_subscription=subscription, project=self.project
         )
-        detector = get_detector(subscription)
 
         hex_formatter = lambda sub_id: uuid.UUID(sub_id).hex
 
@@ -51,10 +49,9 @@ class AuthorizeAndMapUptimeDetectorSubscriptionIdsTest(TestCase):
         subscription = self.create_uptime_subscription(
             url="https://example.com", subscription_id=subscription_id
         )
-        self.create_project_uptime_subscription(
+        other_detector = self.create_uptime_detector(
             uptime_subscription=subscription, project=other_project
         )
-        other_detector = get_detector(subscription)
 
         # Try to authorize with original project, should fail
         with raises(ValueError):
@@ -76,14 +73,12 @@ class AuthorizeAndMapUptimeDetectorSubscriptionIdsTest(TestCase):
             url="https://example2.com", subscription_id=subscription_id2
         )
 
-        self.create_project_uptime_subscription(
+        detector1 = self.create_uptime_detector(
             uptime_subscription=subscription1, project=self.project
         )
-        self.create_project_uptime_subscription(
+        detector2 = self.create_uptime_detector(
             uptime_subscription=subscription2, project=self.project
         )
-        detector1 = get_detector(subscription1)
-        detector2 = get_detector(subscription2)
 
         string_formatter = lambda sub_id: str(uuid.UUID(sub_id))
 
