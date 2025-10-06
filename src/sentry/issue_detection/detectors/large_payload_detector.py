@@ -122,7 +122,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
             self.organization,
         ):
             filtered_paths = self.settings.get("filtered_paths", "").split(",")
-            if any([x.strip() in description for x in filtered_paths]):
+            if any([path.strip() in description for path in filtered_paths if path]):
                 return False
 
         span_data = span.get("data", {})
