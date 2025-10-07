@@ -17,7 +17,6 @@ from sentry.taskworker.state import current_task
 from sentry.taskworker.task import P, R, Task
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils import metrics
-from sentry.utils.env import in_test_environment
 
 ModelT = TypeVar("ModelT", bound=Model)
 
