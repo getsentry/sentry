@@ -21,6 +21,7 @@ class CursorAgentLaunchRequestWebhook(BaseModel):
 class CursorAgentLaunchRequestTarget(BaseModel):
     autoCreatePr: bool
     branchName: str
+    openAsCursorGithubApp: bool | None = None
 
 
 class CursorAgentLaunchRequestBody(BaseModel):
