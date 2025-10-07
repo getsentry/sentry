@@ -6,6 +6,7 @@ import type {Subscription} from 'getsentry/types';
 import {hasNewBillingUI} from 'getsentry/utils/billing';
 import BillingInfoCard from 'getsentry/views/subscriptionPage/headerCards/billingInfoCard';
 import LinksCard from 'getsentry/views/subscriptionPage/headerCards/linksCard';
+import NextBillCard from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
 import SeerAutomationAlert from 'getsentry/views/subscriptionPage/seerAutomationAlert';
 
 import {SubscriptionCard} from './subscriptionCard';
@@ -18,6 +19,14 @@ interface HeaderCardsProps {
 
 function getCards(organization: Organization, subscription: Subscription) {
   const cards: React.ReactNode[] = [];
+
+  cards.push(
+    <NextBillCard
+      key="next-bill"
+      subscription={subscription}
+      organization={organization}
+    />
+  );
 
   if (subscription.canSelfServe || subscription.onDemandInvoiced) {
     cards.push(
