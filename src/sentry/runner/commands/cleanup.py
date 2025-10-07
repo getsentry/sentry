@@ -13,12 +13,19 @@ from uuid import uuid4
 import click
 import sentry_sdk
 from django.conf import settings
+from django.db import router as db_router
 from django.db.models import Model, QuerySet
 from django.utils import timezone
+
+from sentry.runner import configure
+
+configure()
+
 
 from sentry.db.deletion import BulkDeleteQuery
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
+from sentry.utils import metrics
 from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
@@ -187,13 +194,6 @@ def _cleanup(
     pool, task_queue = _start_pool(concurrency)
 
     try:
-        from sentry.runner import configure
-
-        configure()
-
-        from django.db import router as db_router
-
-        from sentry.utils import metrics
 
         start_time = None
         if timed:
