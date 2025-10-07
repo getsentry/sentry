@@ -196,4 +196,35 @@ describe('convertBuilderStateToWidget', () => {
 
     expect(widget.queries[0]!.orderby).toBe('');
   });
+
+  it('sets limit to undefined for table widgets', () => {
+    const mockState: WidgetBuilderState = {
+      displayType: DisplayType.TABLE,
+      fields: [
+        {field: 'geo.country', kind: FieldValueKind.FIELD},
+        {function: ['count', '', undefined, undefined], kind: FieldValueKind.FUNCTION},
+      ],
+      dataset: WidgetType.ERRORS,
+      limit: 10,
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.limit).toBeUndefined();
+  });
+
+  it('sets limit to undefined for big number widgets', () => {
+    const mockState: WidgetBuilderState = {
+      displayType: DisplayType.BIG_NUMBER,
+      fields: [
+        {function: ['count', '', undefined, undefined], kind: FieldValueKind.FUNCTION},
+      ],
+      dataset: WidgetType.TRANSACTIONS,
+      limit: 5,
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.limit).toBeUndefined();
+  });
 });
