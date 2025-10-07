@@ -134,7 +134,13 @@ function DataExport({
   };
 
   return (
-    <Feature features="organizations:discover-query">
+    <Feature
+      features={
+        payload.queryType === ExportQueryType.EXPLORE
+          ? []
+          : 'organizations:discover-query'
+      }
+    >
       {inProgress ? (
         <Button
           size={size}
