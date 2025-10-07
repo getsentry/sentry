@@ -88,6 +88,10 @@ T = TypeVar("T")
 
 
 class MetricAlertDetectorConfig(TypedDict):
+    """
+    Schema for Metric Alert Detector.config.
+    """
+
     comparison_delta: int | None
     detection_type: Literal["static", "percent", "dynamic"]
 
@@ -346,7 +350,8 @@ class SubscriptionProcessor:
         comparison_delta = None
 
         if detector:
-            comparison_delta = detector.config.get("comparison_delta")
+            detector_cfg: MetricAlertDetectorConfig = detector.config
+            comparison_delta = detector_cfg.get("comparison_delta")
         else:
             # If we don't have a Detector, we must have an AlertRule.
             assert self._alert_rule is not None
