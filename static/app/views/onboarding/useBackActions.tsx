@@ -76,8 +76,6 @@ export function useBackActions({
         return;
       }
 
-      // No explicit corner animation reset is necessary here
-
       trackAnalytics('onboarding.back_button_clicked', {
         organization,
         from: currentStep.id,
