@@ -8,22 +8,22 @@ from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.files.file import File
 from sentry.preprod.analytics import PreprodArtifactApiDeleteEvent
+from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 
 logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-class ProjectPreprodArtifactDeleteEndpoint(ProjectEndpoint):
+class ProjectPreprodArtifactDeleteEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def delete(self, request: Request, project, artifact_id) -> Response:
+    def delete(self, request: Request, project, head_artifact_id, head_artifact) -> Response:
         """Delete a preprod artifact and all associated data"""
 
         if not features.has(
@@ -31,37 +31,29 @@ class ProjectPreprodArtifactDeleteEndpoint(ProjectEndpoint):
         ):
             return Response({"error": "Feature not enabled"}, status=403)
 
-        try:
-            preprod_artifact = PreprodArtifact.objects.get(
-                project=project,
-                id=artifact_id,
-            )
-        except PreprodArtifact.DoesNotExist:
-            return Response({"error": f"Preprod artifact {artifact_id} not found"}, status=404)
-
         analytics.record(
             PreprodArtifactApiDeleteEvent(
                 organization_id=project.organization_id,
                 project_id=project.id,
                 user_id=request.user.id,
-                artifact_id=str(artifact_id),
+                artifact_id=str(head_artifact_id),
             )
         )
 
         try:
             with transaction.atomic(using=router.db_for_write(PreprodArtifact)):
                 # Delete dependent files, these do not have cascade deletes so have to do manually
-                files_deleted_count = self._delete_artifact_files(preprod_artifact)
+                files_deleted_count = self._delete_artifact_files(head_artifact)
 
                 # Delete the actual artifact record (this will cascade delete size metrics and installable artifacts)
-                deleted_count, deleted_models = preprod_artifact.delete()
+                deleted_count, deleted_models = head_artifact.delete()
                 size_metrics_count = deleted_models.get("preprod.PreprodArtifactSizeMetrics", 0)
                 installable_count = deleted_models.get("preprod.InstallablePreprodArtifact", 0)
 
             logger.info(
                 "preprod_artifact.deleted",
                 extra={
-                    "artifact_id": int(artifact_id),
+                    "artifact_id": int(head_artifact_id),
                     "user_id": request.user.id,
                     "files_count": files_deleted_count,
                     "deleted_count": deleted_count,
@@ -73,8 +65,8 @@ class ProjectPreprodArtifactDeleteEndpoint(ProjectEndpoint):
             return Response(
                 {
                     "success": True,
-                    "message": f"Artifact {artifact_id} deleted successfully.",
-                    "artifact_id": str(artifact_id),
+                    "message": f"Artifact {head_artifact_id} deleted successfully.",
+                    "artifact_id": str(head_artifact_id),
                     "files_deleted_count": files_deleted_count,
                     "size_metrics_deleted": size_metrics_count,
                     "installable_artifacts_deleted": installable_count,
@@ -84,7 +76,7 @@ class ProjectPreprodArtifactDeleteEndpoint(ProjectEndpoint):
         except Exception:
             logger.exception(
                 "preprod_artifact.delete_failed",
-                extra={"artifact_id": int(artifact_id), "user_id": request.user.id},
+                extra={"artifact_id": int(head_artifact_id), "user_id": request.user.id},
             )
             return Response(
                 {

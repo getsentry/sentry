@@ -1,7 +1,6 @@
 import Feature from 'sentry/components/acl/feature';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
@@ -17,15 +16,12 @@ import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {SavedQueryEditMenu} from 'sentry/views/explore/savedQueryEditMenu';
 import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export default function MultiQueryMode() {
   const location = useLocation();
   const organization = useOrganization();
   const title = getTitleFromLocation(location);
-
-  const prefersStackedNav = usePrefersStackedNav();
 
   const id = getIdFromLocation(location);
   const {data: savedQuery} = useGetSavedQuery(id);
@@ -60,14 +56,6 @@ export default function MultiQueryMode() {
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar>
-              {!prefersStackedNav && (
-                <LinkButton
-                  to={`/organizations/${organization.slug}/explore/saved-queries/`}
-                  size="sm"
-                >
-                  {t('Saved Queries')}
-                </LinkButton>
-              )}
               <StarSavedQueryButton />
               {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
               <FeedbackWidgetButton />

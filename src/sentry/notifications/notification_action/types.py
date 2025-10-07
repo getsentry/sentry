@@ -3,10 +3,13 @@ import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Collection, Sequence
 from dataclasses import asdict
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, Protocol, TypedDict
+
+from django.core.exceptions import ValidationError
 
 from sentry import features
 from sentry.constants import ObjectStatus
+from sentry.exceptions import InvalidIdentity
 from sentry.incidents.grouptype import MetricIssueEvidenceData
 from sentry.incidents.models.incident import TriggerStatus
 from sentry.incidents.typings.metric_detector import (
@@ -15,6 +18,8 @@ from sentry.incidents.typings.metric_detector import (
     NotificationContext,
     OpenPeriodContext,
 )
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.service import integration_service
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
@@ -23,9 +28,15 @@ from sentry.models.rule import Rule, RuleSource
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.rules.processing.processor import activate_downstream_actions
 from sentry.services.eventstore.models import GroupEvent
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    IntegrationConfigurationError,
+    IntegrationFormError,
+)
+from sentry.taskworker.retry import RetryError
+from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
-from sentry.utils.safe import safe_execute
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector
 from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
@@ -36,6 +47,8 @@ from sentry.workflow_engine.typings.notification_action import (
 )
 
 logger = logging.getLogger(__name__)
+
+FutureCallback = Callable[[GroupEvent, Sequence[RuleFuture]], Any]
 
 
 class RuleData(TypedDict):
@@ -57,6 +70,48 @@ class LegacyRegistryHandler(ABC):
         Implement this method to handle the specific notification logic for your handler.
         """
         raise NotImplementedError
+
+
+EXCEPTION_IGNORE_LIST = (IntegrationFormError, IntegrationConfigurationError, InvalidIdentity)
+RETRYABLE_EXCEPTIONS = (ApiError,)
+
+
+def invoke_future_with_error_handling(
+    event_data: WorkflowEventData,
+    callback: FutureCallback,
+    future: Sequence[RuleFuture],
+) -> None:
+    # WorkflowEventData should only ever be a GroupEvent in this context, so we
+    # narrow the type here to keep mypy happy.
+    assert isinstance(
+        event_data.event, GroupEvent
+    ), f"Expected a GroupEvent, received: {type(event_data.event).__name__}"
+    try:
+        callback(event_data.event, future)
+    except EXCEPTION_IGNORE_LIST:
+        # no-op on any exceptions in the ignore list. We likely have
+        # reporting for them in the integration code already.
+        pass
+    except ProcessingDeadlineExceeded:
+        # We need to reraise ProcessingDeadlineExceeded for workflow engine to
+        # monitor and potentially retry this action.
+        raise
+    except RETRYABLE_EXCEPTIONS as e:
+        raise RetryError from e
+    except Exception as e:
+        # This is just a redefinition of the safe_execute util function, as we
+        # still want to report any unhandled exceptions.
+        if hasattr(callback, "im_class"):
+            cls = callback.im_class
+        else:
+            cls = callback.__class__
+
+        func_name = getattr(callback, "__name__", str(callback))
+        cls_name = cls.__name__
+        local_logger = logging.getLogger(f"sentry.safe_action.{cls_name.lower()}")
+
+        local_logger.exception("%s.process_error", func_name, extra={"exception": e})
+        return None
 
 
 class BaseIssueAlertHandler(ABC):
@@ -152,6 +207,7 @@ class BaseIssueAlertHandler(ABC):
             # If test event, just set the legacy rule id to -1
             if workflow_id == TEST_NOTIFICATION_ID:
                 data["actions"][0]["legacy_rule_id"] = TEST_NOTIFICATION_ID
+
             else:
                 try:
                     alert_rule_workflow = AlertRuleWorkflow.objects.get(
@@ -182,6 +238,10 @@ class BaseIssueAlertHandler(ABC):
         # In the new UI, we need this for to build the link to the new rule in the notification action
         else:
             data["actions"][0]["workflow_id"] = workflow_id
+
+        if workflow_id == TEST_NOTIFICATION_ID and action.type == Action.Type.EMAIL:
+            # mail action needs to have skipDigests set to True
+            data["actions"][0]["skipDigests"] = True
 
         rule = Rule(
             id=action.id,
@@ -216,9 +276,7 @@ class BaseIssueAlertHandler(ABC):
     @staticmethod
     def execute_futures(
         event_data: WorkflowEventData,
-        futures: Collection[
-            tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
-        ],
+        futures: Collection[tuple[FutureCallback, list[RuleFuture]]],
     ) -> None:
         """
         This method will execute the futures.
@@ -230,7 +288,7 @@ class BaseIssueAlertHandler(ABC):
             )
 
         for callback, future in futures:
-            safe_execute(callback, event_data.event, future)
+            invoke_future_with_error_handling(event_data, callback, future)
 
     @staticmethod
     def send_test_notification(
@@ -478,3 +536,70 @@ class BaseMetricAlertHandler(ABC):
             organization=detector.project.organization,
             project=detector.project,
         )
+
+
+class NotificationActionForm(Protocol):
+    """Protocol for notification action forms since they have various inheritance layers and but all have the same __init__ signature"""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+
+    def is_valid(self) -> bool: ...
+
+    @property
+    def cleaned_data(self) -> dict[str, Any]: ...
+
+    @property
+    def errors(self) -> dict[str, Any]: ...
+
+
+def _get_integrations(organization: Organization, provider: str) -> list[RpcIntegration]:
+    return integration_service.get_integrations(
+        organization_id=organization.id,
+        status=ObjectStatus.ACTIVE,
+        org_integration_status=ObjectStatus.ACTIVE,
+        providers=[provider],
+    )
+
+
+class BaseActionValidatorProtocol(Protocol):
+    def __init__(self, validated_data: dict[str, Any], organization: Organization) -> None: ...
+
+    def clean_data(self) -> dict[str, Any]: ...
+
+
+class BaseActionValidatorHandler(ABC):
+    provider: str
+    notify_action_form: type[NotificationActionForm] | None
+
+    def __init__(self, validated_data: dict[str, Any], organization: Organization) -> None:
+        self.validated_data = validated_data
+        self.organization = organization
+
+    def generate_action_form_payload(self) -> dict[str, Any]:
+        return {
+            "data": self.generate_action_form_data(),
+            "integrations": _get_integrations(self.organization, self.provider),
+        }
+
+    def clean_data(self) -> dict[str, Any]:
+        if self.notify_action_form is None:
+            return self.validated_data
+
+        notify_action_form = self.notify_action_form(
+            **self.generate_action_form_payload(),
+        )
+
+        if notify_action_form.is_valid():
+            return self.update_action_data(notify_action_form.cleaned_data)
+
+        raise ValidationError(notify_action_form.errors)
+
+    @abstractmethod
+    def generate_action_form_data(self) -> dict[str, Any]:
+        # translate validated data from BaseActionValidator to notify action form data
+        pass
+
+    @abstractmethod
+    def update_action_data(self, cleaned_data: dict[str, Any]) -> dict[str, Any]:
+        # update BaseActionValidator data with cleaned notify action form data
+        pass

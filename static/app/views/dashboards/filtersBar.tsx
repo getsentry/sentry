@@ -20,6 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
@@ -119,6 +120,10 @@ export default function FiltersBar({
               isDisabled={isEditingDashboard}
             />
           </ReleasesProvider>
+
+          {organization.features.includes('dashboards-global-filters') && (
+            <AddFilter onAddFilter={() => {}} />
+          )}
         </FilterButtons>
         {hasUnsavedChanges && !isEditingDashboard && !isPreview && (
           <FilterButtons gap="lg">
@@ -136,7 +141,7 @@ export default function FiltersBar({
             >
               {t('Save')}
             </Button>
-            <Button data-test-id={'filter-bar-cancel'} onClick={onCancel}>
+            <Button data-test-id="filter-bar-cancel" onClick={onCancel}>
               {t('Cancel')}
             </Button>
           </FilterButtons>

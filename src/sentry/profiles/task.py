@@ -53,7 +53,6 @@ from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import ingest_profiling_tasks
 from sentry.taskworker.retry import Retry
@@ -117,24 +116,11 @@ def encode_payload(message: dict[str, Any]) -> str:
 
 @instrumented_task(
     name="sentry.profiles.task.process_profile",
-    retry_backoff=True,
-    retry_backoff_max=20,
-    retry_jitter=True,
-    default_retry_delay=5,  # retries after 5s
-    max_retries=2,
-    acks_late=True,
-    task_time_limit=60,
-    task_acks_on_failure_or_timeout=False,
+    namespace=ingest_profiling_tasks,
+    processing_deadline_duration=60,
+    retry=Retry(times=2, delay=5),
+    compression_type=CompressionType.ZSTD,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=ingest_profiling_tasks,
-        processing_deadline_duration=60,
-        retry=Retry(
-            times=2,
-            delay=5,
-        ),
-        compression_type=CompressionType.ZSTD,
-    ),
 )
 def process_profile_task(
     profile: Profile | None = None,
@@ -1433,16 +1419,16 @@ def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
             # should we loosen the constraints on the number and type of functions to be extracted.
             if options.get("profiling.track_functions_metrics_write_rate.eap.enabled"):
                 eap_functions = prof.extract_functions_metrics(
-                    min_depth=1, filter_system_frames=True, filter_non_leaf_functions=False
+                    min_depth=1, filter_system_frames=False, filter_non_leaf_functions=False
                 )
                 if eap_functions is not None and len(eap_functions) > 0:
                     tot = 0
                     for f in eap_functions:
                         tot += len(f.get_self_times_ns())
                     metrics.incr(
-                        "process_profile.eap_functions_metrics.count",
+                        "process_profile.eap_functions_metrics.all_frames.count",
                         tot,
-                        tags={"type": "profile"},
+                        tags={"type": "profile", "platform": profile["platform"]},
                         sample_rate=1.0,
                     )
             return True
@@ -1497,16 +1483,16 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
             # should we loosen the constraints on the number and type of functions to be extracted.
             if options.get("profiling.track_functions_metrics_write_rate.eap.enabled"):
                 eap_functions = chunk.extract_functions_metrics(
-                    min_depth=1, filter_system_frames=True, filter_non_leaf_functions=False
+                    min_depth=1, filter_system_frames=False, filter_non_leaf_functions=False
                 )
                 if eap_functions is not None and len(eap_functions) > 0:
                     tot = 0
                     for f in eap_functions:
                         tot += len(f.get_self_times_ns())
                     metrics.incr(
-                        "process_profile.eap_functions_metrics.count",
+                        "process_profile.eap_functions_metrics.all_frames.count",
                         tot,
-                        tags={"type": "chunk"},
+                        tags={"type": "chunk", "platform": profile["platform"]},
                         sample_rate=1.0,
                     )
             return True

@@ -1,3 +1,4 @@
+import type {Actor} from 'sentry/types/core';
 import type {SimpleGroup} from 'sentry/types/group';
 import type {
   DataConditionGroupLogicType,
@@ -9,6 +10,7 @@ import type {
   Dataset,
   EventTypes,
 } from 'sentry/views/alerts/rules/metric/types';
+import type {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
 import type {Monitor, MonitorConfig} from 'sentry/views/insights/crons/types';
 
 /**
@@ -112,7 +114,10 @@ export type MetricDetectorConfig =
   | MetricDetectorConfigDynamic;
 
 interface UptimeDetectorConfig {
-  environment: string;
+  downtimeThreshold: number;
+  environment: string | null;
+  mode: UptimeMonitorMode;
+  recoveryThreshold: number;
 }
 
 type BaseDetector = Readonly<{
@@ -124,7 +129,7 @@ type BaseDetector = Readonly<{
   lastTriggered: string;
   latestGroup: SimpleGroup | null;
   name: string;
-  owner: string | null;
+  owner: Actor | null;
   projectId: string;
   type: DetectorType;
   workflowIds: string[];
@@ -181,7 +186,7 @@ interface UpdateUptimeDataSourcePayload {
 
 export interface BaseDetectorUpdatePayload {
   name: string;
-  owner: Detector['owner'];
+  owner: string | null;
   projectId: Detector['projectId'];
   type: Detector['type'];
   workflowIds: string[];
@@ -189,6 +194,7 @@ export interface BaseDetectorUpdatePayload {
 }
 
 export interface UptimeDetectorUpdatePayload extends BaseDetectorUpdatePayload {
+  config: UptimeDetectorConfig;
   dataSource: UpdateUptimeDataSourcePayload;
   type: 'uptime_domain_failure';
 }

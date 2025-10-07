@@ -38,7 +38,7 @@ function SelectedMonitors({
   } = useDetectorsQuery({ids: connectedIds}, {enabled: connectedIds.length > 0});
 
   return (
-    <Section title={t('Connected Monitors')}>
+    <StyledSection title={t('Connected Monitors')}>
       <ConnectedMonitorsList
         detectors={monitors}
         connectedDetectorIds={connectedIds}
@@ -48,7 +48,7 @@ function SelectedMonitors({
         numSkeletons={connectedIds.length}
         {...props}
       />
-    </Section>
+    </StyledSection>
   );
 }
 
@@ -242,10 +242,14 @@ const DrawerContent = styled('div')`
 
 const ButtonWrapper = styled(Flex)`
   border-top: 1px solid ${p => p.theme.border};
-  padding: ${p => p.theme.space.xl};
-  margin: -${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.lg};
+  margin: -${p => p.theme.space.lg};
 `;
 
 const PaginationWithoutMargin = styled(Pagination)`
   margin: ${p => p.theme.space['0']};
+`;
+
+const StyledSection = styled(Section)`
+  margin-bottom: ${p => p.theme.space.lg};
 `;

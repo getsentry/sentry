@@ -7,12 +7,13 @@ import type {KeyboardEvent} from '@react-types/shared';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
 import {getItemsWithKeys} from 'sentry/components/core/compactSelect/utils';
+import {DeviceName} from 'sentry/components/deviceName';
 import {
   ItemType,
   type SearchGroup,
   type SearchItem,
-} from 'sentry/components/deprecatedSmartSearchBar/types';
-import {DeviceName} from 'sentry/components/deviceName';
+} from 'sentry/components/searchBar/types';
+import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {
@@ -299,6 +300,7 @@ function useSelectionIndex({
 
   useEffect(() => {
     if (canSelectMultipleValues) {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setSelectionIndex(inputValue.length);
     }
   }, [canSelectMultipleValues, inputValue]);
@@ -668,7 +670,7 @@ export function SearchQueryBuilderValueCombobox({
             getFilterValueType(token, fieldDefinition),
             selectedValuesUnescaped
               .filter(v => (v.selected ? v.value !== value : true))
-              .map(v => escapeTagValue(v.value))
+              .map(v => escapeTagValue(v.value, {allowArrayValue: false}))
               .join(',')
           );
 
@@ -846,6 +848,7 @@ export function SearchQueryBuilderValueCombobox({
           // display and ask seer option in this list box.
           const hiddenOptions = new Set(props.hiddenOptions);
           hiddenOptions.delete(ASK_SEER_ITEM_KEY);
+          hiddenOptions.delete(ASK_SEER_CONSENT_ITEM_KEY);
 
           return (
             <ValueListBox
@@ -856,6 +859,7 @@ export function SearchQueryBuilderValueCombobox({
               items={items}
               isLoading={isFetching}
               canUseWildcard={canUseWildcard}
+              token={token}
             />
           );
         };

@@ -1,4 +1,5 @@
 from sentry import analytics
+from sentry.analytics.events.base_notification_sent import BaseNotificationSent
 
 
 @analytics.eventclass("integrations.slack.assign")
@@ -15,40 +16,32 @@ class SlackIntegrationStatus(analytics.Event):
 
 
 @analytics.eventclass("integrations.slack.notification_sent")
-class SlackIntegrationNotificationSent(analytics.Event):
-    organization_id: int
-    project_id: int | None = None
-    category: str
-    actor_id: int | None = None
-    user_id: int | None = None
-    group_id: int | None = None
-    notification_uuid: str
-    alert_id: int | None = None
-    actor_type: str | None = None
+class SlackIntegrationNotificationSent(BaseNotificationSent):
+    pass
 
 
 @analytics.eventclass("integrations.slack.identity_linked")
-class IntegrationIdentityLinked(analytics.Event):
+class SlackIntegrationIdentityLinked(analytics.Event):
     provider: str
     actor_id: int
     actor_type: str
 
 
 @analytics.eventclass("integrations.slack.chart_unfurl")
-class IntegrationSlackChartUnfurl(analytics.Event):
+class SlackIntegrationChartUnfurl(analytics.Event):
     user_id: int | None = None
     organization_id: int
     unfurls_count: int
 
 
 @analytics.eventclass("integrations.slack.chart_unfurl_action")
-class IntegrationSlackLinkIdentity(analytics.Event):
+class SlackIntegrationChartUnfurlAction(analytics.Event):
     organization_id: int
     action: str
 
 
 @analytics.eventclass("integrations.slack.approve_member_invitation")
-class IntegrationSlackApproveMemberInvitation(analytics.Event):
+class SlackIntegrationApproveMemberInvitation(analytics.Event):
     organization_id: int
     actor_id: int
     invitation_type: str
@@ -56,14 +49,14 @@ class IntegrationSlackApproveMemberInvitation(analytics.Event):
 
 
 @analytics.eventclass("integrations.slack.reject_member_invitation")
-class IntegrationSlackRejectMemberInvitation(IntegrationSlackApproveMemberInvitation):
+class SlackIntegrationRejectMemberInvitation(SlackIntegrationApproveMemberInvitation):
     pass
 
 
 analytics.register(SlackIntegrationAssign)
 analytics.register(SlackIntegrationStatus)
-analytics.register(IntegrationIdentityLinked)
-analytics.register(IntegrationSlackChartUnfurl)
-analytics.register(IntegrationSlackLinkIdentity)
-analytics.register(IntegrationSlackApproveMemberInvitation)
-analytics.register(IntegrationSlackRejectMemberInvitation)
+analytics.register(SlackIntegrationIdentityLinked)
+analytics.register(SlackIntegrationChartUnfurl)
+analytics.register(SlackIntegrationChartUnfurlAction)
+analytics.register(SlackIntegrationApproveMemberInvitation)
+analytics.register(SlackIntegrationRejectMemberInvitation)

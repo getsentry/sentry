@@ -68,7 +68,7 @@ class Row(TypedDict):
 class SeriesMeta(TypedDict):
     order: NotRequired[int]
     isOther: NotRequired[str]
-    valueUnit: NotRequired[str]
+    valueUnit: str | None
     dataScanned: NotRequired[Literal["partial", "full"]]
     valueType: str
     interval: float
@@ -237,6 +237,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
 
         if top_events > 0:
             raw_groupby = self.get_field_list(organization, request, param_name="groupBy")
+            if len(raw_groupby) == 0:
+                raise ParseError("groupBy is a required parameter when doing topEvents")
             if "timestamp" in raw_groupby:
                 raise ParseError("Cannot group by timestamp")
             if dataset in RPC_DATASETS:
@@ -247,6 +249,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     raw_groupby=raw_groupby,
                     orderby=self.get_orderby(request),
                     limit=top_events,
+                    include_other=include_other,
                     referrer=referrer,
                     config=SearchResolverConfig(
                         auto_fields=False,
@@ -349,10 +352,9 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         unit, field_type = self.get_unit_and_type(axis, result.data["meta"]["fields"][axis])
         series_meta = SeriesMeta(
             valueType=field_type,
+            valueUnit=unit,
             interval=rollup * 1000,
         )
-        if unit is not None:
-            series_meta["valueUnit"] = unit
         if "is_other" in result.data:
             series_meta["isOther"] = result.data["is_other"]
         if "order" in result.data:

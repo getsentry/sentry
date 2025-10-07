@@ -58,9 +58,11 @@ export const enum EventGroupVariantType {
 }
 
 interface BaseVariant {
+  contributes: boolean;
   description: string | null;
   hash: string | null;
   hashMismatch: boolean;
+  hint: string | null;
   key: string;
   type: string;
 }
@@ -531,8 +533,6 @@ export enum UnityContextKey {
   TARGET_FRAME_RATE = 'target_frame_rate',
 }
 
-// Unity Context
-// TODO(Priscila): Add this context to the docs
 export interface UnityContext {
   [UnityContextKey.COPY_TEXTURE_SUPPORT]: string;
   [UnityContextKey.EDITOR_VERSION]: string;
@@ -561,8 +561,6 @@ export enum MemoryInfoContextKey {
   PAUSE_DURATIONS = 'pause_durations',
 }
 
-// MemoryInfo Context
-// TODO(Priscila): Add this context to the docs
 export interface MemoryInfoContext {
   type: 'Memory Info' | 'memory_info';
   [MemoryInfoContextKey.FINALIZATION_PENDING_COUNT]: number;
@@ -592,8 +590,6 @@ export enum ThreadPoolInfoContextKey {
   AVAILABLE_COMPLETION_PORT_THREADS = 'available_completion_port_threads',
 }
 
-// ThreadPoolInfo Context
-// TODO(Priscila): Add this context to the docs
 export interface ThreadPoolInfoContext {
   type: 'ThreadPool Info' | 'threadpool_info';
   [ThreadPoolInfoContextKey.MIN_WORKER_THREADS]: number;

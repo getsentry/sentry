@@ -12,7 +12,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  getCrashReportJavaScriptInstallStep,
+  getCrashReportJavaScriptInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
   getFeedbackConfigureDescription,
@@ -28,6 +28,7 @@ import {
   getJavascriptFullStackOnboarding,
   getJavascriptLogsFullStackOnboarding,
 } from 'sentry/utils/gettingStartedDocs/javascript';
+import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
@@ -376,11 +377,7 @@ const replayOnboarding: OnboardingConfig = {
         'There are several privacy and sampling options available. Learn more about configuring Session Replay by reading the [link:configuration docs].',
         {
           link: (
-            <ExternalLink
-              href={
-                'https://docs.sentry.io/platforms/javascript/guides/astro/session-replay/'
-              }
-            />
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/astro/session-replay/" />
           ),
         }
       ),
@@ -511,7 +508,7 @@ const feedbackOnboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -546,6 +543,10 @@ const docs: Docs = {
     sdkPackage: '@sentry/astro',
   }),
   profilingOnboarding,
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'astro',
+    configFileName: 'sentry.server.config.js',
+  }),
 };
 
 export default docs;

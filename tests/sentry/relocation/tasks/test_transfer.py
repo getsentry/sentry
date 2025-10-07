@@ -145,7 +145,7 @@ class ProcessRelocationTransferControlTest(TestCase):
         )
         process_relocation_transfer_control(transfer_id=transfer.id)
 
-        assert mock_fulfill.apply_async.called, "celery task should be spawned"
+        assert mock_fulfill.apply_async.called, "task should be spawned"
         # Should be removed on completion.
         assert not ControlRelocationTransfer.objects.filter(id=transfer.id).exists()
 
@@ -173,7 +173,7 @@ class ProcessRelocationTransferControlTest(TestCase):
 
         process_relocation_transfer_control(transfer_id=transfer.id)
 
-        assert mock_uploading_complete.apply_async.called, "celery task should be spawned"
+        assert mock_uploading_complete.apply_async.called, "task should be spawned"
         # Should be removed on completion.
         assert not ControlRelocationTransfer.objects.filter(id=transfer.id).exists()
         # the relocation RPC call should create a file on the region

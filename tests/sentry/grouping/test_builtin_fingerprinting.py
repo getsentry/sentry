@@ -570,10 +570,13 @@ class BuiltInFingerprintingTest(TestCase):
         assert variants["built_in_fingerprint"].as_dict() == {
             "hash": mock.ANY,  # ignore hash as it can change for unrelated reasons
             "type": "built_in_fingerprint",
+            "key": "built_in_fingerprint",
+            "contributes": True,
             "description": "Sentry defined fingerprint",
             "values": ["chunkloaderror"],
             "client_values": ["my-route", "{{ default }}"],
             "matched_rule": 'family:"javascript" type:"ChunkLoadError" -> "chunkloaderror"',
+            "hint": None,
         }
 
     def test_built_in_chunkload_rules_value_only(self) -> None:

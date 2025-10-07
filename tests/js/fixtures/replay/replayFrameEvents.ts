@@ -1,6 +1,8 @@
+import type {ReplayOptionFrameEvent} from '@sentry/react';
+
 import type {
   BreadcrumbFrameEvent,
-  OptionFrameEvent,
+  OptionFrame,
   SpanFrameEvent,
 } from 'sentry/utils/replays/types';
 import {EventType} from 'sentry/utils/replays/types';
@@ -8,7 +10,7 @@ import {EventType} from 'sentry/utils/replays/types';
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 type TestableFrameEvent<
-  FrameEvent extends BreadcrumbFrameEvent | SpanFrameEvent | OptionFrameEvent,
+  FrameEvent extends BreadcrumbFrameEvent | SpanFrameEvent | ReplayOptionFrameEvent,
 > = Overwrite<
   Omit<FrameEvent, 'type'>,
   {
@@ -71,8 +73,8 @@ export function ReplaySpanFrameEventFixture(
 }
 
 export function ReplayOptionFrameEventFixture(
-  fields: TestableFrameEvent<OptionFrameEvent>
-): OptionFrameEvent {
+  fields: TestableFrameEvent<ReplayOptionFrameEvent>
+): ReplayOptionFrameEvent {
   return {
     type: EventType.Custom,
     timestamp: fields.timestamp.getTime(), // frame timestamps are in ms
@@ -83,9 +85,7 @@ export function ReplayOptionFrameEventFixture(
   };
 }
 
-export function ReplayOptionFrameFixture(
-  fields: Partial<OptionFrameEvent['data']['payload']> = {}
-): OptionFrameEvent['data']['payload'] {
+export function ReplayOptionFrameFixture(fields: Partial<OptionFrame> = {}): OptionFrame {
   return {
     blockAllMedia: false,
     errorSampleRate: 0,

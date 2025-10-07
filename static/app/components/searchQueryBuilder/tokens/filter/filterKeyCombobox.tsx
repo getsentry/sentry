@@ -4,6 +4,7 @@ import {Item} from '@react-stately/collections';
 import type {Node} from '@react-types/shared';
 
 import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
+import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
@@ -46,7 +47,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     setDisplayAskSeer,
     currentInputValueRef,
     setAutoSubmitSeer,
-    gaveSeerConsent,
   } = useSearchQueryBuilder();
 
   const currentFilterValueType = getFilterValueType(
@@ -60,14 +60,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       const newFilterValueType = getFilterValueType(token, newFieldDef);
 
       if (keyName === ASK_SEER_ITEM_KEY) {
-        if (!gaveSeerConsent) {
-          trackAnalytics('trace.explorer.ai_query_interface', {
-            organization,
-            action: 'consent_accepted',
-          });
-          seerAcknowledgeMutate();
-          return;
-        }
         trackAnalytics('trace.explorer.ai_query_interface', {
           organization,
           action: 'opened',
@@ -80,6 +72,15 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
           setAutoSubmitSeer(false);
         }
 
+        return;
+      }
+
+      if (keyName === ASK_SEER_CONSENT_ITEM_KEY) {
+        trackAnalytics('trace.explorer.ai_query_interface', {
+          organization,
+          action: 'consent_accepted',
+        });
+        seerAcknowledgeMutate();
         return;
       }
 
@@ -105,7 +106,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       }
 
       dispatch({
-        type: 'REPLACE_TOKENS_WITH_TEXT',
+        type: 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT',
         tokens: [token],
         text: getInitialFilterText(keyName, newFieldDef),
         focusOverride: {
@@ -120,7 +121,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       currentFilterValueType,
       currentInputValueRef,
       dispatch,
-      gaveSeerConsent,
       getFieldDefinition,
       item.key,
       onCommit,

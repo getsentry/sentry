@@ -1,10 +1,10 @@
 ---
-created: '2025-09-11T21:20:22.966498+00:00'
+created: '2025-10-03T22:58:46.996706+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_message_hybrid_fingerprint": {
     "client_values": [
       "{{ default }}",
       "adopt don't shop"
@@ -25,7 +25,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": false,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": []
             },
             {
@@ -70,9 +70,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
+    "contributes": true,
     "description": "modified in-app exception",
     "hash": "5b5ad5a0fbb4deb5e3fc631ce42681ae",
-    "key": "app",
+    "hint": null,
+    "key": "app_exception_message_hybrid_fingerprint",
     "type": "salted_component",
     "values": [
       "{{ default }}",

@@ -64,7 +64,6 @@ class TestHandler(BaseMetricAlertHandler):
         pass
 
 
-@with_feature("organizations:issue-open-periods")
 class MetricAlertHandlerBase(BaseWorkflowTest):
     def create_models(self):
         self.workflow, self.detector, _, _ = self.create_detector_and_workflow()
@@ -277,7 +276,6 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         )
 
 
-@with_feature("organizations:issue-open-periods")
 class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
     def setUp(self) -> None:
         super().setUp()

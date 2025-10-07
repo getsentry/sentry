@@ -85,7 +85,7 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.usage_accountant import usage_accountant_backend
-from sentry.testutils.performance_issues.event_generators import get_event
+from sentry.testutils.issue_detection.event_generators import get_event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
@@ -349,7 +349,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group.title == "CompositeException: Can't call onError."
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
-    @with_feature("organizations:issue-open-periods")
     def test_unresolve_auto_resolved_group(self, send_robust: mock.MagicMock) -> None:
         ts = before_now(minutes=5).isoformat()
 
@@ -405,7 +404,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert open_period.date_ended == resolved_at
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
-    @with_feature("organizations:issue-open-periods")
     def test_unresolves_group(self, send_robust: mock.MagicMock) -> None:
         ts = before_now(minutes=5).isoformat()
 
@@ -460,7 +458,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert open_period.date_ended == resolved_at
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
-    @with_feature("organizations:issue-open-periods")
     def test_unresolves_group_without_open_period(self, send_robust: mock.MagicMock) -> None:
         ts = before_now(minutes=5).isoformat()
 
@@ -1167,7 +1164,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
 
     @mock.patch("sentry.models.Group.is_resolved")
-    @with_feature("organizations:issue-open-periods")
     def test_unresolves_group_with_auto_resolve(self, mock_is_resolved: mock.MagicMock) -> None:
         ts = before_now(minutes=5).isoformat()
         mock_is_resolved.return_value = False
@@ -1554,6 +1550,47 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert None not in event.tags
 
     @mock.patch("sentry.event_manager.eventstream.backend.insert")
+    def test_multi_group_environment(self, eventstream_insert: mock.MagicMock) -> None:
+        def save_event(env: str) -> Event:
+            manager = EventManager(
+                make_event(
+                    **{
+                        "message": "foo",
+                        "event_id": uuid.uuid1().hex,
+                        "environment": env,
+                        "release": "1.0",
+                    }
+                )
+            )
+            manager.normalize()
+            return manager.save(self.project.id)
+
+        event = save_event("dev")
+        assert event.group_id is not None
+
+        instance = GroupEnvironment.objects.get(
+            group_id=event.group_id,
+            environment_id=Environment.objects.get(
+                organization_id=self.project.organization_id, name="dev"
+            ).id,
+        )
+
+        assert instance.first_seen == event.datetime
+
+        event = save_event("prod")
+        assert event.group_id is not None
+
+        new_instance = GroupEnvironment.objects.get(
+            group_id=event.group_id,
+            environment_id=Environment.objects.get(
+                organization_id=self.project.organization_id, name="prod"
+            ).id,
+        )
+
+        assert new_instance.id != instance.id
+        assert new_instance.first_seen == event.datetime
+
+    @mock.patch("sentry.event_manager.eventstream.backend.insert")
     def test_group_environment(self, eventstream_insert: mock.MagicMock) -> None:
         release_version = "1.0"
 
@@ -1582,6 +1619,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             ).id,
         )
 
+        assert instance.first_seen == event.datetime
         assert Release.objects.get(id=instance.first_release_id).version == release_version
 
         group_states1 = {
@@ -1650,7 +1688,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.data["type"] == "default"
         assert group.data["metadata"]["title"] == "foo bar"
 
-    @with_feature("organizations:issue-open-periods")
     def test_error_event_type(self) -> None:
         from sentry.models.groupopenperiod import GroupOpenPeriod
 
@@ -1677,7 +1714,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert open_period[0].date_started == group.first_seen
         assert open_period[0].date_ended is None
 
-    @with_feature("organizations:issue-open-periods")
     def test_error_event_with_minified_stacktrace(self) -> None:
         with patch(
             "sentry.receivers.onboarding.record_event_with_first_minified_stack_trace_for_project",  # autospec=True

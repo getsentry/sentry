@@ -10,7 +10,6 @@ from urllib.parse import quote
 from uuid import uuid4
 
 from django.conf import settings
-from django.db.utils import OperationalError
 from django.utils import timezone
 
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -76,6 +75,18 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.client.get(f"{self.path}?sort_by=date&query=timesSeen:>1t", format="json")
         assert response.status_code == 400
         assert "Error parsing search query" in response.data["detail"]
+
+    def test_invalid_sort_query_parameter(self) -> None:
+        self.create_group(last_seen=before_now(seconds=1))
+        self.login_as(user=self.user)
+
+        response = self.client.get(f"{self.path}?sort=-lastSeen", format="json")
+        assert response.status_code == 400
+        assert "Sort key '-lastSeen' not supported" in response.data["detail"]
+
+        response = self.client.get(f"{self.path}?sort=invalidSort", format="json")
+        assert response.status_code == 400
+        assert "Sort key 'invalidSort' not supported" in response.data["detail"]
 
     def test_simple_pagination(self) -> None:
         event1 = self.store_event(
@@ -1440,10 +1451,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
     def assert_groups_being_deleted(self, groups: Sequence[Group]) -> None:
         for g in groups:
             assert Group.objects.get(id=g.id).status == GroupStatus.PENDING_DELETION
-            assert not GroupHash.objects.filter(group_id=g.id).exists()
-
-        # This is necessary before calling the delete task
-        Group.objects.filter(id__in=[g.id for g in groups]).update(status=GroupStatus.UNRESOLVED)
+            assert GroupHash.objects.filter(group_id=g.id).exists()
 
     def assert_groups_are_gone(self, groups: Sequence[Group]) -> None:
         for g in groups:
@@ -1516,6 +1524,8 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         assert response.status_code == 204
         self.assert_groups_being_deleted(groups)
 
+        # This is necessary to pretend we never called the API endpoint
+        Group.objects.filter(id__in=[g.id for g in groups]).update(status=GroupStatus.UNRESOLVED)
         with self.tasks():
             response = self.client.delete(url, format="json")
 
@@ -1539,30 +1549,6 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             assert response.status_code == 204
             self.assert_groups_are_gone(groups)
 
-    @patch("sentry.api.helpers.group_index.delete.may_schedule_task_to_delete_hashes_from_seer")
-    def test_do_not_mark_as_pending_deletion_if_seer_fails(self, mock_seer_delete: Mock) -> None:
-        """
-        Test that the issue is not marked as pending deletion if the seer call fails.
-        """
-        # When trying to gather the hashes, the query could be cancelled by the user
-        mock_seer_delete.side_effect = OperationalError(
-            "QueryCanceled('canceling statement due to user request\n')"
-        )
-        event = self.store_event(data={}, project_id=self.project.id)
-        group1 = Group.objects.get(id=event.group_id)
-        assert GroupHash.objects.filter(group=group1).exists()
-
-        self.login_as(user=self.user)
-        url = f"{self.path}?id={group1.id}"
-        with self.tasks():
-            response = self.client.delete(url, format="json")
-            assert response.status_code == 500
-            assert response.data["detail"] == "Error deleting groups"
-
-        # The group has not been marked as pending deletion
-        assert Group.objects.get(id=group1.id).status == group1.status
-        assert GroupHash.objects.filter(group=group1).exists()
-
     def test_new_event_for_pending_deletion_group_creates_new_group(self) -> None:
         """Test that after deleting a group, new events with the same fingerprint create a new group."""
         data = {
@@ -1574,20 +1560,20 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         original_group = event1.group
         original_group_id = original_group.id
 
-        # First we call the endpoint which will mark the group as pending deletion & delete the hashes
+        # First we delete the group & hashes
         self.login_as(user=self.user)
+        with self.tasks():
+            response = self.client.delete(f"{self.path}?id={original_group_id}", format="json")
+            assert response.status_code == 204
 
-        # Since we're calling without self.tasks(), the group will not be deleted
-        # We're emulating the delay between the endpoint being called and the task being executed
-        response = self.client.delete(f"{self.path}?id={original_group_id}", format="json")
-        assert response.status_code == 204
-
-        assert Group.objects.get(id=original_group_id).status == GroupStatus.PENDING_DELETION
-        assert not GroupHash.objects.filter(group_id=original_group_id).exists()
+        self.assert_groups_are_gone([original_group])
 
         # Since the group hash has been deleted, a new group will be created
         event2 = self.store_event(data=data, project_id=self.project.id)
+        assert event1.get_primary_hash() == event2.get_primary_hash()
         # Verify a new group is created with a different ID
         new_group = event2.group
         assert new_group.id != original_group_id
-        assert Group.objects.filter(id=new_group.id).exists()
+        groups = Group.objects.all()
+        assert groups.count() == 1
+        assert groups.first() == new_group

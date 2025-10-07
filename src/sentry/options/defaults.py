@@ -36,11 +36,6 @@ register(
 register("system.databases", type=Dict, flags=FLAG_NOSTORE)
 # register('system.debug', default=False, flags=FLAG_NOSTORE)
 register(
-    "system.rate-limit",
-    default=0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "system.event-retention-days",
     default=0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
@@ -342,7 +337,7 @@ register(
 
 # Deletions
 register(
-    "deletions.group-hashes-fetch-batch-size",
+    "deletions.group-hashes-batch-size",
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -593,9 +588,18 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rollout rate for the Spans V2 format in Kafka.
+register(
+    "relay.kafka.span-v2.sample-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
+
 
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -603,6 +607,10 @@ register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # signing-secret is preferred, but need to keep verification-token for apps that use it
 register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register(
+    "slack.default-workspace", default="example-workspace-name", flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+register("slack.default-channel", default="general", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Issue Summary on Alerts (timeout in seconds)
 register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1876,6 +1884,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # 1MB
 register(
+    "performance.issues.large_http_payload.filtered_paths",
+    default="",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.issues.db_on_main_thread.total_spans_duration_threshold",
     default=16,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2200,11 +2213,6 @@ register("backpressure.status_ttl", default=60, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # The high-watermark levels per-service which will mark a service as unhealthy.
 # This should mirror the `SENTRY_PROCESSING_SERVICES` setting.
 register(
-    "backpressure.high_watermarks.celery",
-    default=0.5,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "backpressure.high_watermarks.attachments-store",
     default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2418,33 +2426,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "delightful_metrics.minimetrics_sample_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# IDs of orgs that will stop ingesting custom metrics.
-register(
-    "custom-metrics-ingestion-disabled-orgs",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# IDs of projects that will stop ingesting custom metrics.
-register(
-    "custom-metrics-ingestion-disabled-projects",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# IDs of orgs that will be disabled from querying metrics via `/metrics/query` endpoint.
-register(
-    "custom-metrics-querying-disabled-orgs",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # SDK Crash Detection
 #
 # The project ID belongs to the sentry organization: https://sentry.sentry.io/projects/cocoa-sdk-crashes/?project=4505469596663808.
@@ -2538,6 +2519,26 @@ register(
 
 register(
     "issues.sdk_crash_detection.dart.sample_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.dotnet.project_id",
+    default=0,
+    type=Int,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.dotnet.organization_allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.dotnet.sample_rate",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2878,7 +2879,7 @@ register(
 register(
     "spans.buffer.compression.level",
     type=Int,
-    default=-1,
+    default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3094,20 +3095,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "delayed_workflow.use_workflow_engine_pool",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "delayed_workflow.rollout",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "celery_split_queue_task_rollout",
-    default={},
+    "workflow_engine.scheduler.use_conditional_delete",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "workflow_engine.associate_error_detectors",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3115,12 +3118,6 @@ register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
     type=Bool,
     default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "grouping.grouphash_metadata.backfill_sample_rate",
-    type=Float,
-    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3135,12 +3132,6 @@ register(
     "workflow_engine.issue_alert.group.type_id.ga",
     type=Sequence,
     default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "workflow_engine.buffer.use_new_buffer",
-    type=Bool,
-    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3175,20 +3166,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# When in active monitoring mode, overrides how many failures in a row we need to see to mark the monitor as down
-register(
-    "uptime.active-failure-threshold",
-    type=Int,
-    default=3,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When in active monitoring mode, how many successes in a row do we need to mark it as up
-register(
-    "uptime.active-recovery-threshold",
-    type=Int,
-    default=1,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "uptime.date_cutoff_epoch_seconds",
@@ -3229,12 +3206,6 @@ register(
     "releases.no_snuba_for_release_creation",
     type=Bool,
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "celery_split_queue_rollout",
-    default={"post_process_transactions": 1.0},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3444,15 +3415,6 @@ register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR
 # This is mutually exclusive with the above setting.
 register("objectstore.double_write.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-
-# Whether to use 60s granularity for the dynamic sampling query
-register(
-    "dynamic-sampling.query-granularity-60s",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # option used to enable/disable tracking
 # rate of potential functions metrics to
 # be written into EAP
@@ -3463,24 +3425,64 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Whether to use 60s granularity for the dynamic sampling query
-register(
-    "dynamic-sampling.query-granularity-60s.active-orgs",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "dynamic-sampling.query-granularity-60s.fetch-transaction-totals",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "commit.dual-write-start-date",
     type=String,
     default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch for linking identities for demo users
+register(
+    "identity.prevent-link-identity-for-demo-users.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry.send_onboarding_task_metrics",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Skip recording onboarding tasks if organization onboarding is already complete
+register(
+    "sentry:skip-record-onboarding-tasks-if-complete",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Database field encryption method
+# Supported values:
+# - 'plaintext': No encryption (default)
+# - 'fernet': Fernet symmetric encryption
+# - 'keysets': (Future) Google Tink keysets for key rotation
+register(
+    "database.encryption.method",
+    type=String,
+    default="plaintext",
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Lists all the consumers we want to dump the stacktrace upon shutdown.
+# We have seen some consumers hanging after restart. This should help
+# us to identify where they get stuck.
+# The consumer name is the ones defined in sentry.consumers.KAFKA_CONSUMERS.
+register(
+    "consumer.dump_stacktrace_on_shutdown",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch for treating demo user as unauthenticated
+# in our auth pipelines.
+register(
+    "demo-user.auth.pipelines.always.unauthenticated.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

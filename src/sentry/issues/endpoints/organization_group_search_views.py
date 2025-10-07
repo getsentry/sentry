@@ -1,7 +1,11 @@
+from typing import Any
+
 from django.db.models import Count, F, OuterRef, Q, Subquery
+from django.db.models.expressions import Combinable
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -16,6 +20,7 @@ from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibi
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 
 class MemberPermission(OrganizationPermission):
@@ -24,8 +29,23 @@ class MemberPermission(OrganizationPermission):
         "POST": ["member:read", "member:write"],
     }
 
+    def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
 
-SORT_MAP = {
+        if isinstance(obj, Organization):
+            return super().has_object_permission(request, view, obj)
+
+        if isinstance(obj, Project):
+            if obj.organization.flags.allow_joinleave:
+                return True
+
+            if not request.access.has_project_access(obj):
+                return False
+
+            return True
+        return False
+
+
+SORT_MAP: dict[str, str | Combinable] = {
     "popularity": "popularity",
     "-popularity": "-popularity",
     "visited": F("last_visited").asc(nulls_first=True),
@@ -173,6 +193,13 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         validated_data = serializer.validated_data
+
+        projects = Project.objects.filter(
+            id__in=validated_data["projects"], organization=organization
+        )
+
+        for project in projects:
+            self.check_object_permissions(request, project)
 
         # Create the new view
         view = GroupSearchView.objects.create(

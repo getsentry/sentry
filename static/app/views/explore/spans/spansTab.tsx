@@ -16,6 +16,7 @@ import {
   EAPSpanSearchQueryBuilder,
   useEAPSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
+import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -48,11 +49,8 @@ import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
-import {SeerComboBox} from 'sentry/views/explore/components/seerComboBox/seerComboBox';
 import {
-  useExploreFields,
   useExploreId,
-  useExploreQuery,
   useSetExplorePageParams,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -66,11 +64,16 @@ import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTraces
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
+  useQueryParamsExtrapolate,
+  useQueryParamsFields,
   useQueryParamsMode,
+  useQueryParamsQuery,
   useQueryParamsVisualizes,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
+import {ExtrapolationEnabledAlert} from 'sentry/views/explore/spans/extrapolationEnabledAlert';
+import {SettingsDropdown} from 'sentry/views/explore/spans/settingsDropdown';
 import {SpansExport} from 'sentry/views/explore/spans/spansExport';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
@@ -200,7 +203,7 @@ function SpansTabSeerComboBox() {
       initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
   }
 
-  return <SeerComboBox initialQuery={initialSeerQuery} />;
+  return <AskSeerComboBox initialQuery={initialSeerQuery} />;
 }
 
 interface SpanTabSearchSectionProps {
@@ -223,8 +226,8 @@ function SpansSearchBar({
 
 function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) {
   const mode = useQueryParamsMode();
-  const fields = useExploreFields();
-  const query = useExploreQuery();
+  const fields = useQueryParamsFields();
+  const query = useQueryParamsQuery();
   const setExplorePageParams = useSetExplorePageParams();
 
   const organization = useOrganization();
@@ -247,9 +250,6 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
 
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
-  );
-  const hasMatchKeySuggestions = organization.features.includes(
-    'search-query-builder-match-key-suggestions'
   );
 
   const eapSpanSearchQueryBuilderProps = useMemo(
@@ -287,18 +287,15 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
       numberTags,
       stringTags,
       replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
-      matchKeySuggestions: hasMatchKeySuggestions
-        ? [
-            {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
-            {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
-          ]
-        : undefined,
+      matchKeySuggestions: [
+        {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
+        {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+      ],
       numberSecondaryAliases,
       stringSecondaryAliases,
     }),
     [
       fields,
-      hasMatchKeySuggestions,
       hasRawSearchReplacement,
       mode,
       numberSecondaryAliases,
@@ -404,11 +401,11 @@ function SpanTabContentSection({
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
   const {selection} = usePageFilters();
+  const query = useQueryParamsQuery();
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
+  const extrapolate = useQueryParamsExtrapolate();
   const [tab, setTab] = useTab();
-
-  const query = useExploreQuery();
 
   const queryType: 'aggregate' | 'samples' | 'traces' =
     tab === Mode.AGGREGATE ? 'aggregate' : tab === Tab.TRACE ? 'traces' : 'samples';
@@ -511,16 +508,20 @@ function SpanTabContentSection({
         >
           {controlSectionExpanded ? null : t('Advanced')}
         </ChevronButton>
-        <Feature features="organizations:tracing-export-csv">
-          <SpansExport
-            aggregatesTableResult={aggregatesTableResult}
-            spansTableResult={spansTableResult}
-          />
-        </Feature>
+        <ActionButtonsGroup>
+          <Feature features="organizations:tracing-export-csv">
+            <SpansExport
+              aggregatesTableResult={aggregatesTableResult}
+              spansTableResult={spansTableResult}
+            />
+          </Feature>
+          <SettingsDropdown />
+        </ActionButtonsGroup>
       </OverChartButtonGroup>
       {!resultsLoading && !hasResults && (
         <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
       )}
+      <ExtrapolationEnabledAlert />
       {defined(error) && (
         <Alert.Container>
           <Alert type="error">{error.message}</Alert>
@@ -539,6 +540,7 @@ function SpanTabContentSection({
         <ExploreCharts
           confidences={confidences}
           query={query}
+          extrapolate={extrapolate}
           timeseriesResult={timeseriesResult}
           visualizes={visualizes}
           setVisualizes={setVisualizes}
@@ -655,9 +657,13 @@ const OnboardingContentSection = styled('section')`
   grid-column: 1/3;
 `;
 
+const ActionButtonsGroup = styled('div')`
+  display: flex;
+  gap: ${p => p.theme.space.xs};
+`;
+
 const ChevronButton = withChonk(
   styled(Button)<{expanded: boolean}>`
-    margin-bottom: ${space(1)};
     display: none;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -674,7 +680,6 @@ const ChevronButton = withChonk(
       `}
   `,
   chonkStyled(Button)<{expanded: boolean}>`
-    margin-bottom: ${space(1)};
     display: none;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {

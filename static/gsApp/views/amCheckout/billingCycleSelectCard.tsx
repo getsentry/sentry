@@ -3,12 +3,14 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex} from 'sentry/components/core/layout';
-import {Radio} from 'sentry/components/core/radio';
+import {Container, Flex} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
 
 import {ANNUAL} from 'getsentry/constants';
 import type {Plan, Subscription} from 'getsentry/types';
+import {displayBudgetName, isDeveloperPlan} from 'getsentry/utils/billing';
+import CheckoutOption from 'getsentry/views/amCheckout/checkoutOption';
 import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
 type BillingCycleSelectCardProps = {
@@ -35,10 +37,15 @@ function BillingCycleSelectCard({
   const isPartnerMigration = !!subscription.partner?.partnership.id;
 
   const isCotermUpgrade = priceAfterDiscount >= subscription.planDetails.totalPrice;
+  const isCurrentUsageCycle = subscription.contractInterval === plan.contractInterval;
+  // the billing day would only change for billing cycle changes or for any upgrade from developer plan
+  const shouldApplyToExistingPeriod =
+    isCotermUpgrade && isCurrentUsageCycle && !isDeveloperPlan(subscription.planDetails);
   const today = moment();
-  const contractStartDate = isCotermUpgrade
-    ? today
-    : moment(subscription.contractPeriodEnd).add(1, 'day');
+  const contractStartDate =
+    !shouldApplyToExistingPeriod && isCotermUpgrade
+      ? today
+      : moment(subscription.contractPeriodEnd).add(1, 'day');
 
   const onCycleSelect = () => {
     const data: Partial<CheckoutFormData> = {
@@ -51,99 +58,78 @@ function BillingCycleSelectCard({
   let cycleInfo: ReactNode;
   if (isPartnerMigration) {
     if (isAnnual) {
-      cycleInfo = t('Billed every 12 months from your selected start date on submission');
+      cycleInfo = t('Billed annually from your selected start date on submission');
     } else {
       cycleInfo = t('Billed monthly starting on your selected start date on submission');
     }
   } else if (isAnnual) {
-    cycleInfo = tct('Billed every 12 months on the [day] of [month]', {
-      day: contractStartDate.format('Do'),
-      month: contractStartDate.format('MMMM'),
-    });
+    cycleInfo = t('Billed annually');
   } else {
-    cycleInfo = tct('Billed monthly starting on [contractStartDate]', {
-      contractStartDate: contractStartDate.format('MMMM DD'),
+    cycleInfo = tct('Billed on the [day] of each month', {
+      day: contractStartDate.format('Do'),
     });
   }
 
   const additionalInfo = isAnnual
-    ? tct("Discount doesn't apply to [budgetTerm] usage", {
-        budgetTerm: plan.budgetTerm,
+    ? tct('[budgetTerm] usage billed monthly, discount does not apply', {
+        budgetTerm:
+          plan.budgetTerm === 'pay-as-you-go'
+            ? 'PAYG'
+            : displayBudgetName(plan, {title: true}),
       })
     : t('Cancel anytime');
 
   return (
-    <BillingCycleOption
-      data-test-id={`billing-cycle-option-${plan.contractInterval}`}
+    <CheckoutOption
+      dataTestId={`billing-cycle-option-${plan.contractInterval}`}
       isSelected={isSelected}
       onClick={onCycleSelect}
+      ariaLabel={t('%s billing cycle', intervalName)}
+      ariaRole="radio"
     >
-      <div>
-        <Flex align="center" gap="sm">
-          <BillingInterval>{intervalName}</BillingInterval>
-          {isAnnual && <Tag type="success">{t('save 10%')}</Tag>}
+      <Flex align="start" justify="between" gap="md" padding="xl">
+        <Container paddingTop="2xs">
+          <RadioMarker isSelected={isSelected} />
+        </Container>
+        <Flex direction="column" gap="sm" width="100%">
+          <Flex align="center" gap="sm">
+            <Heading as="h3" variant="primary">
+              {intervalName}
+            </Heading>
+            {isAnnual && <Tag type="promotion">{t('save 10%')}</Tag>}
+          </Flex>
+          <Flex align="center" gap="md">
+            {formattedPriceBeforeDiscount && (
+              <Text
+                variant="muted"
+                strikethrough
+                size="2xl"
+              >{`$${formattedPriceBeforeDiscount}`}</Text>
+            )}
+            <Text
+              size="2xl"
+              bold
+              variant="primary"
+            >{`$${formattedPriceAfterDiscount}`}</Text>
+          </Flex>
+          <Flex direction="column" gap="xs" paddingTop="xs">
+            <Text variant="muted">{cycleInfo}</Text>
+            <Text variant="muted">{additionalInfo}</Text>
+          </Flex>
         </Flex>
-        <Flex align="center" gap="sm">
-          {formattedPriceBeforeDiscount && (
-            <PriceBeforeDiscount>{`$${formattedPriceBeforeDiscount}`}</PriceBeforeDiscount>
-          )}
-          <Price>{`$${formattedPriceAfterDiscount}`}</Price>
-        </Flex>
-        <Description>{cycleInfo}</Description>
-        <Description>{additionalInfo}</Description>
-      </div>
-      <StyledRadio
-        readOnly
-        id={plan.contractInterval}
-        name="billing-cycle"
-        aria-label={`${intervalName} billing cycle`}
-        value={plan.contractInterval}
-        checked={isSelected}
-        onClick={onCycleSelect}
-        onKeyDown={e => {
-          if (e.key === 'Enter') {
-            onCycleSelect();
-          }
-        }}
-      />
-    </BillingCycleOption>
+      </Flex>
+    </CheckoutOption>
   );
 }
 
 export default BillingCycleSelectCard;
 
-const BillingCycleOption = styled('div')<{isSelected: boolean}>`
-  background: ${p => (p.isSelected ? `${p.theme.active}05` : p.theme.background)};
-  color: ${p => (p.isSelected ? p.theme.activeText : p.theme.textColor)};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => (p.isSelected ? p.theme.active : p.theme.border)};
-  cursor: pointer;
-
-  display: grid;
-  padding: ${p => p.theme.space.xl};
-  grid-template-columns: 1fr max-content;
-`;
-
-const BillingInterval = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const Price = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const PriceBeforeDiscount = styled(Price)`
-  text-decoration: line-through;
-  color: ${p => p.theme.subText};
-`;
-
-const Description = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-`;
-
-const StyledRadio = styled(Radio)`
+const RadioMarker = styled('div')<{isSelected?: boolean}>`
+  width: ${p => p.theme.space.xl};
+  height: ${p => p.theme.space.xl};
+  border-radius: ${p => p.theme.space['3xl']};
   background: ${p => p.theme.background};
+  border-color: ${p => (p.isSelected ? p.theme.tokens.border.accent : p.theme.border)};
+  border-width: ${p => (p.isSelected ? '4px' : '1px')};
+  border-style: solid;
 `;

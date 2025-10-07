@@ -13,11 +13,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {getHasTag} from 'sentry/components/events/searchBar';
 import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
+import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -27,7 +27,6 @@ import {
   type FieldDefinitionGetter,
   type FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
-import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
 import {InvalidReason, WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {
@@ -36,8 +35,7 @@ import {
   FieldValueType,
   getFieldDefinition,
 } from 'sentry/utils/fields';
-import localStorageWrapper from 'sentry/utils/localStorage';
-import {SeerComboBox} from 'sentry/views/explore/components/seerComboBox/seerComboBox';
+import {getHasTag} from 'sentry/utils/tag';
 
 const FILTER_KEYS: TagCollection = {
   [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
@@ -84,6 +82,13 @@ const FILTER_KEYS: TagCollection = {
     name: 'Device',
     kind: FieldKind.FIELD,
     predefined: false,
+  },
+  message: {
+    key: 'message',
+    name: 'Message',
+    kind: FieldKind.FIELD,
+    predefined: true,
+    values: ['[Filtered]'],
   },
   custom_tag_name: {
     key: 'custom_tag_name',
@@ -167,6 +172,89 @@ describe('SearchQueryBuilder', () => {
   it('displays a placeholder when empty', async () => {
     render(<SearchQueryBuilder {...defaultProps} placeholder="foo" />);
     expect(await screen.findByPlaceholderText('foo')).toBeInTheDocument();
+  });
+
+  describe('rendering search query builder', () => {
+    describe('footer', () => {
+      it('displays wildcard footer when canUseWildcard is true', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+        expect(screen.getByText('Wildcard (*) matching allowed')).toBeInTheDocument();
+      });
+
+      it('does not display footer when disallowWildcard is true', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            disallowWildcard
+            initialQuery="browser.name:Firefox"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+
+        expect(
+          screen.queryByText('Wildcard (*) matching allowed')
+        ).not.toBeInTheDocument();
+      });
+
+      it('does not display footer when canUseWildcard is false', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="assigned:me" />);
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: assigned'})
+        );
+
+        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+
+        expect(
+          screen.queryByText('Wildcard (*) matching allowed')
+        ).not.toBeInTheDocument();
+      });
+
+      it('does not display footer when using a wildcard operator', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />,
+          {organization: {features: ['search-query-builder-wildcard-operators']}}
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {
+            name: 'Edit value for filter: browser.name',
+          })
+        );
+
+        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+
+        expect(screen.getByText('Wildcard (*) matching allowed')).toBeInTheDocument();
+        await userEvent.keyboard('{escape}');
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+        );
+
+        await userEvent.click(screen.getByRole('option', {name: 'contains'}));
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        expect(
+          screen.queryByText('Wildcard (*) matching allowed')
+        ).not.toBeInTheDocument();
+      });
+    });
   });
 
   describe('callbacks', () => {
@@ -268,7 +356,7 @@ describe('SearchQueryBuilder', () => {
       ).not.toBeInTheDocument();
       await userEvent.type(
         screen.getByRole('combobox', {name: 'Add a search term'}),
-        'foo a:b{enter}'
+        'foo a:{enter}b{enter}'
       );
 
       await waitFor(() => expect(mockOnChange).toHaveBeenCalled());
@@ -310,13 +398,6 @@ describe('SearchQueryBuilder', () => {
   });
 
   describe('plain text interface', () => {
-    beforeEach(() => {
-      localStorageWrapper.setItem(
-        INTERFACE_TYPE_LOCALSTORAGE_KEY,
-        JSON.stringify(QueryInterfaceType.TEXT)
-      );
-    });
-
     it('can change the query by typing', async () => {
       const mockOnChange = jest.fn();
       render(
@@ -703,12 +784,15 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('escapes values with spaces and reserved characters', async () => {
-      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
+        organization: {features: ['search-query-builder-input-flow-changes']},
+      });
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
-      await userEvent.type(
-        screen.getByRole('combobox', {name: 'Add a search term'}),
-        'assigned:some" value{enter}'
-      );
+
+      await userEvent.keyboard('assigned:');
+      await userEvent.click(screen.getByRole('option', {name: 'is'}));
+      await userEvent.keyboard('some" value{enter}');
+
       // Value should be surrounded by quotes and escaped
       expect(
         screen.getByRole('row', {name: 'assigned:"some\\" value"'})
@@ -830,23 +914,27 @@ describe('SearchQueryBuilder', () => {
     it('can add an unsupported filter key and value', async () => {
       const mockOnChange = jest.fn();
       render(
-        <SearchQueryBuilder {...defaultProps} onChange={mockOnChange} initialQuery="" />
+        <SearchQueryBuilder {...defaultProps} onChange={mockOnChange} initialQuery="" />,
+        {organization: {features: ['search-query-builder-input-flow-changes']}}
       );
       await userEvent.click(getLastInput());
 
       // Typing "foo", then " a:b" should add the "foo" text followed by a new token "a:b"
       await userEvent.type(
         screen.getByRole('combobox', {name: 'Add a search term'}),
-        'foo a:b{enter}'
+        'foo '
       );
-      expect(screen.getByRole('row', {name: 'foo'})).toBeInTheDocument();
-      expect(screen.getByRole('row', {name: 'a:b'})).toBeInTheDocument();
 
-      await waitFor(() => {
-        expect(mockOnChange).toHaveBeenCalledWith('foo a:b', expect.anything());
-      });
+      await userEvent.keyboard('a:');
+      expect(await screen.findByRole('option', {name: 'is'})).toHaveFocus();
+      await userEvent.keyboard('{enter}');
+      await userEvent.keyboard('b{enter}');
+
+      expect(await screen.findByRole('row', {name: 'foo'})).toBeInTheDocument();
+      expect(await screen.findByRole('row', {name: 'a:b'})).toBeInTheDocument();
 
       expect(mockOnChange).toHaveBeenCalledTimes(1);
+      expect(mockOnChange).toHaveBeenCalledWith('foo a:b', expect.anything());
     });
 
     it('adds default value for filter when typing <filter>:', async () => {
@@ -890,7 +978,9 @@ describe('SearchQueryBuilder', () => {
 
     it('can add a new token by clicking a key suggestion', async () => {
       const mockOnChange = jest.fn();
-      render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />);
+      render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />, {
+        organization: {features: ['search-query-builder-input-flow-changes']},
+      });
 
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
@@ -899,6 +989,11 @@ describe('SearchQueryBuilder', () => {
       expect(screen.getByRole('row', {name: 'browser.name:""'})).toBeInTheDocument();
       // onChange should not be called until exiting edit mode
       expect(mockOnChange).not.toHaveBeenCalled();
+
+      // Should have focus on the operator option
+      const operatorOption = await screen.findByRole('option', {name: 'is'});
+      expect(operatorOption).toHaveFocus();
+      await userEvent.click(operatorOption);
 
       await userEvent.click(await screen.findByRole('option', {name: 'Firefox'}));
 
@@ -929,7 +1024,9 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('can add a filter after some free text', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      render(<SearchQueryBuilder {...defaultProps} />, {
+        organization: {features: ['search-query-builder-input-flow-changes']},
+      });
 
       await userEvent.click(getLastInput());
 
@@ -940,6 +1037,11 @@ describe('SearchQueryBuilder', () => {
       await userEvent.type(screen.getByRole('combobox'), 'some free text brow');
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
       jest.restoreAllMocks();
+
+      // Should have focus on the operator option
+      const operatorOption = await screen.findByRole('option', {name: 'is'});
+      expect(operatorOption).toHaveFocus();
+      await userEvent.click(operatorOption);
 
       // Filter value should have focus
       expect(await screen.findByLabelText('Edit filter value')).toHaveFocus();
@@ -1049,6 +1151,20 @@ describe('SearchQueryBuilder', () => {
         name: '!browser.name:""',
       });
       expect(browserNameFilter).toBeInTheDocument();
+    });
+
+    it('selects [Filtered] from dropdown', async () => {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(getLastInput());
+
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        'message:'
+      );
+      await userEvent.click(screen.getByRole('option', {name: '[Filtered]'}));
+      expect(
+        await screen.findByRole('row', {name: 'message:"[Filtered]"'})
+      ).toBeInTheDocument();
     });
   });
 
@@ -3420,21 +3536,35 @@ describe('SearchQueryBuilder', () => {
       });
 
       it('focuses on the filter value when user selects an aggregate filter with no arguments', async () => {
-        render(<SearchQueryBuilder {...aggregateDefaultProps} />);
+        render(<SearchQueryBuilder {...aggregateDefaultProps} />, {
+          organization: {features: ['search-query-builder-input-flow-changes']},
+        });
 
         await userEvent.click(getLastInput());
         await userEvent.keyboard('count');
         await userEvent.click(screen.getByRole('option', {name: 'count()'}));
         expect(screen.getByLabelText('count():>100')).toBeInTheDocument();
+
+        const gtOption = screen.getByRole('option', {name: '>'});
+        expect(gtOption).toHaveFocus();
+        await userEvent.click(gtOption);
+
         expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
       });
 
       it('focuses on the filter value when user input looks like an aggregate filter with no arguments', async () => {
-        render(<SearchQueryBuilder {...aggregateDefaultProps} />);
+        render(<SearchQueryBuilder {...aggregateDefaultProps} />, {
+          organization: {features: ['search-query-builder-input-flow-changes']},
+        });
 
         await userEvent.click(getLastInput());
         await userEvent.keyboard('count(');
         expect(screen.getByLabelText('count():>100')).toBeInTheDocument();
+
+        const gtOption = screen.getByRole('option', {name: '>'});
+        expect(gtOption).toHaveFocus();
+        await userEvent.click(gtOption);
+
         expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
       });
 
@@ -4045,6 +4175,54 @@ describe('SearchQueryBuilder', () => {
         screen.getByRole('row', {name: 'span.description:"random value"'})
       ).toBeInTheDocument();
     });
+
+    describe('with wildcard operators enabled', () => {
+      it('should replace raw search keys with defined key:contains:value', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery=""
+            replaceRawSearchKeys={['span.description']}
+          />,
+          {organization: {features: ['search-query-builder-wildcard-operators']}}
+        );
+
+        await userEvent.type(screen.getByRole('textbox'), 'randomValue');
+
+        await userEvent.click(
+          within(screen.getByRole('listbox')).getAllByText('span.description')[0]!
+        );
+
+        expect(
+          screen.getByRole('row', {
+            name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
+          })
+        ).toBeInTheDocument();
+      });
+
+      it('should replace raw search keys with defined key:contains:"value space', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery=""
+            replaceRawSearchKeys={['span.description']}
+          />,
+          {organization: {features: ['search-query-builder-wildcard-operators']}}
+        );
+
+        await userEvent.type(screen.getByRole('textbox'), 'random value');
+
+        await userEvent.click(
+          within(screen.getByRole('listbox')).getAllByText('span.description')[0]!
+        );
+
+        expect(
+          screen.getByRole('row', {
+            name: `span.description:${WildcardOperators.CONTAINS}"random value"`,
+          })
+        ).toBeInTheDocument();
+      });
+    });
   });
 
   describe('matchKeySuggestions', () => {
@@ -4096,11 +4274,40 @@ describe('SearchQueryBuilder', () => {
 
       await userEvent.click(getLastInput());
 
-      const askSeer = await screen.findByRole('option', {name: /Ask Seer/});
+      const askSeer = await screen.findByRole('option', {
+        name: /Ask Seer to build your query/,
+      });
       expect(askSeer).toBeInTheDocument();
     });
 
-    describe('user clicks on ask seer button when consent is not given', () => {
+    it('renders enable ai button when user has not given consent', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/seer/setup-check/',
+        body: AutofixSetupFixture({
+          setupAcknowledgement: {
+            orgHasAcknowledged: false,
+            userHasAcknowledged: false,
+          },
+        }),
+      });
+
+      render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
+        organization: {
+          features: [
+            'gen-ai-features',
+            'gen-ai-explore-traces',
+            'gen-ai-explore-traces-consent-ui',
+          ],
+        },
+      });
+
+      await userEvent.click(getLastInput());
+
+      const enableAi = await screen.findByText(/Enable Gen AI/);
+      expect(enableAi).toBeInTheDocument();
+    });
+
+    describe('user clicks on enable gen ai button', () => {
       it('calls promptsUpdate', async () => {
         const organization = OrganizationFixture({
           slug: 'org-slug',
@@ -4110,15 +4317,11 @@ describe('SearchQueryBuilder', () => {
             'gen-ai-explore-traces-consent-ui',
           ],
         });
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/trace-explorer-ai/setup/',
-          method: 'POST',
-        });
         const promptsUpdateMock = MockApiClient.addMockResponse({
           url: `/organizations/${organization.slug}/prompts-activity/`,
           method: 'PUT',
         });
-        const seerSetupCheckMock = MockApiClient.addMockResponse({
+        MockApiClient.addMockResponse({
           url: `/organizations/${organization.slug}/seer/setup-check/`,
           body: AutofixSetupFixture({
             setupAcknowledgement: {
@@ -4128,41 +4331,12 @@ describe('SearchQueryBuilder', () => {
           }),
         });
 
-        function AskSeerTestComponent({children}: {children: React.ReactNode}) {
-          const {displayAskSeer, query} = useSearchQueryBuilder();
-          return displayAskSeer ? <SeerComboBox initialQuery={query} /> : children;
-        }
-
-        function AskSeerWrapper({children}: {children: React.ReactNode}) {
-          return (
-            <SearchQueryBuilderProvider {...defaultProps} enableAISearch>
-              <AskSeerTestComponent>{children}</AskSeerTestComponent>
-            </SearchQueryBuilderProvider>
-          );
-        }
-
-        render(
-          <AskSeerWrapper>
-            <SearchQueryBuilder {...defaultProps} />
-          </AskSeerWrapper>,
-          {organization}
-        );
+        render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {organization});
 
         await userEvent.click(getLastInput());
 
-        const enableAi = await screen.findByRole('option', {name: /Ask Seer/});
+        const enableAi = await screen.findByRole('option', {name: /Enable Gen AI/});
         expect(enableAi).toBeInTheDocument();
-
-        seerSetupCheckMock.mockClear();
-        MockApiClient.addMockResponse({
-          url: `/organizations/${organization.slug}/seer/setup-check/`,
-          body: AutofixSetupFixture({
-            setupAcknowledgement: {
-              orgHasAcknowledged: true,
-              userHasAcknowledged: true,
-            },
-          }),
-        });
 
         await userEvent.hover(enableAi);
         await userEvent.keyboard('{enter}');
@@ -4180,11 +4354,6 @@ describe('SearchQueryBuilder', () => {
             })
           );
         });
-
-        const input = await screen.findByRole('combobox', {
-          name: 'Ask Seer with Natural Language',
-        });
-        expect(input).toBeInTheDocument();
       });
     });
 
@@ -4192,7 +4361,7 @@ describe('SearchQueryBuilder', () => {
       it('renders the seer combobox', async () => {
         function AskSeerTestComponent({children}: {children: React.ReactNode}) {
           const {displayAskSeer, query} = useSearchQueryBuilder();
-          return displayAskSeer ? <SeerComboBox initialQuery={query} /> : children;
+          return displayAskSeer ? <AskSeerComboBox initialQuery={query} /> : children;
         }
 
         function AskSeerWrapper({children}: {children: React.ReactNode}) {
@@ -4255,7 +4424,9 @@ describe('SearchQueryBuilder', () => {
 
         await userEvent.click(getLastInput());
 
-        const askSeer = await screen.findByRole('option', {name: /Ask Seer/});
+        const askSeer = await screen.findByRole('option', {
+          name: /Ask Seer to build your query/,
+        });
         expect(askSeer).toBeInTheDocument();
         await userEvent.hover(askSeer);
         await userEvent.keyboard('{enter}');
@@ -4279,7 +4450,9 @@ describe('SearchQueryBuilder', () => {
         const yep = await screen.findByRole('button', {name: 'Yep, correct results'});
         await userEvent.click(yep);
 
-        const askSeer2 = await screen.findByRole('option', {name: /Ask Seer/});
+        const askSeer2 = await screen.findByRole('option', {
+          name: /Ask Seer to build your query/,
+        });
         expect(askSeer2).toBeInTheDocument();
       });
     });
@@ -4313,59 +4486,13 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(getLastInput());
         await userEvent.type(screen.getByRole('combobox'), 'some free text');
 
-        expect(screen.getByRole('option', {name: /Ask Seer/i})).toBeInTheDocument();
+        expect(
+          screen.getByRole('option', {name: /Ask Seer to build your query/i})
+        ).toBeInTheDocument();
       });
     });
 
-    it('displays ask seer with a tooltip when consent has been given', async () => {
-      const mockOnSearch = jest.fn();
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/seer/setup-check/',
-        body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: true,
-            userHasAcknowledged: true,
-          },
-        }),
-      });
-
-      render(
-        <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
-        {
-          organization: {
-            features: [
-              'gen-ai-features',
-              'gen-ai-explore-traces',
-              'gen-ai-explore-traces-consent-ui',
-            ],
-          },
-        }
-      );
-
-      await userEvent.click(getLastInput());
-      await userEvent.type(screen.getByRole('combobox'), 'some free text');
-
-      const askSeerText = screen.getByText(/Ask Seer/);
-      expect(askSeerText).toBeInTheDocument();
-
-      await userEvent.hover(askSeerText);
-
-      const tooltipTitle = await screen.findByText(
-        /The assistant requires Generative AI/
-      );
-      expect(tooltipTitle).toBeInTheDocument();
-      expect(tooltipTitle).toBeVisible();
-
-      const tooltipLink = screen.getByText(/data processing policy/);
-      expect(tooltipLink).toBeInTheDocument();
-      expect(tooltipLink).toBeVisible();
-      expect(tooltipLink).toHaveAttribute(
-        'href',
-        'https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features'
-      );
-    });
-
-    it('displays ask seer with a tooltip when consent has not been given', async () => {
+    it('displays enable ai button when searching free text and user has not given consent', async () => {
       const mockOnSearch = jest.fn();
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/seer/setup-check/',
@@ -4393,24 +4520,7 @@ describe('SearchQueryBuilder', () => {
       await userEvent.click(getLastInput());
       await userEvent.type(screen.getByRole('combobox'), 'some free text');
 
-      const askSeerText = screen.getByText(/Ask Seer/);
-      expect(askSeerText).toBeInTheDocument();
-
-      await userEvent.hover(askSeerText);
-
-      const tooltipTitle = await screen.findByText(
-        /The assistant requires Generative AI/
-      );
-      expect(tooltipTitle).toBeInTheDocument();
-      expect(tooltipTitle).toBeVisible();
-
-      const tooltipLink = screen.getByText(/data processing policy/);
-      expect(tooltipLink).toBeInTheDocument();
-      expect(tooltipLink).toBeVisible();
-      expect(tooltipLink).toHaveAttribute(
-        'href',
-        'https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features'
-      );
+      expect(screen.getByRole('option', {name: /Enable Gen AI/})).toBeInTheDocument();
     });
   });
 

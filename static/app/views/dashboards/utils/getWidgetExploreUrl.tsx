@@ -87,6 +87,9 @@ const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.LOGS]: getWidgetExploreUrlWithDataset(TraceItemDataset.LOGS),
   [TraceItemDataset.SPANS]: getWidgetExploreUrlWithDataset(TraceItemDataset.SPANS),
   [TraceItemDataset.UPTIME_RESULTS]: undefined,
+  [TraceItemDataset.TRACEMETRICS]: getWidgetExploreUrlWithDataset(
+    TraceItemDataset.TRACEMETRICS
+  ),
 };
 
 export function getWidgetLogURL(
@@ -462,7 +465,7 @@ export function getWidgetTableRowExploreUrlFunction(
       );
     }
 
-    const query = new MutableSearch('');
+    const query = new MutableSearch(widget.queries[0]?.conditions ?? '');
     fields.map(field => {
       const value = dataRow[field];
       if (!defined(value)) {

@@ -1198,6 +1198,135 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
 
+    def test_case_sensitivity_filtering(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "FoOoOoO"},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "FooOOoo"},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "foooooo"},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.description", "count()"],
+                "query": "span.description:FoOoOoO",
+                "project": self.project.id,
+                "dataset": "spans",
+                "statsPeriod": "1h",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "span.description": "FoOoOoO",
+                "count()": 1.0,
+            },
+        ]
+
+        response = self.do_request(
+            {
+                "field": ["span.description", "count()"],
+                "orderby": ["span.description"],
+                "query": "span.description:FOOOOOO",
+                "project": self.project.id,
+                "dataset": "spans",
+                "statsPeriod": "1h",
+                "caseInsensitive": True,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "span.description": "FoOoOoO",
+                "count()": 1.0,
+            },
+            {
+                "span.description": "FooOOoo",
+                "count()": 1.0,
+            },
+            {
+                "span.description": "foooooo",
+                "count()": 1.0,
+            },
+        ]
+
+    def test_case_sensitivity_filtering_with_list(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "FoOoOoO"},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "FooOOoo"},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "foooooo"},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.description", "count()"],
+                "orderby": ["span.description"],
+                "query": "span.description:[FoOoOoO, FooOOoo]",
+                "project": self.project.id,
+                "dataset": "spans",
+                "statsPeriod": "1h",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "span.description": "FoOoOoO",
+                "count()": 1.0,
+            },
+            {
+                "span.description": "FooOOoo",
+                "count()": 1.0,
+            },
+        ]
+
+        response = self.do_request(
+            {
+                "field": ["span.description", "count()"],
+                "orderby": ["span.description"],
+                "query": "span.description:[FOOOOOO]",
+                "project": self.project.id,
+                "dataset": "spans",
+                "statsPeriod": "1h",
+                "caseInsensitive": True,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "span.description": "FoOoOoO",
+                "count()": 1.0,
+            },
+            {
+                "span.description": "FooOOoo",
+                "count()": 1.0,
+            },
+            {
+                "span.description": "foooooo",
+                "count()": 1.0,
+            },
+        ]
+
     @pytest.mark.skip(reason="replay id alias not migrated over")
     def test_replay_id(self) -> None:
         self.store_spans(
@@ -1911,6 +2040,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                     "count_unique(bar)",
                     "count_unique(tags[bar])",
                     "count_unique(tags[bar,string])",
+                    "count_unique(tags[foo,number])",
                     "count()",
                     "count(span.duration)",
                     "count(tags[foo,     number])",
@@ -1939,6 +2069,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             "count_unique(bar)": 2,
             "count_unique(tags[bar])": 2,
             "count_unique(tags[bar,string])": 2,
+            "count_unique(tags[foo,number])": 1,
             "count()": 2,
             "count(span.duration)": 2,
             "count(tags[foo,     number])": 1,

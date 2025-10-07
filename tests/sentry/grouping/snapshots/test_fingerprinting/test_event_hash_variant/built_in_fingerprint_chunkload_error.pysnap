@@ -1,5 +1,5 @@
 ---
-created: '2025-06-23T19:43:16.010337+00:00'
+created: '2025-10-06T17:30:32.851483+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -13,9 +13,15 @@ variants:
   app:
     component:
       contributes: false
-      hint: built-in fingerprint takes precedence
+      hint: ignored because built-in fingerprint takes precedence
+    contributes: false
+    hint: ignored because built-in fingerprint takes precedence
+    key: app_exception_message
     type: component
   built_in_fingerprint:
+    contributes: true
+    hint: null
+    key: built_in_fingerprint
     matched_rule: family:"javascript" type:"ChunkLoadError" -> "chunkloaderror"
     type: built_in_fingerprint
     values:
@@ -23,5 +29,8 @@ variants:
   system:
     component:
       contributes: false
-      hint: built-in fingerprint takes precedence
+      hint: ignored because built-in fingerprint takes precedence
+    contributes: false
+    hint: ignored because built-in fingerprint takes precedence
+    key: system_exception_stacktrace
     type: component

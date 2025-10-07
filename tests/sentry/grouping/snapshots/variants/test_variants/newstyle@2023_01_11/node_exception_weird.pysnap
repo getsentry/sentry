@@ -1,19 +1,19 @@
 ---
-created: '2025-09-11T18:38:52.612791+00:00'
+created: '2025-09-24T20:27:08.637402+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "a20509269752c9a1bea6078851e4d39c"
   contributing component: exception
-  component:
+  root_component:
     app*
       exception*
         stacktrace*
           frame* (marked in-app by the client)
             module*
               "hub"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "hub.js"
             function* (trimmed javascript function)
               "withScope"
@@ -22,14 +22,14 @@ app:
           frame* (marked in-app by the client)
             module*
               "onunhandledrejection.ts"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "onunhandledrejection.ts"
             function (ignored unknown function name)
               "<anonymous>"
           frame (marked out of app by the client)
             module*
               "jest-mock.build:index"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "index.js"
             function* (trimmed javascript function)
               "mockConstructor [as captureException]"
@@ -38,7 +38,7 @@ app:
           frame (marked out of app by the client)
             module*
               "jest-mock.build:index"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "index.js"
             function (ignored unknown function name)
               "<anonymous>"
@@ -47,7 +47,7 @@ app:
           frame (marked out of app by the client)
             module*
               "jest-mock.build:index"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "index.js"
             function*
               "finalReturnValue"
@@ -56,7 +56,7 @@ app:
           frame (marked out of app by the client)
             module*
               "jest-mock.build:index"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "index.js"
             function (ignored unknown function name)
               "<anonymous>"
@@ -65,7 +65,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "hub.ts"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "hub.ts"
             function* (trimmed javascript function)
               "captureException"
@@ -74,7 +74,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "hub"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "hub.js"
             function* (trimmed javascript function)
               "invokeClient"
@@ -83,7 +83,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "baseclient.ts"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "baseclient.ts"
             function* (trimmed javascript function)
               "captureException"
@@ -92,7 +92,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "backend.ts"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "backend.ts"
             function* (trimmed javascript function)
               "eventFromException"
@@ -104,14 +104,14 @@ app:
 system:
   hash: "252dc79eb5653bf822e2684d90734cb8"
   contributing component: exception
-  component:
+  root_component:
     system*
       exception*
         stacktrace*
           frame*
             module*
               "hub"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "hub.js"
             function* (trimmed javascript function)
               "withScope"
@@ -120,14 +120,14 @@ system:
           frame*
             module*
               "onunhandledrejection.ts"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "onunhandledrejection.ts"
             function (ignored unknown function name)
               "<anonymous>"
           frame*
             module*
               "jest-mock.build:index"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "index.js"
             function* (trimmed javascript function)
               "mockConstructor [as captureException]"
@@ -136,7 +136,7 @@ system:
           frame*
             module*
               "jest-mock.build:index"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "index.js"
             function (ignored unknown function name)
               "<anonymous>"
@@ -145,7 +145,7 @@ system:
           frame*
             module*
               "jest-mock.build:index"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "index.js"
             function*
               "finalReturnValue"
@@ -154,7 +154,7 @@ system:
           frame*
             module*
               "jest-mock.build:index"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "index.js"
             function (ignored unknown function name)
               "<anonymous>"
@@ -163,7 +163,7 @@ system:
           frame*
             module*
               "hub.ts"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "hub.ts"
             function* (trimmed javascript function)
               "captureException"
@@ -172,7 +172,7 @@ system:
           frame*
             module*
               "hub"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "hub.js"
             function* (trimmed javascript function)
               "invokeClient"
@@ -181,7 +181,7 @@ system:
           frame*
             module*
               "baseclient.ts"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "baseclient.ts"
             function* (trimmed javascript function)
               "captureException"
@@ -190,7 +190,7 @@ system:
           frame*
             module*
               "backend.ts"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "backend.ts"
             function* (trimmed javascript function)
               "eventFromException"

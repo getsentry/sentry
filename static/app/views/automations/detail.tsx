@@ -1,7 +1,9 @@
 import {Fragment, useCallback} from 'react';
+import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -13,6 +15,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
+import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
@@ -28,12 +31,17 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useUserFromId from 'sentry/utils/useUserFromId';
+import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import AutomationHistoryList from 'sentry/views/automations/components/automationHistoryList';
 import {AutomationStatsChart} from 'sentry/views/automations/components/automationStatsChart';
 import ConditionsPanel from 'sentry/views/automations/components/conditionsPanel';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
-import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
+import {getAutomationActionsWarning} from 'sentry/views/automations/hooks/utils';
+import {
+  makeAutomationBasePathname,
+  makeAutomationEditPathname,
+} from 'sentry/views/automations/pathnames';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
 const AUTOMATION_DETECTORS_LIMIT = 10;
@@ -42,8 +50,6 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-
-  const {data: createdByUser} = useUserFromId({id: Number(automation.createdBy)});
 
   const {
     data: detectors,
@@ -63,6 +69,8 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
 
   const {selection} = usePageFilters();
   const {start, end, period, utc} = selection.datetime;
+
+  const warning = getAutomationActionsWarning(automation);
 
   return (
     <SentryDocumentTitle title={automation.name} noSuffix>
@@ -86,6 +94,11 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
         </DetailLayout.Header>
         <DetailLayout.Body>
           <DetailLayout.Main>
+            {warning && (
+              <Alert type={warning.color === 'warning' ? 'warning' : 'error'}>
+                {warning.message}
+              </Alert>
+            )}
             <PageFiltersContainer>
               <DatePageFilter />
               <ErrorBoundary>
@@ -122,7 +135,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                       AUTOMATION_DETECTORS_LIMIT
                     )}
                   />
-                  <Pagination
+                  <StyledPagination
                     pageLinks={getResponseHeader?.('Link')}
                     onCursor={cursor => {
                       navigate({
@@ -173,7 +186,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                   />
                   <KeyValueTableRow
                     keyName={t('Created by')}
-                    value={createdByUser?.name || createdByUser?.email || t('Unknown')}
+                    value={<UserDisplayName id={automation.createdBy} />}
                   />
                   <KeyValueTableRow
                     keyName={t('Last modified')}
@@ -212,6 +225,7 @@ export default function AutomationDetail() {
 }
 
 function Actions({automation}: {automation: Automation}) {
+  const organization = useOrganization();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
 
   const toggleDisabled = useCallback(() => {
@@ -234,12 +248,35 @@ function Actions({automation}: {automation: Automation}) {
 
   return (
     <Fragment>
+      <AutomationFeedbackButton />
       <Button priority="default" size="sm" onClick={toggleDisabled} busy={isUpdating}>
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
-      <LinkButton to="edit" priority="primary" icon={<IconEdit />} size="sm">
+      <LinkButton
+        to={makeAutomationEditPathname(organization.slug, automation.id)}
+        priority="primary"
+        icon={<IconEdit />}
+        size="sm"
+      >
         {t('Edit')}
       </LinkButton>
     </Fragment>
   );
 }
+
+function UserDisplayName({id}: {id: string | undefined}) {
+  const {data: createdByUser, isPending} = useUserFromId({
+    id: id ? Number(id) : undefined,
+  });
+  if (!id) {
+    return t('Sentry');
+  }
+  if (isPending) {
+    return <Placeholder height="20px" />;
+  }
+  return createdByUser?.name || createdByUser?.email || t('Unknown');
+}
+
+const StyledPagination = styled(Pagination)`
+  margin: 0;
+`;

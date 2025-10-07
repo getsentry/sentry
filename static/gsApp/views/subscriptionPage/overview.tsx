@@ -24,16 +24,16 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
-import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
+import {hasAccessToSubscriptionOverview, hasNewBillingUI} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   isPartOfReservedBudget,
   sortCategories,
 } from 'getsentry/utils/dataCategory';
 import withPromotions from 'getsentry/utils/withPromotions';
-import {hasCheckoutV3} from 'getsentry/views/amCheckout/utils';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 import UsageOverview from 'getsentry/views/subscriptionPage/usageOverview';
 
 import openPerformanceQuotaCreditsPromoModal from './promotions/performanceQuotaCreditsPromo';
@@ -61,7 +61,7 @@ type Props = {
 function Overview({location, subscription, promotionData}: Props) {
   const api = useApi();
   const organization = useOrganization();
-  const hasNewCheckout = hasCheckoutV3(organization); // TODO: change this to hasNewBillingUI
+  const hasNewCheckout = hasNewBillingUI(organization);
   const navigate = useNavigate();
 
   const displayMode = ['cost', 'usage'].includes(location.query.displayMode as string)
@@ -169,7 +169,11 @@ function Overview({location, subscription, promotionData}: Props) {
   // Sales managed accounts do not allow members to view the billing page.
   // Whilst self-serve accounts do.
   if (!hasBillingPerms && !subscription.canSelfServe) {
-    return <ContactBillingMembers />;
+    return (
+      <SubscriptionPageContainer background="primary" organization={organization}>
+        <ContactBillingMembers />
+      </SubscriptionPageContainer>
+    );
   }
 
   function renderUsageChart(usageData: CustomerUsage) {
@@ -325,15 +329,19 @@ function Overview({location, subscription, promotionData}: Props) {
 
   if (isPending) {
     return (
-      <Fragment>
+      <SubscriptionPageContainer background="primary" organization={organization}>
         <SubscriptionHeader subscription={subscription} organization={organization} />
         <LoadingIndicator />
-      </Fragment>
+      </SubscriptionPageContainer>
     );
   }
 
   if (isError) {
-    return <LoadingError onRetry={refetchUsage} />;
+    return (
+      <SubscriptionPageContainer background="primary" organization={organization}>
+        <LoadingError onRetry={refetchUsage} />
+      </SubscriptionPageContainer>
+    );
   }
 
   /**
@@ -364,7 +372,11 @@ function Overview({location, subscription, promotionData}: Props) {
         ) : (
           <Fragment>
             <UsageAlert subscription={subscription} usage={usageData} />
-            <DisplayModeToggle subscription={subscription} displayMode={displayMode} />
+            <DisplayModeToggle
+              subscription={subscription}
+              displayMode={displayMode}
+              organization={organization}
+            />
             {renderUsageChart(usageData)}
             {renderUsageCards(usageData)}
             <OnDemandSettings organization={organization} subscription={subscription} />
@@ -388,14 +400,14 @@ function Overview({location, subscription, promotionData}: Props) {
   }
 
   return (
-    <Fragment>
+    <SubscriptionPageContainer background="primary" organization={organization}>
       <SubscriptionHeader organization={organization} subscription={subscription} />
       <div>
         {hasBillingPerms
           ? contentWithBillingPerms(usage, subscription.planDetails)
           : contentWithoutBillingPerms(usage)}
       </div>
-    </Fragment>
+    </SubscriptionPageContainer>
   );
 }
 

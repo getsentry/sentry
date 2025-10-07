@@ -1,6 +1,4 @@
-import posixpath
-
-from django.http.response import FileResponse, HttpResponseBase
+from django.http.response import HttpResponse, HttpResponseBase, StreamingHttpResponse
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,11 +7,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import UserAuthTokenAuthentication
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import StaffPermission
 from sentry.models.files.file import File
+from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
-from sentry.preprod.models import PreprodArtifact
+from sentry.replays.lib.http import MalformedRangeHeader, UnsatisfiableRange, parse_range_header
 
 
 class LaunchpadServiceOrStaffPermission(StaffPermission):
@@ -35,10 +34,11 @@ class LaunchpadServiceOrStaffPermission(StaffPermission):
 
 
 @region_silo_endpoint
-class ProjectPreprodArtifactDownloadEndpoint(ProjectEndpoint):
+class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
+        "HEAD": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (
         LaunchpadRpcSignatureAuthentication,
@@ -47,51 +47,112 @@ class ProjectPreprodArtifactDownloadEndpoint(ProjectEndpoint):
     )
     permission_classes = (LaunchpadServiceOrStaffPermission,)
 
-    def get(self, request: Request, project, artifact_id) -> HttpResponseBase:
+    def _get_file_object(self, head_artifact):
+        if head_artifact.file_id is None:
+            raise ResourceDoesNotExist
+
+        try:
+            return File.objects.get(id=head_artifact.file_id)
+        except File.DoesNotExist:
+            raise ResourceDoesNotExist
+
+    def _get_filename(self, head_artifact):
+        return f"preprod_artifact_{head_artifact.id}.zip"
+
+    def head(self, request: Request, project, head_artifact_id, head_artifact) -> HttpResponseBase:
+        file_obj = self._get_file_object(head_artifact)
+        filename = self._get_filename(head_artifact)
+        file_size = file_obj.size
+
+        if file_size is None or file_size < 0:
+            return Response({"error": "File size unavailable"}, status=500)
+
+        response = HttpResponse()
+        response["Content-Length"] = file_size
+        response["Content-Type"] = "application/octet-stream"
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response["Accept-Ranges"] = "bytes"
+
+        return response
+
+    def get(self, request: Request, project, head_artifact_id, head_artifact) -> HttpResponseBase:
         """
         Download a preprod artifact file
         ```````````````````````````````
 
         Download the actual file contents of a preprod artifact.
+        Supports HTTP Range requests for resumable downloads.
 
         :pparam string organization_id_or_slug: the id or slug of the organization the
                                           artifact belongs to.
         :pparam string project_id_or_slug: the id or slug of the project to retrieve the
                                      artifact from.
-        :pparam string artifact_id: the ID of the preprod artifact to download.
+        :pparam string head_artifact_id: the ID of the preprod artifact to download.
         :auth: required
         """
 
-        try:
-            preprod_artifact = PreprodArtifact.objects.get(
-                project=project,
-                id=artifact_id,
-            )
-        except PreprodArtifact.DoesNotExist:
-            return Response({"error": f"Preprod artifact {artifact_id} not found"}, status=404)
+        file_obj = self._get_file_object(head_artifact)
+        filename = self._get_filename(head_artifact)
+        file_size = file_obj.size
 
-        if preprod_artifact.file_id is None:
-            return Response({"error": "Preprod artifact file not available"}, status=404)
+        if file_size is None or file_size < 0:
+            return Response({"error": "File size unavailable"}, status=500)
 
-        try:
-            file_obj = File.objects.get(id=preprod_artifact.file_id)
-        except File.DoesNotExist:
-            return Response({"error": "Preprod artifact file not found"}, status=404)
+        range_header = request.META.get("HTTP_RANGE")
+        if range_header:
+            try:
+                ranges = parse_range_header(range_header)
+                if not ranges:
+                    return HttpResponse(status=400)
 
-        try:
-            fp = file_obj.getfile()
-        except Exception:
-            return Response({"error": "Failed to retrieve preprod artifact file"}, status=500)
+                if len(ranges) > 1:
+                    raise MalformedRangeHeader("Too many ranges specified.")
 
-        # All preprod artifacts are zip files
-        filename = f"preprod_artifact_{artifact_id}.zip"
+                range_obj = ranges[0]
 
-        response = FileResponse(
-            fp,
+                if file_size == 0:
+                    return HttpResponse(status=416)
+
+                start, end = range_obj.make_range(file_size - 1)
+
+                with file_obj.getfile() as fp:
+                    fp.seek(start)
+                    content_length = end - start + 1
+                    file_content = fp.read(content_length)
+
+                response = HttpResponse(
+                    file_content,
+                    content_type="application/octet-stream",
+                    status=206,
+                )
+
+                response["Content-Length"] = content_length
+                response["Content-Range"] = f"bytes {start}-{end}/{file_size}"
+                response["Accept-Ranges"] = "bytes"
+                response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+                return response
+
+            except (MalformedRangeHeader, UnsatisfiableRange):
+                return HttpResponse(status=416)
+            except (ValueError, IndexError):
+                return HttpResponse(status=400)
+
+        def file_iterator():
+            with file_obj.getfile() as fp:
+                while True:
+                    chunk = fp.read(4096)
+                    if not chunk:
+                        break
+                    yield chunk
+
+        streaming_response = StreamingHttpResponse(
+            file_iterator(),
             content_type="application/octet-stream",
         )
 
-        response["Content-Length"] = file_obj.size
-        response["Content-Disposition"] = f'attachment; filename="{posixpath.basename(filename)}"'
+        streaming_response["Content-Length"] = file_size
+        streaming_response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        streaming_response["Accept-Ranges"] = "bytes"
 
-        return response
+        return streaming_response

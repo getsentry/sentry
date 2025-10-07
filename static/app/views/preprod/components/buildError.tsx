@@ -1,27 +1,38 @@
-import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import Missing from 'sentry-images/missing.png';
 
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 
-export function BuildError({title, message}: {message: string; title: string}) {
-  const theme = useTheme();
+interface BuildErrorProps {
+  message: string;
+  title: string;
+  children?: React.ReactNode;
+}
+
+export function BuildError({title, message, children}: BuildErrorProps) {
   return (
     <Flex
       direction="column"
       align="center"
       justify="center"
-      style={{minHeight: '60vh', padding: theme.space.md}}
+      gap="3xl"
+      padding="md"
+      minHeight="60vh"
     >
-      <Flex
-        direction="column"
-        align="center"
-        gap="lg"
-        style={{maxWidth: '500px', textAlign: 'center'}}
-      >
-        <div style={{fontSize: '64px'}}>⚠️</div>
-        <Heading as="h2">{title}</Heading>
-        <Text>{message}</Text>
+      <Flex maxWidth="500px" direction="column" align="center" gap="lg" padding="md">
+        <AlertImage src={Missing} alt="Error image" />
+        <Heading as="h2" align="center">
+          {title}
+        </Heading>
+        <Text align="center">{message}</Text>
       </Flex>
+      {children}
     </Flex>
   );
 }
+
+const AlertImage = styled('img')`
+  height: 200px;
+`;

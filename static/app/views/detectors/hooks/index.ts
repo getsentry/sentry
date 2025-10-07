@@ -1,16 +1,11 @@
 import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
-import type {
-  BaseDetectorUpdatePayload,
-  Detector,
+import {
+  type BaseDetectorUpdatePayload,
+  type Detector,
 } from 'sentry/types/workflowEngine/detectors';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {
-  useApiQueries,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -44,13 +39,13 @@ export const makeDetectorListQueryKey = ({
   {query: {query, sortBy, project: projects, per_page: limit, cursor, id: ids}},
 ];
 
-export function useDetectorsQuery(
+export function useDetectorsQuery<T extends Detector = Detector>(
   {ids, query, sortBy, projects, limit, cursor}: UseDetectorsQueryKeyOptions = {},
-  queryOptions: Partial<UseApiQueryOptions<Detector[]>> = {}
+  queryOptions: Partial<UseApiQueryOptions<T[]>> = {}
 ) {
   const org = useOrganization();
 
-  return useApiQuery<Detector[]>(
+  return useApiQuery<T[]>(
     makeDetectorListQueryKey({
       orgSlug: org.slug,
       query,
@@ -68,12 +63,12 @@ export function useDetectorsQuery(
   );
 }
 
-export function useCreateDetector() {
+export function useCreateDetector<T extends Detector = Detector>() {
   const org = useOrganization();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
-  return useMutation<Detector, void, BaseDetectorUpdatePayload>({
+  return useMutation<T, void, BaseDetectorUpdatePayload>({
     mutationFn: data =>
       api.requestPromise(`/organizations/${org.slug}/detectors/`, {
         method: 'POST',
@@ -90,16 +85,12 @@ export function useCreateDetector() {
   });
 }
 
-export function useUpdateDetector() {
+export function useUpdateDetector<T extends Detector = Detector>() {
   const org = useOrganization();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
-  return useMutation<
-    Detector,
-    void,
-    {detectorId: string} & Partial<BaseDetectorUpdatePayload>
-  >({
+  return useMutation<T, void, {detectorId: string} & Partial<BaseDetectorUpdatePayload>>({
     mutationFn: data =>
       api.requestPromise(`/organizations/${org.slug}/detectors/${data.detectorId}/`, {
         method: 'PUT',
@@ -119,7 +110,7 @@ export function useUpdateDetector() {
   });
 }
 
-const makeDetectorDetailsQueryKey = ({
+export const makeDetectorDetailsQueryKey = ({
   orgSlug,
   detectorId,
 }: {
@@ -127,28 +118,15 @@ const makeDetectorDetailsQueryKey = ({
   orgSlug: string;
 }): ApiQueryKey => [`/organizations/${orgSlug}/detectors/${detectorId}/`];
 
-export function useDetectorQuery(detectorId: string) {
+export function useDetectorQuery<T extends Detector = Detector>(
+  detectorId: string,
+  queryOptions: Partial<UseApiQueryOptions<T>> = {}
+) {
   const org = useOrganization();
 
-  return useApiQuery<Detector>(
-    makeDetectorDetailsQueryKey({orgSlug: org.slug, detectorId}),
-    {
-      staleTime: 0,
-      retry: false,
-    }
-  );
-}
-
-export function useDetectorQueriesByIds(detectorId: string[]) {
-  const org = useOrganization();
-
-  return useApiQueries<Detector>(
-    detectorId.map(id =>
-      makeDetectorDetailsQueryKey({orgSlug: org.slug, detectorId: id})
-    ),
-    {
-      staleTime: 0,
-      retry: false,
-    }
-  );
+  return useApiQuery<T>(makeDetectorDetailsQueryKey({orgSlug: org.slug, detectorId}), {
+    staleTime: 0,
+    retry: false,
+    ...queryOptions,
+  });
 }

@@ -8,12 +8,14 @@ from typing import Any
 
 import sentry_sdk
 from django.db import router, transaction
+from django.utils import timezone
 
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.preprod.models import (
     PreprodArtifact,
+    PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
 )
@@ -27,11 +29,11 @@ from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
     assemble_file,
+    get_assemble_status,
     set_assemble_status,
 )
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.namespaces import attachments_tasks
+from sentry.taskworker.namespaces import attachments_tasks, preprod_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils.sdk import bind_organization_context
 
@@ -40,13 +42,10 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact",
-    queue="assemble",
-    silo_mode=SiloMode.REGION,
     retry=Retry(times=3),
-    taskworker_config=TaskworkerConfig(
-        namespace=attachments_tasks,
-        processing_deadline_duration=30,
-    ),
+    namespace=attachments_tasks,
+    processing_deadline_duration=30,
+    silo_mode=SiloMode.REGION,
 )
 def assemble_preprod_artifact(
     org_id: int,
@@ -133,7 +132,6 @@ def assemble_preprod_artifact(
             project_id=project_id,
             organization_id=org_id,
             artifact_id=artifact_id,
-            **kwargs,
         )
     except Exception as e:
         user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
@@ -287,10 +285,10 @@ def _assemble_preprod_artifact_file(
     logger.info(
         "Starting preprod file assembly",
         extra={
-            "timestamp": datetime.datetime.now().isoformat(),
-            "project_id": project_id,
             "organization_id": org_id,
+            "project_id": project_id,
             "assemble_task": assemble_task,
+            "checksum": checksum,
         },
     )
 
@@ -315,6 +313,18 @@ def _assemble_preprod_artifact_file(
             file_type="preprod.file",
         )
         if assemble_result is None:
+            state, detail = get_assemble_status(assemble_task, project_id, checksum)
+            logger.error(
+                "Failed to assemble preprod file",
+                extra={
+                    "organization_id": org_id,
+                    "project_id": project_id,
+                    "assemble_task": assemble_task,
+                    "checksum": checksum,
+                    "detail": detail,
+                    "state": state,
+                },
+            )
             return
 
         callback(assemble_result, project)
@@ -322,9 +332,10 @@ def _assemble_preprod_artifact_file(
         logger.exception(
             "Failed to assemble preprod file",
             extra={
-                "project_id": project_id,
                 "organization_id": org_id,
+                "project_id": project_id,
                 "assemble_task": assemble_task,
+                "checksum": checksum,
             },
         )
         set_assemble_status(
@@ -384,6 +395,7 @@ def _assemble_preprod_artifact_size_analysis(
                     "max_install_size": size_analysis_results.install_size,
                     "min_download_size": None,  # No min value at this time
                     "max_download_size": size_analysis_results.download_size,
+                    "processing_version": size_analysis_results.analysis_version,
                     "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
                 },
             )
@@ -454,12 +466,9 @@ def _assemble_preprod_artifact_size_analysis(
 
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact_size_analysis",
-    queue="assemble",
+    namespace=attachments_tasks,
+    processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=attachments_tasks,
-        processing_deadline_duration=30,
-    ),
 )
 def assemble_preprod_artifact_size_analysis(
     org_id,
@@ -521,12 +530,9 @@ def _assemble_preprod_artifact_installable_app(
 
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact_installable_app",
-    queue="assemble",
+    namespace=attachments_tasks,
+    processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=attachments_tasks,
-        processing_deadline_duration=30,
-    ),
 )
 def assemble_preprod_artifact_installable_app(
     org_id, project_id, checksum, chunks, artifact_id, **kwargs
@@ -540,4 +546,145 @@ def assemble_preprod_artifact_installable_app(
         lambda assemble_result, project: _assemble_preprod_artifact_installable_app(
             assemble_result, project, artifact_id, org_id
         ),
+    )
+
+
+@instrumented_task(
+    name="sentry.preprod.tasks.detect_expired_preprod_artifacts",
+    namespace=preprod_tasks,
+    processing_deadline_duration=60,
+    silo_mode=SiloMode.REGION,
+)
+def detect_expired_preprod_artifacts():
+    """
+    Detects PreprodArtifacts and related entities that have been processing for more than 30 minutes
+    and updates their state to errored.
+
+    This includes:
+    - PreprodArtifacts that have been processing for more than 30 minutes
+    - PreprodArtifactSizeMetrics that have been in progress for more than 30 minutes
+    - PreprodArtifactSizeComparisons that have been in progress for more than 30 minutes
+    """
+    current_time = timezone.now()
+    timeout_threshold = current_time - datetime.timedelta(minutes=30)
+
+    logger.info(
+        "preprod.tasks.detect_expired_preprod_artifacts.starting",
+        extra={
+            "current_time": current_time.isoformat(),
+            "timeout_threshold": timeout_threshold.isoformat(),
+        },
+    )
+
+    # note: looks for date_updated rather than date_added just to keep things more conservative for now
+    expired_artifacts = PreprodArtifact.objects.filter(
+        state__in=[PreprodArtifact.ArtifactState.UPLOADING, PreprodArtifact.ArtifactState.UPLOADED],
+        date_updated__lte=timeout_threshold,
+    )
+
+    expired_artifacts_count = 0
+    updated_artifact_ids = []
+
+    try:
+        with transaction.atomic(router.db_for_write(PreprodArtifact)):
+            expired_artifact_ids = list(expired_artifacts.values_list("id", flat=True))
+
+            expired_artifacts_count = expired_artifacts.update(
+                state=PreprodArtifact.ArtifactState.FAILED,
+                error_code=PreprodArtifact.ErrorCode.ARTIFACT_PROCESSING_TIMEOUT,
+                error_message="Artifact processing timed out after 30 minutes",
+            )
+
+            if expired_artifacts_count > 0:
+                logger.info(
+                    "preprod.tasks.detect_expired_preprod_artifacts.batch_updated_expired_artifacts_as_failed",
+                    extra={
+                        "expired_artifacts_count": expired_artifacts_count,
+                    },
+                )
+                updated_artifact_ids = expired_artifact_ids
+    except Exception:
+        logger.exception(
+            "preprod.tasks.detect_expired_preprod_artifacts.failed_to_batch_update_expired_artifacts",
+        )
+        expired_artifacts_count = 0
+        updated_artifact_ids = []
+
+    if updated_artifact_ids:
+        for artifact_id in updated_artifact_ids:
+            try:
+                create_preprod_status_check_task.apply_async(
+                    kwargs={"preprod_artifact_id": artifact_id}
+                )
+            except Exception:
+                logger.exception(
+                    "preprod.tasks.detect_expired_preprod_artifacts.failed_to_trigger_status_check",
+                    extra={"artifact_id": artifact_id},
+                )
+
+    # Find expired PreprodArtifactSizeMetrics (those in PROCESSING state for more than 30 minutes)
+    # Note: ignore size metrics in a pending state
+    expired_size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+        state=PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
+        date_updated__lte=timeout_threshold,
+    )
+
+    try:
+        with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
+            expired_size_metrics_count = expired_size_metrics.update(
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
+                error_code=PreprodArtifactSizeMetrics.ErrorCode.TIMEOUT,
+                error_message="Size analysis processing timed out after 30 minutes",
+            )
+
+            if expired_size_metrics_count > 0:
+                logger.info(
+                    "preprod.tasks.detect_expired_preprod_artifacts.batch_updated_expired_size_metrics_as_failed",
+                    extra={
+                        "expired_size_metrics_count": expired_size_metrics_count,
+                    },
+                )
+    except Exception:
+        logger.exception(
+            "preprod.tasks.detect_expired_preprod_artifacts.failed_to_batch_update_expired_size_metrics",
+        )
+        expired_size_metrics_count = 0
+
+    # Find expired PreprodArtifactSizeComparisons (those in PROCESSING state for more than 30 minutes)
+    # Note: ignore size comparisons in a pending state
+    expired_size_comparisons = PreprodArtifactSizeComparison.objects.filter(
+        state=PreprodArtifactSizeComparison.State.PROCESSING, date_updated__lte=timeout_threshold
+    )
+
+    try:
+        with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
+            expired_size_comparisons_count = expired_size_comparisons.update(
+                state=PreprodArtifactSizeComparison.State.FAILED,
+                error_code=PreprodArtifactSizeComparison.ErrorCode.TIMEOUT,
+                error_message="Size comparison processing timed out after 30 minutes",
+            )
+
+            if expired_size_comparisons_count > 0:
+                logger.info(
+                    "preprod.tasks.detect_expired_preprod_artifacts.batch_updated_expired_size_comparisons_as_failed",
+                    extra={
+                        "expired_size_comparisons_count": expired_size_comparisons_count,
+                    },
+                )
+    except Exception:
+        logger.exception(
+            "preprod.tasks.detect_expired_preprod_artifacts.failed_to_batch_update_expired_size_comparisons",
+        )
+        expired_size_comparisons_count = 0
+
+    logger.info(
+        "preprod.tasks.detect_expired_preprod_artifacts.completed",
+        extra={
+            "expired_artifacts_count": expired_artifacts_count,
+            "expired_size_metrics_count": expired_size_metrics_count,
+            "expired_size_comparisons_count": expired_size_comparisons_count,
+            "total_expired_count": expired_artifacts_count
+            + expired_size_metrics_count
+            + expired_size_comparisons_count,
+        },
     )

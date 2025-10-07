@@ -30,19 +30,16 @@ describe('MultiQueryModeContent', () => {
     MockApiClient.clearMockResponses();
 
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [project].map(p => parseInt(p.id, 10)),
-        environments: [],
-        datetime: {
-          period: '7d',
-          start: null,
-          end: null,
-          utc: null,
-        },
+    PageFiltersStore.onInitializeUrlState({
+      projects: [project].map(p => parseInt(p.id, 10)),
+      environments: [],
+      datetime: {
+        period: '7d',
+        start: null,
+        end: null,
+        utc: null,
       },
-      new Set()
-    );
+    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/setup-check/`,
@@ -999,7 +996,7 @@ describe('MultiQueryModeContent', () => {
             orderby: undefined,
             project: ['2'],
             query: '',
-            referrer: 'api.explorer.stats',
+            referrer: 'api.explore.spans-stats',
             statsPeriod: '7d',
             topEvents: undefined,
             yAxis: 'count(span.duration)',
@@ -1048,7 +1045,7 @@ describe('MultiQueryModeContent', () => {
             orderby: '-count_span_duration',
             project: ['2'],
             query: '',
-            referrer: 'api.explorer.stats',
+            referrer: 'api.explore.spans-stats',
             sort: '-count_span_duration',
             statsPeriod: '7d',
             topEvents: '5',

@@ -43,7 +43,6 @@ type SeriesItem = {
   subSeries?: SubSeries[];
 };
 
-/** @internal exported for tests only */
 export type StatsGroup = {
   by: {
     outcome: string;
@@ -112,7 +111,6 @@ function zeroFillDates(start: number, end: number, {color}: {color: string}) {
   return zero;
 }
 
-/** @internal exported for tests only */
 export function populateChartData(
   intervals: Array<string | number>,
   groups: StatsGroup[],

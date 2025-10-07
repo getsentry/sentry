@@ -2434,6 +2434,46 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             == []
         )
 
+    def test_query_detector_filter(self) -> None:
+        event = self.store_event(
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        group = event.group
+
+        event2 = self.store_event(
+            data={"timestamp": before_now(seconds=400).isoformat(), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+        assert event2.group.id != group.id
+
+        detector_id = 12345  # intentionally multi-digit
+        detector = self.create_detector(
+            id=detector_id,
+            name=f"Test Detector {detector_id}",
+            project=self.project,
+            type="error",
+        )
+
+        self.create_detector_group(
+            detector=detector,
+            group=group,
+        )
+
+        self.login_as(user=self.user)
+
+        # Query for the specific detector ID
+        response = self.get_response(sort_by="date", query=f"detector:{detector_id}")
+        assert response.status_code == 200
+
+        # Should return only the group associated with the detector
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == group.id
+
+        response_empty = self.get_response(sort_by="date", query="detector:99999")
+        assert response_empty.status_code == 200
+        assert len(response_empty.data) == 0
+
     def test_first_seen_and_last_seen_filters(self) -> None:
         self.login_as(user=self.user)
         project = self.project
@@ -3339,7 +3379,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert new_group4.resolved_at is None
         assert new_group4.status == GroupStatus.UNRESOLVED
 
-    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_current_release(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
@@ -3381,7 +3420,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert open_period.date_ended == group.resolved_at
         assert open_period.resolution_activity == activity
 
-    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_current_release_without_open_period(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
@@ -3421,7 +3459,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         assert GroupOpenPeriod.objects.filter(group=group).count() == 0
 
-    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_explicit_release(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
@@ -3465,7 +3502,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert open_period.date_ended == group.resolved_at
         assert open_period.resolution_activity == activity
 
-    @with_feature("organizations:issue-open-periods")
     def test_in_semver_projects_set_resolved_in_explicit_release(self) -> None:
         release_1 = self.create_release(version="fake_package@3.0.0")
         release_2 = self.create_release(version="fake_package@2.0.0")
@@ -3624,7 +3660,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
         ).exists()
 
-    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_explicit_commit_released(self) -> None:
         release = self.create_release(project=self.project)
         repo = self.create_repo(project=self.project, name=self.project.name)
@@ -3672,7 +3707,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert open_period.date_ended == group.resolved_at
         assert open_period.resolution_activity == activity
 
-    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_explicit_commit_missing(self) -> None:
         repo = self.create_repo(project=self.project, name=self.project.name)
         group = self.create_group(status=GroupStatus.UNRESOLVED)
@@ -4274,11 +4308,6 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             org = args[0]
         return super().get_response(org, **kwargs)
 
-    def assert_pending_deletion_groups(self, groups: Sequence[Group]) -> None:
-        for group in groups:
-            assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
-            assert not GroupHash.objects.filter(group_id=group.id).exists()
-
     def assert_deleted_groups(self, groups: Sequence[Group]) -> None:
         for group in groups:
             assert not Group.objects.filter(id=group.id).exists()
@@ -4433,40 +4462,9 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.get_success_response(qs_params={"query": ""})
-        assert response.status_code == 204
-        self.assert_pending_deletion_groups(groups)
-
-        # This is needed to put the groups in the unresolved state before also triggering the task
-        Group.objects.filter(id__in=[group.id for group in groups]).update(
-            status=GroupStatus.UNRESOLVED
-        )
         with self.tasks():
             # if query is '' it defaults to is:unresolved
             response = self.get_response(qs_params={"query": ""})
             assert response.status_code == 204
 
         self.assert_deleted_groups(groups)
-
-    @patch("sentry.api.helpers.group_index.delete.may_schedule_task_to_delete_hashes_from_seer")
-    def test_do_not_mark_as_pending_deletion_if_seer_fails(self, mock_seer_delete: Mock) -> None:
-        """
-        Test that the issue is not marked as pending deletion if the seer call fails.
-        """
-        # When trying to gather the hashes, the query could be cancelled by the user
-        mock_seer_delete.side_effect = OperationalError(
-            "QueryCanceled('canceling statement due to user request\n')"
-        )
-        event = self.store_event(data={}, project_id=self.project.id)
-        group1 = Group.objects.get(id=event.group_id)
-        assert GroupHash.objects.filter(group=group1).exists()
-
-        self.login_as(user=self.user)
-        with self.tasks():
-            response = self.get_response(qs_params={"id": [group1.id]})
-            assert response.status_code == 500
-            assert response.data["detail"] == "Error deleting groups"
-
-        # The group has not been marked as pending deletion
-        assert Group.objects.get(id=group1.id).status == group1.status
-        assert GroupHash.objects.filter(group=group1).exists()

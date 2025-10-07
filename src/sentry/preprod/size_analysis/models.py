@@ -35,6 +35,7 @@ class SizeAnalysisResults(BaseModel):
     download_size: int
     install_size: int
     treemap: TreemapResults | None
+    analysis_version: str | None
 
 
 ###

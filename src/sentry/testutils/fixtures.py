@@ -55,6 +55,8 @@ from sentry.types.actor import Actor
 from sentry.uptime.models import UptimeStatus, UptimeSubscription, UptimeSubscriptionRegion
 from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
+    DEFAULT_DOWNTIME_THRESHOLD,
+    DEFAULT_RECOVERY_THRESHOLD,
     GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
     UptimeMonitorMode,
 )
@@ -813,6 +815,8 @@ class Fixtures:
         uptime_status=UptimeStatus.OK,
         uptime_status_update_date: datetime | None = None,
         id: int | None = None,
+        recovery_threshold: int = DEFAULT_RECOVERY_THRESHOLD,
+        downtime_threshold: int = DEFAULT_DOWNTIME_THRESHOLD,
     ) -> Detector:
         if project is None:
             project = self.project
@@ -867,6 +871,8 @@ class Fixtures:
             config={
                 "environment": env_name,
                 "mode": mode,
+                "recovery_threshold": recovery_threshold,
+                "downtime_threshold": downtime_threshold,
             },
             workflow_condition_group=condition_group,
         )
@@ -888,19 +894,6 @@ class Fixtures:
                 state=DetectorPriorityLevel.OK,
                 is_triggered=False,
             )
-
-        # TODO(epurkhiser): Dual create a ProjectUptimeSubscription as well,
-        # can be removed once we completely remove ProjectUptimeSubscription
-        Factories.create_project_uptime_subscription(
-            project,
-            env,
-            uptime_subscription,
-            status,
-            mode,
-            name,
-            Actor.from_object(owner) if owner else None,
-            id,
-        )
 
         return detector
 

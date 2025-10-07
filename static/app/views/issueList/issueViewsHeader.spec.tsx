@@ -35,7 +35,6 @@ describe('IssueViewsHeader', () => {
 
   const organization = OrganizationFixture({
     access: ['org:read'],
-    features: ['enforce-stacked-navigation'],
   });
 
   const onIssueViewRouterConfig = {

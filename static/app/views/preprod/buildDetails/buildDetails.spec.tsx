@@ -111,6 +111,7 @@ describe('BuildDetails', () => {
           base_repo_name: 'test/repo',
         },
         size_info: {
+          state: 2, // COMPLETED
           install_size_bytes: 1024000,
           download_size_bytes: 512000,
         },
@@ -150,7 +151,6 @@ describe('BuildDetails', () => {
       body: {
         id: 'artifact-1',
         state: 3, // PROCESSED
-        size_analysis_state: 1, // PROCESSING
         app_info: {
           version: '1.0.0',
           build_number: '123',
@@ -160,8 +160,7 @@ describe('BuildDetails', () => {
           head_sha: 'abc123',
         },
         size_info: {
-          install_size_bytes: 1024000,
-          download_size_bytes: 512000,
+          state: 1, // PROCESSING
         },
       },
     });
@@ -179,9 +178,6 @@ describe('BuildDetails', () => {
 
     await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(1));
 
-    expect(
-      await screen.findByText('Your app is still being analyzed...')
-    ).toBeInTheDocument();
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(await screen.findByText('Running size analysis')).toBeInTheDocument();
   });
 });

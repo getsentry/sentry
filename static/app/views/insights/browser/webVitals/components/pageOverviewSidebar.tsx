@@ -87,8 +87,13 @@ export function PageOverviewSidebar({
 
   const shouldDoublePeriod = false;
 
+  const countTimeSeries = data?.timeSeries?.find(ts => ts.yAxis === 'count()');
+  const countData = countTimeSeries
+    ? countTimeSeries.values.map(v => ({name: v.timestamp, value: v.value || 0}))
+    : [];
+
   const {countDiff, currentSeries, currentCount, initialCount} = processSeriesData(
-    data['count()'].data,
+    countData,
     isLoading,
     pageFilters.selection.datetime,
     shouldDoublePeriod
@@ -101,13 +106,20 @@ export function PageOverviewSidebar({
     },
   ];
 
+  const inpTimeSeries = data?.timeSeries?.find(
+    ts => ts.yAxis === 'count_scores(measurements.score.inp)'
+  );
+  const inpData = inpTimeSeries
+    ? inpTimeSeries.values.map(v => ({name: v.timestamp, value: v.value || 0}))
+    : [];
+
   const {
     countDiff: inpCountDiff,
     currentSeries: currentInpSeries,
     currentCount: currentInpCount,
     initialCount: initialInpCount,
   } = processSeriesData(
-    data['count_scores(measurements.score.inp)'].data,
+    inpData,
     isLoading,
     pageFilters.selection.datetime,
     shouldDoublePeriod
@@ -160,6 +172,7 @@ export function PageOverviewSidebar({
 
   const runSeerAnalysis = useRunSeerAnalysis({
     projectScore,
+    projectData: projectData?.[0],
     transaction,
     webVitalTraceSamples,
   });

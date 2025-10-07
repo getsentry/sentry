@@ -1,7 +1,3 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
-
-import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import {
   StepType,
@@ -14,12 +10,12 @@ import {
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
-  AlternativeConfiguration,
-  getPythonInstallConfig,
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
+  getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -82,117 +78,102 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct('Install [code:sentry-sdk] from PyPI:', {
-        code: <code />,
-      }),
-      configurations: getPythonInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct('Install [code:sentry-sdk] from PyPI:', {
+            code: <code />,
+          }),
+        },
+        getPythonInstallCodeBlock(),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        'You can use the Google Cloud Functions integration for the Python SDK like this:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'You can use the Google Cloud Functions integration for the Python SDK like this:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
-      ],
-      additionalInfo: (
-        <Fragment>
-          {params.isProfilingSelected &&
-            params.profilingOptions?.defaultProfilingMode === 'continuous' && (
-              <Fragment>
-                <AlternativeConfiguration />
-                <br />
-              </Fragment>
-            )}
-          {tct("Check out Sentry's [link:GCP sample apps] for detailed examples.", {
+        alternativeProfilingConfiguration(params),
+        {
+          type: 'text',
+          text: tct("Check out Sentry's [link:GCP sample apps] for detailed examples.", {
             link: (
               <ExternalLink href="https://github.com/getsentry/examples/tree/master/gcp-cloud-functions" />
             ),
-          })}
-        </Fragment>
-      ),
+          }),
+        },
+      ],
     },
     {
       title: t('Timeout Warning'),
-      description: tct(
-        'The timeout warning reports an issue when the function execution time is near the [link:configured timeout].',
+      content: [
         {
-          link: (
-            <ExternalLink href="https://cloud.google.com/functions/docs/concepts/execution-environment#timeout" />
+          type: 'text',
+          text: tct(
+            'The timeout warning reports an issue when the function execution time is near the [link:configured timeout].',
+            {
+              link: (
+                <ExternalLink href="https://cloud.google.com/functions/docs/concepts/execution-environment#timeout" />
+              ),
+            }
           ),
-        }
-      ),
-      configurations: [
+        },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'To enable the warning, update the SDK initialization to set [code:timeout_warning] to [code:true]:',
             {code: <code />}
           ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: getTimeoutWarningSnippet(params),
         },
         {
-          description: t(
+          type: 'text',
+          text: t(
             'The timeout warning is sent only if the timeout in the Cloud Function configuration is set to a value greater than one second.'
           ),
         },
-      ],
-      additionalInfo: (
-        <StyledAlert type="info">
-          {tct(
+        {
+          type: 'alert',
+          alertType: 'info',
+          text: tct(
             'If you are using a web framework in your Cloud Function, the framework might catch those exceptions before we get to see them. Make sure to enable the framework specific integration as well, if one exists. See [link:Integrations] for more information.',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/platforms/python/#integrations" />
               ),
             }
-          )}
-        </StyledAlert>
-      ),
+          ),
+        },
+      ],
     },
   ],
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Deploy your function and invoke it to generate an error, then check Sentry for the captured event.'
-      ),
-      configurations: params.isLogsSelected
-        ? [
-            {
-              description: t(
-                'You can send logs to Sentry using the Sentry logging APIs:'
-              ),
-              language: 'python',
-              code: `import sentry_sdk
-
-# Send logs directly to Sentry
-sentry_sdk.logger.info('This is an info log message')
-sentry_sdk.logger.warning('This is a warning message')
-sentry_sdk.logger.error('This is an error message')`,
-            },
-            {
-              description: t(
-                "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
-              ),
-              language: 'python',
-              code: `import logging
-
-# Your existing logging setup
-logger = logging.getLogger(__name__)
-
-# These logs will be automatically sent to Sentry
-logger.info('This will be sent to Sentry')
-logger.warning('User login failed')
-logger.error('Something went wrong')`,
-            },
-          ]
-        : [],
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Deploy your function and invoke it to generate an error, then check Sentry for the captured event.'
+          ),
+        },
+        getVerifyLogsContent(params),
+      ],
     },
   ],
   nextSteps: (params: Params) => {
@@ -223,7 +204,3 @@ const docs: Docs = {
 };
 
 export default docs;
-
-const StyledAlert = styled(Alert)`
-  margin-top: ${space(2)};
-`;

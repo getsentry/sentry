@@ -65,7 +65,6 @@ from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
@@ -85,20 +84,10 @@ OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, Dec
 
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=15 * 60,  # 10 minutes
-    time_limit=15 * 60 + 5,
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=15 * 60 + 5,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=telemetry_experience_tasks,
-        processing_deadline_duration=15 * 60 + 5,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @dynamic_sampling_task
 def boost_low_volume_projects() -> None:
@@ -111,12 +100,7 @@ def boost_low_volume_projects() -> None:
     )
 
     # NB: This always uses the *transactions* root count just to get the list of orgs.
-    if options.get("dynamic-sampling.query-granularity-60s.active-orgs", None):
-        granularity = Granularity(60)
-    else:
-        granularity = Granularity(3600)
-
-    for orgs in GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=granularity):
+    for orgs in GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=Granularity(60)):
         for measure, orgs in partition_by_measure(orgs).items():
             for org_id, projects in fetch_projects_with_total_root_transaction_count_and_rates(
                 org_ids=orgs, measure=measure
@@ -175,20 +159,10 @@ def partition_by_measure(
 
 @instrumented_task(
     name="sentry.dynamic_sampling.boost_low_volume_projects_of_org_with_query",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=3 * 60,
-    time_limit=3 * 60 + 5,
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=3 * 60 + 5,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=telemetry_experience_tasks,
-        processing_deadline_duration=3 * 60 + 5,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @dynamic_sampling_task
 def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
@@ -224,20 +198,10 @@ def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
 
 @instrumented_task(
     name="sentry.dynamic_sampling.boost_low_volume_projects_of_org",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=3 * 60,
-    time_limit=3 * 60 + 5,
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=3 * 60 + 5,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=telemetry_experience_tasks,
-        processing_deadline_duration=3 * 60 + 5,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @dynamic_sampling_task
 def boost_low_volume_projects_of_org(
@@ -294,6 +258,7 @@ def boost_low_volume_projects_of_org(
         )
 
 
+@metrics.wraps("dynamic_sampling.fetch_projects_with_total_root_transaction_count_and_rates")
 def fetch_projects_with_total_root_transaction_count_and_rates(
     org_ids: list[int],
     measure: SamplingMeasure,
@@ -319,6 +284,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
     return aggregated_projects
 
 
+@dynamic_sampling_task
 def query_project_counts_by_org(
     org_ids: list[int], measure: SamplingMeasure, query_interval: timedelta | None = None
 ) -> Iterator[Sequence[OrgProjectVolumes]]:
@@ -333,10 +299,7 @@ def query_project_counts_by_org(
     if query_interval > timedelta(days=1):
         granularity = Granularity(24 * 3600)
     else:
-        if options.get("dynamic-sampling.query-granularity-60s", None):
-            granularity = Granularity(60)
-        else:
-            granularity = Granularity(3600)
+        granularity = Granularity(60)
 
     org_ids = list(org_ids)
     project_ids = list(
@@ -400,16 +363,20 @@ def query_project_counts_by_org(
     offset = 0
     more_results: bool = True
     while more_results:
-        request = Request(
-            dataset=Dataset.PerformanceMetrics.value,
-            app_id="dynamic_sampling",
-            query=query.set_offset(offset),
-            tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
-        )
-        data = raw_snql_query(
-            request,
-            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,
-        )["data"]
+        with metrics.timer(
+            "dynamic_sampling.query_project_counts_by_org.query_time",
+            tags={"measure": str(measure.value)},
+        ):
+            request = Request(
+                dataset=Dataset.PerformanceMetrics.value,
+                app_id="dynamic_sampling",
+                query=query.set_offset(offset),
+                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
+            )
+            data = raw_snql_query(
+                request,
+                referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,
+            )["data"]
 
         more_results = len(data) > CHUNK_SIZE
         offset += CHUNK_SIZE
@@ -430,6 +397,7 @@ def query_project_counts_by_org(
         ]
 
 
+@dynamic_sampling_task
 def calculate_sample_rates_of_projects(
     org_id: int,
     projects_with_tx_count: Sequence[ProjectVolumes],
@@ -567,6 +535,7 @@ def calculate_sample_rates_of_projects(
     return rebalanced_projects
 
 
+@dynamic_sampling_task
 def store_rebalanced_projects(org_id: int, rebalanced_projects: list[RebalancedItem]) -> None:
     """Stores the rebalanced projects in the cache and invalidates the project configs."""
     redis_client = get_redis_client_for_ds()

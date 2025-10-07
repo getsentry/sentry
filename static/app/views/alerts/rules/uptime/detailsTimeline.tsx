@@ -7,33 +7,40 @@ import {
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import Panel from 'sentry/components/panels/panel';
+import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {OverviewRow} from 'sentry/views/insights/uptime/components/overviewTimeline/overviewRow';
 import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
 
-import type {CheckStatusBucket, UptimeRule} from './types';
+import type {CheckStatusBucket} from './types';
 
 interface Props {
   /**
    * Called when stats have been loaded for this timeline.
    */
   onStatsLoaded: (stats: CheckStatusBucket[]) => void;
-  uptimeRule: UptimeRule;
+  uptimeDetector: UptimeDetector;
 }
 
-export function DetailsTimeline({uptimeRule, onStatsLoaded}: Props) {
-  const {id} = uptimeRule;
+export function DetailsTimeline({uptimeDetector, onStatsLoaded}: Props) {
+  const {id} = uptimeDetector;
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
-  const {data: uptimeStats} = useUptimeMonitorStats({
-    detectorIds: [String(uptimeRule.id)],
-    timeWindowConfig,
-  });
+  const {data: uptimeStats} = useUptimeMonitorStats(
+    {
+      detectorIds: [String(uptimeDetector.id)],
+      timeWindowConfig,
+    },
+    {
+      refetchOnWindowFocus: true,
+      refetchInterval: 60_000,
+    }
+  );
 
   useEffect(
     () => uptimeStats?.[id] && onStatsLoaded?.(uptimeStats[id]),
@@ -55,9 +62,9 @@ export function DetailsTimeline({uptimeRule, onStatsLoaded}: Props) {
         cursorOverlayAnchorOffset={10}
       />
       <OverviewRow
-        uptimeRule={uptimeRule}
+        uptimeDetector={uptimeDetector}
         timeWindowConfig={timeWindowConfig}
-        singleRuleView
+        single
       />
     </Panel>
   );

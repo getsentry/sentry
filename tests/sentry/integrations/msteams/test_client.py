@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from unittest import mock
 from unittest.mock import call, patch
 from urllib.parse import urlencode
@@ -5,6 +6,7 @@ from urllib.parse import urlencode
 import pytest
 import responses
 from django.test import override_settings
+from requests import Request
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams.client import MsTeamsClient
@@ -25,7 +27,7 @@ from tests.sentry.integrations.test_helpers import add_control_silo_proxy_respon
 @control_silo_test
 class MsTeamsClientTest(TestCase):
     @pytest.fixture(autouse=True)
-    def _setup_metric_patch(self):
+    def _setup_metric_patch(self) -> Generator[None]:
         with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 
@@ -180,7 +182,7 @@ class MsTeamsClientTest(TestCase):
         assert self.metrics.incr.mock_calls == calls
 
 
-def assert_proxy_request(request, is_proxy=True):
+def assert_proxy_request(request: Request, is_proxy: bool = True) -> None:
     assert (PROXY_BASE_PATH in request.url) == is_proxy
     assert (PROXY_OI_HEADER in request.headers) == is_proxy
     assert (PROXY_SIGNATURE_HEADER in request.headers) == is_proxy

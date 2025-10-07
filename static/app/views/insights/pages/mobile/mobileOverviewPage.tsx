@@ -4,7 +4,6 @@ import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -22,12 +21,14 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
@@ -73,6 +74,8 @@ function EAPMobileOverviewPage() {
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
 
+  useDefaultToAllProjects();
+
   const withStaticFilters = canUseMetricsData(organization);
 
   const eventView = generateMobilePerformanceEventView(
@@ -80,7 +83,6 @@ function EAPMobileOverviewPage() {
     projects,
     generateGenericPerformanceEventView(location, withStaticFilters, organization),
     withStaticFilters,
-    organization,
     true
   );
 
@@ -123,14 +125,6 @@ function EAPMobileOverviewPage() {
     mepSetting
   );
 
-  if (organization.features.includes('mobile-vitals')) {
-    tripleChartRowCharts.push(
-      ...[
-        PerformanceWidgetSetting.TIME_TO_INITIAL_DISPLAY,
-        PerformanceWidgetSetting.TIME_TO_FULL_DISPLAY,
-      ]
-    );
-  }
   if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts[0] = PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID;
   }
@@ -230,7 +224,7 @@ function EAPMobileOverviewPage() {
               <ToolRibbon>
                 <PageFilterBar condensed>
                   <InsightsProjectSelector />
-                  <EnvironmentPageFilter />
+                  <InsightsEnvironmentSelector />
                   <DatePageFilter />
                 </PageFilterBar>
                 {!showOnboarding && (

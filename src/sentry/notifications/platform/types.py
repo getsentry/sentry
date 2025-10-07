@@ -173,6 +173,10 @@ class NotificationTemplate[T: NotificationData](abc.ABC):
     The category that a notification belongs to. This will be used to determine which settings a
     user needs to modify to manage receipt of these notifications (if applicable).
     """
+    example_data: T
+    """
+    The example data for this notification.
+    """
 
     @abc.abstractmethod
     def render(self, data: T) -> NotificationRenderedTemplate:
@@ -182,9 +186,9 @@ class NotificationTemplate[T: NotificationData](abc.ABC):
         """
         ...
 
-    @abc.abstractmethod
     def render_example(self) -> NotificationRenderedTemplate:
         """
         Used to produce a debugging example rendered template for this notification. This
         implementation should be pure, and not populate with any live data.
         """
+        return self.render(data=self.example_data)

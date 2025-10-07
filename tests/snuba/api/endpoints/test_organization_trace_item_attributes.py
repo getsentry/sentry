@@ -201,6 +201,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                     "sentry.message.parameter.0": {"bool_value": 1},
                     "sentry.message.parameter.1": {"int_value": 5},
                     "sentry.message.parameter.2": {"double_value": 10},
+                    "sentry.message.parameter.value": {"double_value": 15},
                 },
             ),
         ]
@@ -210,16 +211,63 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         response = self.do_request(query={"attributeType": "string"})
 
         assert response.status_code == 200, response.content
-        keys = {item["key"] for item in response.data}
-        assert keys == {
-            "project",
-            "message",
-            "severity",
-            "message.parameter.username",
-            "message.parameter.ip",
-            "message.parameter.0",
-            "message.parameter.1",
-        }
+        assert sorted(response.data, key=lambda key: key["key"]) == [
+            {
+                "key": "message",
+                "name": "message",
+                "attributeSource": {
+                    "source_type": "sentry",
+                },
+                "secondaryAliases": ["log.body"],
+            },
+            {
+                "key": "message.parameter.0",
+                "name": "message.parameter.0",
+                "attributeSource": {
+                    "source_type": "sentry",
+                    "is_transformed_alias": True,
+                },
+            },
+            {
+                "key": "message.parameter.1",
+                "name": "message.parameter.1",
+                "attributeSource": {
+                    "source_type": "sentry",
+                    "is_transformed_alias": True,
+                },
+            },
+            {
+                "key": "message.parameter.ip",
+                "name": "message.parameter.ip",
+                "attributeSource": {
+                    "source_type": "sentry",
+                    "is_transformed_alias": True,
+                },
+            },
+            {
+                "key": "message.parameter.username",
+                "name": "message.parameter.username",
+                "attributeSource": {
+                    "source_type": "sentry",
+                    "is_transformed_alias": True,
+                },
+            },
+            {
+                "key": "project",
+                "name": "project",
+                "attributeSource": {
+                    "source_type": "sentry",
+                },
+            },
+            {
+                "key": "severity",
+                "name": "severity",
+                "attributeSource": {
+                    "source_type": "sentry",
+                },
+                "secondaryAliases": ["log.severity_text", "severity_text"],
+            },
+        ]
 
         sources = {item["attributeSource"]["source_type"] for item in response.data}
         assert sources == {"sentry"}
@@ -233,24 +281,62 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         response = self.do_request(query={"attributeType": "number"})
 
         assert response.status_code == 200, response.content
-        keys = {item["key"] for item in response.data}
-        assert keys == {
-            "tags[message.parameter.0,number]",
-            "tags[message.parameter.1,number]",
-            "tags[message.parameter.2,number]",
-            "severity_number",
-            "observed_timestamp",
-            "timestamp_precise",
-        }
-
-        sources = {item["attributeSource"]["source_type"] for item in response.data}
-        assert sources == {"sentry"}
-
-        message_param_items = [
-            item for item in response.data if item["key"].startswith("tags[message.parameter.")
+        assert sorted(response.data, key=lambda key: key["key"]) == [
+            {
+                "key": "observed_timestamp",
+                "name": "observed_timestamp",
+                "attributeSource": {
+                    "source_type": "sentry",
+                },
+            },
+            {
+                "key": "severity_number",
+                "name": "severity_number",
+                "attributeSource": {
+                    "source_type": "sentry",
+                },
+                "secondaryAliases": ["log.severity_number"],
+            },
+            {
+                "key": "tags[message.parameter.0,number]",
+                "name": "message.parameter.0",
+                "attributeSource": {
+                    "source_type": "sentry",
+                    "is_transformed_alias": True,
+                },
+            },
+            {
+                "key": "tags[message.parameter.1,number]",
+                "name": "message.parameter.1",
+                "attributeSource": {
+                    "source_type": "sentry",
+                    "is_transformed_alias": True,
+                },
+            },
+            {
+                "key": "tags[message.parameter.2,number]",
+                "name": "message.parameter.2",
+                "attributeSource": {
+                    "source_type": "sentry",
+                    "is_transformed_alias": True,
+                },
+            },
+            {
+                "key": "tags[message.parameter.value,number]",
+                "name": "message.parameter.value",
+                "attributeSource": {
+                    "source_type": "sentry",
+                    "is_transformed_alias": True,
+                },
+            },
+            {
+                "key": "timestamp_precise",
+                "name": "timestamp_precise",
+                "attributeSource": {
+                    "source_type": "sentry",
+                },
+            },
         ]
-        for item in message_param_items:
-            assert item["attributeSource"]["is_transformed_alias"] is True
 
     def test_attribute_collision(self) -> None:
         logs = [
@@ -655,12 +741,12 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             },
             {
                 "key": "tags[span.duration,string]",
-                "name": "tags[span.duration,string]",
+                "name": "span.duration",
                 "attributeSource": {"source_type": "sentry"},
             },
             {
                 "key": "tags[span.op,string]",
-                "name": "tags[span.op,string]",
+                "name": "span.op",
                 "attributeSource": {"source_type": "sentry"},
             },
         ]

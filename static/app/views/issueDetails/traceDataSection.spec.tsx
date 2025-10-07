@@ -21,11 +21,8 @@ jest.mock('sentry/utils/routeAnalytics/useRouteAnalyticsParams');
 jest.mock('sentry/utils/analytics');
 
 describe('TraceDataSection', () => {
-  // Paid plans have global-views enabled
   // Include project: -1 in all matchQuery calls to ensure we are looking at all projects
-  const organization = OrganizationFixture({
-    features: ['global-views'],
-  });
+  const organization = OrganizationFixture();
   const firstEventTimestamp = '2024-01-24T09:09:01+00:00';
   // This creates the ApiException event
   const event = EventFixture({
@@ -283,73 +280,6 @@ describe('TraceDataSection', () => {
     // We do not display the timeline because we only have 1 event
     expect(screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({});
-  });
-
-  it('trace timeline works for plans with no global-views feature', async () => {
-    // This test will call the endpoint without the global-views feature, thus,
-    // we will only look at the current project (project: event.projectID) instead of passing -1
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: issuePlatformBody,
-      match: [
-        MockApiClient.matchQuery({
-          dataset: 'issuePlatform',
-          project: event.projectID,
-        }),
-      ],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: twoIssuesBody,
-      match: [
-        MockApiClient.matchQuery({
-          dataset: 'discover',
-          project: event.projectID,
-        }),
-      ],
-    });
-
-    render(<TraceDataSection event={event} />, {
-      organization: OrganizationFixture({features: []}), // No global-views feature
-    });
-    expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
-  });
-
-  it('trace-related issue works for plans with no global-views feature', async () => {
-    // This test will call the endpoint without the global-views feature, thus,
-    // we will only look at the current project (project: event.projectID) instead of passing -1
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: issuePlatformBody,
-      match: [
-        MockApiClient.matchQuery({
-          dataset: 'issuePlatform',
-          project: event.projectID,
-        }),
-      ],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: discoverBody,
-      match: [
-        MockApiClient.matchQuery({
-          dataset: 'discover',
-          project: event.projectID,
-        }),
-      ],
-    });
-    // Used to determine the project badge
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/projects/`,
-      body: [],
-    });
-
-    render(<TraceDataSection event={event} />, {
-      organization: OrganizationFixture({
-        features: [],
-      }),
-    });
-    expect(await screen.findByText('Slow DB Query')).toBeInTheDocument();
   });
 });
 

@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {useCallback} from 'react';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -20,6 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import DetectorListTable from 'sentry/views/detectors/components/detectorListTable';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
+import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
@@ -78,7 +79,7 @@ export default function DetectorsList() {
   }, [pageLinks]);
 
   return (
-    <SentryDocumentTitle title={t('Monitors')} noSuffix>
+    <SentryDocumentTitle title={t('Monitors')}>
       <PageFiltersContainer>
         <ListLayout actions={<Actions />}>
           <TableHeader />
@@ -141,7 +142,8 @@ function Actions() {
   }
 
   return (
-    <Fragment>
+    <Flex gap="sm">
+      <MonitorFeedbackButton />
       <LinkButton
         to={{
           pathname: makeMonitorCreatePathname(organization.slug),
@@ -153,6 +155,6 @@ function Actions() {
       >
         {t('Create Monitor')}
       </LinkButton>
-    </Fragment>
+    </Flex>
   );
 }

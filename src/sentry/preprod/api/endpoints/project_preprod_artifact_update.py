@@ -3,7 +3,6 @@ import re
 
 import jsonschema
 import orjson
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,10 +10,13 @@ from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.release import Release
 from sentry.preprod.analytics import PreprodArtifactApiUpdateEvent
-from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
+from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
+from sentry.preprod.authentication import (
+    LaunchpadRpcPermission,
+    LaunchpadRpcSignatureAuthentication,
+)
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 
@@ -170,22 +172,15 @@ def find_or_create_release(
 
 
 @region_silo_endpoint
-class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
+class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "PUT": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (LaunchpadRpcSignatureAuthentication,)
-    permission_classes = ()
+    permission_classes = (LaunchpadRpcPermission,)
 
-    def _is_authorized(self, request: Request) -> bool:
-        if request.auth and isinstance(
-            request.successful_authenticator, LaunchpadRpcSignatureAuthentication
-        ):
-            return True
-        return False
-
-    def put(self, request: Request, project, artifact_id) -> Response:
+    def put(self, request: Request, project, head_artifact_id, head_artifact) -> Response:
         """
         Update a preprod artifact with preprocessed data
         ```````````````````````````````````````````````
@@ -197,12 +192,10 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
                                           artifact belongs to.
         :pparam string project_id_or_slug: the id or slug of the project the artifact
                                      belongs to.
-        :pparam string artifact_id: the ID of the preprod artifact to update.
+        :pparam string head_artifact_id: the ID of the preprod artifact to update.
+        :pparam object head_artifact: the preprod artifact to update.
         :auth: required
         """
-        if not self._is_authorized(request):
-            raise PermissionDenied
-
         analytics.record(
             PreprodArtifactApiUpdateEvent(
                 organization_id=project.organization_id,
@@ -215,56 +208,48 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
             return Response({"error": error_message}, status=400)
 
         try:
-            artifact_id_int = int(artifact_id)
+            artifact_id_int = int(head_artifact_id)
             if artifact_id_int <= 0:
                 raise ValueError("ID must be positive")
         except (ValueError, TypeError):
             return Response({"error": "Invalid artifact ID format"}, status=400)
 
-        try:
-            preprod_artifact = PreprodArtifact.objects.get(
-                project=project,
-                id=artifact_id_int,
-            )
-        except PreprodArtifact.DoesNotExist:
-            return Response({"error": f"Preprod artifact {artifact_id} not found"}, status=404)
-
         updated_fields = []
 
         if "date_built" in data:
-            preprod_artifact.date_built = data["date_built"]
+            head_artifact.date_built = data["date_built"]
             updated_fields.append("date_built")
 
         if "artifact_type" in data:
-            preprod_artifact.artifact_type = data["artifact_type"]
+            head_artifact.artifact_type = data["artifact_type"]
             updated_fields.append("artifact_type")
 
         if "error_code" in data:
-            preprod_artifact.error_code = data["error_code"]
+            head_artifact.error_code = data["error_code"]
             updated_fields.append("error_code")
 
         if "error_message" in data:
-            preprod_artifact.error_message = data["error_message"]
+            head_artifact.error_message = data["error_message"]
             updated_fields.append("error_message")
 
         if "error_code" in data or "error_message" in data:
-            preprod_artifact.state = PreprodArtifact.ArtifactState.FAILED
+            head_artifact.state = PreprodArtifact.ArtifactState.FAILED
             updated_fields.append("state")
 
         if "build_version" in data:
-            preprod_artifact.build_version = data["build_version"]
+            head_artifact.build_version = data["build_version"]
             updated_fields.append("build_version")
 
         if "build_number" in data:
-            preprod_artifact.build_number = data["build_number"]
+            head_artifact.build_number = data["build_number"]
             updated_fields.append("build_number")
 
         if "app_id" in data:
-            preprod_artifact.app_id = data["app_id"]
+            head_artifact.app_id = data["app_id"]
             updated_fields.append("app_id")
 
         if "app_name" in data:
-            preprod_artifact.app_name = data["app_name"]
+            head_artifact.app_name = data["app_name"]
             updated_fields.append("app_name")
 
         extras_updates = {}
@@ -272,7 +257,7 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
         if "apple_app_info" in data:
             apple_info = data["apple_app_info"]
             if "main_binary_uuid" in apple_info:
-                preprod_artifact.main_binary_identifier = apple_info["main_binary_uuid"]
+                head_artifact.main_binary_identifier = apple_info["main_binary_uuid"]
                 updated_fields.append("main_binary_identifier")
 
             for field in [
@@ -291,17 +276,17 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
             extras_updates["dequeued_at"] = data["dequeued_at"]
 
         if extras_updates:
-            if preprod_artifact.extras is None:
-                preprod_artifact.extras = {}
-            preprod_artifact.extras.update(extras_updates)
+            if head_artifact.extras is None:
+                head_artifact.extras = {}
+            head_artifact.extras.update(extras_updates)
             updated_fields.append("extras")
 
         if updated_fields:
-            if preprod_artifact.state != PreprodArtifact.ArtifactState.FAILED:
-                preprod_artifact.state = PreprodArtifact.ArtifactState.PROCESSED
+            if head_artifact.state != PreprodArtifact.ArtifactState.FAILED:
+                head_artifact.state = PreprodArtifact.ArtifactState.PROCESSED
                 updated_fields.append("state")
 
-            preprod_artifact.save(update_fields=updated_fields + ["date_updated"])
+            head_artifact.save(update_fields=updated_fields + ["date_updated"])
 
             create_preprod_status_check_task.apply_async(
                 kwargs={
@@ -310,21 +295,21 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
             )
 
         if (
-            preprod_artifact.app_id
-            and preprod_artifact.build_version
-            and preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+            head_artifact.app_id
+            and head_artifact.build_version
+            and head_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
         ):
             find_or_create_release(
                 project=project,
-                package=preprod_artifact.app_id,
-                version=preprod_artifact.build_version,
-                build_number=preprod_artifact.build_number,
+                package=head_artifact.app_id,
+                version=head_artifact.build_version,
+                build_number=head_artifact.build_number,
             )
 
         return Response(
             {
                 "success": True,
-                "artifactId": artifact_id,
+                "artifactId": head_artifact_id,
                 "updatedFields": updated_fields,
             }
         )

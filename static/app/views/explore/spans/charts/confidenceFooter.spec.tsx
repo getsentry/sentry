@@ -84,4 +84,20 @@ describe('ConfidenceFooter', () => {
       );
     });
   });
+
+  describe('unextrapolated', () => {
+    it('unextrapolated loading', () => {
+      render(<ConfidenceFooter extrapolate={false} />, {wrapper: Wrapper});
+
+      expect(screen.getByTestId('wrapper')).toHaveTextContent('Span Count: \u2026');
+    });
+
+    it('unextrapolated loaded', () => {
+      render(<ConfidenceFooter extrapolate={false} sampleCount={100} />, {
+        wrapper: Wrapper,
+      });
+
+      expect(screen.getByTestId('wrapper')).toHaveTextContent('Span Count: 100');
+    });
+  });
 });
