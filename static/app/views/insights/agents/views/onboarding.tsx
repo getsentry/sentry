@@ -252,6 +252,7 @@ export function Onboarding() {
             {label: 'Anthropic SDK', value: 'anthropic'},
             {label: 'LangChain', value: 'langchain'},
             {label: 'LangGraph', value: 'langgraph'},
+            {label: 'LiteLLM', value: 'litellm'},
             {label: 'Manual', value: 'manual'},
           ]
         : [

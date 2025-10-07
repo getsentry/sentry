@@ -458,6 +458,8 @@ export const agentMonitoringOnboarding: OnboardingConfig = {
       packageName = 'sentry-sdk[langchain]';
     } else if (selected === 'langgraph') {
       packageName = 'sentry-sdk[langgraph]';
+    } else if (selected === 'litellm') {
+      packageName = 'sentry-sdk[litellm]';
     }
 
     return [
@@ -677,6 +679,51 @@ sentry_sdk.init(
       ],
     };
 
+    const liteLLMStep: OnboardingStep = {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Import and initialize the Sentry SDK for [litellm:LiteLLM] monitoring:',
+            {
+              litellm: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/integrations/litellm/" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+import sentry_sdk
+from sentry_sdk.integrations.openai import OpenAIIntegration
+from sentry_sdk.integrations.litellm import LiteLLMIntegration
+
+sentry_sdk.init(
+    dsn="${params.dsn.public}",
+    environment="local",
+    traces_sample_rate=1.0,
+    # Add data like inputs and responses to/from LLMs and tools;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+    integrations=[
+        LiteLLMIntegration(),
+    ],
+    # Disable OpenAI integration for correct token accounting
+    disabled_integrations=[OpenAIIntegration()],
+)`,
+        },
+        {
+          type: 'text',
+          text: t(
+            'The LiteLLM integration will automatically collect information about agents, tools, prompts, tokens, and models.'
+          ),
+        },
+      ],
+    };
+
     const selected = (params.platformOptions as any)?.integration ?? 'openai_agents';
     if (selected === 'openai') {
       return [openaiSdkStep];
@@ -689,6 +736,9 @@ sentry_sdk.init(
     }
     if (selected === 'langgraph') {
       return [langgraphStep];
+    }
+    if (selected === 'litellm') {
+      return [liteLLMStep];
     }
     if (selected === 'manual') {
       return [manualStep];
@@ -898,6 +948,31 @@ with sentry_sdk.start_transaction(name="langgraph-openai"):
       ],
     };
 
+    const liteLLMVerifyStep: OnboardingStep = {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that agent monitoring is working correctly by creating a LiteLLM completion:'
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+from litellm import completion
+
+response = completion(
+    model="openai/gpt-4o-mini",
+    messages=[{"role": "user", "content": "Tell me a joke"}],
+)
+print(response.choices[0].message.content)
+`,
+        },
+      ],
+    };
+
     const manualVerifyStep: OnboardingStep = {
       type: StepType.VERIFY,
       content: [
@@ -946,6 +1021,9 @@ with sentry_sdk.start_span(op="gen_ai.chat", name="chat o3-mini") as span:
     }
     if (selected === 'langgraph') {
       return [langgraphVerifyStep];
+    }
+    if (selected === 'litellm') {
+      return [liteLLMVerifyStep];
     }
     if (selected === 'manual') {
       return [manualVerifyStep];
