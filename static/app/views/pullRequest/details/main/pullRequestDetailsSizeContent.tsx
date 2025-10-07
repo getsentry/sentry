@@ -98,6 +98,8 @@ export function PullRequestDetailsSizeContent({
           <BuildDetailsMainContent
             buildDetailsData={selectedBuildDetail}
             appSizeQuery={appSizeQuery}
+            isRerunning={false}
+            onRerunAnalysis={() => {}}
           />
         </Flex>
       </Grid>

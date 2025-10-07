@@ -75,12 +75,20 @@ function LoadingContent({showSkeleton, children}: LoadingContentProps) {
 
 interface BuildDetailsMainContentProps {
   appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError>;
+  isRerunning: boolean;
+  onRerunAnalysis: () => void;
   buildDetailsData?: BuildDetailsApiResponse | null;
   isBuildDetailsPending?: boolean;
 }
 
 export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
-  const {appSizeQuery, buildDetailsData, isBuildDetailsPending = false} = props;
+  const {
+    isRerunning,
+    onRerunAnalysis,
+    appSizeQuery,
+    buildDetailsData,
+    isBuildDetailsPending = false,
+  } = props;
   const {
     data: appSizeData,
     isPending: isAppSizePending,
@@ -155,10 +163,12 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     return (
       <BuildError
         title={t('Size analysis failed')}
-        message={
-          sizeInfo.error_message || t("Something went wrong, we're looking into it.")
-        }
-      />
+        message={t("Something went wrong, we're looking into it.")}
+      >
+        <Button onClick={onRerunAnalysis} disabled={isRerunning}>
+          {isRerunning ? t('Rerunning...') : t('Retry analysis')}
+        </Button>
+      </BuildError>
     );
   }
 
@@ -185,7 +195,11 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
       <BuildError
         title={t('Size analysis failed')}
         message={t('The treemap data could not be loaded')}
-      />
+      >
+        <Button onClick={onRerunAnalysis} disabled={isRerunning}>
+          {isRerunning ? t('Rerunning...') : t('Retry analysis')}
+        </Button>
+      </BuildError>
     );
   }
 
