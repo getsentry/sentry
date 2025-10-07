@@ -45,7 +45,9 @@ class AutofixRequestSerializer(CamelSnakeSerializer):
         help_text="Run issue fix on a specific event. If not provided, the recommended event for the issue will be used.",
     )
     instruction = serializers.CharField(
-        required=False, help_text="Optional custom instruction to guide the issue fix process."
+        required=False,
+        help_text="Optional custom instruction to guide the issue fix process.",
+        allow_blank=True,
     )
     pr_to_comment_on_url = serializers.URLField(
         required=False, help_text="URL of a pull request where the issue fix should add comments."
