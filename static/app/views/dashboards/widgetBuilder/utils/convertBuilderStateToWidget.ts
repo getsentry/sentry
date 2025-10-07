@@ -69,6 +69,12 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     };
   });
 
+  const limit =
+    state.displayType &&
+    [DisplayType.BIG_NUMBER, DisplayType.TABLE].includes(state.displayType)
+      ? undefined
+      : state.limit;
+
   return {
     title: state.title ?? '',
     description: state.description,
@@ -76,7 +82,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     interval: '1h', // TODO: Not sure what to put here yet
     queries: widgetQueries,
     widgetType: state.dataset,
-    limit: state.limit,
+    limit,
     thresholds: state.thresholds,
   };
 }
