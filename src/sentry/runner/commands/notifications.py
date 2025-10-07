@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import annotations
+
 from typing import Any
 
 import click
@@ -23,7 +25,7 @@ def send_cmd() -> None:
 @click.option(
     "-s",
     "--source",
-    help="Registered template source (see `sentry notifications list`)",
+    help="Registered template source (see `sentry notifications list registry`)",
     default="error-alert-service",
 )
 @click.option("-t", "--target", help="Recipient email address", default="user@example.com")
@@ -37,18 +39,6 @@ def send_email(source: str, target: str) -> None:
 
     configure()
 
-    if options.get("mail.backend") in {"dummy", "console"} or any(
-        options.get(key) is None
-        for key in ["mail.host", "mail.port", "mail.username", "mail.password"]
-    ):
-        click.echo("Unable to send email with current configuration!")
-        click.echo(
-            """Please update .sentry/config.yml:
-  - remove `mail.backend` (if set to 'dummy' or 'console')
-  - set `mail.host`, `mail.port`, `mail.username` and `mail.password`"""
-        )
-        return
-
     from sentry.notifications.platform.registry import template_registry
     from sentry.notifications.platform.service import NotificationService
     from sentry.notifications.platform.target import GenericNotificationTarget
@@ -56,6 +46,18 @@ def send_email(source: str, target: str) -> None:
         NotificationProviderKey,
         NotificationTargetResourceType,
     )
+
+    if options.get("mail.backend") in {"dummy", "console"} or any(
+        options.get(key) is None
+        for key in ["mail.host", "mail.port", "mail.username", "mail.password"]
+    ):
+        click.echo("Unable to send email with current configuration!")
+        click.echo(
+            "Please update .sentry/config.yml:"
+            "\n  - remove `mail.backend` (if set to 'dummy' or 'console')"
+            "\n  - set `mail.host`, `mail.port`, `mail.username` and `mail.password`"
+        )
+        return
 
     email_target = GenericNotificationTarget(
         provider_key=NotificationProviderKey.EMAIL,
@@ -71,30 +73,22 @@ def send_email(source: str, target: str) -> None:
 @click.option(
     "-s",
     "--source",
-    help="Registered template source (see `sentry notifications list`)",
+    help="Registered template source (see `sentry notifications list registry`)",
     default="error-alert-service",
 )
-@click.option("-o", "--organization_slug", help="Organization slug", default="default")
-def send_slack(source: str, organization_slug: str) -> None:
+@click.option("-o", "--organization_slug", help="Organization slug")
+@click.option("-i", "--integration_name", help="Slack integration name", default=None)
+@click.option("-t", "--channel_name", help="Slack channel name", default=None)
+def send_slack(
+    source: str, organization_slug: str, integration_name: str | None, channel_name: str | None
+) -> None:
     """
-    Send a Slack
-    - Example usage: `sentry notifications send slack -o <organization_slug> -s <source>`
-    - To change the default workspace or channel, set the options slack.default-workspace and slack.default-channel in .sentry/config.yml
+    Send a Slack notification.
     """
     from sentry import options
     from sentry.runner import configure
 
     configure()
-
-    integration_name = options.get("slack.default-workspace")
-    channel = options.get("slack.default-channel")
-
-    if integration_name == "example-workspace-name":
-        click.echo("Please set the slack.default-workspace option in .sentry/config.yml")
-        return
-
-    if channel == "general":
-        click.echo("INFO: You have not yet set a default channel, sending to the #general")
 
     from sentry.constants import ObjectStatus
     from sentry.integrations.models.integration import Integration
@@ -112,27 +106,44 @@ def send_slack(source: str, organization_slug: str) -> None:
     try:
         organization_mapping = OrganizationMapping.objects.get(slug=organization_slug)
     except OrganizationMapping.DoesNotExist:
-        click.echo(f"Organization {organization_slug} not found!")
+        click.echo(f"Organization '{organization_slug}' not found!")
+        return
+
+    integration_name = integration_name or options.get("slack.default-workspace")
+    if integration_name is None or integration_name == "":
+        click.echo(
+            "\nThis command requires a slack integration name."
+            "\nProvide it with the `-i` flag or by setting `slack.default-workspace` in .sentry/config.yml."
+            f"\nBrowse the local integrations with `sentry notifications list integrations -o {organization_slug}`."
+        )
         return
 
     try:
         integration = Integration.objects.get(
+            provider=IntegrationProviderSlug.SLACK.value,
             name=integration_name,
-            provider=IntegrationProviderSlug.SLACK,
             status=ObjectStatus.ACTIVE,
         )
     except Integration.DoesNotExist:
-        click.echo(f"Integration {integration_name} not found!")
+        click.echo(f"Slack integration '{integration_name}' not found!")
+        return
+
+    channel_name = channel_name or options.get("slack.default-channel")
+    if channel_name is None or channel_name == "":
+        click.echo(
+            "\nThis command requires a slack channel name."
+            "\nProvide it with the `-t` flag or by setting `slack.default-channel` in .sentry/config.yml."
+        )
         return
 
     try:
-        channel_data = get_channel_id(integration=integration, channel_name=channel)
+        channel_data = get_channel_id(integration=integration, channel_name=channel_name)
     except Exception as e:
-        click.echo(f"Error getting channel id: {e}")
+        click.echo(f"Error getting channel ID: {e}")
         return
 
     if channel_data.channel_id is None:
-        click.echo(f"Channel {channel} not found!")
+        click.echo(f"Channel '{channel_name}' not found!")
         return
 
     slack_target = IntegrationNotificationTarget(
@@ -145,7 +156,6 @@ def send_slack(source: str, organization_slug: str) -> None:
 
     template_cls = template_registry.get(source)
     NotificationService(data=template_cls.example_data).notify(targets=[slack_target])
-
     click.echo(f"Example '{source}' slack message sent to {integration.name}.")
 
 
@@ -161,20 +171,28 @@ def send_msteams() -> None:
 @click.option(
     "-s",
     "--source",
-    help="Registered template source (see `sentry notifications list`)",
+    help="Registered template source (see `sentry notifications list registry`)",
     default="error-alert-service",
 )
-# TODO: Remove this test data
-@click.option("-t", "--target", help="Recipient discord channel ID", default="1169351776722501645")
-def send_discord(source: str, target: str) -> None:
+@click.option("-o", "--organization_slug", help="Organization slug", required=True)
+@click.option("-i", "--integration_name", help="Discord integration name", default=None)
+@click.option("-t", "--channel_id", help="Discord channel ID", default=None)
+def send_discord(
+    source: str,
+    organization_slug: str,
+    integration_name: str | None,
+    channel_id: str | None,
+) -> None:
     """
     Send a Discord notification.
     """
+    from sentry import options
     from sentry.runner import configure
 
     configure()
 
     from sentry.integrations.models.integration import Integration
+    from sentry.integrations.types import IntegrationProviderSlug
     from sentry.models.organizationmapping import OrganizationMapping
     from sentry.notifications.platform.registry import template_registry
     from sentry.notifications.platform.service import NotificationService
@@ -184,27 +202,61 @@ def send_discord(source: str, target: str) -> None:
         NotificationTargetResourceType,
     )
 
-    # TODO: Remove this test data
-    mapping = OrganizationMapping.objects.get(slug="acme")
-    integration = Integration.objects.get(provider="discord", name="leander-test-sentry")
+    try:
+        organization_mapping = OrganizationMapping.objects.get(slug=organization_slug)
+    except OrganizationMapping.DoesNotExist:
+        click.echo(f"Organization '{organization_slug}' not found!")
+        return
+
+    integration_name = integration_name or options.get("discord.debug-server")
+    if integration_name is None or integration_name == "":
+        click.echo(
+            "\nThis command requires a discord integration name."
+            "\nProvide it with the `-i` flag or by setting `discord.debug-server` in .sentry/config.yml."
+            f"\nBrowse the local integrations with `sentry notifications list integrations -o {organization_slug}`."
+        )
+        return
+
+    try:
+        integration = Integration.objects.get(
+            provider=IntegrationProviderSlug.DISCORD.value, name=integration_name
+        )
+    except Integration.DoesNotExist:
+        click.echo(f"Discord integration '{integration_name}' not found!")
+        return
+
+    channel_id = channel_id or options.get("discord.debug-channel")
+    if channel_id is None or channel_id == "":
+        click.echo(
+            "\nThis command requires a discord channel ID."
+            "\nProvide it with the `-t` flag or by setting `discord.debug-channel` in .sentry/config.yml."
+        )
+        return
 
     discord_target = IntegrationNotificationTarget(
         provider_key=NotificationProviderKey.DISCORD,
         resource_type=NotificationTargetResourceType.CHANNEL,
-        resource_id=target,
+        resource_id=channel_id,
         integration_id=integration.id,
-        organization_id=mapping.organization_id,
+        organization_id=organization_mapping.organization_id,
     )
 
     template_cls = template_registry.get(source)
     NotificationService(data=template_cls.example_data).notify(targets=[discord_target])
-    click.echo(f"Example '{source}' discord message sent to channel with ID {target}.")
+    click.echo(f"Example '{source}' discord message sent to channel with ID {channel_id}.")
 
 
-@notifications.command("list")
+@notifications.group("list")
 def list_cmd() -> None:
     """
-    Lists registered notification data.
+    Lists notification data.
+    """
+
+
+@list_cmd.command("registry")
+def list_registry() -> None:
+    """
+    Lists all registered notification providers and templates.
     """
     from sentry.runner import configure
 
@@ -232,15 +284,11 @@ def list_cmd() -> None:
             click.echo(f"  ◦ source: {source['source']}, class: {source['class']}")
 
 
-@click.option(
-    "-p", "--provider", help="the integration provider e.g. slack, discord, msteams", required=True
-)
 @click.option("-o", "--organization_slug", help="Organization slug", required=True)
-@notifications.command("list-integrations")
-def list_integrations(organization_slug: str, provider: str) -> None:
+@list_cmd.command("integrations")
+def list_integrations(organization_slug: str) -> None:
     """
-    List all integrations available for a given provider
-    - Optionally can be given an organization slug to show only integrations for that org
+    Lists integration data for an organization.
     """
     from sentry.runner import configure
 
@@ -248,14 +296,7 @@ def list_integrations(organization_slug: str, provider: str) -> None:
 
     from sentry.constants import ObjectStatus
     from sentry.integrations.models.organization_integration import OrganizationIntegration
-    from sentry.integrations.types import IntegrationProviderSlug
     from sentry.models.organizationmapping import OrganizationMapping
-
-    try:
-        provider = IntegrationProviderSlug(provider)
-    except ValueError:
-        click.echo(f"Invalid provider: {provider}")
-        return
 
     try:
         organization_mapping = OrganizationMapping.objects.get(slug=organization_slug)
@@ -265,15 +306,12 @@ def list_integrations(organization_slug: str, provider: str) -> None:
 
     # Get organization integrations that belong to this organization and match our provider
     organization_integrations = OrganizationIntegration.objects.filter(
-        integration__provider=provider,
         integration__status=ObjectStatus.ACTIVE,
         organization_id=organization_mapping.organization_id,
     ).select_related("integration")
 
-    click.echo(
-        f"All integrations for organization {organization_slug} with provider {provider}\n"
-        f"Integration Name | Integration ID \n"
-        f"----------------------------------"
-    )
+    click.echo(f"\nIntegration data for '{organization_slug}' organization:")
     for oi in organization_integrations:
-        click.echo(f"{oi.integration.name} | {oi.integration.id}")
+        click.echo(
+            f"• id: {oi.integration.id}, provider: {oi.integration.provider}, name: {oi.integration.name}"
+        )
