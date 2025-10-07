@@ -41,7 +41,7 @@ export default function DetectorDetails() {
   }
 
   return (
-    <SentryDocumentTitle title={detector.name} noSuffix>
+    <SentryDocumentTitle title={detector.name}>
       <DetectorDetailsContent detector={detector} project={project} />
     </SentryDocumentTitle>
   );

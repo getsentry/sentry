@@ -81,7 +81,7 @@ export default function DetectorsList() {
   return (
     <SentryDocumentTitle title={t('Monitors')}>
       <PageFiltersContainer>
-        <ListLayout actions={<Actions />}>
+        <ListLayout actions={<Actions />} title={t('Monitors')}>
           <TableHeader />
           <div>
             <DetectorListTable
