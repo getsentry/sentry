@@ -1,5 +1,5 @@
 ---
-created: '2025-10-03T17:19:39.756477+00:00'
+created: '2025-10-06T17:30:32.780185+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -25,6 +25,7 @@ variants:
       hint: null
     contributes: true
     hint: null
+    key: app_chained_exception_stacktrace
     type: component
   system:
     component:
@@ -32,4 +33,5 @@ variants:
       hint: null
     contributes: true
     hint: null
+    key: system_chained_exception_stacktrace
     type: component

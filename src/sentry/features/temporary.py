@@ -104,6 +104,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-starred-reordering", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the dashboard widget builder redesign UI
     manager.add("organizations:dashboards-widget-builder-redesign", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable drilldown flow for dashboards
+    manager.add("organizations:dashboards-drilldown-flow", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy
     manager.add("organizations:data-secrecy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy v2 (with Break the Glass feature)
@@ -248,6 +250,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:performance-trace-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable spot checking of `/events-timeseries/` endpoint in Explore
     manager.add("organizations:explore-events-time-series-spot-check", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable session health overview to dashboard platform migration
+    manager.add("organizations:performance-session-health-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable sentry convention fields
     manager.add("organizations:performance-sentry-conventions-fields", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable querying spans fields stats from comparative workflows project
