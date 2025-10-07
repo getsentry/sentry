@@ -20,17 +20,9 @@ export interface NotificationTemplateRegistration {
       subject: string;
       text_content: string;
     };
-    [NotificationProviderKey.TEAMS]: {
-      card: {
-        $schema: string;
-        body: any[]; // Can't really be more specific since it's a list of arbitrary cards
-        type: 'AdaptiveCard';
-        version: string;
-      };
-    };
-    [NotificationProviderKey.SLACK]: {
-      blocks: Array<Record<string, any>>;
-    };
+    [NotificationProviderKey.TEAMS]: {card: Record<string, any>};
+    [NotificationProviderKey.SLACK]: {blocks: Array<Record<string, any>>};
+    [NotificationProviderKey.DISCORD]: Record<string, any>;
   };
   source: string;
 }
