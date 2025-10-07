@@ -350,7 +350,6 @@ export function TimeRangeSelector({
             setHasChanges(false);
             setSearch('');
           }}
-          onInteractOutside={commitChanges}
           onKeyDown={e => e.key === 'Escape' && commitChanges()}
           trigger={
             trigger ??
