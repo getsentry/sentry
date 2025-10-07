@@ -9,7 +9,6 @@ const RELEASE_HEALTH_WIDGETS: Widget[] = [
   {
     id: 'unhealthy-sessions',
     title: t('Unhealthy Sessions'),
-    description: t('Percentage of sessions that did not crash.'),
     displayType: DisplayType.LINE,
     widgetType: WidgetType.RELEASE,
     interval: '',
@@ -28,7 +27,6 @@ const RELEASE_HEALTH_WIDGETS: Widget[] = [
   {
     id: 'user-health',
     title: t('User Health'),
-    description: t('Number of users by status.'),
     displayType: DisplayType.AREA,
     widgetType: WidgetType.RELEASE,
     interval: '',
@@ -47,7 +45,6 @@ const RELEASE_HEALTH_WIDGETS: Widget[] = [
   {
     id: 'session-health',
     title: t('Session Health'),
-    description: t('Number of sessions by status.'),
     displayType: DisplayType.LINE,
     widgetType: WidgetType.RELEASE,
     interval: '',
@@ -66,7 +63,6 @@ const RELEASE_HEALTH_WIDGETS: Widget[] = [
   {
     id: 'session-counts',
     title: t('Session Counts'),
-    description: t('Number of sessions by status.'),
     displayType: DisplayType.LINE,
     widgetType: WidgetType.RELEASE,
     interval: '',
@@ -85,7 +81,6 @@ const RELEASE_HEALTH_WIDGETS: Widget[] = [
   {
     id: 'user-counts',
     title: t('User Counts'),
-    description: t('Number of users by status.'),
     displayType: DisplayType.LINE,
     widgetType: WidgetType.RELEASE,
     interval: '',
