@@ -3486,3 +3486,9 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "eventstream.eap_forwarding",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
