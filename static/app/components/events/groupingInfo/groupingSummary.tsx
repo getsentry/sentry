@@ -22,7 +22,7 @@ export function GroupInfoSummary({
     group,
     projectSlug,
   });
-  const groupedBy = groupInfo
+  const groupedBy = groupInfo?.variants
     ? Object.values(groupInfo.variants)
         .filter(variant => variant.contributes && variant.description !== null)
         .map(variant => variant.description!)
