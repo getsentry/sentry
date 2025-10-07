@@ -502,7 +502,6 @@ function useFilterSuggestions({
       })),
     ];
     // selectedValues is needed to trigger re-renders when checkboxes are toggled
-    // initialSelectedValues is a ref so it won't trigger re-renders, but we list it for correctness
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     createItem,
