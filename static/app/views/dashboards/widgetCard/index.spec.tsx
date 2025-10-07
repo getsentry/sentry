@@ -30,11 +30,10 @@ jest.mock('sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization'
 jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
 
 describe('Dashboards > WidgetCard', () => {
-  const {router, organization} = initializeOrg({
+  const {organization} = initializeOrg({
     organization: OrganizationFixture({
       features: ['dashboards-edit', 'discover-basic'],
     }),
-    router: {orgId: 'orgId'},
   } as Parameters<typeof initializeOrg>[0]);
 
   const renderWithProviders = (component: React.ReactNode, features: string[] = []) =>
@@ -47,8 +46,12 @@ describe('Dashboards > WidgetCard', () => {
           ...organization,
           features: [...organization.features, ...features],
         },
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/dashboard/:dashboardId/',
+          location: {
+            pathname: '/organizations/org-slug/dashboard/42/',
+          },
+        },
       }
     );
 
@@ -614,7 +617,8 @@ describe('Dashboards > WidgetCard', () => {
         },
       ],
     };
-    renderWithProviders(
+
+    const {router} = renderWithProviders(
       <WidgetCard
         api={api}
         widget={widget}
@@ -633,8 +637,8 @@ describe('Dashboards > WidgetCard', () => {
     );
 
     await userEvent.click(await screen.findByLabelText('Open Full-Screen View'));
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({pathname: '/mock-pathname/widget/10/'})
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/dashboard/42/widget/10/'
     );
   });
 
