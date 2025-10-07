@@ -6,7 +6,7 @@ Looks like they need your help. You've been invited to join them:
 
 {{ url }}
 
-Heads up: this invite link is just for you. Don’t share it unless you want random strangers fixing your bugs.
+Heads up: this invite link is just for you. Don't share it unless you want random strangers fixing your bugs.
 
 Oh, and don't forget to try Seer, your new AI debugging agent. It'll automatically pinpoint root causes, suggest fixes, and even predict bugs before they land in prod.
 
