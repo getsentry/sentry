@@ -1371,7 +1371,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(response.data[2]["id"]) == event2.group.id
         assert int(response.data[3]["id"]) == assigned_event.group.id
 
-        # Assign group to another user and now it shouldn't show up in owner search for this team.
+        # Assign group to another user
+        # Since the old owner is still a suggested owner, it should show up in assigned_or_suggested search for this team.
         GroupAssignee.objects.create(
             group=event.group,
             project=event.group.project,
@@ -1381,7 +1382,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             sort_by="date", limit=10, query=f"assigned_or_suggested:#{self.team.slug}"
         )
         assert response.status_code == 200
-        assert len(response.data) == 0
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
 
     def test_semver(self) -> None:
         release_1 = self.create_release(version="test@1.2.3")

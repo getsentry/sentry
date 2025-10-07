@@ -189,7 +189,6 @@ def assigned_or_suggested_filter(
         query |= Q(
             **{
                 f"{field_filter}__in": GroupOwner.objects.filter(
-                    Q(group__assignee_set__isnull=True),
                     team__in=teams,
                     project_id__in=project_ids,
                     organization_id=organization_id,
@@ -207,7 +206,6 @@ def assigned_or_suggested_filter(
             **{
                 f"{field_filter}__in": GroupOwner.objects.filter(
                     query_ids,
-                    group__assignee_set__isnull=True,
                     project_id__in=[p.id for p in projects],
                     organization_id=organization_id,
                 )
