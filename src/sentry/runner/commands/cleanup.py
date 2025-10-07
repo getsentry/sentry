@@ -587,7 +587,8 @@ def run_bulk_deletes_in_deletes(
             for chunk in q.iterator(chunk_size=100):
                 task_queue.put((imp, chunk))
 
-            task_queue.join()
+    # Ensure all tasks are completed before exiting
+    task_queue.join()
 
 
 def run_bulk_deletes_by_project(
@@ -630,7 +631,8 @@ def run_bulk_deletes_by_project(
                 for chunk in q.iterator(chunk_size=100):
                     task_queue.put((imp, chunk))
 
-        task_queue.join()
+    # Ensure all tasks are completed before exiting
+    task_queue.join()
 
 
 def run_bulk_deletes_by_organization(
@@ -672,7 +674,8 @@ def run_bulk_deletes_by_organization(
                 for chunk in q.iterator(chunk_size=100):
                     task_queue.put((imp, chunk))
 
-        task_queue.join()
+    # Ensure all tasks are completed before exiting
+    task_queue.join()
 
 
 def prepare_deletes_by_project(
