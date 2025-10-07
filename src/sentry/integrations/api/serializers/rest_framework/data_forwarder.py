@@ -178,6 +178,9 @@ class DataForwarderSerializer(Serializer):
 
         return config
 
+    def create(self, validated_data: MutableMapping[str, Any]) -> DataForwarder:
+        return DataForwarder.objects.create(**validated_data)
+
 
 class DataForwarderProjectSerializer(Serializer):
     data_forwarder_id = serializers.IntegerField()
@@ -226,3 +229,8 @@ class DataForwarderProjectSerializer(Serializer):
             )
 
         return attrs
+
+    def create(self, validated_data: MutableMapping[str, Any]) -> DataForwarderProject:
+        project = validated_data.pop("project")
+        validated_data["project_id"] = project.id
+        return DataForwarderProject.objects.create(**validated_data)
