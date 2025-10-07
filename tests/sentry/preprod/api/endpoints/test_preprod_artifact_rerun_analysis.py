@@ -249,4 +249,6 @@ class PreprodArtifactAdminRerunAnalysisTest(BaseRerunAnalysisTest):
 
     def test_rerun_analysis_invalid_id(self):
         response = self.get_error_response(preprod_artifact_id="invalid", status_code=400)
-        assert "Invalid preprod artifact ID" in response.data["error"]
+        assert (
+            "preprod_artifact_id is required and must be a valid integer" in response.data["error"]
+        )
