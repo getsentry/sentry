@@ -30,7 +30,7 @@ from sentry.seer.anomaly_detection.utils import (
     translate_direction,
 )
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
 
@@ -192,7 +192,7 @@ def send_historical_data_to_seer(
         # this won't happen because we've already gone through the serializer, but mypy insists
         raise ValidationError("Missing expected configuration for a dynamic alert.")
 
-    query_subscription = QuerySubscription.objects.filter(snuba_query_id=snuba_query.id).first()
+    query_subscription = snuba_query.subscriptions.first()
     if query_subscription is None:
         raise ValidationError("No QuerySubscription found for snuba query ID")
 
