@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import time
 from collections.abc import Callable, Sequence
@@ -17,6 +18,8 @@ from django.utils import timezone
 
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
+
+logger = logging.getLogger(__name__)
 
 
 def get_project(value: str) -> int | None:
@@ -106,8 +109,8 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             while True:
                 if not task.chunk(apply_filter=True):
                     break
-        except Exception as e:
-            logger.exception(e)
+        except Exception:
+            logger.exception("Error in multiprocess_worker.")
         finally:
             task_queue.task_done()
 
@@ -176,21 +179,9 @@ def _cleanup(
     router: str | None,
     timed: bool,
 ) -> None:
-    import logging
-
-    logger = logging.getLogger("sentry.cleanup")
-
-    if concurrency < 1:
-        click.echo("Error: Minimum concurrency is 1", err=True)
-        raise click.Abort()
-
-    os.environ["_SENTRY_CLEANUP"] = "1"
-    if silent:
-        os.environ["SENTRY_CLEANUP_SILENT"] = "1"
-
+    _validate_and_setup_environment(concurrency, silent)
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
-
     pool, task_queue = _start_pool(concurrency)
 
     try:
@@ -359,30 +350,47 @@ def _cleanup(
         # Shut down our pool
         _stop_pool(pool, task_queue)
 
-    if timed and start_time:
-        duration = int(time.time() - start_time)
-        metrics.timing("cleanup.duration", duration, instance=router, sample_rate=1.0)
-        click.echo("Clean up took %s second(s)." % duration)
+        if timed and start_time:
+            duration = int(time.time() - start_time)
+            metrics.timing("cleanup.duration", duration, instance=router, sample_rate=1.0)
+            click.echo("Clean up took %s second(s)." % duration)
 
-    # Check for models that were specified but never attempted
-    if model_list:
-        # Exclude models that were legitimately filtered out (silo/router restrictions)
-        models_never_attempted = model_list - models_attempted - models_legitimately_filtered
-        if models_never_attempted:
-            logger.error(
-                "Models specified with --model were never attempted for deletion, must configure cleanup for this model",
-                extra={
-                    "models_never_attempted": sorted(models_never_attempted),
-                    "legitimately_filtered_models": (
-                        sorted(models_legitimately_filtered)
-                        if models_legitimately_filtered
-                        else None
-                    ),
-                },
+        # Check for models that were specified but never attempted
+        if model_list:
+            _report_models_never_attempted(
+                model_list, models_attempted, models_legitimately_filtered
             )
 
-    if transaction:
-        transaction.__exit__(None, None, None)
+        if transaction:
+            transaction.__exit__(None, None, None)
+
+
+def _validate_and_setup_environment(concurrency: int, silent: bool) -> None:
+    """Validate input parameters and set up environment variables."""
+    if concurrency < 1:
+        click.echo("Error: Minimum concurrency is 1", err=True)
+        raise click.Abort()
+
+    os.environ["_SENTRY_CLEANUP"] = "1"
+    if silent:
+        os.environ["SENTRY_CLEANUP_SILENT"] = "1"
+
+
+def _report_models_never_attempted(
+    model_list: set[str], models_attempted: set[str], models_legitimately_filtered: set[str]
+) -> None:
+    # Exclude models that were legitimately filtered out (silo/router restrictions)
+    models_never_attempted = model_list - models_attempted - models_legitimately_filtered
+    if models_never_attempted:
+        logger.warning(
+            "Models specified with --model were never attempted for deletion, must configure cleanup for this model",
+            extra={
+                "models_never_attempted": sorted(models_never_attempted),
+                "legitimately_filtered_models": (
+                    sorted(models_legitimately_filtered) if models_legitimately_filtered else None
+                ),
+            },
+        )
 
 
 def _start_pool(concurrency: int) -> tuple[list[Process], _WorkQueue]:
@@ -396,9 +404,7 @@ def _start_pool(concurrency: int) -> tuple[list[Process], _WorkQueue]:
     return pool, task_queue
 
 
-def _stop_pool(pool: Sequence[Process] | None, task_queue: _WorkQueue | None) -> None:
-    if pool is None or task_queue is None:
-        return
+def _stop_pool(pool: Sequence[Process], task_queue: _WorkQueue) -> None:
     # Stop the pool
     for _ in pool:
         task_queue.put(_STOP_WORKER)
