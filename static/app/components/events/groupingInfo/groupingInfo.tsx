@@ -39,8 +39,8 @@ export default function GroupingInfo({
       projectSlug,
     });
 
-  const variants = groupInfo
-    ? Object.values(groupInfo).sort((a, b) => {
+  const variants = groupInfo?.variants
+    ? Object.values(groupInfo.variants).sort((a, b) => {
         // Sort contributing variants before non-contributing ones
         if (a.contributes && !b.contributes) {
           return -1;
