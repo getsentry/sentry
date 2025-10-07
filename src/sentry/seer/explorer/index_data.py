@@ -6,10 +6,14 @@ from typing import Any
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import search
+from sentry.api.endpoints.organization_traces import TracesExecutor
 from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index.index import parse_and_convert_issue_search_query
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer
+from sentry.api.utils import handle_query_errors
+from sentry.constants import ObjectStatus
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
@@ -29,8 +33,10 @@ from sentry.seer.sentry_data_models import (
 )
 from sentry.services.eventstore import backend as eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace import SerializedEvent, query_trace_data
 
 logger = logging.getLogger(__name__)
 
@@ -548,90 +554,67 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
     )
 
 
-def get_trace_from_id(trace_id: str, project_id: int) -> TraceData | None:
+def get_trace_from_id(trace_id: str, organization_id: int) -> list[SerializedEvent] | None:
     """
     Get a trace from an ID.
 
     Args:
-        trace_id: The ID of the trace to fetch. This can be shortened as the first 8 chars.
-        project_id: The ID of the project
+        trace_id: The ID of the trace to fetch. Can be shortened to the first 8 characters.
+        organization_id: The ID of the trace's organization
 
     Returns:
-        TraceData with all spans and relationships, or None if no trace found
+        Trace details
     """
+
     try:
-        project = Project.objects.get(id=project_id)
-    except Project.DoesNotExist:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
         logger.exception(
-            "Project does not exist; cannot fetch trace",
-            extra={"project_id": project_id, "trace_id": trace_id},
+            "Organization does not exist; cannot fetch trace",
+            extra={"organization_id": organization_id, "trace_id": trace_id},
         )
         return None
 
-    end_time = datetime.now(UTC)
-    start_time = end_time - timedelta(hours=24)
-
+    projects = list(Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE))
+    end = datetime.now(UTC)
+    start = end - timedelta(hours=24)
     snuba_params = SnubaParams(
-        start=start_time,
-        end=end_time,
-        projects=[project],
-        organization=project.organization,
-    )
-    config = SearchResolverConfig(
-        auto_fields=True,
+        start=start,
+        end=end,
+        projects=projects,
+        organization=organization,
     )
 
-    # Get all spans in the trace
-    spans_result = Spans.run_table_query(
-        params=snuba_params,
-        query_string=f"trace:{trace_id}",
-        selected_columns=[
-            "span_id",
-            "parent_span",
-            "span.op",
-            "span.description",
-            "transaction",
-            "trace",  # Full trace ID
-            "precise.start_ts",
-        ],
-        orderby=["precise.start_ts"],
-        offset=0,
-        limit=5000,
-        referrer=Referrer.SEER_RPC,
-        config=config,
-        sampling_mode="NORMAL",
-    )
-
-    if not spans_result.get("data", []):
-        logger.info(
-            "No spans found for trace",
-            extra={"trace_id": trace_id, "project_id": project_id},
-        )
-        return None
-
-    # Build span objects
-    spans = []
-    for row in spans_result["data"]:
-        if span_id := row.get("span_id"):
-            spans.append(
-                Span(
-                    span_id=span_id,
-                    parent_span_id=row.get("parent_span"),
-                    span_op=row.get("span.op"),
-                    span_description=row.get("span.description") or "",
-                )
+    if len(trace_id) < 32:
+        with handle_query_errors():
+            executor = TracesExecutor(
+                dataset=Dataset.SpansIndexed,
+                snuba_params=snuba_params,
+                user_queries=[f"trace:{trace_id}"],
+                sort=None,
+                limit=1,
+                breakdown_slices=1,
+                get_all_projects=lambda: projects,
             )
+            subquery_result = executor.execute(0, 1)
+            full_trace_id = subquery_result.get("data", [{}])[0].get("trace")
+    else:
+        full_trace_id = trace_id
 
-    transaction_name = spans_result["data"][0]["transaction"]
-    full_trace_id = spans_result["data"][0]["trace"]
+    if full_trace_id:
+        trace_data = query_trace_data(snuba_params, full_trace_id, referrer=Referrer.SEER_RPC)
+        if trace_data:
+            return trace_data
 
-    return TraceData(
-        trace_id=full_trace_id,
-        project_id=project_id,
-        transaction_name=transaction_name,
-        total_spans=len(spans),
-        spans=spans,
+    logger.info(
+        "Trace not found",
+        extra={
+            "trace_id": trace_id,
+            "organization_id": organization_id,
+            "project_ids": [p.id for p in projects],
+        },
     )
+    return None
 
 
 # RPC wrappers
@@ -660,4 +643,4 @@ def rpc_get_issues_for_transaction(transaction_name: str, project_id: int) -> di
 
 def rpc_get_trace_from_id(trace_id: str, project_id: int) -> dict[str, Any]:
     trace = get_trace_from_id(trace_id, project_id)
-    return trace.dict() if trace else {}
+    return {"trace": trace} if trace else {}

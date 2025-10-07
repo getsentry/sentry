@@ -777,58 +777,82 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
         assert issue2.id == event2.group.id
         assert issue2.transaction == transaction_name_in
 
-    def test_get_trace_from_id(self) -> None:
+    def _test_get_trace_from_id(self, use_short_id: bool) -> None:
         transaction_name = "api/users/profile"
         trace_id = uuid.uuid4().hex
         spans = []
         for i in range(5):
-            # Create spans for this trace
+            # Create a span tree for this trace
             span = self.create_span(
                 {
                     **({"description": f"span-{i}"} if i != 4 else {}),
                     "sentry_tags": {"transaction": transaction_name},
                     "trace_id": trace_id,
-                    "parent_span_id": None if i == 0 else f"parent-{i-1}",
-                    "is_segment": i == 0,  # First span is the transaction span
+                    "parent_span_id": (None if i == 0 else spans[i // 2]["span_id"]),
+                    "is_segment": i == 0,  # First span is the root
                 },
                 start_ts=self.ten_mins_ago + timedelta(minutes=i),
             )
             spans.append(span)
 
         self.store_spans(spans, is_eap=True)
+        result = get_trace_from_id(trace_id[:8] if use_short_id else trace_id, self.organization.id)
+        assert isinstance(result, list)
 
-        # Call our function with shortened trace ID
-        result = get_trace_from_id(trace_id[:8], self.project.id)
+        seen_span_ids = []
+        root_spans = []
 
-        # Verify basic structure
-        assert result is not None
-        assert result.transaction_name == transaction_name
-        assert result.project_id == self.project.id
-        # assert result.trace_id == trace_id
-        assert len(result.spans) == len(spans)
+        def check(e):
+            assert "event_id" in e
+            assert e["transaction"] == transaction_name
+            assert e["project_id"] == self.project.id
 
-        # Verify all spans have correct structure and belong to the chosen trace
-        for i, result_span in enumerate(result.spans):
-            assert hasattr(result_span, "span_id")
-            assert hasattr(result_span, "span_description")
-            assert hasattr(result_span, "parent_span_id")
-            assert hasattr(result_span, "span_op")
-            assert result_span.span_description is not None
-            if i != 4:
-                assert result_span.span_description.startswith("span-")
+            # TODO: handle non-span events
 
-        # Verify parent-child relationships are preserved
-        root_spans = [s for s in result.spans if s.parent_span_id is None]
-        assert len(root_spans) == 1  # Should have exactly one root span
+            # Is a span
+            assert "op" in e
+            assert "description" in e
+            assert "parent_span_id" in e
+            assert "children" in e
+
+            desc = e["description"]
+            assert isinstance(desc, str)
+            if desc:
+                assert desc.startswith("span-")
+
+            # TODO: test connected errors/occurrences
+
+            seen_span_ids.append(e["event_id"])
+
+            if e["parent_span_id"] is None:
+                # Is root
+                assert e["is_transaction"]
+                root_spans.append(e["event_id"])
+
+            # Recurse
+            for child in e["children"]:
+                check(child)
+
+        for event in result:
+            check(event)
+
+        assert set(seen_span_ids) == {s["span_id"] for s in spans}
+        assert len(root_spans) == 1
+
+    def test_get_trace_from_short_id(self) -> None:
+        self._test_get_trace_from_id(use_short_id=True)
+
+    def test_get_trace_from_id_full_id(self) -> None:
+        self._test_get_trace_from_id(use_short_id=False)
 
     def test_get_trace_from_id_wrong_project(self) -> None:
         transaction_name = "api/users/profile"
         trace_id = uuid.uuid4().hex
-        other_project = self.create_project(organization=self.organization)
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
 
         spans = []
         for i in range(2):
-            # Create spans in the wrong project
             span = self.create_span(
                 {
                     "project_id": other_project.id,
@@ -844,6 +868,6 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
 
         self.store_spans(spans, is_eap=True)
 
-        # Call our function with shortened trace ID
+        # Call with short ID
         result = get_trace_from_id(trace_id[:8], self.project.id)
         assert result is None
