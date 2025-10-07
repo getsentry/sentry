@@ -25,5 +25,6 @@ export function urlAttachQueryParams(url: string, params: URLSearchParams): stri
 }
 
 export function isDemoModeActive(): boolean {
+  return true;
   return ConfigStore.get('demoMode') && !isActiveSuperuser();
 }
