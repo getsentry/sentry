@@ -110,6 +110,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                   title={t('Refresh for latest data')}
                   size="xs"
                   onClick={handleRefresh}
+                  priority="primary"
                   borderless
                 >
                   {t('Refresh')}
@@ -208,11 +209,5 @@ const LiveIndicator = styled('div')`
 `;
 
 const RefreshButton = styled(Button)`
-  background-color: ${p => p.theme.yellow100};
-  color: ${p => p.theme.yellow400};
   margin-left: 20px;
-
-  &:hover {
-    color: ${p => p.theme.yellow400};
-  }
 `;
