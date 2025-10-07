@@ -2320,6 +2320,38 @@ describe('SearchQueryBuilder', () => {
         });
       });
 
+      it('sorts multi-selected values after re-opening the combobox', async () => {
+        const user = userEvent.setup();
+        render(<SearchQueryBuilder {...defaultProps} initialQuery='browser.name:""' />);
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        const checkboxOptions = await screen.findAllByRole('checkbox');
+        expect(checkboxOptions).toHaveLength(4);
+        expect(checkboxOptions[0]).toHaveAccessibleName('Toggle Chrome');
+        expect(checkboxOptions[1]).toHaveAccessibleName('Toggle Firefox');
+
+        await user.keyboard('{Control>}');
+        await user.click(checkboxOptions[1]!);
+
+        expect(checkboxOptions[1]).toHaveAccessibleName('Toggle Firefox');
+        expect(checkboxOptions[1]).toBeChecked();
+
+        await user.keyboard('{Escape}');
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        const updatedCheckboxOptions = await screen.findAllByRole('checkbox');
+        expect(updatedCheckboxOptions).toHaveLength(4);
+        expect(updatedCheckboxOptions[0]).toHaveAccessibleName('Toggle Firefox');
+        expect(updatedCheckboxOptions[0]).toBeChecked();
+        expect(updatedCheckboxOptions[1]).toHaveAccessibleName('Toggle Chrome');
+        expect(updatedCheckboxOptions[1]).not.toBeChecked();
+      });
+
       it('collapses many selected options', async () => {
         render(
           <SearchQueryBuilder
