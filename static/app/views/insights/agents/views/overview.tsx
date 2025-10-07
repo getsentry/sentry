@@ -39,7 +39,6 @@ import {
   useActiveTable,
 } from 'sentry/views/insights/agents/hooks/useActiveTable';
 import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
-import {AIInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
 import {TwoColumnWidgetGrid, WidgetGrid} from 'sentry/views/insights/agents/views/styles';
@@ -289,16 +288,14 @@ function ToolsView() {
 
 function PageWithProviders() {
   return (
-    <AIInsightsFeature>
-      <ModulePageProviders
-        moduleName={ModuleName.AGENTS}
-        analyticEventName="insight.page_loads.agents"
-      >
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <AgentsOverviewPage />
-        </TraceItemAttributeProvider>
-      </ModulePageProviders>
-    </AIInsightsFeature>
+    <ModulePageProviders
+      moduleName={ModuleName.AGENTS}
+      analyticEventName="insight.page_loads.agents"
+    >
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <AgentsOverviewPage />
+      </TraceItemAttributeProvider>
+    </ModulePageProviders>
   );
 }
 
