@@ -228,10 +228,13 @@ def _cleanup(
             return model.__name__.lower() not in model_list
 
         deletes = models_which_use_deletions_code_path()
-        project_id, organization_id = get_project_and_organization_id(project, organization)
 
         _run_specialized_cleanups(is_filtered, days, silent, models_attempted)
-        _handle_non_control_deletes(project, deletes, days)
+
+        # Handle project/organization specific logic
+        project_id, organization_id = _handle_project_organization_cleanup(
+            project, organization, days, deletes
+        )
 
         # This does not use the deletions code path, but rather uses the BulkDeleteQuery class
         # to delete records in bulk (i.e. does not need to worry about child relations)
@@ -303,27 +306,26 @@ def _run_specialized_cleanups(
     exported_data(is_filtered, silent, models_attempted)
 
 
-def _handle_non_control_deletes(
-    project: str | None, deletes: list[tuple[type[Model], str, str]], days: int
-) -> None:
-    """Handle deletes for project/organization that are not control-limited."""
+def _handle_project_organization_cleanup(
+    project: str | None,
+    organization: str | None,
+    days: int,
+    deletes: list[tuple[type[Model], str, str]],
+) -> tuple[int | None, int | None]:
+    """Handle project/organization specific cleanup logic."""
+    project_id = None
+    organization_id = None
 
     if SiloMode.get_current_mode() != SiloMode.CONTROL:
         if project:
             remove_cross_project_models(deletes)
+            project_id = get_project_id_or_fail(project)
+        elif organization:
+            organization_id = get_organization_id_or_fail(organization)
         else:
             remove_old_nodestore_values(days)
 
-
-def get_project_and_organization_id(
-    project: str | None, organization: str | None
-) -> tuple[int | None, int | None]:
-    if project:
-        return get_project_id_or_fail(project), None
-    elif organization:
-        return None, get_organization_id_or_fail(organization)
-    else:
-        return None, None
+    return project_id, organization_id
 
 
 def _report_models_never_attempted(
@@ -588,8 +590,13 @@ def run_bulk_deletes_in_deletes(
 
 
 def run_bulk_deletes_by_project(
-    task_queue: _WorkQueue, project, project_id, is_filtered, days, models_attempted
-):
+    task_queue: _WorkQueue,
+    project: str | None,
+    project_id: int | None,
+    is_filtered: Callable[[type[Model]], bool],
+    days: int,
+    models_attempted: set[str],
+) -> None:
     project_deletion_query, to_delete_by_project = prepare_deletes_by_project(
         project, project_id, is_filtered
     )
@@ -628,7 +635,7 @@ def run_bulk_deletes_by_organization(
     is_filtered: Callable[[type[Model]], bool],
     days: int,
     models_attempted: set[str],
-):
+) -> None:
     organization_deletion_query, to_delete_by_organization = prepare_deletes_by_organization(
         organization_id, is_filtered
     )
