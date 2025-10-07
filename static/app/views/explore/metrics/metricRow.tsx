@@ -9,8 +9,8 @@ import {
   useSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
-import {type TraceMetric} from 'sentry/views/explore/metrics/traceMetric';
 import {
   useQueryParamsGroupBys,
   useQueryParamsQuery,
