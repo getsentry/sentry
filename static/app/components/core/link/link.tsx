@@ -7,14 +7,16 @@ import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 
 export interface LinkProps
   extends React.RefAttributes<HTMLAnchorElement>,
-    Pick<ReactRouterLinkProps, 'to' | 'replace' | 'preventScrollReset' | 'state'>,
+    Pick<
+      ReactRouterLinkProps,
+      'to' | 'replace' | 'preventScrollReset' | 'state' | 'reloadDocument'
+    >,
     Omit<
       React.DetailedHTMLProps<React.HTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>,
       'href' | 'target' | 'as' | 'css'
@@ -72,20 +74,12 @@ const Anchor = styled('a', {
 export const Link = styled(({disabled, to, ...props}: LinkProps) => {
   const location = useLocation();
 
-  // If the frontend app is stale we can force the link to reload the page,
-  // loading the new version of sentry.
-  const {state: appState} = useFrontendVersion();
-
   if (disabled || !location) {
     return <Anchor {...props} />;
   }
 
   return (
-    <RouterLink
-      reloadDocument={appState === 'stale'}
-      to={locationDescriptorToTo(normalizeUrl(to, location))}
-      {...props}
-    />
+    <RouterLink to={locationDescriptorToTo(normalizeUrl(to, location))} {...props} />
   );
 })`
   ${getLinkStyles}
