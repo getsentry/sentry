@@ -69,14 +69,12 @@ export interface IncidentPeriod {
 
 interface IncidentMarkerSeriesProps {
   incidentPeriods: IncidentPeriod[];
-  intervalMs: number;
   markLineTooltip: UseIncidentMarkersProps['markLineTooltip'];
   seriesId: string;
   seriesName: string;
   seriesTooltip: UseIncidentMarkersProps['seriesTooltip'];
   theme: Theme;
   yAxisIndex: number;
-  includePreviousIntervalMarker?: boolean;
 }
 
 const makeStripeBackgroundSvgNode = (color: string) => {
@@ -280,19 +278,7 @@ function IncidentMarkerSeries({
 
 interface UseIncidentMarkersProps {
   incidents: IncidentPeriod[];
-  intervalMs: number;
   seriesName: string;
-  /**
-   * If true, adds a marker for the duration of the interval before the beginning
-   * of an open period. This is used to communicate to the user that the change was
-   * detected in the preceding interval, which can be a source of confusion in the
-   * case of large intervals (like 1 day).
-   *
-   * If we stored a historical list of evaluated values from the detector, we could
-   * plot that as a line series instead of using this marker, but that is not something
-   * that is supported at present.
-   */
-  includePreviousIntervalMarker?: boolean;
   /**
    * Provide a custom tooltip for the mark line items
    */
@@ -328,8 +314,6 @@ export function useIncidentMarkers({
   markLineTooltip,
   yAxisIndex = 0,
   onClick,
-  intervalMs,
-  includePreviousIntervalMarker,
 }: UseIncidentMarkersProps): UseIncidentMarkersResult {
   const theme = useTheme();
   const chartRef = useRef<ECharts | null>(null);
@@ -512,8 +496,6 @@ export function useIncidentMarkers({
       seriesId,
       seriesTooltip,
       markLineTooltip,
-      intervalMs,
-      includePreviousIntervalMarker,
     });
   }, [
     incidentPeriods,
@@ -523,8 +505,6 @@ export function useIncidentMarkers({
     seriesId,
     seriesTooltip,
     markLineTooltip,
-    intervalMs,
-    includePreviousIntervalMarker,
   ]);
 
   return {
