@@ -31,6 +31,10 @@ export function MetricHistoryFixture(
     usage: 0,
     usageExceeded: false,
     customPrice: 0,
+    retention: {
+      standard: 90,
+      downsampled: null,
+    },
     ...params,
   };
 }

@@ -202,7 +202,9 @@ export type Plan = {
     Record<DataCategory, {plural: string; singular: string}>
   >;
   checkoutType?: CheckoutType;
-  retentions?: Partial<Record<DataCategory, {downsampled: number; standard: number}>>;
+  retentions?: Partial<
+    Record<DataCategory, {downsampled: number | null; standard: number}>
+  >;
 };
 
 type PendingChanges = {
