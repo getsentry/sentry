@@ -58,13 +58,8 @@ export interface IncidentPeriod {
    * - `trigger-interval`: A marker for the duration of the interval before the beginning of an open period.
    * - `open-period-start`: A marker for the start of an open period.
    * - `open-period-transition`: Used for priority transitions within an open period.
-   * - `open-period-end`: Used for the end of an open period.
    */
-  type:
-    | 'trigger-interval'
-    | 'open-period-start'
-    | 'open-period-transition'
-    | 'open-period-end';
+  type: 'trigger-interval' | 'open-period-start' | 'open-period-transition';
 }
 
 interface IncidentMarkerSeriesProps {
@@ -142,6 +137,12 @@ function IncidentMarkerSeries({
       return {type: 'group', children: []};
     }
 
+    const allItemsWithinPeriod = incidentPeriods
+      .filter(period => period.id === dataItem?.id)
+      .toSorted((a, b) => a.start - b.start);
+    const isLastItem =
+      allItemsWithinPeriod.indexOf(dataItem) === allItemsWithinPeriod.length - 1;
+
     // Use the start/end timestamps to get the chart coordinates to draw the
     // rectangle. The 2nd tuple passed to `api.coord()` is always 0 because we
     // don't care about the y-coordinate as the rectangles have a static height.
@@ -175,7 +176,7 @@ function IncidentMarkerSeries({
       r:
         dataItem.type === 'trigger-interval'
           ? [2, 0, 0, 2]
-          : dataItem.type === 'open-period-end'
+          : isLastItem
             ? [0, 2, 2, 0]
             : [0, 0, 0, 0],
     };

@@ -126,18 +126,8 @@ function createOpenPeriodMarkerData({
       };
     });
 
-  const getType = (index: number) => {
-    if (index === 0) {
-      return 'open-period-start';
-    }
-    if (index === segments.length - 1) {
-      return 'open-period-end';
-    }
-    return 'open-period-transition';
-  };
-
   return segments.map((segment, i) => ({
-    type: getType(i),
+    type: i === 0 ? 'open-period-start' : 'open-period-transition',
     end: segment.end,
     id: period.id,
     name: t('Open Periods'),
