@@ -5,7 +5,6 @@ from django.test import override_settings
 
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import test_tasks
 from sentry.taskworker.registry import TaskRegistry
@@ -16,8 +15,8 @@ from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 
 @instrumented_task(
     name="test.tasks.test_base.region_task",
+    namespace=test_tasks,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=test_tasks),
 )
 def region_task(param) -> str:
     return f"Region task {param}"
@@ -25,8 +24,8 @@ def region_task(param) -> str:
 
 @instrumented_task(
     name="test.tasks.test_base.control_task",
+    namespace=test_tasks,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(namespace=test_tasks),
 )
 def control_task(param) -> str:
     return f"Control task {param}"
@@ -35,8 +34,8 @@ def control_task(param) -> str:
 @retry(ignore_and_capture=(Exception,))
 @instrumented_task(
     name="test.tasks.test_base.ignore_and_capture_task",
+    namespace=test_tasks,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(namespace=test_tasks),
 )
 def ignore_and_capture_retry_task(param):
     raise Exception(param)
@@ -44,8 +43,8 @@ def ignore_and_capture_retry_task(param):
 
 @instrumented_task(
     name="test.tasks.test_base.retry_task",
+    namespace=test_tasks,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(namespace=test_tasks),
 )
 @retry(on=(Exception,))
 def retry_on_task(param):
@@ -55,8 +54,8 @@ def retry_on_task(param):
 @retry(ignore=(Exception,))
 @instrumented_task(
     name="test.tasks.test_base.ignore_task",
+    namespace=test_tasks,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(namespace=test_tasks),
 )
 def ignore_on_exception_task(param):
     raise Exception(param)
@@ -65,8 +64,8 @@ def ignore_on_exception_task(param):
 @retry(exclude=(Exception,))
 @instrumented_task(
     name="test.tasks.test_base.exclude_task",
+    namespace=test_tasks,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(namespace=test_tasks),
 )
 def exclude_on_exception_task(param):
     raise Exception(param)

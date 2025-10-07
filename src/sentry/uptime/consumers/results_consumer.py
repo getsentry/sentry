@@ -17,7 +17,6 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 
 from sentry import features, options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.models.project import Project
 from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
     ResultsStrategyFactory,
@@ -27,7 +26,6 @@ from sentry.uptime.detectors.ranking import _get_cluster
 from sentry.uptime.detectors.result_handler import handle_onboarding_result
 from sentry.uptime.grouptype import UptimePacketValue
 from sentry.uptime.models import (
-    UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
     get_detector,
@@ -138,8 +136,7 @@ def try_check_and_update_regions(
 
 
 def produce_snuba_uptime_result(
-    uptime_subscription: UptimeSubscription,
-    project: Project,
+    detector: Detector,
     result: CheckResult,
     metric_tags: dict[str, str],
 ) -> None:
@@ -147,7 +144,8 @@ def produce_snuba_uptime_result(
     Produces a message to Snuba's Kafka topic for uptime check results.
     """
     try:
-        if uptime_subscription.uptime_status == UptimeStatus.FAILED:
+        detector_state = detector.detectorstate_set.first()
+        if detector_state and detector_state.is_triggered:
             incident_status = IncidentStatus.IN_INCIDENT
         else:
             incident_status = IncidentStatus.NO_INCIDENT
@@ -165,8 +163,8 @@ def produce_snuba_uptime_result(
             "duration_ms": result["duration_ms"],
             "request_info": result["request_info"],
             # Add required Snuba-specific fields
-            "organization_id": project.organization_id,
-            "project_id": project.id,
+            "organization_id": detector.project.organization_id,
+            "project_id": detector.project.id,
             "retention_days": 90,
             "incident_status": incident_status.value,
             "region": result["region"],
@@ -319,11 +317,6 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
         organization = detector.project.organization
 
-        # Detailed logging for specific organizations, useful for if we need to
-        # debug a specific organizations checks.
-        if features.has("organizations:uptime-detailed-logging", organization):
-            logger.info("handle_result_for_project.before_dedupe", extra=result)
-
         # Nothing to do if this subscription is disabled.
         if not detector.enabled:
             return
@@ -437,30 +430,22 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
                     if options.get("uptime.snuba_uptime_results.enabled"):
                         produce_snuba_uptime_result(
-                            subscription,
-                            detector.project,
+                            detector,
                             missed_result,
                             synthetic_metric_tags.copy(),
                         )
 
-                    if features.has(
-                        "organizations:uptime-eap-results", detector.project.organization
-                    ):
-                        produce_eap_uptime_result(
-                            subscription,
-                            detector.project,
-                            missed_result,
-                            synthetic_metric_tags.copy(),
-                        )
+                    produce_eap_uptime_result(
+                        detector,
+                        missed_result,
+                        synthetic_metric_tags.copy(),
+                    )
             else:
                 logger.info(
                     "uptime.result_processor.false_num_missing_check",
                     extra={**result},
                 )
                 cluster.set(last_interval_key, subscription_interval_ms, ex=LAST_UPDATE_REDIS_TTL)
-
-        if features.has("organizations:uptime-detailed-logging", organization):
-            logger.info("handle_result_for_project.after_dedupe", extra=result)
 
         # We log the result stats here after the duplicate check so that we
         # know the "true" duration and delay of each check. Since during
@@ -494,10 +479,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         # Snuba production _must_ happen after handling the result, since we
         # may mutate the UptimeSubscription when we determine we're in an incident
         if options.get("uptime.snuba_uptime_results.enabled"):
-            produce_snuba_uptime_result(subscription, detector.project, result, metric_tags.copy())
+            produce_snuba_uptime_result(detector, result, metric_tags.copy())
 
-        if features.has("organizations:uptime-eap-results", detector.project.organization):
-            produce_eap_uptime_result(subscription, detector.project, result, metric_tags.copy())
+        produce_eap_uptime_result(detector, result, metric_tags.copy())
 
         # Track the last update date to allow deduplication
         cluster.set(

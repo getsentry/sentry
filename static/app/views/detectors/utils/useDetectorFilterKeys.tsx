@@ -17,7 +17,6 @@ const DETECTOR_FILTER_KEYS: Record<
       desc: 'Name of the monitor',
       kind: FieldKind.FIELD,
       valueType: FieldValueType.STRING,
-      allowWildcard: false,
       keywords: ['title'],
     },
   },

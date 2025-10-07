@@ -31,6 +31,7 @@ const knownSpanOrigins = {
     'auto.ai.openai',
     'auto.ai.langgraph',
     'auto.ai.anthropic',
+    'auto.ai.litellm',
   ],
   javascript: ['auto.ai.anthropic', 'auto.ai.openai', 'auto.vercelai.otel'],
 } as const;
@@ -134,6 +135,7 @@ const pythonIntegrationLinks: Record<PythonSpanOrigin, string> = {
   'auto.ai.openai': 'https://docs.sentry.io/platforms/python/integrations/openai/',
   'auto.ai.langgraph': 'https://docs.sentry.io/platforms/python/integrations/langgraph/',
   'auto.ai.anthropic': 'https://docs.sentry.io/platforms/python/integrations/anthropic/',
+  'auto.ai.litellm': 'https://docs.sentry.io/platforms/python/integrations/litellm/',
 };
 
 function PythonContent({

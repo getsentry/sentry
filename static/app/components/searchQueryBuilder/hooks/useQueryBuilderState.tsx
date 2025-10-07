@@ -179,6 +179,7 @@ type UpdateFilterOpAction = {
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_FILTER_OP';
   focusOverride?: FocusOverride;
+  shouldCommitQuery?: boolean;
 };
 
 type UpdateTokenValueAction = {
@@ -317,7 +318,7 @@ function modifyFilterOperator(
     ...state,
     focusOverride: action.focusOverride ?? null,
     query: newQuery,
-    committedQuery: newQuery,
+    committedQuery: (action.shouldCommitQuery ?? true) ? newQuery : state.committedQuery,
   };
 }
 

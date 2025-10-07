@@ -15,7 +15,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -49,7 +48,6 @@ type Props = {
   pageLinks: string;
   refetchSavedQueries: () => void;
   renderPrebuilt: boolean;
-  router: InjectedRouter;
   savedQueries: SavedQuery[];
   savedQuerySearchQuery: string;
 };
@@ -142,7 +140,7 @@ class QueryList extends Component<Props> {
   }
 
   renderPrebuiltQueries() {
-    const {api, location, organization, savedQuerySearchQuery, router} = this.props;
+    const {api, location, organization, savedQuerySearchQuery} = this.props;
     const views = getPrebuiltQueries(organization);
 
     const hasSearchQuery =
@@ -190,7 +188,6 @@ class QueryList extends Component<Props> {
               query: view,
               organization,
               yAxis: view?.yAxis,
-              router,
               widgetType: hasDatasetSelector(organization)
                 ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
@@ -252,7 +249,7 @@ class QueryList extends Component<Props> {
   }
 
   renderSavedQueries() {
-    const {api, savedQueries, location, organization, router} = this.props;
+    const {api, savedQueries, location, organization} = this.props;
 
     if (!savedQueries || !Array.isArray(savedQueries) || savedQueries.length === 0) {
       return [];
@@ -288,7 +285,6 @@ class QueryList extends Component<Props> {
                     query: savedQuery,
                     organization,
                     yAxis: savedQuery?.yAxis ?? eventView.yAxis,
-                    router,
                     widgetType: hasDatasetSelector(organization)
                       ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         SAVED_QUERY_DATASET_TO_WIDGET_TYPE[

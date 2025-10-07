@@ -32,6 +32,7 @@ type Props = {
 };
 
 export const DEFAULT_RESOURCE_FILTERS = [
+  'has:sentry.normalized_description',
   '!sentry.normalized_description:"browser-extension://*"',
 ];
 

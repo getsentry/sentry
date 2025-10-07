@@ -60,7 +60,7 @@ export const getChonkStylesConfig = ({
       color: 'currentcolor',
     },
   });
-  const boxShadow = `0px 2px 0px 0px ${theme.tokens.border.primary} inset`;
+  const boxShadow = `0px 1px 0px 0px ${theme.tokens.border.primary} inset`;
 
   return {
     control: (_, state) => ({

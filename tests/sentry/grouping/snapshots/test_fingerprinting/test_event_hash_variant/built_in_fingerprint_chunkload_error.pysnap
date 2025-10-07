@@ -1,5 +1,5 @@
 ---
-created: '2025-10-06T17:30:32.851483+00:00'
+created: '2025-10-06T22:48:22.626811+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -23,7 +23,7 @@ variants:
     hint: null
     key: built_in_fingerprint
     matched_rule: family:"javascript" type:"ChunkLoadError" -> "chunkloaderror"
-    type: built_in_fingerprint
+    type: custom_fingerprint
     values:
     - chunkloaderror
   system:

@@ -1,7 +1,6 @@
 import {DiscoverSavedQueryFixture} from 'sentry-fixture/discover';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -86,7 +85,6 @@ describe('Discover > QueryList', () => {
   it('renders an empty list', () => {
     render(
       <QueryList
-        router={RouterFixture()}
         organization={organization}
         savedQueries={[]}
         savedQuerySearchQuery="no matches"
@@ -107,7 +105,6 @@ describe('Discover > QueryList', () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries}
         renderPrebuilt
@@ -149,7 +146,6 @@ describe('Discover > QueryList', () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={organization}
         savedQueries={[]}
         renderPrebuilt
@@ -209,7 +205,6 @@ describe('Discover > QueryList', () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={org}
         savedQueries={savedQueries}
         renderPrebuilt
@@ -248,7 +243,6 @@ describe('Discover > QueryList', () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries}
         pageLinks=""
@@ -284,7 +278,6 @@ describe('Discover > QueryList', () => {
       <QueryList
         savedQuerySearchQuery=""
         renderPrebuilt={false}
-        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries}
         pageLinks=""
@@ -310,7 +303,6 @@ describe('Discover > QueryList', () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries}
         pageLinks=""
@@ -335,7 +327,6 @@ describe('Discover > QueryList', () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries.slice(1)}
         renderPrebuilt={false}
@@ -373,7 +364,6 @@ describe('Discover > QueryList', () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={featuredOrganization}
         savedQueries={savedQueries.slice(1)}
         pageLinks=""
@@ -407,7 +397,6 @@ describe('Discover > QueryList', () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries.slice(1)}
         pageLinks=""
@@ -450,7 +439,6 @@ describe('Discover > QueryList', () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={featuredOrganization}
         savedQueries={[savedQueryWithMultiYAxis]}
         pageLinks=""
@@ -479,7 +467,6 @@ describe('Discover > QueryList', () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries.slice(1)}
         renderPrebuilt={false}
@@ -510,7 +497,6 @@ describe('Discover > QueryList', () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={featuredOrganization}
         savedQueries={[
           DiscoverSavedQueryFixture({
@@ -547,7 +533,6 @@ describe('Discover > QueryList', () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         organization={featuredOrganization}
         savedQueries={[
           DiscoverSavedQueryFixture({
@@ -584,7 +569,6 @@ describe('Discover > QueryList', () => {
       render(
         <QueryList
           savedQuerySearchQuery=""
-          router={RouterFixture()}
           organization={featuredOrganization}
           renderPrebuilt={false}
           savedQueries={[
@@ -651,7 +635,6 @@ describe('Discover > QueryList', () => {
       render(
         <QueryList
           savedQuerySearchQuery=""
-          router={RouterFixture()}
           renderPrebuilt={false}
           organization={featuredOrganization}
           savedQueries={[
@@ -719,7 +702,6 @@ describe('Discover > QueryList', () => {
       render(
         <QueryList
           savedQuerySearchQuery=""
-          router={RouterFixture()}
           organization={featuredOrganization}
           renderPrebuilt={false}
           savedQueries={[
@@ -756,7 +738,6 @@ describe('Discover > QueryList', () => {
       render(
         <QueryList
           savedQuerySearchQuery=""
-          router={RouterFixture()}
           organization={featuredOrganization}
           renderPrebuilt={false}
           savedQueries={[
@@ -794,7 +775,6 @@ describe('Discover > QueryList', () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={RouterFixture()}
         renderPrebuilt={false}
         organization={featuredOrganization}
         savedQueries={[

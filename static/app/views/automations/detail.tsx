@@ -73,7 +73,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
   const warning = getAutomationActionsWarning(automation);
 
   return (
-    <SentryDocumentTitle title={automation.name} noSuffix>
+    <SentryDocumentTitle title={automation.name}>
       <DetailLayout>
         <DetailLayout.Header>
           <DetailLayout.HeaderContent>

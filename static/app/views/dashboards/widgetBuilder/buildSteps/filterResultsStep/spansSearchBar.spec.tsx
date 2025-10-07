@@ -149,7 +149,10 @@ describe('SpansSearchBar', () => {
     const searchInput = await screen.findByRole('combobox', {
       name: 'Add a search term',
     });
-    await userEvent.type(searchInput, 'span.op:function{enter}');
+    await userEvent.type(searchInput, 'span.op:');
+    await userEvent.keyboard('{enter}');
+    await userEvent.keyboard('function');
+    await userEvent.keyboard('{enter}');
 
     await waitFor(() => {
       expect(onClose).toHaveBeenCalled();

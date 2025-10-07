@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import isNumber from 'lodash/isNumber';
 import moment from 'moment-timezone';
 
@@ -120,19 +120,16 @@ function TimeSince({
   ...props
 }: Props) {
   const user = useUser();
-  const tickerRef = useRef<number | undefined>(undefined);
 
-  const computeRelativeDate = useCallback(
-    () => getRelativeDate(date, suffix, prefix, unitStyle),
-    [date, suffix, prefix, unitStyle]
-  );
+  // Counter to trigger periodic re-computation of relative time
+  const [tick, setTick] = useState(0);
 
-  const [relative, setRelative] = useState<string>(computeRelativeDate());
+  const relative = useMemo(() => {
+    void tick; // Ensure recomputation when tick changes
+    return getRelativeDate(date, suffix, prefix, unitStyle);
+  }, [date, suffix, prefix, unitStyle, tick]);
 
   useEffect(() => {
-    // Immediately update if props change
-    setRelative(computeRelativeDate());
-
     const interval =
       liveUpdateInterval === 'minute'
         ? 60 * 1000
@@ -141,13 +138,10 @@ function TimeSince({
           : liveUpdateInterval;
 
     // Start a ticker to update the relative time
-    tickerRef.current = window.setInterval(
-      () => setRelative(computeRelativeDate()),
-      interval
-    );
+    const ticker = window.setInterval(() => setTick(prev => prev + 1), interval);
 
-    return () => window.clearInterval(tickerRef.current);
-  }, [liveUpdateInterval, computeRelativeDate]);
+    return () => window.clearInterval(ticker);
+  }, [liveUpdateInterval]);
 
   const dateObj = getDateObj(date);
   const options = user ? user.options : null;

@@ -119,7 +119,7 @@ def submit_save_event(
         "project_id": project_id,
     }
 
-    task.delay(**task_kwargs)
+    task.delay(**task_kwargs)  # type: ignore[arg-type]
 
 
 def _do_preprocess_event(

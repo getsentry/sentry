@@ -10,7 +10,7 @@ class TestChartRenderer(AcceptanceTestCase):
         }
 
         with self.options(options):
-            self.browser.get("debug/chart-renderer/")
+            self.browser.get("debug/charts/chart-renderer/")
 
         self.wait_for_loading()
 

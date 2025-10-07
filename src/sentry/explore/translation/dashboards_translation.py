@@ -33,16 +33,27 @@ def translate_dashboard_widget_queries(
     q_index,
     name,
     original_fields,
+    original_columns,
+    original_aggregates,
     orderby,
     conditions,
     field_aliases,
     is_hidden,
     selected_aggregate,
 ):
-    equations = [field for field in original_fields if is_equation(field)]
-    other_fields = [field for field in original_fields if not is_equation(field)]
+    original_fields_length = len(original_fields)
+    # some widgets have fields that are not columns + aggregates.
+    # we want to combine all of these into a single list but still preserve order the way we would in the frontend.
+    all_fields = (
+        original_fields
+        + [col for col in original_columns if col not in original_fields]
+        + [agg for agg in original_aggregates if agg not in original_fields]
+    )
 
-    fields_with_orderby = original_fields[:]
+    equations = [field for field in all_fields if is_equation(field)]
+    other_fields = [field for field in all_fields if not is_equation(field)]
+
+    fields_with_orderby = all_fields[:]
     if orderby and is_equation_alias(orderby):
         fields_with_orderby.append(orderby)
 
@@ -72,9 +83,9 @@ def translate_dashboard_widget_queries(
         original_fields[selected_aggregate] if selected_aggregate is not None else None
     )
 
-    col_index = 0
+    field_index = 0
     equation_index = 0
-    for old_index, field in enumerate(original_fields):
+    for old_index, field in enumerate(all_fields):
         is_selected_aggregate = selected_aggregate_field == field
         if field in dropped_cols or field in dropped_equations:
             if is_selected_aggregate:
@@ -90,14 +101,16 @@ def translate_dashboard_widget_queries(
             equation_index += 1
 
         elif is_function_field:
-            new_fields.append(eap_query_parts["selected_columns"][col_index])
-            new_aggregates.append(eap_query_parts["selected_columns"][col_index])
-            col_index += 1
+            if old_index < original_fields_length:
+                new_fields.append(eap_query_parts["selected_columns"][field_index])
+            new_aggregates.append(eap_query_parts["selected_columns"][field_index])
+            field_index += 1
 
         else:
-            new_fields.append(eap_query_parts["selected_columns"][col_index])
-            new_columns.append(eap_query_parts["selected_columns"][col_index])
-            col_index += 1
+            if old_index < original_fields_length:
+                new_fields.append(eap_query_parts["selected_columns"][field_index])
+            new_columns.append(eap_query_parts["selected_columns"][field_index])
+            field_index += 1
 
         if is_selected_aggregate:
             new_selected_aggregate = len(new_fields) - 1
@@ -135,6 +148,8 @@ def translate_dashboard_widget(widget: DashboardWidget) -> DashboardWidget:
     for q_index, query in enumerate(transaction_widget["queries"]):
         name = query.get("name", "")
         original_fields = query.get("fields", [])
+        original_columns = query.get("columns", [])
+        original_aggregates = query.get("aggregates", [])
         orderby = query.get("orderby", "")
         conditions = query.get("conditions", "")
         field_aliases = query.get("fieldAliases", [])
@@ -146,6 +161,8 @@ def translate_dashboard_widget(widget: DashboardWidget) -> DashboardWidget:
             q_index,
             name,
             original_fields,
+            original_columns,
+            original_aggregates,
             orderby,
             conditions,
             field_aliases,

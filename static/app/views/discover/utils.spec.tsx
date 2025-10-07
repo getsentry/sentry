@@ -2,13 +2,11 @@ import type {Location} from 'history';
 import {EventFixture} from 'sentry-fixture/event';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
@@ -946,12 +944,10 @@ describe('constructAddQueryToDashboardLink', () => {
 describe('handleAddQueryToDashboard', () => {
   let organization: Organization;
   let location: Location;
-  let router: InjectedRouter;
   let mockedOpenAddToDashboardModal: jest.Mock;
   beforeEach(() => {
     organization = OrganizationFixture();
     location = LocationFixture();
-    router = RouterFixture();
     mockedOpenAddToDashboardModal = jest.mocked(openAddToDashboardModal);
   });
 
@@ -965,7 +961,6 @@ describe('handleAddQueryToDashboard', () => {
       eventView,
       organization,
       location,
-      router,
       widgetType: WidgetType.TRANSACTIONS,
       yAxis: ['count()'],
       source: DashboardWidgetSource.DISCOVERV2,
@@ -1004,7 +999,6 @@ describe('handleAddQueryToDashboard', () => {
       eventView,
       organization,
       location,
-      router,
       source: DashboardWidgetSource.DISCOVERV2,
       widgetType: WidgetType.TRANSACTIONS,
       yAxis: ['count()'],
@@ -1042,7 +1036,6 @@ describe('handleAddQueryToDashboard', () => {
       eventView,
       organization,
       location,
-      router,
       source: DashboardWidgetSource.DISCOVERV2,
       widgetType: WidgetType.TRANSACTIONS,
       yAxis: ['count()', 'count_unique(user)'],
@@ -1087,7 +1080,6 @@ describe('handleAddQueryToDashboard', () => {
         eventView,
         organization,
         location,
-        router,
         source: DashboardWidgetSource.DISCOVERV2,
         widgetType: WidgetType.TRANSACTIONS,
         yAxis: ['count()'],
@@ -1127,7 +1119,6 @@ describe('handleAddQueryToDashboard', () => {
         eventView,
         organization,
         location,
-        router,
         source: DashboardWidgetSource.DISCOVERV2,
         widgetType: WidgetType.TRANSACTIONS,
         yAxis: ['count()'],
@@ -1166,7 +1157,6 @@ describe('handleAddQueryToDashboard', () => {
         eventView,
         organization,
         location,
-        router,
         source: DashboardWidgetSource.DISCOVERV2,
         widgetType: WidgetType.TRANSACTIONS,
         yAxis: ['count()', 'count_unique(user)'],

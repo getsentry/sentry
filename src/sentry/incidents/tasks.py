@@ -53,7 +53,7 @@ def handle_trigger_action(
     project_id: int,
     method: str,
     new_status: int,
-    metric_value: int | None = None,
+    metric_value: float | int | None = None,
     **kwargs: Any,
 ) -> None:
     from sentry.incidents.grouptype import MetricIssue

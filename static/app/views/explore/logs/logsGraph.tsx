@@ -16,7 +16,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {
@@ -221,7 +220,6 @@ function ContextMenu({
   visualize: Visualize;
 }) {
   const location = useLocation();
-  const router = useRouter();
   const organization = useOrganization();
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
@@ -323,7 +321,6 @@ function ContextMenu({
           organization,
           location,
           eventView,
-          router,
           yAxis: visualize.yAxis,
           widgetType: WidgetType.LOGS,
           source: DashboardWidgetSource.LOGS,
@@ -357,7 +354,6 @@ function ContextMenu({
     organization,
     pageFilters,
     projects,
-    router,
     search,
     setVisible,
     visible,

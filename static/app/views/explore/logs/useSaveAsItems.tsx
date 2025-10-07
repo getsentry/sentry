@@ -22,7 +22,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {
   DashboardWidgetSource,
@@ -60,7 +59,6 @@ export function useSaveAsItems({
   visualizes,
 }: UseSaveAsItemsOptions) {
   const location = useLocation();
-  const router = useRouter();
   const organization = useOrganization();
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
@@ -208,7 +206,6 @@ export function useSaveAsItems({
             organization,
             location,
             eventView,
-            router,
             yAxis: eventView.yAxis,
             widgetType: WidgetType.LOGS,
             source: DashboardWidgetSource.LOGS,
@@ -233,17 +230,7 @@ export function useSaveAsItems({
       disabled: !dashboardsUrls || dashboardsUrls.length === 0,
       isSubmenu: true,
     };
-  }, [
-    aggregates,
-    groupBys,
-    mode,
-    organization,
-    pageFilters,
-    search,
-    sortBys,
-    location,
-    router,
-  ]);
+  }, [aggregates, groupBys, mode, organization, pageFilters, search, sortBys, location]);
 
   return useMemo(() => {
     const saveAs = [];

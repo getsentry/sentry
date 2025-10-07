@@ -7,23 +7,8 @@ type InsightsFeaturePropsWithoutFeatures = Omit<
   'features'
 >;
 
-export function hasAgentInsightsFeature(organization: Organization) {
-  return organization.features.includes('agents-insights');
-}
-
 export function hasMCPInsightsFeature(organization: Organization) {
   return organization.features.includes('mcp-insights');
-}
-
-export function AIInsightsFeature(props: InsightsFeaturePropsWithoutFeatures) {
-  return (
-    <Feature
-      features={['agents-insights']}
-      renderDisabled={props.renderDisabled ?? NoAccess}
-    >
-      {props.children}
-    </Feature>
-  );
 }
 
 export function McpInsightsFeature(props: InsightsFeaturePropsWithoutFeatures) {

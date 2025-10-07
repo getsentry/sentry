@@ -1,4 +1,4 @@
-import {Container, Grid} from 'sentry/components/core/layout';
+import {Grid} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {Organization} from 'sentry/types/organization';
 
@@ -18,12 +18,6 @@ interface HeaderCardsProps {
 
 function getCards(organization: Organization, subscription: Subscription) {
   const cards: React.ReactNode[] = [];
-
-  cards.push(
-    <Container key="subscription-card" background="primary" border="primary" radius="md">
-      <SubscriptionCard organization={organization} subscription={subscription} />
-    </Container>
-  );
 
   if (subscription.canSelfServe || subscription.onDemandInvoiced) {
     cards.push(
@@ -52,7 +46,7 @@ function HeaderCards({organization, subscription}: HeaderCardsProps) {
         <Grid
           columns={{
             xs: '1fr',
-            md: `repeat(${cards.length}, 1fr)`,
+            md: `repeat(${cards.length}, minmax(0, 1fr))`,
           }}
           gap="xl"
         >

@@ -239,6 +239,16 @@ export const SEER_TIERS_ANNUAL = {
 };
 
 const BUDGET_TERM = 'pay-as-you-go';
+
+const RETENTION_SETTINGS = Object.fromEntries(
+  AM3_CATEGORIES.map(category => {
+    if (category === 'attachments') {
+      return [category, {standard: 30, downsampled: 0}];
+    }
+    return [category, {standard: 90, downsampled: 0}];
+  })
+);
+
 // TODO(isabella): This probably isn't all the common fields
 const commonFields = {
   addOnCategories: AM3_ADD_ON_CATEGORIES,
@@ -250,6 +260,7 @@ const commonFields = {
   availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES, // TODO(isabella): default budgets for sponsored plans is different
   hasOnDemandModes: false,
   budgetTerm: BUDGET_TERM as 'pay-as-you-go', // for whatever reason TS is unhappy without this
+  retentions: RETENTION_SETTINGS,
 };
 
 const commonFieldsForDs = {

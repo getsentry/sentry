@@ -9,7 +9,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
 import {
   DashboardWidgetSource,
   DEFAULT_WIDGET_NAME,
@@ -35,7 +34,6 @@ export const useAddToSpanDashboard = () => {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
-  const router = useRouter();
 
   const addToSpanDashboard = useCallback(
     ({
@@ -78,12 +76,11 @@ export const useAddToSpanDashboard = () => {
         yAxis: yAxes,
         query: discoverQuery,
         location,
-        router,
         source: DashboardWidgetSource.INSIGHTS,
         widgetType: WidgetType.SPANS,
       });
     },
-    [organization, selection, location, router]
+    [organization, selection, location]
   );
 
   return {

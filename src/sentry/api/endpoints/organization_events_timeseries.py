@@ -60,7 +60,7 @@ class Row(TypedDict):
     incomplete: bool
     comparisonValue: NotRequired[float]
     sampleCount: NotRequired[float]
-    sampleRate: NotRequired[float]
+    sampleRate: NotRequired[float | None]
     confidence: NotRequired[Literal["low", "high"] | None]
     incompleteReason: NotRequired[str]
 
@@ -89,6 +89,13 @@ class TimeSeries(TypedDict):
 class StatsResponse(TypedDict):
     meta: StatsMeta
     timeSeries: list[TimeSeries]
+
+
+def null_zero(value: float) -> float | None:
+    if value == 0:
+        return None
+    else:
+        return value
 
 
 @region_silo_endpoint
@@ -391,7 +398,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 processed_timeseries.confidence,
             ):
                 value["sampleCount"] = count[axis]
-                value["sampleRate"] = rate[axis]
+                # We want to null sample rates that are 0 since that means we received no data during this bucket
+                value["sampleRate"] = null_zero(rate[axis])
                 value["confidence"] = confidence[axis]
 
         timeseries["values"] = timeseries_values

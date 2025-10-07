@@ -118,7 +118,7 @@ describe('DetectorDetails', () => {
         await screen.findByRole('heading', {name: snubaQueryDetector.name})
       ).toBeInTheDocument();
       // Displays the snuba query
-      expect(screen.getByText('event.type:error test')).toBeInTheDocument();
+      expect(screen.getByLabelText('event.type:error test')).toBeInTheDocument();
       // Displays the environment
       expect(
         screen.getByText(dataSource.queryObj!.snubaQuery.environment!)

@@ -42,6 +42,7 @@ from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.types import DatasetQuery
 from sentry.snuba.utils import RPC_DATASETS, dataset_split_decision_inferred_from_query, get_dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -515,6 +516,12 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     return SearchResolverConfig(
                         use_aggregate_conditions=False,
                     )
+                elif scoped_dataset == TraceMetrics:
+                    # tracemetrics uses aggregate conditions
+                    return SearchResolverConfig(
+                        use_aggregate_conditions=use_aggregate_conditions,
+                        auto_fields=True,
+                    )
                 elif scoped_dataset == uptime_results.UptimeResults:
                     return SearchResolverConfig(
                         use_aggregate_conditions=use_aggregate_conditions, auto_fields=True
@@ -578,7 +585,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         paginator, cursor_cls = paginator_factory(dataset)
 
-        max_per_page = 9999 if dataset == OurLogs else None
+        max_per_page = 9999 if dataset in (OurLogs, TraceMetrics) else None
 
         def _handle_results(results):
             # Apply error upsampling for regular Events API

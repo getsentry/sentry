@@ -1,52 +1,43 @@
 import type {ReactNode} from 'react';
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 
-import {useResettableState} from 'sentry/utils/useResettableState';
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {defined} from 'sentry/utils';
+import {defaultQuery} from 'sentry/views/explore/metrics/metricQuery';
+import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {
   QueryParamsContextProvider,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {parseVisualize} from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface MetricsQueryParamsProviderProps {
   children: ReactNode;
+  queryParams: ReadableQueryParams;
+  setQueryParams: (queryParams: ReadableQueryParams) => void;
 }
 
-export function MetricsQueryParamsProvider({children}: MetricsQueryParamsProviderProps) {
-  const [query, setQuery] = useResettableState(() => '');
-
-  const readableQueryParams = useMemo(() => {
-    return new ReadableQueryParams({
-      extrapolate: true,
-      mode: Mode.AGGREGATE,
-      query,
-
-      cursor: '',
-      fields: ['id', 'timestamp'],
-      sortBys: [{field: 'timestamp', kind: 'desc'}],
-
-      aggregateCursor: '',
-      aggregateFields: [
-        new VisualizeFunction('count(span.duration)', {chartType: ChartType.BAR}),
-      ],
-      aggregateSortBys: [{field: 'count(span.duration)', kind: 'desc'}],
-    });
-  }, [query]);
-
+export function MetricsQueryParamsProvider({
+  children,
+  queryParams,
+  setQueryParams,
+}: MetricsQueryParamsProviderProps) {
   const setWritableQueryParams = useCallback(
     (writableQueryParams: WritableQueryParams) => {
-      setQuery(writableQueryParams.query);
+      const newQueryParams = updateQueryParams(queryParams, {
+        query: getUpdatedValue(writableQueryParams.query, defaultQuery),
+      });
+
+      setQueryParams(newQueryParams);
     },
-    [setQuery]
+    [queryParams, setQueryParams]
   );
 
   return (
     <QueryParamsContextProvider
-      queryParams={readableQueryParams}
+      queryParams={queryParams}
       setQueryParams={setWritableQueryParams}
       isUsingDefaultFields
       shouldManageFields={false}
@@ -56,10 +47,58 @@ export function MetricsQueryParamsProvider({children}: MetricsQueryParamsProvide
   );
 }
 
+function getUpdatedValue<T>(
+  newValue: T | null | undefined,
+  defaultValue: () => T
+): T | undefined {
+  if (defined(newValue)) {
+    return newValue;
+  }
+
+  if (newValue === null) {
+    return defaultValue();
+  }
+
+  return undefined;
+}
+
 export function useMetricVisualize() {
   const visualizes = useQueryParamsVisualizes();
   if (visualizes.length === 1) {
     return visualizes[0]!;
   }
   throw new Error('Only 1 visualize per metric allowed');
+}
+
+function updateQueryParams(
+  readableQueryParams: ReadableQueryParams,
+  writableQueryParams: WritableQueryParams
+): ReadableQueryParams {
+  const aggregateFields: readonly AggregateField[] =
+    writableQueryParams.aggregateFields?.flatMap<AggregateField>(aggregateField => {
+      if (isGroupBy(aggregateField)) {
+        return [aggregateField];
+      }
+      return parseVisualize(aggregateField);
+    }) ?? [];
+  return new ReadableQueryParams({
+    extrapolate: writableQueryParams.extrapolate ?? readableQueryParams.extrapolate,
+    mode: writableQueryParams.mode ?? readableQueryParams.mode,
+    query: writableQueryParams.query ?? readableQueryParams.query,
+
+    cursor: writableQueryParams.cursor ?? readableQueryParams.cursor,
+    fields: writableQueryParams.fields ?? readableQueryParams.fields,
+    sortBys: writableQueryParams.sortBys ?? readableQueryParams.sortBys,
+
+    aggregateCursor:
+      writableQueryParams.aggregateCursor ?? readableQueryParams.aggregateCursor,
+    aggregateFields: aggregateFields.length
+      ? aggregateFields
+      : readableQueryParams.aggregateFields,
+    aggregateSortBys:
+      writableQueryParams.aggregateSortBys ?? readableQueryParams.aggregateSortBys,
+
+    id: readableQueryParams.id,
+    title: readableQueryParams.title,
+  });
 }

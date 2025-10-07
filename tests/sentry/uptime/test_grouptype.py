@@ -25,7 +25,7 @@ from sentry.uptime.grouptype import (
     build_event_data,
     build_evidence_display,
 )
-from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_uptime_subscription
+from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
 from sentry.uptime.subscriptions.subscriptions import (
     build_detector_fingerprint_component,
     build_fingerprint,
@@ -154,7 +154,8 @@ class TestUptimeHandler(UptimeTestCase):
         detector = self.create_uptime_detector(downtime_threshold=2, recovery_threshold=1)
         uptime_subscription = get_uptime_subscription(detector)
 
-        assert uptime_subscription.uptime_status == UptimeStatus.OK
+        detector_state = detector.detectorstate_set.first()
+        assert detector_state and detector_state.priority_level == DetectorPriorityLevel.OK
 
         now = datetime.now()
 
@@ -185,15 +186,17 @@ class TestUptimeHandler(UptimeTestCase):
             fingerprint = set(build_fingerprint(detector))
             assert fingerprint & set(evaluation.result.fingerprint) == fingerprint
 
-            # Update the uptime_status. In the future this will be removed and
-            # we'll just use the DetectorState models to represent this
-            assert uptime_subscription.uptime_status == UptimeStatus.FAILED
+            # Check the detector state was updated to HIGH
+            detector_state.refresh_from_db()
+            assert detector_state.is_triggered
+            assert detector_state.priority_level == DetectorPriorityLevel.HIGH
 
     def test_issue_creation_disabled(self) -> None:
         detector = self.create_uptime_detector(downtime_threshold=1, recovery_threshold=1)
         uptime_subscription = get_uptime_subscription(detector)
 
-        assert uptime_subscription.uptime_status == UptimeStatus.OK
+        detector_state = detector.detectorstate_set.first()
+        assert detector_state and detector_state.priority_level == DetectorPriorityLevel.OK
 
         with (
             # uptime-create-issues flag not enabled. No issue created
@@ -214,10 +217,11 @@ class TestUptimeHandler(UptimeTestCase):
                 },
             )
 
-            # uptime_status is updated even when issue creation is disabled.
-            # This keeps the uptime_status in sync with DetectorState (until we
-            # remove it)
-            assert uptime_subscription.uptime_status == UptimeStatus.FAILED
+            # Detector state is updated even when issue creation is disabled
+            detector_state = detector.detectorstate_set.first()
+            assert detector_state is not None
+            assert detector_state.is_triggered
+            assert detector_state.priority_level == DetectorPriorityLevel.HIGH
 
         options = {
             "uptime.restrict-issue-creation-by-hosting-provider-id": [
@@ -244,8 +248,6 @@ class TestUptimeHandler(UptimeTestCase):
         """
         detector = self.create_uptime_detector(downtime_threshold=3, recovery_threshold=1)
         uptime_subscription = get_uptime_subscription(detector)
-
-        assert uptime_subscription.uptime_status == UptimeStatus.OK
 
         now = datetime.now()
 

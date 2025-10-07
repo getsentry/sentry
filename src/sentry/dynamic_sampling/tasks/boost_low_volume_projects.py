@@ -100,12 +100,7 @@ def boost_low_volume_projects() -> None:
     )
 
     # NB: This always uses the *transactions* root count just to get the list of orgs.
-    if options.get("dynamic-sampling.query-granularity-60s.active-orgs", None):
-        granularity = Granularity(60)
-    else:
-        granularity = Granularity(3600)
-
-    for orgs in GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=granularity):
+    for orgs in GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=Granularity(60)):
         for measure, orgs in partition_by_measure(orgs).items():
             for org_id, projects in fetch_projects_with_total_root_transaction_count_and_rates(
                 org_ids=orgs, measure=measure
@@ -304,10 +299,7 @@ def query_project_counts_by_org(
     if query_interval > timedelta(days=1):
         granularity = Granularity(24 * 3600)
     else:
-        if options.get("dynamic-sampling.query-granularity-60s", None):
-            granularity = Granularity(60)
-        else:
-            granularity = Granularity(3600)
+        granularity = Granularity(60)
 
     org_ids = list(org_ids)
     project_ids = list(

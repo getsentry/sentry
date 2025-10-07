@@ -6,7 +6,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
 import {
   DashboardWidgetSource,
   DEFAULT_WIDGET_NAME,
@@ -36,7 +35,6 @@ export const CHART_TYPE_TO_DISPLAY_TYPE = {
 
 export function useAddToDashboard() {
   const location = useLocation();
-  const router = useRouter();
   const {selection} = usePageFilters();
   const organization = useOrganization();
 
@@ -92,13 +90,12 @@ export function useAddToDashboard() {
         organization,
         location,
         eventView,
-        router,
         yAxis: eventView.yAxis,
         widgetType: WidgetType.SPANS,
         source: DashboardWidgetSource.TRACE_EXPLORER,
       });
     },
-    [organization, location, getEventView, router]
+    [organization, location, getEventView]
   );
 
   return {

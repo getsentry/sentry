@@ -143,12 +143,6 @@ import {Widget} from './widget';
             <code>noVisualizationPadding</code>
           </li>
           <li>
-            The <code>revealActions</code> prop also controls the hover behavior. If you
-            set it to <code>"hover"</code>, the widget will have a grey hover state, to
-            create some contrast against the controls. If you set it to{' '}
-            <code>"always"</code>, the hover effect will be turned off
-          </li>
-          <li>
             Avoid the <code>height</code> prop if you can. It's much easier and more
             robust to place <code>Widget</code> components within a CSS grid or another
             kind of layout, and size them that way
