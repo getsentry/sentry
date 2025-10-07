@@ -646,7 +646,7 @@ describe('CustomerOverview', () => {
       organization,
     });
 
-    const planDetails = {
+    subscription.planDetails = {
       ...subscription.planDetails,
       retentions: {
         [DataCategory.SPANS]: {standard: 1234567, downsampled: 7654321},
@@ -654,8 +654,6 @@ describe('CustomerOverview', () => {
         [DataCategory.ERRORS]: {standard: 2581471, downsampled: 1741852},
       },
     };
-
-    subscription.planDetails = planDetails;
 
     subscription.categories.spans = MetricHistoryFixture({
       ...subscription.categories.spans,
