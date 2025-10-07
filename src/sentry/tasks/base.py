@@ -17,6 +17,7 @@ from sentry.taskworker.state import current_task
 from sentry.taskworker.task import P, R, Task
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils import metrics
+from sentry.utils.env import in_test_environment
 
 ModelT = TypeVar("ModelT", bound=Model)
 
@@ -149,8 +150,13 @@ def retry(
             except ignore:
                 return
             except RetryError:
-                # We shouldn't interfere with exceptions that exist to communicate
-                # retry state.
+                if (
+                    not raise_on_no_retries
+                    and (task_state := current_task())
+                    and not task_state.retries_remaining
+                ):
+                    return
+                # If we haven't been asked to ignore no-retries, pass along the RetryError.
                 raise
             except timeout_exceptions:
                 if timeouts:

@@ -1,10 +1,10 @@
 ---
-created: '2025-10-03T16:56:45.007521+00:00'
+created: '2025-10-03T22:58:46.955788+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_stacktrace_hybrid_fingerprint": {
     "client_values": [
       "celery",
       "SoftTimeLimitExceeded",
@@ -824,7 +824,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     "description": "modified in-app exception stacktrace",
     "hash": "19163f3ca34f5995c69d85351ce3d697",
     "hint": null,
-    "key": "app",
+    "key": "app_exception_stacktrace_hybrid_fingerprint",
     "matched_rule": "type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\"",
     "type": "salted_component",
     "values": [
@@ -832,7 +832,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       "soft-timelimit-exceeded"
     ]
   },
-  "system": {
+  "system_exception_stacktrace_hybrid_fingerprint": {
     "client_values": [
       "celery",
       "SoftTimeLimitExceeded",
@@ -1652,7 +1652,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     "description": "modified exception stacktrace",
     "hash": "847950eb44d280e6758d136c763d6ddc",
     "hint": null,
-    "key": "system",
+    "key": "system_exception_stacktrace_hybrid_fingerprint",
     "matched_rule": "type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\"",
     "type": "salted_component",
     "values": [

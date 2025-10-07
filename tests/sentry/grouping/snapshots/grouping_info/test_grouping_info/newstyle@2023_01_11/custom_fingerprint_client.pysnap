@@ -1,10 +1,10 @@
 ---
-created: '2025-10-03T16:56:43.290191+00:00'
+created: '2025-10-03T22:58:45.139451+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_stacktrace": {
     "component": {
       "contributes": false,
       "hint": "ignored because custom client fingerprint takes precedence",
@@ -819,7 +819,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     "description": "in-app exception stacktrace",
     "hash": null,
     "hint": "ignored because custom client fingerprint takes precedence",
-    "key": "app",
+    "key": "app_exception_stacktrace",
     "type": "component"
   },
   "custom_fingerprint": {
@@ -840,7 +840,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       "sentry.tasks.store.process_event"
     ]
   },
-  "system": {
+  "system_exception_stacktrace": {
     "component": {
       "contributes": false,
       "hint": "ignored because custom client fingerprint takes precedence",
@@ -1655,7 +1655,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     "description": "exception stacktrace",
     "hash": null,
     "hint": "ignored because custom client fingerprint takes precedence",
-    "key": "system",
+    "key": "system_exception_stacktrace",
     "type": "component"
   }
 }
