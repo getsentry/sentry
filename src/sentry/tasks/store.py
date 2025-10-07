@@ -27,7 +27,6 @@ from sentry.services.eventstore import processing
 from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import (
     ingest_attachments_tasks,
     ingest_errors_tasks,
@@ -120,7 +119,7 @@ def submit_save_event(
         "project_id": project_id,
     }
 
-    task.delay(**task_kwargs)
+    task.delay(**task_kwargs)  # type: ignore[arg-type]
 
 
 def _do_preprocess_event(
@@ -434,14 +433,9 @@ def do_process_event(
 
 @instrumented_task(
     name="sentry.tasks.store.process_event",
-    queue="events.process_event",
-    time_limit=65,
-    soft_time_limit=60,
+    namespace=ingest_errors_tasks,
+    processing_deadline_duration=65,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=ingest_errors_tasks,
-        processing_deadline_duration=65,
-    ),
 )
 def process_event(
     cache_key: str,
@@ -475,14 +469,9 @@ def process_event(
 
 @instrumented_task(
     name="sentry.tasks.store.process_event_from_reprocessing",
-    queue="events.reprocessing.process_event",
-    time_limit=65,
-    soft_time_limit=60,
+    namespace=issues_tasks,
+    processing_deadline_duration=65,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=65,
-    ),
 )
 def process_event_from_reprocessing(
     cache_key: str,
@@ -642,14 +631,9 @@ def _do_save_event(
 
 @instrumented_task(
     name="sentry.tasks.store.save_event",
-    queue="events.save_event",
-    time_limit=65,
-    soft_time_limit=60,
+    namespace=ingest_errors_tasks,
+    processing_deadline_duration=65,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=ingest_errors_tasks,
-        processing_deadline_duration=65,
-    ),
 )
 def save_event(
     cache_key: str | None = None,
@@ -672,13 +656,9 @@ def save_event(
 
 @instrumented_task(
     name="sentry.tasks.store.save_event_transaction",
-    time_limit=65,
-    soft_time_limit=60,
+    namespace=ingest_transactions_tasks,
+    processing_deadline_duration=65,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=ingest_transactions_tasks,
-        processing_deadline_duration=65,
-    ),
 )
 def save_event_transaction(
     cache_key: str | None = None,
@@ -709,13 +689,9 @@ def save_event_transaction(
 
 @instrumented_task(
     name="sentry.tasks.store.save_event_feedback",
-    time_limit=65,
-    soft_time_limit=60,
+    namespace=issues_tasks,
+    processing_deadline_duration=65,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=65,
-    ),
 )
 @metrics.wraps("feedback_consumer.save_event_feedback_task")
 def save_event_feedback(
@@ -732,14 +708,9 @@ def save_event_feedback(
 
 @instrumented_task(
     name="sentry.tasks.store.save_event_attachments",
-    queue="events.save_event_attachments",
-    time_limit=65,
-    soft_time_limit=60,
+    namespace=ingest_attachments_tasks,
+    processing_deadline_duration=65,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=ingest_attachments_tasks,
-        processing_deadline_duration=65,
-    ),
 )
 def save_event_attachments(
     cache_key: str | None = None,

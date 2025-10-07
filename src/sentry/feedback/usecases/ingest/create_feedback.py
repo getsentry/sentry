@@ -284,6 +284,14 @@ def create_feedback_issue(
                     "referrer": source.value,
                 },
             )
+            logger.info(
+                "Seer spam detection result",
+                extra={
+                    "feedback_message": feedback_message[:20],
+                    "is_spam": is_message_spam,
+                    "is_spam_type": type(is_message_spam),
+                },
+            )
         else:
             try:
                 is_message_spam = is_spam(feedback_message)
@@ -314,23 +322,6 @@ def create_feedback_issue(
         event["contexts"]["feedback"], source, is_message_spam, is_spam_enabled
     )
     issue_fingerprint = [uuid4().hex]
-
-    # TODO: clean up these metrics after the feature is rolled out.
-    if is_message_spam:
-        metrics.incr(
-            "feedback.ai_title_generation.skipped",
-            tags={"reason": "is_spam"},
-        )
-    elif not should_query_seer:
-        metrics.incr(
-            "feedback.ai_title_generation.skipped",
-            tags={"reason": "gen_ai_disabled"},
-        )
-    elif not features.has("organizations:user-feedback-ai-titles", project.organization):
-        metrics.incr(
-            "feedback.ai_title_generation.skipped",
-            tags={"reason": "feedback_ai_titles_disabled"},
-        )
 
     use_ai_title = should_query_seer and features.has(
         "organizations:user-feedback-ai-titles", project.organization

@@ -1,3 +1,5 @@
+import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+
 export type PullRequestState = 'open' | 'closed' | 'merged' | 'draft';
 type PullRequestFileStatus = 'added' | 'modified' | 'removed' | 'renamed';
 
@@ -40,6 +42,7 @@ interface PullRequestFileChange {
 }
 
 export interface PullRequestDetailsSuccessResponse {
+  build_details: BuildDetailsApiResponse[];
   files: PullRequestFileChange[];
   pull_request: PullRequestDetails;
 }

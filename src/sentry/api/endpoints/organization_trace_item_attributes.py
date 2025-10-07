@@ -161,15 +161,19 @@ def resolve_attribute_values_referrer(item_type: str) -> Referrer:
 def as_attribute_key(
     name: str, type: Literal["string", "number"], item_type: SupportedTraceItemType
 ) -> TraceItemAttributeKey:
-    key, attribute_source = translate_internal_to_public_alias(name, type, item_type)
+    public_key, public_name, attribute_source = translate_internal_to_public_alias(
+        name, type, item_type
+    )
     secondary_aliases = get_secondary_aliases(name, item_type)
 
-    if key is not None:
-        name = key
+    if public_key is not None and public_name is not None:
+        pass
     elif type == "number":
-        key = f"tags[{name},number]"
+        public_key = f"tags[{name},number]"
+        public_name = name
     else:
-        key = name
+        public_key = name
+        public_name = name
 
     serialized_source: dict[str, str | bool] = {
         "source_type": attribute_source["source_type"].value
@@ -179,9 +183,9 @@ def as_attribute_key(
 
     attribute_key: TraceItemAttributeKey = {
         # key is what will be used to query the API
-        "key": key,
+        "key": public_key,
         # name is what will be used to display the tag nicely in the UI
-        "name": name,
+        "name": public_name,
         # source of the attribute, used to determine whether to show the sentry icon etc. and helps delineate between sentry and user attributes when the names are identical
         # eg. sentry.environment and environment set by the user both have the same alias (name).
         "attributeSource": serialized_source,

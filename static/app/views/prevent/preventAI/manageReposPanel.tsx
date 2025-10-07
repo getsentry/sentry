@@ -118,10 +118,10 @@ function ManageReposPanel({
               </Flex>
               <Switch
                 size="lg"
-                checked={repoConfig?.vanilla?.enabled}
+                checked={repoConfig.vanilla.enabled}
                 disabled={isLoading || !canEditSettings}
                 onChange={async () => {
-                  const newValue = !repoConfig?.vanilla?.enabled;
+                  const newValue = !repoConfig.vanilla.enabled;
                   await enableFeature({
                     feature: 'vanilla',
                     enabled: newValue,

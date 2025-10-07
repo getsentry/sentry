@@ -139,7 +139,7 @@ describe('DetectorEdit', () => {
                 thresholdPeriod: 1,
               },
               dataSource: {
-                aggregate: 'avg(span.duration)',
+                aggregate: 'count(span.duration)',
                 dataset: 'events_analytics_platform',
                 eventTypes: ['trace_item_span'],
                 query: '',
@@ -159,6 +159,73 @@ describe('DetectorEdit', () => {
         );
       });
     });
+
+    it('prefills from URL query params and submits', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '123'}),
+      });
+
+      const prefilledRouterConfig = {
+        ...metricRouterConfig,
+        location: {
+          ...metricRouterConfig.location,
+          query: {
+            ...metricRouterConfig.location.query,
+            dataset: 'errors',
+            aggregate: 'count_unique(user)',
+            query: 'event.type:error',
+            environment: 'prod',
+            name: 'My Monitor',
+          },
+        },
+      };
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: prefilledRouterConfig,
+      });
+
+      await userEvent.type(screen.getByRole('spinbutton', {name: 'Threshold'}), '100');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              name: 'My Monitor',
+              type: 'metric_issue',
+              projectId: project.id,
+              owner: null,
+              workflowIds: [],
+              conditionGroup: {
+                conditions: [
+                  {
+                    comparison: 100,
+                    conditionResult: 75,
+                    type: 'gt',
+                  },
+                ],
+                logicType: 'any',
+              },
+              config: {detectionType: 'static', thresholdPeriod: 1},
+              dataSource: {
+                aggregate: 'count_unique(tags[sentry:user])',
+                dataset: 'events',
+                environment: 'prod',
+                eventTypes: ['error'],
+                query: '',
+                queryType: 0,
+                timeWindow: 3600,
+              },
+            }),
+          })
+        );
+      });
+    }, 10000);
 
     it('can submit a new metric detector with event.type:error', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
@@ -224,6 +291,61 @@ describe('DetectorEdit', () => {
         );
       });
     }, 10_000);
+
+    it('submits manual resolution threshold when selected', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '321'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: metricRouterConfig,
+      });
+
+      // Set initial trigger threshold
+      await userEvent.type(screen.getByRole('spinbutton', {name: 'Threshold'}), '100');
+
+      // Enable manual resolution and set resolution threshold
+      await userEvent.click(screen.getByRole('radio', {name: 'Manual'}));
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'Resolution threshold'}),
+        '80'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalled();
+      });
+
+      expect(mockCreateDetector).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/detectors/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            type: 'metric_issue',
+            conditionGroup: {
+              logicType: 'any',
+              conditions: [
+                // Main trigger condition at HIGH
+                {
+                  comparison: 100,
+                  conditionResult: 75,
+                  type: 'gt',
+                },
+                // Manual resolution condition at OK
+                {
+                  comparison: 80,
+                  conditionResult: 0,
+                  type: 'lt',
+                },
+              ],
+            },
+          }),
+        })
+      );
+    });
   });
 
   describe('Uptime Detector', () => {

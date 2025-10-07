@@ -44,13 +44,14 @@ from sentry.uptime.detectors.result_handler import (
 )
 from sentry.uptime.detectors.tasks import is_failed_url
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.uptime.models import UptimeStatus, UptimeSubscription, UptimeSubscriptionRegion
+from sentry.uptime.models import UptimeSubscription, UptimeSubscriptionRegion
 from sentry.uptime.subscriptions.subscriptions import (
     UptimeMonitorNoSeatAvailable,
     build_detector_fingerprint_component,
 )
 from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
 from sentry.utils import json
+from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
 
 
@@ -164,8 +165,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert group.issue_type == UptimeDomainCheckFailure
         assignee = group.get_assignee()
         assert assignee and (assignee.id == self.user.id)
-        self.subscription.refresh_from_db()
-        assert self.subscription.uptime_status == UptimeStatus.FAILED
+        self.detector.refresh_from_db()
+        detector_state = self.detector.detectorstate_set.first()
+        assert detector_state is not None
+        assert detector_state.priority_level == DetectorPriorityLevel.HIGH
+        assert detector_state.is_triggered
 
         # Issue is resolved
         with (self.feature(features),):
@@ -246,8 +250,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
-        self.subscription.refresh_from_db()
-        assert self.subscription.uptime_status == UptimeStatus.FAILED
+        self.detector.refresh_from_db()
+        detector_state = self.detector.detectorstate_set.first()
+        assert detector_state is not None
+        assert detector_state.priority_level == DetectorPriorityLevel.HIGH
+        assert detector_state.is_triggered
 
     def test_no_subscription(self) -> None:
         features = [
@@ -365,15 +372,17 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 extra={"num_missed_checks": 1, **result},
             )
 
-    def test_missed_check_true_positive(self) -> None:
+    @mock.patch("sentry.uptime.consumers.results_consumer._snuba_uptime_checks_producer.produce")
+    @override_options({"uptime.snuba_uptime_results.enabled": True})
+    def test_missed_check_true_positive(self, mock_produce: MagicMock) -> None:
         result = self.create_uptime_result(self.subscription.subscription_id)
 
-        # Pretend we got a result 3500 seconds ago (nearly an hour); the subscription
-        # has an interval of 300 seconds, which we're going to say was just recently
-        # changed.  Verify we don't emit any metrics recording of a missed check
+        # Pretend we got a result 900 seconds ago; the subscription
+        # has an interval of 300 seconds.  We've missed two checks.
+        last_update_time = int(result["scheduled_check_time_ms"]) - (900 * 1000)
         _get_cluster().set(
             build_last_update_key(self.detector),
-            int(result["scheduled_check_time_ms"]) - (900 * 1000),
+            last_update_time,
         )
 
         _get_cluster().set(
@@ -386,6 +395,20 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
         ):
             self.send_result(result)
+
+            assert mock_produce.call_count == 3
+
+            synth_1 = json.loads(mock_produce.call_args_list[0].args[1].value)
+            synth_2 = json.loads(mock_produce.call_args_list[1].args[1].value)
+            synth_3 = json.loads(mock_produce.call_args_list[2].args[1].value)
+
+            assert synth_1["status"] == "missed_window"
+            assert synth_2["status"] == "missed_window"
+            assert synth_3["status"] == "failure"
+
+            assert synth_1["scheduled_check_time_ms"] == last_update_time + 300 * 1000
+            assert synth_2["scheduled_check_time_ms"] == last_update_time + 600 * 1000
+
             logger.info.assert_any_call(
                 "uptime.result_processor.num_missing_check",
                 extra={"num_missed_checks": 2, **result},
@@ -1046,25 +1069,24 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         """
         Validates that the consumer produces TraceItems to EAP's Kafka topic for uptime check results
         """
-        with self.feature("organizations:uptime-eap-results"):
-            result = self.create_uptime_result(
-                self.subscription.subscription_id,
-                status=CHECKSTATUS_SUCCESS,
-                scheduled_check_time=datetime.now() - timedelta(minutes=5),
-            )
-            self.send_result(result)
-            mock_produce.assert_called_once()
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            status=CHECKSTATUS_SUCCESS,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        self.send_result(result)
+        mock_produce.assert_called_once()
 
-            assert "snuba-items" in mock_produce.call_args.args[0].name
-            payload = mock_produce.call_args.args[1]
-            assert payload.key is None
-            assert payload.headers == []
+        assert "snuba-items" in mock_produce.call_args.args[0].name
+        payload = mock_produce.call_args.args[1]
+        assert payload.key is None
+        assert payload.headers == []
 
-            expected_trace_items = convert_uptime_result_to_trace_items(
-                self.project, result, IncidentStatus.NO_INCIDENT
-            )
-            codec = get_topic_codec(KafkaTopic.SNUBA_ITEMS)
-            assert [codec.decode(payload.value)] == expected_trace_items
+        expected_trace_items = convert_uptime_result_to_trace_items(
+            self.project, result, IncidentStatus.NO_INCIDENT
+        )
+        codec = get_topic_codec(KafkaTopic.SNUBA_ITEMS)
+        assert [codec.decode(payload.value)] == expected_trace_items
 
     def run_check_and_update_region_test(
         self,

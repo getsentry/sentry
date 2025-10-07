@@ -1316,58 +1316,61 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {
             "preventAiConfigGithub": {
                 "schema_version": "v1",
-                "org_defaults": {
-                    "bug_prediction": {
-                        "enabled": True,
-                        "sensitivity": "high",
-                        "triggers": {
-                            "on_command_phrase": True,
-                            "on_ready_for_review": False,
-                        },
-                    },
-                    "test_generation": {
-                        "enabled": False,
-                        "triggers": {
-                            "on_command_phrase": False,
-                            "on_ready_for_review": True,
-                        },
-                    },
-                    "vanilla": {
-                        "enabled": True,
-                        "sensitivity": "medium",
-                        "triggers": {
-                            "on_command_phrase": True,
-                            "on_ready_for_review": False,
-                        },
-                    },
-                },
-                "repo_overrides": {
-                    "my_repo_name": {
+                "default_org_config": {
+                    "org_defaults": {
                         "bug_prediction": {
-                            "enabled": False,
-                            "sensitivity": "low",
-                            "triggers": {
-                                "on_command_phrase": False,
-                                "on_ready_for_review": True,
-                            },
-                        },
-                        "test_generation": {
                             "enabled": True,
+                            "sensitivity": "high",
                             "triggers": {
                                 "on_command_phrase": True,
                                 "on_ready_for_review": False,
                             },
                         },
-                        "vanilla": {
+                        "test_generation": {
                             "enabled": False,
-                            "sensitivity": "critical",
                             "triggers": {
                                 "on_command_phrase": False,
                                 "on_ready_for_review": True,
                             },
                         },
-                    }
+                        "vanilla": {
+                            "enabled": True,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                    },
+                    "repo_overrides": {
+                        "my_repo_name": {
+                            "bug_prediction": {
+                                "enabled": False,
+                                "sensitivity": "low",
+                                "triggers": {
+                                    "on_command_phrase": False,
+                                    "on_ready_for_review": True,
+                                },
+                            },
+                            "test_generation": {
+                                "enabled": True,
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                            "vanilla": {
+                                "enabled": False,
+                                "sensitivity": "critical",
+                                "triggers": {
+                                    "on_command_phrase": False,
+                                    "on_ready_for_review": True,
+                                },
+                            },
+                        }
+                    },
                 },
+                "github_organizations": {},
             }
         }
         self.get_success_response(self.organization.slug, **data)
@@ -1379,74 +1382,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {
             "preventAiConfigGithub": {
                 "schema_version": "v1",
-                "org_defaults": {
-                    "bug_prediction": {
-                        "enabled": True,
-                        "sensitivity": "high",
-                        "triggers": {
-                            "on_command_phrase": True,
-                            "on_ready_for_review": False,
-                        },
-                    },
-                    "test_generation": {
-                        "enabled": False,
-                        "triggers": {
-                            "on_command_phrase": False,
-                            "on_ready_for_review": True,
-                        },
-                    },
-                    "vanilla": {
-                        "enabled": True,
-                        "sensitivity": "medium",
-                        "triggers": {
-                            "on_command_phrase": True,
-                            "on_ready_for_review": False,
-                        },
-                    },
-                },
-                "repo_overrides": {
-                    "my_repo_name": {
+                "default_org_config": {
+                    "org_defaults": {
                         "bug_prediction": {
-                            "enabled": False,
-                            "sensitivity": "low",
-                            "triggers": {
-                                "on_command_phrase": False,
-                                "on_ready_for_review": True,
-                            },
-                        },
-                        "test_generation": {
-                            "enabled": True,
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                        "vanilla": {
-                            "enabled": False,
-                            "sensitivity": "critical",
-                            "triggers": {
-                                "on_command_phrase": False,
-                                "on_ready_for_review": True,
-                            },
-                        },
-                    },
-                    "my_other_repo_name": {
-                        "bug_prediction": {
-                            "enabled": True,
-                            "sensitivity": "medium",
-                            "triggers": {
-                                "on_command_phrase": True,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                        "test_generation": {
-                            "enabled": False,
-                            "triggers": {
-                                "on_command_phrase": False,
-                                "on_ready_for_review": False,
-                            },
-                        },
-                        "vanilla": {
                             "enabled": True,
                             "sensitivity": "high",
                             "triggers": {
@@ -1454,8 +1392,76 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                                 "on_ready_for_review": False,
                             },
                         },
+                        "test_generation": {
+                            "enabled": False,
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": True,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": True,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                    },
+                    "repo_overrides": {
+                        "my_repo_name": {
+                            "bug_prediction": {
+                                "enabled": False,
+                                "sensitivity": "low",
+                                "triggers": {
+                                    "on_command_phrase": False,
+                                    "on_ready_for_review": True,
+                                },
+                            },
+                            "test_generation": {
+                                "enabled": True,
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                            "vanilla": {
+                                "enabled": False,
+                                "sensitivity": "critical",
+                                "triggers": {
+                                    "on_command_phrase": False,
+                                    "on_ready_for_review": True,
+                                },
+                            },
+                        },
+                        "my_other_repo_name": {
+                            "bug_prediction": {
+                                "enabled": True,
+                                "sensitivity": "medium",
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                            "test_generation": {
+                                "enabled": False,
+                                "triggers": {
+                                    "on_command_phrase": False,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                            "vanilla": {
+                                "enabled": True,
+                                "sensitivity": "high",
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                        },
                     },
                 },
+                "github_organizations": {},
             }
         }
         self.get_success_response(self.organization.slug, **data)
@@ -1473,41 +1479,44 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         # Verify that when no config is set, it returns the default config
         expected_default = {
             "schema_version": "v1",
-            "org_defaults": {
-                "bug_prediction": {
-                    "enabled": False,
-                    "sensitivity": "medium",
-                    "triggers": {
-                        "on_command_phrase": True,
-                        "on_ready_for_review": True,
+            "default_org_config": {
+                "org_defaults": {
+                    "bug_prediction": {
+                        "enabled": False,
+                        "sensitivity": "medium",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": True,
+                        },
+                    },
+                    "test_generation": {
+                        "enabled": False,
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
+                    },
+                    "vanilla": {
+                        "enabled": False,
+                        "sensitivity": "medium",
+                        "triggers": {
+                            "on_command_phrase": True,
+                            "on_ready_for_review": False,
+                        },
                     },
                 },
-                "test_generation": {
-                    "enabled": False,
-                    "triggers": {
-                        "on_command_phrase": True,
-                        "on_ready_for_review": False,
-                    },
-                },
-                "vanilla": {
-                    "enabled": False,
-                    "sensitivity": "medium",
-                    "triggers": {
-                        "on_command_phrase": True,
-                        "on_ready_for_review": False,
-                    },
-                },
+                "repo_overrides": {},
             },
-            "repo_overrides": {},
+            "github_organizations": {},
         }
         response = self.get_success_response(self.organization.slug)
         assert response.data["preventAiConfigGithub"] == expected_default
 
     def test_prevent_ai_config_github_validation_missing_fields(self) -> None:
         """Test that missing required fields are rejected"""
-        # Missing org_defaults
+        # Missing default_org_config
         data: dict[str, dict[str, Any]] = {
-            "preventAiConfigGithub": {"schema_version": "v1", "repo_overrides": {}}
+            "preventAiConfigGithub": {"schema_version": "v1", "github_organizations": {}}
         }
         response = self.get_error_response(self.organization.slug, status_code=400, **data)
         # Verify we get a validation error for missing required field
@@ -1528,14 +1537,17 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data_2: dict[str, dict] = {
             "preventAiConfigGithub": {
                 "schema_version": "v1",
-                "org_defaults": {
-                    "bug_prediction": {
-                        "enabled": True,
-                        "sensitivity": "high",
-                        # Missing triggers
-                    }
+                "default_org_config": {
+                    "org_defaults": {
+                        "bug_prediction": {
+                            "enabled": True,
+                            "sensitivity": "high",
+                            # Missing triggers
+                        }
+                    },
+                    "repo_overrides": {},
                 },
-                "repo_overrides": {},
+                "github_organizations": {},
             }
         }
         response = self.get_error_response(self.organization.slug, status_code=400, **data_2)
@@ -1549,32 +1561,35 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {
             "preventAiConfigGithub": {
                 "schema_version": "v1",
-                "org_defaults": {
-                    "bug_prediction": {
-                        "enabled": True,
-                        "sensitivity": "high",
-                        "triggers": {
-                            "on_command_phrase": True,
-                            "on_ready_for_review": False,
+                "default_org_config": {
+                    "org_defaults": {
+                        "bug_prediction": {
+                            "enabled": True,
+                            "sensitivity": "high",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "test_generation": {
+                            "enabled": False,
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": True,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": True,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
                         },
                     },
-                    "test_generation": {
-                        "enabled": False,
-                        "triggers": {
-                            "on_command_phrase": False,
-                            "on_ready_for_review": True,
-                        },
-                    },
-                    "vanilla": {
-                        "enabled": True,
-                        "sensitivity": "medium",
-                        "triggers": {
-                            "on_command_phrase": True,
-                            "on_ready_for_review": False,
-                        },
-                    },
+                    # Missing repo_overrides
                 },
-                # Missing repo_overrides
+                "github_organizations": {},
             }
         }
         response = self.get_error_response(self.organization.slug, status_code=400, **data)
@@ -1585,32 +1600,35 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {
             "preventAiConfigGithub": {
                 "schema_version": "v1",
-                "org_defaults": {
-                    "bug_prediction": {
-                        "enabled": True,
-                        "sensitivity": "high",
-                        "triggers": {
-                            "on_command_phrase": True,
-                            # Missing on_ready_for_review
+                "default_org_config": {
+                    "org_defaults": {
+                        "bug_prediction": {
+                            "enabled": True,
+                            "sensitivity": "high",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                # Missing on_ready_for_review
+                            },
+                        },
+                        "test_generation": {
+                            "enabled": False,
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": True,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": True,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
                         },
                     },
-                    "test_generation": {
-                        "enabled": False,
-                        "triggers": {
-                            "on_command_phrase": False,
-                            "on_ready_for_review": True,
-                        },
-                    },
-                    "vanilla": {
-                        "enabled": True,
-                        "sensitivity": "medium",
-                        "triggers": {
-                            "on_command_phrase": True,
-                            "on_ready_for_review": False,
-                        },
-                    },
+                    "repo_overrides": {},
                 },
-                "repo_overrides": {},
+                "github_organizations": {},
             }
         }
         response = self.get_error_response(self.organization.slug, status_code=400, **data)
@@ -1621,25 +1639,28 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {
             "preventAiConfigGithub": {
                 "schema_version": "v1",
-                "org_defaults": {
-                    "bug_prediction": {
-                        "enabled": True,
-                        "sensitivity": "high",
-                        "triggers": {
-                            "on_command_phrase": True,
-                            "on_ready_for_review": False,
+                "default_org_config": {
+                    "org_defaults": {
+                        "bug_prediction": {
+                            "enabled": True,
+                            "sensitivity": "high",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
                         },
-                    },
-                    "test_generation": {
-                        "enabled": False,
-                        "triggers": {
-                            "on_command_phrase": False,
-                            "on_ready_for_review": True,
+                        "test_generation": {
+                            "enabled": False,
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": True,
+                            },
                         },
+                        # Missing vanilla feature
                     },
-                    # Missing vanilla feature
+                    "repo_overrides": {},
                 },
-                "repo_overrides": {},
+                "github_organizations": {},
             }
         }
         response = self.get_error_response(self.organization.slug, status_code=400, **data)
@@ -1650,32 +1671,35 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {
             "preventAiConfigGithub": {
                 "schema_version": "v1",
-                "org_defaults": {
-                    "bug_prediction": {
-                        "enabled": "yes",  # String instead of bool
-                        "sensitivity": "high",
-                        "triggers": {
-                            "on_command_phrase": True,
-                            "on_ready_for_review": False,
+                "default_org_config": {
+                    "org_defaults": {
+                        "bug_prediction": {
+                            "enabled": "yes",  # String instead of bool
+                            "sensitivity": "high",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "test_generation": {
+                            "enabled": False,
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": True,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": True,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
                         },
                     },
-                    "test_generation": {
-                        "enabled": False,
-                        "triggers": {
-                            "on_command_phrase": False,
-                            "on_ready_for_review": True,
-                        },
-                    },
-                    "vanilla": {
-                        "enabled": True,
-                        "sensitivity": "medium",
-                        "triggers": {
-                            "on_command_phrase": True,
-                            "on_ready_for_review": False,
-                        },
-                    },
+                    "repo_overrides": {},
                 },
-                "repo_overrides": {},
+                "github_organizations": {},
             }
         }
         response = self.get_error_response(self.organization.slug, status_code=400, **data)
@@ -1691,36 +1715,39 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {
             "preventAiConfigGithub": {
                 "schema_version": "v1",
-                "org_defaults": {
-                    "bug_prediction": {
-                        "enabled": True,
-                        "sensitivity": "high",
-                        "triggers": {
-                            "on_command_phrase": True,
-                            "on_ready_for_review": False,
+                "default_org_config": {
+                    "org_defaults": {
+                        "bug_prediction": {
+                            "enabled": True,
+                            "sensitivity": "high",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "test_generation": {
+                            "enabled": False,
+                            "triggers": {
+                                "on_command_phrase": False,
+                                "on_ready_for_review": True,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": True,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
                         },
                     },
-                    "test_generation": {
-                        "enabled": False,
-                        "triggers": {
-                            "on_command_phrase": False,
-                            "on_ready_for_review": True,
-                        },
-                    },
-                    "vanilla": {
-                        "enabled": True,
-                        "sensitivity": "medium",
-                        "triggers": {
-                            "on_command_phrase": True,
-                            "on_ready_for_review": False,
-                        },
+                    "repo_overrides": {
+                        "my_repo": {
+                            # Missing all features
+                        }
                     },
                 },
-                "repo_overrides": {
-                    "my_repo": {
-                        # Missing all features
-                    }
-                },
+                "github_organizations": {},
             }
         }
         response = self.get_error_response(self.organization.slug, status_code=400, **data)
@@ -1734,35 +1761,10 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {
             "preventAiConfigGithub": {
                 "schema_version": "v1",
-                "org_defaults": {
-                    "bug_prediction": {
-                        "enabled": True,
-                        "sensitivity": "high",
-                        "triggers": {
-                            "on_command_phrase": True,
-                            "on_ready_for_review": False,
-                        },
-                    },
-                    "test_generation": {
-                        "enabled": False,
-                        "triggers": {
-                            "on_command_phrase": False,
-                            "on_ready_for_review": True,
-                        },
-                    },
-                    "vanilla": {
-                        "enabled": True,
-                        "sensitivity": "medium",
-                        "triggers": {
-                            "on_command_phrase": True,
-                            "on_ready_for_review": False,
-                        },
-                    },
-                },
-                "repo_overrides": {
-                    "my_repo": {
+                "default_org_config": {
+                    "org_defaults": {
                         "bug_prediction": {
-                            "enabled": 1,  # Number instead of bool
+                            "enabled": True,
                             "sensitivity": "high",
                             "triggers": {
                                 "on_command_phrase": True,
@@ -1784,8 +1786,36 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                                 "on_ready_for_review": False,
                             },
                         },
-                    }
+                    },
+                    "repo_overrides": {
+                        "my_repo": {
+                            "bug_prediction": {
+                                "enabled": 1,  # Number instead of bool
+                                "sensitivity": "high",
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                            "test_generation": {
+                                "enabled": False,
+                                "triggers": {
+                                    "on_command_phrase": False,
+                                    "on_ready_for_review": True,
+                                },
+                            },
+                            "vanilla": {
+                                "enabled": True,
+                                "sensitivity": "medium",
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                        }
+                    },
                 },
+                "github_organizations": {},
             }
         }
         response = self.get_error_response(self.organization.slug, status_code=400, **data)
@@ -1795,59 +1825,24 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {
             "preventAiConfigGithub": {
                 "schema_version": "v1",
-                "org_defaults": {
-                    "bug_prediction": {
-                        "enabled": True,
-                        "sensitivity": "high",
-                        "triggers": {
-                            "on_command_phrase": True,
-                            "on_ready_for_review": False,
-                        },
-                    },
-                    "test_generation": {
-                        "enabled": False,
-                        "triggers": {
-                            "on_command_phrase": False,
-                            "on_ready_for_review": True,
-                        },
-                    },
-                    "vanilla": {
-                        "enabled": True,
-                        "sensitivity": "medium",
-                        "triggers": {
-                            "on_command_phrase": True,
-                            "on_ready_for_review": False,
-                        },
-                    },
-                },
-                "repo_overrides": {
-                    "repo_1": {
+                "default_org_config": {
+                    "org_defaults": {
                         "bug_prediction": {
-                            "enabled": False,
-                            "sensitivity": "low",
-                            "triggers": {
-                                "on_command_phrase": False,
-                                "on_ready_for_review": True,
-                            },
-                        },
-                        "test_generation": {
                             "enabled": True,
+                            "sensitivity": "high",
                             "triggers": {
                                 "on_command_phrase": True,
                                 "on_ready_for_review": False,
                             },
                         },
-                        "vanilla": {
+                        "test_generation": {
                             "enabled": False,
-                            "sensitivity": "critical",
                             "triggers": {
                                 "on_command_phrase": False,
                                 "on_ready_for_review": True,
                             },
                         },
-                    },
-                    "repo_2": {
-                        "bug_prediction": {
+                        "vanilla": {
                             "enabled": True,
                             "sensitivity": "medium",
                             "triggers": {
@@ -1855,19 +1850,154 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                                 "on_ready_for_review": False,
                             },
                         },
+                    },
+                    "repo_overrides": {
+                        "repo_1": {
+                            "bug_prediction": {
+                                "enabled": False,
+                                "sensitivity": "low",
+                                "triggers": {
+                                    "on_command_phrase": False,
+                                    "on_ready_for_review": True,
+                                },
+                            },
+                            "test_generation": {
+                                "enabled": True,
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                            "vanilla": {
+                                "enabled": False,
+                                "sensitivity": "critical",
+                                "triggers": {
+                                    "on_command_phrase": False,
+                                    "on_ready_for_review": True,
+                                },
+                            },
+                        },
+                        "repo_2": {
+                            "bug_prediction": {
+                                "enabled": True,
+                                "sensitivity": "medium",
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                            "test_generation": {
+                                "enabled": False,
+                                "triggers": {
+                                    "on_command_phrase": False,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                            "vanilla": {
+                                "enabled": True,
+                                "sensitivity": "high",
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                        },
+                    },
+                },
+                "github_organizations": {},
+            }
+        }
+        self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:prevent_ai_config_github")
+            == data["preventAiConfigGithub"]
+        )
+
+    def test_prevent_ai_config_github_with_single_organization(self) -> None:
+        """Test valid configuration with a single organization in github_organizations"""
+        data = {
+            "preventAiConfigGithub": {
+                "schema_version": "v1",
+                "default_org_config": {
+                    "org_defaults": {
+                        "bug_prediction": {
+                            "enabled": False,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": True,
+                            },
+                        },
                         "test_generation": {
                             "enabled": False,
                             "triggers": {
-                                "on_command_phrase": False,
+                                "on_command_phrase": True,
                                 "on_ready_for_review": False,
                             },
                         },
                         "vanilla": {
-                            "enabled": True,
-                            "sensitivity": "high",
+                            "enabled": False,
+                            "sensitivity": "medium",
                             "triggers": {
                                 "on_command_phrase": True,
                                 "on_ready_for_review": False,
+                            },
+                        },
+                    },
+                    "repo_overrides": {},
+                },
+                "github_organizations": {
+                    "my-org": {
+                        "org_defaults": {
+                            "bug_prediction": {
+                                "enabled": True,
+                                "sensitivity": "high",
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                            "test_generation": {
+                                "enabled": True,
+                                "triggers": {
+                                    "on_command_phrase": False,
+                                    "on_ready_for_review": True,
+                                },
+                            },
+                            "vanilla": {
+                                "enabled": False,
+                                "sensitivity": "critical",
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": True,
+                                },
+                            },
+                        },
+                        "repo_overrides": {
+                            "sensitive-repo": {
+                                "bug_prediction": {
+                                    "enabled": False,
+                                    "sensitivity": "low",
+                                    "triggers": {
+                                        "on_command_phrase": False,
+                                        "on_ready_for_review": False,
+                                    },
+                                },
+                                "test_generation": {
+                                    "enabled": False,
+                                    "triggers": {
+                                        "on_command_phrase": False,
+                                        "on_ready_for_review": False,
+                                    },
+                                },
+                                "vanilla": {
+                                    "enabled": False,
+                                    "sensitivity": "low",
+                                    "triggers": {
+                                        "on_command_phrase": False,
+                                        "on_ready_for_review": False,
+                                    },
+                                },
                             },
                         },
                     },
@@ -1879,6 +2009,345 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             self.organization.get_option("sentry:prevent_ai_config_github")
             == data["preventAiConfigGithub"]
         )
+
+    def test_prevent_ai_config_github_with_multiple_organizations(self) -> None:
+        """Test valid configuration with multiple organizations in github_organizations"""
+        data = {
+            "preventAiConfigGithub": {
+                "schema_version": "v1",
+                "default_org_config": {
+                    "org_defaults": {
+                        "bug_prediction": {
+                            "enabled": False,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": True,
+                            },
+                        },
+                        "test_generation": {
+                            "enabled": False,
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": False,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                    },
+                    "repo_overrides": {},
+                },
+                "github_organizations": {
+                    "org-alpha": {
+                        "org_defaults": {
+                            "bug_prediction": {
+                                "enabled": True,
+                                "sensitivity": "high",
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                            "test_generation": {
+                                "enabled": False,
+                                "triggers": {
+                                    "on_command_phrase": False,
+                                    "on_ready_for_review": True,
+                                },
+                            },
+                            "vanilla": {
+                                "enabled": True,
+                                "sensitivity": "medium",
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                        },
+                        "repo_overrides": {},
+                    },
+                    "org-beta": {
+                        "org_defaults": {
+                            "bug_prediction": {
+                                "enabled": False,
+                                "sensitivity": "low",
+                                "triggers": {
+                                    "on_command_phrase": False,
+                                    "on_ready_for_review": True,
+                                },
+                            },
+                            "test_generation": {
+                                "enabled": True,
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                            "vanilla": {
+                                "enabled": False,
+                                "sensitivity": "critical",
+                                "triggers": {
+                                    "on_command_phrase": False,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                        },
+                        "repo_overrides": {
+                            "special-repo": {
+                                "bug_prediction": {
+                                    "enabled": True,
+                                    "sensitivity": "critical",
+                                    "triggers": {
+                                        "on_command_phrase": True,
+                                        "on_ready_for_review": True,
+                                    },
+                                },
+                                "test_generation": {
+                                    "enabled": False,
+                                    "triggers": {
+                                        "on_command_phrase": False,
+                                        "on_ready_for_review": False,
+                                    },
+                                },
+                                "vanilla": {
+                                    "enabled": True,
+                                    "sensitivity": "high",
+                                    "triggers": {
+                                        "on_command_phrase": True,
+                                        "on_ready_for_review": False,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            }
+        }
+        self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:prevent_ai_config_github")
+            == data["preventAiConfigGithub"]
+        )
+
+    def test_prevent_ai_config_github_invalid_organization_structure(self) -> None:
+        """Test invalid organization structure in github_organizations"""
+        # Missing org_defaults in organization
+        data = {
+            "preventAiConfigGithub": {
+                "schema_version": "v1",
+                "default_org_config": {
+                    "org_defaults": {
+                        "bug_prediction": {
+                            "enabled": False,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": True,
+                            },
+                        },
+                        "test_generation": {
+                            "enabled": False,
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": False,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                    },
+                    "repo_overrides": {},
+                },
+                "github_organizations": {
+                    "invalid-org": {
+                        # Missing org_defaults
+                        "repo_overrides": {},
+                    },
+                },
+            }
+        }
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert "preventAiConfigGithub" in response.data
+        error_msg = str(response.data["preventAiConfigGithub"])
+        assert "Prevent AI config option is invalid" in error_msg
+
+        # Invalid feature configuration in organization
+        data = {
+            "preventAiConfigGithub": {
+                "schema_version": "v1",
+                "default_org_config": {
+                    "org_defaults": {
+                        "bug_prediction": {
+                            "enabled": False,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": True,
+                            },
+                        },
+                        "test_generation": {
+                            "enabled": False,
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": False,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                    },
+                    "repo_overrides": {},
+                },
+                "github_organizations": {
+                    "invalid-org": {
+                        "org_defaults": {
+                            "bug_prediction": {
+                                "enabled": "invalid",  # Should be boolean
+                                "sensitivity": "medium",
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": True,
+                                },
+                            },
+                            "test_generation": {
+                                "enabled": False,
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                            "vanilla": {
+                                "enabled": False,
+                                "sensitivity": "medium",
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                        },
+                        "repo_overrides": {},
+                    },
+                },
+            }
+        }
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert "preventAiConfigGithub" in response.data
+        error_msg = str(response.data["preventAiConfigGithub"])
+        assert "Prevent AI config option is invalid" in error_msg
+
+    def test_prevent_ai_config_github_mixed_valid_invalid_organizations(self) -> None:
+        """Test configuration with both valid and invalid organizations"""
+        data = {
+            "preventAiConfigGithub": {
+                "schema_version": "v1",
+                "default_org_config": {
+                    "org_defaults": {
+                        "bug_prediction": {
+                            "enabled": False,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": True,
+                            },
+                        },
+                        "test_generation": {
+                            "enabled": False,
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                        "vanilla": {
+                            "enabled": False,
+                            "sensitivity": "medium",
+                            "triggers": {
+                                "on_command_phrase": True,
+                                "on_ready_for_review": False,
+                            },
+                        },
+                    },
+                    "repo_overrides": {},
+                },
+                "github_organizations": {
+                    "valid-org": {
+                        "org_defaults": {
+                            "bug_prediction": {
+                                "enabled": True,
+                                "sensitivity": "high",
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                            "test_generation": {
+                                "enabled": False,
+                                "triggers": {
+                                    "on_command_phrase": False,
+                                    "on_ready_for_review": True,
+                                },
+                            },
+                            "vanilla": {
+                                "enabled": True,
+                                "sensitivity": "medium",
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                        },
+                        "repo_overrides": {},
+                    },
+                    "invalid-org": {
+                        "org_defaults": {
+                            "bug_prediction": {
+                                "enabled": True,
+                                "sensitivity": "invalid_sensitivity",  # Invalid enum value
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                            "test_generation": {
+                                "enabled": False,
+                                "triggers": {
+                                    "on_command_phrase": False,
+                                    "on_ready_for_review": True,
+                                },
+                            },
+                            "vanilla": {
+                                "enabled": True,
+                                "sensitivity": "medium",
+                                "triggers": {
+                                    "on_command_phrase": True,
+                                    "on_ready_for_review": False,
+                                },
+                            },
+                        },
+                        "repo_overrides": {},
+                    },
+                },
+            }
+        }
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert "preventAiConfigGithub" in response.data
+        error_msg = str(response.data["preventAiConfigGithub"])
+        assert "Prevent AI config option is invalid" in error_msg
 
     def test_enabled_console_platforms_present_in_response(self) -> None:
         response = self.get_success_response(self.organization.slug)
