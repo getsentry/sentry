@@ -175,15 +175,7 @@ function TransactionSummaryCharts({
     organization
   );
 
-  const hasTransactionSummaryCleanupFlag = organization.features.includes(
-    'performance-transaction-summary-cleanup'
-  );
-
-  const displayOptions = generateDisplayOptions(currentFilter).filter(
-    option =>
-      (hasTransactionSummaryCleanupFlag && option.value !== DisplayModes.USER_MISERY) ||
-      !hasTransactionSummaryCleanupFlag
-  );
+  const displayOptions = generateDisplayOptions(currentFilter);
 
   return (
     <Panel>
