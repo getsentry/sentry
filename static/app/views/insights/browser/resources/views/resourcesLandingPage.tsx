@@ -46,7 +46,9 @@ function ResourcesLandingPage() {
                           emptyOptionLocation="top"
                           value={filters[SPAN_DOMAIN] || ''}
                           additionalQuery={[
-                            ...DEFAULT_RESOURCE_FILTERS,
+                            ...DEFAULT_RESOURCE_FILTERS.filter(
+                              filter => filter !== 'has:sentry.normalized_description'
+                            ),
                             `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
                           ]}
                         />
