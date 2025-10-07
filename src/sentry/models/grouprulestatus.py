@@ -16,7 +16,7 @@ class GroupRuleStatus(Model):
     rule = FlexibleForeignKey("sentry.Rule")
     group = FlexibleForeignKey("sentry.Group")
     status = models.PositiveSmallIntegerField(default=ACTIVE)
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
     last_active = models.DateTimeField(null=True)
 
     class Meta:
