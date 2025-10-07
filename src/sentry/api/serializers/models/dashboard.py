@@ -125,6 +125,8 @@ class DashboardWidgetSerializer(Serializer):
                 q_index,
                 transaction_query["name"],
                 transaction_query["fields"],
+                transaction_query["columns"],
+                transaction_query["aggregates"],
                 transaction_query["orderby"],
                 transaction_query["conditions"],
                 transaction_query["fieldAliases"],
@@ -230,7 +232,6 @@ class DashboardWidgetSerializer(Serializer):
                 sort = spans_query.orderby
 
             # making the visualize as json strings because urlencode does not format this properly
-            # also JSON.stringify doesn't have spaces so we need to remove them
             if len(y_axes) > 0:
                 visualize = [
                     json.dumps(
