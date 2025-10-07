@@ -217,6 +217,7 @@ def test_instrumented_task_parameters() -> None:
     assert decorated.retry._times == 3
     assert decorated.retry._allowed_exception_types == (RuntimeError,)
 
+
 @patch("sentry.tasks.base.current_task")
 def test_retry_raise_if_no_retries_false(mock_current_task):
     mock_task_state = MagicMock(spec=CurrentTaskState)
