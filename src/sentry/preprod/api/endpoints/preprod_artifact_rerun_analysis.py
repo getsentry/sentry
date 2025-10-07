@@ -1,4 +1,5 @@
 import logging
+from dataclasses import asdict, dataclass
 
 import orjson
 from django.db import router, transaction
@@ -21,6 +22,13 @@ from sentry.preprod.models import (
 from sentry.preprod.producer import produce_preprod_artifact_to_kafka
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class CleanupStats:
+    size_metrics_total_deleted: int = 0
+    size_comparisons_total_deleted: int = 0
+    files_total_deleted: int = 0
 
 
 @region_silo_endpoint
@@ -53,7 +61,7 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
                 organization_id=head_artifact.project.organization_id,
                 artifact_id=head_artifact_id,
             )
-        except Exception as e:
+        except Exception:
             logger.exception(
                 "preprod_artifact.rerun_analysis.kafka_error",
                 extra={
@@ -61,7 +69,6 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
                     "user_id": request.user.id,
                     "organization_id": head_artifact.project.organization_id,
                     "project_id": head_artifact.project.id,
-                    "error": str(e),
                 },
             )
             return Response(
@@ -170,7 +177,7 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
                 "user_id": request.user.id,
                 "organization_id": preprod_artifact.project.organization_id,
                 "project_id": preprod_artifact.project.id,
-                "cleanup_stats": cleanup_stats,
+                "cleanup_stats": asdict(cleanup_stats),
             },
         )
 
@@ -181,15 +188,11 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
         )
 
 
-def cleanup_old_metrics(preprod_artifact: PreprodArtifact) -> dict:
+def cleanup_old_metrics(preprod_artifact: PreprodArtifact) -> CleanupStats:
     """Deletes old size metrics and comparisons associated with an artifact along with any associated files."""
 
     # These stats include cascading delete counts as well
-    stats = {
-        "size_metrics_total_deleted": 0,
-        "size_comparisons_total_deleted": 0,
-        "files_total_deleted": 0,
-    }
+    stats = CleanupStats()
 
     size_metrics = list(
         PreprodArtifactSizeMetrics.objects.filter(preprod_artifact=preprod_artifact)
@@ -214,16 +217,14 @@ def cleanup_old_metrics(preprod_artifact: PreprodArtifact) -> dict:
         file_ids_to_delete.extend(comparison_file_ids)
 
         with transaction.atomic(using=router.db_for_write(PreprodArtifactSizeMetrics)):
-            stats["size_comparisons_total_deleted"], _ = comparisons.delete()
+            stats.size_comparisons_total_deleted, _ = comparisons.delete()
 
-            stats["size_metrics_total_deleted"], _ = PreprodArtifactSizeMetrics.objects.filter(
+            stats.size_metrics_total_deleted, _ = PreprodArtifactSizeMetrics.objects.filter(
                 id__in=size_metric_ids
             ).delete()
 
         if file_ids_to_delete:
-            stats["files_total_deleted"], _ = File.objects.filter(
-                id__in=file_ids_to_delete
-            ).delete()
+            stats.files_total_deleted, _ = File.objects.filter(id__in=file_ids_to_delete).delete()
 
     PreprodArtifactSizeMetrics.objects.create(
         preprod_artifact=preprod_artifact,
@@ -242,7 +243,9 @@ def reset_artifact_data(preprod_artifact: PreprodArtifact) -> None:
 
 
 def success_response(
-    artifact_id: str, state: PreprodArtifact.ArtifactState, cleanup_stats: dict | None = None
+    artifact_id: str,
+    state: PreprodArtifact.ArtifactState,
+    cleanup_stats: CleanupStats | None = None,
 ) -> Response:
     response_data = {
         "success": True,
@@ -251,5 +254,5 @@ def success_response(
         "new_state": state,
     }
     if cleanup_stats is not None:
-        response_data["cleanup_stats"] = cleanup_stats
+        response_data["cleanup_stats"] = asdict(cleanup_stats)
     return Response(response_data)
