@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import logging
 import os
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import timedelta
 from multiprocessing import JoinableQueue as Queue
 from multiprocessing import Process
@@ -17,6 +18,8 @@ from django.utils import timezone
 
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
+
+logger = logging.getLogger(__name__)
 
 
 def get_project(value: str) -> int | None:
@@ -106,8 +109,8 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             while True:
                 if not task.chunk(apply_filter=True):
                     break
-        except Exception as e:
-            logger.exception(e)
+        except Exception:
+            logger.exception("Error in multiprocess_worker.")
         finally:
             task_queue.task_done()
 
@@ -154,28 +157,32 @@ def cleanup(
     this can be done with the `--project` or `--organization` flags respectively,
     which accepts a project/organization ID or a string with the form `org/project` where both are slugs.
     """
-    import logging
+    _cleanup(
+        model=model,
+        days=days,
+        project=project,
+        organization=organization,
+        concurrency=concurrency,
+        silent=silent,
+        router=router,
+        timed=timed,
+    )
 
-    logger = logging.getLogger("sentry.cleanup")
 
-    if concurrency < 1:
-        click.echo("Error: Minimum concurrency is 1", err=True)
-        raise click.Abort()
-
-    os.environ["_SENTRY_CLEANUP"] = "1"
-    if silent:
-        os.environ["SENTRY_CLEANUP_SILENT"] = "1"
-
+def _cleanup(
+    model: tuple[str, ...],
+    days: int,
+    project: str | None,
+    organization: str | None,
+    concurrency: int,
+    silent: bool,
+    router: str | None,
+    timed: bool,
+) -> None:
+    _validate_and_setup_environment(concurrency, silent)
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
-
-    pool = []
-    task_queue: _WorkQueue = Queue(1000)
-    for _ in range(concurrency):
-        p = Process(target=multiprocess_worker, args=(task_queue,))
-        p.daemon = True
-        p.start()
-        pool.append(p)
+    pool, task_queue = _start_pool(concurrency)
 
     try:
         from sentry.runner import configure
@@ -224,24 +231,12 @@ def cleanup(
 
         deletes = models_which_use_deletions_code_path()
 
-        remove_expired_values_for_lost_passwords(is_filtered, models_attempted)
+        _run_specialized_cleanups(is_filtered, days, silent, models_attempted)
 
-        remove_expired_values_for_org_members(is_filtered, days, models_attempted)
-
-        delete_api_models(is_filtered, models_attempted)
-
-        exported_data(is_filtered, silent, models_attempted)
-
-        project_id = None
-        organization_id = None
-        if SiloMode.get_current_mode() != SiloMode.CONTROL:
-            if project:
-                remove_cross_project_models(deletes)
-                project_id = get_project_id_or_fail(project)
-            elif organization:
-                organization_id = get_organization_id_or_fail(organization)
-            else:
-                remove_old_nodestore_values(days)
+        # Handle project/organization specific logic
+        project_id, organization_id = _handle_project_organization_cleanup(
+            project, organization, days, deletes
+        )
 
         run_bulk_query_deletes(
             bulk_query_deletes,
@@ -307,7 +302,7 @@ def cleanup(
             task_queue.join()
 
         organization_deletion_query, to_delete_by_organization = prepare_deletes_by_organization(
-            organization, organization_id, is_filtered
+            organization_id, is_filtered
         )
 
         if organization_deletion_query is not None and len(to_delete_by_organization):
@@ -341,37 +336,101 @@ def cleanup(
 
     finally:
         # Shut down our pool
-        for _ in pool:
-            task_queue.put(_STOP_WORKER)
+        _stop_pool(pool, task_queue)
 
-        # And wait for it to drain
-        for p in pool:
-            p.join()
+        if timed and start_time:
+            duration = int(time.time() - start_time)
+            metrics.timing("cleanup.duration", duration, instance=router, sample_rate=1.0)
+            click.echo("Clean up took %s second(s)." % duration)
 
-    if timed and start_time:
-        duration = int(time.time() - start_time)
-        metrics.timing("cleanup.duration", duration, instance=router, sample_rate=1.0)
-        click.echo("Clean up took %s second(s)." % duration)
-
-    # Check for models that were specified but never attempted
-    if model_list:
-        # Exclude models that were legitimately filtered out (silo/router restrictions)
-        models_never_attempted = model_list - models_attempted - models_legitimately_filtered
-        if models_never_attempted:
-            logger.error(
-                "Models specified with --model were never attempted for deletion, must configure cleanup for this model",
-                extra={
-                    "models_never_attempted": sorted(models_never_attempted),
-                    "legitimately_filtered_models": (
-                        sorted(models_legitimately_filtered)
-                        if models_legitimately_filtered
-                        else None
-                    ),
-                },
+        # Check for models that were specified but never attempted
+        if model_list:
+            _report_models_never_attempted(
+                model_list, models_attempted, models_legitimately_filtered
             )
 
-    if transaction:
-        transaction.__exit__(None, None, None)
+        if transaction:
+            transaction.__exit__(None, None, None)
+
+
+def _validate_and_setup_environment(concurrency: int, silent: bool) -> None:
+    """Validate input parameters and set up environment variables."""
+    if concurrency < 1:
+        click.echo("Error: Minimum concurrency is 1", err=True)
+        raise click.Abort()
+
+    os.environ["_SENTRY_CLEANUP"] = "1"
+    if silent:
+        os.environ["SENTRY_CLEANUP_SILENT"] = "1"
+
+
+def _run_specialized_cleanups(
+    is_filtered: Callable[[type[Model]], bool], days: int, silent: bool, models_attempted: set[str]
+) -> None:
+    """Run specialized cleanup operations for specific models."""
+    remove_expired_values_for_lost_passwords(is_filtered, models_attempted)
+    remove_expired_values_for_org_members(is_filtered, days, models_attempted)
+    delete_api_models(is_filtered, models_attempted)
+    exported_data(is_filtered, silent, models_attempted)
+
+
+def _handle_project_organization_cleanup(
+    project: str | None,
+    organization: str | None,
+    days: int,
+    deletes: list[tuple[type[Model], str, str]],
+) -> tuple[int | None, int | None]:
+    """Handle project/organization specific cleanup logic."""
+    project_id = None
+    organization_id = None
+
+    if SiloMode.get_current_mode() != SiloMode.CONTROL:
+        if project:
+            remove_cross_project_models(deletes)
+            project_id = get_project_id_or_fail(project)
+        elif organization:
+            organization_id = get_organization_id_or_fail(organization)
+        else:
+            remove_old_nodestore_values(days)
+
+    return project_id, organization_id
+
+
+def _report_models_never_attempted(
+    model_list: set[str], models_attempted: set[str], models_legitimately_filtered: set[str]
+) -> None:
+    # Exclude models that were legitimately filtered out (silo/router restrictions)
+    models_never_attempted = model_list - models_attempted - models_legitimately_filtered
+    if models_never_attempted:
+        logger.warning(
+            "Models specified with --model were never attempted for deletion, must configure cleanup for this model",
+            extra={
+                "models_never_attempted": sorted(models_never_attempted),
+                "legitimately_filtered_models": (
+                    sorted(models_legitimately_filtered) if models_legitimately_filtered else None
+                ),
+            },
+        )
+
+
+def _start_pool(concurrency: int) -> tuple[list[Process], _WorkQueue]:
+    pool: list[Process] = []
+    task_queue: _WorkQueue = Queue(1000)
+    for _ in range(concurrency):
+        p = Process(target=multiprocess_worker, args=(task_queue,))
+        p.daemon = True
+        p.start()
+        pool.append(p)
+    return pool, task_queue
+
+
+def _stop_pool(pool: Sequence[Process], task_queue: _WorkQueue) -> None:
+    # Stop the pool
+    for _ in pool:
+        task_queue.put(_STOP_WORKER)
+    # And wait for it to drain
+    for p in pool:
+        p.join()
 
 
 def remove_expired_values_for_lost_passwords(
@@ -471,7 +530,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]
         (RuleFireHistory, "date_added", "date_added"),
         (Release, "date_added", "date_added"),
         (File, "timestamp", "timestamp"),
-        (Commit, "date_added", "date_added"),
+        (Commit, "date_added", "id"),
     ]
 
 
@@ -602,9 +661,7 @@ def prepare_deletes_by_project(
 
 
 def prepare_deletes_by_organization(
-    organization: str | None,
-    organization_id: int | None,
-    is_filtered: Callable[[type[Model]], bool],
+    organization_id: int | None, is_filtered: Callable[[type[Model]], bool]
 ) -> tuple[QuerySet[Any] | None, list[tuple[Any, str, str]]]:
     from sentry.constants import ObjectStatus
     from sentry.models.organization import Organization
