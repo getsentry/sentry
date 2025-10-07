@@ -304,7 +304,13 @@ function WidgetCard(props: Props) {
           error={widgetQueryError}
           actionsMessage={actionsMessage}
           actions={actions}
-          onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
+          onFullScreenViewClick={
+            disableFullscreen
+              ? undefined
+              : currentDashboardId
+                ? onFullScreenViewClick
+                : undefined
+          }
           borderless={props.borderless}
           revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
           noVisualizationPadding
