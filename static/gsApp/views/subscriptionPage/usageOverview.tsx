@@ -1,14 +1,15 @@
-import React, {Fragment, useEffect, useState} from 'react';
-// import {useTheme} from '@emotion/react';
+import React, {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import type {TextProps} from 'sentry/components/core/text/text';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import GridEditable from 'sentry/components/tables/gridEditable';
 import {
   IconChevron,
   IconDownload,
@@ -21,8 +22,6 @@ import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-
-// import useMedia from 'sentry/utils/useMedia';
 
 import ProductTrialTag from 'getsentry/components/productTrial/productTrialTag';
 import StartTrialButton from 'getsentry/components/startTrialButton';
@@ -149,170 +148,6 @@ function CurrencyCell({
   );
 }
 
-function ProductRow({
-  plan,
-  hasAccess,
-  productName,
-  dataCategory,
-  ariaLabel,
-  isOpen,
-  onToggle,
-  hasToggle,
-  isTopMostProduct,
-  productTrial,
-  recurringReservedSpend,
-  free,
-  reserved,
-  paygTotal,
-  total,
-  organization,
-}: ProductRowProps) {
-  // const theme = useTheme();
-  // const isScreenSmall = useMedia(
-  //   `(max-width: ${theme.breakpoints[MIN_BREAKPOINT_TO_EXPAND]})`
-  // );
-
-  const [trialButtonBusy, setTrialButtonBusy] = useState(false);
-  const title = (
-    <Flex gap="md" align="center" direction="row">
-      <Container>
-        {!hasAccess && <IconLock locked size="xs" />}
-        <Text textWrap="pretty" bold={isTopMostProduct}>
-          {' '}
-          {productName}
-        </Text>
-      </Container>
-      {productTrial && <ProductTrialTag trial={productTrial} />}
-    </Flex>
-  );
-
-  const formattedTotal = dataCategory
-    ? formatUsageWithUnits(total, dataCategory, {useUnitScaling: true})
-    : displayPriceWithCents({cents: total});
-  const reservedTotal = (reserved ?? 0) + (free ?? 0);
-  const formattedReserved = reservedTotal
-    ? dataCategory
-      ? formatReservedWithUnits(reservedTotal, dataCategory, {useUnitScaling: true})
-      : displayPriceWithCents({cents: reservedTotal})
-    : undefined;
-  const formattedFree = free
-    ? dataCategory
-      ? formatReservedWithUnits(free, dataCategory, {useUnitScaling: true})
-      : displayPriceWithCents({cents: free})
-    : undefined;
-  const formattedCurrentUsage =
-    isTopMostProduct && formattedReserved
-      ? `${formattedTotal} / ${formattedReserved}`
-      : formattedTotal;
-  const percentUsed = reservedTotal ? getPercentage(total, reservedTotal) : undefined;
-  const formattedRecurringReservedSpend = recurringReservedSpend
-    ? displayPriceWithCents({cents: recurringReservedSpend})
-    : '-';
-  const formattedPaygTotal =
-    paygTotal > 0 ? displayPriceWithCents({cents: paygTotal}) : '-';
-
-  const isPaygOnly = reserved === 0;
-
-  return (
-    <Grid {...GRID_PROPS} borderTop="primary">
-      {hasToggle ? (
-        <Container>
-          <StyledButton
-            borderless
-            icon={
-              isOpen ? <IconChevron direction="up" /> : <IconChevron direction="down" />
-            }
-            aria-label={ariaLabel}
-            onClick={() => onToggle?.()}
-          >
-            {title}
-          </StyledButton>
-        </Container>
-      ) : (
-        <Container paddingLeft={isTopMostProduct ? undefined : '2xl'}>{title}</Container>
-      )}
-      <Container>
-        <Text as="div" textWrap="balance">
-          {formattedCurrentUsage}{' '}
-          {!isPaygOnly && (
-            <QuestionTooltip
-              size="xs"
-              position="top"
-              title={tct('[formattedReserved] reserved[freeString]', {
-                formattedReserved,
-                freeString: formattedFree
-                  ? tct('[formattedFree] gifted', {formattedFree})
-                  : '',
-              })}
-            />
-          )}
-        </Text>
-      </Container>
-      {isPaygOnly ? (
-        <Container alignSelf="center" justifySelf="start">
-          <Tag>
-            {tct('[budgetTerm] only', {
-              budgetTerm:
-                // isScreenSmall
-                //   ? plan.budgetTerm === 'pay-as-you-go'
-                //     ? 'PAYG'
-                //     : 'OD'
-                //   :
-                displayBudgetName(plan, {title: true}),
-            })}
-          </Tag>
-        </Container>
-      ) : defined(percentUsed) ? (
-        <Flex gap="sm" align="center">
-          <ReservedUsageBar percentUsed={percentUsed / 100} />
-          <Text>{percentUsed.toFixed(0) + '%'}</Text>
-        </Flex>
-      ) : (
-        <div />
-      )}
-      <CurrencyCell>{formattedRecurringReservedSpend}</CurrencyCell>
-      <CurrencyCell>{formattedPaygTotal}</CurrencyCell>
-      {productTrial && !productTrial.isStarted && (
-        <Flex justify="center">
-          <StartTrialButton
-            organization={organization}
-            source="usage-overview"
-            requestData={{
-              productTrial: {
-                category: productTrial.category,
-                reasonCode: productTrial.reasonCode,
-              },
-            }}
-            aria-label={t('Start 14 day free %s trial', productName)}
-            priority="primary"
-            handleClick={() => {
-              setTrialButtonBusy(true);
-            }}
-            onTrialStarted={() => {
-              setTrialButtonBusy(true);
-            }}
-            onTrialFailed={() => {
-              setTrialButtonBusy(false);
-            }}
-            busy={trialButtonBusy}
-            disabled={trialButtonBusy}
-            size="xs"
-          >
-            <Flex align="center" gap="sm">
-              <IconLightning size="xs" />
-              <Container>
-                {/* {isScreenSmall ? t('Start trial') :  */}
-                {t('Start 14 day free trial')}
-                {/* } */}
-              </Container>
-            </Flex>
-          </StartTrialButton>
-        </Flex>
-      )}
-    </Grid>
-  );
-}
-
 function ReservedUsageBar({percentUsed}: {percentUsed: number}) {
   if (percentUsed === 0 || percentUsed === 1) {
     return <Bar fillPercentage={percentUsed} hasLeftBorderRadius hasRightBorderRadius />;
@@ -350,20 +185,46 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
     bold: true,
   };
 
-  return (
-    <Fragment>
-      <Grid background="secondary" {...GRID_PROPS}>
-        <Text {...tableHeaderProps}>{t('Product')}</Text>
-        <Text {...tableHeaderProps}>{t('Current usage')}</Text>
-        <Text {...tableHeaderProps}>{t('Reserved usage')}</Text>
-        <CurrencyCell {...tableHeaderProps}>{t('Reserved spend')}</CurrencyCell>
-        <CurrencyCell {...tableHeaderProps}>
-          {tct('[budgetTerm] spend', {
-            budgetTerm: displayBudgetName(subscription.planDetails, {title: true}),
-          })}
-        </CurrencyCell>
-      </Grid>
-      {sortCategories(subscription.categories)
+  const columnOrder: GridColumnOrder[] = [
+    {key: 'product', name: t('Product'), width: 400},
+    {key: 'currentUsage', name: t('Current usage')},
+    {key: 'reservedUsage', name: t('Reserved usage')},
+    {key: 'reservedSpend', name: t('Reserved spend')},
+    {
+      key: 'budgetSpend',
+      name: t('%s spend', displayBudgetName(subscription.planDetails, {title: true})),
+    },
+    {
+      key: 'cta',
+      name: '',
+    },
+  ];
+
+  const productData: Array<{
+    attrs: {
+      hasAccess: boolean;
+      isPaygOnly: boolean;
+      addOnCategory?: AddOnCategory;
+      ariaLabel?: string;
+      dataCategory?: DataCategory;
+      free?: number;
+      hasToggle?: boolean;
+      isChildProduct?: boolean;
+      isOpen?: boolean;
+      onToggle?: () => void;
+      productTrial?: ProductTrial;
+      reserved?: number;
+    };
+    gridData: {
+      budgetSpend: number;
+      currentUsage: number;
+      product: string;
+      reservedSpend?: number;
+      reservedUsage?: number;
+    };
+  }> = useMemo(() => {
+    return [
+      ...sortCategories(subscription.categories)
         .filter(metricHistory => !allAddOnDataCategories.includes(metricHistory.category))
         .map(metricHistory => {
           const category = metricHistory.category;
@@ -374,7 +235,8 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
           });
           const reserved = metricHistory.reserved ?? 0;
           const free = metricHistory.free;
-          const usage = metricHistory.usage;
+          const total = metricHistory.usage;
+          const paygTotal = metricHistory.onDemandSpendUsed;
           const activeProductTrial = getActiveProductTrial(
             subscription.productTrials ?? [],
             category
@@ -399,27 +261,30 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
             buckets: subscription.planDetails.planCategories[category],
           });
           const recurringReservedSpend = bucket.price ?? 0;
+          const reservedTotal = (reserved ?? 0) + (free ?? 0);
+          const percentUsed = reservedTotal
+            ? getPercentage(total, reservedTotal)
+            : undefined;
 
-          return (
-            <ProductRow
-              key={category}
-              organization={organization}
-              dataCategory={category}
-              plan={subscription.planDetails}
-              hasToggle={false}
-              paygTotal={metricHistory.onDemandSpendUsed}
-              productName={productName}
-              hasAccess={hasAccess}
-              total={usage}
-              reserved={reserved}
-              free={free}
-              isTopMostProduct
-              recurringReservedSpend={recurringReservedSpend}
-              productTrial={activeProductTrial ?? potentialProductTrial ?? undefined}
-            />
-          );
-        })}
-      {Object.entries(subscription.addOns ?? {})
+          return {
+            attrs: {
+              dataCategory: category,
+              hasAccess,
+              isPaygOnly,
+              free,
+              reserved,
+              productTrial: activeProductTrial ?? potentialProductTrial ?? undefined,
+            },
+            gridData: {
+              product: productName,
+              currentUsage: total,
+              reservedUsage: percentUsed,
+              reservedSpend: recurringReservedSpend,
+              budgetSpend: paygTotal,
+            },
+          };
+        }),
+      ...Object.entries(subscription.addOns ?? {})
         .filter(
           ([_, addOnInfo]) =>
             !addOnInfo.billingFlag ||
@@ -430,7 +295,7 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
             allowInnerUpperCase: true,
           });
 
-          const paygUsed = addOnInfo.dataCategories.reduce((acc, category) => {
+          const paygTotal = addOnInfo.dataCategories.reduce((acc, category) => {
             return acc + (subscription.categories[category]?.onDemandSpendUsed ?? 0);
           }, 0);
           const addOnDataCategories = addOnInfo.dataCategories;
@@ -442,7 +307,9 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
                 budget => (budget.apiName as string) === reservedBudgetCategory
               )
             : undefined;
-
+          const percentUsed = reservedBudget?.totalReservedSpend
+            ? getPercentage(paygTotal, reservedBudget?.totalReservedSpend)
+            : undefined;
           const activeProductTrial = getActiveProductTrial(
             subscription.productTrials ?? [],
             addOnDataCategories[0] as DataCategory
@@ -451,10 +318,10 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
             subscription.productTrials ?? [],
             addOnDataCategories[0] as DataCategory
           );
-          const isEnabled = addOnInfo.enabled;
+          const hasAccess = addOnInfo.enabled;
 
           // TODO(isabella): fix this for add-ons with multiple data categories
-          const bucket = isEnabled
+          const bucket = hasAccess
             ? getBucket({
                 buckets:
                   subscription.planDetails.planCategories[
@@ -465,82 +332,293 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
             : undefined;
           const recurringReservedSpend = bucket?.price ?? 0;
 
-          if (!isEnabled) {
-            <ProductRow
-              organization={organization}
-              addOnCategory={apiName as AddOnCategory}
-              plan={subscription.planDetails}
-              recurringReservedSpend={recurringReservedSpend}
-              hasToggle={false}
-              reserved={reservedBudget?.reservedBudget}
-              free={reservedBudget?.freeBudget}
-              total={reservedBudget?.totalReservedSpend ?? 0}
-              paygTotal={paygUsed}
-              hasAccess={isEnabled}
-              productName={addOnName}
-              isTopMostProduct
-              productTrial={activeProductTrial ?? potentialProductTrial ?? undefined}
-            />;
-          }
-
-          return (
-            <Fragment key={apiName}>
-              <ProductRow
-                organization={organization}
-                addOnCategory={apiName as AddOnCategory}
-                plan={subscription.planDetails}
-                recurringReservedSpend={recurringReservedSpend}
-                ariaLabel={t('Toggle %s usage overview', addOnName)}
-                isOpen={!!openState[apiName]}
-                onToggle={() =>
-                  setOpenState({...openState, [apiName]: !openState[apiName]})
-                }
-                hasToggle
-                reserved={reservedBudget?.reservedBudget}
-                free={reservedBudget?.freeBudget}
-                total={reservedBudget?.totalReservedSpend ?? 0}
-                paygTotal={paygUsed}
-                hasAccess={isEnabled}
-                productName={addOnName}
-                isTopMostProduct
-                productTrial={activeProductTrial ?? potentialProductTrial ?? undefined}
-              />
-              {isEnabled && openState[apiName] && (
-                <Fragment>
-                  {Object.entries(subscription.categories)
-                    .filter(([category]) =>
-                      addOnDataCategories.includes(category as DataCategory)
-                    )
-                    .map(([category, categoryDetails]) => {
-                      const productName = getPlanCategoryName({
-                        plan: subscription.planDetails,
-                        category: category as DataCategory,
-                        title: true,
-                      });
-                      const spend =
-                        reservedBudget?.categories[category as DataCategory]
-                          ?.reservedSpend ?? 0;
-
-                      return (
-                        <ProductRow
-                          organization={organization}
-                          key={category}
-                          addOnCategory={apiName as AddOnCategory}
-                          plan={subscription.planDetails}
-                          hasToggle={false}
-                          total={spend}
-                          paygTotal={categoryDetails.onDemandSpendUsed}
-                          productName={productName}
-                          hasAccess={isEnabled}
-                          recurringReservedSpend={0}
-                        />
-                      );
-                    })}
-                </Fragment>
-              )}
-            </Fragment>
+          return {
+            attrs: {
+              addOnCategory: apiName as AddOnCategory,
+              hasAccess,
+              free: reservedBudget?.freeBudget ?? 0,
+              reserved: reservedBudget?.reservedBudget ?? 0,
+              isPaygOnly: !reservedBudget,
+              productTrial: activeProductTrial ?? potentialProductTrial ?? undefined,
+              hasToggle: true,
+              isOpen: openState[apiName],
+              onToggle: () => {
+                setOpenState(prev => ({...prev, [apiName]: !prev[apiName]}));
+              },
+              ariaLabel: openState[apiName]
+                ? t('Collapse %s info', addOnName)
+                : t('Expand %s info', addOnName),
+            },
+            gridData: {
+              product: addOnName,
+              currentUsage: (reservedBudget?.totalReservedSpend ?? 0) + paygTotal,
+              reservedUsage: percentUsed,
+              reservedSpend: recurringReservedSpend,
+              budgetSpend: paygTotal,
+            },
+          };
+        }),
+      ...Object.entries(subscription.addOns ?? {})
+        .filter(
+          ([apiName, addOnInfo]) =>
+            (!addOnInfo.billingFlag ||
+              organization.features.includes(addOnInfo.billingFlag)) &&
+            addOnInfo.enabled &&
+            openState[apiName]
+        )
+        .flatMap(([apiName, addOnInfo]) => {
+          const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(
+            apiName as AddOnCategory
           );
-        })}
+          const reservedBudget = reservedBudgetCategory
+            ? subscription.reservedBudgets?.find(
+                budget => (budget.apiName as string) === reservedBudgetCategory
+              )
+            : undefined;
+          return addOnInfo.dataCategories.map(addOnDataCategory => {
+            const reservedBudgetSpend =
+              reservedBudget?.categories[addOnDataCategory]?.reservedSpend ?? 0;
+            const paygTotal =
+              subscription.categories[addOnDataCategory]?.onDemandSpendUsed ?? 0;
+            const productName = getPlanCategoryName({
+              plan: subscription.planDetails,
+              category: addOnDataCategory,
+              title: true,
+            });
+            return {
+              attrs: {
+                addOnCategory: apiName as AddOnCategory,
+                isChildProduct: true,
+                isOpen: openState[apiName],
+                hasAccess: true,
+                isPaygOnly: false,
+              },
+              gridData: {
+                budgetSpend: paygTotal,
+                currentUsage: (reservedBudgetSpend ?? 0) + paygTotal,
+                product: productName,
+              },
+            };
+          });
+        }),
+    ];
+  }, [subscription, allAddOnDataCategories, organization.features, openState]);
+
+  return (
+    <Fragment>
+      <Container maxWidth={{xs: '992px', md: '100%'}}>
+        <GridEditable
+          bodyStyle={{
+            borderTopLeftRadius: '0px',
+            borderTopRightRadius: '0px',
+            borderLeft: 'none',
+            borderRight: 'none',
+            borderBottom: 'none',
+            marginBottom: '0px',
+          }}
+          minimumColWidth={200}
+          fit="max-content"
+          columnOrder={columnOrder}
+          data={productData.map(product => product.gridData)}
+          columnSortBy={[]}
+          grid={{
+            renderHeadCell: column => {
+              return <Text {...tableHeaderProps}>{column.name}</Text>;
+            },
+            renderBodyCell: (column, row) => {
+              const attrs = productData.find(
+                product => product.gridData.product === row.product
+              )?.attrs;
+              if (!attrs) {
+                return row[column.key as keyof typeof row];
+              }
+              const {
+                dataCategory,
+                hasAccess,
+                isPaygOnly,
+                free,
+                reserved,
+                isOpen,
+                isChildProduct,
+              } = attrs;
+
+              if (defined(isOpen) && !isOpen && isChildProduct) {
+                return null;
+              }
+
+              switch (column.key) {
+                case 'product': {
+                  const {hasToggle, onToggle, ariaLabel, productTrial} = attrs;
+                  const title = (
+                    <Flex gap="xs">
+                      <Container>
+                        {!hasAccess && <IconLock locked size="xs" />}
+                        <Text textWrap="pretty" bold>
+                          {' '}
+                          {row.product}
+                        </Text>
+                      </Container>
+                      {productTrial && <ProductTrialTag trial={productTrial} />}
+                    </Flex>
+                  );
+
+                  if (hasToggle) {
+                    return (
+                      <Container>
+                        <StyledButton
+                          borderless
+                          icon={
+                            isOpen ? (
+                              <IconChevron direction="up" />
+                            ) : (
+                              <IconChevron direction="down" />
+                            )
+                          }
+                          aria-label={ariaLabel}
+                          onClick={() => onToggle?.()}
+                        >
+                          {title}
+                        </StyledButton>
+                      </Container>
+                    );
+                  }
+                  return (
+                    <Container paddingLeft={isChildProduct ? '2xl' : undefined}>
+                      {title}
+                    </Container>
+                  );
+                }
+                case 'currentUsage': {
+                  const formattedTotal = dataCategory
+                    ? formatUsageWithUnits(row.currentUsage, dataCategory, {
+                        useUnitScaling: true,
+                      })
+                    : displayPriceWithCents({cents: row.currentUsage});
+                  const formattedReserved = dataCategory
+                    ? formatReservedWithUnits(reserved ?? 0, dataCategory, {
+                        useUnitScaling: true,
+                      })
+                    : displayPriceWithCents({cents: reserved ?? 0});
+                  const formattedFree = dataCategory
+                    ? formatReservedWithUnits(free ?? 0, dataCategory, {
+                        useUnitScaling: true,
+                      })
+                    : displayPriceWithCents({cents: free ?? 0});
+                  const formattedReservedTotal = dataCategory
+                    ? formatReservedWithUnits(
+                        (reserved ?? 0) + (free ?? 0),
+                        dataCategory,
+                        {
+                          useUnitScaling: true,
+                        }
+                      )
+                    : displayPriceWithCents({cents: (reserved ?? 0) + (free ?? 0)});
+                  const formattedCurrentUsage = isPaygOnly
+                    ? formattedTotal
+                    : `${formattedTotal} / ${formattedReservedTotal}`;
+                  return (
+                    <Text as="div" textWrap="balance">
+                      {formattedCurrentUsage}{' '}
+                      {!isPaygOnly && (
+                        <QuestionTooltip
+                          size="xs"
+                          position="top"
+                          title={tct('[formattedReserved] reserved[freeString]', {
+                            formattedReserved,
+                            freeString: formattedFree
+                              ? tct('[formattedFree] gifted', {formattedFree})
+                              : '',
+                          })}
+                        />
+                      )}
+                    </Text>
+                  );
+                }
+                case 'reservedUsage': {
+                  if (isPaygOnly) {
+                    return (
+                      <Container alignSelf="start" justifySelf="center">
+                        <Tag>
+                          {tct('[budgetTerm] only', {
+                            budgetTerm: displayBudgetName(subscription.planDetails, {
+                              title: true,
+                            }),
+                          })}
+                        </Tag>
+                      </Container>
+                    );
+                  }
+                  const percentUsed = row.reservedUsage;
+                  if (defined(percentUsed)) {
+                    return (
+                      <Flex gap="sm" align="center">
+                        <ReservedUsageBar percentUsed={percentUsed / 100} />
+                        <Text>{percentUsed.toFixed(0) + '%'}</Text>
+                      </Flex>
+                    );
+                  }
+                  return <div />;
+                  break;
+                }
+                case 'reservedSpend':
+                case 'budgetSpend': {
+                  const spend = row[column.key as keyof typeof row];
+                  const formattedSpend = spend
+                    ? displayPriceWithCents({cents: spend as number})
+                    : '-';
+                  return <CurrencyCell>{formattedSpend}</CurrencyCell>;
+                }
+                case 'cta': {
+                  const productTrial = attrs.productTrial;
+                  if (productTrial && !productTrial.isStarted) {
+                    return (
+                      <Flex justify="center">
+                        <StartTrialButton
+                          organization={organization}
+                          source="usage-overview"
+                          requestData={{
+                            productTrial: {
+                              category: productTrial.category,
+                              reasonCode: productTrial.reasonCode,
+                            },
+                          }}
+                          aria-label={t('Start 14 day free %s trial', row.product)}
+                          priority="primary"
+                          // handleClick={() => {
+                          //   setTrialButtonBusy(true);
+                          // }}
+                          // onTrialStarted={() => {
+                          //   setTrialButtonBusy(true);
+                          // }}
+                          // onTrialFailed={() => {
+                          //   setTrialButtonBusy(false);
+                          // }}
+                          // busy={trialButtonBusy}
+                          // disabled={trialButtonBusy}
+                          size="xs"
+                        >
+                          <Flex align="center" gap="sm">
+                            <IconLightning size="xs" />
+                            <Container>
+                              {/* {isScreenSmall ? t('Start trial') :  */}
+                              {t('Start 14 day free trial')}
+                              {/* } */}
+                            </Container>
+                          </Flex>
+                        </StartTrialButton>
+                      </Flex>
+                    );
+                  }
+                  return <div />;
+                  break;
+                }
+                default:
+                  return row[column.key as keyof typeof row];
+              }
+            },
+          }}
+        />
+      </Container>
     </Fragment>
   );
 }
