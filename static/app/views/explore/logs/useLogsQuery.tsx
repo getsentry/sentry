@@ -210,13 +210,18 @@ function useLogsQueryKey({
     eventViewPayload.end = frozenReplayInfo.replayEndedAt?.toISOString();
   }
 
+  const orderby = eventViewPayload.sort;
+  // we can only turn on high accuracy flex time sampling when
+  // the order by is exactly timestamp descending,
+  highFidelity = highFidelity && orderby === '-timestamp';
+
   const params = {
     query: {
       ...eventViewPayload,
       ...(frozenTraceIds ? {traceId: frozenTraceIds} : {}),
       ...(frozenReplayInfo.replayId ? {replayId: frozenReplayInfo.replayId} : {}),
       cursor,
-      orderby: eventViewPayload.sort,
+      orderby,
       per_page: limit ? limit : undefined,
       referrer,
       sampling: highFidelity ? 'HIGHEST_ACCURACY_FLEX_TIME' : undefined,
