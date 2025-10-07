@@ -192,6 +192,7 @@ class CustomFingerprintVariant(BaseVariant):
     def __init__(self, fingerprint: list[str], fingerprint_info: FingerprintInfo):
         self.values = fingerprint
         self.fingerprint_info = fingerprint_info
+        self.is_built_in = fingerprint_info.get("matched_rule", {}).get("is_builtin", False)
 
     @property
     def description(self) -> str:
