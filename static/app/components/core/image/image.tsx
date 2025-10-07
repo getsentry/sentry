@@ -20,8 +20,8 @@ export function Image({loading, ...props}: ImageProps) {
 }
 
 const Img = styled('img')<ImageProps>`
-  object-fit: ${p => p.objectFit ?? 'contain'};
   width: ${p => p.width ?? '100%'};
-  height: ${p => p.height ?? '100%'};
+  height: ${p => p.height ?? 'auto'};
+  object-fit: ${p => p.objectFit};
   object-position: ${p => p.objectPosition};
 `;
