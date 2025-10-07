@@ -10,7 +10,11 @@ from rest_framework.exceptions import ErrorDetail
 from sentry import tagstore
 from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.release import GroupEventReleaseSerializer, get_users_for_authors
+from sentry.api.serializers.models.release import (
+    GroupEventReleaseSerializer,
+    ReleaseSerializer,
+    get_users_for_authors,
+)
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -578,6 +582,172 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["adoptionStages"][project.slug]["stage"] == ReleaseStages.REPLACED
         assert result["adoptionStages"][project2.slug]["stage"] == ReleaseStages.ADOPTED
 
+    def test_get_release_data_with_environments_environment_filtering(self) -> None:
+        """Test __get_release_data_with_environments with environment filtering."""
+        project_a = self.create_project(name="Project A")
+        project_b = self.create_project(name="Project B", organization=project_a.organization)
+        production = self.create_environment(name="production", organization=project_a.organization)
+        staging = self.create_environment(name="staging", organization=project_a.organization)
+
+        release = Release.objects.create(organization_id=project_a.organization_id, version="1.0.0")
+        release.add_project(project_a)
+        release.add_project(project_b)
+
+        # Project A: 3 new groups in production, 1 new group in staging
+        rpe1 = ReleaseProjectEnvironment.objects.create(
+            release=release, project=project_a, environment=production, new_issues_count=3
+        )
+        rpe2 = ReleaseProjectEnvironment.objects.create(
+            release=release, project=project_a, environment=staging, new_issues_count=1
+        )
+        # Project B: 2 new groups in production, 1 new group in development
+        rpe3 = ReleaseProjectEnvironment.objects.create(
+            release=release, project=project_b, environment=production, new_issues_count=2
+        )
+
+        # 1. No environment filter
+        serializer = ReleaseSerializer()
+        release_project_envs = serializer._get_release_project_envs_unordered([release], None, None)
+        result_ids = {rpe.id for rpe in release_project_envs}
+        expected_ids = {rpe1.id, rpe2.id, rpe3.id}
+        assert result_ids == expected_ids
+        _, _, group_counts = serializer._ReleaseSerializer__get_release_data_with_environments(
+            release_project_envs
+        )
+        expected_counts = {release.id: {project_a.id: 4, project_b.id: 2}}
+        assert group_counts == expected_counts
+
+        # 2. Filter by production environment
+        serializer = ReleaseSerializer()
+        release_project_envs = serializer._get_release_project_envs_unordered(
+            [release], ["production"], None
+        )
+        result_ids = {rpe.id for rpe in release_project_envs}
+        expected_ids = {rpe1.id, rpe3.id}
+        assert result_ids == expected_ids
+        _, _, group_counts = serializer._ReleaseSerializer__get_release_data_with_environments(
+            release_project_envs
+        )
+        expected_counts = {release.id: {project_a.id: 3, project_b.id: 2}}
+
+        # 3. Filter by production and staging environments
+        serializer = ReleaseSerializer()
+        release_project_envs = serializer._get_release_project_envs_unordered(
+            [release], ["production", "staging"], None
+        )
+        result_ids = {rpe.id for rpe in release_project_envs}
+        expected_ids = {rpe1.id, rpe2.id, rpe3.id}
+        assert result_ids == expected_ids
+        _, _, group_counts = serializer._ReleaseSerializer__get_release_data_with_environments(
+            release_project_envs
+        )
+        expected_counts = {release.id: {project_a.id: 4, project_b.id: 2}}
+        assert group_counts == expected_counts
+
+    def test_get_release_data_with_environments_project_filtering(self) -> None:
+        """Test __get_release_data_with_environments with project filtering."""
+        project_a = self.create_project(name="Project A")
+        project_b = self.create_project(name="Project B", organization=project_a.organization)
+        production = self.create_environment(name="production", organization=project_a.organization)
+
+        release = Release.objects.create(organization_id=project_a.organization_id, version="1.0.0")
+        release.add_project(project_a)
+        release.add_project(project_b)
+
+        rpe_project_a = ReleaseProjectEnvironment.objects.create(
+            release=release, project=project_a, environment=production, new_issues_count=3
+        )
+        rpe_project_b = ReleaseProjectEnvironment.objects.create(
+            release=release, project=project_b, environment=production, new_issues_count=2
+        )
+
+        serializer = ReleaseSerializer()
+        release_project_envs = serializer._get_release_project_envs_unordered(
+            [release], None, project_a
+        )
+        result_ids = {rpe.id for rpe in release_project_envs}
+        assert result_ids == {rpe_project_a.id}
+        assert rpe_project_b.id not in result_ids
+
+        _, _, group_counts = serializer._ReleaseSerializer__get_release_data_with_environments(
+            release_project_envs
+        )
+        expected_counts = {release.id: {project_a.id: 3}}
+        assert group_counts == expected_counts
+
+    def test_get_release_data_with_environments_multiple_releases(self) -> None:
+        """Test __get_release_data_with_environments with multiple releases across projects and environments."""
+        project_a = self.create_project(name="Project A")
+        project_b = self.create_project(name="Project B", organization=project_a.organization)
+        project_c = self.create_project(name="Project C", organization=project_a.organization)
+        production = self.create_environment(name="production", organization=project_a.organization)
+        staging = self.create_environment(name="staging", organization=project_a.organization)
+
+        release_1 = Release.objects.create(
+            organization_id=project_a.organization_id, version="1.0.0"
+        )
+        release_1.add_project(project_a)
+        release_1.add_project(project_b)
+
+        release_2 = Release.objects.create(
+            organization_id=project_a.organization_id, version="2.0.0"
+        )
+        release_2.add_project(project_b)
+        release_2.add_project(project_c)
+
+        # Release 1.0.0:
+        # - Project A: 3 in production, 1 in staging = 4 total
+        # - Project B: 2 in production, 0 in staging = 2 total
+        rpe_r1_pa_prod = ReleaseProjectEnvironment.objects.create(
+            release=release_1, project=project_a, environment=production, new_issues_count=3
+        )
+        ReleaseProjectEnvironment.objects.create(
+            release=release_1, project=project_a, environment=staging, new_issues_count=1
+        )
+        rpe_r1_pb_prod = ReleaseProjectEnvironment.objects.create(
+            release=release_1, project=project_b, environment=production, new_issues_count=2
+        )
+        ReleaseProjectEnvironment.objects.create(
+            release=release_1, project=project_b, environment=staging, new_issues_count=0
+        )
+
+        # Release 2.0.0:
+        # - Project B: 1 in production, 3 in staging = 4 total
+        # - Project C: 5 in production, 2 in staging = 7 total
+        rpe_r2_pb_prod = ReleaseProjectEnvironment.objects.create(
+            release=release_2, project=project_b, environment=production, new_issues_count=1
+        )
+        ReleaseProjectEnvironment.objects.create(
+            release=release_2, project=project_b, environment=staging, new_issues_count=3
+        )
+        rpe_r2_pc_prod = ReleaseProjectEnvironment.objects.create(
+            release=release_2, project=project_c, environment=production, new_issues_count=5
+        )
+        ReleaseProjectEnvironment.objects.create(
+            release=release_2, project=project_c, environment=staging, new_issues_count=2
+        )
+
+        serializer = ReleaseSerializer()
+        release_project_envs_prod = serializer._get_release_project_envs_unordered(
+            [release_1, release_2], ["production"], None
+        )
+
+        result_ids_prod = {rpe.id for rpe in release_project_envs_prod}
+        assert result_ids_prod == {
+            rpe_r1_pa_prod.id,
+            rpe_r1_pb_prod.id,
+            rpe_r2_pb_prod.id,
+            rpe_r2_pc_prod.id,
+        }
+
+        _, _, group_counts_prod = serializer._ReleaseSerializer__get_release_data_with_environments(
+            release_project_envs_prod
+        )
+        assert group_counts_prod == {
+            release_1.id: {project_a.id: 3, project_b.id: 2},
+            release_2.id: {project_b.id: 1, project_c.id: 5},
+        }
+
     def test_with_none_new_groups(self) -> None:
         """Test that release serializer works correctly when new_groups is None."""
         project = self.create_project()
@@ -595,7 +765,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["version"] == "0.1"
         assert result["newGroups"] == 0  # Should default to 0 when None
 
-    def test_new_groups_single_release_per_project(self) -> None:
+    def test_new_groups_single_release(self) -> None:
         """
         Test new groups counts for one release with multiple projects, each having different issue counts.
         """
@@ -604,7 +774,6 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             name="Project B", slug="project-b", organization=project_a.organization
         )
 
-        # Create release in projects A and B
         release_version = "1.0.0"
         release = Release.objects.create(
             organization_id=project_a.organization_id, version=release_version
@@ -617,11 +786,8 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         ReleaseProject.objects.filter(release=release, project=project_b).update(new_groups=2)
 
         result = serialize(release, self.user)
-
-        # total new groups count (5 == 3 + 2)
         assert result["newGroups"] == 5
 
-        # new groups count for each project (3 for A, 2 for B)
         projects = {p["id"]: p for p in result["projects"]}
         assert projects[project_a.id]["newGroups"] == 3
         assert projects[project_b.id]["newGroups"] == 2
@@ -631,17 +797,15 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert projects[project_b.id]["name"] == "Project B"
         assert projects[project_b.id]["slug"] == "project-b"
 
-    def test_new_groups_multiple_releases_per_project(self) -> None:
+    def test_new_groups_multiple_releases(self) -> None:
         """
         Test new groups count for multiple releases per project.
-        This tests the OLD serializer behavior with multiple releases.
         """
         project_a = self.create_project(name="Project A", slug="project-a")
         project_b = self.create_project(
             name="Project B", slug="project-b", organization=project_a.organization
         )
 
-        # Create releases 1 and 2, both in projects A and B
         release_1 = Release.objects.create(
             organization_id=project_a.organization_id, version="1.0.0"
         )
@@ -664,18 +828,16 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         # 1. Serialize Release 1.0.0
         result = serialize(release_1, self.user)
         assert result["version"] == "1.0.0"
-        assert result["newGroups"] == 5  # total new groups count (5 == 3 + 2)
+        assert result["newGroups"] == 5
         projects = {p["id"]: p for p in result["projects"]}
-        # new groups count for each project (3 for A, 2 for B)
         assert projects[project_a.id]["newGroups"] == 3
         assert projects[project_b.id]["newGroups"] == 2
 
         # 2. Serialize Release 2.0.0
         result = serialize(release_2, self.user)
         assert result["version"] == "2.0.0"
-        assert result["newGroups"] == 5  # total new groups count (5 == 1 + 4)
+        assert result["newGroups"] == 5
         projects = {p["id"]: p for p in result["projects"]}
-        # new groups count for each project (1 for A, 4 for B)
         assert projects[project_a.id]["newGroups"] == 1
         assert projects[project_b.id]["newGroups"] == 4
 
@@ -685,10 +847,8 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         serialized_releases = {r["version"]: r for r in result}
         serialized_release_1 = serialized_releases["1.0.0"]
         serialized_release_2 = serialized_releases["2.0.0"]
-        # both new group counts should be 5
         assert serialized_release_1["newGroups"] == 5
         assert serialized_release_2["newGroups"] == 5
-        # new groups counts for each project
         projects_1 = {p["id"]: p for p in serialized_release_1["projects"]}
         projects_2 = {p["id"]: p for p in serialized_release_2["projects"]}
         assert projects_1[project_a.id]["newGroups"] == 3
@@ -699,7 +859,6 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
     def test_new_groups_environment_filtering(self) -> None:
         """
         Test new group counts for a single release with environment filtering.
-        This tests the OLD serializer behavior with environments.
         """
         project_a = self.create_project(name="Project A", slug="project-a")
         project_b = self.create_project(
@@ -761,10 +920,9 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert projects[project_b.id]["newGroups"] == 2
         assert result["newGroups"] == 6
 
-    def test_new_groups_cross_project_release_environment(self) -> None:
+    def test_new_groups_multiple_releases_environment_filtering(self) -> None:
         """
         Test new group counts for multiple releases with different environments.
-        This tests the OLD serializer behavior with complex environment scenarios.
         """
         project_a = self.create_project(name="Project A", slug="project-a")
         project_b = self.create_project(
@@ -819,7 +977,14 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             release=release_2, project=project_b, environment=staging, new_issues_count=1
         )
 
-        # 1. Serialize Release 1.0.0 with production filter
+        # 1. Serialize Release 1.0.0 with no environment filter
+        result = serialize(release_1, self.user)
+        assert result["newGroups"] == 6
+        projects = {p["id"]: p for p in result["projects"]}
+        assert projects[project_a.id]["newGroups"] == 4
+        assert projects[project_b.id]["newGroups"] == 2
+
+        # 2. Serialize Release 1.0.0 with production filter
         result = serialize(release_1, self.user, environments=["production"])
         assert result["version"] == "1.0.0"
         assert result["newGroups"] == 5
@@ -827,7 +992,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert projects[project_a.id]["newGroups"] == 3
         assert projects[project_b.id]["newGroups"] == 2
 
-        # 2. Serialize Release 2.0.0 with production filter
+        # 3. Serialize Release 2.0.0 with production filter
         result = serialize(release_2, self.user, environments=["production"])
         assert result["version"] == "2.0.0"
         assert result["newGroups"] == 5
@@ -835,7 +1000,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert projects[project_a.id]["newGroups"] == 1
         assert projects[project_b.id]["newGroups"] == 4
 
-        # 3. Serialize both releases with production filter
+        # 4. Serialize both releases with production filter
         result = serialize([release_1, release_2], self.user, environments=["production"])
         assert len(result) == 2
         serialized_releases = {r["version"]: r for r in result}
@@ -849,13 +1014,6 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert projects_1[project_b.id]["newGroups"] == 2
         assert projects_2[project_a.id]["newGroups"] == 1
         assert projects_2[project_b.id]["newGroups"] == 4
-
-        # 4. Serialize Release 1.0.0 with no environment filter
-        result = serialize(release_1, self.user)
-        assert result["newGroups"] == 6
-        projects = {p["id"]: p for p in result["projects"]}
-        assert projects[project_a.id]["newGroups"] == 4
-        assert projects[project_b.id]["newGroups"] == 2
 
 
 class ReleaseRefsSerializerTest(TestCase):
