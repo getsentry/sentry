@@ -21,6 +21,11 @@ const mockPayload = {
   queryInfo: {project_id: '1', group_id: '1027', key: 'user'},
 };
 
+const mockExplorePayload = {
+  queryType: ExportQueryType.EXPLORE,
+  queryInfo: {project_id: '1', group_id: '1027', key: 'user'},
+};
+
 const mockContext = (organization: Organization) => {
   return {organization};
 };
@@ -38,6 +43,13 @@ describe('DataExport', () => {
       ...mockContext(mockAuthorizedOrg),
     });
     expect(screen.getByText(/Export All to CSV/)).toBeInTheDocument();
+  });
+
+  it('should render the button for an unauthorized organization using explore', () => {
+    render(<DataExport payload={mockExplorePayload} />, {
+      ...mockContext(mockUnauthorizedOrg),
+    });
+    expect(screen.getByRole('button')).toBeInTheDocument();
   });
 
   it('should render custom children if provided', () => {
