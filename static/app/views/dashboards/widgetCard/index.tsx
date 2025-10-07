@@ -44,7 +44,11 @@ import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
-import {getMenuOptions, useIndexedEventsWarning} from './widgetCardContextMenu';
+import {
+  getMenuOptions,
+  useIndexedEventsWarning,
+  useTransactionsDeprecationWarning,
+} from './widgetCardContextMenu';
 import {WidgetFrame} from './widgetFrame';
 
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;
@@ -186,6 +190,7 @@ function WidgetCard(props: Props) {
   const extractionStatus = useExtractionStatus({queryKey: widget});
   const indexedEventsWarning = useIndexedEventsWarning();
   const onDemandWarning = useOnDemandWarning({widget});
+  const transactionsDeprecationWarning = useTransactionsDeprecationWarning({widget});
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
   const spanTimeRangeWarning = useTimeRangeWarning({widget});
 
@@ -254,9 +259,12 @@ function WidgetCard(props: Props) {
 
   const badges = [indexedDataBadge, onDemandExtractionBadge].filter(n => n !== undefined);
 
-  const warnings = [onDemandWarning, sessionDurationWarning, spanTimeRangeWarning].filter(
-    Boolean
-  ) as string[];
+  const warnings = [
+    onDemandWarning,
+    sessionDurationWarning,
+    spanTimeRangeWarning,
+    transactionsDeprecationWarning,
+  ].filter(Boolean) as string[];
 
   const actionsDisabled = Boolean(props.isPreview);
   const actionsMessage = actionsDisabled
