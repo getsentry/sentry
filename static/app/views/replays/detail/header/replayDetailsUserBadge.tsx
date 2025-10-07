@@ -109,7 +109,6 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                 <RefreshButton
                   title={t('Refresh for latest data')}
                   size="xs"
-                  priority="primary"
                   onClick={handleRefresh}
                   borderless
                 >

@@ -14,7 +14,7 @@ export default function useIsLive({replayReader}: Props) {
 
   if (replayReader) {
     const TIME_UNTIL_REPLAY_FINISHED_MS =
-      replayReader.getStartTimestampMs() + 60 * 60 * 1000 - Date.now();
+      replayReader.getStartTimestampMs() + 3_600_000 - Date.now();
     if (TIME_UNTIL_REPLAY_FINISHED_MS > 0) {
       TIME_UNTIL_NOT_LIVE_MS = TIME_UNTIL_REPLAY_FINISHED_MS;
     }

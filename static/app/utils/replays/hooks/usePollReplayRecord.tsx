@@ -18,7 +18,7 @@ function usePollReplayRecord({
   orgSlug,
   replayId,
   replayReader,
-  pollInterval = 30 * 1000, // Default to every 30 seconds
+  pollInterval = 30_000, // Default to every 30 seconds
 }: Props): boolean {
   // we use {} to avoid colliding with the queryKey used by useReplayData
   const queryKey: ApiQueryKey = [`/organizations/${orgSlug}/replays/${replayId}/`, {}];
@@ -33,11 +33,11 @@ function usePollReplayRecord({
     staleTime: Infinity,
   });
 
-  const replayRecord = replayData?.data;
+  const polledReplayRecord = replayData?.data;
   if (
-    replayRecord &&
+    polledReplayRecord &&
     replayReader &&
-    replayRecord.count_segments !== replayReader.getReplay().count_segments
+    polledReplayRecord.count_segments !== replayReader.getReplay().count_segments
   ) {
     isUpdated.current = true;
   }
