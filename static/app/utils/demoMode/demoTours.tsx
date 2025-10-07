@@ -28,7 +28,12 @@ export const enum DemoTourStep {
   // Sidebar steps
   SIDEBAR_PROJECTS = 'demo-tour-sidebar-projects',
   SIDEBAR_ISSUES = 'demo-tour-sidebar-issues',
+  SIDEBAR_EXPLORE = 'demo-tour-sidebar-explore',
   SIDEBAR_PERFORMANCE = 'demo-tour-sidebar-performance',
+  SIDEBAR_DASHBOARDS = 'demo-tour-sidebar-dashboards',
+  SIDEBAR_INSIGHTS = 'demo-tour-sidebar-insights',
+  SIDEBAR_SETTINGS = 'demo-tour-sidebar-settings',
+
   SIDEBAR_RELEASES = 'demo-tour-sidebar-releases',
   SIDEBAR_DISCOVER = 'demo-tour-sidebar-discover',
   // Issues steps
@@ -74,11 +79,15 @@ export function useDemoTour(tourKey: DemoTour): TourContextType<DemoTourStep> | 
 
 const TOUR_STEPS: Record<DemoTour, DemoTourStep[]> = {
   [DemoTour.SIDEBAR]: [
-    DemoTourStep.SIDEBAR_PROJECTS,
+    // DemoTourStep.SIDEBAR_PROJECTS,
     DemoTourStep.SIDEBAR_ISSUES,
-    DemoTourStep.SIDEBAR_PERFORMANCE,
-    DemoTourStep.SIDEBAR_RELEASES,
-    DemoTourStep.SIDEBAR_DISCOVER,
+    DemoTourStep.SIDEBAR_EXPLORE,
+    DemoTourStep.SIDEBAR_DASHBOARDS,
+    // DemoTourStep.SIDEBAR_PERFORMANCE,
+    DemoTourStep.SIDEBAR_INSIGHTS,
+    DemoTourStep.SIDEBAR_SETTINGS,
+    // DemoTourStep.SIDEBAR_RELEASES,
+    // DemoTourStep.SIDEBAR_DISCOVER,
   ],
   [DemoTour.ISSUES]: [
     DemoTourStep.ISSUES_STREAM,
@@ -201,13 +210,13 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
   return <DemoToursContext value={tours}>{children}</DemoToursContext>;
 }
 
-const getTourFromStep = (step: DemoTourStep): DemoTour => {
+const getTourFromStep = (step: DemoTourStep): DemoTour | null => {
   for (const [category, steps] of Object.entries(TOUR_STEPS)) {
     if (steps.includes(step)) {
       return category as DemoTour;
     }
   }
-  throw new Error(`Unknown tour step: ${step}`);
+  return null;
 };
 
 type DemoTourElementProps = Omit<
@@ -225,6 +234,35 @@ export function DemoTourElement({
   ...props
 }: DemoTourElementProps) {
   const tourKey = getTourFromStep(id);
+
+  if (!tourKey) {
+    return children;
+  }
+
+  return (
+    <DemoTourElementContent
+      {...props}
+      id={id}
+      title={title}
+      description={description}
+      position={position}
+      tourKey={tourKey}
+    >
+      {children}
+    </DemoTourElementContent>
+  );
+}
+
+function DemoTourElementContent({
+  id,
+  title,
+  description,
+  children,
+  position = 'top-start',
+  disabled = false,
+  tourKey,
+  ...props
+}: DemoTourElementProps & {tourKey: DemoTour}) {
   const tourContextValue = useDemoTour(tourKey);
 
   if (!isDemoModeActive() || !tourContextValue || disabled) {
@@ -258,8 +296,8 @@ export function SharedTourElement<T extends TourEnumType>({
   children,
   tourContext,
   ...props
-}: TourElementProps<T> & {demoTourId: DemoTourStep}) {
-  if (isDemoModeActive()) {
+}: TourElementProps<T> & {demoTourId?: DemoTourStep}) {
+  if (isDemoModeActive() && demoTourId) {
     return (
       <DemoTourElement id={demoTourId} title={title} description={description}>
         {children}

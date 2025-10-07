@@ -194,6 +194,8 @@ function Task({task, hidePanel}: TaskProps) {
       if (isDemoModeActive()) {
         if (task.task === OnboardingTaskKey.PERFORMANCE_GUIDE) {
           tours?.[DemoTour.PERFORMANCE]?.startTour();
+        } else if (task.task === OnboardingTaskKey.SIDEBAR_GUIDE) {
+          tours?.[DemoTour.SIDEBAR]?.startTour();
         } else if (task.task === OnboardingTaskKey.RELEASE_GUIDE) {
           tours?.[DemoTour.RELEASES]?.startTour();
         } else if (task.task === OnboardingTaskKey.ISSUE_GUIDE) {
