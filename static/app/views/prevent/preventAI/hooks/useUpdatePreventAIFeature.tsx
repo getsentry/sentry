@@ -67,7 +67,7 @@ export function makePreventAIConfig(
       repoOverride = structuredClone(orgConfig.org_defaults);
       orgConfig.repo_overrides[params.repoName] = repoOverride;
     }
-    featureConfig = orgConfig.repo_overrides[params.repoName]!;
+    featureConfig = repoOverride;
   }
 
   featureConfig[params.feature] = {
