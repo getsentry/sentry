@@ -213,7 +213,7 @@ class SnubaProtocolEventStream(EventStream):
         if options.get("eventstream.eap_forwarding"):
             self._forward_event_to_items(event_data, event_type)
 
-    def _serialize_event_data_as_item(self, event_data: dict[str, Any]) -> TraceItem:
+    def _serialize_event_data_as_item(self, event_data: Mapping[str, Any]) -> TraceItem:
         return TraceItem(
             item_id=event_data["id"],
             item_type=TRACE_ITEM_TYPE_OCCURRENCE,
