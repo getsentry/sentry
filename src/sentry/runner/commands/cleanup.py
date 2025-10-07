@@ -672,7 +672,7 @@ def run_bulk_deletes_by_organization(
                 for chunk in q.iterator(chunk_size=100):
                     task_queue.put((imp, chunk))
 
-    task_queue.join()
+        task_queue.join()
 
 
 def prepare_deletes_by_project(
