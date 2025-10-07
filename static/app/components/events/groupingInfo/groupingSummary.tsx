@@ -23,21 +23,14 @@ export function GroupInfoSummary({
     projectSlug,
   });
   const groupedBy = groupInfo
-    ? Object.values(groupInfo)
+    ? Object.values(groupInfo.variants)
         .filter(variant => variant.contributes && variant.description !== null)
         .map(variant => variant.description!)
         .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
         .join(', ')
     : t('nothing');
 
-  const groupingConfig =
-    showGroupingConfig && groupInfo
-      ? (
-          Object.values(groupInfo).find(
-            variant => 'config' in variant && variant.config?.id
-          ) as any
-        )?.config?.id
-      : null;
+  const groupingConfig = groupInfo?.grouping_config;
 
   if (isPending && !hasPerformanceGrouping) {
     return (
