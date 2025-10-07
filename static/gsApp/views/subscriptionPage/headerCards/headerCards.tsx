@@ -52,7 +52,7 @@ function HeaderCards({organization, subscription}: HeaderCardsProps) {
         <Grid
           columns={{
             xs: '1fr',
-            md: `repeat(${cards.length}, 1fr)`,
+            md: `repeat(${cards.length}, minmax(0, 1fr))`,
           }}
           gap="xl"
         >

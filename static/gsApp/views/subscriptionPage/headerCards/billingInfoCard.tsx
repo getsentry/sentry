@@ -8,6 +8,7 @@ import type {Organization} from 'sentry/types/organization';
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import type {Subscription} from 'getsentry/types';
 import {hasSomeBillingDetails} from 'getsentry/utils/billing';
+import {countryHasSalesTax, getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 
 function BillingInfoCard({
@@ -28,7 +29,13 @@ function BillingInfoCard({
     <SubscriptionHeaderCard
       title={t('Billing information')}
       sections={[
-        <Flex key="billing-info" direction="column" gap="md" align="start">
+        <Flex
+          key="billing-info"
+          direction="column"
+          gap="md"
+          align="start"
+          maxWidth="100%"
+        >
           <BillingDetailsInfo />
           <PaymentSourceInfo subscription={subscription} />
         </Flex>,
@@ -52,21 +59,55 @@ function BillingDetailsInfo() {
   const {data: billingDetails, isLoading} = useBillingDetails();
 
   if (isLoading) {
-    return <Placeholder height="14px" />;
+    return (
+      <Flex direction="column" gap="sm">
+        <Placeholder height="14px" />
+        <Placeholder height="14px" />
+      </Flex>
+    );
   }
 
   if (!billingDetails || !hasSomeBillingDetails(billingDetails)) {
     return (
-      <Container>
-        <Text variant="muted">{t('No billing details on file')}</Text>
+      <Container maxWidth="100%" overflow="hidden">
+        <Text size="sm" variant="muted">
+          {t('No billing details on file')}
+        </Text>
       </Container>
     );
   }
 
+  const taxFieldInfo = getTaxFieldInfo(billingDetails.countryCode);
+  const showTaxNumber = countryHasSalesTax(billingDetails.countryCode);
+
+  const primaryDetails = [
+    billingDetails.companyName,
+    billingDetails.displayAddress,
+  ].filter(Boolean);
+
+  const secondaryDetails = [
+    billingDetails.billingEmail
+      ? t('Billing email: %s', billingDetails.billingEmail)
+      : null,
+  ].filter(Boolean);
+
+  if (showTaxNumber) {
+    secondaryDetails.push(`${taxFieldInfo.label}: ${billingDetails.taxNumber}`);
+  }
+
   return (
-    <Text ellipsis size="sm" variant="muted">
-      {`${billingDetails.companyName ? `${billingDetails.companyName}, ` : ''}${billingDetails.displayAddress}`}
-    </Text>
+    <Flex maxWidth="100%" overflow="hidden" direction="column" gap="sm">
+      <Text ellipsis size="sm" variant="muted">
+        {primaryDetails.length > 0
+          ? primaryDetails.join(', ')
+          : t('No business address on file')}
+      </Text>
+      <Text ellipsis size="sm" variant="muted">
+        {secondaryDetails.length > 0
+          ? secondaryDetails.join('. ')
+          : t('No billing email or tax number on file')}
+      </Text>
+    </Flex>
   );
 }
 
@@ -74,7 +115,11 @@ function PaymentSourceInfo({subscription}: {subscription: Subscription}) {
   const {paymentSource} = subscription;
 
   if (!paymentSource) {
-    return <Text variant="muted">{t('No payment method on file')}</Text>;
+    return (
+      <Text size="sm" variant="muted">
+        {t('No payment method on file')}
+      </Text>
+    );
   }
 
   return (
