@@ -35,7 +35,9 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         self.consecutive_http_spans: list[Span] = []
         self.organization = self.settings.get("organization")
         self.filtered_paths = [
-            path.strip() for path in self.settings.get("filtered_paths", "").split(",") if path
+            path.strip()
+            for path in self.settings.get("filtered_paths", "").split(",")
+            if path.strip()
         ]
 
     def visit_span(self, span: Span) -> None:
