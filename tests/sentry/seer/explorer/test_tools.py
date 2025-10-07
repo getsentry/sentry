@@ -7,7 +7,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 @pytest.mark.django_db(databases=["default", "control"])
 class TestExplorerTools(APITransactionTestCase, SnubaTestCase, SpanTestCase):
-    databases = ("default", "control")
+    databases = {"default", "control"}
 
     def setUp(self):
         super().setUp()
