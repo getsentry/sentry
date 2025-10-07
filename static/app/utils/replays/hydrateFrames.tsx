@@ -25,7 +25,7 @@ export default function hydrateFrames(attachments: unknown[]) {
       return;
     }
     if (isBreadcrumbFrameEvent(attachment)) {
-      if (attachment.data.payload.category !== 'sentry.feedback') {
+      if (attachment.data.payload?.category !== 'sentry.feedback') {
         breadcrumbFrames.push(attachment.data.payload);
       }
     } else if (isSpanFrameEvent(attachment)) {
