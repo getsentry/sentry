@@ -83,7 +83,7 @@ export function LaravelOverviewPage() {
   }
 
   return (
-    <PlatformLandingPageLayout performanceType="backend">
+    <PlatformLandingPageLayout>
       <WidgetGrid>
         <WidgetGrid.Position1>
           <OverviewRequestsChartWidget />

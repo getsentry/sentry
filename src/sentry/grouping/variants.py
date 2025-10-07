@@ -53,9 +53,11 @@ class BaseVariant(ABC):
     def as_dict(self) -> dict[str, Any]:
         rv = {
             "type": self.type,
+            "key": self.key,
             "description": self.description,
             "hash": self.get_hash(),
             "hint": self.hint,
+            "contributes": self.contributes,
         }
         rv.update(self._get_metadata_as_dict())
         return rv
