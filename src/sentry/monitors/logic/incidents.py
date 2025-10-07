@@ -6,12 +6,10 @@ from datetime import datetime, timedelta
 
 from django.utils import timezone
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.analytics.events.cron_monitor_broken_status_recovery import (
     CronMonitorBrokenStatusRecovery,
 )
-from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.models.organization import Organization
 from sentry.monitors.logic.incident_occurrence import (
     dispatch_incident_occurrence,
     resolve_incident_group,
@@ -90,12 +88,6 @@ def try_incident_threshold(
 
         starting_checkin = previous_checkins[0]
 
-        optional_defaults = {}
-        with in_test_hide_transaction_boundary():
-            organization = Organization.objects.get(id=monitor_env.monitor.organization_id)
-        if features.has("organizations:crons-consistent-fingerprint", organization):
-            optional_defaults["grouphash"] = monitor_env.build_occurrence_fingerprint()
-
         incident: MonitorIncident | None
         incident, _ = MonitorIncident.objects.get_or_create(
             monitor_environment=monitor_env,
@@ -104,7 +96,7 @@ def try_incident_threshold(
                 "monitor": monitor_env.monitor,
                 "starting_checkin_id": starting_checkin.id,
                 "starting_timestamp": starting_checkin.date_added,
-                **optional_defaults,
+                "grouphash": monitor_env.build_occurrence_fingerprint(),
             },
         )
 
