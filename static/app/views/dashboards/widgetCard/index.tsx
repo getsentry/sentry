@@ -166,7 +166,6 @@ function WidgetCard(props: Props) {
     minTableColumnWidth,
     disableZoom,
     showLoadingText,
-    router,
     onWidgetTableSort,
     onWidgetTableResizeColumn,
     disableTableActions,
@@ -281,7 +280,6 @@ function WidgetCard(props: Props) {
         props.widgetLimitReached,
         props.hasEditAccess,
         location,
-        router,
         props.onDelete,
         props.onDuplicate,
         props.onEdit
