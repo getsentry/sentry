@@ -570,7 +570,7 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             ]
             assert params["sort"] == ["-p95(span.duration)"]
             assert params["mode"] == ["aggregate"]
-            assert params["field"] == ["query.dataset"]
+            assert params["field"].sort() == ["query.dataset", "span.duration"].sort()
             assert params["aggregateField"] == [
                 '{"groupBy":"query.dataset"}',
                 '{"yAxes":["p95(span.duration)"],"chartType":1}',
