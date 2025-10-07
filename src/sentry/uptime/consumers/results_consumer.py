@@ -319,11 +319,6 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
         organization = detector.project.organization
 
-        # Detailed logging for specific organizations, useful for if we need to
-        # debug a specific organizations checks.
-        if features.has("organizations:uptime-detailed-logging", organization):
-            logger.info("handle_result_for_project.before_dedupe", extra=result)
-
         # Nothing to do if this subscription is disabled.
         if not detector.enabled:
             return
@@ -458,9 +453,6 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                     extra={**result},
                 )
                 cluster.set(last_interval_key, subscription_interval_ms, ex=LAST_UPDATE_REDIS_TTL)
-
-        if features.has("organizations:uptime-detailed-logging", organization):
-            logger.info("handle_result_for_project.after_dedupe", extra=result)
 
         # We log the result stats here after the duplicate check so that we
         # know the "true" duration and delay of each check. Since during
