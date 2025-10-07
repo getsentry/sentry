@@ -8,10 +8,10 @@ import PreventAIOnboarding from 'sentry/views/prevent/preventAI/onboarding';
 import {usePreventAIOrgRepos} from './hooks/usePreventAIOrgRepos';
 
 function PreventAIContent() {
-  const {data, isLoading, isError} = usePreventAIOrgRepos();
+  const {data, isPending, isError} = usePreventAIOrgRepos();
   const orgRepos = data?.orgRepos ?? [];
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
   if (isError) {
