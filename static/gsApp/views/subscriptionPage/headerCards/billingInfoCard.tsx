@@ -1,15 +1,14 @@
-import moment from 'moment-timezone';
-
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import Placeholder from 'sentry/components/placeholder';
-import {IconSettings, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import type {Subscription} from 'getsentry/types';
 import {hasSomeBillingDetails} from 'getsentry/utils/billing';
+import {countryHasSalesTax, getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 
 function BillingInfoCard({
@@ -29,18 +28,29 @@ function BillingInfoCard({
   return (
     <SubscriptionHeaderCard
       title={t('Billing information')}
-      icon={<IconUser />}
       sections={[
-        <BillingDetailsInfo key="billing-details-info" />,
-        <PaymentSourceInfo key="payment-source-info" subscription={subscription} />,
+        <Flex
+          key="billing-info"
+          direction="column"
+          gap="md"
+          align="start"
+          maxWidth="100%"
+        >
+          <BillingDetailsInfo />
+          <PaymentSourceInfo subscription={subscription} />
+        </Flex>,
+        <LinkButton
+          key="edit-billing-information"
+          aria-label={t('Edit billing information')}
+          to={`/settings/${organization.slug}/billing/details/`}
+          priority="link"
+          size="sm"
+        >
+          <Text size="sm" variant="accent">
+            {t('Edit billing information')}
+          </Text>
+        </LinkButton>,
       ]}
-      button={{
-        ariaLabel: t('Edit billing information'),
-        label: t('Edit billing information'),
-        linkTo: `/settings/${organization.slug}/billing/details/`,
-        icon: <IconSettings />,
-        priority: 'default',
-      }}
     />
   );
 }
@@ -50,64 +60,75 @@ function BillingDetailsInfo() {
 
   if (isLoading) {
     return (
-      <Flex direction="column" gap="xs">
-        <Placeholder height="16px" />
-        <Placeholder height="16px" />
-        <Placeholder height="16px" />
-        <Placeholder height="16px" />
+      <Flex direction="column" gap="sm">
+        <Placeholder height="14px" />
+        <Placeholder height="14px" />
       </Flex>
     );
   }
 
   if (!billingDetails || !hasSomeBillingDetails(billingDetails)) {
     return (
-      <Container>
-        <Text variant="muted">{t('No billing details on file')}</Text>
+      <Container maxWidth="100%" overflow="hidden">
+        <Text size="sm" variant="muted">
+          {t('No billing details on file')}
+        </Text>
       </Container>
     );
   }
 
+  const taxFieldInfo = getTaxFieldInfo(billingDetails.countryCode);
+  const showTaxNumber =
+    countryHasSalesTax(billingDetails.countryCode) && !!billingDetails.taxNumber;
+
+  const primaryDetails = [
+    billingDetails.companyName,
+    billingDetails.displayAddress,
+  ].filter(Boolean);
+
+  const secondaryDetails = [
+    billingDetails.billingEmail
+      ? t('Billing email: %s', billingDetails.billingEmail)
+      : null,
+  ].filter(Boolean);
+
+  if (showTaxNumber) {
+    secondaryDetails.push(`${taxFieldInfo.label}: ${billingDetails.taxNumber}`);
+  }
+
   return (
-    <Flex direction="column" gap="xs">
-      {billingDetails.companyName && (
-        <Text variant="muted" size="sm">
-          {billingDetails.companyName}
-        </Text>
-      )}
-      {billingDetails.billingEmail && (
-        <Text variant="muted" size="sm">
-          {billingDetails.billingEmail}
-        </Text>
-      )}
-      {billingDetails.displayAddress && (
-        <Text variant="muted" size="sm">
-          {billingDetails.displayAddress}
-        </Text>
-      )}
+    <Flex maxWidth="100%" overflow="hidden" direction="column" gap="sm">
+      <Text ellipsis size="sm" variant="muted">
+        {primaryDetails.length > 0
+          ? primaryDetails.join(', ')
+          : t('No business address on file')}
+      </Text>
+      <Text ellipsis size="sm" variant="muted">
+        {secondaryDetails.length > 0
+          ? secondaryDetails.join('. ')
+          : t('No billing email or tax number on file')}
+      </Text>
     </Flex>
   );
 }
 
 function PaymentSourceInfo({subscription}: {subscription: Subscription}) {
   const {paymentSource} = subscription;
-  const paymentSourceExpiryDate = paymentSource
-    ? moment(new Date(paymentSource.expYear, paymentSource.expMonth - 1))
-    : null;
 
   if (!paymentSource) {
-    return <Text variant="muted">{t('No payment method on file')}</Text>;
+    return (
+      <Text size="sm" variant="muted">
+        {t('No payment method on file')}
+      </Text>
+    );
   }
 
   return (
-    <Flex direction="column" gap="xs">
-      <Text>{tct('Card ending in [last4]', {last4: paymentSource.last4})}</Text>
-      <Text variant="muted" size="sm">
-        {tct('Expires [expMonth]/[expYear]', {
-          expMonth: paymentSourceExpiryDate?.format('MM'),
-          expYear: paymentSourceExpiryDate?.format('YY'),
-        })}
-      </Text>
-    </Flex>
+    <Text ellipsis size="sm" variant="muted">
+      {tct('Card ending in [last4]', {
+        last4: paymentSource.last4,
+      })}
+    </Text>
   );
 }
 
