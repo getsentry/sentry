@@ -229,7 +229,7 @@ class SnubaProtocolEventStream(EventStream):
         )
 
     def _forward_event_to_items(
-        self, event_data: dict[str, Any], event_type: EventStreamEventType
+        self, event_data: Mapping[str, Any], event_type: EventStreamEventType
     ) -> None:
         if not (
             event_type == EventStreamEventType.Error or event_type == EventStreamEventType.Generic
