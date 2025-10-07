@@ -13,7 +13,6 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
@@ -138,7 +137,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture()}
       />
     );
@@ -169,7 +167,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture()}
       />
     );
@@ -198,7 +195,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture()}
       />
     );
@@ -223,7 +219,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture()}
       />
     );
@@ -276,7 +271,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture()}
       />
     );
@@ -301,7 +295,7 @@ describe('add to dashboard modal', () => {
   });
 
   it('navigates to the widget builder when clicking Open in Widget Builder', async () => {
-    render(
+    const {router} = render(
       <AddToDashboardModal
         Header={stubEl}
         Footer={stubEl as ModalRenderProps['Footer']}
@@ -311,7 +305,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         source={DashboardWidgetSource.DISCOVERV2}
         location={LocationFixture()}
       />
@@ -323,24 +316,26 @@ describe('add to dashboard modal', () => {
     await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
 
     await userEvent.click(screen.getByText('Open in Widget Builder'));
-    expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/dashboard/1/widget-builder/widget/new/',
-      query: {
-        ...convertWidgetToBuilderStateParams(widget),
-        environment: [],
-        end: undefined,
-        start: undefined,
-        utc: undefined,
-        project: [1],
-        source: DashboardWidgetSource.DISCOVERV2,
-        statsPeriod: '1h',
-        title: 'Test title',
-      },
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/dashboard/1/widget-builder/widget/new/'
+    );
+    expect(router.location.query).toEqual({
+      title: 'Test title',
+      description: 'Test description',
+      dataset: 'error-events',
+      source: DashboardWidgetSource.DISCOVERV2,
+      project: '1',
+      statsPeriod: '1h',
+      displayType: 'line',
+      legendAlias: '',
+      query: '',
+      sort: '',
+      yAxis: 'count()',
     });
   });
 
   it('navigates to the widget builder with saved filters', async () => {
-    render(
+    const {router} = render(
       <AddToDashboardModal
         Header={stubEl}
         Footer={stubEl as ModalRenderProps['Footer']}
@@ -350,7 +345,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         source={DashboardWidgetSource.DISCOVERV2}
         location={LocationFixture()}
       />
@@ -362,21 +356,22 @@ describe('add to dashboard modal', () => {
     await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
 
     await userEvent.click(screen.getByText('Open in Widget Builder'));
-    expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/dashboard/1/widget-builder/widget/new/',
-      query: expect.objectContaining({
-        title: 'Test title',
-        description: 'Test description',
-        field: [],
-        query: [''],
-        yAxis: ['count()'],
-        sort: [''],
-        displayType: DisplayType.LINE,
-        dataset: WidgetType.ERRORS,
-        project: [1],
-        statsPeriod: '1h',
-        source: DashboardWidgetSource.DISCOVERV2,
-      }),
+
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/dashboard/1/widget-builder/widget/new/'
+    );
+    expect(router.location.query).toEqual({
+      title: 'Test title',
+      description: 'Test description',
+      query: '',
+      yAxis: 'count()',
+      sort: '',
+      displayType: DisplayType.LINE,
+      dataset: WidgetType.ERRORS,
+      project: '1',
+      legendAlias: '',
+      statsPeriod: '1h',
+      source: DashboardWidgetSource.DISCOVERV2,
     });
   });
 
@@ -400,7 +395,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={{...widget, widgetType: WidgetType.ERRORS}}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture()}
       />
     );
@@ -461,7 +455,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture()}
       />
     );
@@ -541,7 +534,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture()}
       />
     );
@@ -598,7 +590,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture()}
       />
     );
@@ -626,7 +617,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture({pathname: '/organizations/org-slug/dashboard/1/'})}
       />,
       {
@@ -672,7 +662,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture()}
       />
     );

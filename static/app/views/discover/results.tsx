@@ -763,7 +763,7 @@ export class Results extends Component<Props, State> {
   }
 
   render() {
-    const {organization, location, router, selection, api, setSavedQuery, isHomepage} =
+    const {organization, location, selection, api, setSavedQuery, isHomepage} =
       this.props;
     const {
       eventView,
@@ -796,7 +796,6 @@ export class Results extends Component<Props, State> {
             location={location}
             eventView={eventView}
             yAxis={yAxisArray}
-            router={router}
             isHomepage={isHomepage}
             splitDecision={splitDecision}
           />
