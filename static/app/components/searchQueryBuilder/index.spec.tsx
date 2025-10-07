@@ -933,10 +933,8 @@ describe('SearchQueryBuilder', () => {
       expect(await screen.findByRole('row', {name: 'foo'})).toBeInTheDocument();
       expect(await screen.findByRole('row', {name: 'a:b'})).toBeInTheDocument();
 
-      await waitFor(() => {
-        expect(mockOnChange).toHaveBeenCalledWith('foo a:b', expect.anything());
-      });
-      expect(mockOnChange).toHaveBeenCalledTimes(2);
+      expect(mockOnChange).toHaveBeenCalledTimes(1);
+      expect(mockOnChange).toHaveBeenCalledWith('foo a:b', expect.anything());
     });
 
     it('adds default value for filter when typing <filter>:', async () => {
@@ -1003,7 +1001,7 @@ describe('SearchQueryBuilder', () => {
       expect(screen.getByRole('row', {name: 'browser.name:Firefox'})).toBeInTheDocument();
 
       // Now we call onChange
-      expect(mockOnChange).toHaveBeenCalledTimes(2);
+      expect(mockOnChange).toHaveBeenCalledTimes(1);
       expect(mockOnChange).toHaveBeenCalledWith(
         'browser.name:Firefox',
         expect.anything()
