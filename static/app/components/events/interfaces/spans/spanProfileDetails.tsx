@@ -71,9 +71,12 @@ export function useSpanProfileDetails(
 
   // TODO: Pick another thread if it's more relevant.
   const threadId = useMemo(() => {
-    const maybeThreadId = Number(span.thread_id);
-    if (!isNaN(maybeThreadId)) {
-      return maybeThreadId;
+    const rawThreadId = span.thread_id?.trim();
+    if (rawThreadId) {
+      const maybeThreadId = Number(rawThreadId);
+      if (!isNaN(maybeThreadId)) {
+        return maybeThreadId;
+      }
     }
     return profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId;
   }, [span.thread_id, profileGroup]);
