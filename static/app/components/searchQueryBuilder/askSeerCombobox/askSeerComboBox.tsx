@@ -82,7 +82,8 @@ function useUpdateOverlayPositionOnContentChange({
   }, [contentRef, isOpen, updateOverlayPosition]);
 }
 
-interface AskSeerComboBoxProps<T> extends Omit<AriaComboBoxProps<unknown>, 'children'> {
+interface AskSeerComboBoxProps<T extends QueryTokensProps>
+  extends Omit<AriaComboBoxProps<unknown>, 'children'> {
   applySeerSearchQuery: (item: T) => void;
   askSeerMutationOptions: MutationOptions<
     {
