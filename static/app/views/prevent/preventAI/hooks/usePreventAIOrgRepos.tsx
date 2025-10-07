@@ -1,4 +1,4 @@
-import type {PreventAIOrg} from 'sentry/views/prevent/preventAI/types';
+import type {PreventAIOrg} from 'sentry/types/prevent';
 
 interface PreventAIOrgReposResponse {
   orgRepos: PreventAIOrg[];

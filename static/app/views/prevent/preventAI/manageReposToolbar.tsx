@@ -5,7 +5,7 @@ import {TriggerLabel} from 'sentry/components/core/compactSelect/control';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {IconBuilding, IconRepository} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {PreventAIOrg} from 'sentry/views/prevent/preventAI/types';
+import type {PreventAIOrg} from 'sentry/types/prevent';
 
 function ManageReposToolbar({
   installedOrgs,

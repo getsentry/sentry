@@ -12,9 +12,9 @@ import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {PreventAIOrg} from 'sentry/types/prevent';
 import ManageReposPanel from 'sentry/views/prevent/preventAI/manageReposPanel';
 import ManageReposToolbar from 'sentry/views/prevent/preventAI/manageReposToolbar';
-import type {PreventAIOrg} from 'sentry/views/prevent/preventAI/types';
 
 import {FeatureOverview} from './onboarding';
 

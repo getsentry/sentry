@@ -1,5 +1,3 @@
-import {useEffect} from 'react';
-
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
@@ -10,7 +8,9 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {usePreventAIConfig} from 'sentry/views/prevent/preventAI/hooks/usePreventAIConfig';
+import {type PreventAIOrgConfig} from 'sentry/types/prevent';
+import type {PreventAIFeatureConfigsByName} from 'sentry/types/prevent';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useUpdatePreventAIFeature} from 'sentry/views/prevent/preventAI/hooks/useUpdatePreventAIFeature';
 
 interface ManageReposPanelProps {
@@ -26,33 +26,28 @@ function ManageReposPanel({
   orgName,
   repoName,
 }: ManageReposPanelProps) {
-  const {
-    data: config,
-    isLoading: configLoading,
-    refetch: refetchConfig,
-  } = usePreventAIConfig(orgName, repoName);
-  const {
-    enableFeature,
-    isLoading: updateLoading,
-    error: updateError,
-  } = useUpdatePreventAIFeature(orgName, repoName);
+  const organization = useOrganization();
+  const {enableFeature, isLoading, error: updateError} = useUpdatePreventAIFeature();
 
-  const isLoading = configLoading || updateLoading;
+  const canEditSettings =
+    organization.access.includes('org:write') ||
+    organization.access.includes('org:admin');
 
-  useEffect(() => {
-    if (orgName && repoName) {
-      refetchConfig();
-    }
-  }, [orgName, repoName, refetchConfig]);
+  if (!organization.preventAiConfigGithub) {
+    return (
+      <Alert type="error">
+        {t(
+          'There was an error loading the AI Code Review settings. Please reload the page to try again.'
+        )}
+      </Alert>
+    );
+  }
 
-  const isEnabledVanillaPrReview = config?.features?.vanilla?.enabled ?? false;
-  const isEnabledTestGeneration = config?.features?.test_generation?.enabled ?? false;
-  const isEnabledBugPrediction = config?.features?.bug_prediction?.enabled ?? false;
+  const orgConfig =
+    organization.preventAiConfigGithub.github_organizations[orgName] ??
+    organization.preventAiConfigGithub.default_org_config;
 
-  const isEnabledBugPredictionOnCommandPhrase =
-    config?.features?.bug_prediction?.triggers?.on_command_phrase ?? false;
-  const isEnabledBugPredictionOnReadyForReview =
-    config?.features?.bug_prediction?.triggers?.on_ready_for_review ?? false;
+  const {doesUseOrgDefaults, repoConfig} = getRepoConfig(orgConfig, repoName);
 
   return (
     <SlideOverPanel
@@ -97,6 +92,13 @@ function ManageReposPanel({
         {updateError && (
           <Alert type="error">{'Could not update settings. Please try again.'}</Alert>
         )}
+        {doesUseOrgDefaults && (
+          <Flex direction="column" padding="xl xl 0 xl">
+            <Alert type="info">
+              {t("This repository is using the organization's defaults")}
+            </Alert>
+          </Flex>
+        )}
         <Flex direction="column" gap="xl" padding="2xl">
           {/* PR Review Feature */}
           <Flex direction="column">
@@ -116,15 +118,16 @@ function ManageReposPanel({
               </Flex>
               <Switch
                 size="lg"
-                checked={isEnabledVanillaPrReview}
-                disabled={isLoading}
+                checked={repoConfig.vanilla.enabled}
+                disabled={isLoading || !canEditSettings}
                 onChange={async () => {
-                  const newValue = !isEnabledVanillaPrReview;
+                  const newValue = !repoConfig.vanilla.enabled;
                   await enableFeature({
                     feature: 'vanilla',
                     enabled: newValue,
+                    orgName,
+                    repoName,
                   });
-                  refetchConfig();
                 }}
                 aria-label="Enable PR Review"
               />
@@ -149,15 +152,16 @@ function ManageReposPanel({
               </Flex>
               <Switch
                 size="lg"
-                checked={isEnabledTestGeneration}
-                disabled={isLoading}
+                checked={repoConfig.test_generation.enabled}
+                disabled={isLoading || !canEditSettings}
                 onChange={async () => {
-                  const newValue = !isEnabledTestGeneration;
+                  const newValue = !repoConfig.test_generation.enabled;
                   await enableFeature({
                     feature: 'test_generation',
                     enabled: newValue,
+                    orgName,
+                    repoName,
                   });
-                  refetchConfig();
                 }}
                 aria-label="Enable Test Generation"
               />
@@ -182,29 +186,22 @@ function ManageReposPanel({
               </Flex>
               <Switch
                 size="lg"
-                checked={isEnabledBugPrediction}
-                disabled={isLoading}
+                checked={repoConfig.bug_prediction.enabled}
+                disabled={isLoading || !canEditSettings}
                 onChange={async () => {
-                  const newValue = !isEnabledBugPrediction;
+                  const newValue = !repoConfig.bug_prediction.enabled;
+                  // Enable/disable the main bug prediction feature
                   await enableFeature({
                     feature: 'bug_prediction',
                     enabled: newValue,
-                    triggers: newValue
-                      ? {
-                          on_ready_for_review: true,
-                          on_command_phrase: false,
-                        }
-                      : {
-                          on_ready_for_review: false,
-                          on_command_phrase: false,
-                        },
+                    orgName,
+                    repoName,
                   });
-                  refetchConfig();
                 }}
                 aria-label="Enable Error Prediction"
               />
             </Flex>
-            {isEnabledBugPrediction && (
+            {repoConfig.bug_prediction.enabled && (
               // width 150% because FieldGroup > FieldDescription has fixed width 50%
               <Flex paddingLeft="xl" width="150%">
                 <Flex
@@ -226,20 +223,18 @@ function ManageReposPanel({
                   >
                     <Switch
                       size="lg"
-                      checked={isEnabledBugPredictionOnReadyForReview}
-                      disabled={isLoading}
+                      checked={repoConfig.bug_prediction.triggers.on_ready_for_review}
+                      disabled={isLoading || !canEditSettings}
                       onChange={async () => {
-                        const newValue = !isEnabledBugPredictionOnReadyForReview;
-                        const newTriggers = {
-                          on_ready_for_review: newValue,
-                          on_command_phrase: isEnabledBugPredictionOnCommandPhrase,
-                        };
+                        const newValue =
+                          !repoConfig.bug_prediction.triggers.on_ready_for_review;
                         await enableFeature({
                           feature: 'bug_prediction',
-                          enabled: isEnabledBugPrediction,
-                          triggers: newTriggers,
+                          trigger: {on_ready_for_review: newValue},
+                          enabled: true,
+                          orgName,
+                          repoName,
                         });
-                        refetchConfig();
                       }}
                       aria-label="Auto Run on Opened Pull Requests"
                     />
@@ -256,20 +251,18 @@ function ManageReposPanel({
                   >
                     <Switch
                       size="lg"
-                      checked={isEnabledBugPredictionOnCommandPhrase}
-                      disabled={isLoading}
+                      checked={repoConfig.bug_prediction.triggers.on_command_phrase}
+                      disabled={isLoading || !canEditSettings}
                       onChange={async () => {
-                        const newValue = !isEnabledBugPredictionOnCommandPhrase;
-                        const newTriggers = {
-                          on_ready_for_review: isEnabledBugPredictionOnReadyForReview,
-                          on_command_phrase: newValue,
-                        };
+                        const newValue =
+                          !repoConfig.bug_prediction.triggers.on_command_phrase;
                         await enableFeature({
                           feature: 'bug_prediction',
-                          enabled: isEnabledBugPrediction,
-                          triggers: newTriggers,
+                          trigger: {on_command_phrase: newValue},
+                          enabled: true,
+                          orgName,
+                          repoName,
                         });
-                        refetchConfig();
                       }}
                       aria-label="Run When Mentioned"
                     />
@@ -282,6 +275,29 @@ function ManageReposPanel({
       </Flex>
     </SlideOverPanel>
   );
+}
+
+interface GetRepoConfigResult {
+  doesUseOrgDefaults: boolean;
+  repoConfig: PreventAIFeatureConfigsByName;
+}
+
+export function getRepoConfig(
+  orgConfig: PreventAIOrgConfig,
+  repoName: string
+): GetRepoConfigResult {
+  const repoConfig = orgConfig.repo_overrides[repoName];
+  if (repoConfig) {
+    return {
+      doesUseOrgDefaults: false,
+      repoConfig,
+    };
+  }
+
+  return {
+    doesUseOrgDefaults: true,
+    repoConfig: orgConfig.org_defaults,
+  };
 }
 
 export default ManageReposPanel;

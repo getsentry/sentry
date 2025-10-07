@@ -1,6 +1,9 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PreventAIConfigFixture} from 'sentry-fixture/prevent';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {PreventAIProvider} from 'sentry/views/prevent/preventAI/types';
+import type {PreventAIProvider} from 'sentry/types/prevent';
 
 import ManageReposPage from './manageRepos';
 
@@ -41,14 +44,18 @@ describe('PreventAIManageRepos', () => {
     },
   ];
 
+  const organization = OrganizationFixture({
+    preventAiConfigGithub: PreventAIConfigFixture(),
+  });
+
   it('renders the Manage Repositories title and toolbar', async () => {
-    render(<ManageReposPage installedOrgs={installedOrgs} />);
+    render(<ManageReposPage installedOrgs={installedOrgs} />, {organization});
     expect(await screen.findByTestId('manage-repos-title')).toBeInTheDocument();
     expect(await screen.findByTestId('manage-repos-settings-button')).toBeInTheDocument();
   });
 
   it('opens the settings panel when the settings button is clicked', async () => {
-    render(<ManageReposPage installedOrgs={installedOrgs} />);
+    render(<ManageReposPage installedOrgs={installedOrgs} />, {organization});
     expect(screen.queryByText(/AI Code Review Settings/i)).not.toBeInTheDocument();
     const settingsButton = await screen.findByTestId('manage-repos-settings-button');
     await userEvent.click(settingsButton);
@@ -56,7 +63,7 @@ describe('PreventAIManageRepos', () => {
   });
 
   it('renders the illustration image', async () => {
-    render(<ManageReposPage installedOrgs={installedOrgs} />);
+    render(<ManageReposPage installedOrgs={installedOrgs} />, {organization});
     const img = await screen.findByTestId('manage-repos-illustration-image');
     expect(img).toBeInTheDocument();
     expect(img.tagName).toBe('IMG');
