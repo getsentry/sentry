@@ -10,7 +10,6 @@ import sentry_sdk
 from django.db.models import Model
 
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.taskworker.config import TaskworkerConfig  # noqa (used in getsentry)
 from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.registry import TaskNamespace
 from sentry.taskworker.retry import Retry, RetryError, retry_task
@@ -18,7 +17,6 @@ from sentry.taskworker.state import current_task
 from sentry.taskworker.task import P, R, Task
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils import metrics
-from sentry.utils.env import in_test_environment
 
 ModelT = TypeVar("ModelT", bound=Model)
 
@@ -77,7 +75,7 @@ def load_model_from_db(
 
 def instrumented_task(
     name: str,
-    namespace: TaskNamespace | None = None,
+    namespace: TaskNamespace,
     retry: Retry | None = None,
     expires: int | datetime.timedelta | None = None,
     processing_deadline_duration: int | datetime.timedelta | None = None,
@@ -85,7 +83,6 @@ def instrumented_task(
     wait_for_delivery: bool = False,
     compression_type: CompressionType = CompressionType.PLAINTEXT,
     silo_mode=None,
-    taskworker_config=None,
     **kwargs,
 ) -> Callable[[Callable[P, R]], Task[P, R]]:
     """
@@ -99,35 +96,15 @@ def instrumented_task(
     """
 
     def wrapped(func: Callable[P, R]) -> Task[P, R]:
-        if namespace:
-            task = namespace.register(
-                name=name,
-                retry=retry,
-                expires=expires,
-                processing_deadline_duration=processing_deadline_duration,
-                at_most_once=at_most_once,
-                wait_for_delivery=wait_for_delivery,
-                compression_type=compression_type,
-            )(func)
-        elif taskworker_config:
-            if in_test_environment():
-                raise AssertionError(
-                    "Usage of taskworker_config is deprecated. "
-                    "Pass the parameters of `TaskworkerConfig` to instrumented_task() directly."
-                )
-            task = taskworker_config.namespace.register(
-                name=name,
-                retry=taskworker_config.retry,
-                expires=taskworker_config.expires,
-                processing_deadline_duration=taskworker_config.processing_deadline_duration,
-                at_most_once=taskworker_config.at_most_once,
-                wait_for_delivery=taskworker_config.wait_for_delivery,
-                compression_type=taskworker_config.compression_type,
-            )(func)
-        else:
-            raise AssertionError(
-                f"The `{name}` task must provide either `taskworker_config` or `namespace`."
-            )
+        task = namespace.register(
+            name=name,
+            retry=retry,
+            expires=expires,
+            processing_deadline_duration=processing_deadline_duration,
+            at_most_once=at_most_once,
+            wait_for_delivery=wait_for_delivery,
+            compression_type=compression_type,
+        )(func)
 
         if silo_mode:
             silo_limiter = TaskSiloLimit(silo_mode)
