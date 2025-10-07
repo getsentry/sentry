@@ -168,7 +168,7 @@ const QueryWrapper = styled('div')`
   column-gap: ${space(1)};
 `;
 
-const FilterWrapper = styled('div')`
+export const FilterWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
