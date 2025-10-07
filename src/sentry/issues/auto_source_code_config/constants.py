@@ -24,14 +24,13 @@ PLATFORMS_CONFIG: dict[str, Mapping[str, Any]] = {
         # e.g. com.foo.bar.Baz$handle$1, Baz.kt -> com/foo/bar/Baz.kt
         "extract_filename_from_module": True,
         "create_in_app_stack_trace_rules": True,
-        "extensions": ["kt", "kts", "java", "jsp"],
+        "extensions": ["kt", "kts", "java", "jsp", "scala", "sc"],
     },
     "javascript": {"extensions": ["js", "jsx", "mjs", "tsx", "ts"]},
     "node": {"extensions": ["js", "jsx", "mjs", "tsx", "ts"]},
     "php": {"extensions": ["php"]},
     "python": {"extensions": ["py"]},
     "ruby": {"extensions": ["rb", "rake"]},
-    "scala": {"extensions": ["scala", "sc"]},
     "clojure": {"extensions": ["clj", "cljs", "cljc"]},
     "groovy": {"extensions": ["groovy"]},
 }
