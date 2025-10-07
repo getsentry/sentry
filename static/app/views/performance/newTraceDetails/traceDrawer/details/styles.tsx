@@ -54,10 +54,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {getIsAiNode} from 'sentry/views/insights/agents/utils/aiTraceNodes';
-import {
-  hasAgentInsightsFeature,
-  hasMCPInsightsFeature,
-} from 'sentry/views/insights/agents/utils/features';
+import {hasMCPInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {getIsMCPNode} from 'sentry/views/insights/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
@@ -448,7 +445,7 @@ function Highlights({
     return null;
   }
 
-  const isAiNode = hasAgentInsightsFeature(organization) && getIsAiNode(node);
+  const isAiNode = getIsAiNode(node);
   const isMCPNode = hasMCPInsightsFeature(organization) && getIsMCPNode(node);
 
   const hidePanelAndBreakdown = isAiNode || isMCPNode;
