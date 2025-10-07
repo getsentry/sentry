@@ -449,18 +449,32 @@ function useFilterSuggestions({
   // Use initialSelectedValues for ordering (to avoid re-ordering during selection)
   // Selected state is looked up dynamically in the checkbox render to avoid recreating items
   const suggestionSectionItems = useMemo<SuggestionSectionItem[]>(() => {
+    const allSuggestionValues = suggestionGroups
+      .flatMap(group => group.suggestions)
+      .map(s => s.value);
+
+    // Build list with initialSelectedValues at top, followed by all other suggestions
+    const initialValueSet = new Set(initialSelectedValues.map(v => v.value));
+
     const itemsWithoutSection = suggestionGroups
       .filter(group => group.sectionText === '')
       .flatMap(group => group.suggestions)
-      .filter(
-        suggestion => !initialSelectedValues.some(v => v.value === suggestion.value)
-      );
+      .filter(suggestion => !initialValueSet.has(suggestion.value));
     const sections = suggestionGroups.filter(group => group.sectionText !== '');
+
+    // Add the current filterValue as an option if it's not empty and not already in the list
+    const trimmedFilterValue = filterValue.trim();
+    const shouldShowFilterValue =
+      canSelectMultipleValues &&
+      trimmedFilterValue.length > 0 &&
+      !allSuggestionValues.includes(trimmedFilterValue) &&
+      !initialValueSet.has(trimmedFilterValue);
 
     return [
       {
         sectionText: '',
         items: getItemsWithKeys([
+          // Show initial selected values at top (these were added via typing+comma)
           ...initialSelectedValues.map(value => {
             const matchingSuggestion = suggestionGroups
               .flatMap(group => group.suggestions)
@@ -472,6 +486,9 @@ function useFilterSuggestions({
 
             return createItem({value: value.value});
           }),
+          // Show currently typed value if it's new
+          ...(shouldShowFilterValue ? [createItem({value: filterValue.trim()})] : []),
+          // Then all other suggestions in their original order
           ...itemsWithoutSection.map(suggestion => createItem(suggestion)),
         ]),
       },
@@ -479,14 +496,22 @@ function useFilterSuggestions({
         sectionText: group.sectionText,
         items: getItemsWithKeys(
           group.suggestions
-            .filter(
-              suggestion => !initialSelectedValues.some(v => v.value === suggestion.value)
-            )
+            .filter(suggestion => !initialValueSet.has(suggestion.value))
             .map(suggestion => createItem(suggestion))
         ),
       })),
     ];
-  }, [createItem, initialSelectedValues, suggestionGroups]);
+    // selectedValues is needed to trigger re-renders when checkboxes are toggled
+    // initialSelectedValues is a ref so it won't trigger re-renders, but we list it for correctness
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    createItem,
+    suggestionGroups,
+    canSelectMultipleValues,
+    filterValue,
+    selectedValues,
+    initialSelectedValues,
+  ]);
 
   // Flat list used for state management
   const items = useMemo(() => {
@@ -497,6 +522,7 @@ function useFilterSuggestions({
     items,
     suggestionSectionItems,
     isFetching: isFetching || isDebouncing,
+    suggestionGroups,
   };
 }
 
@@ -634,14 +660,48 @@ export function SearchQueryBuilderValueCombobox({
 
   // Track the initial selected values when the combobox is mounted to preserve list order during selection
   const initialSelectedValues = useRef(selectedValuesUnescaped);
+  const prevInputValue = useRef(inputValue);
 
-  const {items, suggestionSectionItems, isFetching} = useFilterSuggestions({
-    token,
-    filterValue,
-    selectedValues: selectedValuesUnescaped,
-    initialSelectedValues: initialSelectedValues.current,
-    ctrlKeyPressed,
-  });
+  const {items, suggestionSectionItems, isFetching, suggestionGroups} =
+    useFilterSuggestions({
+      token,
+      filterValue,
+      selectedValues: selectedValuesUnescaped,
+      initialSelectedValues: initialSelectedValues.current,
+      ctrlKeyPressed,
+    });
+
+  // Update initialSelectedValues only for custom typed values (not existing suggestions)
+  useEffect(() => {
+    if (!canSelectMultipleValues) {
+      return;
+    }
+
+    // Only process if inputValue actually changed
+    if (prevInputValue.current === inputValue) {
+      return;
+    }
+    prevInputValue.current = inputValue;
+
+    // Get all values that exist in suggestions
+    const allSuggestionValues = new Set(
+      suggestionGroups.flatMap(group => group.suggestions).map(s => s.value)
+    );
+
+    // Find new selected values that are NOT in suggestions (i.e., custom typed values)
+    const currentInitialSet = new Set(initialSelectedValues.current.map(v => v.value));
+    const newCustomValues = selectedValuesUnescaped.filter(
+      v =>
+        v.selected && !currentInitialSet.has(v.value) && !allSuggestionValues.has(v.value)
+    );
+
+    if (newCustomValues.length > 0) {
+      initialSelectedValues.current = [
+        ...initialSelectedValues.current,
+        ...newCustomValues,
+      ];
+    }
+  }, [inputValue, canSelectMultipleValues, selectedValuesUnescaped, suggestionGroups]);
 
   const analyticsData = useMemo(
     () => ({
