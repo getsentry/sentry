@@ -69,11 +69,11 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     };
   });
 
-  const limit =
-    state.displayType &&
-    [DisplayType.BIG_NUMBER, DisplayType.TABLE].includes(state.displayType)
-      ? undefined
-      : state.limit;
+  const limit = [DisplayType.BIG_NUMBER, DisplayType.TABLE].includes(
+    state.displayType ?? DisplayType.TABLE
+  )
+    ? undefined
+    : state.limit;
 
   return {
     title: state.title ?? '',
