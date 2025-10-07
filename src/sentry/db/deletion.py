@@ -82,7 +82,6 @@ class BulkDeleteQuery:
     def iterator(self, chunk_size=100, batch_size=10000) -> Generator[tuple[int, ...]]:
         assert self.days is not None
         assert self.dtfield is not None
-        assert self.order_by in [self.dtfield, f"-{self.dtfield}"]
 
         cutoff = timezone.now() - timedelta(days=self.days)
         queryset = self.model.objects.filter(**{f"{self.dtfield}__lt": cutoff})
