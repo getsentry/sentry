@@ -2192,7 +2192,7 @@ def test_good_option_value_comparator() -> None:
     assert not cmp.compare(id, left, right)
 
     # Ensure that int and int are equivalent.
-    left: Any = {
+    left = {
         "model": "test",
         "ordinal": 1,
         "pk": 1,
@@ -2200,7 +2200,7 @@ def test_good_option_value_comparator() -> None:
             "value": 1,
         },
     }
-    right: Any = {
+    right = {
         "model": "test",
         "ordinal": 1,
         "pk": 1,
@@ -2211,7 +2211,7 @@ def test_good_option_value_comparator() -> None:
     assert not cmp.compare(id, left, right)
 
     # Ensure that str and str are equivalent.
-    left: Any = {
+    left = {
         "model": "test",
         "ordinal": 1,
         "pk": 1,
@@ -2219,7 +2219,7 @@ def test_good_option_value_comparator() -> None:
             "value": "1",
         },
     }
-    right: Any = {
+    right = {
         "model": "test",
         "ordinal": 1,
         "pk": 1,
