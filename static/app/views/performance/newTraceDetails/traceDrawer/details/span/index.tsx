@@ -22,11 +22,11 @@ import {
   LogsPageDataProvider,
   useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {
   useTraceItemDetails,
   type TraceItemDetailsResponse,
+  type TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -36,6 +36,7 @@ import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnal
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
+import {AIIOAlert} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiIOAlert';
 import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {Attributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
 import {Contexts} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/contexts';
@@ -240,12 +241,7 @@ export function SpanNodeDetails(
                 },
               }}
             >
-              <LogsPageParamsProvider
-                isTableFrozen
-                analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
-              >
-                <LogsPageDataProvider>{content}</LogsPageDataProvider>
-              </LogsPageParamsProvider>
+              <LogsPageDataProvider>{content}</LogsPageDataProvider>
             </LogsQueryParamsProvider>
           </ProfileGroupProvider>
         )}
@@ -289,6 +285,7 @@ function SpanNodeDetailsContent({
           location={location}
           hideNodeActions={hideNodeActions}
         />
+        <AIIOAlert node={node} />
         <AIInputSection node={node} />
         <AIOutputSection node={node} />
         <MCPInputSection node={node} />
@@ -383,11 +380,7 @@ function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
   const transaction_event_id =
     node.value.transaction_id ??
     TraceTree.ParentEAPTransaction(node)?.value.transaction_id;
-  const {
-    data: eventTransaction,
-    isLoading: isEventTransactionLoading,
-    isError: isEventTransactionError,
-  } = useTransaction({
+  const {data: eventTransaction, isLoading: isEventTransactionLoading} = useTransaction({
     event_id: transaction_event_id,
     project_slug: node.value.project_slug,
     organization,
@@ -399,7 +392,8 @@ function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
     return <LoadingIndicator />;
   }
 
-  if (isTraceItemError || isEventTransactionError) {
+  // We ignore the error from the transaction detail query because it's not critical for EAP span details.
+  if (isTraceItemError) {
     return <LoadingError message={t('Failed to fetch span details')} />;
   }
 
@@ -436,13 +430,20 @@ function EAPSpanNodeDetailsContent({
   const links = traceItemData.links;
   const isTransaction = isEAPTransactionNode(node) && !!eventTransaction;
 
+  const threadIdAttribute: TraceItemResponseAttribute | undefined = attributes.find(
+    attribute => attribute.name === 'thread.id'
+  );
+  const threadId: string | undefined =
+    typeof threadIdAttribute?.value === 'string' ? threadIdAttribute.value : undefined;
+
   const span = useMemo(() => {
     return {
       span_id: node.value.event_id,
       start_timestamp: node.value.start_timestamp,
       end_timestamp: node.value.end_timestamp,
+      thread_id: threadId,
     };
-  }, [node]);
+  }, [node, threadId]);
 
   const {profile, frames} = useSpanProfileDetails(
     organization,
@@ -485,6 +486,7 @@ function EAPSpanNodeDetailsContent({
           avgSpanDuration={avgSpanDuration}
           hideNodeActions={hideNodeActions}
         />
+        <AIIOAlert node={node} attributes={attributes} />
         <AIInputSection node={node} attributes={attributes} />
         <AIOutputSection node={node} attributes={attributes} />
         <MCPInputSection node={node} attributes={attributes} />
@@ -520,11 +522,7 @@ function EAPSpanNodeDetailsContent({
             organization={organization}
             project={project}
             event={eventTransaction}
-            span={{
-              span_id: node.value.event_id,
-              start_timestamp: node.value.start_timestamp,
-              end_timestamp: node.value.end_timestamp,
-            }}
+            span={span}
           />
         ) : null}
 

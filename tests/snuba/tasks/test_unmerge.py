@@ -19,7 +19,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import GroupEvent
 from sentry.similarity import _make_index_backend, features
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.unmerge import (
@@ -189,7 +189,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         def create_message_event(
             template, parameters, environment, release, fingerprint="group1"
-        ) -> Event:
+        ) -> GroupEvent:
             i = next(sequence)
 
             event_id = uuid.UUID(fields=(i, 0x0, 0x1000, 0x80, 0x80, 0x808080808080)).hex
@@ -227,7 +227,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
             return event
 
-        events: dict[str | None, list[Event]] = {}
+        events: dict[str | None, list[GroupEvent]] = {}
 
         for event in (
             create_message_event(

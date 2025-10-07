@@ -16,6 +16,7 @@ interface ScrollCarouselProps {
   'data-test-id'?: string;
   gap?: ValidSize;
   jumpItemCount?: number;
+  orientation?: 'horizontal' | 'vertical';
   transparentMask?: boolean;
 }
 
@@ -60,6 +61,7 @@ export function ScrollCarousel({
   gap = 1,
   transparentMask = false,
   jumpItemCount = DEFAULT_JUMP_ITEM_COUNT,
+  orientation = 'horizontal',
   ...props
 }: ScrollCarouselProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -71,18 +73,19 @@ export function ScrollCarousel({
 
   const isAtStart = visibility.at(0) ?? true;
   const isAtEnd = visibility.at(-1) ?? true;
+  const isVertical = orientation === 'vertical';
 
   const scrollLeft = useCallback(() => {
     const scrollIndex = visibility.findIndex(Boolean);
     // Clamp the scroll index to the first visible item
     const clampedIndex = Math.max(scrollIndex - jumpItemCount, 0);
     // scrollIntoView scrolls the entire page on some browsers
+    const offsetRect = getOffsetRect(childrenEls[clampedIndex]!, childrenEls[0]!);
     scrollContainerRef.current?.scrollTo({
       behavior: 'smooth',
-      // We don't need to do any fancy math for the left edge
-      left: getOffsetRect(childrenEls[clampedIndex]!, childrenEls[0]!).left,
+      ...(isVertical ? {top: offsetRect.top} : {left: offsetRect.left}),
     });
-  }, [visibility, childrenEls, jumpItemCount]);
+  }, [visibility, childrenEls, jumpItemCount, isVertical]);
 
   const scrollRight = useCallback(() => {
     const scrollIndex = visibility.findLastIndex(Boolean);
@@ -90,42 +93,60 @@ export function ScrollCarousel({
     const clampedIndex = Math.min(scrollIndex + jumpItemCount, visibility.length - 1);
 
     const targetElement = childrenEls[clampedIndex]!;
-    const targetElementRight = getOffsetRect(targetElement, childrenEls[0]!).right;
-    const containerRight = scrollContainerRef.current?.clientWidth ?? 0;
+    const targetRect = getOffsetRect(targetElement, childrenEls[0]!);
+    const targetEnd = isVertical ? targetRect.bottom : targetRect.right;
+    const containerSize = isVertical
+      ? (scrollContainerRef.current?.clientHeight ?? 0)
+      : (scrollContainerRef.current?.clientWidth ?? 0);
     // scrollIntoView scrolls the entire page on some browsers
     scrollContainerRef.current?.scrollTo({
       behavior: 'smooth',
-      left: Math.max(targetElementRight - containerRight, 0),
+      ...(isVertical
+        ? {top: Math.max(targetEnd - containerSize, 0)}
+        : {left: Math.max(targetEnd - containerSize, 0)}),
     });
-  }, [visibility, childrenEls, jumpItemCount]);
+  }, [visibility, childrenEls, jumpItemCount, isVertical]);
 
   return (
-    <ScrollCarouselWrapper>
+    <ScrollCarouselWrapper orientation={orientation}>
       <ScrollContainer
         ref={scrollContainerRef}
         style={{gap: space(gap)}}
+        orientation={orientation}
         role="group"
         {...props}
       >
         {children}
       </ScrollContainer>
-      {!isAtStart && <LeftMask transparentMask={transparentMask} />}
-      {!isAtEnd && <RightMask transparentMask={transparentMask} />}
+      {!isAtStart &&
+        (isVertical ? (
+          <TopMask transparentMask={transparentMask} />
+        ) : (
+          <LeftMask transparentMask={transparentMask} />
+        ))}
+      {!isAtEnd &&
+        (isVertical ? (
+          <BottomMask transparentMask={transparentMask} />
+        ) : (
+          <RightMask transparentMask={transparentMask} />
+        ))}
       {!isAtStart && (
         <StyledArrowButton
           onClick={scrollLeft}
-          style={{left: 0}}
-          aria-label={t('Scroll left')}
-          icon={<StyledIconChevron direction="left" />}
+          style={isVertical ? {top: 0} : {left: 0}}
+          aria-label={isVertical ? t('Scroll up') : t('Scroll left')}
+          icon={<StyledIconChevron direction={isVertical ? 'up' : 'left'} />}
+          orientation={orientation}
           borderless
         />
       )}
       {!isAtEnd && (
         <StyledArrowButton
           onClick={scrollRight}
-          style={{right: 0}}
-          aria-label={t('Scroll right')}
-          icon={<StyledIconChevron direction="right" />}
+          style={isVertical ? {bottom: 0} : {right: 0}}
+          aria-label={isVertical ? t('Scroll down') : t('Scroll right')}
+          icon={<StyledIconChevron direction={isVertical ? 'down' : 'right'} />}
+          orientation={orientation}
           borderless
         />
       )}
@@ -133,16 +154,33 @@ export function ScrollCarousel({
   );
 }
 
-const ScrollCarouselWrapper = styled('div')`
+const ScrollCarouselWrapper = styled('div')<{orientation: 'horizontal' | 'vertical'}>`
   position: relative;
   overflow: hidden;
+
+  ${p =>
+    p.orientation === 'vertical' &&
+    css`
+      height: 100%;
+    `}
 `;
 
-const ScrollContainer = styled('div')`
+const ScrollContainer = styled('div')<{orientation: 'horizontal' | 'vertical'}>`
   display: flex;
-  overflow-x: auto;
-  overflow-y: hidden;
-  white-space: nowrap;
+  ${p =>
+    p.orientation === 'horizontal'
+      ? css`
+          flex-direction: row;
+          overflow-x: auto;
+          overflow-y: hidden;
+          white-space: nowrap;
+        `
+      : css`
+          flex-direction: column;
+          overflow-y: auto;
+          overflow-x: hidden;
+          height: 100%;
+        `}
 
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
@@ -151,13 +189,21 @@ const ScrollContainer = styled('div')`
   }
 `;
 
-const StyledArrowButton = styled(Button)`
+const StyledArrowButton = styled(Button)<{orientation: 'horizontal' | 'vertical'}>`
   display: flex;
   align-items: center;
   justify-content: center;
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  ${p =>
+    p.orientation === 'horizontal'
+      ? css`
+          top: 50%;
+          transform: translateY(-50%);
+        `
+      : css`
+          left: 50%;
+          transform: translateX(-50%);
+        `}
   min-height: 14px;
   height: 14px;
   width: 14px;
@@ -204,6 +250,41 @@ const RightMask = styled('div')<{transparentMask: boolean}>`
       ? `linear-gradient(to right, transparent, ${p.theme.background})`
       : `linear-gradient(
     270deg,
+    ${p.theme.background} 50%,
+    ${Color(p.theme.background).alpha(0.09).rgb().string()} 100%
+  )`};
+`;
+
+const VerticalMask = css`
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 40px;
+  pointer-events: none;
+  z-index: 1;
+`;
+
+const TopMask = styled('div')<{transparentMask: boolean}>`
+  ${VerticalMask}
+  top: 0;
+  background: ${p =>
+    p.transparentMask
+      ? `linear-gradient(to top, ${Color(p.theme.background).alpha(0).rgb().string()}, ${p.theme.background})`
+      : `linear-gradient(
+    180deg,
+    ${p.theme.background} 50%,
+    ${Color(p.theme.background).alpha(0.09).rgb().string()} 100%
+  )`};
+`;
+
+const BottomMask = styled('div')<{transparentMask: boolean}>`
+  ${VerticalMask}
+  bottom: 0;
+  background: ${p =>
+    p.transparentMask
+      ? `linear-gradient(to bottom, transparent, ${p.theme.background})`
+      : `linear-gradient(
+    0deg,
     ${p.theme.background} 50%,
     ${Color(p.theme.background).alpha(0.09).rgb().string()} 100%
   )`};

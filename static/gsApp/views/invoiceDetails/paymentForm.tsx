@@ -96,7 +96,7 @@ function InvoiceDetailsPaymentForm({
 
   return (
     <Fragment>
-      <Header>{t('Pay Invoice')}</Header>
+      <Header>{t('Pay Bill')}</Header>
       <Body>
         <Flex direction="column" gap="sm">
           <Text as="p">
@@ -112,7 +112,7 @@ function InvoiceDetailsPaymentForm({
             }
             onCancel={() => closeModal()}
             amount={invoice.amountBilled ?? 0}
-            cardMode={'payment'}
+            cardMode="payment"
             onSuccess={() => {
               reloadInvoice();
               closeModal();

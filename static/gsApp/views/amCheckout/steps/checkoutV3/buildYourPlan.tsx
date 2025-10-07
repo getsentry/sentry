@@ -50,8 +50,10 @@ function PlanSubstep({
   onUpdate,
 }: PlanSubstepProps) {
   const planOptions = useMemo(() => {
+    // TODO(isabella): Remove this once Developer is surfaced
     const plans = billingConfig.planList.filter(
-      ({contractInterval}) => contractInterval === activePlan.contractInterval
+      ({contractInterval, id}) =>
+        contractInterval === activePlan.contractInterval && id !== billingConfig.freePlan
     );
 
     if (plans.length === 0) {
@@ -61,6 +63,18 @@ function PlanSubstep({
     // sort by price ascending
     return plans.sort((a, b) => a.basePrice - b.basePrice);
   }, [billingConfig, activePlan.contractInterval]);
+
+  // TODO(isabella): Remove this once Developer is surfaced
+  const planOptionsWithFree = useMemo(() => {
+    const freePlan = billingConfig.planList.find(
+      plan => plan.id === billingConfig.freePlan
+    );
+    if (!freePlan) {
+      return planOptions;
+    }
+
+    return [freePlan, ...planOptions];
+  }, [billingConfig, planOptions]);
 
   const getBadge = (plan: Plan): React.ReactNode | undefined => {
     if (
@@ -124,7 +138,7 @@ function PlanSubstep({
           );
         })}
       </OptionGrid>
-      <PlanFeatures planOptions={planOptions} activePlan={activePlan} />
+      <PlanFeatures planOptions={planOptionsWithFree} activePlan={activePlan} />
     </Substep>
   );
 }

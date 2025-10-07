@@ -192,8 +192,8 @@ export default typescript.config([
     },
     settings: {
       react: {
-        version: '19.1.0',
-        defaultVersion: '19.1',
+        version: '19.2.0',
+        defaultVersion: '19.2',
       },
       'import/parsers': {'@typescript-eslint/parser': ['.ts', '.tsx']},
       'import/resolver': {typescript: {}},
@@ -388,7 +388,7 @@ export default typescript.config([
       ...eslint.configs.recommended.rules,
       'no-cond-assign': ['error', 'always'],
       'no-prototype-builtins': 'off',
-      'no-useless-escape': 'off',
+      'no-useless-escape': 'error',
     },
   },
   {
@@ -464,6 +464,10 @@ export default typescript.config([
       // https://github.com/jsx-eslint/eslint-plugin-react/blob/master/index.js
       ...react.configs.flat.recommended.rules,
       ...react.configs.flat['jsx-runtime'].rules,
+      'react/jsx-curly-brace-presence': [
+        'error',
+        {props: 'never', children: 'ignore', propElementValues: 'always'},
+      ],
       'react/display-name': 'off', // TODO(ryan953): Fix violations and delete this line
       'react/no-unescaped-entities': 'off',
       'react/no-unknown-property': ['error', {ignore: ['css']}],

@@ -1,10 +1,10 @@
 ---
-created: '2025-09-24T22:53:02.445174+00:00'
+created: '2025-10-03T22:58:45.042995+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "default": {
+  "csp_local_script_violation": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -77,10 +77,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
+    "contributes": true,
     "description": "violation",
     "hash": "d346ee37d19a2be6587e609075ca2d57",
     "hint": null,
-    "key": "default",
+    "key": "csp_local_script_violation",
     "type": "component"
   }
 }

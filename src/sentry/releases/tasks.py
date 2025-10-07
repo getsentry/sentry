@@ -3,7 +3,6 @@ import logging
 from django.core.cache import cache
 from django.db import router
 
-from sentry import features
 from sentry.locks import locks
 from sentry.models.commit import Commit as OldCommit
 from sentry.models.commitfilechange import CommitFileChange as OldCommitFileChange
@@ -12,7 +11,6 @@ from sentry.models.release import Release
 from sentry.releases.models import Commit, CommitFileChange
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils.db import atomic_transaction
@@ -24,18 +22,10 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.releases.tasks.backfill_commits_for_release_async",
-    queue="commits",
-    max_retries=3,
-    default_retry_delay=60,
+    namespace=issues_tasks,
+    processing_deadline_duration=5 * 60,
+    retry=Retry(times=3, delay=60),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=5 * 60,
-        retry=Retry(
-            times=3,
-            delay=60,
-        ),
-    ),
 )
 def backfill_commits_for_release(
     organization_id: int,
@@ -55,9 +45,6 @@ def backfill_commits_for_release(
         return
 
     bind_organization_context(organization)
-
-    if not features.has("organizations:commit-retention-dual-writing", organization):
-        return
 
     cache_key = f"commit-backfill:release:{release_id}"
     if cache.get(cache_key):

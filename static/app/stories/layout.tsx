@@ -1,22 +1,24 @@
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, type FlexProps} from 'sentry/components/core/layout';
 
-export const SideBySide = styled(
-  (props: {children: React.ReactNode; vertical?: boolean}) => {
-    return (
-      <Flex
-        gap="xl"
-        align="start"
-        wrap="wrap"
-        direction={props.vertical ? 'column' : 'row'}
-      >
-        {props.children}
-      </Flex>
-    );
-  }
-)``;
+interface SideBySideProps extends Omit<FlexProps, 'direction' | 'children'> {
+  children: React.ReactNode;
+  vertical?: boolean;
+}
+
+export const SideBySide = styled(({children, vertical, ...rest}: SideBySideProps) => (
+  <Flex
+    direction={vertical ? 'column' : 'row'}
+    gap="xl"
+    wrap="wrap"
+    align="start"
+    {...rest}
+  >
+    {children}
+  </Flex>
+))<SideBySideProps>``;
 
 export const Grid = styled('div')<{columns?: number}>`
   display: grid;

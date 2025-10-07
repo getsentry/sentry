@@ -328,9 +328,7 @@ Sentry.profiler.stopProfiler();
                   'If you need more fine grained control over which spans are profiled, you can do so by [link:enabling manual lifecycle profiling].',
                   {
                     link: (
-                      <ExternalLink
-                        href={`https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/#enabling-manual-lifecycle-profiling`}
-                      />
+                      <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/#enabling-manual-lifecycle-profiling" />
                     ),
                   }
                 )
@@ -341,9 +339,7 @@ Sentry.profiler.stopProfiler();
             'For more detailed information on profiling, see the [link:profiling documentation].',
             {
               link: (
-                <ExternalLink
-                  href={`https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/`}
-                />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/" />
               ),
             }
           ),

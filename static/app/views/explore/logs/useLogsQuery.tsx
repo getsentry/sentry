@@ -160,7 +160,15 @@ export function useLogsAggregatesQuery({
   };
 }
 
-function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) {
+function useLogsQueryKey({
+  limit,
+  referrer,
+  highFidelity,
+}: {
+  referrer: string;
+  highFidelity?: boolean;
+  limit?: number;
+}) {
   const organization = useOrganization();
   const _search = useQueryParamsSearch();
   const baseSearch = useLogsFrozenSearch();
@@ -202,15 +210,21 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
     eventViewPayload.end = frozenReplayInfo.replayEndedAt?.toISOString();
   }
 
+  const orderby = eventViewPayload.sort;
+  // we can only turn on high accuracy flex time sampling when
+  // the order by is exactly timestamp descending,
+  highFidelity = highFidelity && orderby === '-timestamp';
+
   const params = {
     query: {
       ...eventViewPayload,
       ...(frozenTraceIds ? {traceId: frozenTraceIds} : {}),
       ...(frozenReplayInfo.replayId ? {replayId: frozenReplayInfo.replayId} : {}),
       cursor,
-      orderby: eventViewPayload.sort,
+      orderby,
       per_page: limit ? limit : undefined,
       referrer,
+      sampling: highFidelity ? 'HIGHEST_ACCURACY_FLEX_TIME' : undefined,
     },
     pageFiltersReady,
     eventView,
@@ -236,13 +250,16 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
 export function useLogsQueryKeyWithInfinite({
   referrer,
   autoRefresh,
+  highFidelity,
 }: {
   autoRefresh: boolean;
   referrer: string;
+  highFidelity?: boolean;
 }) {
   const {queryKey, other} = useLogsQueryKey({
     limit: autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT,
     referrer,
+    highFidelity,
   });
   return {
     queryKey: [...queryKey, 'infinite'] as QueryKey,
@@ -258,14 +275,17 @@ export function useLogsQueryKeyWithInfinite({
 function getPageParam(
   pageDirection: 'previous' | 'next',
   sortBys: Sort[],
-  autoRefresh: boolean
+  autoRefresh: boolean,
+  highFidelity?: boolean
 ) {
   const isGetPreviousPage = pageDirection === 'previous';
   return (
-    [pageData]: ApiResult<EventsLogsResult>,
+    result: ApiResult<EventsLogsResult>,
     _: unknown,
     pageParam: LogPageParam
   ): LogPageParam => {
+    const [pageData, _statusText, response] = result;
+
     const sortBy = getTimeBasedSortBy(sortBys);
     if (!sortBy) {
       // Only sort by timestamp precise is supported for infinite queries.
@@ -316,6 +336,16 @@ function getPageParam(
       ? (pageParam?.indexFromInitialPage ?? 0) - 1
       : (pageParam?.indexFromInitialPage ?? 0) + 1;
 
+    let cursor: PageParam['cursor'] = undefined;
+    if (isDescending && !autoRefresh && highFidelity) {
+      const pageLinkHeader = response?.getResponseHeader('Link') ?? null;
+      const links = parseLinkHeader(pageLinkHeader);
+      // the flex time sampling strategy has no previous page cursor and only
+      // a next page cursor because it only works in timestamp desc order
+      const link = isGetPreviousPage ? links.previous : links.next;
+      cursor = link?.results ? (link.cursor ?? undefined) : undefined;
+    }
+
     const pageParamResult: LogPageParam = {
       logId,
       timestampPrecise,
@@ -323,6 +353,7 @@ function getPageParam(
       sortByDirection: sortBy.kind,
       indexFromInitialPage,
       autoRefresh,
+      cursor,
     };
 
     return pageParamResult;
@@ -381,6 +412,14 @@ function getParamBasedQuery(
   if (!pageParam) {
     return query;
   }
+
+  if (pageParam.cursor) {
+    return {
+      ...query,
+      cursor: pageParam.cursor,
+    };
+  }
+
   const comparison =
     (pageParam.querySortDirection ?? pageParam.sortByDirection === 'asc') ? '>=' : '<=';
 
@@ -415,6 +454,7 @@ interface PageParam {
   // The original sort direction of the query.
   sortByDirection: Sort['kind'];
   timestampPrecise: bigint | null;
+  cursor?: string;
   // When scrolling is happening towards current time, or during auto refresh, we flip the sort direction passed to the query to get X more rows in the future starting from the last seen row.
   querySortDirection?: Sort;
 }
@@ -425,9 +465,11 @@ type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions, 'infinit
 
 export function useInfiniteLogsQuery({
   disabled,
+  highFidelity,
   referrer,
 }: {
   disabled?: boolean;
+  highFidelity?: boolean;
   referrer?: string;
 } = {}) {
   const _referrer = referrer ?? 'api.explore.logs-table';
@@ -435,6 +477,7 @@ export function useInfiniteLogsQuery({
   const {queryKey: queryKeyWithInfinite, other} = useLogsQueryKeyWithInfinite({
     referrer: _referrer,
     autoRefresh,
+    highFidelity,
   });
   const queryClient = useQueryClient();
 
@@ -442,13 +485,23 @@ export function useInfiniteLogsQuery({
 
   const getPreviousPageParam = useCallback(
     (data: ApiResult<EventsLogsResult>, _: unknown, pageParam: LogPageParam) =>
-      getPageParam('previous', sortBys.slice(), autoRefresh)(data, _, pageParam),
-    [sortBys, autoRefresh]
+      getPageParam(
+        'previous',
+        sortBys.slice(),
+        autoRefresh,
+        highFidelity
+      )(data, _, pageParam),
+    [sortBys, autoRefresh, highFidelity]
   );
   const getNextPageParam = useCallback(
     (data: ApiResult<EventsLogsResult>, _: unknown, pageParam: LogPageParam) =>
-      getPageParam('next', sortBys.slice(), autoRefresh)(data, _, pageParam),
-    [sortBys, autoRefresh]
+      getPageParam(
+        'next',
+        sortBys.slice(),
+        autoRefresh,
+        highFidelity
+      )(data, _, pageParam),
+    [sortBys, autoRefresh, highFidelity]
   );
 
   const initialPageParam = useMemo(
@@ -546,7 +599,7 @@ export function useInfiniteLogsQuery({
     );
   }, [queryClient, queryKeyWithInfinite, sortBys]);
 
-  const {virtualStreamedTimestamp} = useVirtualStreaming(data);
+  const {virtualStreamedTimestamp} = useVirtualStreaming({data, highFidelity});
 
   const _data = useMemo(() => {
     const usedRowIds = new Set();

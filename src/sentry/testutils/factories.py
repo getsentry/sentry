@@ -69,6 +69,7 @@ from sentry.integrations.models.integration_feature import (
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
+from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
@@ -125,7 +126,6 @@ from sentry.notifications.models.notificationaction import (
 )
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
-from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.preprod.models import PreprodArtifactSizeMetrics
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,

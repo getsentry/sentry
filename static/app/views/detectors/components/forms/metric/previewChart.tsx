@@ -33,6 +33,12 @@ export function MetricDetectorPreviewChart() {
   const initialPriorityLevel = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel
   );
+  const resolutionStrategy = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy
+  );
+  const resolutionValue = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.resolutionValue
+  );
   const detectionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.detectionType
   );
@@ -56,8 +62,18 @@ export function MetricDetectorPreviewChart() {
       conditionValue,
       initialPriorityLevel,
       highThreshold,
+      resolutionStrategy,
+      resolutionValue,
     });
-  }, [conditionType, conditionValue, initialPriorityLevel, highThreshold, detectionType]);
+  }, [
+    conditionType,
+    conditionValue,
+    initialPriorityLevel,
+    highThreshold,
+    resolutionStrategy,
+    resolutionValue,
+    detectionType,
+  ]);
 
   const datasetConfig = getDatasetConfig(dataset);
   const {query, eventTypes} = datasetConfig.separateEventTypesFromQuery(rawQuery);

@@ -30,6 +30,7 @@ interface Labels {
   downloadSize: string;
   installSize: string;
   installSizeText: string;
+  installUnavailableTooltip: string;
 }
 
 function getLabels(platform: Platform | undefined): Labels {
@@ -41,6 +42,7 @@ function getLabels(platform: Platform | undefined): Labels {
         installSize: t('Size on disk not including AOT DEX'),
         downloadSize: t('Bytes transferred over the network'),
         buildConfiguration: t('Build configuration'),
+        installUnavailableTooltip: t('This app cannot be installed.'),
       };
     case 'ios':
     case 'macos':
@@ -51,6 +53,9 @@ function getLabels(platform: Platform | undefined): Labels {
         installSize: t('Unencrypted install size'),
         downloadSize: t('Bytes transferred over the network'),
         buildConfiguration: t('Build configuration'),
+        installUnavailableTooltip: t(
+          'Code signature must be valid for this app to be installed.'
+        ),
       };
     default:
       return unreachable(platform);
@@ -60,15 +65,11 @@ function getLabels(platform: Platform | undefined): Labels {
 interface BuildDetailsSidebarAppInfoProps {
   appInfo: BuildDetailsAppInfo;
   artifactId: string;
-  projectId: string;
+  projectId: string | null;
   sizeInfo?: BuildDetailsSizeInfo;
 }
 
 export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProps) {
-  const handleInstallClick = () => {
-    openInstallModal(props.projectId, props.artifactId);
-  };
-
   const labels = getLabels(props.appInfo.platform ?? undefined);
 
   return (
@@ -156,10 +157,16 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
             <IconLink />
           </InfoIcon>
           <Text>
-            {props.appInfo.is_installable ? (
-              <InstallableLink onClick={handleInstallClick}>Installable</InstallableLink>
+            {props.projectId && props.appInfo.is_installable ? (
+              <InstallableLink
+                onClick={() => {
+                  openInstallModal(props.projectId!, props.artifactId);
+                }}
+              >
+                Installable
+              </InstallableLink>
             ) : (
-              'Not Installable'
+              <Tooltip title={labels.installUnavailableTooltip}>Not Installable</Tooltip>
             )}
           </Text>
         </Flex>
@@ -169,11 +176,9 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
               <InfoIcon>
                 <IconMobile />
               </InfoIcon>
-              <Text monospace>
-                <InlineCodeSnippet data-render-inline>
-                  {props.appInfo.build_configuration}
-                </InlineCodeSnippet>
-              </Text>
+              <InlineCodeSnippet data-render-inline hideCopyButton>
+                {props.appInfo.build_configuration}
+              </InlineCodeSnippet>
             </Flex>
           </Tooltip>
         )}

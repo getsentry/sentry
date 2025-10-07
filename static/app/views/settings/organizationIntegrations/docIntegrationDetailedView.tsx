@@ -105,7 +105,7 @@ export default function DocIntegrationDetailsView() {
           additionalCTA={null}
         />
       }
-      tabs={<IntegrationLayout.Tabs tabs={tabs} activeTab={'overview'} />}
+      tabs={<IntegrationLayout.Tabs tabs={tabs} activeTab="overview" />}
       content={
         <IntegrationLayout.InformationCard
           integrationSlug={integrationSlug}

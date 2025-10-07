@@ -20,7 +20,6 @@ from sentry.issues.escalating.escalating_issues_alg import generate_issue_foreca
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 
 logger = logging.getLogger(__name__)
@@ -78,11 +77,8 @@ def generate_and_save_forecasts(groups: Iterable[Group]) -> None:
 
 @instrumented_task(
     name="sentry.tasks.weekly_escalating_forecast.generate_and_save_missing_forecasts",
-    queue="weekly_escalating_forecast",
+    namespace=issues_tasks,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-    ),
 )
 def generate_and_save_missing_forecasts(group_id: int) -> None:
     """
