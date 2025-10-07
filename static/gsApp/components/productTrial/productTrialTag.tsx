@@ -25,21 +25,21 @@ function ProductTrialTag({trial, type, showTrialEnded = false}: ProductTrialTagP
 
     return (
       <Tag icon={<IconFlag />} type={type ?? 'default'}>
-        {t('Trial Ended')}
+        {t('Trial ended')}
       </Tag>
     );
   }
 
   if (!trial.isStarted) {
     return (
-      <Tag icon={<IconBusiness gradient />} type={type ?? 'info'}>
-        {t('Trial Available')}
+      <Tag icon={<IconBusiness gradient />} type={type ?? 'promotion'}>
+        {t('Trial available')}
       </Tag>
     );
   }
 
   const daysLeft = -1 * getDaysSinceDate(trial.endDate ?? '');
-  const tagType = type ?? (daysLeft <= 7 ? 'promotion' : 'highlight');
+  const tagType = type ?? (daysLeft <= 14 ? 'warning' : 'highlight');
 
   return (
     <Tag icon={<IconClock />} type={tagType}>

@@ -61,7 +61,7 @@ type Props = {
 function Overview({location, subscription, promotionData}: Props) {
   const api = useApi();
   const organization = useOrganization();
-  const hasNewCheckout = hasNewBillingUI(organization);
+  const isNewBillingUI = hasNewBillingUI(organization);
   const navigate = useNavigate();
 
   const displayMode = ['cost', 'usage'].includes(location.query.displayMode as string)
@@ -367,8 +367,8 @@ function Overview({location, subscription, promotionData}: Props) {
         <RecurringCredits displayType="discount" planDetails={planDetails} />
         <RecurringCredits displayType="data" planDetails={planDetails} />
         <OnDemandDisabled subscription={subscription} />
-        {hasNewCheckout ? (
-          <UsageOverview subscription={subscription} />
+        {isNewBillingUI ? (
+          <UsageOverview subscription={subscription} organization={organization} />
         ) : (
           <Fragment>
             <UsageAlert subscription={subscription} usage={usageData} />
