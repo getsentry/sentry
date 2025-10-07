@@ -75,7 +75,7 @@ function NoProjectMessage({
     <Wrapper>
       <StyledNoProjectEmptyState />
 
-      <Flex direction="column" content="center">
+      <Flex direction="column" justify="center">
         <Layout.Title>{t('Remain Calm')}</Layout.Title>
         <HelpMessage>{t('You need at least one project to use this view')}</HelpMessage>
         <Actions>
