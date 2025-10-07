@@ -41,6 +41,7 @@ def translate_dashboard_widget_queries(
     is_hidden,
     selected_aggregate,
 ):
+    original_fields_length = len(original_fields)
     # some widgets have fields that are not columns + aggregates.
     # we want to combine all of these into a single list but still preserve order the way we would in the frontend.
     all_fields = (
@@ -100,12 +101,14 @@ def translate_dashboard_widget_queries(
             equation_index += 1
 
         elif is_function_field:
-            new_fields.append(eap_query_parts["selected_columns"][field_index])
+            if old_index < original_fields_length:
+                new_fields.append(eap_query_parts["selected_columns"][field_index])
             new_aggregates.append(eap_query_parts["selected_columns"][field_index])
             field_index += 1
 
         else:
-            new_fields.append(eap_query_parts["selected_columns"][field_index])
+            if old_index < original_fields_length:
+                new_fields.append(eap_query_parts["selected_columns"][field_index])
             new_columns.append(eap_query_parts["selected_columns"][field_index])
             field_index += 1
 

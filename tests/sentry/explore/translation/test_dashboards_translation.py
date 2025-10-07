@@ -696,7 +696,7 @@ class DashboardRestoreTransactionWidgetTestCase(TestCase):
         assert new_query.widget_id == transaction_widget.id
         assert new_query.order == 0
 
-        assert new_query.fields == ["release", "count(span.duration)", "count_unique(user)"]
+        assert new_query.fields == ["release"]
         assert new_query.conditions == "(transaction:foo) AND is_transaction:1"
         assert new_query.aggregates == ["count(span.duration)", "count_unique(user)"]
         assert new_query.columns == ["release"]
