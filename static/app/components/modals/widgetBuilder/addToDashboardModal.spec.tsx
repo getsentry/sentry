@@ -13,7 +13,6 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
@@ -364,13 +363,13 @@ describe('add to dashboard modal', () => {
     expect(router.location.query).toEqual({
       title: 'Test title',
       description: 'Test description',
-      field: [],
-      query: [''],
-      yAxis: ['count()'],
-      sort: [''],
+      query: '',
+      yAxis: 'count()',
+      sort: '',
       displayType: DisplayType.LINE,
       dataset: WidgetType.ERRORS,
-      project: [1],
+      project: '1',
+      legendAlias: '',
       statsPeriod: '1h',
       source: DashboardWidgetSource.DISCOVERV2,
     });
