@@ -14,6 +14,7 @@ type EventGroupingInfoResponse = {
   variants: Record<string, EventGroupVariant>;
 };
 
+// temporary function to convert the old response structure to the new one
 function eventGroupingInfoResponseOldToNew(
   old: EventGroupingInfoResponseOld | null
 ): EventGroupingInfoResponse | null {
@@ -31,6 +32,8 @@ function eventGroupingInfoResponseOldToNew(
       }
     : null;
 }
+
+// temporary function to check if the respinse is old type
 function isOld(
   data: EventGroupingInfoResponseOld | EventGroupingInfoResponse | null
 ): boolean {
