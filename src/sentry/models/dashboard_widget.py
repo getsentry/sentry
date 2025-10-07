@@ -198,6 +198,7 @@ class DashboardWidgetQuery(Model):
     __repr__ = sane_repr("widget", "type", "name")
 
 
+@region_silo_model
 class DashboardFieldLink(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -205,6 +206,7 @@ class DashboardFieldLink(Model):
         "sentry.DashboardWidgetQuery", on_delete=models.CASCADE
     )
     field = models.TextField()
+    date_modified = models.DateTimeField(default=timezone.now)
     # The dashboard that the field is linked to
     dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
 
