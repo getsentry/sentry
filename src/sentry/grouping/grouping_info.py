@@ -129,4 +129,11 @@ def get_grouping_info_from_variants(
     if use_legacy_format:
         return {key: {"key": key, **variant.as_dict()} for key, variant in variants.items()}
 
-    return {variant.key: variant.as_dict() for variant in variants.values()}
+    return {
+        # Overwrite the description with a new, improved version
+        variant.key: {
+            **variant.as_dict(),
+            "description": _get_new_description(variant),
+        }
+        for variant in variants.values()
+    }
