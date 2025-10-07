@@ -21,6 +21,7 @@ from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.taskworker.retry import Retry
 from sentry.users.services.user.service import user_service
 from sentry.utils.email import MessageBuilder
+from sentry.utils.json import JSONDecodeError
 
 MIN_SAMPLES_FOR_NOTIFICATION = 10
 
@@ -102,8 +103,10 @@ def get_num_samples(rule: CustomDynamicSamplingRule) -> int:
             referrer="dynamic_sampling.tasks.custom_rule_notifications",
         )
         return result["data"][0]["count"]
-    except Exception:
-        sentry_sdk.capture_exception("Error querying samples from Snuba", tags={"rule_id": rule.id})
+    except JSONDecodeError:
+        with sentry_sdk.new_scope() as scope:
+            scope.set_tag("rule_id", rule.id)
+            sentry_sdk.capture_exception()
         return 0
 
 
