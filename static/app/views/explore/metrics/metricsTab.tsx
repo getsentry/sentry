@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -16,7 +15,6 @@ import {
   TopSectionBody,
 } from 'sentry/views/explore/logs/styles';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
-import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {
   MultiMetricsQueryParamsProvider,
@@ -72,11 +70,6 @@ function MetricsTabFilterSection({
 function MetricsTabBodySection() {
   const metricQueries = useMultiMetricsQueryParams();
   const addMetricQuery = useAddMetricQuery();
-
-  const [traceMetrics, setTraceMetrics] = useState<TraceMetric[]>([
-    {name: 'myfirstmetric'},
-    {name: 'mysecondmetric'},
-  ]);
 
   return (
     <BottomSectionBody>
