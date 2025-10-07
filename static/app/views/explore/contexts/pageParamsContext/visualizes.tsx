@@ -12,6 +12,7 @@ import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   ALLOWED_EXPLORE_VISUALIZE_FIELDS,
+  getFieldDefinition,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
 import {decodeList} from 'sentry/utils/queryString';
@@ -173,6 +174,16 @@ export function updateVisualizeAggregate({
 
   if (NO_ARGUMENT_SPAN_AGGREGATES.includes(newAggregate as AggregationKey)) {
     return `${newAggregate}()`;
+  }
+
+  const newFieldDefinition = getFieldDefinition(newAggregate, 'span');
+  const oldFieldDefinition = oldAggregate
+    ? getFieldDefinition(oldAggregate, 'span')
+    : undefined;
+
+  if (newFieldDefinition?.parameters?.length !== oldFieldDefinition?.parameters?.length) {
+    const params = newFieldDefinition?.parameters?.map(p => p.defaultValue || '');
+    return `${newAggregate}(${params?.join(',')})`;
   }
 
   // switching away from count_unique means we need to reset the field
