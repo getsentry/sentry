@@ -157,8 +157,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
     ) {
       const keyToRestore = lastFocusedKeyRef.current;
       state.selectionManager.setFocusedKey(keyToRestore);
-      // Center the restored option on next tick
-      setTimeout(() => centerKeyInView(keyToRestore), 0);
+      centerKeyInView(keyToRestore);
     }
   }, [isOpen, state, centerKeyInView]);
   const totalOptions = items.reduce(
