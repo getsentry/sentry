@@ -158,7 +158,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
       },
     },
 
-    '&[aria-expanded="true"]': {
+    '&[aria-expanded="true"], &[aria-checked="true"]': {
       '&::after': {
         transition: 'none',
       },
