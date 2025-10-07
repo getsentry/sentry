@@ -330,5 +330,51 @@ class LargeHTTPPayloadDetectorTest(TestCase):
 
         detector = LargeHTTPPayloadDetector(settings, event)
         run_detector_on_data(detector, event)
+        assert len(detector.stored_problems) == 0
 
+    @with_feature("organizations:large-http-payload-detector-improvements")
+    def test_does_not_trigger_detection_for_filtered_paths_without_trailing_slash(self) -> None:
+        project = self.create_project()
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={"large_http_payload_filtered_paths": "/api/0/organizations/user"},
+        )
+        settings = get_detection_settings(project.id, organization=self.organization)
+        spans = [
+            create_span(
+                "http.client",
+                1000,
+                "GET /api/0/organizations/users/100",
+                "hash1",
+                data={
+                    "http.response_transfer_size": 50_000_000,
+                    "http.response_content_length": 50_000_000,
+                    "http.decoded_response_content_length": 50_000_000,
+                },
+            ),
+        ]
+        event = create_event(spans)
+
+        detector = LargeHTTPPayloadDetector(settings, event)
+        run_detector_on_data(detector, event)
+        assert len(detector.stored_problems) == 1
+
+        spans = [
+            create_span(
+                "http.client",
+                1000,
+                "GET /api/0/organizations/user/100",
+                "hash1",
+                data={
+                    "http.response_transfer_size": 50_000_000,
+                    "http.response_content_length": 50_000_000,
+                    "http.decoded_response_content_length": 50_000_000,
+                },
+            ),
+        ]
+        event = create_event(spans)
+
+        detector = LargeHTTPPayloadDetector(settings, event)
+        run_detector_on_data(detector, event)
         assert len(detector.stored_problems) == 0

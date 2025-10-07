@@ -35,7 +35,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         self.consecutive_http_spans: list[Span] = []
         self.organization = self.settings.get("organization")
         self.filtered_paths = [
-            path.strip()
+            path.strip() if path.strip().endswith("/") else path.strip() + "/"
             for path in self.settings.get("filtered_paths", "").split(",")
             if path.strip()
         ]
@@ -130,7 +130,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
             "organizations:large-http-payload-detector-improvements",
             self.organization,
         ):
-            if any([path in description for path in self.filtered_paths]):
+            if any(path in description for path in self.filtered_paths):
                 return False
 
         return True
