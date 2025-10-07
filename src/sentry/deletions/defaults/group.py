@@ -98,11 +98,16 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
             result["organization_id"] = self.groups[0].project.organization_id
         return result
 
-    def chunk(self, apply_filter: bool = False) -> bool:
-        """This method is called to delete chunks of data. It returns a boolean to say
-        if the deletion has completed and if it needs to be called again."""
+    def chunk(self, apply_filter: bool = False) -> tuple[bool, int]:
+        """This method is called to delete chunks of data.
+
+        Returns:
+            tuple[bool, int]: (has_more, rows_processed)
+                - has_more: True if deletion needs to be called again, False if complete
+                - rows_processed: Number of rows actually processed (0 for this task)
+        """
         self.delete_events_from_nodestore_and_eventstore()
-        return False
+        return False, 0
 
     def delete_events_from_nodestore_and_eventstore(self) -> None:
         """Schedule asynchronous deletion of events from the nodestore and eventstore for all groups."""
