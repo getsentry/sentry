@@ -78,7 +78,8 @@ function BillingDetailsInfo() {
   }
 
   const taxFieldInfo = getTaxFieldInfo(billingDetails.countryCode);
-  const showTaxNumber = countryHasSalesTax(billingDetails.countryCode);
+  const showTaxNumber =
+    countryHasSalesTax(billingDetails.countryCode) && !!billingDetails.taxNumber;
 
   const primaryDetails = [
     billingDetails.companyName,
