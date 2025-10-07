@@ -43,7 +43,7 @@ function generatePerformanceGroupInfo({
 }: {
   event: Event;
   group: Group | undefined;
-}): EventGroupingInfoResponseOld | null {
+}): EventGroupingInfoResponseOld | EventGroupingInfoResponse | null {
   if (!event.occurrence) {
     return null;
   }
