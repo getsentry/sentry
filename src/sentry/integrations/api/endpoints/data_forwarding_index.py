@@ -14,13 +14,17 @@ from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.parameters import GlobalParams
 from sentry.integrations.api.serializers.models.data_forwarder import (  # noqa: F401
-    DataForwarderProjectSerializer as DataForwarderProjectModelSerializer,
+    DataForwarderProjectSerializer,
 )
 from sentry.integrations.api.serializers.models.data_forwarder import (
     DataForwarderSerializer as DataForwarderModelSerializer,
 )
+from sentry.integrations.api.serializers.rest_framework.data_forwarder import (
+    DataForwarderSerializer,
+)
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
+from sentry.organizations.services.organization.model import RpcUserOrganizationContext
 from sentry.web.decorators import set_referrer_policy
 
 
@@ -45,12 +49,12 @@ class DataForwardingEndpoint(OrganizationEndpoint):
         operation_id="Retrieve a Data Forwarding Configuration for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         responses={
-            200: DataForwarderProjectModelSerializer,
+            200: DataForwarderModelSerializer,
         },
     )
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
-    def get(self, request: Request, organization_context) -> Response:
+    def get(self, request: Request, organization_context: RpcUserOrganizationContext) -> Response:
         data_forwarders = DataForwarder.objects.filter(
             organization_id=organization_context.organization.id
         )
@@ -66,7 +70,7 @@ class DataForwardingEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="Create a Data Forwarding Configuration for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
-        request=DataForwarderProjectModelSerializer,
+        request=DataForwarderSerializer,
         responses={
             201: DataForwarderModelSerializer,
             400: RESPONSE_BAD_REQUEST,
@@ -75,11 +79,11 @@ class DataForwardingEndpoint(OrganizationEndpoint):
     )
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
-    def post(self, request: Request, organization_context) -> Response:
-        data = request.data
+    def post(self, request: Request, organization_context: RpcUserOrganizationContext) -> Response:
+        data = request.data.copy()
         data["organization_id"] = organization_context.organization.id
 
-        serializer = DataForwarderModelSerializer(data=data)
+        serializer = DataForwarderSerializer(data=data)
         if serializer.is_valid():
             data_forwarder = serializer.save()
 
