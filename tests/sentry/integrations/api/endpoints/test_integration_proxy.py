@@ -21,7 +21,11 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.metrics.base import Tags
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError
+from sentry.shared_integrations.exceptions import (
+    ApiHostError,
+    ApiTimeoutError,
+    IntegrationConfigurationError,
+)
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_PATH,
@@ -590,3 +594,49 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 2)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 1)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.FAILURE, 1)
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
+    @patch.object(metrics, "incr")
+    def test_handles_integration_configuration_error(
+        self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
+    ) -> None:
+        """Test that IntegrationConfigurationError is handled gracefully with 403 status"""
+        signature_path = f"/{self.proxy_path}"
+        headers = self.create_request_headers(
+            signature_path=signature_path, integration_id=self.org_integration.id
+        )
+        mock_client.base_url = "https://example.com/api"
+        mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
+        mock_client.request = MagicMock(
+            side_effect=lambda *args, **kwargs: self.raise_exception(
+                IntegrationConfigurationError,
+                "GitHub organization has IP allowlist enabled. "
+                "Please add Sentry's IP addresses to the GitHub organization's IP allowlist.",
+            )
+        )
+        mock_get_client.return_value = mock_client
+
+        proxy_response = self.client.get(self.path, **headers)
+
+        assert proxy_response.status_code == 403
+        assert "configuration_error" in proxy_response.data["error_type"]
+        assert "IP allowlist" in proxy_response.data["error"]
+
+        self.assert_metric_count(
+            metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
+            count=1,
+            mock_metrics=mock_metrics,
+            kwargs_to_match={"sample_rate": 1.0, "tags": None},
+        )
+        self.assert_failure_metric_count(
+            failure_type=IntegrationProxyFailureMetricType.CONFIGURATION_ERROR,
+            count=1,
+            mock_metrics=mock_metrics,
+        )
+        self.assert_metric_count(
+            metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
+            count=0,
+            mock_metrics=mock_metrics,
+        )

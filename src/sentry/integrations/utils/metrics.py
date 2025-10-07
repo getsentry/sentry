@@ -12,6 +12,7 @@ import sentry_sdk
 from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -350,6 +351,15 @@ class IntegrationEventLifecycle(EventLifecycle):
             # ApiHostError is raised from RestrictedIPAddress
             self.record_halt(exc_value)
             return
+
+        if exc_value is not None and isinstance(
+            exc_value.__cause__, IntegrationConfigurationError
+        ):
+            # IntegrationConfigurationError indicates a user configuration issue (e.g., GitHub IP allowlist)
+            # Log as a halt without creating a Sentry issue since this requires customer intervention
+            self.record_halt(exc_value)
+            return
+
         super().__exit__(exc_type, exc_value, traceback)
 
 

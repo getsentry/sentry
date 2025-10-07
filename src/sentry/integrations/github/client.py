@@ -31,7 +31,13 @@ from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, Int
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, UnknownHostError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiForbiddenError,
+    ApiRateLimitedError,
+    IntegrationConfigurationError,
+    UnknownHostError,
+)
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
@@ -277,6 +283,52 @@ class GithubProxyClient(IntegrationProxyClient):
         ):
             return True
         return super().is_error_fatal(error)
+
+    def request(self, *args: Any, **kwargs: Any) -> Any:
+        """
+        Override request to convert IP allowlist errors to IntegrationConfigurationError.
+        This prevents Sentry from creating issues for GitHub org IP allowlist configuration.
+        """
+        try:
+            return super().request(*args, **kwargs)
+        except ApiForbiddenError as e:
+            # Check if this is a GitHub IP allowlist error
+            if self._is_ip_allowlist_error(e):
+                logger.info(
+                    "github.ip_allowlist_error",
+                    extra={
+                        "integration_id": getattr(self.integration, "id", "unknown")
+                        if hasattr(self, "integration")
+                        else "unknown",
+                        "error_message": str(e),
+                    },
+                )
+                # Convert to IntegrationConfigurationError which indicates a user configuration issue
+                raise IntegrationConfigurationError(
+                    "GitHub organization has IP allowlist enabled. "
+                    "Please add Sentry's IP addresses to the GitHub organization's IP allowlist. "
+                    f"Original error: {e.text}"
+                ) from e
+            # Re-raise if it's a different type of 403 error
+            raise
+
+    def _is_ip_allowlist_error(self, error: ApiForbiddenError) -> bool:
+        """
+        Detect if an ApiForbiddenError is due to GitHub's IP allowlist feature.
+        """
+        # Check JSON response for IP allowlist message
+        if error.json and isinstance(error.json, dict):
+            message = error.json.get("message", "")
+            if "IP allow list enabled" in message or "IP address is not permitted" in message:
+                return True
+
+        # Check text response for IP allowlist message
+        if error.text and (
+            "IP allow list enabled" in error.text or "IP address is not permitted" in error.text
+        ):
+            return True
+
+        return False
 
 
 class GitHubBaseClient(

@@ -23,7 +23,11 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiRateLimitedError,
+    IntegrationConfigurationError,
+)
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
@@ -679,6 +683,54 @@ class GithubProxyClientTest(TestCase):
             assert control_proxy_responses.call_count == 1
             assert client.base_url not in request.url
             client.assert_proxy_request(request, is_proxy=True)
+
+    @responses.activate
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
+    def test_ip_allowlist_error_converts_to_configuration_error(self, mock_jwt) -> None:
+        """Test that IP allowlist errors are converted to IntegrationConfigurationError"""
+        # Mock an IP allowlist error response from GitHub
+        responses.add(
+            method=responses.POST,
+            url=f"https://api.github.com/app/installations/{self.installation_id}/access_tokens",
+            json={
+                "message": "Although you appear to have the correct authorization credentials, "
+                "the `wealthsimple` organization has an IP allow list enabled, and your IP "
+                "address is not permitted to access this resource.",
+                "documentation_url": "https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app",
+            },
+            status=403,
+        )
+
+        # The error should be converted to IntegrationConfigurationError
+        with pytest.raises(IntegrationConfigurationError) as exc_info:
+            self.gh_client._refresh_access_token()
+
+        assert "IP allowlist enabled" in str(exc_info.value)
+        assert mock_jwt.called
+
+    @responses.activate
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
+    def test_regular_403_error_not_converted(self, mock_jwt) -> None:
+        """Test that regular 403 errors are not converted to IntegrationConfigurationError"""
+        # Mock a regular 403 error (not IP allowlist related)
+        responses.add(
+            method=responses.POST,
+            url=f"https://api.github.com/app/installations/{self.installation_id}/access_tokens",
+            json={
+                "message": "Resource not accessible by integration",
+                "documentation_url": "https://docs.github.com/rest",
+            },
+            status=403,
+        )
+
+        # The error should remain as ApiForbiddenError and raise as ApiError
+        with pytest.raises(ApiError) as exc_info:
+            self.gh_client._refresh_access_token()
+
+        # Should not be converted to IntegrationConfigurationError
+        assert not isinstance(exc_info.value, IntegrationConfigurationError)
+        assert "IP allowlist" not in str(exc_info.value)
+        assert mock_jwt.called
 
 
 class GitHubCommitContextClientTest(TestCase):
