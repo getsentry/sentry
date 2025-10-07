@@ -92,7 +92,9 @@ function updateQueryParams(
 
     aggregateCursor:
       writableQueryParams.aggregateCursor ?? readableQueryParams.aggregateCursor,
-    aggregateFields: aggregateFields ?? readableQueryParams.aggregateFields,
+    aggregateFields: aggregateFields.length
+      ? aggregateFields
+      : readableQueryParams.aggregateFields,
     aggregateSortBys:
       writableQueryParams.aggregateSortBys ?? readableQueryParams.aggregateSortBys,
 
