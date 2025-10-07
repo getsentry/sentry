@@ -6,7 +6,7 @@ import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils
 import {t} from 'sentry/locale';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
-export interface QueryTokensProps {
+interface QueryTokensProps {
   groupBys?: string[];
   query?: string;
   sort?: string;
