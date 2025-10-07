@@ -162,10 +162,10 @@ class FetchOpenPeriodsTest(TestCase):
         detected_activity_resp = chart_data[0]["activities"][0]
         created_activity_resp = chart_data[0]["activities"][1]
 
-        assert detected_activity_resp["incidentIdentifier"] == str(incident.id)
+        assert detected_activity_resp["incidentIdentifier"] == str(incident.identifier)
         assert detected_activity_resp["type"] == IncidentActivityType.DETECTED.value
         assert detected_activity_resp["dateCreated"] == detected_activity.date_added
 
-        assert created_activity_resp["incidentIdentifier"] == str(incident.id)
+        assert created_activity_resp["incidentIdentifier"] == str(incident.identifier)
         assert created_activity_resp["type"] == IncidentActivityType.CREATED.value
         assert created_activity_resp["dateCreated"] == created_activity.date_added
