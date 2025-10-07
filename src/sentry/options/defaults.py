@@ -600,12 +600,17 @@ register(
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
 
+
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # signing-secret is preferred, but need to keep verification-token for apps that use it
 register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register(
+    "slack.default-workspace", default="example-workspace-name", flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+register("slack.default-channel", default="general", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Issue Summary on Alerts (timeout in seconds)
 register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -3098,7 +3103,7 @@ register(
 register(
     "workflow_engine.scheduler.use_conditional_delete",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3118,6 +3123,13 @@ register(
 
 register(
     "workflow_engine.issue_alert.group.type_id.rollout",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "workflow_engine.group.type_id.open_periods_type_denylist",
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3410,15 +3422,6 @@ register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR
 # This is mutually exclusive with the above setting.
 register("objectstore.double_write.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-
-# Whether to use 60s granularity for the dynamic sampling query
-register(
-    "dynamic-sampling.query-granularity-60s",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # option used to enable/disable tracking
 # rate of potential functions metrics to
 # be written into EAP
@@ -3426,21 +3429,6 @@ register(
     "profiling.track_functions_metrics_write_rate.eap.enabled",
     default=False,
     type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Whether to use 60s granularity for the dynamic sampling query
-register(
-    "dynamic-sampling.query-granularity-60s.active-orgs",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "dynamic-sampling.query-granularity-60s.fetch-transaction-totals",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

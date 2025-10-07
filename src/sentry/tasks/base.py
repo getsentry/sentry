@@ -4,24 +4,21 @@ import datetime
 import functools
 import logging
 from collections.abc import Callable, Iterable
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, TypeVar, cast
 
 import sentry_sdk
 from django.db.models import Model
 
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.taskworker.config import TaskworkerConfig  # noqa (used in getsentry)
 from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.registry import TaskNamespace
 from sentry.taskworker.retry import Retry, RetryError, retry_task
 from sentry.taskworker.state import current_task
+from sentry.taskworker.task import P, R, Task
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils import metrics
 
 ModelT = TypeVar("ModelT", bound=Model)
-
-P = ParamSpec("P")
-R = TypeVar("R")
 
 logger = logging.getLogger(__name__)
 
@@ -37,18 +34,18 @@ class TaskSiloLimit(SiloLimit):
 
     def handle_when_unavailable(
         self,
-        original_method: Callable[..., Any],
+        original_method: Callable[P, R],
         current_mode: SiloMode,
         available_modes: Iterable[SiloMode],
-    ) -> Callable[..., Any]:
-        def handle(*args: Any, **kwargs: Any) -> Any:
+    ) -> Callable[P, R]:
+        def handle(*args: P.args, **kwargs: P.kwargs) -> Any:
             name = original_method.__name__
             message = f"Cannot call or spawn {name} in {current_mode},"
             raise self.AvailabilityError(message)
 
         return handle
 
-    def __call__(self, decorated_task: Any) -> Any:
+    def __call__(self, decorated_task: Task[P, R]) -> Task[P, R]:
         # Replace the sentry.taskworker.Task interface used to schedule tasks.
         replacements = {"delay", "apply_async"}
         for attr_name in replacements:
@@ -57,9 +54,11 @@ class TaskSiloLimit(SiloLimit):
                 limited_attr = self.create_override(task_attr)
                 setattr(decorated_task, attr_name, limited_attr)
 
-        limited_func = self.create_override(decorated_task)
+        # Cast as the super class type is just Callable, but we know here
+        # we have Task instances.
+        limited_func = cast(Task[P, R], self.create_override(decorated_task))
         if hasattr(decorated_task, "name"):
-            limited_func.name = decorated_task.name  # type: ignore[attr-defined]
+            limited_func.name = decorated_task.name
         return limited_func
 
 
@@ -76,7 +75,7 @@ def load_model_from_db(
 
 def instrumented_task(
     name: str,
-    namespace: TaskNamespace | None = None,
+    namespace: TaskNamespace,
     retry: Retry | None = None,
     expires: int | datetime.timedelta | None = None,
     processing_deadline_duration: int | datetime.timedelta | None = None,
@@ -84,9 +83,8 @@ def instrumented_task(
     wait_for_delivery: bool = False,
     compression_type: CompressionType = CompressionType.PLAINTEXT,
     silo_mode=None,
-    taskworker_config=None,
     **kwargs,
-):
+) -> Callable[[Callable[P, R]], Task[P, R]]:
     """
     Decorator for defining tasks.
 
@@ -97,31 +95,16 @@ def instrumented_task(
     - hybrid cloud silo restrictions
     """
 
-    def wrapped(func):
-        if namespace:
-            task = namespace.register(
-                name=name,
-                retry=retry,
-                expires=expires,
-                processing_deadline_duration=processing_deadline_duration,
-                at_most_once=at_most_once,
-                wait_for_delivery=wait_for_delivery,
-                compression_type=compression_type,
-            )(func)
-        elif taskworker_config:
-            task = taskworker_config.namespace.register(
-                name=name,
-                retry=taskworker_config.retry,
-                expires=taskworker_config.expires,
-                processing_deadline_duration=taskworker_config.processing_deadline_duration,
-                at_most_once=taskworker_config.at_most_once,
-                wait_for_delivery=taskworker_config.wait_for_delivery,
-                compression_type=taskworker_config.compression_type,
-            )(func)
-        else:
-            raise AssertionError(
-                f"The `{name}` task must provide either `taskworker_config` or `namespace`."
-            )
+    def wrapped(func: Callable[P, R]) -> Task[P, R]:
+        task = namespace.register(
+            name=name,
+            retry=retry,
+            expires=expires,
+            processing_deadline_duration=processing_deadline_duration,
+            at_most_once=at_most_once,
+            wait_for_delivery=wait_for_delivery,
+            compression_type=compression_type,
+        )(func)
 
         if silo_mode:
             silo_limiter = TaskSiloLimit(silo_mode)
@@ -166,8 +149,13 @@ def retry(
             except ignore:
                 return
             except RetryError:
-                # We shouldn't interfere with exceptions that exist to communicate
-                # retry state.
+                if (
+                    not raise_on_no_retries
+                    and (task_state := current_task())
+                    and not task_state.retries_remaining
+                ):
+                    return
+                # If we haven't been asked to ignore no-retries, pass along the RetryError.
                 raise
             except timeout_exceptions:
                 if timeouts:
