@@ -28,7 +28,22 @@ export function Slab<T extends ContainerElement = 'div'>(props: SlabProps<T>) {
   const {variant, border, radius = 'md', size = 'md', ...rest} = props;
 
   return (
-    <SlabContainer size={size} variant={variant} radius={radius}>
+    <SlabContainer
+      size={size}
+      variant={variant}
+      radius={radius}
+      // Forward layout props to the container so that the slab
+      // can be used as a flex or grid item
+      flex={props.flex}
+      flexBasis={props.flexBasis}
+      flexGrow={props.flexGrow}
+      flexShrink={props.flexShrink}
+      justifySelf={props.justifySelf}
+      alignSelf={props.alignSelf}
+      // Forward grid props to the container so that the slab
+      // can be used as a grid item
+      area={props.area}
+    >
       <Container
         border={variant ?? 'primary'}
         radius={radius}
