@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {Activity, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -46,14 +46,14 @@ function GroupingComponent({component, showNonContributing}: Props) {
           {component.hint && <GroupingHint>{` (${component.hint})`}</GroupingHint>}
         </span>
 
-        {!folded && (
+        <Activity mode={folded ? 'hidden' : 'visible'}>
           <GroupingComponentList isInline={shouldInlineValue} hasFold={canFold}>
             <GroupingComponentListItems
               component={component}
               showNonContributing={showNonContributing}
             />
           </GroupingComponentList>
-        )}
+        </Activity>
       </GroupingComponentWrapper>
     </CollapseButtonWrapper>
   );
