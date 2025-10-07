@@ -1,7 +1,10 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilder,
+} from 'sentry/components/searchQueryBuilder/context';
 import {AggregateKeyVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {FilterValueText} from 'sentry/components/searchQueryBuilder/tokens/filter/filter';
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
@@ -18,7 +21,7 @@ import {
 import {getKeyLabel} from 'sentry/components/searchSyntax/utils';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
-import {getFieldDefinition} from 'sentry/utils/fields';
+import {getFieldDefinition as defaultGetFieldDefinition} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export type FormattedQueryProps = {
@@ -50,12 +53,18 @@ function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
 }
 
 function Filter({token}: {token: TokenResult<Token.FILTER>}) {
+  const {getFieldDefinition} = useSearchQueryBuilder();
   const hasWildcardOperators = useOrganization().features.includes(
     'search-query-builder-wildcard-operators'
   );
   const label = useMemo(
-    () => getOperatorInfo(token, hasWildcardOperators).label,
-    [hasWildcardOperators, token]
+    () =>
+      getOperatorInfo({
+        filterToken: token,
+        hasWildcardOperators,
+        fieldDefinition: getFieldDefinition(token.key.text),
+      }).label,
+    [hasWildcardOperators, token, getFieldDefinition]
   );
 
   return (
@@ -101,7 +110,7 @@ function QueryToken({token}: TokenProps) {
 export function FormattedQuery({
   className,
   query,
-  fieldDefinitionGetter = getFieldDefinition,
+  fieldDefinitionGetter = defaultGetFieldDefinition,
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
 }: FormattedQueryProps) {
@@ -137,7 +146,7 @@ export function FormattedQuery({
 export function ProvidedFormattedQuery({
   className,
   query,
-  fieldDefinitionGetter = getFieldDefinition,
+  fieldDefinitionGetter = defaultGetFieldDefinition,
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
 }: FormattedQueryProps) {
