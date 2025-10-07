@@ -4,7 +4,7 @@ import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import type {EventTransaction, Level, Measurement} from 'sentry/types/event';
+import type {Level, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {
   TraceError as TraceErrorType,
@@ -15,7 +15,6 @@ import type {
 import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
-  isBrowserRequestNode,
   isEAPError,
   isEAPSpan,
   isJavascriptSDKEvent,
@@ -43,7 +42,6 @@ import {NoInstrumentationNode} from './traceTreeNode/noInstrumentationNode';
 import {ParentAutogroupNode} from './traceTreeNode/parentAutogroupNode';
 import {RootNode} from './traceTreeNode/rootNode';
 import {SiblingAutogroupNode} from './traceTreeNode/siblingAutogroupNode';
-import {SpanNode} from './traceTreeNode/spanNode';
 import {TraceNode} from './traceTreeNode/traceNode';
 import {TransactionNode} from './traceTreeNode/transactionNode';
 import {UptimeCheckNode} from './traceTreeNode/uptimeCheckNode';
@@ -586,111 +584,48 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return tree;
   }
 
-  fromSpans(
+  async expandBounds(
+    expanding: boolean,
     node: BaseNode,
-    spans: TraceTree.Span[],
-    event: EventTransaction | null,
-    options?: {
+    options: {
+      api: Client;
       organization: Organization;
       preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
     }
-  ): Map<string, BaseNode> {
-    // Create span nodes
-    const spanNodes: SpanNode[] = [];
-    const spanIdToNode = new Map<string, BaseNode>();
-
-    // Transactions have a span_id that needs to be used as the edge to child child span
-    if (node.value && 'span_id' in node.value) {
-      spanIdToNode.set(node.value.span_id, node);
-    }
-
-    for (const span of spans) {
-      const spanNode: SpanNode = new SpanNode(null, span, null);
-      spanNode.event = event;
-
-      if (spanIdToNode.has(span.span_id)) {
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['trace-span-id-hash-collision']);
-          scope.captureMessage('Span ID hash collision detected');
-          info(fmt`Span ID hash collision detected: ${span.span_id}`);
-        });
-      }
-
-      spanIdToNode.set(span.span_id, spanNode);
-      spanNodes.push(spanNode);
-    }
-
-    // Construct the span tree
-    for (const span of spanNodes) {
-      // If the span has no parent span id, nest it under the root
-      const parent = span.value.parent_span_id
-        ? (spanIdToNode.get(span.value.parent_span_id) ?? node)
-        : node;
-
-      span.parent = parent;
-      parent.children.push(span);
-    }
-
-    const subTreeSpaceBounds: [number, number] = [node.space[0], node.space[1]];
-
-    node.children.sort(traceChronologicalSort);
-    node.forEachChild(c => {
-      c.invalidate();
-      // When reparenting transactions under spans, the children are not guaranteed to be in order
-      // so we need to sort them chronologically after the reparenting is complete
-      // Track the min and max space of the sub tree as spans have ms precision
-      subTreeSpaceBounds[0] = Math.min(subTreeSpaceBounds[0], c.space[0]);
-      subTreeSpaceBounds[1] = Math.max(subTreeSpaceBounds[1], c.space[1]);
-
-      if (isBrowserRequestNode(c)) {
-        const serverRequestHandler = c.parent?.children.find(n => n.op === 'http.server');
-
-        if (serverRequestHandler?.reparent_reason === 'pageload server handler') {
-          serverRequestHandler.parent!.children =
-            serverRequestHandler.parent!.children.filter(n => n !== serverRequestHandler);
-          c.children.push(serverRequestHandler);
-          serverRequestHandler.parent = c;
-        }
-      }
-
-      c.children.sort(traceChronologicalSort);
+  ) {
+    const newBounds = await node.fetchChildren(expanding, this, {
+      api: options.api,
     });
 
-    if (!Number.isFinite(subTreeSpaceBounds[0])) {
-      subTreeSpaceBounds[0] = 0;
-    }
-    if (!Number.isFinite(subTreeSpaceBounds[1])) {
-      subTreeSpaceBounds[1] = 0;
-    }
+    // If the newly fetched children extend beyond the current bounds of the tree,
+    // we need to extend the current bounds of the tree.
+    if (newBounds) {
+      const previousStart = this.root.space[0];
+      const previousDuration = this.root.space[1];
 
-    // Spans contain millisecond precision, which means that it is possible for the
-    // children spans of a transaction to extend beyond the start and end of the transaction
-    // through ns precision. To account for this, we need to adjust the space of the transaction node and the space
-    // of our trace so that all of the span children are visible and can be rendered inside the view
-    const previousStart = this.root.space[0];
-    const previousDuration = this.root.space[1];
+      const newStart = newBounds[0];
+      const newEnd = newBounds[0] + newBounds[1];
 
-    const newStart = subTreeSpaceBounds[0];
-    const newEnd = subTreeSpaceBounds[0] + subTreeSpaceBounds[1];
+      // Extend the start of the trace to include the new min start
+      if (newStart <= this.root.space[0]) {
+        this.root.space[0] = newStart;
+      }
+      // Extend the end of the trace to include the new max end
+      if (newEnd > this.root.space[0] + this.root.space[1]) {
+        this.root.space[1] = newEnd - this.root.space[0];
+      }
 
-    // Extend the start of the trace to include the new min start
-    if (newStart <= this.root.space[0]) {
-      this.root.space[0] = newStart;
+      if (
+        previousStart !== this.root.space[0] ||
+        previousDuration !== this.root.space[1]
+      ) {
+        this.dispatch('trace timeline change', this.root.space);
+      }
+
+      if (options.preferences) {
+        TraceTree.ApplyPreferences(node, options);
+      }
     }
-    // Extend the end of the trace to include the new max end
-    if (newEnd > this.root.space[0] + this.root.space[1]) {
-      this.root.space[1] = newEnd - this.root.space[0];
-    }
-
-    if (previousStart !== this.root.space[0] || previousDuration !== this.root.space[1]) {
-      this.dispatch('trace timeline change', this.root.space);
-    }
-
-    if (options) {
-      TraceTree.ApplyPreferences(node, options);
-    }
-
-    return spanIdToNode;
   }
 
   appendTree(tree: TraceTree) {
@@ -1183,7 +1118,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
     ) as TransactionNode[];
 
     const promises = transactionNodes.map(node =>
-      node.fetchChildren(true, tree, {api: options.api, preferences: options.preferences})
+      tree.expandBounds(true, node, {
+        api: options.api,
+        organization: options.organization,
+        preferences: options.preferences,
+      })
     );
 
     return Promise.all(promises)
