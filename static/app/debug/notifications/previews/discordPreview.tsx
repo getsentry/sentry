@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {DebugNotificationsPreview} from 'sentry/debug/notifications/components/debugNotificationsPreview';
 import {
@@ -34,7 +34,12 @@ export function DiscordPreview({
             </Flex>
             <DiscordTimeText size="sm">{previewTime}</DiscordTimeText>
           </Flex>
-          <DiscordEmbedContainer>
+          <DiscordEmbedContainer
+            direction="column"
+            align="start"
+            padding="lg xl"
+            gap="md"
+          >
             <DiscordWhiteText size="md" bold>
               {subject}
             </DiscordWhiteText>
@@ -106,16 +111,11 @@ const DiscordAppBadge = styled(Text)`
   color: #fff;
 `;
 
-const DiscordEmbedContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: ${p => p.theme.space.md};
+const DiscordEmbedContainer = styled(Flex)`
   background: #242429;
   border-radius: 2px;
   border: 0.5px solid #3a3a40;
   border-left-width: 3px;
-  padding: ${p => `${p.theme.space.lg} ${p.theme.space.xl}`};
 `;
 
 const DiscordChart = styled('img')`
