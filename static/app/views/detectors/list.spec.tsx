@@ -25,7 +25,7 @@ import DetectorsList from 'sentry/views/detectors/list';
 
 describe('DetectorsList', () => {
   const organization = OrganizationFixture({
-    features: ['workflow-engine-ui'],
+    features: ['workflow-engine-ui', 'search-query-builder-input-flow-changes'],
     access: ['org:write'],
   });
 
@@ -39,7 +39,7 @@ describe('DetectorsList', () => {
       url: '/organizations/org-slug/detectors/',
       body: [MetricDetectorFixture({name: 'Detector 1'})],
     });
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}), new Set());
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
   });
 
   it('displays all detector info correctly', async () => {
@@ -168,6 +168,10 @@ describe('DetectorsList', () => {
       // Click through menus to select type:error
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(await screen.findByRole('option', {name: 'type'}));
+
+      const isOption = await screen.findByRole('option', {name: 'is'});
+      await userEvent.click(isOption);
+
       const options = await screen.findAllByRole('option');
       expect(options).toHaveLength(4);
       expect(options[0]).toHaveTextContent('error');
@@ -200,10 +204,12 @@ describe('DetectorsList', () => {
       const searchInput = await screen.findByRole('combobox', {
         name: 'Add a search term',
       });
-      await userEvent.type(searchInput, 'assignee:test@example.com');
+      await userEvent.type(searchInput, 'assignee:');
 
-      // It takes two enters. One to enter the search term, and one to submit the search.
       await userEvent.keyboard('{enter}');
+
+      await userEvent.keyboard('test@example.com');
+
       await userEvent.keyboard('{enter}');
 
       await screen.findByText('Assigned Detector');
@@ -229,7 +235,9 @@ describe('DetectorsList', () => {
       );
 
       // Click on Name column header to sort
-      await userEvent.click(screen.getByRole('columnheader', {name: 'Name'}));
+      await userEvent.click(
+        screen.getByRole('columnheader', {name: 'Select all on page Name'})
+      );
 
       await waitFor(() => {
         expect(mockDetectorsRequest).toHaveBeenLastCalledWith(
@@ -244,7 +252,9 @@ describe('DetectorsList', () => {
       expect(router.location.query.sort).toBe('name');
 
       // Click on Name column header again to change sort direction
-      await userEvent.click(screen.getByRole('columnheader', {name: 'Name'}));
+      await userEvent.click(
+        screen.getByRole('columnheader', {name: 'Select all on page Name'})
+      );
 
       await waitFor(() => {
         expect(mockDetectorsRequest).toHaveBeenLastCalledWith(
@@ -291,10 +301,7 @@ describe('DetectorsList', () => {
           }),
         ],
       });
-      PageFiltersStore.onInitializeUrlState(
-        PageFiltersFixture({projects: [1]}),
-        new Set()
-      );
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
     });
 
     it('can select detectors', async () => {
@@ -305,7 +312,7 @@ describe('DetectorsList', () => {
       expect(rows).toHaveLength(3);
 
       // Initially no checkboxes should be checked
-      const checkboxes = screen.getAllByRole('checkbox');
+      let checkboxes = screen.getAllByRole('checkbox');
       checkboxes.forEach(checkbox => {
         expect(checkbox).not.toBeChecked();
       });
@@ -331,6 +338,7 @@ describe('DetectorsList', () => {
       expect(masterCheckbox).toBeChecked();
 
       // // All checkboxes should be checked
+      checkboxes = screen.getAllByRole('checkbox');
       checkboxes.forEach(checkbox => {
         expect(checkbox).toBeChecked();
       });
@@ -492,10 +500,9 @@ describe('DetectorsList', () => {
       const searchInput = await screen.findByRole('combobox', {
         name: 'Add a search term',
       });
-      await userEvent.type(searchInput, 'assignee:test@example.com');
-
-      // It takes two enters. One to enter the search term, and one to submit the search.
+      await userEvent.type(searchInput, 'assignee:');
       await userEvent.keyboard('{enter}');
+      await userEvent.keyboard('test@example.com');
       await userEvent.keyboard('{enter}');
 
       // Wait for filtered results to load

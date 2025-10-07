@@ -841,10 +841,7 @@ Your pull request is modifying functions with the following pre-existing issues:
 | :------- | :----- |
 | **`function_0`** | [**SoftTimeLimitExceeded 0**](http://testserver/organizations/{self.organization.slug}/issues/5/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Event Count:` **20k** |
 | **`function_1`** | [**SoftTimeLimitExceeded 1**](http://testserver/organizations/{self.organization.slug}/issues/6/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Event Count:` **10k** |
-</details>
----
-
-<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+</details>"""
         )
 
     def test_comment_format_javascript(self) -> None:
@@ -906,10 +903,7 @@ Your pull request is modifying functions with the following pre-existing issues:
 | :------- | :----- |
 | **`function_0`** | [**SoftTimeLimitExceeded 0**](http://testserver/organizations/{self.organization.slug}/issues/5/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Event Count:` **20k** `Affected Users:` **20k** |
 | **`function_1`** | [**SoftTimeLimitExceeded 1**](http://testserver/organizations/{self.organization.slug}/issues/6/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Event Count:` **10k** `Affected Users:` **10k** |
-</details>
----
-
-<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+</details>"""
         )
 
     def test_comment_format_missing_language(self) -> None:
@@ -1022,9 +1016,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
             "| :------- | :----- |\n"
             f"| **`function_1`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Event Count:` **2k** |\n"
             f"| **`function_0`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Event Count:` **1k** |\n"
-            "</details>\n"
-            "---\n\n"
-            "<sub>Did you find this useful? React with a 👍 or 👎</sub>"
+            "</details>"
         )
 
         assert orjson.loads(responses.calls[0].request.body.decode())["body"] == expected_body

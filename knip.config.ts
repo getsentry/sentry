@@ -1,6 +1,8 @@
 import {compile} from '@mdx-js/mdx';
 import type {KnipConfig} from 'knip';
 
+const isProductionMode = process.argv.includes('--production');
+
 const productionEntryPoints = [
   // the main entry points - app, gsAdmin & gsApp
   'static/app/index.tsx',
@@ -33,6 +35,7 @@ const testingEntryPoints = [
 const storyBookEntryPoints = [
   // our storybook implementation is here
   'static/app/stories/storybook.tsx',
+  'static/app/stories/playground/*.tsx',
   'static/**/*.stories.{js,mjs,ts,tsx}',
   'static/**/*.mdx',
 ];
@@ -54,14 +57,13 @@ const config: KnipConfig = {
     // helper files for stories - it's fine that they are only used in tests
     '!static/app/**/__stories__/*.{js,mjs,ts,tsx}!',
     '!static/app/stories/**/*.{js,mjs,ts,tsx}!',
+    // TEMPORARY! Abdullah Khan: WILL BE REMOVING IN STACKED PRs. Trying to merge PRs in smaller batches.
+    '!static/app/views/performance/newTraceDetails/traceModels/traceTreeNode/**/*.{js,mjs,ts,tsx}!',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),
   },
-  ignore: [
-    // will be removed in the next PR
-    'static/app/components/deprecatedSmartSearchBar/**',
-  ],
+  ignoreExportsUsedInFile: isProductionMode,
   ignoreDependencies: [
     'core-js',
     'jest-environment-jsdom', // used as testEnvironment in jest config

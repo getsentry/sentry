@@ -17,7 +17,6 @@ from typing import Any
 from uuid import uuid4
 
 import sentry_sdk
-from celery import Task
 from django.apps import apps
 from django.db import connections, router
 from django.db.models import Max, Min
@@ -30,8 +29,8 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.models.tombstone import TombstoneBase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import deletion_control_tasks, deletion_tasks
+from sentry.taskworker.task import Task
 from sentry.utils import json, metrics, redis
 
 
@@ -115,10 +114,8 @@ def _chunk_watermark_batch(
 
 @instrumented_task(
     name="sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
-    queue="cleanup.control",
-    acks_late=True,
+    namespace=deletion_control_tasks,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(namespace=deletion_control_tasks),
 )
 def schedule_hybrid_cloud_foreign_key_jobs_control() -> None:
     if options.get("hybrid_cloud.disable_tombstone_cleanup"):
@@ -131,10 +128,8 @@ def schedule_hybrid_cloud_foreign_key_jobs_control() -> None:
 
 @instrumented_task(
     name="sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
-    queue="cleanup",
-    acks_late=True,
+    namespace=deletion_tasks,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=deletion_tasks),
 )
 def schedule_hybrid_cloud_foreign_key_jobs() -> None:
     if options.get("hybrid_cloud.disable_tombstone_cleanup"):
@@ -145,7 +140,7 @@ def schedule_hybrid_cloud_foreign_key_jobs() -> None:
     )
 
 
-def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task) -> None:
+def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task[Any, Any]) -> None:
     for app, app_models in apps.all_models.items():
         for model in app_models.values():
             if not hasattr(model._meta, "silo_limit"):
@@ -169,10 +164,8 @@ def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task) 
 
 @instrumented_task(
     name="sentry.deletions.tasks.hybrid_cloud.process_hybrid_cloud_foreign_key_cascade_batch_control",
-    queue="cleanup.control",
-    acks_late=True,
+    namespace=deletion_control_tasks,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(namespace=deletion_control_tasks),
 )
 def process_hybrid_cloud_foreign_key_cascade_batch_control(
     app_name: str, model_name: str, field_name: str, **kwargs: Any
@@ -191,10 +184,8 @@ def process_hybrid_cloud_foreign_key_cascade_batch_control(
 
 @instrumented_task(
     name="sentry.deletions.tasks.process_hybrid_cloud_foreign_key_cascade_batch",
-    queue="cleanup",
-    acks_late=True,
+    namespace=deletion_tasks,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=deletion_tasks),
 )
 def process_hybrid_cloud_foreign_key_cascade_batch(
     app_name: str, model_name: str, field_name: str, **kwargs: Any
@@ -212,7 +203,11 @@ def process_hybrid_cloud_foreign_key_cascade_batch(
 
 
 def _process_hybrid_cloud_foreign_key_cascade(
-    app_name: str, model_name: str, field_name: str, process_task: Task, silo_mode: SiloMode
+    app_name: str,
+    model_name: str,
+    field_name: str,
+    process_task: Task[Any, Any],
+    silo_mode: SiloMode,
 ) -> None:
     """
     Called by the silo bound tasks above.

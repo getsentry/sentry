@@ -28,10 +28,10 @@ import {
 } from 'sentry/views/explore/components/table';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {useLogsSearch} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   LOGS_INSTRUCTIONS_URL,
   MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
+  QUANTIZE_MINUTES,
 } from 'sentry/views/explore/logs/constants';
 import {
   FirstTableHeadCell,
@@ -50,12 +50,15 @@ import {
 import {
   getDynamicLogsNextFetchThreshold,
   getLogBodySearchTerms,
+  getLogRowTimestampMillis,
   getTableHeaderLabel,
   logsFieldAlignment,
+  quantizeTimestampToMinutes,
 } from 'sentry/views/explore/logs/utils';
 import type {ReplayEmbeddedTableOptions} from 'sentry/views/explore/logs/utils/logsReplayUtils';
 import {
   useQueryParamsFields,
+  useQueryParamsSearch,
   useQueryParamsSortBys,
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
@@ -97,7 +100,7 @@ export function LogsInfiniteTable({
 }: LogsTableProps) {
   const theme = useTheme();
   const fields = useQueryParamsFields();
-  const search = useLogsSearch();
+  const search = useQueryParamsSearch();
   const autoRefresh = useLogsAutoRefreshEnabled();
   const {infiniteLogsQueryResult} = useLogsPageData();
   const lastFetchTime = useRef<number | null>(null);
@@ -117,6 +120,32 @@ export function LogsInfiniteTable({
 
   // Use filtered items if provided, otherwise use original data
   const data = localOnlyItemFilters?.filteredItems ?? originalData;
+
+  // Calculate quantized start and end times for replay links
+  const {logStart, logEnd} = useMemo(() => {
+    if (!data || data.length === 0) {
+      return {logStart: undefined, logEnd: undefined};
+    }
+
+    const timestamps = data.map(row => getLogRowTimestampMillis(row)).filter(Boolean);
+    if (timestamps.length === 0) {
+      return {logStart: undefined, logEnd: undefined};
+    }
+
+    const firstTimestamp = Math.min(...timestamps);
+    const lastTimestamp = Math.max(...timestamps);
+
+    const quantizedStart = quantizeTimestampToMinutes(firstTimestamp, QUANTIZE_MINUTES);
+    const quantizedEnd = quantizeTimestampToMinutes(
+      lastTimestamp + QUANTIZE_MINUTES * 60 * 1000,
+      QUANTIZE_MINUTES
+    );
+
+    return {
+      logStart: new Date(quantizedStart).toISOString(),
+      logEnd: new Date(quantizedEnd).toISOString(),
+    };
+  }, [data]);
 
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
@@ -138,7 +167,7 @@ export function LogsInfiniteTable({
       minimumColumnWidth: 50,
       prefixColumnWidth: 'min-content',
       staticColumnWidths: {
-        [OurLogKnownFieldKey.MESSAGE]: '1fr',
+        [OurLogKnownFieldKey.MESSAGE]: 'minmax(90px,1fr)',
       },
     }
   );
@@ -382,6 +411,8 @@ export function LogsInfiniteTable({
                   canDeferRenderElements
                   onExpand={handleExpand}
                   onCollapse={handleCollapse}
+                  logStart={logStart}
+                  logEnd={logEnd}
                   isExpanded={expandedLogRows.has(dataRow[OurLogKnownFieldKey.ID])}
                   onExpandHeight={handleExpandHeight}
                 />
@@ -413,14 +444,14 @@ export function LogsInfiniteTable({
           />
         )}
         {embeddedOptions?.replay && showJumpUpButton ? (
-          <JumpButtons jump={'up'} onClick={onClickToJump} tableHeaderHeight={0} />
+          <JumpButtons jump="up" onClick={onClickToJump} tableHeaderHeight={0} />
         ) : null}
       </FloatingBackToTopContainer>
       <FloatingBottomContainer
         tableWidth={tableRef.current?.getBoundingClientRect().width ?? 0}
       >
         {embeddedOptions?.replay && showJumpDownButton ? (
-          <JumpButtons jump={'down'} onClick={onClickToJump} tableHeaderHeight={0} />
+          <JumpButtons jump="down" onClick={onClickToJump} tableHeaderHeight={0} />
         ) : null}
       </FloatingBottomContainer>
     </Fragment>

@@ -79,6 +79,8 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
 from sentry.insights import FilterSpan
 from sentry.insights import modules as insights_modules
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
+from sentry.issue_detection.performance_detection import detect_performance_problems
+from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
@@ -105,8 +107,6 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
-from sentry.performance_issues.performance_detection import detect_performance_problems
-from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
@@ -143,6 +143,7 @@ from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
+from sentry.workflow_engine.processors.detector import associate_new_group_with_detector
 
 from .utils.event_tracker import TransactionStageStatus, track_sampled_event
 
@@ -1494,6 +1495,7 @@ def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> Gro
             record_new_group_metrics(event)
 
             group = _create_group(project, event, **_get_group_processing_kwargs(job))
+            associate_new_group_with_detector(group)
             add_group_id_to_grouphashes(group, grouphashes)
 
             return GroupInfo(group=group, is_new=True, is_regression=False)
@@ -1595,8 +1597,7 @@ def _create_group(
             logger.exception("Error after unsticking project counter")
             raise
 
-    if features.has("organizations:issue-open-periods", project.organization):
-        create_open_period(group=group, start_time=group.first_seen)
+    create_open_period(group=group, start_time=group.first_seen)
 
     return group
 

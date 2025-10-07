@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
-import TestPreOnboardingPage from 'sentry/views/prevent/tests/preOnboarding';
+import TestsPreOnboardingPage from 'sentry/views/prevent/tests/preOnboarding';
 
 jest.mock('sentry/utils/regions', () => ({
   getRegionDataFromOrganization: jest.fn(),
@@ -11,7 +11,7 @@ jest.mock('sentry/utils/regions', () => ({
 
 const mockGetRegionData = jest.mocked(getRegionDataFromOrganization);
 
-describe('TestPreOnboardingPage', () => {
+describe('TestsPreOnboardingPage', () => {
   const org = OrganizationFixture({
     features: ['codecov-integration'],
   });
@@ -24,12 +24,12 @@ describe('TestPreOnboardingPage', () => {
       url: 'https://eu.sentry.io',
     });
 
-    render(<TestPreOnboardingPage />, {organization: org});
+    render(<TestsPreOnboardingPage />, {organization: org});
 
     // Check that the alert is displayed
     expect(
       screen.getByText(
-        'Test Analytics data is stored in the U.S. only. To use this feature, create a new Sentry organization with U.S. data storage.'
+        'Test Analytics data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
       )
     ).toBeInTheDocument();
   });
@@ -42,11 +42,11 @@ describe('TestPreOnboardingPage', () => {
       url: 'https://sentry.io',
     });
 
-    render(<TestPreOnboardingPage />, {organization: org});
+    render(<TestsPreOnboardingPage />, {organization: org});
 
     expect(
       screen.queryByText(
-        'Test Analytics data is stored in the U.S. only. To use this feature, create a new Sentry organization with U.S. data storage.'
+        'Test Analytics data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
       )
     ).not.toBeInTheDocument();
   });
@@ -55,12 +55,31 @@ describe('TestPreOnboardingPage', () => {
     // Mock undefined region data
     mockGetRegionData.mockReturnValue(undefined);
 
-    render(<TestPreOnboardingPage />, {organization: org});
+    render(<TestsPreOnboardingPage />, {organization: org});
 
     // Check that the alert is displayed
     expect(
       screen.getByText(
-        'Test Analytics data is stored in the U.S. only. To use this feature, create a new Sentry organization with U.S. data storage.'
+        'Test Analytics data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('displays the feature is only allowed in US messaging when isUSstorage is false', () => {
+    mockGetRegionData.mockReturnValue({
+      name: 'eu',
+      displayName: 'European Union (EU)',
+      url: 'https://eu.sentry.io',
+    });
+
+    render(<TestsPreOnboardingPage />, {organization: org});
+
+    expect(
+      screen.getByText('Keep Test Problems From Slowing You Down')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Test Analytics data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
       )
     ).toBeInTheDocument();
   });

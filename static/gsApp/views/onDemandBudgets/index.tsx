@@ -78,9 +78,11 @@ class OnDemandBudgets extends Component<Props> {
         })}
       >
         <div>
-          <LinkButton to={`/settings/${organization.slug}/support/`}>
-            {t('Contact Support')}
-          </LinkButton>
+          {subscription.sponsoredType !== 'education' && (
+            <LinkButton to={`/settings/${organization.slug}/support/`}>
+              {t('Contact Support')}
+            </LinkButton>
+          )}
         </div>
       </FieldGroup>
     );

@@ -71,6 +71,7 @@
 /config/hooks/                                           @getsentry/owners-sentry-dev
 /scripts/                                                @getsentry/owners-sentry-dev
 /tools/                                                  @getsentry/owners-sentry-dev
+/src/flagpole/                                           @getsentry/owners-sentry-dev @getsentry/dev-infra
 Makefile                                                 @getsentry/owners-sentry-dev @getsentry/dev-infra
 .envrc                                                   @getsentry/owners-sentry-dev @getsentry/dev-infra
 .pre-commit-config.yaml                                  @getsentry/owners-sentry-dev @getsentry/dev-infra
@@ -232,8 +233,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/search/events/                                                  @getsentry/visibility
 /src/sentry/search/eap/                                                     @getsentry/visibility
 
-/src/sentry/performance_issues/                                             @getsentry/issue-detection-backend
-/tests/sentry/performance_issues/                                           @getsentry/issue-detection-backend
+/src/sentry/issue_detection/                                             @getsentry/issue-detection-backend
+/tests/sentry/issue_detection/                                           @getsentry/issue-detection-backend
 
 /static/app/components/events/eventStatisticalDetector/                     @getsentry/visibility @getsentry/profiling
 
@@ -321,6 +322,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/components/replays/                                          @getsentry/replay-frontend
 /static/app/utils/replays/                                               @getsentry/replay-frontend
 /static/app/views/replays/                                               @getsentry/replay-frontend
+/tests/acceptance/test_replay_details.py                                 @getsentry/replay-frontend
+/tests/acceptance/test_replay_list.py                                    @getsentry/replay-frontend
 /src/sentry/replays/                                                     @getsentry/replay-backend
 /tests/sentry/replays/                                                   @getsentry/replay-backend
 /src/sentry/issues/endpoints/organization_issue_metrics.py               @getsentry/replay-backend
@@ -346,8 +349,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 ## End of DevToolbar
 
 ## Codecov Merge UX
-/static/app/components/codecov/  @getsentry/codecov-merge-ux
-/static/app/views/codecov/       @getsentry/codecov-merge-ux
+/static/app/components/codecov/  @getsentry/codecov-merge
+/static/app/views/codecov/       @getsentry/codecov-merge
 ## End of Codecov Merge UX
 
 /src/sentry/codecov/ @getsentry/codecov

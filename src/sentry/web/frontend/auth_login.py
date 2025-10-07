@@ -27,6 +27,7 @@ from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganization, organization_service
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.signals import join_request_link_viewed, user_signup
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
@@ -84,13 +85,15 @@ class AuthLoginView(BaseView):
     auth_required = False
 
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(
-                limit=20, window=1
-            ),  # 20 GET requests per second per IP
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(
+                    limit=20, window=1
+                ),  # 20 GET requests per second per IP
+            }
         }
-    }
+    )
 
     @method_decorator(never_cache)
     def handle(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:

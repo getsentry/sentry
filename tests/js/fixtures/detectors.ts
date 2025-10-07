@@ -100,6 +100,7 @@ export function UptimeDetectorFixture(
     type: 'uptime_domain_failure',
     config: {
       environment: 'production',
+      mode: 1,
       recoveryThreshold: 1,
       downtimeThreshold: 3,
     },

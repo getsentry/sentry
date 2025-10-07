@@ -87,6 +87,16 @@ def process_service_hook_updates(object_identifier: int, region_name: str, **kwd
         application_id=installation.sentry_app.application_id,
     )
 
+    logger.info(
+        "process_service_hook_updates.called_rpc",
+        extra={
+            "installation_id": installation.id,
+            "sentry_app_id": installation.sentry_app.id,
+            "events": installation.sentry_app.events,
+            "application_id": installation.sentry_app.application_id,
+        },
+    )
+
 
 @receiver(process_control_outbox, sender=OutboxCategory.SEND_SIGNAL)
 def process_send_signal(payload: Mapping[str, Any], shard_identifier: int, **kwds: Any):

@@ -1,11 +1,11 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
-
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import {space} from 'sentry/styles/space';
+import {t, tct} from 'sentry/locale';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {
   RIGHT_ALIGNED_FIELDS,
   type Column,
@@ -25,15 +25,22 @@ export function renderTableBody({column, row, wrapToggleValue}: TableBodyProps) 
 
   if (key === 'testName') {
     return (
-      <TestNameContainer wrapToggleValue={wrapToggleValue}>{value}</TestNameContainer>
+      <Text
+        monospace
+        ellipsis={wrapToggleValue ? undefined : true}
+        align="left"
+        style={{overflowWrap: 'break-word'}}
+      >
+        {value}
+      </Text>
     );
   }
 
   if (key === 'averageDurationMs') {
     return (
-      <NumberContainer>
+      <Text ellipsis tabular align="right">
         <PerformanceDuration milliseconds={Number(value)} abbreviation />
-      </NumberContainer>
+      </Text>
     );
   }
 
@@ -41,65 +48,50 @@ export function renderTableBody({column, row, wrapToggleValue}: TableBodyProps) 
     const isBrokenTest = row.isBrokenTest;
 
     return (
-      <Tooltip
-        showUnderline
-        isHoverable
-        maxWidth={300}
-        title={
-          <Fragment>
-            {row.totalPassCount} Passed, {row.totalFailCount} Failed, (
-            {row.totalFlakyFailCount} Flaky), {row.totalSkipCount} Skipped
-          </Fragment>
-        }
-      >
-        <NumberContainer>
-          {isBrokenTest && <StyledTag type={'highlight'}>Broken test</StyledTag>}
-          {Number(value).toFixed(2)}%
-        </NumberContainer>
-      </Tooltip>
+      <Flex gap="sm" align="center" justify="end">
+        {isBrokenTest && <Tag type="highlight">{t('Broken test')}</Tag>}
+        <Tooltip
+          showUnderline
+          isHoverable
+          maxWidth={300}
+          title={tct(
+            '[passedCount] Passed, [failCount] Failed, ([flakyCount] Flaky), [skipCount] Skipped',
+            {
+              passedCount: row.totalPassCount,
+              failCount: row.totalFailCount,
+              flakyCount: row.totalFlakyFailCount,
+              skipCount: row.totalSkipCount,
+            }
+          )}
+        >
+          <Text tabular ellipsis>
+            {formatPercentage(Number(value) / 100, 2, {minimumValue: 0.0001})}
+          </Text>
+        </Tooltip>
+      </Flex>
     );
   }
 
   if (key === 'totalFailCount') {
     const totalFailCount = row.totalFailCount + row.totalFlakyFailCount;
-    return <Container alignment={alignment}>{totalFailCount}</Container>;
+    return (
+      <Text monospace ellipsis align={alignment}>
+        {totalFailCount}
+      </Text>
+    );
   }
 
   if (key === 'lastRun') {
     return (
-      <DateContainer>
+      <Text variant="muted" align="left">
         <DateTime date={value} year seconds timeZone />
-      </DateContainer>
+      </Text>
     );
   }
 
-  return <Container alignment={alignment}>{value}</Container>;
+  return (
+    <Text monospace ellipsis align={alignment}>
+      {value}
+    </Text>
+  );
 }
-
-const TestNameContainer = styled('div')<{wrapToggleValue: boolean}>`
-  ${p => !p.wrapToggleValue && p.theme.overflowEllipsis};
-  overflow-wrap: break-word;
-  font-family: ${p => p.theme.text.familyMono};
-  text-align: left;
-`;
-
-const Container = styled('div')<{alignment: string}>`
-  ${p => p.theme.overflowEllipsis};
-  font-family: ${p => p.theme.text.familyMono};
-  text-align: ${p => (p.alignment === 'left' ? 'left' : 'right')};
-`;
-
-const DateContainer = styled('div')`
-  color: ${p => p.theme.tokens.content.muted};
-  text-align: 'left';
-`;
-
-const NumberContainer = styled('div')`
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  ${p => p.theme.overflowEllipsis};
-`;
-
-const StyledTag = styled(Tag)`
-  margin-right: ${space(1.5)};
-`;

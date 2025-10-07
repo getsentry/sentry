@@ -39,7 +39,6 @@ import {
   useActiveTable,
 } from 'sentry/views/insights/agents/hooks/useActiveTable';
 import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
-import {AIInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
 import {TwoColumnWidgetGrid, WidgetGrid} from 'sentry/views/insights/agents/views/styles';
@@ -52,6 +51,7 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget';
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
 import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -75,6 +75,7 @@ function AgentsOverviewPage() {
   const showOnboarding = useShowOnboarding();
   const datePageFilterProps = limitMaxPickableDays(organization);
   const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
+  useDefaultToAllProjects();
 
   const {activeTable, onActiveTableChange} = useActiveTable();
 
@@ -293,16 +294,14 @@ function ToolsView() {
 
 function PageWithProviders() {
   return (
-    <AIInsightsFeature>
-      <ModulePageProviders
-        moduleName={ModuleName.AGENTS}
-        analyticEventName="insight.page_loads.agents"
-      >
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <AgentsOverviewPage />
-        </TraceItemAttributeProvider>
-      </ModulePageProviders>
-    </AIInsightsFeature>
+    <ModulePageProviders
+      moduleName={ModuleName.AGENTS}
+      analyticEventName="insight.page_loads.agents"
+    >
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <AgentsOverviewPage />
+      </TraceItemAttributeProvider>
+    </ModulePageProviders>
   );
 }
 

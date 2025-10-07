@@ -58,9 +58,11 @@ export const enum EventGroupVariantType {
 }
 
 interface BaseVariant {
+  contributes: boolean;
   description: string | null;
   hash: string | null;
   hashMismatch: boolean;
+  hint: string | null;
   key: string;
   type: string;
 }

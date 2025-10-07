@@ -1,7 +1,14 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PreventContext} from 'sentry/components/prevent/context/preventContext';
+import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import TestsOnboardingPage from 'sentry/views/prevent/tests/onboarding';
+
+jest.mock('sentry/utils/regions', () => ({
+  getRegionDataFromOrganization: jest.fn(),
+}));
+
+const mockGetRegionData = jest.mocked(getRegionDataFromOrganization);
 
 const mockPreventContext = {
   repository: 'test-repo',
@@ -46,6 +53,13 @@ const mockRepoData = {
 
 describe('TestsOnboardingPage', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetRegionData.mockReturnValue({
+      name: 'us',
+      displayName: 'United States',
+      url: 'https://sentry.io',
+    });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/',
       body: [mockGitHubIntegration],
@@ -283,7 +297,9 @@ describe('TestsOnboardingPage', () => {
           await screen.findByLabelText('Use OpenID Connect (OIDC)')
         ).not.toBeChecked();
         expect(await screen.findByText('Step 2b: Add token as')).toBeInTheDocument();
-        expect(await screen.findByText(/^Step 3: Add the script/)).toBeInTheDocument();
+        expect(
+          await screen.findByText(/^Step 3: Add the workflow action/)
+        ).toBeInTheDocument();
         expect(
           await screen.findByText('Step 4: Run your test suite')
         ).toBeInTheDocument();
@@ -342,7 +358,9 @@ describe('TestsOnboardingPage', () => {
           screen.queryByText('Step 3: Edit your GitHub Actions workflow')
         ).not.toBeInTheDocument();
         expect(await screen.findByText('Step 2b: Add token as')).toBeInTheDocument();
-        expect(await screen.findByText(/Step 3: Add the script/)).toBeInTheDocument();
+        expect(
+          await screen.findByText(/Step 3: Add the workflow action/)
+        ).toBeInTheDocument();
 
         // Switch back to OIDC
         const oidcRadio = await screen.findByLabelText('Use OpenID Connect (OIDC)');
@@ -677,6 +695,49 @@ describe('TestsOnboardingPage', () => {
 
       expect(await screen.findByText('SENTRY_PREVENT_TOKEN')).toBeInTheDocument();
       expect(screen.getByText('new-generated-token-12345')).toBeInTheDocument();
+    });
+  });
+
+  describe('when the organization is not in the US region', () => {
+    it('navigates to the TA page with preonboarding alert and header text', async () => {
+      mockGetRegionData.mockReturnValue({
+        name: 'eu',
+        displayName: 'European Union (EU)',
+        url: 'https://eu.sentry.io',
+      });
+
+      // Mock API calls to prevent infinite navigation loop
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/integrations/`,
+        body: [],
+        method: 'GET',
+        match: [MockApiClient.matchQuery({provider_key: 'github', includeConfig: 0})],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/prevent/owner/123/repository/test-repo/`,
+        body: {
+          testAnalyticsEnabled: false,
+          uploadToken: null,
+        },
+      });
+
+      const {router} = render(
+        <PreventContext.Provider value={mockPreventContext}>
+          <TestsOnboardingPage />
+        </PreventContext.Provider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: '/prevent/tests/new',
+              query: {},
+            },
+          },
+        }
+      );
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe('/prevent/tests');
+      });
     });
   });
 });

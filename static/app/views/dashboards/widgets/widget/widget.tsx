@@ -154,14 +154,6 @@ const Frame = styled('div')<{
   ${p =>
     p.revealActions === 'hover' &&
     css`
-      :hover {
-        background-color: ${p.theme.surface200};
-        transition:
-          background-color 100ms linear,
-          box-shadow 100ms linear;
-        box-shadow: ${p.theme.dropShadowLight};
-      }
-
       &:not(:hover):not(:focus-within) {
         ${TitleHoverItems} {
           opacity: 0;

@@ -445,6 +445,7 @@ class GroupManager(BaseManager["Group"]):
         send_activity_notification: bool = True,
         from_substatus: int | None = None,
         detector_id: int | None = None,
+        update_date: datetime | None = None,
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
         from sentry.incidents.grouptype import MetricIssue
@@ -468,7 +469,7 @@ class GroupManager(BaseManager["Group"]):
         should_reopen_open_period = {
             group.id: group.status == GroupStatus.RESOLVED for group in selected_groups
         }
-        resolved_at = timezone.now()
+        resolved_at = update_date if update_date is not None else timezone.now()
         updated_priority = {}
         for group in selected_groups:
             group.status = status
@@ -493,6 +494,7 @@ class GroupManager(BaseManager["Group"]):
                 activity_type,
                 data=activity_data,
                 send_notification=send_activity_notification,
+                datetime=update_date,
             )
             record_group_history_from_activity_type(group, activity_type.value)
 
@@ -505,29 +507,33 @@ class GroupManager(BaseManager["Group"]):
                         "priority": new_priority.to_str(),
                         "reason": PriorityChangeReason.ONGOING,
                     },
+                    datetime=update_date,
                 )
                 record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[new_priority])
 
+            is_status_resolved = status == GroupStatus.RESOLVED
+            is_status_unresolved = status == GroupStatus.UNRESOLVED
+
             # The open period is only updated when a group is resolved or reopened. We don't want to
             # update the open period when a group transitions between different substatuses within UNRESOLVED.
-            if status == GroupStatus.RESOLVED:
+            if is_status_resolved:
                 update_group_open_period(
                     group=group,
                     new_status=GroupStatus.RESOLVED,
                     resolution_time=activity.datetime,
                     resolution_activity=activity,
                 )
-            elif status == GroupStatus.UNRESOLVED and should_reopen_open_period[group.id]:
+            elif is_status_unresolved and should_reopen_open_period[group.id]:
                 update_group_open_period(
                     group=group,
                     new_status=GroupStatus.UNRESOLVED,
                 )
 
+            should_update_incident = is_status_resolved or (
+                is_status_unresolved and should_reopen_open_period[group.id]
+            )
             # TODO (aci cleanup): remove this once we've deprecated the incident model
-            if group.type == MetricIssue.type_id and status in (
-                GroupStatus.RESOLVED,
-                GroupStatus.UNRESOLVED,
-            ):
+            if group.type == MetricIssue.type_id and should_update_incident:
                 if detector_id is None:
                     logger.error(
                         "Call to update metric issue status missing detector ID",

@@ -10,7 +10,7 @@ export const chonkInputStyles = ({
   readOnly,
   size = 'md',
 }: InputStylesProps & {theme: DO_NOT_USE_ChonkTheme}): StrictCSSObject => {
-  const boxShadow = `0px 2px 0px 0px ${theme.tokens.border.primary} inset`;
+  const boxShadow = `0px 1px 0px 0px ${theme.tokens.border.primary} inset`;
 
   return {
     display: 'block',
@@ -21,7 +21,7 @@ export const chonkInputStyles = ({
     border: `1px solid ${theme.tokens.border.primary}`,
     fontWeight: theme.fontWeight.normal,
     resize: 'vertical',
-    transition: 'border 0.1s, box-shadow 0.1s',
+    transition: `border ${theme.motion.smooth.fast}, box-shadow ${theme.motion.smooth.fast}`,
     ...(monospace ? {fontFamily: theme.text.familyMono} : {}),
     ...(readOnly ? {cursor: 'default'} : {}),
 

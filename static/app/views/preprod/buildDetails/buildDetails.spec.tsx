@@ -178,9 +178,6 @@ describe('BuildDetails', () => {
 
     await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(1));
 
-    expect(
-      await screen.findByText('Your app is still being analyzed...')
-    ).toBeInTheDocument();
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(await screen.findByText('Running size analysis')).toBeInTheDocument();
   });
 });

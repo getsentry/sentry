@@ -11,11 +11,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import type {SubmitData} from 'getsentry/components/creditCardForm';
-import CreditCardForm from 'getsentry/components/creditCardForm';
-import StripeCreditCardForm from 'getsentry/components/stripeForms/stripeCreditCardForm';
+import CreditCardForm from 'getsentry/components/creditCardEdit/form';
+import type {SubmitData} from 'getsentry/components/creditCardEdit/legacyForm';
 import type {Invoice, PaymentCreateResponse} from 'getsentry/types';
-import {hasStripeComponentsFeature} from 'getsentry/utils/billing';
+import {hasNewBillingUI, hasStripeComponentsFeature} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
@@ -41,6 +40,8 @@ function InvoiceDetailsPaymentForm({
   );
   const location = useLocation();
   const endpoint = `/organizations/${invoice.customer.slug}/payments/${invoice.id}/new/`;
+  const isNewBillingUI = hasNewBillingUI(organization);
+  const hasStripeComponents = hasStripeComponentsFeature(organization);
 
   const loadData = useCallback(async () => {
     setIntentError(undefined);
@@ -82,6 +83,8 @@ function InvoiceDetailsPaymentForm({
         trackGetsentryAnalytics('billing_failure.paid_now', {
           organization,
           referrer: decodeScalar(location?.query?.referrer),
+          isNewBillingUI,
+          isStripeComponent: hasStripeComponents,
         });
         addSuccessMessage(t('Payment sent successfully.'));
         reloadInvoice();
@@ -90,16 +93,10 @@ function InvoiceDetailsPaymentForm({
   }
   const error = validationError || intentError;
   const errorRetry = intentError ? () => loadData() : undefined;
-  const shouldUseStripe = hasStripeComponentsFeature(organization);
-  const commonProps = {
-    referrer: decodeScalar(location?.query?.referrer),
-    buttonText: t('Pay Now'),
-    error,
-  };
 
   return (
     <Fragment>
-      <Header>{t('Pay Invoice')}</Header>
+      <Header>{t('Pay Bill')}</Header>
       <Body>
         <Flex direction="column" gap="sm">
           <Text as="p">
@@ -107,28 +104,28 @@ function InvoiceDetailsPaymentForm({
               amount: displayPriceWithCents({cents: invoice.amountBilled ?? 0}),
             })}
           </Text>
-          {shouldUseStripe ? (
-            <StripeCreditCardForm
-              onCancel={() => closeModal()}
-              amount={invoice.amountBilled ?? 0}
-              cardMode={'payment'}
-              onSuccess={() => {
-                reloadInvoice();
-                closeModal();
-              }}
-              organization={organization}
-              intentDataEndpoint={endpoint}
-              {...commonProps}
-            />
-          ) : (
-            <CreditCardForm
-              errorRetry={errorRetry}
-              footerClassName="modal-footer"
-              onCancel={() => closeModal()}
-              onSubmit={handleSubmit}
-              {...commonProps}
-            />
-          )}
+          <CreditCardForm
+            budgetTerm={
+              'planDetails' in invoice.customer
+                ? invoice.customer.planDetails.budgetTerm
+                : t('pay-as-you-go')
+            }
+            onCancel={() => closeModal()}
+            amount={invoice.amountBilled ?? 0}
+            cardMode="payment"
+            onSuccess={() => {
+              reloadInvoice();
+              closeModal();
+            }}
+            organization={organization}
+            intentDataEndpoint={endpoint}
+            errorRetry={errorRetry}
+            footerClassName="modal-footer"
+            onSubmitLegacy={handleSubmit}
+            referrer={decodeScalar(location?.query?.referrer)}
+            buttonText={t('Pay Now')}
+            error={error}
+          />
         </Flex>
       </Body>
     </Fragment>

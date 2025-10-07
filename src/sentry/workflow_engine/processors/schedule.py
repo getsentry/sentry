@@ -1,38 +1,19 @@
 import logging
 import math
 import uuid
-from dataclasses import asdict
 from datetime import datetime, timezone
 from itertools import islice
 
 from sentry import options
-from sentry.buffer.base import BufferField
-from sentry.db import models
 from sentry.utils import metrics
-from sentry.workflow_engine.buffer import get_backend
-from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
-from sentry.workflow_engine.tasks.delayed_workflows import (
-    DelayedWorkflow,
-    process_delayed_workflows,
+from sentry.utils.iterators import chunked
+from sentry.workflow_engine.buffer.batch_client import (
+    DelayedWorkflowClient,
+    ProjectDelayedWorkflowClient,
 )
+from sentry.workflow_engine.tasks.delayed_workflows import process_delayed_workflows
 
 logger = logging.getLogger(__name__)
-
-
-def fetch_group_to_event_data(
-    buffer: RedisHashSortedSetBuffer,
-    project_id: int,
-    model: type[models.Model],
-    batch_key: str | None = None,
-) -> dict[str, str]:
-    field: dict[str, models.Model | int | str] = {
-        "project_id": project_id,
-    }
-
-    if batch_key:
-        field["batch_key"] = batch_key
-
-    return buffer.get_hash(model=model, field=field)
 
 
 def bucket_num_groups(num_groups: int) -> str:
@@ -42,7 +23,7 @@ def bucket_num_groups(num_groups: int) -> str:
     return "1"
 
 
-def process_in_batches(buffer: RedisHashSortedSetBuffer, project_id: int) -> None:
+def process_in_batches(client: ProjectDelayedWorkflowClient) -> None:
     """
     This will check the number of alertgroup_to_event_data items in the Redis buffer for a project.
 
@@ -51,74 +32,62 @@ def process_in_batches(buffer: RedisHashSortedSetBuffer, project_id: int) -> Non
     The batches are replicated into a new redis hash with a unique filter (a uuid) to identify the batch.
     We need to use a UUID because these batches can be created in multiple processes and we need to ensure
     uniqueness across all of them for the centralized redis buffer. The batches are stored in redis because
-    we shouldn't pass objects that need to be pickled and 10k items could be problematic in the celery tasks
+    we shouldn't pass objects that need to be pickled and 10k items could be problematic in the tasks
     as arguments could be problematic. Finally, we can't use a pagination system on the data because
     redis doesn't maintain the sort order of the hash keys.
     """
     batch_size = options.get(
         "delayed_processing.batch_size"
     )  # TODO: Use workflow engine-specific option.
-    processing_info = DelayedWorkflow(project_id)
 
-    hash_args = processing_info.hash_args
-    filters: dict[str, BufferField] = asdict(hash_args.filters)
-
-    event_count = buffer.get_hash_length(model=hash_args.model, field=filters)
-    metrics.incr("delayed_workflow.num_groups", tags={"num_groups": bucket_num_groups(event_count)})
-    metrics.distribution("delayed_workflow.event_count", event_count)
+    event_count = client.get_hash_length()
+    metrics.incr(
+        "workflow_engine.schedule.num_groups", tags={"num_groups": bucket_num_groups(event_count)}
+    )
+    metrics.distribution("workflow_engine.schedule.event_count", event_count)
 
     if event_count < batch_size:
         return process_delayed_workflows.apply_async(
-            kwargs={"project_id": project_id}, headers={"sentry-propagate-traces": False}
+            kwargs={"project_id": client.project_id},
+            headers={"sentry-propagate-traces": False},
         )
 
     logger.info(
         "delayed_workflow.process_large_batch",
-        extra={"project_id": project_id, "count": event_count},
+        extra={"project_id": client.project_id, "count": event_count},
     )
 
     # if the dictionary is large, get the items and chunk them.
-    alertgroup_to_event_data = fetch_group_to_event_data(buffer, project_id, hash_args.model)
+    alertgroup_to_event_data = client.get_hash_data(batch_key=None)
 
-    with metrics.timer("delayed_workflow.process_batch.duration"):
+    with metrics.timer("workflow_engine.schedule.process_batch.duration"):
         items = iter(alertgroup_to_event_data.items())
 
         while batch := dict(islice(items, batch_size)):
             batch_key = str(uuid.uuid4())
 
-            buffer.push_to_hash_bulk(
-                model=hash_args.model,
-                filters={**filters, "batch_key": batch_key},
+            # Write items to batched hash and delete from original hash.
+            client.push_to_hash(
+                batch_key=batch_key,
                 data=batch,
             )
-
-            # remove the batched items from the project alertgroup_to_event_data
-            buffer.delete_hash(**asdict(hash_args), fields=list(batch.keys()))
+            client.delete_hash_fields(batch_key=None, fields=list(batch.keys()))
 
             process_delayed_workflows.apply_async(
-                kwargs={"project_id": project_id, "batch_key": batch_key},
+                kwargs={"project_id": client.project_id, "batch_key": batch_key},
                 headers={"sentry-propagate-traces": False},
             )
 
 
-def process_buffered_workflows() -> None:
-    option_name = DelayedWorkflow.option
+def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
+    option_name = buffer_client.option
     if option_name and not options.get(option_name):
         logger.info("delayed_workflow.disabled", extra={"option": option_name})
         return
 
-    buffer = get_backend()
-
-    with metrics.timer("delayed_workflow.process_all_conditions.duration"):
-        # We need to use a very fresh timestamp here; project scores (timestamps) are
-        # updated with each relevant event, and some can be updated every few milliseconds.
-        # The staler this timestamp, the more likely it'll miss some recently updated projects,
-        # and the more likely we'll have frequently updated projects that are never actually
-        # retrieved and processed here.
+    with metrics.timer("workflow_engine.schedule.process_all_conditions.duration", sample_rate=1.0):
         fetch_time = datetime.now(tz=timezone.utc).timestamp()
-        buffer_keys = DelayedWorkflow.get_buffer_keys()
-        all_project_ids_and_timestamps = buffer.bulk_get_sorted_set(
-            buffer_keys,
+        all_project_ids_and_timestamps = buffer_client.get_project_ids(
             min=0,
             max=fetch_time,
         )
@@ -133,10 +102,35 @@ def process_buffered_workflows() -> None:
 
         project_ids = list(all_project_ids_and_timestamps.keys())
         for project_id in project_ids:
-            process_in_batches(buffer, project_id)
+            process_in_batches(buffer_client.for_project(project_id))
 
-        buffer.delete_keys(
-            buffer_keys,
-            min=0,
-            max=fetch_time,
+        mark_projects_processed(buffer_client, all_project_ids_and_timestamps)
+
+
+def mark_projects_processed(
+    buffer_client: DelayedWorkflowClient,
+    all_project_ids_and_timestamps: dict[int, list[float]],
+) -> None:
+    if not all_project_ids_and_timestamps:
+        return
+    with metrics.timer("workflow_engine.scheduler.mark_projects_processed"):
+        member_maxes = [
+            (project_id, max(timestamps))
+            for project_id, timestamps in all_project_ids_and_timestamps.items()
+        ]
+        deleted_project_ids = set[int]()
+        # The conditional delete can be slow, so we break it into chunks that probably
+        # aren't big enough to hold onto the main redis thread for too long.
+        for chunk in chunked(member_maxes, 500):
+            with metrics.timer(
+                "workflow_engine.conditional_delete_from_sorted_sets.chunk_duration"
+            ):
+                deleted = buffer_client.mark_project_ids_as_processed(dict(chunk))
+                deleted_project_ids.update(deleted)
+
+        logger.info(
+            "process_buffered_workflows.project_ids_deleted",
+            extra={
+                "deleted_project_ids": sorted(deleted_project_ids),
+            },
         )

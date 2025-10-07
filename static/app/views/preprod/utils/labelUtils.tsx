@@ -39,6 +39,25 @@ export function getReadableArtifactTypeLabel(
   }
 }
 
+export function getReadableArtifactTypeTooltip(
+  artifactType: BuildDetailsArtifactType | null
+): string {
+  if (artifactType === null) {
+    return 'Unknown';
+  }
+
+  switch (artifactType) {
+    case BuildDetailsArtifactType.XCARCHIVE:
+      return 'XCode application archive';
+    case BuildDetailsArtifactType.AAB:
+      return 'Android app bundle';
+    case BuildDetailsArtifactType.APK:
+      return 'Android application package';
+    default:
+      throw new Error(`Unknown artifact type: ${artifactType}`);
+  }
+}
+
 export function getReadablePlatformLabel(platform: Platform): string {
   switch (platform) {
     case 'ios':

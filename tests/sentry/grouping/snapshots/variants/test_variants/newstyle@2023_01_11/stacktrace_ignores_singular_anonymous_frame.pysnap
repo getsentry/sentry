@@ -1,16 +1,17 @@
 ---
-created: '2025-04-25T21:22:14.552509+00:00'
+created: '2025-10-07T20:41:49.648114+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   contributing component: null
-  component:
-    app (stacktrace of system takes precedence)
+  hint: ignored because system stacktrace takes precedence
+  root_component:
+    app (ignored because system stacktrace takes precedence)
       stacktrace (ignored because it contains no in-app frames)
         frame (marked out of app by the client)
-          filename (anonymous filename discarded)
+          filename (ignored because filename is anonymous)
             "<anonymous>"
         frame (marked out of app by the client)
           filename*
@@ -26,11 +27,12 @@ app:
 system:
   hash: "c5da56c71b31f34c5880d734cbc8f5bb"
   contributing component: stacktrace
-  component:
+  hint: None
+  root_component:
     system*
       stacktrace*
         frame (ignored low quality javascript frame)
-          filename (anonymous filename discarded)
+          filename (ignored because filename is anonymous)
             "<anonymous>"
         frame*
           filename*

@@ -12,11 +12,7 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
-import {
-  FieldValueType,
-  getFieldDefinition,
-  type FieldDefinition,
-} from 'sentry/utils/fields';
+import {FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 
 const SHOULD_ESCAPE_REGEX = /[\s"(),]/;
 
@@ -69,12 +65,15 @@ export function isAggregateFilterToken(
   }
 }
 
-export function getValidOpsForFilter(
-  filterToken: TokenResult<Token.FILTER>,
-  hasWildcardOperators: boolean
-): readonly TermOperator[] {
-  const fieldDefinition = getFieldDefinition(filterToken.key.text);
-
+export function getValidOpsForFilter({
+  filterToken,
+  hasWildcardOperators,
+  fieldDefinition,
+}: {
+  fieldDefinition: FieldDefinition | null;
+  filterToken: TokenResult<Token.FILTER>;
+  hasWildcardOperators: boolean;
+}): readonly TermOperator[] {
   // If the token is invalid we want to use the possible expected types as our filter type
   const validTypes = filterToken.invalid?.expectedType ?? [filterToken.filter];
 

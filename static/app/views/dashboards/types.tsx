@@ -1,6 +1,7 @@
 import type {Layout} from 'react-grid-layout';
 
 import {t} from 'sentry/locale';
+import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
 
@@ -101,6 +102,7 @@ export type Widget = {
   dashboardId?: string;
   datasetSource?: DatasetSource;
   description?: string;
+  exploreUrls?: null | string[];
   id?: string;
   layout?: WidgetLayout | null;
   // Used to define 'topEvents' when fetching time-series data for a widget
@@ -147,10 +149,18 @@ export type DashboardListItem = {
 
 export enum DashboardFilterKeys {
   RELEASE = 'release',
+  GLOBAL_FILTER = 'globalFilter',
 }
 
 export type DashboardFilters = {
   [DashboardFilterKeys.RELEASE]?: string[];
+  [DashboardFilterKeys.GLOBAL_FILTER]?: GlobalFilter[];
+};
+
+export type GlobalFilter = {
+  dataset: WidgetType;
+  tag: Tag;
+  value: string;
 };
 
 /**
@@ -190,4 +200,5 @@ export enum DashboardWidgetSource {
   ISSUE_DETAILS = 'issueDetail',
   TRACE_EXPLORER = 'traceExplorer',
   LOGS = 'logs',
+  INSIGHTS = 'insights',
 }

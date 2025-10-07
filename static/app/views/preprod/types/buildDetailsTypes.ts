@@ -9,27 +9,27 @@ export interface BuildDetailsApiResponse {
 }
 
 export interface BuildDetailsAppInfo {
-  app_id?: string;
-  artifact_type?: BuildDetailsArtifactType;
-  build_configuration?: string;
-  build_number?: string;
+  app_id?: string | null;
+  artifact_type?: BuildDetailsArtifactType | null;
+  build_configuration?: string | null;
+  build_number?: string | null;
   date_added?: string;
-  date_built?: string;
+  date_built?: string | null;
   is_installable?: boolean;
-  name?: string;
-  platform?: Platform;
-  version?: string;
+  name?: string | null;
+  platform?: Platform | null;
+  version?: string | null;
 }
 
 interface BuildDetailsVcsInfo {
-  base_ref?: string;
-  base_repo_name?: string;
-  base_sha?: string;
-  head_ref?: string;
-  head_repo_name?: string;
-  head_sha?: string;
-  pr_number?: number;
-  provider?: 'github';
+  base_ref?: string | null;
+  base_repo_name?: string | null;
+  base_sha?: string | null;
+  head_ref?: string | null;
+  head_repo_name?: string | null;
+  head_sha?: string | null;
+  pr_number?: number | null;
+  provider?: string | null;
 }
 
 interface BuildDetailsSizeInfoPending {

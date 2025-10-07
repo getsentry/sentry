@@ -11,7 +11,11 @@ from sentry.discover.translation.mep_to_eap import (
 )
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
 from sentry.integrations.slack.unfurl.discover import is_aggregate
-from sentry.search.events.fields import get_function_alias_with_columns, is_function, parse_function
+from sentry.search.events.fields import (
+    get_function_alias_with_columns,
+    is_function,
+    parse_arguments,
+)
 
 # we're going to keep the chart types from discover
 # bar = 0, line = 1, area = 2
@@ -42,15 +46,17 @@ def _get_translated_orderby_item(orderby, columns, is_negated):
     """
     columns_underscore_list = []
     for column in columns:
-        if is_function(column):
-            aggregate, fields, alias = parse_function(column)
+        if (match := is_function(column)) is not None:
+            aggregate, fields_string = match.group("function"), match.group("columns")
+            fields = parse_arguments(aggregate, fields_string)
             columns_underscore_list.append(get_function_alias_with_columns(aggregate, fields))
         else:
             # non-function columns don't change format
             columns_underscore_list.append(column)
     joined_orderby_item = orderby
-    if is_function(orderby):
-        aggregate, fields, alias = parse_function(orderby)
+    if (match := is_function(orderby)) is not None:
+        aggregate, fields_string = match.group("function"), match.group("columns")
+        fields = parse_arguments(aggregate, fields_string)
         joined_orderby_item = get_function_alias_with_columns(aggregate, fields)
 
     converted_orderby = None
@@ -134,14 +140,24 @@ def _translate_discover_query_field_to_explore_query_schema(
         )
     )
 
+    # for certain functions, we translate them to equations because they're only supported in the explore equation builder
+
     translated_aggregate_columns = (
-        [field for field in translated_query_parts["selected_columns"] if is_aggregate(field)]
+        [
+            field
+            for field in translated_query_parts["selected_columns"]
+            if is_aggregate(field) or is_equation(field)
+        ]
         if translated_query_parts["selected_columns"] is not None
         else []
     )
 
     translated_non_aggregate_columns = (
-        [field for field in translated_query_parts["selected_columns"] if not is_aggregate(field)]
+        [
+            field
+            for field in translated_query_parts["selected_columns"]
+            if not is_aggregate(field) and not is_equation(field)
+        ]
         if translated_query_parts["selected_columns"] is not None
         else []
     )
@@ -152,25 +168,40 @@ def _translate_discover_query_field_to_explore_query_schema(
         else []
     )
 
+    display = query.get("display", "default")
+
     # if we have any aggregates or equation we should be in aggregate mode
     if len(translated_aggregate_columns) > 0 or len(translated_equations) > 0:
-        mode = "aggregate"
+        # check for ones we can make to samples
+        if display in ["top5", "dailytop5"]:
+            mode = "aggregate"
+        else:
+            mode = "samples"
     else:
         mode = "samples"
 
-    display = query.get("display", "default")
     interval = None
 
-    chart_type = CHART_TYPES[display]
+    try:
+        chart_type = CHART_TYPES[display]
+    except KeyError:
+        chart_type = CHART_TYPES["default"]
     # only intervals that matter are the daily ones, rest can be defaulted to explore default
     if display in ["daily", "dailytop5"]:
         interval = "1d"
 
     y_axes = translated_aggregate_columns + translated_equations
-    # aggregate fields parameter contains groupBys and yAxes
-    aggregate_fields = [
-        {"groupBy": translated_column} for translated_column in translated_non_aggregate_columns
-    ] + [{"yAxes": [y_axis], "chartType": chart_type} for y_axis in y_axes]
+    # aggregate fields parameter contains groupBys (only if in aggregate mode) and yAxes.
+    # group bys shouldn't include id or timestamp
+    aggregate_fields = (
+        [
+            {"groupBy": translated_column}
+            for translated_column in translated_non_aggregate_columns
+            if translated_column not in ["id", "timestamp"]
+        ]
+        if mode == "aggregate"
+        else []
+    ) + [{"yAxes": [y_axis], "chartType": chart_type} for y_axis in y_axes]
 
     # we want to make sure the id field is always included in samples mode
     # because without it the 'id' field is not sortable on the samples table
@@ -214,7 +245,7 @@ def _translate_discover_query_field_to_explore_query_schema(
             "orderby": (translated_orderby if aggregate_orderby is None else None),
             "mode": mode,
             "aggregateField": aggregate_fields,
-            "aggregateOrderby": aggregate_orderby if mode == "aggregate" else None,
+            "aggregateOrderby": aggregate_orderby,
         }
     ]
 

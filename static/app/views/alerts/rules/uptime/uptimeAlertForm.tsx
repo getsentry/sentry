@@ -26,11 +26,11 @@ import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
@@ -39,8 +39,6 @@ import {HTTPSnippet} from './httpSnippet';
 import {UptimeHeadersField} from './uptimeHeadersField';
 
 interface Props {
-  organization: Organization;
-  project: Project;
   handleDelete?: () => void;
   rule?: UptimeRule;
 }
@@ -50,6 +48,9 @@ const HTTP_METHOD_OPTIONS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'O
 const HTTP_METHODS_NO_BODY = ['GET', 'HEAD', 'OPTIONS'];
 
 const MINUTE = 60;
+
+const DEFAULT_DOWNTIME_THRESHOLD = 3;
+const DEFAULT_RECOVERY_THRESHOLD = 1;
 
 const VALID_INTERVALS_SEC = [
   MINUTE * 1,
@@ -82,14 +83,20 @@ function getFormDataFromRule(rule: UptimeRule) {
   };
 }
 
-export function UptimeAlertForm({project, handleDelete, rule}: Props) {
+export function UptimeAlertForm({handleDelete, rule}: Props) {
   const navigate = useNavigate();
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const {projects} = useProjects();
+  const {selection} = usePageFilters();
+
+  const project =
+    projects.find(p => selection.projects[0]?.toString() === p.id) ??
+    (projects.length === 1 ? projects[0] : null);
 
   const initialData = rule
     ? getFormDataFromRule(rule)
-    : {projectSlug: project.slug, method: 'GET', headers: []};
+    : {projectSlug: project?.slug, method: 'GET', headers: []};
 
   const [formModel] = useState(() => new FormModel());
 
@@ -112,6 +119,16 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           : `/projects/${organization.slug}/${projectSlug}/uptime/`;
 
         function onSubmitSuccess(response: any) {
+          // Clear the cached uptime rule so subsequent edits load fresh data
+          const ruleId = response?.id ?? rule?.id;
+          if (ruleId) {
+            queryClient.invalidateQueries({
+              queryKey: [
+                `/projects/${organization.slug}/${projectSlug}/uptime/${ruleId}/`,
+              ],
+              exact: true,
+            });
+          }
           navigate(
             makeAlertsPathname({
               path: `/rules/uptime/${projectSlug}/${response.id}/details/`,
@@ -125,7 +142,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           setEnvironments(selectedProject.environments);
         }
       }),
-    [formModel, navigate, organization, projects, rule]
+    [formModel, navigate, organization, projects, rule, queryClient]
   );
 
   // When mutating the name field manually, we'll disable automatic name
@@ -364,9 +381,20 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               name="downtimeThreshold"
               min={1}
               placeholder={t('Defaults to 3')}
-              help={t(
-                'Trigger an issue when this many consecutive failed checks are observed.'
-              )}
+              help={({model}) => {
+                const intervalSeconds = Number(model.getValue('intervalSeconds'));
+                const threshold =
+                  Number(model.getValue('downtimeThreshold')) ||
+                  DEFAULT_DOWNTIME_THRESHOLD;
+                const downDuration = intervalSeconds * threshold;
+                return tct(
+                  'Issue created after [threshold] consecutive failures (after [downtime] of downtime).',
+                  {
+                    threshold: <strong>{threshold}</strong>,
+                    downtime: <strong>{getDuration(downDuration)}</strong>,
+                  }
+                );
+              }}
               label={t('Failure Tolerance')}
               flexibleControlStateSize
             />
@@ -374,9 +402,20 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               name="recoveryThreshold"
               min={1}
               placeholder={t('Defaults to 1')}
-              help={t(
-                'Resolve the issue when this many consecutive successful checks are observed.'
-              )}
+              help={({model}) => {
+                const intervalSeconds = Number(model.getValue('intervalSeconds'));
+                const threshold =
+                  Number(model.getValue('recoveryThreshold')) ||
+                  DEFAULT_RECOVERY_THRESHOLD;
+                const upDuration = intervalSeconds * threshold;
+                return tct(
+                  'Issue resolved after [threshold] consecutive successes (after [uptime] of recovered uptime).',
+                  {
+                    threshold: <strong>{threshold}</strong>,
+                    uptime: <strong>{getDuration(upDuration)}</strong>,
+                  }
+                );
+              }}
               label={t('Recovery Tolerance')}
               flexibleControlStateSize
             />
@@ -409,7 +448,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           <SentryMemberTeamSelectorField
             name="owner"
             label={t('Owner')}
-            menuPlacement="auto"
             inline={false}
             flexibleControlStateSize
             stacked
@@ -459,7 +497,7 @@ const Configuration = styled('div')`
 const ConfigurationPanel = styled(Panel)`
   display: grid;
   gap: 0 ${space(2)};
-  grid-template-columns: fit-content(350px) 1fr;
+  grid-template-columns: fit-content(325px) 1fr;
   align-items: center;
 
   ${FieldWrapper} {

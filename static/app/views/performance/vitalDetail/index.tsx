@@ -7,9 +7,6 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {WebVital} from 'sentry/utils/fields';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -17,10 +14,11 @@ import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAna
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
-import withProjects from 'sentry/utils/withProjects';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import {generatePerformanceVitalDetailView} from 'sentry/views/performance/data';
 import {
   addRoutePerformanceContext,
@@ -31,16 +29,13 @@ import {
 
 import VitalDetailContent from './vitalDetailContent';
 
-type Props = RouteComponentProps & {
-  loadingProjects: boolean;
-  organization: Organization;
-  projects: Project[];
-  selection: PageFilters;
-};
-
-function VitalDetail({organization, selection, location, projects, router}: Props) {
+export default function VitalDetail() {
   const api = useApi();
   const navigate = useNavigate();
+  const location = useLocation();
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
 
   useRouteAnalyticsEventNames(
     'performance_views.vital_detail.view',
@@ -105,7 +100,6 @@ function VitalDetail({organization, selection, location, projects, router}: Prop
               location={location}
               organization={organization}
               eventView={eventView}
-              router={router}
               vitalName={vitalName || WebVital.LCP}
               api={api}
             />
@@ -115,5 +109,3 @@ function VitalDetail({organization, selection, location, projects, router}: Prop
     </SentryDocumentTitle>
   );
 }
-
-export default withPageFilters(withProjects(withOrganization(VitalDetail)));

@@ -10,7 +10,7 @@ import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {GDPRPanel} from 'getsentry/views/legalAndCompliance/gdprPanel';
 import {TermsAndConditions} from 'getsentry/views/legalAndCompliance/termsAndConditions';
-import {BillingDetailsPanel} from 'getsentry/views/subscriptionPage/billingDetails';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 type Props = RouteComponentProps<unknown, unknown> & {
   organization: Organization;
@@ -19,7 +19,7 @@ type Props = RouteComponentProps<unknown, unknown> & {
 
 function LegalAndCompliance(props: Props) {
   return (
-    <div>
+    <SubscriptionPageContainer background="secondary" organization={props.organization}>
       <SentryDocumentTitle title={t('Legal & Compliance')} />
       <SettingsPageHeader
         title="Legal & Compliance"
@@ -27,12 +27,7 @@ function LegalAndCompliance(props: Props) {
       />
       <TermsAndConditions {...props} />
       <GDPRPanel subscription={props.subscription} />
-      <BillingDetailsPanel
-        organization={props.organization}
-        subscription={props.subscription}
-        title={t('Company Details')}
-      />
-    </div>
+    </SubscriptionPageContainer>
   );
 }
 

@@ -109,7 +109,7 @@ function ResourceSummaryTable() {
       }
 
       const link = (
-        <Link
+        <TransactionLink
           to={{
             pathname: location.pathname,
             query: {
@@ -120,7 +120,7 @@ function ResourceSummaryTable() {
           }}
         >
           {row[key]}
-        </Link>
+        </TransactionLink>
       );
 
       return (
@@ -168,7 +168,6 @@ function ResourceSummaryTable() {
   };
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: [...columnOrder],
-    location,
   });
 
   return (
@@ -207,6 +206,10 @@ const DescriptionWrapper = styled('div')`
   .inline-flex {
     display: inline-flex;
   }
+`;
+
+const TransactionLink = styled(Link)`
+  min-width: ${p => p.theme.space['2xl']};
 `;
 
 export default ResourceSummaryTable;

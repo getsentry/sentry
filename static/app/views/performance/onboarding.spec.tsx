@@ -122,19 +122,16 @@ describe('Testing new onboarding ui', () => {
       body: projectMock,
     });
 
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(projectMock.id, 10)],
-        environments: [],
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: null,
-        },
+    PageFiltersStore.onInitializeUrlState({
+      projects: [parseInt(projectMock.id, 10)],
+      environments: [],
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: null,
       },
-      new Set()
-    );
+    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/traces/`,
@@ -187,19 +184,16 @@ describe('Testing new onboarding ui', () => {
       body: projectMock,
     });
 
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(projectMock.id, 10)],
-        environments: [],
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: null,
-        },
+    PageFiltersStore.onInitializeUrlState({
+      projects: [parseInt(projectMock.id, 10)],
+      environments: [],
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: null,
       },
-      new Set()
-    );
+    });
 
     const trace = {
       breakdowns: [],

@@ -25,13 +25,13 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useParams} from 'sentry/utils/useParams';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
-import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {
   DisplayType,
@@ -45,7 +45,11 @@ import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
-import {getMenuOptions, useIndexedEventsWarning} from './widgetCardContextMenu';
+import {
+  getMenuOptions,
+  useIndexedEventsWarning,
+  useTransactionsDeprecationWarning,
+} from './widgetCardContextMenu';
 import {WidgetFrame} from './widgetFrame';
 
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;
@@ -122,6 +126,7 @@ function WidgetCard(props: Props) {
   const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
   const navigate = useNavigate();
+  const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const onDataFetched = (newData: Data) => {
@@ -154,7 +159,6 @@ function WidgetCard(props: Props) {
     onWidgetSplitDecision,
     shouldResize,
     onLegendSelectChanged,
-    onSetTransactionsDataset,
     legendOptions,
     widgetLegendState,
     disableFullscreen,
@@ -162,7 +166,6 @@ function WidgetCard(props: Props) {
     minTableColumnWidth,
     disableZoom,
     showLoadingText,
-    router,
     onWidgetTableSort,
     onWidgetTableResizeColumn,
     disableTableActions,
@@ -188,7 +191,7 @@ function WidgetCard(props: Props) {
   const extractionStatus = useExtractionStatus({queryKey: widget});
   const indexedEventsWarning = useIndexedEventsWarning();
   const onDemandWarning = useOnDemandWarning({widget});
-  const discoverSplitAlert = useDiscoverSplitAlert({widget, onSetTransactionsDataset});
+  const transactionsDeprecationWarning = useTransactionsDeprecationWarning({widget});
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
   const spanTimeRangeWarning = useTimeRangeWarning({widget});
 
@@ -228,9 +231,7 @@ function WidgetCard(props: Props) {
 
       navigate(
         {
-          pathname: `${location.pathname}${
-            location.pathname.endsWith('/') ? '' : '/'
-          }widget/${props.index}/`,
+          pathname: `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`,
           query: {
             ...location.query,
             sort:
@@ -259,9 +260,9 @@ function WidgetCard(props: Props) {
 
   const warnings = [
     onDemandWarning,
-    discoverSplitAlert,
     sessionDurationWarning,
     spanTimeRangeWarning,
+    transactionsDeprecationWarning,
   ].filter(Boolean) as string[];
 
   const actionsDisabled = Boolean(props.isPreview);
@@ -279,7 +280,6 @@ function WidgetCard(props: Props) {
         props.widgetLimitReached,
         props.hasEditAccess,
         location,
-        router,
         props.onDelete,
         props.onDuplicate,
         props.onEdit
@@ -310,7 +310,13 @@ function WidgetCard(props: Props) {
           error={widgetQueryError}
           actionsMessage={actionsMessage}
           actions={actions}
-          onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
+          onFullScreenViewClick={
+            disableFullscreen
+              ? undefined
+              : currentDashboardId
+                ? onFullScreenViewClick
+                : undefined
+          }
           borderless={props.borderless}
           revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
           noVisualizationPadding

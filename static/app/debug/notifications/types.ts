@@ -1,3 +1,10 @@
+export enum NotificationProviderKey {
+  EMAIL = 'email',
+  SLACK = 'slack',
+  DISCORD = 'discord',
+  TEAMS = 'msteams',
+}
+
 export interface NotificationTemplateRegistration {
   category: string;
   example: {
@@ -6,6 +13,16 @@ export interface NotificationTemplateRegistration {
     subject: string;
     chart?: {alt_text: string; url: string};
     footer?: string;
+  };
+  previews: {
+    [NotificationProviderKey.EMAIL]: {
+      html_content: TrustedHTML;
+      subject: string;
+      text_content: string;
+    };
+    [NotificationProviderKey.TEAMS]: {card: Record<string, any>};
+    [NotificationProviderKey.SLACK]: {blocks: Array<Record<string, any>>};
+    [NotificationProviderKey.DISCORD]: Record<string, any>;
   };
   source: string;
 }

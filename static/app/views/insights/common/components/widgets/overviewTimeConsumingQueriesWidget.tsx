@@ -25,6 +25,7 @@ import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+import type {AddToSpanDashboardOptions} from 'sentry/views/insights/common/utils/useAddToSpanDashboard';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 import {Referrer} from 'sentry/views/insights/pages/backend/referrers';
@@ -88,7 +89,7 @@ export default function OverviewTimeConsumingQueriesWidget(
   } = useFetchSpanTimeSeries(
     {
       query: `${SpanFields.SPAN_GROUP}:[${queriesListData?.map(item => `"${item[SpanFields.SPAN_GROUP]}"`).join(',')}]`,
-      groupBy: [groupBy, yAxes],
+      groupBy: [groupBy],
       yAxis: [yAxes],
       topEvents: 3,
       enabled: queriesListData?.length > 0,
@@ -152,7 +153,7 @@ export default function OverviewTimeConsumingQueriesWidget(
           <TimeSpentCell
             percentage={item['time_spent_percentage()']}
             total={item[totalTimeField]}
-            op={'db'}
+            op="db"
           />
         </Fragment>
       ))}
@@ -181,6 +182,16 @@ export default function OverviewTimeConsumingQueriesWidget(
     referrer,
   });
 
+  const addToDashboardOptions: AddToSpanDashboardOptions = {
+    chartType: ChartType.LINE,
+    yAxes: [yAxes],
+    widgetName: title,
+    groupBy: [groupBy],
+    search,
+    sort: {field: totalTimeField, kind: 'desc'},
+    topEvents: 3,
+  };
+
   return (
     <Widget
       Title={<Widget.WidgetTitle title={title} />}
@@ -193,6 +204,7 @@ export default function OverviewTimeConsumingQueriesWidget(
                 key="time consuming queries widget"
                 exploreUrl={exploreUrl}
                 referrer={referrer}
+                addToDashboardOptions={addToDashboardOptions}
                 alertMenuOptions={plottables.map(plottable => ({
                   key: plottable.name,
                   label: ellipsize(plottable.name, 90),

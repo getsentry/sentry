@@ -345,7 +345,7 @@ def query_artifact_bundles_containing_file(
         # TODO: spawn an async task to backfill non-indexed bundles
         # lets do this in a different PR though :-)
         # ^ we would want to use a Redis SET to not spawn a ton of duplicated
-        # celery tasks here.
+        # tasks here.
 
     # We keep track of all the discovered artifact bundles, by the various means of lookup.
     # We are intentionally overwriting the `resolved` flag, as we want to rank these from

@@ -5,6 +5,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconAdd, IconFix, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import {capitalize} from 'sentry/utils/string/capitalize';
 import type {DiffItem, DiffType} from 'sentry/views/preprod/types/appSizeTypes';
 
 const tableHeaders = [
@@ -144,15 +145,17 @@ export function SizeCompareItemDiffTable({diffItems}: SizeCompareItemDiffTablePr
               </ChangeTag>
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>{diffItem.path}</SimpleTable.RowCell>
-            <SimpleTable.RowCell>{diffItem.item_type}</SimpleTable.RowCell>
+            <SimpleTable.RowCell>
+              {capitalize(diffItem.item_type ?? '')}
+            </SimpleTable.RowCell>
             <SimpleTable.RowCell>
               {diffItem.head_size
                 ? formatBytesBase10(diffItem.head_size)
                 : formatBytesBase10(diffItem.base_size!)}
             </SimpleTable.RowCell>
             <ChangeAmountCell changeType={diffItem.type}>
-              {diffItem.size_diff > 0 ? '+' : ''}
-              {formatBytesBase10(diffItem.size_diff)}
+              {diffItem.size_diff > 0 ? '+' : '-'}
+              {formatBytesBase10(Math.abs(diffItem.size_diff))}
             </ChangeAmountCell>
           </SimpleTable.Row>
         );
@@ -162,7 +165,11 @@ export function SizeCompareItemDiffTable({diffItems}: SizeCompareItemDiffTablePr
 }
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 0.5fr 3fr 0.5fr 0.5fr 0.5fr;
+  overflow-x: auto;
+  overflow-y: auto;
+  grid-template-columns:
+    minmax(120px, 0.5fr) minmax(200px, 3fr) minmax(100px, 0.5fr) minmax(100px, 0.5fr)
+    minmax(100px, 0.5fr);
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   border-left: 0px;
   border-right: 0px;
