@@ -10,7 +10,7 @@ import urllib3
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
-from sentry import quotas
+from sentry import options, quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.eventstream.base import EventStream, GroupStates
 from sentry.eventstream.types import EventStreamEventType
@@ -212,17 +212,18 @@ class SnubaProtocolEventStream(EventStream):
             event_type=event_type,
         )
 
-        self._forward_event_to_items(event_data, event_type)
+        if options.get("eventstream.eap_forwarding"):
+            self._forward_event_to_items(event_data, event_type)
 
     def _serialize_event_data_as_item(self, event_data: dict[str, Any]) -> TraceItem:
         return TraceItem(
-            trace_item_type=TraceItemType.OCCURRENCE,
-            trace_item_id=event_data["id"],
+            item_id=event_data["id"],
+            item_type=TraceItemType.OCCURRENCE,
+            trace_id=event_data["trace_id"],
             timestamp=event_data["datetime"],
-            trace_id=event_data["event_id"],
             organization_id=event_data["organization_id"],
             project_id=event_data["project_id"],
-            received=event_data["datetime"],
+            received=event_data["received_timestamp"],
             retention_days=event_data["retention_days"],
             attributes=event_data["tags"],
         )
