@@ -8,7 +8,6 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -56,7 +55,6 @@ export function getMenuOptions(
   widgetLimitReached: boolean,
   hasEditAccess = true,
   location: Location,
-  router: InjectedRouter,
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void
@@ -179,7 +177,6 @@ export function getMenuOptions(
         openAddToDashboardModal({
           organization,
           location,
-          router,
           selection,
           widget: {
             ...widget,

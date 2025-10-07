@@ -138,7 +138,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture()}
       />
     );
@@ -169,7 +168,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture()}
       />
     );
@@ -198,7 +196,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture()}
       />
     );
@@ -223,7 +220,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture()}
       />
     );
@@ -276,7 +272,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture()}
       />
     );
@@ -311,7 +306,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         source={DashboardWidgetSource.DISCOVERV2}
         location={LocationFixture()}
       />
@@ -350,7 +344,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         source={DashboardWidgetSource.DISCOVERV2}
         location={LocationFixture()}
       />
@@ -400,7 +393,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={{...widget, widgetType: WidgetType.ERRORS}}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture()}
       />
     );
@@ -461,7 +453,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture()}
       />
     );
@@ -541,7 +532,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture()}
       />
     );
@@ -598,7 +588,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture()}
       />
     );
@@ -626,7 +615,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture({pathname: '/organizations/org-slug/dashboard/1/'})}
       />,
       {
@@ -672,7 +660,6 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
-        router={initialData.router}
         location={LocationFixture()}
       />
     );
