@@ -209,16 +209,6 @@ class CustomFingerprintVariant(BaseVariant):
         return expose_fingerprint_dict(self.values, self.fingerprint_info)
 
 
-class BuiltInFingerprintVariant(CustomFingerprintVariant):
-    """A built-in, Sentry-defined fingerprint."""
-
-    type = "built_in_fingerprint"
-
-    @property
-    def description(self) -> str:
-        return "Sentry defined fingerprint"
-
-
 class SaltedComponentVariant(ComponentVariant):
     """A salted version of a component."""
 
