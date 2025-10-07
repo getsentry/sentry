@@ -140,6 +140,10 @@ describe('SentryAppDetailedView', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Uninstall'}));
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
       expect(deleteRequest).toHaveBeenCalledTimes(1);
+
+      expect(
+        await screen.findByRole('button', {name: 'Pending Deletion'})
+      ).toBeInTheDocument();
     });
   });
 
