@@ -50,8 +50,6 @@ import McpTrafficByClientWidget from 'sentry/views/insights/mcp/components/mcpTr
 import McpTransportWidget from 'sentry/views/insights/mcp/components/mcpTransportWidget';
 import {WidgetGrid} from 'sentry/views/insights/mcp/components/styles';
 import {Onboarding} from 'sentry/views/insights/mcp/views/onboarding';
-import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
-import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const TableControl = SegmentedControl<ViewType>;
@@ -197,10 +195,6 @@ function McpOverviewPage() {
 
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
-      <AgentsPageHeader
-        module={ModuleName.MCP}
-        headerTitle={<Fragment>{getAIModuleTitle(organization)}</Fragment>}
-      />
       <ModuleFeature moduleName={ModuleName.MCP}>
         <Layout.Body>
           <Layout.Main fullWidth>
