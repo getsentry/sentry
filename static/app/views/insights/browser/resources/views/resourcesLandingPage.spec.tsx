@@ -78,7 +78,7 @@ describe('ResourcesLandingPage', () => {
         ],
         "per_page": 100,
         "project": [],
-        "query": "has:sentry.normalized_description span.category:resource has:sentry.normalized_description !sentry.normalized_description:"browser-extension://*" span.op:[resource.script,resource.css,resource.font,resource.img]",
+        "query": "has:sentry.normalized_description span.category:resource !sentry.normalized_description:"browser-extension://*" span.op:[resource.script,resource.css,resource.font,resource.img]",
         "referrer": "api.insights.get-span-domains",
         "sampling": "NORMAL",
         "sort": "-count()",

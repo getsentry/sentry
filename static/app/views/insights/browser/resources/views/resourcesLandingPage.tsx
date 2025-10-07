@@ -26,6 +26,7 @@ const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
 
 function ResourcesLandingPage() {
   const filters = useResourceModuleFilters();
+  const DEFAULT_RESOURCE_FILTERS_COPY = [...DEFAULT_RESOURCE_FILTERS];
 
   return (
     <React.Fragment>
@@ -46,7 +47,7 @@ function ResourcesLandingPage() {
                           emptyOptionLocation="top"
                           value={filters[SPAN_DOMAIN] || ''}
                           additionalQuery={[
-                            ...DEFAULT_RESOURCE_FILTERS,
+                            ...DEFAULT_RESOURCE_FILTERS_COPY.splice(1),
                             `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
                           ]}
                         />
