@@ -124,7 +124,6 @@ function TimeSince({
   // Counter to trigger periodic re-computation of relative time
   const [tick, setTick] = useState(0);
 
-  // Memoized relative date calculation - recalculates when props or tick changes
   const relative = useMemo(() => {
     void tick; // Ensure recomputation when tick changes
     return getRelativeDate(date, suffix, prefix, unitStyle);
