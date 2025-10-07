@@ -58,7 +58,8 @@ export const useTransactionsDeprecationWarning = ({
   if (
     organization.features.includes('transaction-widget-deprecation-explore-view') &&
     widget.widgetType === WidgetType.TRANSACTIONS &&
-    widget.exploreUrls
+    widget.exploreUrls &&
+    widget.exploreUrls.length > 0
   ) {
     return tct(
       'Transactions widgets are in the process of being migrated to spans widgets. To see what your query could look like, open it in [explore:Explore].',
