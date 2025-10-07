@@ -198,6 +198,22 @@ class DashboardWidgetQuery(Model):
     __repr__ = sane_repr("widget", "type", "name")
 
 
+class DashboardFieldLink(Model):
+    __relocation_scope__ = RelocationScope.Organization
+
+    dashboard_widget_query = FlexibleForeignKey(
+        "sentry.DashboardWidgetQuery", on_delete=models.CASCADE
+    )
+    field = models.TextField()
+    # The dashboard that the field is linked to
+    dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_dashboardfieldlink"
+        unique_together = (("dashboard_widget_query", "field"),)
+
+
 @region_silo_model
 class DashboardWidgetQueryOnDemand(Model):
     """
