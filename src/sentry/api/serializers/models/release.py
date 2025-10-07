@@ -516,8 +516,7 @@ class ReleaseSerializer(Serializer):
 
         group_counts_by_release: dict[int, dict[int, int]] = {}
         for project_id, release_id, new_groups in (
-            release_project_envs.order_by()
-            .values("project_id", "release_id")
+            release_project_envs.values("project_id", "release_id")
             .annotate(aggregated_new_issues_count=Sum("new_issues_count"))
             .values_list("project_id", "release_id", "aggregated_new_issues_count")
         ):
@@ -531,6 +530,16 @@ class ReleaseSerializer(Serializer):
             .select_related("release", "project")
             .order_by("-first_seen")
         )
+        if environments is not None:
+            release_project_envs = release_project_envs.filter(environment__name__in=environments)
+        if project is not None:
+            release_project_envs = release_project_envs.filter(project=project)
+
+        return release_project_envs
+
+    def _get_release_project_envs_unordered(self, item_list, environments, project):
+        release_project_envs = ReleaseProjectEnvironment.objects.filter(release__in=item_list)
+
         if environments is not None:
             release_project_envs = release_project_envs.filter(environment__name__in=environments)
         if project is not None:
@@ -571,10 +580,9 @@ class ReleaseSerializer(Serializer):
                 project, item_list, no_snuba_for_release_creation
             )
         else:
-            if release_project_envs is None:
-                release_project_envs = self._get_release_project_envs(
-                    item_list, environments, project
-                )
+            release_project_envs = self._get_release_project_envs_unordered(
+                item_list, environments, project
+            )
             (
                 first_seen,
                 last_seen,
