@@ -1,21 +1,21 @@
 ---
-title: Layer
+title: Elevation components
 description: Specialized container components for creating surfaces with different elevation levels—Slabs, Wells, and Floating Sheets
 source: 'sentry/components/core/layout/layer'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/layer.tsx
 ---
 
-import {Container, Flex} from 'sentry/components/core/layout';
-import {FloatingSheet, Slab, Well} from 'sentry/components/core/layout/layer';
+import {Container, Flex} from 'sentry/components/core/elevation';
+import {FloatingSheet, Slab, Well} from 'sentry/components/core/layout/elevation';
 import {Text} from 'sentry/components/core/text';
 import * as Storybook from 'sentry/stories';
 
-import APIReference from '!!type-loader!sentry/components/core/layout/layer';
+import APIReference from '!!type-loader!sentry/components/core/layout/elevation';
 
 export const types = {Slab: APIReference.Slab};
 
-The Layer module provides specialized container components that implement Sentry's [layering and elevation system](/stories/principles/layering-and-elevation). These components create visual hierarchy and help users identify interactive elements through three-dimensional depth effects.
+The Elevation module provides specialized container components that implement Sentry's [layering and elevation system](/stories/principles/layering-and-elevation). These components create visual hierarchy and help users identify interactive elements through three-dimensional depth effects.
 
 ## Slabs, Wells and Floating Sheets
 

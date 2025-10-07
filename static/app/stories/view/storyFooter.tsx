@@ -1,5 +1,5 @@
 import {Flex, Grid, Stack} from 'sentry/components/core/layout';
-import {Slab} from 'sentry/components/core/layout/layer';
+import {Slab} from 'sentry/components/core/layout/elevation';
 import {Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import {IconArrow} from 'sentry/icons';
