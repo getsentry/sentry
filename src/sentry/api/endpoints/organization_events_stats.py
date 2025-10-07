@@ -36,6 +36,7 @@ from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import RPC_DATASETS
 from sentry.utils.snuba import SnubaError, SnubaTSResult
 
@@ -191,6 +192,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         spans_metrics,
                         Spans,
                         OurLogs,
+                        TraceMetrics,
                         errors,
                         transactions,
                     ]

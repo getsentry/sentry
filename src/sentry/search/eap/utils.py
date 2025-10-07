@@ -26,6 +26,16 @@ from sentry.search.eap.spans.attributes import (
     SPANS_REPLACEMENT_MAP,
 )
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
+from sentry.search.eap.trace_metrics.attributes import (
+    TRACE_METRICS_ATTRIBUTE_DEFINITIONS,
+    TRACE_METRICS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
+    TRACE_METRICS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
+    TRACE_METRICS_PRIVATE_ATTRIBUTE_PREFIXES,
+    TRACE_METRICS_PRIVATE_ATTRIBUTES,
+    TRACE_METRICS_REPLACEMENT_ATTRIBUTES,
+    TRACE_METRICS_REPLACEMENT_MAP,
+)
+from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 from sentry.search.eap.types import AttributeSource, AttributeSourceType, SupportedTraceItemType
 
 
@@ -47,43 +57,51 @@ INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
 ] = {
     SupportedTraceItemType.SPANS: SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     SupportedTraceItemType.LOGS: LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
+    SupportedTraceItemType.TRACEMETRICS: TRACE_METRICS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
 }
 
 PUBLIC_ALIAS_TO_INTERNAL_MAPPING: dict[SupportedTraceItemType, dict[str, ResolvedAttribute]] = {
     SupportedTraceItemType.SPANS: SPAN_ATTRIBUTE_DEFINITIONS,
     SupportedTraceItemType.LOGS: OURLOG_ATTRIBUTE_DEFINITIONS,
+    SupportedTraceItemType.TRACEMETRICS: TRACE_METRICS_ATTRIBUTE_DEFINITIONS,
 }
 
 
 PRIVATE_ATTRIBUTES: dict[SupportedTraceItemType, set[str]] = {
     SupportedTraceItemType.SPANS: SPANS_PRIVATE_ATTRIBUTES,
     SupportedTraceItemType.LOGS: LOGS_PRIVATE_ATTRIBUTES,
+    SupportedTraceItemType.TRACEMETRICS: TRACE_METRICS_PRIVATE_ATTRIBUTES,
 }
 
 PRIVATE_ATTRIBUTE_PREFIXES: dict[SupportedTraceItemType, set[str]] = {
     SupportedTraceItemType.SPANS: SPANS_PRIVATE_ATTRIBUTE_PREFIXES,
     SupportedTraceItemType.LOGS: LOGS_PRIVATE_ATTRIBUTE_PREFIXES,
+    SupportedTraceItemType.TRACEMETRICS: TRACE_METRICS_PRIVATE_ATTRIBUTE_PREFIXES,
 }
 
 SENTRY_CONVENTIONS_REPLACEMENT_ATTRIBUTES: dict[SupportedTraceItemType, set[str]] = {
     SupportedTraceItemType.SPANS: SPANS_REPLACEMENT_ATTRIBUTES,
     SupportedTraceItemType.LOGS: LOGS_REPLACEMENT_ATTRIBUTES,
+    SupportedTraceItemType.TRACEMETRICS: TRACE_METRICS_REPLACEMENT_ATTRIBUTES,
 }
 
 SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS: dict[SupportedTraceItemType, dict[str, str]] = {
     SupportedTraceItemType.SPANS: SPANS_REPLACEMENT_MAP,
     SupportedTraceItemType.LOGS: LOGS_REPLACEMENT_MAP,
+    SupportedTraceItemType.TRACEMETRICS: TRACE_METRICS_REPLACEMENT_MAP,
 }
 
 
 INTERNAL_TO_SECONDARY_ALIASES: dict[SupportedTraceItemType, dict[str, set[str]]] = {
     SupportedTraceItemType.SPANS: SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
     SupportedTraceItemType.LOGS: LOGS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
+    SupportedTraceItemType.TRACEMETRICS: TRACE_METRICS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
 }
 
 TRACE_ITEM_TYPE_DEFINITIONS: dict[SupportedTraceItemType, ColumnDefinitions] = {
     SupportedTraceItemType.SPANS: SPAN_DEFINITIONS,
     SupportedTraceItemType.LOGS: OURLOG_DEFINITIONS,
+    SupportedTraceItemType.TRACEMETRICS: TRACE_METRICS_DEFINITIONS,
 }
 
 

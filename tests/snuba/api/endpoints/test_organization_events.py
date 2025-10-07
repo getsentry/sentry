@@ -38,6 +38,7 @@ from sentry.testutils.cases import (
     ProfilesSnubaTestCase,
     SnubaTestCase,
     SpanTestCase,
+    TraceMetricsTestCase,
     UptimeCheckSnubaTestCase,
 )
 from sentry.testutils.helpers import parse_link_header
@@ -55,7 +56,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationEventsEndpointTestBase(
-    APITransactionTestCase, SnubaTestCase, SpanTestCase, OurLogTestCase
+    APITransactionTestCase, SnubaTestCase, SpanTestCase, OurLogTestCase, TraceMetricsTestCase
 ):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
