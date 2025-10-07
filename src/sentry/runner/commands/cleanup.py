@@ -195,9 +195,6 @@ def _cleanup(
         from sentry.utils import metrics
         from sentry.utils.query import RangeQuerySetWrapper
 
-        # Track the beginning of the cleanup method
-        metrics.incr("cleanup.start", instance=router, sample_rate=1.0)
-
         start_time = None
         if timed:
             start_time = time.time()
