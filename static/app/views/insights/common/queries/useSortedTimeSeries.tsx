@@ -1,5 +1,9 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo, useState} from 'react';
+import * as Sentry from '@sentry/react';
+import isEmpty from 'lodash/isEmpty';
+import isEqualWith from 'lodash/isEqualWith';
 
+import {NODE_ENV} from 'sentry/constants';
 import type {
   EventsStats,
   GroupedMultiSeriesEventsStats,
@@ -14,9 +18,12 @@ import {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
+import {areNumbersAlmostEqual} from 'sentry/utils/number/areNumbersAlmostEqual';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {getTimeSeriesInterval} from 'sentry/utils/timeSeries/getTimeSeriesInterval';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -38,6 +45,8 @@ import {
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
 import type {SpanFields, SpanFunctions} from 'sentry/views/insights/types';
+
+const {warn} = Sentry.logger;
 
 type SeriesMap = Record<string, TimeSeries[]>;
 
@@ -102,6 +111,31 @@ export const useSortedTimeSeries = <
     ? intervalToMilliseconds(eventView.interval)
     : undefined;
 
+  // Add a sampled fetch of equivalent `/events-timeseries/` response so we can
+  // compare the result and spot-check that there aren't any differences.
+
+  // Re-roll the random value whenever the filters change
+  const key = `${yAxis.join(',')}-${typeof search === 'string' ? search : search?.formatString()}-${(fields ?? []).join(',')}-${pageFilters.selection.datetime.period}`;
+
+  const isTimeSeriesEndpointComparisonEnabled =
+    useIsSampled(0.1, key) &&
+    organization.features.includes('explore-events-time-series-spot-check');
+
+  const timeSeriesResult = useFetchSpanTimeSeries(
+    {
+      yAxis: yAxis as unknown as any,
+      query: search,
+      topEvents,
+      groupBy: fields as unknown as any,
+      pageFilters: pageFilters.selection,
+      sort: decodeSorts(orderby)[0],
+      interval,
+      sampling: samplingMode,
+      enabled: isTimeSeriesEndpointComparisonEnabled,
+    },
+    `${referrer}-time-series`
+  );
+
   const result = useGenericDiscoverQuery<
     MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
     DiscoverQueryProps
@@ -144,6 +178,35 @@ export const useSortedTimeSeries = <
   const data: SeriesMap = useMemo(() => {
     return isFetchingOrLoading ? {} : transformToSeriesMap(result.data, yAxis, fields);
   }, [isFetchingOrLoading, result.data, yAxis, fields]);
+
+  const otherData = useMemo(() => {
+    return timeSeriesResult.data
+      ? Object.groupBy(timeSeriesResult.data.timeSeries, ts => ts.yAxis)
+      : {};
+  }, [timeSeriesResult.data]);
+
+  useEffect(() => {
+    if (
+      isTimeSeriesEndpointComparisonEnabled &&
+      !result.isFetching &&
+      !isEmpty(data) &&
+      !timeSeriesResult.isFetching &&
+      !isEmpty(otherData)
+    ) {
+      if (!isEqualWith(data, otherData, comparator)) {
+        warn(`\`useDiscoverSeries\` found a data difference in responses`, {
+          statsData: JSON.stringify(data),
+          timeSeriesData: JSON.stringify(otherData),
+        });
+      }
+    }
+  }, [
+    isTimeSeriesEndpointComparisonEnabled,
+    data,
+    result.isFetching,
+    otherData,
+    timeSeriesResult.isFetching,
+  ]);
 
   const pageLinks = result.response?.getResponseHeader('Link') ?? undefined;
 
@@ -292,4 +355,31 @@ export function convertEventsStatsToTimeSeriesData(
   }
 
   return [delayedTimeSeries.meta.order ?? 0, delayedTimeSeries];
+}
+
+function comparator(
+  valueA: unknown,
+  valueB: unknown,
+  key: symbol | string | number | undefined
+) {
+  // Compare numbers by near equality, which makes the comparison less sensitive to small natural variations in value caused by request sequencing
+  if (key === 'value' && typeof valueA === 'number' && typeof valueB === 'number') {
+    return areNumbersAlmostEqual(valueA, valueB, 5);
+  }
+
+  // Otherwise use default deep comparison
+  return undefined;
+}
+
+function useIsSampled(rate: number, key = '') {
+  const [isSampled, setIsSampled] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (NODE_ENV !== 'test') {
+      const rand = Math.random();
+      setIsSampled(rand <= rate);
+    }
+  }, [rate, key]);
+
+  return isSampled;
 }
