@@ -144,11 +144,7 @@ export function AIInputSection({
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {
-  if (getIsAiNode(node)) {
-    return null;
-  }
-
-  if (!hasAIInputAttribute(node, attributes, event)) {
+  if (!getIsAiNode(node) || !hasAIInputAttribute(node, attributes, event)) {
     return null;
   }
 

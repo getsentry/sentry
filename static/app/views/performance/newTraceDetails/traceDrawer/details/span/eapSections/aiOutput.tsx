@@ -52,10 +52,7 @@ export function AIOutputSection({
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {
-  if (getIsAiNode(node)) {
-    return null;
-  }
-  if (!hasAIOutputAttribute(node, attributes, event)) {
+  if (!getIsAiNode(node) || !hasAIOutputAttribute(node, attributes, event)) {
     return null;
   }
 
