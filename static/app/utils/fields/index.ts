@@ -1829,7 +1829,11 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.PROJECT]: {kind: FieldKind.FIELD, valueType: FieldValueType.STRING},
+  [FieldKey.PROJECT]: {
+    desc: t('The name of the project'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.HAS]: {
     desc: t('Determines if a tag or field exists in an event'),
     kind: FieldKind.FIELD,
@@ -2491,6 +2495,7 @@ export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.DETECTOR,
   FieldKey.FIRST_RELEASE,
   FieldKey.FIRST_SEEN,
+  FieldKey.PROJECT,
   FieldKey.HAS,
   FieldKey.IS,
   FieldKey.ISSUE_CATEGORY,
