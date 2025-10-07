@@ -1,16 +1,18 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {t} from 'sentry/locale';
+import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
+import {Token} from 'sentry/components/searchSyntax/parser';
+import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {getFieldDefinition} from 'sentry/utils/fields';
+import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
@@ -28,11 +30,7 @@ interface AskSeerSearchQuery {
   visualizations: Visualization[];
 }
 
-export interface AskSeerSearchItem<S extends string> extends AskSeerSearchQuery {
-  key: S extends 'none-of-these' ? never : S;
-}
-
-interface AskSeerSearchResponse {
+interface TraceAskSeerSearchResponse {
   queries: Array<{
     group_by: string[];
     mode: string;
@@ -45,87 +43,89 @@ interface AskSeerSearchResponse {
     }>;
   }>;
   status: string;
-  unsupported_reason?: string;
+  unsupported_reason: string | null;
 }
 
-export const useAskSeerSearch = () => {
+export function SpansTabSeerComboBox() {
+  const navigate = useNavigate();
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
-  const memberProjects = projects.filter(p => p.isMember);
-  const [rawResult, setRawResult] = useState<AskSeerSearchQuery[]>([]);
-  const [unsupportedReason, setUnsupportedReason] = useState<string | null>(null);
+  const {currentInputValueRef, query, committedQuery, askSeerSuggestedQueryRef} =
+    useSearchQueryBuilder();
 
-  const {
-    mutate: submitQuery,
-    isPending,
-    isError,
-  } = useMutation<AskSeerSearchResponse, RequestError, string>({
-    mutationFn: (query: string) => {
+  let initialSeerQuery = '';
+  const queryDetails = useMemo(() => {
+    const queryToUse = committedQuery.length > 0 ? committedQuery : query;
+    const parsedQuery = parseQueryBuilderValue(queryToUse, getFieldDefinition);
+    return {parsedQuery, queryToUse};
+  }, [committedQuery, query]);
+
+  const inputValue = currentInputValueRef.current.trim();
+
+  // Only filter out FREE_TEXT tokens if there's actual input value to filter by
+  const filteredCommittedQuery = queryDetails?.parsedQuery
+    ?.filter(
+      token =>
+        !(token.type === Token.FREE_TEXT && inputValue && token.text.includes(inputValue))
+    )
+    ?.map(token => stringifyToken(token))
+    ?.join(' ')
+    ?.trim();
+
+  // Use filteredCommittedQuery if it exists and has content, otherwise fall back to queryToUse
+  if (filteredCommittedQuery && filteredCommittedQuery.length > 0) {
+    initialSeerQuery = filteredCommittedQuery;
+  } else if (queryDetails?.queryToUse) {
+    initialSeerQuery = queryDetails.queryToUse;
+  }
+
+  if (inputValue) {
+    initialSeerQuery =
+      initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
+  }
+
+  const spansTabAskSeerMutationOptions = mutationOptions({
+    mutationFn: async (queryToSubmit: string) => {
       const selectedProjects =
         pageFilters.selection.projects?.length > 0 &&
         pageFilters.selection.projects?.[0] !== -1
           ? pageFilters.selection.projects
-          : memberProjects.map(p => p.id);
+          : projects.filter(p => p.isMember).map(p => p.id);
 
-      return fetchMutation({
+      const data = await fetchMutation<TraceAskSeerSearchResponse>({
         url: `/organizations/${organization.slug}/trace-explorer-ai/query/`,
         method: 'POST',
         data: {
-          natural_language_query: query,
+          natural_language_query: queryToSubmit,
           project_ids: selectedProjects,
           use_flyout: false,
           limit: 3,
         },
       });
-    },
-    onSuccess: result => {
-      setUnsupportedReason(result.unsupported_reason || null);
-      setRawResult(
-        result.queries.map((query: any) => {
-          const visualizations =
-            query?.visualization?.map((v: any) => ({
+
+      return {
+        ...data,
+        queries: data.queries.map(q => ({
+          visualizations:
+            q?.visualization?.map((v: any) => ({
               chartType: v?.chart_type,
               yAxes: v?.y_axes,
-            })) ?? [];
-
-          return {
-            visualizations,
-            query: query?.query,
-            sort: query?.sort ?? '',
-            groupBys: query?.group_by ?? [],
-            statsPeriod: query?.stats_period ?? '',
-            mode: query?.mode ?? 'spans',
-          };
-        })
-      );
-    },
-    onError: (error: Error) => {
-      setUnsupportedReason(null);
-      addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
+            })) ?? [],
+          query: q?.query,
+          sort: q?.sort ?? '',
+          groupBys: q?.group_by ?? [],
+          statsPeriod: q?.stats_period ?? '',
+          mode: q?.mode ?? 'spans',
+        })),
+      };
     },
   });
 
-  return {
-    rawResult,
-    submitQuery,
-    isPending,
-    isError,
-    unsupportedReason,
-  };
-};
-
-export const useApplySeerSearchQuery = () => {
-  const navigate = useNavigate();
-  const pageFilters = usePageFilters();
-  const organization = useOrganization();
-
-  const {askSeerSuggestedQueryRef} = useSearchQueryBuilder();
-
-  return useCallback(
+  const applySeerSearchQuery = useCallback(
     (result: AskSeerSearchQuery) => {
       if (!result) return;
-      const {query, visualizations, groupBys, sort, statsPeriod} = result;
+      const {query: queryToUse, visualizations, groupBys, sort, statsPeriod} = result;
 
       const startFilter = pageFilters.selection.datetime.start?.valueOf();
       const start = startFilter
@@ -163,7 +163,7 @@ export const useApplySeerSearchQuery = () => {
       const url = getExploreUrl({
         organization,
         selection,
-        query,
+        query: queryToUse,
         visualize,
         groupBy: groupBys,
         sort,
@@ -172,7 +172,7 @@ export const useApplySeerSearchQuery = () => {
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
         selection,
-        query,
+        query: queryToUse,
         visualize,
         groupBy: groupBys,
         sort,
@@ -180,7 +180,7 @@ export const useApplySeerSearchQuery = () => {
       });
       trackAnalytics('trace.explorer.ai_query_applied', {
         organization,
-        query,
+        query: queryToUse,
         group_by_count: groupBys.length,
         visualize_count: visualizations.length,
       });
@@ -188,4 +188,12 @@ export const useApplySeerSearchQuery = () => {
     },
     [askSeerSuggestedQueryRef, navigate, organization, pageFilters.selection]
   );
-};
+
+  return (
+    <AskSeerComboBox
+      initialQuery={initialSeerQuery}
+      askSeerMutationOptions={spansTabAskSeerMutationOptions}
+      applySeerSearchQuery={applySeerSearchQuery}
+    />
+  );
+}

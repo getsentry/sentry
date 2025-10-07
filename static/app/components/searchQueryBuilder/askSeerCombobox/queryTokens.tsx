@@ -1,18 +1,10 @@
 import styled from '@emotion/styled';
 
+import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
-import type {ChartType} from 'sentry/views/insights/common/components/chart';
-
-export interface QueryTokensProps {
-  groupBys?: string[];
-  query?: string;
-  sort?: string;
-  statsPeriod?: string;
-  visualizations?: Array<{chartType: ChartType; yAxes: string[]}>;
-}
 
 function QueryTokens({
   groupBys,

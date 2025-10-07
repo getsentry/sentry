@@ -7,6 +7,7 @@ import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
+import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
 
 const defaultProps = {
   filterKeys: {},
@@ -14,6 +15,20 @@ const defaultProps = {
   initialQuery: 'test',
   searchSource: 'test',
 };
+
+const askSeerMutationOptions = mutationOptions({
+  mutationFn: async (_value: string) => {
+    return fetchMutation<{
+      queries: Array<{query: string}>;
+      status: string;
+      unsupported_reason: string | null;
+    }>({
+      url: `/organizations/org-slug/trace-explorer-ai/query/`,
+      method: 'POST',
+      data: {},
+    });
+  },
+});
 
 describe('AskSeerComboBox', () => {
   beforeEach(() => {
@@ -35,25 +50,18 @@ describe('AskSeerComboBox', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-explorer-ai/query/',
       method: 'POST',
-      body: {
-        status: 'ok',
-        queries: [
-          {
-            query: 'span.duration:>30s',
-            stats_period: '',
-            group_by: [],
-            visualization: [{chart_type: 1, y_axes: ['count()']}],
-            sort: '-span.duration',
-          },
-        ],
-      },
+      body: {status: 'ok', queries: [{query: 'span.duration:>30s'}]},
     });
   });
 
   it('renders the search input', async () => {
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
-        <AskSeerComboBox initialQuery="test" />
+        <AskSeerComboBox
+          initialQuery="test"
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
       </SearchQueryBuilderProvider>
     );
 
@@ -67,7 +75,11 @@ describe('AskSeerComboBox', () => {
   it('sets the passed initial query as the input value', async () => {
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
-        <AskSeerComboBox initialQuery="test" />
+        <AskSeerComboBox
+          initialQuery="test"
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
       </SearchQueryBuilderProvider>
     );
 
@@ -80,7 +92,11 @@ describe('AskSeerComboBox', () => {
   it('defaults popover to be open', async () => {
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
-        <AskSeerComboBox initialQuery="test" />
+        <AskSeerComboBox
+          initialQuery="test"
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
       </SearchQueryBuilderProvider>
     );
 
@@ -92,7 +108,11 @@ describe('AskSeerComboBox', () => {
     function TestComponent() {
       const {displayAskSeer, setDisplayAskSeer} = useSearchQueryBuilder();
       return displayAskSeer ? (
-        <AskSeerComboBox initialQuery="test" />
+        <AskSeerComboBox
+          initialQuery="test"
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
       ) : (
         <div>
           <p>Not Seer Search</p>
@@ -122,7 +142,11 @@ describe('AskSeerComboBox', () => {
   it('displays results after user searches', async () => {
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
-        <AskSeerComboBox initialQuery="" />
+        <AskSeerComboBox
+          initialQuery=""
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
       </SearchQueryBuilderProvider>
     );
 
@@ -136,9 +160,14 @@ describe('AskSeerComboBox', () => {
   });
 
   it('applies the query to the route query params when selected via keyboard', async () => {
-    const {router} = render(
+    const applySeerSearchQuery = jest.fn();
+    render(
       <SearchQueryBuilderProvider {...defaultProps}>
-        <AskSeerComboBox initialQuery="" />
+        <AskSeerComboBox
+          initialQuery=""
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={applySeerSearchQuery}
+        />
       </SearchQueryBuilderProvider>,
       {
         initialRouterConfig: {location: {pathname: '/foo/'}},
@@ -153,12 +182,9 @@ describe('AskSeerComboBox', () => {
     await userEvent.keyboard('{ArrowDown}{Enter}');
 
     await waitFor(() =>
-      expect(router.location.query).toEqual({
-        mode: 'samples',
+      expect(applySeerSearchQuery).toHaveBeenCalledWith({
+        key: '0-span.duration:>30s',
         query: 'span.duration:>30s',
-        sort: '-span.duration',
-        statsPeriod: '14d',
-        visualize: '{"chartType":1,"yAxes":["count()"]}',
       })
     );
   });
@@ -172,7 +198,11 @@ describe('AskSeerComboBox', () => {
 
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
-        <AskSeerComboBox initialQuery="" />
+        <AskSeerComboBox
+          initialQuery=""
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
       </SearchQueryBuilderProvider>
     );
 
