@@ -30,7 +30,6 @@ import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory
 import {
   AddOnCategory,
   OnDemandBudgetMode,
-  type Plan,
   type ProductTrial,
   type Subscription,
 } from 'getsentry/types';
@@ -50,87 +49,6 @@ interface UsageOverviewProps {
   organization: Organization;
   subscription: Subscription;
 }
-
-type ToggleableProductRowProps = {
-  ariaLabel: string;
-  hasToggle: true;
-  isOpen: boolean;
-  onToggle: () => void;
-};
-
-type NonToggleableProductRowProps = {
-  hasToggle: false;
-  ariaLabel?: never;
-  isOpen?: never;
-  onToggle?: never;
-};
-
-type DataCategoryProductRowProps = {
-  dataCategory: DataCategory;
-  addOnCategory?: never;
-};
-
-type AddOnCategoryProductRowProps = {
-  addOnCategory: AddOnCategory;
-  dataCategory?: never;
-};
-
-type ProductRowProps = (ToggleableProductRowProps | NonToggleableProductRowProps) &
-  (DataCategoryProductRowProps | AddOnCategoryProductRowProps) & {
-    /**
-     * Whether the customer has access to the product
-     */
-    hasAccess: boolean;
-    organization: Organization;
-    /**
-     * PAYG usage, in cents
-     */
-    paygTotal: number;
-    plan: Plan;
-    /**
-     * The display name for the product
-     */
-    productName: string;
-    /**
-     * Total reserved, in events for volume-based or cents for budget-based
-     */
-    total: number;
-    /**
-     * Gifted total, in events for volume-based or cents for budget-based
-     */
-    free?: number;
-    /**
-     * Whether the product is the top-most in its hierarchy
-     */
-    isTopMostProduct?: boolean;
-    /**
-     * The active product trial for the product, if available, otherwise the potential product trial, if available
-     */
-    productTrial?: ProductTrial;
-    /**
-     * The recurring cost for the reserved volume or budget for the product
-     */
-    recurringReservedSpend?: number;
-    /**
-     * Reserved total, in events for volume-based or cents for budget-based
-     * This is 0 for pay-as-you-go only products
-     */
-    reserved?: number;
-  };
-
-// the breakpoints at which we condense and expand the usage overview table
-// const MAX_BREAKPOINT_TO_CONDENSE = 'md';
-// const MIN_BREAKPOINT_TO_EXPAND = 'lg';
-
-const GRID_PROPS = {
-  columns: '2fr repeat(5, 1fr)',
-  padding: 'lg xl' as const,
-  borderTop: 'primary' as const,
-  gap: '2xl' as const,
-  align: 'center' as const,
-  overflowX: 'scroll' as const,
-  whiteSpace: 'nowrap' as const,
-};
 
 function CurrencyCell({
   children,
@@ -164,6 +82,9 @@ function ReservedUsageBar({percentUsed}: {percentUsed: number}) {
 
 function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
   const [openState, setOpenState] = useState<Record<string, boolean>>({});
+  const [trialButtonBusyState, setTrialButtonBusyState] = useState<
+    Partial<Record<DataCategory, boolean>>
+  >({});
 
   useEffect(() => {
     Object.entries(subscription.addOns ?? {})
@@ -200,6 +121,7 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
     },
   ];
 
+  // TODO(isabella): refactor this to have better types + be more efficient
   const productData: Array<{
     attrs: {
       hasAccess: boolean;
@@ -308,7 +230,10 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
               )
             : undefined;
           const percentUsed = reservedBudget?.totalReservedSpend
-            ? getPercentage(paygTotal, reservedBudget?.totalReservedSpend)
+            ? getPercentage(
+                reservedBudget?.totalReservedSpend,
+                reservedBudget?.reservedBudget
+              )
             : undefined;
           const activeProductTrial = getActiveProductTrial(
             subscription.productTrials ?? [],
@@ -584,17 +509,26 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
                           }}
                           aria-label={t('Start 14 day free %s trial', row.product)}
                           priority="primary"
-                          // handleClick={() => {
-                          //   setTrialButtonBusy(true);
-                          // }}
-                          // onTrialStarted={() => {
-                          //   setTrialButtonBusy(true);
-                          // }}
-                          // onTrialFailed={() => {
-                          //   setTrialButtonBusy(false);
-                          // }}
-                          // busy={trialButtonBusy}
-                          // disabled={trialButtonBusy}
+                          handleClick={() => {
+                            setTrialButtonBusyState(prev => ({
+                              ...prev,
+                              [productTrial.category]: true,
+                            }));
+                          }}
+                          onTrialStarted={() => {
+                            setTrialButtonBusyState(prev => ({
+                              ...prev,
+                              [productTrial.category]: true,
+                            }));
+                          }}
+                          onTrialFailed={() => {
+                            setTrialButtonBusyState(prev => ({
+                              ...prev,
+                              [productTrial.category]: false,
+                            }));
+                          }}
+                          busy={trialButtonBusyState[productTrial.category]}
+                          disabled={trialButtonBusyState[productTrial.category]}
                           size="xs"
                         >
                           <Flex align="center" gap="sm">
