@@ -20,15 +20,20 @@ interface HeaderCardsProps {
 function getCards(organization: Organization, subscription: Subscription) {
   const cards: React.ReactNode[] = [];
 
-  cards.push(
-    <NextBillCard
-      key="next-bill"
-      subscription={subscription}
-      organization={organization}
-    />
-  );
+  if (subscription.canSelfServe) {
+    cards.push(
+      <NextBillCard
+        key="next-bill"
+        subscription={subscription}
+        organization={organization}
+      />
+    );
+  }
 
-  if (subscription.canSelfServe || subscription.onDemandInvoiced) {
+  if (
+    (subscription.canSelfServe || subscription.onDemandInvoiced) &&
+    !subscription.isSelfServePartner
+  ) {
     cards.push(
       <BillingInfoCard
         key="billing-info"
