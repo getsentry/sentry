@@ -6,6 +6,7 @@ import type {Organization} from 'sentry/types/organization';
 import {hasNewBillingUI} from 'getsentry/utils/billing';
 
 function SubscriptionPageContainer({
+  header,
   children,
   background,
   organization,
@@ -15,6 +16,7 @@ function SubscriptionPageContainer({
   organization: Organization;
   background?: 'primary' | 'secondary';
   dataTestId?: string;
+  header?: React.ReactNode;
 }) {
   const isNewBillingUI = hasNewBillingUI(organization);
   if (!isNewBillingUI) {
@@ -24,15 +26,18 @@ function SubscriptionPageContainer({
     return <Fragment>{children}</Fragment>;
   }
   return (
-    <Container
-      padding={{xs: 'xl', md: '3xl'}}
-      background={background}
-      height="100%"
-      data-test-id={dataTestId}
-      borderTop={background === 'secondary' ? 'primary' : undefined}
-    >
-      {children}
-    </Container>
+    <Fragment>
+      {header}
+      <Container
+        padding={{xs: 'xl', md: '3xl'}}
+        background={background}
+        height="100%"
+        data-test-id={dataTestId}
+        borderTop={background === 'secondary' ? 'primary' : undefined}
+      >
+        {children}
+      </Container>
+    </Fragment>
   );
 }
 
