@@ -26,6 +26,7 @@ interface DataExportProps {
   disabled?: boolean;
   icon?: React.ReactNode;
   onClick?: () => void;
+  overrideFeatureFlags?: boolean;
   size?: 'xs' | 'sm' | 'md';
 }
 
@@ -98,6 +99,7 @@ function DataExport({
   payload,
   icon,
   size = 'sm',
+  overrideFeatureFlags,
   onClick,
 }: DataExportProps): React.ReactElement {
   const unmountedRef = useRef(false);
@@ -134,13 +136,7 @@ function DataExport({
   };
 
   return (
-    <Feature
-      features={
-        payload.queryType === ExportQueryType.EXPLORE
-          ? []
-          : 'organizations:discover-query'
-      }
-    >
+    <Feature features={overrideFeatureFlags ? [] : 'organizations:discover-query'}>
       {inProgress ? (
         <Button
           size={size}

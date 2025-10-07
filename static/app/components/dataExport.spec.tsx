@@ -21,11 +21,6 @@ const mockPayload = {
   queryInfo: {project_id: '1', group_id: '1027', key: 'user'},
 };
 
-const mockExplorePayload = {
-  queryType: ExportQueryType.EXPLORE,
-  queryInfo: {project_id: '1', group_id: '1027', key: 'user'},
-};
-
 const mockContext = (organization: Organization) => {
   return {organization};
 };
@@ -45,8 +40,8 @@ describe('DataExport', () => {
     expect(screen.getByText(/Export All to CSV/)).toBeInTheDocument();
   });
 
-  it('should render the button for an unauthorized organization using explore', () => {
-    render(<DataExport payload={mockExplorePayload} />, {
+  it('should render the button for an unauthorized organization using flag override', () => {
+    render(<DataExport payload={mockPayload} overrideFeatureFlags />, {
       ...mockContext(mockUnauthorizedOrg),
     });
     expect(screen.getByRole('button')).toBeInTheDocument();
