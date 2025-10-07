@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 import urllib3
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
@@ -18,6 +20,7 @@ from sentry.utils.safe import get_path
 from sentry.utils.sdk import set_current_event_project
 
 KW_SKIP_SEMANTIC_PARTITIONING = "skip_semantic_partitioning"
+
 
 logger = logging.getLogger(__name__)
 
@@ -209,6 +212,31 @@ class SnubaProtocolEventStream(EventStream):
             event_type=event_type,
         )
 
+        self._forward_event_to_items(event_data, event_type)
+
+    def _serialize_event_data_as_item(self, event_data: dict[str, Any]) -> TraceItem:
+        return TraceItem(
+            trace_item_type=TraceItemType.OCCURRENCE,
+            trace_item_id=event_data["id"],
+            timestamp=event_data["datetime"],
+            trace_id=event_data["event_id"],
+            organization_id=event_data["organization_id"],
+            project_id=event_data["project_id"],
+            received=event_data["datetime"],
+            retention_days=event_data["retention_days"],
+            attributes=event_data["tags"],
+        )
+
+    def _forward_event_to_items(
+        self, event_data: dict[str, Any], event_type: EventStreamEventType
+    ) -> None:
+        if not (
+            event_type == EventStreamEventType.Error or event_type == EventStreamEventType.Generic
+        ):
+            return
+
+        self._send_item(event_data)
+
     def start_delete_groups(self, project_id: int, group_ids: Sequence[int]) -> Mapping[str, Any]:
         if not group_ids:
             raise ValueError("expected groups to delete!")
@@ -397,6 +425,9 @@ class SnubaProtocolEventStream(EventStream):
         skip_semantic_partitioning: bool = False,
         event_type: EventStreamEventType = EventStreamEventType.Error,
     ) -> None:
+        raise NotImplementedError
+
+    def _send_item(self, event_data: dict[str, Any]) -> None:
         raise NotImplementedError
 
 
