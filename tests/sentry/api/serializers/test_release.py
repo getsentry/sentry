@@ -609,13 +609,11 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         serializer = ReleaseSerializer()
         release_project_envs = serializer._get_release_project_envs_unordered([release], None, None)
         result_ids = {rpe.id for rpe in release_project_envs}
-        expected_ids = {rpe1.id, rpe2.id, rpe3.id}
-        assert result_ids == expected_ids
+        assert result_ids == {rpe1.id, rpe2.id, rpe3.id}
         _, _, group_counts = serializer._ReleaseSerializer__get_release_data_with_environments(
             release_project_envs
         )
-        expected_counts = {release.id: {project_a.id: 4, project_b.id: 2}}
-        assert group_counts == expected_counts
+        assert group_counts == {release.id: {project_a.id: 4, project_b.id: 2}}
 
         # 2. Filter by production environment
         serializer = ReleaseSerializer()
@@ -623,12 +621,11 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             [release], ["production"], None
         )
         result_ids = {rpe.id for rpe in release_project_envs}
-        expected_ids = {rpe1.id, rpe3.id}
-        assert result_ids == expected_ids
+        assert result_ids == {rpe1.id, rpe3.id}
         _, _, group_counts = serializer._ReleaseSerializer__get_release_data_with_environments(
             release_project_envs
         )
-        expected_counts = {release.id: {project_a.id: 3, project_b.id: 2}}
+        assert group_counts == {release.id: {project_a.id: 3, project_b.id: 2}}
 
         # 3. Filter by production and staging environments
         serializer = ReleaseSerializer()
@@ -636,13 +633,11 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             [release], ["production", "staging"], None
         )
         result_ids = {rpe.id for rpe in release_project_envs}
-        expected_ids = {rpe1.id, rpe2.id, rpe3.id}
-        assert result_ids == expected_ids
+        assert result_ids == {rpe1.id, rpe2.id, rpe3.id}
         _, _, group_counts = serializer._ReleaseSerializer__get_release_data_with_environments(
             release_project_envs
         )
-        expected_counts = {release.id: {project_a.id: 4, project_b.id: 2}}
-        assert group_counts == expected_counts
+        assert group_counts == {release.id: {project_a.id: 4, project_b.id: 2}}
 
     def test_get_release_data_with_environments_project_filtering(self) -> None:
         """Test __get_release_data_with_environments with project filtering."""
@@ -672,8 +667,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         _, _, group_counts = serializer._ReleaseSerializer__get_release_data_with_environments(
             release_project_envs
         )
-        expected_counts = {release.id: {project_a.id: 3}}
-        assert group_counts == expected_counts
+        assert group_counts == {release.id: {project_a.id: 3}}
 
     def test_get_release_data_with_environments_multiple_releases(self) -> None:
         """Test __get_release_data_with_environments with multiple releases across projects and environments."""
