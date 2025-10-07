@@ -82,16 +82,12 @@ export function formatQueryToNaturalLanguage(query: string): string {
 export function generateQueryTokensString(args: QueryTokensProps): string {
   const parts = [];
 
-  if (!args) {
-    return 'No query parameters set';
-  }
-
-  if (args.query) {
+  if (args?.query) {
     const formattedFilter = formatQueryToNaturalLanguage(args.query.trim());
     parts.push(`Filter is '${formattedFilter}'`);
   }
 
-  if (args.visualizations && args.visualizations.length > 0) {
+  if (args?.visualizations && args.visualizations.length > 0) {
     const vizParts = args.visualizations.flatMap(visualization =>
       visualization.yAxes.map(yAxis => yAxis)
     );
@@ -101,17 +97,17 @@ export function generateQueryTokensString(args: QueryTokensProps): string {
     }
   }
 
-  if (args.groupBys && args.groupBys.length > 0) {
+  if (args?.groupBys && args.groupBys.length > 0) {
     const groupByText =
       args.groupBys.length === 1 ? args.groupBys[0] : args.groupBys.join(', ');
     parts.push(`groupBys are '${groupByText}'`);
   }
 
-  if (args.statsPeriod && args.statsPeriod.length > 0) {
+  if (args?.statsPeriod && args.statsPeriod.length > 0) {
     parts.push(`time range is '${args?.statsPeriod}'`);
   }
 
-  if (args.sort && args.sort.length > 0) {
+  if (args?.sort && args.sort.length > 0) {
     const sortText =
       args?.sort[0] === '-' ? `${args?.sort.slice(1)} Desc` : `${args?.sort} Asc`;
     parts.push(`sort is '${sortText}'`);
