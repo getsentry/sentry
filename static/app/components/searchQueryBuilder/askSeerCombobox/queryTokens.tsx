@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
+import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
-import {getFieldDefinition} from 'sentry/utils/fields';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export interface QueryTokensProps {
@@ -22,7 +22,7 @@ function QueryTokens({
   visualizations,
 }: QueryTokensProps) {
   const tokens = [];
-
+  const {getFieldDefinition} = useSearchQueryBuilder();
   const parsedQuery = query ? parseQueryBuilderValue(query, getFieldDefinition) : null;
   if (query && parsedQuery?.length) {
     tokens.push(
