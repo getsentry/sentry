@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from sentry.issue_detection.detectors.large_payload_detector import LargeHTTPPayloadDetector
+from sentry.issue_detection.detectors.large_http_payload_detector import LargeHTTPPayloadDetector
 from sentry.issue_detection.performance_detection import (
     get_detection_settings,
     run_detector_on_data,

@@ -66,7 +66,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
     def test_with_one_performance_issue(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now(minutes=5)
         event_data = self.create_sample_event(
-            "n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
+            "n-plus-one-db/n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
         )
 
         with (
@@ -89,7 +89,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
     def test_multiple_events_with_one_cause_are_grouped(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now(minutes=5)
         event_data = self.create_sample_event(
-            "n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
+            "n-plus-one-db/n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
         )
 
         self.create_performance_issue(event_data=event_data)
@@ -130,7 +130,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
         # Create identical events with different parent spans
         for _ in range(3):
             event_data = self.create_sample_event(
-                "n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
+                "n-plus-one-db/n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
             )
             event_data["spans"] = [
                 self.randomize_span_description(span) if span["op"] == "django.view" else span
