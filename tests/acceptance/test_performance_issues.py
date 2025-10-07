@@ -39,7 +39,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
         self.dismiss_assistant()
 
     def create_sample_event(self, fixture: str, start_timestamp: float) -> dict[str, Any]:
-        event = json.loads(self.load_fixture(f"events/performance_problems/{fixture}.json"))
+        event = json.loads(self.load_fixture(f"events/issue_detection/{fixture}.json"))
 
         for key in ["datetime", "location", "title"]:
             del event[key]
