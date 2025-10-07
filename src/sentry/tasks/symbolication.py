@@ -318,7 +318,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         )
 
     fn_name = name.split(".")[-1]
-    symbolication_fn.__name__ = fn_name
+    setattr(symbolication_fn, "__name__", fn_name)
     TASK_FNS[task_kind] = fn_name
 
     return symbolication_fn

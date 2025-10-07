@@ -1119,6 +1119,7 @@ class TestProcessResourceChange(TestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
 
