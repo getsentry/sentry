@@ -1,4 +1,5 @@
 import React, {Fragment, useEffect, useState} from 'react';
+// import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -7,6 +8,7 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import type {TextProps} from 'sentry/components/core/text/text';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {
   IconChevron,
   IconDownload,
@@ -20,7 +22,10 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
+// import useMedia from 'sentry/utils/useMedia';
+
 import ProductTrialTag from 'getsentry/components/productTrial/productTrialTag';
+import StartTrialButton from 'getsentry/components/startTrialButton';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory';
 import {
@@ -33,6 +38,7 @@ import {
 import {
   displayBudgetName,
   formatReservedWithUnits,
+  formatUsageWithUnits,
   getActiveProductTrial,
   getPercentage,
   getPotentialProductTrial,
@@ -46,12 +52,85 @@ interface UsageOverviewProps {
   subscription: Subscription;
 }
 
+type ToggleableProductRowProps = {
+  ariaLabel: string;
+  hasToggle: true;
+  isOpen: boolean;
+  onToggle: () => void;
+};
+
+type NonToggleableProductRowProps = {
+  hasToggle: false;
+  ariaLabel?: never;
+  isOpen?: never;
+  onToggle?: never;
+};
+
+type DataCategoryProductRowProps = {
+  dataCategory: DataCategory;
+  addOnCategory?: never;
+};
+
+type AddOnCategoryProductRowProps = {
+  addOnCategory: AddOnCategory;
+  dataCategory?: never;
+};
+
+type ProductRowProps = (ToggleableProductRowProps | NonToggleableProductRowProps) &
+  (DataCategoryProductRowProps | AddOnCategoryProductRowProps) & {
+    /**
+     * Whether the customer has access to the product
+     */
+    hasAccess: boolean;
+    organization: Organization;
+    /**
+     * PAYG usage, in cents
+     */
+    paygTotal: number;
+    plan: Plan;
+    /**
+     * The display name for the product
+     */
+    productName: string;
+    /**
+     * Total reserved, in events for volume-based or cents for budget-based
+     */
+    total: number;
+    /**
+     * Gifted total, in events for volume-based or cents for budget-based
+     */
+    free?: number;
+    /**
+     * Whether the product is the top-most in its hierarchy
+     */
+    isTopMostProduct?: boolean;
+    /**
+     * The active product trial for the product, if available, otherwise the potential product trial, if available
+     */
+    productTrial?: ProductTrial;
+    /**
+     * The recurring cost for the reserved volume or budget for the product
+     */
+    recurringReservedSpend?: number;
+    /**
+     * Reserved total, in events for volume-based or cents for budget-based
+     * This is 0 for pay-as-you-go only products
+     */
+    reserved?: number;
+  };
+
+// the breakpoints at which we condense and expand the usage overview table
+// const MAX_BREAKPOINT_TO_CONDENSE = 'md';
+// const MIN_BREAKPOINT_TO_EXPAND = 'lg';
+
 const GRID_PROPS = {
-  columns: {xs: '2fr repeat(4, 1fr)', md: '2fr repeat(5, 1fr)'},
+  columns: '2fr repeat(5, 1fr)',
   padding: 'lg xl' as const,
   borderTop: 'primary' as const,
-  gap: 'md' as const,
+  gap: '2xl' as const,
   align: 'center' as const,
+  overflowX: 'scroll' as const,
+  whiteSpace: 'nowrap' as const,
 };
 
 function CurrencyCell({
@@ -74,37 +153,28 @@ function ProductRow({
   plan,
   hasAccess,
   productName,
+  dataCategory,
   ariaLabel,
   isOpen,
   onToggle,
   hasToggle,
-  onDemandSpendUsed,
-  formattedCurrentUsage,
-  percentUsed,
   isTopMostProduct,
-  potentialProductTrial,
-  activeProductTrial,
+  productTrial,
   recurringReservedSpend,
-  isPaygOnly,
-}: {
-  activeProductTrial: ProductTrial | null;
-  hasAccess: boolean;
-  hasToggle: boolean;
-  isPaygOnly: boolean;
-  onDemandSpendUsed: number;
-  plan: Plan;
-  potentialProductTrial: ProductTrial | null;
-  productName: React.ReactNode;
-  recurringReservedSpend: number;
-  ariaLabel?: string; // fix type so this is always required if hasToggle is true
-  formattedCurrentUsage?: string;
-  isOpen?: boolean;
-  isTopMostProduct?: boolean;
-  onToggle?: () => void;
-  percentUsed?: number;
-}) {
+  free,
+  reserved,
+  paygTotal,
+  total,
+  organization,
+}: ProductRowProps) {
+  // const theme = useTheme();
+  // const isScreenSmall = useMedia(
+  //   `(max-width: ${theme.breakpoints[MIN_BREAKPOINT_TO_EXPAND]})`
+  // );
+
+  const [trialButtonBusy, setTrialButtonBusy] = useState(false);
   const title = (
-    <Flex gap="md" align="center">
+    <Flex gap="md" align="center" direction="row">
       <Container>
         {!hasAccess && <IconLock locked size="xs" />}
         <Text textWrap="pretty" bold={isTopMostProduct}>
@@ -112,10 +182,37 @@ function ProductRow({
           {productName}
         </Text>
       </Container>
-      {potentialProductTrial && <ProductTrialTag trial={potentialProductTrial} />}
-      {activeProductTrial && <ProductTrialTag trial={activeProductTrial} />}
+      {productTrial && <ProductTrialTag trial={productTrial} />}
     </Flex>
   );
+
+  const formattedTotal = dataCategory
+    ? formatUsageWithUnits(total, dataCategory, {useUnitScaling: true})
+    : displayPriceWithCents({cents: total});
+  const reservedTotal = (reserved ?? 0) + (free ?? 0);
+  const formattedReserved = reservedTotal
+    ? dataCategory
+      ? formatReservedWithUnits(reservedTotal, dataCategory, {useUnitScaling: true})
+      : displayPriceWithCents({cents: reservedTotal})
+    : undefined;
+  const formattedFree = free
+    ? dataCategory
+      ? formatReservedWithUnits(free, dataCategory, {useUnitScaling: true})
+      : displayPriceWithCents({cents: free})
+    : undefined;
+  const formattedCurrentUsage =
+    isTopMostProduct && formattedReserved
+      ? `${formattedTotal} / ${formattedReserved}`
+      : formattedTotal;
+  const percentUsed = reservedTotal ? getPercentage(total, reservedTotal) : undefined;
+  const formattedRecurringReservedSpend = recurringReservedSpend
+    ? displayPriceWithCents({cents: recurringReservedSpend})
+    : '-';
+  const formattedPaygTotal =
+    paygTotal > 0 ? displayPriceWithCents({cents: paygTotal}) : '-';
+
+  const isPaygOnly = reserved === 0;
+
   return (
     <Grid {...GRID_PROPS} borderTop="primary">
       {hasToggle ? (
@@ -134,41 +231,82 @@ function ProductRow({
       ) : (
         <Container paddingLeft={isTopMostProduct ? undefined : '2xl'}>{title}</Container>
       )}
-      {formattedCurrentUsage ? <Text>{formattedCurrentUsage}</Text> : <div />}
+      <Container>
+        <Text as="div" textWrap="balance">
+          {formattedCurrentUsage}{' '}
+          {!isPaygOnly && (
+            <QuestionTooltip
+              size="xs"
+              position="top"
+              title={tct('[formattedReserved] reserved[freeString]', {
+                formattedReserved,
+                freeString: formattedFree
+                  ? tct('[formattedFree] gifted', {formattedFree})
+                  : '',
+              })}
+            />
+          )}
+        </Text>
+      </Container>
       {isPaygOnly ? (
-        <Container>
+        <Container alignSelf="center" justifySelf="start">
           <Tag>
             {tct('[budgetTerm] only', {
-              budgetTerm: displayBudgetName(plan, {title: true}),
+              budgetTerm:
+                // isScreenSmall
+                //   ? plan.budgetTerm === 'pay-as-you-go'
+                //     ? 'PAYG'
+                //     : 'OD'
+                //   :
+                displayBudgetName(plan, {title: true}),
             })}
           </Tag>
         </Container>
       ) : defined(percentUsed) ? (
         <Flex gap="sm" align="center">
-          <ReservedUsageBar percentUsed={percentUsed} />
+          <ReservedUsageBar percentUsed={percentUsed / 100} />
           <Text>{percentUsed.toFixed(0) + '%'}</Text>
         </Flex>
       ) : (
         <div />
       )}
-      <CurrencyCell>
-        {recurringReservedSpend > 0
-          ? displayPriceWithCents({cents: recurringReservedSpend})
-          : '-'}
-      </CurrencyCell>
-      <CurrencyCell>
-        {onDemandSpendUsed > 0 ? displayPriceWithCents({cents: onDemandSpendUsed}) : '-'}
-      </CurrencyCell>
-      {potentialProductTrial && (
-        <Flex justify="end">
-          <Button
-            size="xs"
-            icon={<IconLightning size="xs" />}
-            aria-label={t('Start free 14-day %s trial', productName)}
+      <CurrencyCell>{formattedRecurringReservedSpend}</CurrencyCell>
+      <CurrencyCell>{formattedPaygTotal}</CurrencyCell>
+      {productTrial && !productTrial.isStarted && (
+        <Flex justify="center">
+          <StartTrialButton
+            organization={organization}
+            source="usage-overview"
+            requestData={{
+              productTrial: {
+                category: productTrial.category,
+                reasonCode: productTrial.reasonCode,
+              },
+            }}
+            aria-label={t('Start 14 day free %s trial', productName)}
             priority="primary"
+            handleClick={() => {
+              setTrialButtonBusy(true);
+            }}
+            onTrialStarted={() => {
+              setTrialButtonBusy(true);
+            }}
+            onTrialFailed={() => {
+              setTrialButtonBusy(false);
+            }}
+            busy={trialButtonBusy}
+            disabled={trialButtonBusy}
+            size="xs"
           >
-            {t('Start free 14-day trial')}
-          </Button>
+            <Flex align="center" gap="sm">
+              <IconLightning size="xs" />
+              <Container>
+                {/* {isScreenSmall ? t('Start trial') :  */}
+                {t('Start 14 day free trial')}
+                {/* } */}
+              </Container>
+            </Flex>
+          </StartTrialButton>
         </Flex>
       )}
     </Grid>
@@ -176,13 +314,13 @@ function ProductRow({
 }
 
 function ReservedUsageBar({percentUsed}: {percentUsed: number}) {
-  if (percentUsed === 0 || percentUsed === 100) {
+  if (percentUsed === 0 || percentUsed === 1) {
     return <Bar fillPercentage={percentUsed} hasLeftBorderRadius hasRightBorderRadius />;
   }
   const filledWidth = percentUsed * 90;
   const unfilledWidth = 90 - filledWidth;
   return (
-    <Flex width="90px">
+    <Flex>
       <Bar fillPercentage={percentUsed} hasLeftBorderRadius width={`${filledWidth}px`} />
       <Bar fillPercentage={0} hasRightBorderRadius width={`${unfilledWidth}px`} />
     </Flex>
@@ -219,7 +357,11 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
         <Text {...tableHeaderProps}>{t('Current usage')}</Text>
         <Text {...tableHeaderProps}>{t('Reserved usage')}</Text>
         <CurrencyCell {...tableHeaderProps}>{t('Reserved spend')}</CurrencyCell>
-        <CurrencyCell {...tableHeaderProps}>{t('Pay-as-you-go spend')}</CurrencyCell>
+        <CurrencyCell {...tableHeaderProps}>
+          {tct('[budgetTerm] spend', {
+            budgetTerm: displayBudgetName(subscription.planDetails, {title: true}),
+          })}
+        </CurrencyCell>
       </Grid>
       {sortCategories(subscription.categories)
         .filter(metricHistory => !allAddOnDataCategories.includes(metricHistory.category))
@@ -252,14 +394,6 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
                 : subscription.onDemandMaxSpend > 0
               : reserved > 0;
 
-          const formattedUsage = formatReservedWithUnits(usage, category, {
-            useUnitScaling: true,
-          });
-          const formattedReserved = formatReservedWithUnits(reserved + free, category, {
-            useUnitScaling: true,
-          });
-          const percentUsed = getPercentage(usage, reserved + free);
-
           const bucket = getBucket({
             events: reserved,
             buckets: subscription.planDetails.planCategories[category],
@@ -269,20 +403,19 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
           return (
             <ProductRow
               key={category}
+              organization={organization}
+              dataCategory={category}
               plan={subscription.planDetails}
               hasToggle={false}
-              onDemandSpendUsed={metricHistory.onDemandSpendUsed}
+              paygTotal={metricHistory.onDemandSpendUsed}
               productName={productName}
-              isPaygOnly={isPaygOnly}
               hasAccess={hasAccess}
-              formattedCurrentUsage={
-                isPaygOnly ? formattedUsage : `${formattedUsage} / ${formattedReserved}`
-              }
-              percentUsed={percentUsed}
+              total={usage}
+              reserved={reserved}
+              free={free}
               isTopMostProduct
-              potentialProductTrial={potentialProductTrial}
-              activeProductTrial={activeProductTrial}
               recurringReservedSpend={recurringReservedSpend}
+              productTrial={activeProductTrial ?? potentialProductTrial ?? undefined}
             />
           );
         })}
@@ -309,7 +442,6 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
                 budget => (budget.apiName as string) === reservedBudgetCategory
               )
             : undefined;
-          const isPaygOnly = reservedBudget ? false : true;
 
           const activeProductTrial = getActiveProductTrial(
             subscription.productTrials ?? [],
@@ -333,9 +465,29 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
             : undefined;
           const recurringReservedSpend = bucket?.price ?? 0;
 
+          if (!isEnabled) {
+            <ProductRow
+              organization={organization}
+              addOnCategory={apiName as AddOnCategory}
+              plan={subscription.planDetails}
+              recurringReservedSpend={recurringReservedSpend}
+              hasToggle={false}
+              reserved={reservedBudget?.reservedBudget}
+              free={reservedBudget?.freeBudget}
+              total={reservedBudget?.totalReservedSpend ?? 0}
+              paygTotal={paygUsed}
+              hasAccess={isEnabled}
+              productName={addOnName}
+              isTopMostProduct
+              productTrial={activeProductTrial ?? potentialProductTrial ?? undefined}
+            />;
+          }
+
           return (
             <Fragment key={apiName}>
               <ProductRow
+                organization={organization}
+                addOnCategory={apiName as AddOnCategory}
                 plan={subscription.planDetails}
                 recurringReservedSpend={recurringReservedSpend}
                 ariaLabel={t('Toggle %s usage overview', addOnName)}
@@ -343,22 +495,15 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
                 onToggle={() =>
                   setOpenState({...openState, [apiName]: !openState[apiName]})
                 }
-                hasToggle={isEnabled}
-                onDemandSpendUsed={paygUsed}
-                isPaygOnly={isPaygOnly}
+                hasToggle
+                reserved={reservedBudget?.reservedBudget}
+                free={reservedBudget?.freeBudget}
+                total={reservedBudget?.totalReservedSpend ?? 0}
+                paygTotal={paygUsed}
                 hasAccess={isEnabled}
-                formattedCurrentUsage={
-                  reservedBudget
-                    ? `${displayPriceWithCents({cents: reservedBudget.totalReservedSpend})} / ${displayPriceWithCents({cents: reservedBudget.reservedBudget + reservedBudget.freeBudget})}`
-                    : undefined
-                }
-                percentUsed={
-                  reservedBudget && isEnabled ? reservedBudget.percentUsed : undefined
-                }
                 productName={addOnName}
                 isTopMostProduct
-                potentialProductTrial={potentialProductTrial}
-                activeProductTrial={activeProductTrial}
+                productTrial={activeProductTrial ?? potentialProductTrial ?? undefined}
               />
               {isEnabled && openState[apiName] && (
                 <Fragment>
@@ -378,17 +523,16 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
 
                       return (
                         <ProductRow
+                          organization={organization}
                           key={category}
+                          addOnCategory={apiName as AddOnCategory}
                           plan={subscription.planDetails}
                           hasToggle={false}
-                          onDemandSpendUsed={categoryDetails.onDemandSpendUsed}
+                          total={spend}
+                          paygTotal={categoryDetails.onDemandSpendUsed}
                           productName={productName}
-                          isPaygOnly={isPaygOnly}
                           hasAccess={isEnabled}
-                          activeProductTrial={null}
-                          potentialProductTrial={null}
                           recurringReservedSpend={0}
-                          formattedCurrentUsage={displayPriceWithCents({cents: spend})}
                         />
                       );
                     })}
@@ -459,7 +603,7 @@ const Bar = styled('div')<{
   width: ${p => (p.width ? p.width : '90px')};
   height: 6px;
   background: ${p =>
-    p.fillPercentage === 100
+    p.fillPercentage === 1
       ? p.theme.danger
       : p.fillPercentage > 0
         ? p.theme.active
@@ -468,8 +612,4 @@ const Bar = styled('div')<{
   border-bottom-left-radius: ${p => (p.hasLeftBorderRadius ? p.theme.borderRadius : 0)};
   border-top-right-radius: ${p => (p.hasRightBorderRadius ? p.theme.borderRadius : 0)};
   border-bottom-right-radius: ${p => (p.hasRightBorderRadius ? p.theme.borderRadius : 0)};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
 `;
