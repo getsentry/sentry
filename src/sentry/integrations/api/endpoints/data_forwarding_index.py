@@ -24,7 +24,6 @@ from sentry.integrations.api.serializers.rest_framework.data_forwarder import (
     DataForwarderSerializer,
 )
 from sentry.integrations.models.data_forwarder import DataForwarder
-from sentry.organizations.services.organization.model import RpcUserOrganizationContext
 from sentry.web.decorators import set_referrer_policy
 
 
@@ -54,10 +53,8 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
     )
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
-    def get(self, request: Request, organization_context: RpcUserOrganizationContext) -> Response:
-        queryset = DataForwarder.objects.filter(
-            organization_id=organization_context.organization.id
-        )
+    def get(self, request: Request, organization) -> Response:
+        queryset = DataForwarder.objects.filter(organization_id=organization.id)
 
         return self.paginate(
             request=request,
@@ -78,9 +75,9 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
     )
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
-    def post(self, request: Request, organization_context: RpcUserOrganizationContext) -> Response:
+    def post(self, request: Request, organization) -> Response:
         data = request.data.copy()
-        data["organization_id"] = organization_context.organization.id
+        data["organization_id"] = organization.id
 
         serializer = DataForwarderSerializer(data=data)
         if serializer.is_valid():
@@ -88,7 +85,7 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
 
             self.create_audit_entry(
                 request=request,
-                organization=organization_context.organization,
+                organization=organization,
                 target_object=data_forwarder.id,
                 event=audit_log.get_event_id("DATA_FORWARDER_ADD"),
                 data={
