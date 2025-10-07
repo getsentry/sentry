@@ -22,12 +22,7 @@ from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_kafka
 from sentry.uptime.config_producer import get_partition_keys
-from sentry.uptime.models import (
-    UptimeStatus,
-    UptimeSubscription,
-    UptimeSubscriptionRegion,
-    get_uptime_subscription,
-)
+from sentry.uptime.models import UptimeStatus, UptimeSubscription, UptimeSubscriptionRegion
 from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.uptime.subscriptions.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
@@ -41,6 +36,7 @@ from sentry.uptime.subscriptions.tasks import (
 )
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.utils import redis
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 pytestmark = [requires_kafka]
 
@@ -489,7 +485,7 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
             UptimeStatus.FAILED,
             timezone.now() - timedelta(days=8),
             ObjectStatus.DISABLED,
-            UptimeStatus.OK,
+            DetectorPriorityLevel.OK,
         )
 
     def test_manual(self) -> None:
@@ -498,7 +494,7 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
             UptimeStatus.FAILED,
             timezone.now() - timedelta(days=8),
             ObjectStatus.ACTIVE,
-            UptimeStatus.FAILED,
+            DetectorPriorityLevel.HIGH,
         )
 
     def test_auto_young(self) -> None:
@@ -507,7 +503,7 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
             UptimeStatus.FAILED,
             timezone.now() - timedelta(days=4),
             ObjectStatus.ACTIVE,
-            UptimeStatus.FAILED,
+            DetectorPriorityLevel.HIGH,
         )
 
     def test_auto_not_failed(self) -> None:
@@ -516,7 +512,7 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
             UptimeStatus.OK,
             timezone.now() - timedelta(days=8),
             ObjectStatus.ACTIVE,
-            UptimeStatus.OK,
+            DetectorPriorityLevel.OK,
         )
 
     def test_handle_disable_detector_exceptions(self) -> None:
@@ -544,23 +540,27 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
         uptime_status: UptimeStatus,
         update_date: datetime,
         expected_status: int,
-        expected_uptime_status: UptimeStatus,
+        expected_priority_level: DetectorPriorityLevel,
     ):
         detector = self.create_uptime_detector(
             mode=mode,
             uptime_status=uptime_status,
             uptime_status_update_date=update_date,
         )
-        uptime_subscription = get_uptime_subscription(detector)
 
         with self.tasks():
             broken_monitor_checker()
-
-        uptime_subscription.refresh_from_db()
-        assert uptime_subscription.uptime_status == expected_uptime_status
 
         detector.refresh_from_db()
         if expected_status == ObjectStatus.ACTIVE:
             assert detector.enabled
         else:
             assert not detector.enabled
+
+        detector_state = detector.detectorstate_set.first()
+        assert detector_state is not None
+        assert detector_state.priority_level == expected_priority_level
+        if expected_priority_level == DetectorPriorityLevel.HIGH:
+            assert detector_state.is_triggered
+        else:
+            assert not detector_state.is_triggered

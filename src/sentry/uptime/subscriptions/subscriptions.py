@@ -458,13 +458,14 @@ def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
         if not detector.enabled:
             return
 
-        if uptime_subscription.uptime_status == UptimeStatus.FAILED:
+        detector_state = detector.detectorstate_set.first()
+        if detector_state and detector_state.is_triggered:
             # Resolve the issue so that we don't see it in the ui anymore
             resolve_uptime_issue(detector)
 
-        # We set the status back to ok here so that if we re-enable we'll start
-        # from a good state
-        uptime_subscription.update(uptime_status=UptimeStatus.OK)
+            # We set the status back to ok here so that if we re-enable we'll
+            # start from a good state
+            detector_state.update(state=DetectorPriorityLevel.OK, is_triggered=False)
 
         detector.update(enabled=False)
 
