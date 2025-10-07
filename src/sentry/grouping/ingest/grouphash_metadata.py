@@ -464,7 +464,7 @@ def _get_fingerprint_hashing_metadata(
             if not matched_rule
             else (
                 "server_builtin_rule"
-                if contributing_variant.type == "built_in_fingerprint"
+                if contributing_variant.key == "built_in_fingerprint"
                 else "server_custom_rule"
             )
         ),
