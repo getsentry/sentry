@@ -1,11 +1,13 @@
-You've been invited to Sentry
+Hey there,
 
-Your teammates at {{ organization.name }} are using Sentry to track and debug software errors.
+Your teammates at {{ organization.name }} are using Sentry to catch errors, crush latency issues, and keep their (and maybe your) code from catching fire.
 
-Join your team by visiting the following url:
+Looks like they need your help. You’ve been invited to join them:
+[Accept your invite]({{ url }})
 
-    {{ url }}
+Heads up: this invite link is just for you. Don’t share it unless you want random strangers fixing your bugs.
 
-Do not share this invite email or link. This invite is unique to you. Sharing may result in unauthorized access.
+Oh, and don't forget to try Seer, your new AI debugging agent. It’ll automatically pinpoint root causes, suggest fixes, and even predict bugs before they land in prod.
 
-Check out the Sentry website (https://sentry.io) if you'd like to learn more before diving in.
+Welcome to the club.
+- The Sentry Team
