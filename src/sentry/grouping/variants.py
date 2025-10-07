@@ -196,7 +196,11 @@ class CustomFingerprintVariant(BaseVariant):
 
     @property
     def description(self) -> str:
-        return "custom fingerprint"
+        return "Sentry defined fingerprint" if self.is_built_in else "custom fingerprint"
+
+    @property
+    def key(self) -> str:
+        return "built_in_fingerprint" if self.is_built_in else "custom_fingerprint"
 
     def get_hash(self) -> str | None:
         return hash_from_values(self.values)
