@@ -239,6 +239,12 @@ const StoryMainContainer = styled('div')`
       }
     }
 
+    td:first-child {
+      white-space: nowrap;
+      word-break: break-all;
+      hyphens: none;
+    }
+
     td {
       padding-inline: ${p => p.theme.space.xl};
       padding-block: ${p => p.theme.space.lg};
