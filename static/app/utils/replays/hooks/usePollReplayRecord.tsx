@@ -20,14 +20,8 @@ function usePollReplayRecord({
   replayReader,
   pollInterval = 30 * 1000, // Default to every 30 seconds
 }: Props): boolean {
-  const queryKey: ApiQueryKey = [
-    `/organizations/${orgSlug}/replays/${replayId}/`,
-    {
-      query: {
-        polling: true,
-      },
-    },
-  ];
+  // we use {} to avoid colliding with the queryKey used by useReplayData
+  const queryKey: ApiQueryKey = [`/organizations/${orgSlug}/replays/${replayId}/`, {}];
 
   const isUpdated = useRef(false);
 

@@ -106,20 +106,15 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                 </Tooltip>
               ) : null}
               {replayUpdated ? (
-                <Button
+                <RefreshButton
                   title={t('Refresh for latest data')}
                   size="xs"
                   priority="primary"
                   onClick={handleRefresh}
                   borderless
-                  style={{
-                    backgroundColor: '#fff1e5',
-                    color: '#bc4c00',
-                    marginLeft: '20px',
-                  }}
                 >
                   {t('Refresh')}
-                </Button>
+                </RefreshButton>
               ) : null}
             </TimeContainer>
           ) : null}
@@ -210,5 +205,15 @@ const LiveIndicator = styled('div')`
     width: 20px;
     top: -6px;
     left: -6px;
+  }
+`;
+
+const RefreshButton = styled(Button)`
+  background-color: ${p => p.theme.yellow100};
+  color: ${p => p.theme.yellow400};
+  margin-left: 20px;
+
+  &:hover {
+    color: ${p => p.theme.yellow400};
   }
 `;
