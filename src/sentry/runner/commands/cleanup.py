@@ -354,6 +354,9 @@ def _start_pool(concurrency: int) -> tuple[list[Process], _WorkQueue]:
 
 
 def _stop_pool(pool: Sequence[Process], task_queue: _WorkQueue) -> None:
+    # First, ensure all queued tasks are completed
+    task_queue.join()
+
     # Stop the pool
     for _ in pool:
         task_queue.put(_STOP_WORKER)
