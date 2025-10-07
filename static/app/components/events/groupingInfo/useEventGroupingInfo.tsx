@@ -31,6 +31,11 @@ function eventGroupingInfoResponseOldToNew(
       }
     : null;
 }
+function isOld(
+  data: EventGroupingInfoResponseOld | EventGroupingInfoResponse | null
+): boolean {
+  return data ? !('grouping_config' in data) : false;
+}
 
 function generatePerformanceGroupInfo({
   event,
@@ -83,16 +88,20 @@ export function useEventGroupingInfo({
 
   const hasPerformanceGrouping = event.occurrence && event.type === 'transaction';
 
-  const {data, isPending, isError, isSuccess} = useApiQuery<EventGroupingInfoResponseOld>(
-    [`/projects/${organization.slug}/${projectSlug}/events/${event.id}/grouping-info/`],
-    {enabled: !hasPerformanceGrouping, staleTime: Infinity}
-  );
+  const {data, isPending, isError, isSuccess} = useApiQuery<
+    EventGroupingInfoResponseOld | EventGroupingInfoResponse
+  >([`/projects/${organization.slug}/${projectSlug}/events/${event.id}/grouping-info/`], {
+    enabled: !hasPerformanceGrouping,
+    staleTime: Infinity,
+  });
 
   const groupInfo = hasPerformanceGrouping
     ? generatePerformanceGroupInfo({group, event})
     : (data ?? null);
 
-  const groupInfoNew = eventGroupingInfoResponseOldToNew(groupInfo);
+  const groupInfoNew = isOld(groupInfo)
+    ? eventGroupingInfoResponseOldToNew(groupInfo as EventGroupingInfoResponseOld)
+    : (groupInfo as EventGroupingInfoResponse);
 
   return {
     groupInfo: groupInfoNew,
