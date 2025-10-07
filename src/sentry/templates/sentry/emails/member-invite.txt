@@ -2,8 +2,9 @@ Hey there,
 
 Your teammates at {{ organization.name }} are using Sentry to catch errors, crush latency issues, and keep their (and maybe your) code from catching fire.
 
-Looks like they need your help. You’ve been invited to join them:
-[Accept your invite]({{ url }})
+Looks like they need your help. You've been invited to join them:
+
+{{ url }}
 
 Heads up: this invite link is just for you. Don’t share it unless you want random strangers fixing your bugs.
 
