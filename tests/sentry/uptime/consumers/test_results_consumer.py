@@ -1069,25 +1069,24 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         """
         Validates that the consumer produces TraceItems to EAP's Kafka topic for uptime check results
         """
-        with self.feature("organizations:uptime-eap-results"):
-            result = self.create_uptime_result(
-                self.subscription.subscription_id,
-                status=CHECKSTATUS_SUCCESS,
-                scheduled_check_time=datetime.now() - timedelta(minutes=5),
-            )
-            self.send_result(result)
-            mock_produce.assert_called_once()
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            status=CHECKSTATUS_SUCCESS,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        self.send_result(result)
+        mock_produce.assert_called_once()
 
-            assert "snuba-items" in mock_produce.call_args.args[0].name
-            payload = mock_produce.call_args.args[1]
-            assert payload.key is None
-            assert payload.headers == []
+        assert "snuba-items" in mock_produce.call_args.args[0].name
+        payload = mock_produce.call_args.args[1]
+        assert payload.key is None
+        assert payload.headers == []
 
-            expected_trace_items = convert_uptime_result_to_trace_items(
-                self.project, result, IncidentStatus.NO_INCIDENT
-            )
-            codec = get_topic_codec(KafkaTopic.SNUBA_ITEMS)
-            assert [codec.decode(payload.value)] == expected_trace_items
+        expected_trace_items = convert_uptime_result_to_trace_items(
+            self.project, result, IncidentStatus.NO_INCIDENT
+        )
+        codec = get_topic_codec(KafkaTopic.SNUBA_ITEMS)
+        assert [codec.decode(payload.value)] == expected_trace_items
 
     def run_check_and_update_region_test(
         self,
