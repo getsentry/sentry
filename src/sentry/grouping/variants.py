@@ -287,7 +287,7 @@ class VariantsByDescriptor(TypedDict, total=False):
     system: ComponentVariant
     app: ComponentVariant
     custom_fingerprint: CustomFingerprintVariant
-    built_in_fingerprint: BuiltInFingerprintVariant
+    built_in_fingerprint: CustomFingerprintVariant
     checksum: ChecksumVariant
     hashed_checksum: HashedChecksumVariant
     default: ComponentVariant
