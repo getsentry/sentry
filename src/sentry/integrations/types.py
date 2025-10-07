@@ -44,6 +44,12 @@ class IntegrationProviderSlug(StrEnum):
     OPSGENIE = "opsgenie"
 
 
+class DataForwarderProviderSlug(StrEnum):
+    SEGMENT = "segment"
+    SQS = "sqs"
+    SPLUNK = "splunk"
+
+
 class ExternalProviderEnum(StrEnum):
     EMAIL = "email"
     CUSTOM = "custom_scm"

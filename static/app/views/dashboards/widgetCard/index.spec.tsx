@@ -36,13 +36,16 @@ describe('Dashboards > WidgetCard', () => {
     }),
   } as Parameters<typeof initializeOrg>[0]);
 
-  const renderWithProviders = (component: React.ReactNode) =>
+  const renderWithProviders = (component: React.ReactNode, features: string[] = []) =>
     render(
       <DashboardsMEPProvider>
         <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
       </DashboardsMEPProvider>,
       {
-        organization,
+        organization: {
+          ...organization,
+          features: [...organization.features, ...features],
+        },
         initialRouterConfig: {
           route: '/organizations/:orgId/dashboard/:dashboardId/',
           location: {
@@ -75,6 +78,36 @@ describe('Dashboards > WidgetCard', () => {
         name: 'default',
         orderby: '',
       },
+    ],
+  };
+
+  const transactionQueryWidget: Widget = {
+    title: 'Transactions',
+    description: 'Valid widget description',
+    interval: '5m',
+    displayType: DisplayType.LINE,
+    widgetType: WidgetType.TRANSACTIONS,
+    queries: [
+      {
+        conditions: 'event.type:transaction',
+        fields: ['count()', 'failure_count()'],
+        aggregates: ['count()', 'failure_count()'],
+        columns: [],
+        name: 'transactions',
+        orderby: '',
+      },
+      {
+        conditions: '',
+        fields: ['count()', 'failure_count()'],
+        aggregates: ['count()', 'failure_count()'],
+        columns: [],
+        name: 'default',
+        orderby: '',
+      },
+    ],
+    exploreUrls: [
+      '/organizations/org-slug/explore/traces/results1',
+      '/organizations/org-slug/explore/traces/results2',
     ],
   };
   const selection = {
@@ -809,5 +842,35 @@ describe('Dashboards > WidgetCard', () => {
     );
 
     expect(await screen.findByText('Indexed')).toBeInTheDocument();
+  });
+
+  it('displays the transaction deprecation warning and explore links for transaction widgets', async () => {
+    renderWithProviders(
+      <WidgetCard
+        api={api}
+        organization={{
+          ...organization,
+          features: [
+            ...organization.features,
+            'transaction-widget-deprecation-explore-view',
+          ],
+        }}
+        widget={transactionQueryWidget}
+        selection={selection}
+        isEditingDashboard={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        showContextMenu
+        widgetLimitReached={false}
+        isPreview
+        widgetLegendState={widgetLegendState}
+      />,
+      // passed feature flag in context because the hook for the warning does not have org passed in
+      ['transaction-widget-deprecation-explore-view']
+    );
+
+    expect(await screen.findByLabelText('Widget warnings')).toBeInTheDocument();
   });
 });

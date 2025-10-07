@@ -5,8 +5,9 @@ import {
   openDashboardWidgetQuerySelectorModal,
 } from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Link} from 'sentry/components/core/link';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
@@ -45,6 +46,30 @@ export const useIndexedEventsWarning = (): string | null => {
     metricSettingContext.metricSettingState !== MEPState.TRANSACTIONS_ONLY
     ? t('Indexed')
     : null;
+};
+
+export const useTransactionsDeprecationWarning = ({
+  widget,
+}: {
+  widget: Widget;
+}): React.JSX.Element | null => {
+  const organization = useOrganization();
+
+  if (
+    organization.features.includes('transaction-widget-deprecation-explore-view') &&
+    widget.widgetType === WidgetType.TRANSACTIONS &&
+    widget.exploreUrls &&
+    widget.exploreUrls.length > 0
+  ) {
+    return tct(
+      'Transactions widgets are in the process of being migrated to spans widgets. To see what your query could look like, open it in [explore:Explore].',
+      {
+        explore: <Link to={widget.exploreUrls[0]!} />,
+      }
+    );
+  }
+
+  return null;
 };
 
 export function getMenuOptions(
