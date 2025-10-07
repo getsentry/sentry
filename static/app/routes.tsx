@@ -1824,7 +1824,6 @@ function buildRoutes(): RouteObject[] {
       component: make(
         () => import('sentry/views/performance/transactionSummary/transactionOverview')
       ),
-      deprecatedRouteProps: true,
     },
     traceView,
     {
