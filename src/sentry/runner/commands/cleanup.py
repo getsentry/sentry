@@ -404,31 +404,7 @@ def _start_pool(concurrency: int) -> tuple[list[Process], _WorkQueue]:
     return pool, task_queue
 
 
-def _stop_pool(pool: Sequence[Process] | None, task_queue: _WorkQueue | None) -> None:
-    if pool is None or task_queue is None:
-        return
-    # Stop the pool
-    for _ in pool:
-        task_queue.put(_STOP_WORKER)
-    # And wait for it to drain
-    for p in pool:
-        p.join()
-
-
-def _start_pool(concurrency: int) -> tuple[list[Process], _WorkQueue]:
-    pool: list[Process] = []
-    task_queue: _WorkQueue = Queue(1000)
-    for _ in range(concurrency):
-        p = Process(target=multiprocess_worker, args=(task_queue,))
-        p.daemon = True
-        p.start()
-        pool.append(p)
-    return pool, task_queue
-
-
-def _stop_pool(pool: Sequence[Process] | None, task_queue: _WorkQueue | None) -> None:
-    if pool is None or task_queue is None:
-        return
+def _stop_pool(pool: Sequence[Process], task_queue: _WorkQueue) -> None:
     # Stop the pool
     for _ in pool:
         task_queue.put(_STOP_WORKER)
