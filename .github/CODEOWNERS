@@ -322,6 +322,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/components/replays/                                          @getsentry/replay-frontend
 /static/app/utils/replays/                                               @getsentry/replay-frontend
 /static/app/views/replays/                                               @getsentry/replay-frontend
+/tests/acceptance/test_replay_details.py                                 @getsentry/replay-frontend
+/tests/acceptance/test_replay_list.py                                    @getsentry/replay-frontend
 /src/sentry/replays/                                                     @getsentry/replay-backend
 /tests/sentry/replays/                                                   @getsentry/replay-backend
 /src/sentry/issues/endpoints/organization_issue_metrics.py               @getsentry/replay-backend

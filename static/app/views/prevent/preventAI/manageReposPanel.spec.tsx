@@ -1,34 +1,16 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ManageReposPanel from 'sentry/views/prevent/preventAI/manageReposPanel';
+import type {PreventAIOrgConfig} from 'sentry/types/prevent';
+import ManageReposPanel, {
+  getRepoConfig,
+} from 'sentry/views/prevent/preventAI/manageReposPanel';
 
 let mockUpdatePreventAIFeatureReturn: any = {};
 jest.mock('sentry/views/prevent/preventAI/hooks/useUpdatePreventAIFeature', () => ({
   useUpdatePreventAIFeature: () => mockUpdatePreventAIFeatureReturn,
 }));
-
-let mockPreventAIConfigReturn: any = {};
-jest.mock('sentry/views/prevent/preventAI/hooks/usePreventAIConfig', () => ({
-  usePreventAIConfig: () => mockPreventAIConfigReturn,
-}));
-
-const getMockConfig = (overrides = {}) => ({
-  data: {
-    features: {
-      vanilla: {enabled: true},
-      test_generation: {enabled: false},
-      bug_prediction: {
-        enabled: true,
-        triggers: {on_ready_for_review: false, on_command_phrase: true},
-      },
-      ...(overrides as any).features,
-    },
-  },
-  isLoading: false,
-  refetch: jest.fn(),
-  isError: false,
-  ...overrides,
-});
 
 describe('ManageReposPanel', () => {
   const defaultProps = {
@@ -41,13 +23,35 @@ describe('ManageReposPanel', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    localStorage.clear();
     mockUpdatePreventAIFeatureReturn = {};
   });
 
+  const mockOrganization = OrganizationFixture({
+    preventAiConfigGithub: {
+      schema_version: 'v1',
+      github_organizations: {},
+      default_org_config: {
+        org_defaults: {
+          bug_prediction: {
+            enabled: true,
+            triggers: {on_command_phrase: true, on_ready_for_review: false},
+          },
+          test_generation: {
+            enabled: false,
+            triggers: {on_command_phrase: false, on_ready_for_review: false},
+          },
+          vanilla: {
+            enabled: true,
+            triggers: {on_command_phrase: false, on_ready_for_review: false},
+          },
+        },
+        repo_overrides: {},
+      },
+    },
+  });
+
   it('renders the panel header and description with repo link', async () => {
-    mockPreventAIConfigReturn = getMockConfig();
-    render(<ManageReposPanel {...defaultProps} />);
+    render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
     expect(await screen.findByText('AI Code Review Settings')).toBeInTheDocument();
     expect(
       await screen.findByText(/These settings apply to the selected/i)
@@ -57,16 +61,14 @@ describe('ManageReposPanel', () => {
   });
 
   it('calls onClose when the close button is clicked', async () => {
-    mockPreventAIConfigReturn = getMockConfig();
-    render(<ManageReposPanel {...defaultProps} />);
+    render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
     const closeButton = await screen.findByLabelText(/Close Settings/i);
     await userEvent.click(closeButton);
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 
   it('shows feature toggles with correct initial state', async () => {
-    mockPreventAIConfigReturn = getMockConfig();
-    render(<ManageReposPanel {...defaultProps} />);
+    render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
     expect(await screen.findByLabelText(/PR Review/i)).toBeChecked();
     expect(await screen.findByLabelText(/Test Generation/i)).not.toBeChecked();
     expect(await screen.findByLabelText(/Error Prediction/i)).toBeChecked();
@@ -77,42 +79,103 @@ describe('ManageReposPanel', () => {
   });
 
   it('disables toggles when loading', async () => {
-    mockPreventAIConfigReturn = getMockConfig({isLoading: true});
-    render(<ManageReposPanel {...defaultProps} />);
+    mockUpdatePreventAIFeatureReturn = {
+      ...mockUpdatePreventAIFeatureReturn,
+      isLoading: true,
+    };
+    render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
     expect(await screen.findByLabelText(/PR Review/i)).toBeDisabled();
     expect(await screen.findByLabelText(/Test Generation/i)).toBeDisabled();
     expect(await screen.findByLabelText(/Error Prediction/i)).toBeDisabled();
   });
 
   it('shows error message if updateError is present', async () => {
-    mockPreventAIConfigReturn = getMockConfig();
     mockUpdatePreventAIFeatureReturn = {
       enableFeature: jest.fn(),
       isLoading: false,
       error: 'Something went wrong',
     };
-    render(<ManageReposPanel {...defaultProps} />);
+    render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
     expect(await screen.findByText(/Could not update settings/i)).toBeInTheDocument();
   });
 
-  it('calls refetch after enableFeature is called', async () => {
-    const mockRefetch = jest.fn();
-    mockPreventAIConfigReturn = getMockConfig({refetch: mockRefetch});
-    mockUpdatePreventAIFeatureReturn = {
-      enableFeature: jest.fn().mockResolvedValue({success: true}),
-      isLoading: false,
-      error: null,
-    };
-
-    render(<ManageReposPanel {...defaultProps} />);
-
-    const prReviewToggle = await screen.findByLabelText(/PR Review/i);
-    await userEvent.click(prReviewToggle);
-
-    expect(mockUpdatePreventAIFeatureReturn.enableFeature).toHaveBeenCalledWith({
-      feature: 'vanilla',
-      enabled: false, // Toggle from true to false
+  describe('getRepoConfig', () => {
+    it('returns repo override config when present', () => {
+      const orgConfig: PreventAIOrgConfig = {
+        org_defaults: {
+          bug_prediction: {
+            enabled: true,
+            triggers: {on_command_phrase: true, on_ready_for_review: true},
+          },
+          test_generation: {
+            enabled: false,
+            triggers: {on_command_phrase: true, on_ready_for_review: false},
+          },
+          vanilla: {
+            enabled: true,
+            triggers: {on_command_phrase: true, on_ready_for_review: false},
+          },
+        },
+        repo_overrides: {
+          'repo-1': {
+            bug_prediction: {
+              enabled: false,
+              triggers: {on_command_phrase: true, on_ready_for_review: false},
+            },
+            test_generation: {
+              enabled: true,
+              triggers: {on_command_phrase: true, on_ready_for_review: false},
+            },
+            vanilla: {
+              enabled: false,
+              triggers: {on_command_phrase: true, on_ready_for_review: false},
+            },
+          },
+        },
+      };
+      const result = getRepoConfig(orgConfig, 'repo-1');
+      expect(result).toEqual({
+        doesUseOrgDefaults: false,
+        repoConfig: {
+          bug_prediction: {
+            enabled: false,
+            triggers: {on_command_phrase: true, on_ready_for_review: false},
+          },
+          test_generation: {
+            enabled: true,
+            triggers: {on_command_phrase: true, on_ready_for_review: false},
+          },
+          vanilla: {
+            enabled: false,
+            triggers: {on_command_phrase: true, on_ready_for_review: false},
+          },
+        },
+      });
     });
-    expect(mockRefetch).toHaveBeenCalled();
+
+    it('returns org defaults when repo override is not present', () => {
+      const orgConfig: PreventAIOrgConfig = {
+        org_defaults: {
+          bug_prediction: {
+            enabled: true,
+            triggers: {on_command_phrase: true, on_ready_for_review: false},
+          },
+          test_generation: {
+            enabled: false,
+            triggers: {on_command_phrase: false, on_ready_for_review: false},
+          },
+          vanilla: {
+            enabled: true,
+            triggers: {on_command_phrase: false, on_ready_for_review: false},
+          },
+        },
+        repo_overrides: {},
+      };
+      const result = getRepoConfig(orgConfig, 'repo-2');
+      expect(result).toEqual({
+        doesUseOrgDefaults: true,
+        repoConfig: orgConfig.org_defaults,
+      });
+    });
   });
 });

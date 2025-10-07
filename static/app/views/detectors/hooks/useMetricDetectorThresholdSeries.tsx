@@ -224,10 +224,13 @@ export function useMetricDetectorThresholdSeries({
           data: [],
         };
       });
-
       additional.push(...thresholdSeries);
-      // Add manual resolution line and safe area if present (green)
-      if (resolution) {
+
+      // Resolution is considered "automatic" when it equals any alert threshold value
+      const isResolutionManual = Boolean(
+        resolution && !thresholds.some(threshold => threshold.value === resolution.value)
+      );
+      if (resolution && isResolutionManual) {
         const resolutionSeries: LineSeriesOption = {
           type: 'line',
           markLine: createThresholdMarkLine(theme.green300, resolution.value),
@@ -243,7 +246,7 @@ export function useMetricDetectorThresholdSeries({
 
       const valuesForMax = [
         ...thresholds.map(threshold => threshold.value),
-        ...(resolution ? [resolution.value] : []),
+        ...(resolution && isResolutionManual ? [resolution.value] : []),
       ];
       const maxValue = valuesForMax.length > 0 ? Math.max(...valuesForMax) : undefined;
       return {maxValue, additionalSeries: additional};

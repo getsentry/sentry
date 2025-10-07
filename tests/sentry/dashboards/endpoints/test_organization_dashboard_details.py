@@ -533,6 +533,49 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             assert params["field"].sort() == ["id", "transaction"].sort()
             assert "aggregateField" not in params
 
+    def test_explore_url_for_deformed_widget(self) -> None:
+        with self.feature("organizations:transaction-widget-deprecation-explore-view"):
+            dashboard_deprecation = Dashboard.objects.create(
+                title="Dashboard With Transaction Widget",
+                created_by_id=self.user.id,
+                organization=self.organization,
+            )
+            widget_deprecation = DashboardWidget.objects.create(
+                dashboard=dashboard_deprecation,
+                title="line widget",
+                display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+                widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+                interval="1d",
+                detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            )
+
+            DashboardWidgetQuery.objects.create(
+                widget=widget_deprecation,
+                fields=["query.dataset"],
+                columns=["query.dataset"],
+                aggregates=["p95(transaction.duration)"],
+                orderby="-p95(transaction.duration)",
+                conditions="transaction:/api/0/organizations/{organization_id_or_slug}/events/",
+                order=0,
+            )
+
+            response = self.do_request("get", self.url(dashboard_deprecation.id))
+            assert response.status_code == 200
+            explore_url = response.data["widgets"][0]["exploreUrls"][0]
+            assert "http://testserver/explore/traces/" in explore_url
+
+            params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
+            assert params["query"] == [
+                "(transaction:/api/0/organizations/{organization_id_or_slug}/events/) AND is_transaction:1"
+            ]
+            assert params["sort"] == ["-p95(span.duration)"]
+            assert params["mode"] == ["aggregate"]
+            assert params["field"].sort() == ["query.dataset", "span.duration"].sort()
+            assert params["aggregateField"] == [
+                '{"groupBy":"query.dataset"}',
+                '{"yAxes":["p95(span.duration)"],"chartType":1}',
+            ]
+
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
     def test_delete(self) -> None:
