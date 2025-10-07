@@ -1973,6 +1973,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
+          handle: {module: ModuleName.MOBILE_VITALS},
           component: make(
             () => import('sentry/views/insights/mobile/screens/views/screensLandingPage')
           ),
@@ -2064,9 +2065,11 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: `${MOBILE_LANDING_SUB_PATH}/`,
+      component: make(() => import('sentry/views/insights/pages/mobile/layout')),
       children: [
         {
           index: true,
+          handle: {module: undefined},
           component: make(
             () => import('sentry/views/insights/pages/mobile/mobileOverviewPage')
           ),
