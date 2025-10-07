@@ -801,7 +801,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
               </tr>
             </thead>
             <tbody>
-              {Object.entries(customer.categories)
+              {Object.entries(customer.categories || {})
                 .filter(([_, bmh]) => RETENTION_SETTINGS_CATEGORIES.has(bmh.category))
                 .map(([category, bmh]) => (
                   <tr key={category}>
