@@ -195,6 +195,9 @@ def _cleanup(
         from sentry.utils import metrics
         from sentry.utils.query import RangeQuerySetWrapper
 
+        # Track the beginning of the cleanup method
+        metrics.incr("cleanup.start", instance=router, sample_rate=1.0)
+
         start_time = None
         if timed:
             start_time = time.time()
@@ -333,6 +336,14 @@ def _cleanup(
         task_queue.join()
 
         remove_file_blobs(is_filtered, silent, models_attempted)
+
+        # Track successful completion of cleanup method
+        metrics.incr("cleanup.end", tags={"status": "success"}, instance=router, sample_rate=1.0)
+
+    except Exception:
+        # Track failed completion of cleanup method
+        metrics.incr("cleanup.end", tags={"status": "failure"}, instance=router, sample_rate=1.0)
+        raise  # Raise it to not be ignored
 
     finally:
         # Shut down our pool
