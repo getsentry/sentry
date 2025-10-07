@@ -137,9 +137,9 @@ function ManageReposPanel({
               justify="between"
             >
               <Flex direction="column" gap="sm">
-                <Text size="md">Enable PR Review</Text>
+                <Text size="md">{t('Enable PR Review')}</Text>
                 <Text variant="muted" size="sm">
-                  Run when @sentry review is commented on a PR.
+                  {t('Run when @sentry review is commented on a PR.')}
                 </Text>
               </Flex>
               <Switch
@@ -159,8 +159,8 @@ function ManageReposPanel({
               />
             </Flex>
             {repoConfig.vanilla.enabled && (
-              <Flex paddingLeft="xl">
-                <Flex direction="column" borderLeft="muted" paddingLeft="md" width="100%">
+              <Flex paddingLeft="xl" direction="column">
+                <Flex direction="column" borderLeft="muted" paddingLeft="md">
                   <FieldGroup
                     label={<Text size="md">{t('Sensitivity')}</Text>}
                     help={
@@ -168,7 +168,7 @@ function ManageReposPanel({
                         {t('Set the sensitivity level for PR review analysis.')}
                       </Text>
                     }
-                    inline
+                    alignRight
                     flexibleControlStateSize
                   >
                     <CompactSelect
@@ -205,9 +205,9 @@ function ManageReposPanel({
               justify="between"
             >
               <Flex direction="column" gap="sm">
-                <Text size="md">Enable Test Generation</Text>
+                <Text size="md">{t('Enable Test Generation')}</Text>
                 <Text variant="muted" size="sm">
-                  Run when @sentry generate-test is commented on a PR.
+                  {t('Run when @sentry generate-test is commented on a PR.')}
                 </Text>
               </Flex>
               <Switch
@@ -239,9 +239,9 @@ function ManageReposPanel({
               justify="between"
             >
               <Flex direction="column" gap="sm">
-                <Text size="md">Enable Error Prediction</Text>
+                <Text size="md">{t('Enable Error Prediction')}</Text>
                 <Text variant="muted" size="sm">
-                  Allow organization members to review potential bugs.
+                  {t('Allow organization members to review potential bugs.')}
                 </Text>
               </Flex>
               <Switch
@@ -261,8 +261,8 @@ function ManageReposPanel({
               />
             </Flex>
             {repoConfig.bug_prediction.enabled && (
-              <Flex paddingLeft="xl">
-                <Flex direction="column" borderLeft="muted" paddingLeft="md" width="100%">
+              <Flex paddingLeft="xl" direction="column">
+                <Flex direction="column" borderLeft="muted" paddingLeft="md">
                   <FieldGroup
                     label={<Text size="md">{t('Sensitivity')}</Text>}
                     help={
@@ -270,7 +270,7 @@ function ManageReposPanel({
                         {t('Set the sensitivity level for error prediction.')}
                       </Text>
                     }
-                    inline
+                    alignRight
                     flexibleControlStateSize
                   >
                     <CompactSelect
@@ -298,7 +298,7 @@ function ManageReposPanel({
                         {t('Run when a PR is published, ignoring new pushes.')}
                       </Text>
                     }
-                    inline
+                    alignRight
                     flexibleControlStateSize
                   >
                     <Switch
@@ -323,10 +323,10 @@ function ManageReposPanel({
                     label={<Text size="md">{t('Run When Mentioned')}</Text>}
                     help={
                       <Text size="xs" variant="muted">
-                        {t('Run when @sentry review is commented on a PR')}
+                        {t('Run when @sentry review is commented on a PR.')}
                       </Text>
                     }
-                    inline
+                    alignRight
                     flexibleControlStateSize
                   >
                     <Switch
