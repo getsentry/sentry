@@ -113,17 +113,15 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
 
         preprod_artifact_id = data.get("preprod_artifact_id")
         try:
-            preprod_artifact_id_int = int(preprod_artifact_id)
-        except ValueError:
+            preprod_artifact_id = int(preprod_artifact_id)
+        except (ValueError, TypeError):
             return Response(
-                {"error": f"Invalid preprod artifact ID: {preprod_artifact_id}"}, status=400
+                {"error": "preprod_artifact_id is required and must be a valid integer"},
+                status=400,
             )
 
-        if not preprod_artifact_id:
-            return Response({"error": "preprod_artifact_id is required"}, status=400)
-
         try:
-            preprod_artifact = PreprodArtifact.objects.get(id=preprod_artifact_id_int)
+            preprod_artifact = PreprodArtifact.objects.get(id=preprod_artifact_id)
         except PreprodArtifact.DoesNotExist:
             return Response(
                 {"error": f"Preprod artifact {preprod_artifact_id} not found"}, status=404
@@ -134,7 +132,7 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
                 organization_id=preprod_artifact.project.organization_id,
                 project_id=preprod_artifact.project.id,
                 user_id=request.user.id,
-                artifact_id=preprod_artifact_id,
+                artifact_id=str(preprod_artifact_id),
             )
         )
 
@@ -145,7 +143,7 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
             produce_preprod_artifact_to_kafka(
                 project_id=preprod_artifact.project.id,
                 organization_id=preprod_artifact.project.organization_id,
-                artifact_id=preprod_artifact_id_int,
+                artifact_id=preprod_artifact_id,
             )
         except Exception as e:
             logger.exception(
@@ -177,7 +175,7 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
         )
 
         return success_response(
-            artifact_id=preprod_artifact_id,
+            artifact_id=str(preprod_artifact_id),
             state=preprod_artifact.state,
             cleanup_stats=cleanup_stats,
         )
@@ -197,40 +195,41 @@ def cleanup_old_metrics(preprod_artifact: PreprodArtifact) -> dict:
         PreprodArtifactSizeMetrics.objects.filter(preprod_artifact=preprod_artifact)
     )
 
-    if not size_metrics:
-        return stats
-
-    size_metric_ids = [sm.id for sm in size_metrics]
     file_ids_to_delete = []
 
-    for size_metric in size_metrics:
-        if size_metric.analysis_file_id:
-            file_ids_to_delete.append(size_metric.analysis_file_id)
+    if size_metrics:
+        size_metric_ids = [sm.id for sm in size_metrics]
 
-    comparisons = PreprodArtifactSizeComparison.objects.filter(
-        head_size_analysis_id__in=size_metric_ids
-    ) | PreprodArtifactSizeComparison.objects.filter(base_size_analysis_id__in=size_metric_ids)
+        for size_metric in size_metrics:
+            if size_metric.analysis_file_id:
+                file_ids_to_delete.append(size_metric.analysis_file_id)
 
-    comparison_file_ids = list(
-        comparisons.exclude(file_id__isnull=True).values_list("file_id", flat=True)
-    )
-    file_ids_to_delete.extend(comparison_file_ids)
+        comparisons = PreprodArtifactSizeComparison.objects.filter(
+            head_size_analysis_id__in=size_metric_ids
+        ) | PreprodArtifactSizeComparison.objects.filter(base_size_analysis_id__in=size_metric_ids)
 
-    with transaction.atomic(using=router.db_for_write(PreprodArtifact)):
-        stats["size_comparisons_total_deleted"], _ = comparisons.delete()
-
-        stats["size_metrics_total_deleted"], _ = PreprodArtifactSizeMetrics.objects.filter(
-            id__in=size_metric_ids
-        ).delete()
-
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=preprod_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+        comparison_file_ids = list(
+            comparisons.exclude(file_id__isnull=True).values_list("file_id", flat=True)
         )
+        file_ids_to_delete.extend(comparison_file_ids)
 
-    if file_ids_to_delete:
-        stats["files_total_deleted"], _ = File.objects.filter(id__in=file_ids_to_delete).delete()
+        with transaction.atomic(using=router.db_for_write(PreprodArtifactSizeMetrics)):
+            stats["size_comparisons_total_deleted"], _ = comparisons.delete()
+
+            stats["size_metrics_total_deleted"], _ = PreprodArtifactSizeMetrics.objects.filter(
+                id__in=size_metric_ids
+            ).delete()
+
+        if file_ids_to_delete:
+            stats["files_total_deleted"], _ = File.objects.filter(
+                id__in=file_ids_to_delete
+            ).delete()
+
+    PreprodArtifactSizeMetrics.objects.create(
+        preprod_artifact=preprod_artifact,
+        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+    )
 
     return stats
 
@@ -243,7 +242,7 @@ def reset_artifact_data(preprod_artifact: PreprodArtifact) -> None:
 
 
 def success_response(
-    artifact_id: int, state: PreprodArtifact.ArtifactState, cleanup_stats: dict | None = None
+    artifact_id: str, state: PreprodArtifact.ArtifactState, cleanup_stats: dict | None = None
 ) -> Response:
     response_data = {
         "success": True,

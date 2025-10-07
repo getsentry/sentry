@@ -163,7 +163,9 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     return (
       <BuildError
         title={t('Size analysis failed')}
-        message={t("Something went wrong, we're looking into it.")}
+        message={
+          sizeInfo.error_message || t("Something went wrong, we're looking into it.")
+        }
       >
         <Button onClick={onRerunAnalysis} disabled={isRerunning}>
           {isRerunning ? t('Rerunning...') : t('Retry analysis')}
