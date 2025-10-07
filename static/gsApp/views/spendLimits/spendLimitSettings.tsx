@@ -22,6 +22,7 @@ import {
   type Plan,
 } from 'getsentry/types';
 import {
+  displayBudgetName,
   formatReservedWithUnits,
   getReservedBudgetCategoryForAddOn,
   isAm2Plan,
@@ -656,8 +657,8 @@ function SpendLimitSettings({
               {
                 budgetTerm:
                   activePlan.budgetTerm === 'pay-as-you-go'
-                    ? `${capitalize(activePlan.budgetTerm)} (PAYG)`
-                    : `${capitalize(activePlan.budgetTerm)}`,
+                    ? `${displayBudgetName(activePlan, {title: true})} (PAYG)`
+                    : displayBudgetName(activePlan, {title: true}),
               }
             )}
           </Text>

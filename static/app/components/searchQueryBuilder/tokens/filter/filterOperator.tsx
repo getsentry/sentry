@@ -293,6 +293,7 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
           search_operator: option.value,
           filter_key: getKeyName(token.key),
         });
+
         dispatch({
           type: 'UPDATE_FILTER_OP',
           token,
@@ -303,6 +304,7 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
                 part: 'value',
               }
             : undefined,
+          shouldCommitQuery: !initialOpSettingRef.current,
         });
         initialOpSettingRef.current = false;
         setAutoFocus(false);

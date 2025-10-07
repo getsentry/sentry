@@ -415,6 +415,28 @@ def _stop_pool(pool: Sequence[Process] | None, task_queue: _WorkQueue | None) ->
         p.join()
 
 
+def _start_pool(concurrency: int) -> tuple[list[Process], _WorkQueue]:
+    pool: list[Process] = []
+    task_queue: _WorkQueue = Queue(1000)
+    for _ in range(concurrency):
+        p = Process(target=multiprocess_worker, args=(task_queue,))
+        p.daemon = True
+        p.start()
+        pool.append(p)
+    return pool, task_queue
+
+
+def _stop_pool(pool: Sequence[Process] | None, task_queue: _WorkQueue | None) -> None:
+    if pool is None or task_queue is None:
+        return
+    # Stop the pool
+    for _ in pool:
+        task_queue.put(_STOP_WORKER)
+    # And wait for it to drain
+    for p in pool:
+        p.join()
+
+
 def remove_expired_values_for_lost_passwords(
     is_filtered: Callable[[type[Model]], bool], models_attempted: set[str]
 ) -> None:
@@ -490,6 +512,7 @@ def exported_data(
 
 def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]:
     from sentry.models.artifactbundle import ArtifactBundle
+    from sentry.models.commit import Commit
     from sentry.models.eventattachment import EventAttachment
     from sentry.models.files.file import File
     from sentry.models.grouprulestatus import GroupRuleStatus
@@ -511,6 +534,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]
         (RuleFireHistory, "date_added", "date_added"),
         (Release, "date_added", "date_added"),
         (File, "timestamp", "timestamp"),
+        (Commit, "date_added", "id"),
     ]
 
 
