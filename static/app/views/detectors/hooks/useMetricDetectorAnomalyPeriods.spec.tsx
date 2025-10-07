@@ -103,7 +103,6 @@ describe('useMetricDetectorAnomalyPeriods', () => {
       expect.objectContaining({
         type: 'open-period-start',
         priority: 'high',
-        name: 'High Confidence Anomaly',
         start: 1609459200000,
         end: 1609462800000, // Last consecutive anomaly timestamp in ms
       })
@@ -112,7 +111,6 @@ describe('useMetricDetectorAnomalyPeriods', () => {
       expect.objectContaining({
         type: 'open-period-start',
         priority: 'high',
-        name: 'High Confidence Anomaly',
         start: 1609470000000,
         end: 1609470000000 + 900000, // Plus timePeriod (900s = 15min) in ms for minimum width
       })
