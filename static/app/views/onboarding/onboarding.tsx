@@ -1,6 +1,6 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion, useAnimation} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
@@ -83,15 +83,7 @@ function Onboarding(props: Props) {
     pollUntilFirstEvent: true,
   });
 
-  const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
-
   const {activateSidebar} = useOnboardingSidebar();
-
-  useEffect(() => {
-    return () => {
-      window.clearTimeout(cornerVariantTimeoutRed.current);
-    };
-  }, []);
 
   useEffect(() => {
     if (
@@ -137,19 +129,6 @@ function Onboarding(props: Props) {
   const shallProjectBeDeleted =
     stepObj?.id === 'setup-docs' && defined(isProjectActive) && !isProjectActive;
 
-  const cornerVariantControl = useAnimation();
-  const updateCornerVariant = () => {
-    // TODO: find better way to delay the corner animation
-    window.clearTimeout(cornerVariantTimeoutRed.current);
-
-    cornerVariantTimeoutRed.current = window.setTimeout(
-      () => cornerVariantControl.start(stepIndex === 0 ? 'top-right' : 'top-left'),
-      1000
-    );
-  };
-
-  useEffect(updateCornerVariant, [stepIndex, cornerVariantControl]);
-
   // Called onExitComplete
   const [containerHasFooter, setContainerHasFooter] = useState<boolean>(false);
   const updateAnimationState = () => {
@@ -165,12 +144,9 @@ function Onboarding(props: Props) {
       if (!stepObj) {
         return;
       }
-      if (step.cornerVariant !== stepObj.cornerVariant) {
-        cornerVariantControl.start('none');
-      }
       props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${step.id}/`));
     },
-    [cornerVariantControl, organization.slug, props.router, stepObj]
+    [organization.slug, props.router, stepObj]
   );
 
   const {handleGoBack} = useBackActions({
@@ -178,7 +154,6 @@ function Onboarding(props: Props) {
     goToStep,
     recentCreatedProject,
     isRecentCreatedProjectActive: isProjectActive,
-    cornerVariantControl,
   });
 
   const goNextStep = useCallback(
@@ -190,13 +165,9 @@ function Onboarding(props: Props) {
         return;
       }
 
-      if (step.cornerVariant !== nextStep.cornerVariant) {
-        cornerVariantControl.start('none');
-      }
-
       props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
     },
-    [organization.slug, cornerVariantControl, props.router]
+    [organization.slug, props.router]
   );
 
   const genSkipOnboardingLink = () => {
@@ -260,32 +231,31 @@ function Onboarding(props: Props) {
         </UpsellWrapper>
       </Header>
       <Container hasFooter={containerHasFooter}>
-        <BackMotionDiv
-          animate={stepIndex > 0 ? 'visible' : 'hidden'}
-          transition={testableTransition()}
-          variants={{
-            initial: {opacity: 0, visibility: 'hidden'},
-            visible: {
-              opacity: 1,
-              visibility: 'visible',
-              transition: testableTransition({delay: 1}),
-            },
-            hidden: {
-              opacity: 0,
-              transitionEnd: {
-                visibility: 'hidden',
+        {stepIndex > 0 && (
+          <BackMotionDiv
+            initial="initial"
+            animate="visible"
+            transition={testableTransition()}
+            variants={{
+              initial: {opacity: 0, visibility: 'hidden'},
+              visible: {
+                opacity: 1,
+                transition: testableTransition({delay: 1}),
+                transitionEnd: {
+                  visibility: 'visible',
+                },
               },
-            },
-          }}
-        >
-          <Button
-            onClick={() => handleGoBack()}
-            icon={<IconArrow direction="left" />}
-            priority="link"
+            }}
           >
-            {t('Back')}
-          </Button>
-        </BackMotionDiv>
+            <Button
+              onClick={() => handleGoBack()}
+              icon={<IconArrow direction="left" />}
+              priority="link"
+            >
+              {t('Back')}
+            </Button>
+          </BackMotionDiv>
+        )}
         <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
           <OnboardingStep
             initial="initial"
@@ -321,7 +291,10 @@ function Onboarding(props: Props) {
             )}
           </OnboardingStep>
         </AnimatePresence>
-        <AdaptivePageCorners animateVariant={cornerVariantControl} />
+        <AdaptivePageCorners
+          // Controls the current corner variant
+          animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
+        />
       </Container>
     </OnboardingWrapper>
   );
