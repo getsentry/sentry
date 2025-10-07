@@ -7,6 +7,7 @@ import SplitPanel from 'sentry/components/splitPanel';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useResettableState} from 'sentry/utils/useResettableState';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
 import MetricInfoTabs from 'sentry/views/explore/metrics/metricInfoTabs';
@@ -27,17 +28,18 @@ export function MetricPanel({traceMetric}: MetricPanelProps) {
   const measureRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: measureRef});
   const [interval] = useChartInterval();
+  const [metricName, setMetricName] = useResettableState(() => '');
 
   const timeseriesResult = useSortedTimeSeries(
     {
-      search: new MutableSearch(''),
+      search: new MutableSearch(`metric_name:${metricName}`),
       yAxis: [visualize.yAxis],
       interval,
       fields: [],
-      enabled: true,
+      enabled: Boolean(metricName),
     },
     'api.explore.metrics-stats',
-    DiscoverDatasets.SPANS
+    DiscoverDatasets.TRACEMETRICS
   );
 
   const hasSize = width > 0;
@@ -45,7 +47,11 @@ export function MetricPanel({traceMetric}: MetricPanelProps) {
   return (
     <Panel>
       <PanelHeader>
-        <MetricRow traceMetric={traceMetric} />
+        <MetricRow
+          traceMetric={traceMetric}
+          metricName={metricName}
+          setMetricName={setMetricName}
+        />
       </PanelHeader>
       <PanelBody>
         <div ref={measureRef}>

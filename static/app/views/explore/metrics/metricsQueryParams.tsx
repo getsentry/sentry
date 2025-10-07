@@ -26,14 +26,12 @@ export function MetricsQueryParamsProvider({children}: MetricsQueryParamsProvide
       query,
 
       cursor: '',
-      fields: ['id', 'timestamp'],
-      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      fields: ['value', 'sum(value)'],
+      sortBys: [{field: 'sum(value)', kind: 'desc'}],
 
       aggregateCursor: '',
-      aggregateFields: [
-        new VisualizeFunction('count(span.duration)', {chartType: ChartType.BAR}),
-      ],
-      aggregateSortBys: [{field: 'count(span.duration)', kind: 'desc'}],
+      aggregateFields: [new VisualizeFunction('sum(value)', {chartType: ChartType.BAR})],
+      aggregateSortBys: [{field: 'sum(value)', kind: 'desc'}],
     });
   }, [query]);
 

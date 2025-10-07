@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
@@ -9,6 +9,7 @@ import {
   useSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {type TraceMetric} from 'sentry/views/explore/metrics/traceMetric';
 import {
@@ -20,10 +21,12 @@ import type {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface MetricRowProps {
+  metricName: string;
+  setMetricName: (metricName: string) => void;
   traceMetric: TraceMetric;
 }
 
-export function MetricRow({traceMetric}: MetricRowProps) {
+export function MetricRow({traceMetric, metricName, setMetricName}: MetricRowProps) {
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
 
@@ -48,6 +51,8 @@ export function MetricRow({traceMetric}: MetricRowProps) {
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
       <MetricToolbar
+        metricName={metricName}
+        setMetricName={setMetricName}
         tracesItemSearchQueryBuilderProps={tracesItemSearchQueryBuilderProps}
         traceMetric={traceMetric}
       />
@@ -56,6 +61,8 @@ export function MetricRow({traceMetric}: MetricRowProps) {
 }
 
 interface MetricToolbarProps {
+  metricName: string;
+  setMetricName: (metricName: string) => void;
   traceMetric: TraceMetric;
   tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps;
 }
@@ -63,23 +70,36 @@ interface MetricToolbarProps {
 function MetricToolbar({
   tracesItemSearchQueryBuilderProps,
   traceMetric,
+  setMetricName,
+  metricName,
 }: MetricToolbarProps) {
   const visualize = useMetricVisualize() as VisualizeFunction;
   const groupBys = useQueryParamsGroupBys();
   const query = useQueryParamsQuery();
+  const {data: metricOptions} = useMetricOptions();
+
+  useEffect(() => {
+    if (!metricName) {
+      setMetricName(metricOptions?.data?.[0]?.metric_name ?? '');
+    }
+  }, [metricName, metricOptions, setMetricName]);
+
   return (
     <div style={{width: '100%'}}>
       {traceMetric.name}/{visualize.yAxis}/ by {groupBys.join(',')}/ where {query}
       <Flex direction="row" gap="md" align="center">
         {t('Query')}
         <CompactSelect
-          options={[
-            {
-              label: 'span.duration',
-              value: 'span.duration',
-            },
-          ]}
-          value={visualize.parsedFunction?.arguments?.[0] ?? ''}
+          options={
+            metricOptions?.data?.map(option => ({
+              label: `${option.metric_name} (${option.metric_type})`,
+              value: option.metric_name,
+            })) ?? []
+          }
+          value={metricName}
+          onChange={option => {
+            setMetricName(option.value);
+          }}
         />
         <CompactSelect
           options={[
