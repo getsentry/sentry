@@ -22,7 +22,7 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
   const theme = useTheme();
   const [isPanelOpen, setIsPanelOpen] = useState(false);
 
-  const [selectedOrgName, setSelectedOrgName_] = useState(
+  const [selectedOrgName, setSelectedOrgName] = useState(
     () => installedOrgs[0]?.name ?? ''
   );
   const [selectedRepoName, setSelectedRepoName] = useState(
@@ -30,22 +30,22 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
   );
 
   // If the selected org is not present in the list of orgs, use the first org
-  const selectedOrgData = useMemo(() => {
+  const selectedOrg = useMemo(() => {
     const found = installedOrgs.find(org => org.name === selectedOrgName);
     return found ?? installedOrgs[0];
   }, [installedOrgs, selectedOrgName]);
 
   // Ditto for repos
-  const selectedRepoData = useMemo(() => {
-    const found = selectedOrgData?.repos?.find(repo => repo.name === selectedRepoName);
-    return found ?? selectedOrgData?.repos?.[0];
-  }, [selectedOrgData, selectedRepoName]);
+  const selectedRepo = useMemo(() => {
+    const found = selectedOrg?.repos?.find(repo => repo.name === selectedRepoName);
+    return found ?? selectedOrg?.repos?.[0];
+  }, [selectedOrg, selectedRepoName]);
 
   // When the org changes, if the selected repo is not present in the new org,
   // use the first repo in the new org
-  const setSelectedOrgName = useCallback(
+  const setSelectedOrgNameWithCascadeRepoName = useCallback(
     (orgName: string) => {
-      setSelectedOrgName_(orgName);
+      setSelectedOrgName(orgName);
       const newSelectedOrgData = installedOrgs.find(org => org.name === orgName);
       if (
         newSelectedOrgData &&
@@ -57,8 +57,8 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
     [installedOrgs, selectedRepoName]
   );
 
-  const isOrgSelected = !!selectedOrgData;
-  const isRepoSelected = !!selectedRepoData;
+  const isOrgSelected = !!selectedOrg;
+  const isRepoSelected = !!selectedRepo;
 
   return (
     <Flex direction="column" maxWidth="1000px" gap="xl">
@@ -67,7 +67,7 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
           installedOrgs={installedOrgs}
           selectedOrg={selectedOrgName}
           selectedRepo={selectedRepoName}
-          onOrgChange={setSelectedOrgName}
+          onOrgChange={setSelectedOrgNameWithCascadeRepoName}
           onRepoChange={setSelectedRepoName}
         />
         <Flex style={{transform: 'translateY(-70px)'}}>
@@ -140,8 +140,8 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
         key={`${selectedOrgName || 'no-org'}-${selectedRepoName || 'no-repo'}`}
         collapsed={!isPanelOpen}
         onClose={() => setIsPanelOpen(false)}
-        orgName={selectedOrgData?.name ?? ''}
-        repoName={selectedRepoData?.name ?? ''}
+        orgName={selectedOrg?.name ?? ''}
+        repoName={selectedRepo?.name ?? ''}
       />
     </Flex>
   );

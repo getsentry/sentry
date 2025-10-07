@@ -1,4 +1,6 @@
 import type {PreventAIOrg} from 'sentry/types/prevent';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export interface PreventAIOrgReposResponse {
   orgRepos: PreventAIOrg[];
