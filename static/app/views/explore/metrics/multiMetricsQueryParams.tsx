@@ -83,11 +83,12 @@ export function MultiMetricsQueryParamsProvider({
 
 function getMultiMetricsQueryParamsFromLocation(location: Location): BaseMetricQuery[] {
   const rawQueryParams = decodeList(location.query.metric);
-  if (!rawQueryParams.length) {
-    return [defaultMetricQuery()];
-  }
 
-  return rawQueryParams.map(decodeMetricsQueryParams).filter(defined);
+  const metricQueries = rawQueryParams.map(decodeMetricsQueryParams).filter(defined);
+  if (metricQueries.length) {
+    return metricQueries;
+  }
+  return [defaultMetricQuery()];
 }
 
 export function useMultiMetricsQueryParams() {
