@@ -91,7 +91,6 @@ class MetricIssueDetectorConfig(TypedDict):
     """
     Schema for Metric Issue Detector.config.
     """
-
     comparison_delta: int | None
     detection_type: Literal["static", "percent", "dynamic"]
 
