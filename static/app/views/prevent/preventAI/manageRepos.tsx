@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -22,30 +22,40 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
   const theme = useTheme();
   const [isPanelOpen, setIsPanelOpen] = useState(false);
 
-  const [selectedOrgName, setSelectedOrgName] = useState(
+  const [selectedOrgName, setSelectedOrgName_] = useState(
     () => installedOrgs[0]?.name ?? ''
   );
   const [selectedRepoName, setSelectedRepoName] = useState(
     () => installedOrgs[0]?.repos?.[0]?.name ?? ''
   );
 
-  let selectedOrgData = useMemo(
-    () => installedOrgs.find(org => org.name === selectedOrgName),
-    [installedOrgs, selectedOrgName]
-  );
-  if (!selectedOrgData) {
-    setSelectedOrgName(installedOrgs[0]?.name ?? '');
-    selectedOrgData = installedOrgs[0];
-  }
+  // If the selected org is not present in the list of orgs, use the first org
+  const selectedOrgData = useMemo(() => {
+    const found = installedOrgs.find(org => org.name === selectedOrgName);
+    return found ?? installedOrgs[0];
+  }, [installedOrgs, selectedOrgName]);
 
-  let selectedRepoData = useMemo(
-    () => selectedOrgData?.repos?.find(repo => repo.name === selectedRepoName),
-    [selectedOrgData, selectedRepoName]
+  // Ditto for repos
+  const selectedRepoData = useMemo(() => {
+    const found = selectedOrgData?.repos?.find(repo => repo.name === selectedRepoName);
+    return found ?? selectedOrgData?.repos?.[0];
+  }, [selectedOrgData, selectedRepoName]);
+
+  // When the org changes, if the selected repo is not present in the new org,
+  // use the first repo in the new org
+  const setSelectedOrgName = useCallback(
+    (orgName: string) => {
+      setSelectedOrgName_(orgName);
+      const newSelectedOrgData = installedOrgs.find(org => org.name === orgName);
+      if (
+        newSelectedOrgData &&
+        !newSelectedOrgData.repos.some(repo => repo.name === selectedRepoName)
+      ) {
+        setSelectedRepoName(newSelectedOrgData.repos[0]?.name ?? '');
+      }
+    },
+    [installedOrgs, selectedRepoName]
   );
-  if (!selectedRepoData) {
-    setSelectedRepoName(selectedOrgData?.repos?.[0]?.name ?? '');
-    selectedRepoData = selectedOrgData?.repos?.[0];
-  }
 
   const isOrgSelected = !!selectedOrgData;
   const isRepoSelected = !!selectedRepoData;
