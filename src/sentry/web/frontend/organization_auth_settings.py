@@ -154,6 +154,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
                 next_uri = f"/settings/{organization.slug}/auth/"
                 return self.redirect(next_uri)
             elif op == "reinvite":
+                assert request.user.is_authenticated
                 email_missing_links_control.delay(organization.id, request.user.id, provider.key)
 
                 messages.add_message(request, messages.SUCCESS, OK_REMINDERS_SENT)
