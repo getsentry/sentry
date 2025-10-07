@@ -386,10 +386,7 @@ class FetchProjectTransactionVolumes:
             # data in cache no need to go to the db
             return self._get_from_cache()
 
-        if options.get("dynamic-sampling.query-granularity-60s.fetch-transaction-totals", None):
-            granularity = Granularity(60)
-        else:
-            granularity = Granularity(3600)
+        granularity = Granularity(60)
 
         if self.has_more_results:
             # still data in the db, load cache
