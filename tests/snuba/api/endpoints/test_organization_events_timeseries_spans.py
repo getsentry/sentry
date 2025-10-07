@@ -126,7 +126,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             3_600_000,
             event_counts,
             sample_count=event_counts,
-            sample_rate=[1 if val else 0 for val in event_counts],
+            sample_rate=[1 if val else None for val in event_counts],
             confidence=[any_confidence if val else None for val in event_counts],
         )
         assert timeseries["meta"] == {
@@ -1059,7 +1059,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             3_600_000,
             [val * 10 for val in event_counts],
             sample_count=event_counts,
-            sample_rate=[pytest.approx(0.1) if val else 0 for val in event_counts],
+            sample_rate=[pytest.approx(0.1) if val else None for val in event_counts],
             confidence=["low" if val else None for val in event_counts],
         )
         assert timeseries["meta"] == {
@@ -1133,7 +1133,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 3_600_000,
                 expected_values,
                 sample_count=event_counts,
-                sample_rate=[pytest.approx(0.1) if val else 0 for val in event_counts],
+                sample_rate=[pytest.approx(0.1) if val else None for val in event_counts],
                 confidence=[any_confidence if val else None for val in event_counts],
             ), y_axis
 
@@ -1184,7 +1184,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 3_600_000,
                 [val * 10 if y_axis == "count()" else val for val in event_counts],
                 sample_count=event_counts,
-                sample_rate=[pytest.approx(0.1) if val else 0 for val in event_counts],
+                sample_rate=[pytest.approx(0.1) if val else None for val in event_counts],
                 confidence=[any_confidence if val else None for val in event_counts],
             )
 
@@ -1257,7 +1257,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 60_000,
                 [val * 10 for val in event_counts],
                 sample_count=event_counts,
-                sample_rate=[pytest.approx(0.1) if val else 0 for val in event_counts],
+                sample_rate=[pytest.approx(0.1) if val else None for val in event_counts],
                 confidence=[any_confidence if val else None for val in event_counts],
             )
 
