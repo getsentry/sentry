@@ -352,9 +352,7 @@ class IntegrationEventLifecycle(EventLifecycle):
             self.record_halt(exc_value)
             return
 
-        if exc_value is not None and isinstance(
-            exc_value.__cause__, IntegrationConfigurationError
-        ):
+        if exc_value is not None and isinstance(exc_value.__cause__, IntegrationConfigurationError):
             # IntegrationConfigurationError indicates a user configuration issue (e.g., GitHub IP allowlist)
             # Log as a halt without creating a Sentry issue since this requires customer intervention
             self.record_halt(exc_value)

@@ -297,9 +297,11 @@ class GithubProxyClient(IntegrationProxyClient):
                 logger.info(
                     "github.ip_allowlist_error",
                     extra={
-                        "integration_id": getattr(self.integration, "id", "unknown")
-                        if hasattr(self, "integration")
-                        else "unknown",
+                        "integration_id": (
+                            getattr(self.integration, "id", "unknown")
+                            if hasattr(self, "integration")
+                            else "unknown"
+                        ),
                         "error_message": str(e),
                     },
                 )
