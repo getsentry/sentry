@@ -435,14 +435,11 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                             synthetic_metric_tags.copy(),
                         )
 
-                    if features.has(
-                        "organizations:uptime-eap-results", detector.project.organization
-                    ):
-                        produce_eap_uptime_result(
-                            detector,
-                            missed_result,
-                            synthetic_metric_tags.copy(),
-                        )
+                    produce_eap_uptime_result(
+                        detector,
+                        missed_result,
+                        synthetic_metric_tags.copy(),
+                    )
             else:
                 logger.info(
                     "uptime.result_processor.false_num_missing_check",
@@ -484,8 +481,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         if options.get("uptime.snuba_uptime_results.enabled"):
             produce_snuba_uptime_result(detector, result, metric_tags.copy())
 
-        if features.has("organizations:uptime-eap-results", detector.project.organization):
-            produce_eap_uptime_result(detector, result, metric_tags.copy())
+        produce_eap_uptime_result(detector, result, metric_tags.copy())
 
         # Track the last update date to allow deduplication
         cluster.set(
