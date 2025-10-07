@@ -1,9 +1,15 @@
 import styled from '@emotion/styled';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import {
+  fetchMutation,
+  useApiQuery,
+  useMutation,
+  type UseApiQueryResult,
+} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -43,6 +49,27 @@ export default function BuildDetails() {
         enabled: !!projectId && !!artifactId,
       }
     );
+
+  const {mutate: onRerunAnalysis, isPending: isRerunning} = useMutation<
+    void,
+    RequestError
+  >({
+    mutationFn: () => {
+      return fetchMutation({
+        url: `/projects/${organization.slug}/${projectId}/preprod-artifact/rerun-analysis/${artifactId}/`,
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Analysis rerun started successfully!'));
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    },
+    onError: error => {
+      addErrorMessage(t('Error: %s', error.message));
+    },
+  });
 
   const buildDetails = buildDetailsQuery.data;
   const version = buildDetails?.app_info?.version;
@@ -104,6 +131,8 @@ export default function BuildDetails() {
             <BuildDetailsMain>
               <BuildDetailsMainContent
                 appSizeQuery={appSizeQuery}
+                onRerunAnalysis={onRerunAnalysis}
+                isRerunning={isRerunning}
                 buildDetailsData={buildDetailsQuery.data}
                 isBuildDetailsPending={buildDetailsQuery.isPending}
               />

@@ -13,7 +13,10 @@ from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_do
 from .organization_preprod_artifact_assemble import ProjectPreprodArtifactAssembleEndpoint
 from .preprod_artifact_admin_batch_delete import PreprodArtifactAdminBatchDeleteEndpoint
 from .preprod_artifact_admin_info import PreprodArtifactAdminInfoEndpoint
-from .preprod_artifact_admin_rerun_analysis import PreprodArtifactAdminRerunAnalysisEndpoint
+from .preprod_artifact_rerun_analysis import (
+    PreprodArtifactAdminRerunAnalysisEndpoint,
+    PreprodArtifactRerunAnalysisEndpoint,
+)
 from .project_installable_preprod_artifact_download import (
     ProjectInstallablePreprodArtifactDownloadEndpoint,
 )
@@ -86,6 +89,11 @@ preprod_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/size-analysis/compare/(?P<head_size_metric_id>[^/]+)/(?P<base_size_metric_id>[^/]+)/download/$",
         ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint.as_view(),
         name="sentry-api-0-project-preprod-artifact-size-analysis-compare-download",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprod-artifact/rerun-analysis/(?P<head_artifact_id>[^/]+)/$",
+        PreprodArtifactRerunAnalysisEndpoint.as_view(),
+        name="sentry-api-0-preprod-artifact-rerun-analysis",
     ),
     # PR page
     re_path(
