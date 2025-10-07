@@ -601,7 +601,7 @@ def get_trace_from_id(trace_id: str, organization_id: int) -> list[SerializedEve
     else:
         full_trace_id = trace_id
 
-    if full_trace_id:
+    if isinstance(full_trace_id, str):
         trace_data = query_trace_data(snuba_params, full_trace_id, referrer=Referrer.SEER_RPC)
         if trace_data:
             return trace_data
@@ -609,9 +609,8 @@ def get_trace_from_id(trace_id: str, organization_id: int) -> list[SerializedEve
     logger.info(
         "Trace not found",
         extra={
-            "trace_id": trace_id,
             "organization_id": organization_id,
-            "project_ids": [p.id for p in projects],
+            "trace_id": trace_id,
         },
     )
     return None

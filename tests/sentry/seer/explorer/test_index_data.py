@@ -780,7 +780,7 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
     def _test_get_trace_from_id(self, use_short_id: bool) -> None:
         transaction_name = "api/users/profile"
         trace_id = uuid.uuid4().hex
-        spans = []
+        spans: list[dict] = []
         for i in range(5):
             # Create a span tree for this trace
             span = self.create_span(
@@ -800,7 +800,7 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
         assert isinstance(result, list)
 
         seen_span_ids = []
-        root_spans = []
+        root_span_ids = []
 
         def check(e):
             assert "event_id" in e
@@ -827,7 +827,7 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
             if e["parent_span_id"] is None:
                 # Is root
                 assert e["is_transaction"]
-                root_spans.append(e["event_id"])
+                root_span_ids.append(e["event_id"])
 
             # Recurse
             for child in e["children"]:
@@ -837,7 +837,7 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
             check(event)
 
         assert set(seen_span_ids) == {s["span_id"] for s in spans}
-        assert len(root_spans) == 1
+        assert len(root_span_ids) == 1
 
     def test_get_trace_from_short_id(self) -> None:
         self._test_get_trace_from_id(use_short_id=True)
@@ -859,8 +859,8 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
                     "description": f"span-{i}",
                     "sentry_tags": {"transaction": transaction_name},
                     "trace_id": trace_id,
-                    "parent_span_id": None if i == 0 else f"parent-{i-1}",
-                    "is_segment": i == 0,  # First span is the transaction span
+                    "parent_span_id": None if i == 0 else spans[0]["span_id"],
+                    "is_segment": i == 0,
                 },
                 start_ts=self.ten_mins_ago + timedelta(minutes=i),
             )
