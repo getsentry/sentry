@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 import urllib3
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.request_common_pb2 import TRACE_ITEM_TYPE_OCCURRENCE
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry import options, quotas
@@ -218,7 +218,7 @@ class SnubaProtocolEventStream(EventStream):
     def _serialize_event_data_as_item(self, event_data: dict[str, Any]) -> TraceItem:
         return TraceItem(
             item_id=event_data["id"],
-            item_type=TraceItemType.OCCURRENCE,
+            item_type=TRACE_ITEM_TYPE_OCCURRENCE,
             trace_id=event_data["trace_id"],
             timestamp=event_data["datetime"],
             organization_id=event_data["organization_id"],
@@ -236,7 +236,7 @@ class SnubaProtocolEventStream(EventStream):
         ):
             return
 
-        self._send_item(event_data)
+        self._send_item(self._serialize_event_data_as_item(event_data))
 
     def start_delete_groups(self, project_id: int, group_ids: Sequence[int]) -> Mapping[str, Any]:
         if not group_ids:
@@ -428,7 +428,7 @@ class SnubaProtocolEventStream(EventStream):
     ) -> None:
         raise NotImplementedError
 
-    def _send_item(self, event_data: dict[str, Any]) -> None:
+    def _send_item(self, trace_item: TraceItem) -> None:
         raise NotImplementedError
 
 

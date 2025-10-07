@@ -224,12 +224,12 @@ class KafkaEventStream(SnubaProtocolEventStream):
     def requires_post_process_forwarder(self) -> bool:
         return True
 
-    def _send_item(self, event_data: dict[str, Any]) -> None:
+    def _send_item(self, trace_item: TraceItem) -> None:
         producer = self.get_producer(Topic.SNUBA_ITEMS)
         try:
             producer.produce(
                 topic=Topic.SNUBA_ITEMS,
-                value=EAP_ITEMS_CODEC.encode(self._serialize_event_data_as_item(event_data)),
+                value=EAP_ITEMS_CODEC.encode(trace_item),
             )
         except Exception as error:
             logger.exception("Could not publish trace items: %s", error)
