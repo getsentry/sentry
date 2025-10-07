@@ -4,15 +4,23 @@
 {% load sentry_helpers %}
 
 {% block main %}
-    <h3>You've been invited to Sentry</h3>
-    <p>Your teammates at <strong>{{ organization.name|sanitize_periods }}</strong> are using Sentry to track and debug software errors.</p>
+    <p>He there,</p>
+    <p>Your teammates at <strong>{{ organization.name }}</strong> are using Sentry to catch errors, improve latency issues, and keep their (and maybe your) code from catching fire. 🔥</p>
 
-    <p><a href="{{ url }}" class="btn">Join your team</a></p>
+    <p>Looks like they need your help. You've been invited to join them:</p>    
 
-    <p>Check out the <a href="https://sentry.io/">Sentry website</a> if you'd like to learn more before diving in.</p>
 
-    <div class="notice">Do <strong>not</strong> share this invite email or link. This invite is unique to you. Sharing may result in unauthorized access.</div>
+<p>👉 <a href="{{ url }}" class="btn">Accept your invite</a></p>
+
+     <div class="notice">Heads up: this invite link is just for you. Don't share it unless you want random strangers fixing your bugs.</div>
+
+    <p>Oh, and meet Seer, your new AI debugging agent. It’ll automatically pinpoint root causes, suggest fixes, and even predict bugs before they land in prod.</p>
 {% endblock %}
+
+    <p>
+        Welcome to the club.<br>
+        - The Sentry Team
+    </p>
 
 {% block footer %}
   <a href="https://sentry.zendesk.com/hc/en-us/">Help Center</a>
