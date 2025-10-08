@@ -515,9 +515,11 @@ class ReleaseSerializer(Serializer):
                 last_seen[release_project_env.release.version] = release_project_env.last_seen
 
         group_counts_by_release: dict[int, dict[int, int]] = {}
-        for project_id, release_id, new_groups in release_project_envs.annotate(
-            aggregated_new_issues_count=Sum("new_issues_count")
-        ).values_list("project_id", "release_id", "aggregated_new_issues_count"):
+        for project_id, release_id, new_groups in (
+            release_project_envs.values("project_id", "release_id")
+            .annotate(aggregated_new_issues_count=Sum("new_issues_count"))
+            .values_list("project_id", "release_id", "aggregated_new_issues_count")
+        ):
             group_counts_by_release.setdefault(release_id, {})[project_id] = new_groups
 
         return first_seen, last_seen, group_counts_by_release
@@ -528,6 +530,18 @@ class ReleaseSerializer(Serializer):
             .select_related("release", "project")
             .order_by("-first_seen")
         )
+        if environments is not None:
+            release_project_envs = release_project_envs.filter(environment__name__in=environments)
+        if project is not None:
+            release_project_envs = release_project_envs.filter(project=project)
+
+        return release_project_envs
+
+    def _get_release_project_envs_unordered(self, item_list, environments, project):
+        release_project_envs = ReleaseProjectEnvironment.objects.filter(
+            release__in=item_list
+        ).select_related("release")
+
         if environments is not None:
             release_project_envs = release_project_envs.filter(environment__name__in=environments)
         if project is not None:
@@ -558,7 +572,6 @@ class ReleaseSerializer(Serializer):
             raise TypeError("health data requires snuba")
 
         adoption_stages = {}
-        release_project_envs = None
         if self.with_adoption_stages:
             release_project_envs = self._get_release_project_envs(item_list, environments, project)
             adoption_stages = self._get_release_adoption_stages(release_project_envs)
@@ -568,10 +581,9 @@ class ReleaseSerializer(Serializer):
                 project, item_list, no_snuba_for_release_creation
             )
         else:
-            if release_project_envs is None:
-                release_project_envs = self._get_release_project_envs(
-                    item_list, environments, project
-                )
+            release_project_envs = self._get_release_project_envs_unordered(
+                item_list, environments, project
+            )
             (
                 first_seen,
                 last_seen,
@@ -626,11 +638,21 @@ class ReleaseSerializer(Serializer):
             has_health_data = {}
 
         for pr in project_releases:
+            # Use environment-filtered new groups count if available, otherwise fall back to ReleaseProject data
+            new_groups_count_env_filtered = issue_counts_by_release.get(pr["release_id"], {}).get(
+                pr["project__id"]
+            )
+            new_groups_count = (
+                new_groups_count_env_filtered
+                if new_groups_count_env_filtered is not None
+                else pr["new_groups"]
+            )
+
             pr_rv: _ProjectDict = {
                 "id": pr["project__id"],
                 "slug": pr["project__slug"],
                 "name": pr["project__name"],
-                "new_groups": pr["new_groups"],
+                "new_groups": new_groups_count,
                 "platform": pr["project__platform"],
                 "platforms": platforms_by_project.get(pr["project__id"]) or [],
             }
