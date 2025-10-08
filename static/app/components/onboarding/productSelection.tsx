@@ -450,7 +450,10 @@ export function ProductSelection({
   onLoad,
 }: ProductSelectionProps) {
   const [params, setParams] = useOnboardingQueryParams();
-  const urlProducts = useMemo(() => params.product ?? [], [params.product]);
+  const urlProducts = useMemo(
+    () => (params.product ?? []) as ProductSolution[],
+    [params.product]
+  );
 
   const products: ProductSolution[] | undefined = platform
     ? platformProductAvailability[platform]
@@ -463,7 +466,7 @@ export function ProductSelection({
 
   // Use useEffectEvent to handle non-reactive mount initialization
   const initializeProducts = useEffectEvent(() => {
-    onLoad?.(urlProducts as ProductSolution[]);
+    onLoad?.(urlProducts);
   });
 
   // Call onLoad on mount
@@ -477,7 +480,7 @@ export function ProductSelection({
         urlProducts.includes(product)
           ? urlProducts.filter(p => p !== product)
           : [...urlProducts, product]
-      ) as Set<ProductSolution>;
+      );
 
       if (products?.includes(ProductSolution.PROFILING)) {
         // Ensure that if profiling is enabled, tracing is also enabled
@@ -497,7 +500,7 @@ export function ProductSelection({
       const selectedProducts = Array.from(newProduct);
 
       onChange?.({
-        previousProducts: urlProducts as ProductSolution[],
+        previousProducts: urlProducts,
         products: selectedProducts,
       });
       setParams({product: selectedProducts});
