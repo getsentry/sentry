@@ -1,4 +1,4 @@
-import {useCallback, useLayoutEffect, useRef, useState} from 'react';
+import {useCallback, useEffectEvent, useLayoutEffect, useRef, useState} from 'react';
 
 import localStorageWrapper from 'sentry/utils/localStorage';
 
@@ -128,15 +128,20 @@ export function useLocalStorageState<S>(
   // before the screen updates using useLayoutEffect vs useEffect. The ref prevents this from firing on mount
   // as the value will already be initialized from the initialState and it would be unnecessary to re-initialize
   const renderRef = useRef(false);
+
+  // Using a useEffectEvent allows us to access initialState without causing a re-render
+  const initializeFromStorage = useEffectEvent((newKey: string) => {
+    setValue(initializeStorage(newKey, initialState));
+  });
+
   useLayoutEffect(() => {
     if (!renderRef.current) {
       renderRef.current = true;
       return;
     }
 
-    setValue(initializeStorage(key, initialState));
     // We only want to update the value when the key changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    initializeFromStorage(key);
   }, [key]);
 
   const setStoredValue = useCallback(
