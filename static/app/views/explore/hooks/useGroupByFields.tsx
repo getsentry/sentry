@@ -52,15 +52,7 @@ export function useGroupByFields({
     options.sort((a, b) => {
       const aLabel = a.label || '';
       const bLabel = b.label || '';
-      if (aLabel < bLabel) {
-        return -1;
-      }
-
-      if (aLabel > bLabel) {
-        return 1;
-      }
-
-      return 0;
+      return aLabel.localeCompare(bLabel);
     });
 
     return [
