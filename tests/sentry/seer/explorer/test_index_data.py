@@ -851,7 +851,7 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
         other_org = self.create_organization()
         other_project = self.create_project(organization=other_org)
 
-        spans = []
+        spans: list[dict] = []
         for i in range(2):
             span = self.create_span(
                 {
