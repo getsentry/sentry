@@ -64,7 +64,7 @@ export const onboardingSteps: StepDescriptor[] = [
   },
 ];
 
-function Onboarding(props: Props) {
+export function OnboardingWithoutContext(props: Props) {
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
   const selectedProjectSlug = onboardingContext.selectedPlatform?.key;
@@ -330,10 +330,10 @@ function Onboarding(props: Props) {
   );
 }
 
-function OnboardingWithProvider(props: Props) {
+function Onboarding(props: Props) {
   return (
     <OnboardingContextProvider>
-      <Onboarding {...props} />
+      <OnboardingWithoutContext {...props} />
     </OnboardingContextProvider>
   );
 }
@@ -417,4 +417,4 @@ const OnboardingWrapper = styled('main')`
   flex-direction: column;
 `;
 
-export default OnboardingWithProvider;
+export default Onboarding;
