@@ -119,10 +119,8 @@ class ComponentVariant(BaseVariant):
         # method (exception, threads, message, etc.). For non-contributing variants, this will be
         # None.
         contributing_component: ContributingComponent | None,
-        strategy_config: StrategyConfiguration,
     ):
         self.root_component = root_component
-        self.config = strategy_config
         self.contributing_component = contributing_component
         self.variant_name = self.root_component.id  # "app", "system", or "default"
 
