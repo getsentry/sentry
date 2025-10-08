@@ -116,7 +116,8 @@ def translate_dashboard_widget_queries(
             new_selected_aggregate = len(new_fields) - 1
 
         if len(field_aliases) == len(original_fields):
-            new_aliases.append(field_aliases[old_index])
+            if old_index < original_fields_length:
+                new_aliases.append(field_aliases[old_index])
 
     return (
         DashboardWidgetQuery(
