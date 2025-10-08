@@ -308,15 +308,17 @@ describe('DetectorEdit', () => {
               projectId: project.id,
               type: 'metric_issue',
               workflowIds: mockDetector.workflowIds,
-              dataSource: {
-                environment: 'production',
-                aggregate: snubaQuery.aggregate,
-                dataset: snubaQuery.dataset,
-                query: snubaQuery.query,
-                timeWindow: snubaQuery.timeWindow,
-                eventTypes: ['error'],
-                queryType: 0,
-              },
+              dataSources: [
+                {
+                  environment: 'production',
+                  aggregate: snubaQuery.aggregate,
+                  dataset: snubaQuery.dataset,
+                  query: snubaQuery.query,
+                  timeWindow: snubaQuery.timeWindow,
+                  eventTypes: ['error'],
+                  queryType: 0,
+                },
+              ],
               conditionGroup: {
                 conditions: [{comparison: 8, conditionResult: 75, type: 'gt'}],
                 logicType: 'any',
@@ -727,14 +729,16 @@ describe('DetectorEdit', () => {
             expect.anything(),
             expect.objectContaining({
               data: expect.objectContaining({
-                dataSource: expect.objectContaining({
-                  // Aggreate needs to be transformed to this in order to save correctly
-                  aggregate:
-                    'percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate',
-                  dataset: Dataset.METRICS,
-                  eventTypes: [],
-                  queryType: SnubaQueryType.CRASH_RATE,
-                }),
+                dataSources: expect.arrayContaining([
+                  expect.objectContaining({
+                    // Aggreate needs to be transformed to this in order to save correctly
+                    aggregate:
+                      'percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate',
+                    dataset: Dataset.METRICS,
+                    eventTypes: [],
+                    queryType: SnubaQueryType.CRASH_RATE,
+                  }),
+                ]),
               }),
             })
           );

@@ -138,15 +138,17 @@ describe('DetectorEdit', () => {
                 detectionType: 'static',
                 thresholdPeriod: 1,
               },
-              dataSource: {
-                aggregate: 'count(span.duration)',
-                dataset: 'events_analytics_platform',
-                eventTypes: ['trace_item_span'],
-                query: '',
-                queryType: 1,
-                timeWindow: 3600,
-                environment: null,
-              },
+              dataSources: [
+                {
+                  aggregate: 'count(span.duration)',
+                  dataset: 'events_analytics_platform',
+                  eventTypes: ['trace_item_span'],
+                  query: '',
+                  queryType: 1,
+                  timeWindow: 3600,
+                  environment: null,
+                },
+              ],
             }),
           })
         );
@@ -212,15 +214,17 @@ describe('DetectorEdit', () => {
                 logicType: 'any',
               },
               config: {detectionType: 'static', thresholdPeriod: 1},
-              dataSource: {
-                aggregate: 'count_unique(tags[sentry:user])',
-                dataset: 'events',
-                environment: 'prod',
-                eventTypes: ['error'],
-                query: '',
-                queryType: 0,
-                timeWindow: 3600,
-              },
+              dataSources: [
+                {
+                  aggregate: 'count_unique(tags[sentry:user])',
+                  dataset: 'events',
+                  environment: 'prod',
+                  eventTypes: ['error'],
+                  query: '',
+                  queryType: 0,
+                  timeWindow: 3600,
+                },
+              ],
             }),
           })
         );
@@ -271,16 +275,18 @@ describe('DetectorEdit', () => {
                 logicType: 'any',
               },
               config: {detectionType: 'static', thresholdPeriod: 1},
-              dataSource: {
-                aggregate: 'count()',
-                dataset: 'events',
-                environment: null,
-                // Event type has moved from the query to the eventTypes field
-                eventTypes: ['error'],
-                query: '',
-                queryType: 0,
-                timeWindow: 3600,
-              },
+              dataSources: [
+                {
+                  aggregate: 'count()',
+                  dataset: 'events',
+                  environment: null,
+                  // Event type has moved from the query to the eventTypes field
+                  eventTypes: ['error'],
+                  query: '',
+                  queryType: 0,
+                  timeWindow: 3600,
+                },
+              ],
               name: 'Foo',
               owner: null,
               projectId: '2',
@@ -394,13 +400,15 @@ describe('DetectorEdit', () => {
               mode: 1,
               recoveryThreshold: 1,
             },
-            dataSource: {
-              intervalSeconds: 60,
-              method: 'GET',
-              timeoutMs: 5000,
-              traceSampling: undefined,
-              url: 'https://uptime.example.com',
-            },
+            dataSources: [
+              {
+                intervalSeconds: 60,
+                method: 'GET',
+                timeoutMs: 5000,
+                traceSampling: undefined,
+                url: 'https://uptime.example.com',
+              },
+            ],
             name: 'New MonitorUptime Monitor',
             projectId: '2',
             type: 'uptime_domain_failure',
@@ -454,13 +462,15 @@ describe('DetectorEdit', () => {
               mode: 1,
               recoveryThreshold: '4',
             },
-            dataSource: {
-              intervalSeconds: 60,
-              method: 'GET',
-              timeoutMs: 5000,
-              traceSampling: undefined,
-              url: 'https://uptime-custom.example.com',
-            },
+            dataSources: [
+              {
+                intervalSeconds: 60,
+                method: 'GET',
+                timeoutMs: 5000,
+                traceSampling: undefined,
+                url: 'https://uptime-custom.example.com',
+              },
+            ],
             name: 'New Monitor',
             projectId: '2',
             type: 'uptime_domain_failure',
