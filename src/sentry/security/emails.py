@@ -25,7 +25,6 @@ def generate_security_email(
     if current_datetime is None:
         current_datetime = timezone.now()
 
-    subject = "Security settings changed"
     if type == "mfa-removed":
         assert context is not None
         assert "authenticator" in context
@@ -61,7 +60,7 @@ def generate_security_email(
         new_context.update(context)
 
     return MessageBuilder(
-        subject=subject,
+        subject="Security settings changed",
         context=new_context,
         template=template,
         html_template=html_template,
