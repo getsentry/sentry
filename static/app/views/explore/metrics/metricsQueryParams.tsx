@@ -13,6 +13,7 @@ import {
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
+  isVisualizeFunction,
   parseVisualize,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
@@ -90,8 +91,8 @@ function getUpdatedValue<T>(
 
 export function useMetricVisualize(): VisualizeFunction {
   const visualizes = useQueryParamsVisualizes();
-  if (visualizes.length === 1) {
-    return visualizes[0] as VisualizeFunction;
+  if (visualizes.length === 1 && isVisualizeFunction(visualizes[0]!)) {
+    return visualizes[0];
   }
   throw new Error('Only 1 visualize per metric allowed');
 }

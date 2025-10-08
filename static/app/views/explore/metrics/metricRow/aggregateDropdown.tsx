@@ -5,7 +5,7 @@ import {
   useSetMetricVisualize,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 
-const OPTIONS_BY_TYPE = {
+const OPTIONS_BY_TYPE: Record<string, Array<{label: string; value: string}>> = {
   counter: [
     {
       label: 'sum',
@@ -74,17 +74,15 @@ const OPTIONS_BY_TYPE = {
   ],
 };
 
-export function AggregateDropdown({
-  type,
-}: {
-  type: 'counter' | 'distribution' | 'gauge' | undefined;
-}) {
+export function AggregateDropdown({type}: {type: string | undefined}) {
   const visualize = useMetricVisualize();
   const setVisualize = useSetMetricVisualize();
 
   return (
     <CompactSelect
-      options={defined(type) ? OPTIONS_BY_TYPE[type] : []}
+      options={
+        defined(type) && defined(OPTIONS_BY_TYPE[type]) ? OPTIONS_BY_TYPE[type] : []
+      }
       value={visualize.parsedFunction?.name ?? ''}
       onChange={option => {
         setVisualize(
