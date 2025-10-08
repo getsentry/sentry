@@ -12,6 +12,7 @@ from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
 from sentry.users.models import User, UserEmail
 from sentry.users.services.user import RpcUser
@@ -225,6 +226,7 @@ class TestSyncAssigneeInbound(TestCase):
 
 
 @region_silo_test
+@with_feature("organizations:integrations-github-inbound-assignee-sync")
 class TestSyncAssigneeInboundByExternalActor(TestCase):
 
     @pytest.fixture(autouse=True)

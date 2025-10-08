@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from django.db.models.query import QuerySet
 
+from sentry import features
 from sentry.integrations.mixins.issues import where_should_sync
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
@@ -19,7 +20,9 @@ from sentry.integrations.tasks.sync_assignee_outbound import sync_assignee_outbo
 from sentry.integrations.types import EXTERNAL_PROVIDERS_REVERSE, ExternalProviderEnum
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.silo.base import region_silo_function
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -31,6 +34,14 @@ if TYPE_CHECKING:
 class AssigneeInboundSyncMethod(StrEnum):
     EMAIL = "email"
     EXTERNAL_ACTOR = "external_actor"
+
+
+def should_sync_assignee_inbound(
+    organization: Organization | RpcOrganization, provider: str
+) -> bool:
+    if provider == "github":
+        return features.has("organizations:integrations-github-inbound-assignee-sync", organization)
+    return True
 
 
 def _get_user_id(projects_by_user: dict[int, set[int]], group: Group) -> int | None:
@@ -60,6 +71,9 @@ def _handle_deassign(
     groups: QuerySet[Group], integration: RpcIntegration | Integration
 ) -> QuerySet[Group]:
     for group in groups:
+        if not should_sync_assignee_inbound(group.organization, integration.provider):
+            continue
+
         GroupAssignee.objects.deassign(
             group,
             assignment_source=AssignmentSource.from_integration(integration),
@@ -79,6 +93,9 @@ def _handle_assign(
     projects_by_user = Project.objects.get_by_users(users)
 
     for group in affected_groups:
+        if not should_sync_assignee_inbound(group.organization, integration.provider):
+            continue
+
         user_id = _get_user_id(projects_by_user, group)
         user = users_by_id.get(user_id) if user_id is not None else None
         if user:

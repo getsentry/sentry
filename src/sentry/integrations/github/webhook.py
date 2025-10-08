@@ -33,6 +33,7 @@ from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
+from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
@@ -497,6 +498,63 @@ class PushEventWebhook(GitHubWebhook):
         repo.save()
 
 
+class IssuesEventWebhook(GitHubWebhook):
+    """https://developer.github.com/v3/activity/events/types/#issuesevent"""
+
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.INBOUND_SYNC
+
+    def _handle(self, integration: RpcIntegration, event: Mapping[str, Any], **kwargs: Any) -> None:
+        """
+        Handle GitHub issue events, particularly assignment and status changes.
+        """
+
+        action = event.get("action")
+        issue = event.get("issue", {})
+        repository = event.get("repository", {})
+        repo_full_name = repository.get("full_name")
+        issue_number = issue.get("number")
+        assignee_gh_name = event.get("assignee", {}).get("login")
+
+        if not repo_full_name or not issue_number or not assignee_gh_name:
+            logger.warning(
+                "github.webhook.missing-data",
+                extra={
+                    "integration_id": integration.id,
+                    "repo": repo_full_name,
+                    "issue_number": issue_number,
+                    "action": action,
+                },
+            )
+            return
+
+        external_issue_key = f"{repo_full_name}#{issue_number}"
+
+        # Handle issue assignment changes
+        if action in ["assigned", "unassigned"]:
+            # Sentry uses the @username format for assignees
+            assignee_name = "@" + assignee_gh_name
+
+            # Sync the assignment to Sentry
+            sync_group_assignee_inbound_by_external_actor(
+                integration=integration,
+                external_user_name=assignee_name,
+                external_issue_key=external_issue_key,
+                assign=(action == "assigned"),
+            )
+
+            logger.info(
+                "github.webhook.assignment.synced",
+                extra={
+                    "integration_id": integration.id,
+                    "external_issue_key": external_issue_key,
+                    "assignee_name": assignee_name,
+                    "action": action,
+                },
+            )
+
+
 class PullRequestEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pullrequestevent"""
 
@@ -621,6 +679,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         "push": PushEventWebhook,
         "pull_request": PullRequestEventWebhook,
         "installation": InstallationEventWebhook,
+        "issues": IssuesEventWebhook,
     }
 
     def get_handler(self, event_type: str) -> type[GitHubWebhook] | None:
