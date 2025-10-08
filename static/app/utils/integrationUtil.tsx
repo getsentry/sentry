@@ -74,7 +74,7 @@ export const getIntegrationFeatureGate = () => {
 };
 
 export const getSentryAppInstallStatus = (install: SentryAppInstallation | undefined) => {
-  if (install?.status !== 'pending_deletion') {
+  if (install && install.status !== 'pending_deletion') {
     return capitalize(install.status) as IntegrationInstallationStatus;
   }
   if (install && install.status === 'pending_deletion') {
