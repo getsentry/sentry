@@ -86,7 +86,7 @@ function getMissingValues({
   };
   projectName: string;
   team: string | undefined;
-  platform?: Partial<OnboardingSelectedSDK>;
+  platform?: OnboardingSelectedSDK;
 } & Partial<
   Pick<RequestDataFragment, 'conditions' | 'shouldCreateCustomRule' | 'shouldCreateRule'>
 >) {
