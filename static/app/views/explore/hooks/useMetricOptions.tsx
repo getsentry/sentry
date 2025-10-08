@@ -10,7 +10,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 interface EventsMetricResult {
   data: Array<{
     ['metric.name']: string;
-    ['metric.type']: string;
+    ['metric.type']: 'counter' | 'distribution' | 'gauge';
   }>;
   meta?: {
     fields?: Record<string, string>;

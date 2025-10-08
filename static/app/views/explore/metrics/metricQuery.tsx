@@ -37,6 +37,11 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
     return null;
   }
 
+  const aggregateFields = json.aggregateFields;
+  if (!Array.isArray(aggregateFields)) {
+    return null;
+  }
+
   return {
     metric: {name: metric},
     queryParams: new ReadableQueryParams({
@@ -49,7 +54,14 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
       sortBys: defaultSortBys(),
 
       aggregateCursor: '',
-      aggregateFields: defaultAggregateFields(),
+      aggregateFields: aggregateFields
+        .filter(field => field && typeof field.yAxis === 'string')
+        .map(
+          aggregateField =>
+            new VisualizeFunction(aggregateField.yAxis, {
+              chartType: aggregateField.chartType,
+            })
+        ),
       aggregateSortBys: defaultAggregateSortBys(),
     }),
   };
@@ -59,6 +71,7 @@ export function encodeMetricQueryParams(metricQuery: BaseMetricQuery): string {
   return JSON.stringify({
     metric: metricQuery.metric.name,
     query: metricQuery.queryParams.query,
+    aggregateFields: metricQuery.queryParams.aggregateFields,
   });
 }
 

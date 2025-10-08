@@ -8,10 +8,14 @@ import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateFie
 import {
   QueryParamsContextProvider,
   useQueryParamsVisualizes,
+  useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {parseVisualize} from 'sentry/views/explore/queryParams/visualize';
+import {
+  parseVisualize,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
 interface MetricNameContextValue {
@@ -40,6 +44,7 @@ export function MetricsQueryParamsProvider({
     (writableQueryParams: WritableQueryParams) => {
       const newQueryParams = updateQueryParams(queryParams, {
         query: getUpdatedValue(writableQueryParams.query, defaultQuery),
+        aggregateFields: writableQueryParams.aggregateFields,
       });
 
       setQueryParams(newQueryParams);
@@ -83,10 +88,10 @@ function getUpdatedValue<T>(
   return undefined;
 }
 
-export function useMetricVisualize() {
+export function useMetricVisualize(): VisualizeFunction {
   const visualizes = useQueryParamsVisualizes();
   if (visualizes.length === 1) {
-    return visualizes[0]!;
+    return visualizes[0] as VisualizeFunction;
   }
   throw new Error('Only 1 visualize per metric allowed');
 }
@@ -94,6 +99,17 @@ export function useMetricVisualize() {
 export function useSetMetricName() {
   const {setMetricName} = useMetricNameContext();
   return setMetricName;
+}
+
+export function useSetMetricVisualize() {
+  const setVisualizes = useSetQueryParamsVisualizes();
+  const setVisualize = useCallback(
+    (newVisualize: VisualizeFunction) => {
+      setVisualizes([newVisualize.serialize()]);
+    },
+    [setVisualizes]
+  );
+  return setVisualize;
 }
 
 function updateQueryParams(
