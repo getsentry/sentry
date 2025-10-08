@@ -21,7 +21,7 @@ export function DiscordPreview({
   return (
     <DebugNotificationsPreview title="Discord">
       <Container border="primary" radius="md">
-        <DiscordMessageContainer columns="auto 1fr" gap="xs" padding="xl">
+        <DiscordMessageContainer columns="auto 1fr" gap="xs md" padding="xl">
           <SentryDiscordAppIcon />
           <Flex gap="md" align="end">
             <Flex gap="xs" align="center">
