@@ -1306,7 +1306,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             [group, group1, group2, assigned_group, assigned_to_other_group],
         )
 
-        GroupOwner.objects.create(
+        other_group_suggested_owner = GroupOwner.objects.create(
             group=assigned_to_other_group,
             project=self.project,
             organization=self.organization,
@@ -1328,7 +1328,8 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             [group1, group2, assigned_group],
         )
 
-        # Because assigned_to_other_event is assigned to self.other_user, it should not show up in assigned_or_suggested search for anyone but self.other_user. (aka. they are now the only owner)
+        # Issue is assigned to another user
+        # Since the original owner is still a suggested owner, issue should show up in assigned_or_suggested search for the original user.
         other_user = self.create_user("other@user.com", is_superuser=False)
         GroupAssignee.objects.create(
             group=assigned_to_other_group,
@@ -1337,7 +1338,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         self.run_test_query(
             "assigned_or_suggested:[me]",
-            [group],
+            [group, assigned_to_other_group],
             [group1, group2, assigned_group, assigned_to_other_group],
         )
 
@@ -1352,8 +1353,10 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         self.run_test_query(
             f"assigned_or_suggested:[{self.user.email}]",
-            [assigned_group, group],
+            [assigned_group, group, assigned_to_other_group],
         )
+
+        other_group_suggested_owner.delete()
 
         GroupOwner.objects.create(
             group=group,
