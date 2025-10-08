@@ -804,19 +804,20 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
         assert result.trace_id == trace_id
         assert result.org_id == self.organization.id
 
-        events = result.trace
-
         seen_span_ids = []
         root_span_ids = []
 
         def check_span(s):
-            assert "event_id" in s
-            assert s["transaction"] == transaction_name
-            assert s["project_id"] == self.project.id
+            if "parent_span_id" not in s:
+                # Not a span.
+                return
+
+            # Basic assertions and ID collection for returned spans.
             assert "op" in s
             assert "description" in s
-            assert "parent_span_id" in s
             assert "children" in s
+            assert s["transaction"] == transaction_name
+            assert s["project_id"] == self.project.id
 
             desc = s["description"]
             assert isinstance(desc, str)
@@ -834,11 +835,8 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
             for child in s["children"]:
                 check_span(child)
 
-        for event in events:
-            if "children" in event:
-                check_span(event)
-
-            # TODO: test connected errors/occurrences
+        for event in result.trace:
+            check_span(event)
 
         assert set(seen_span_ids) == {s["span_id"] for s in spans}
         assert len(root_span_ids) == 1

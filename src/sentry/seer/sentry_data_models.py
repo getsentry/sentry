@@ -31,7 +31,11 @@ class TraceData(BaseModel):
 
 
 class EAPTrace(BaseModel):
-    """Based on the Seer model. Child spans are nested in recursively in span.children. `trace` is a combined list of spans, errors, and issue platform occurrences in the trace."""
+    """
+    Based on the Seer model. `trace` can contain both span and error events (see `SerializedEvent`).
+    Spans contain connected error data in `span.errors` and `span.occurrences`.
+    Child spans are nested recursively in span.children.
+    """
 
     trace_id: str = Field(..., description="ID of the trace")
     org_id: int | None = Field(default=None, description="ID of the organization")
