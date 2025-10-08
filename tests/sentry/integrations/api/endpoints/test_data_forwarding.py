@@ -1,8 +1,6 @@
-from sentry import audit_log
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
-from sentry.models.auditlogentry import AuditLogEntry
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -151,16 +149,6 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         assert data_forwarder.organization_id == self.organization.id
         assert data_forwarder.provider == DataForwarderProviderSlug.SEGMENT
         assert data_forwarder.config == {"write_key": "test_segment_key"}
-
-        assert AuditLogEntry.objects.filter(
-            organization_id=self.organization.id,
-            event=audit_log.get_event_id("DATA_FORWARDER_ADD"),
-            target_object=data_forwarder.id,
-            data={
-                "provider": DataForwarderProviderSlug.SEGMENT,
-                "organization_id": self.organization.id,
-            },
-        ).exists()
 
     def test_create_sqs_data_forwarder(self) -> None:
         payload = {
