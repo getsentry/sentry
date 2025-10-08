@@ -41,7 +41,11 @@ export default function DetectorEdit() {
   }
 
   return (
-    <DetectorFormProvider detectorType={detector.type} project={project}>
+    <DetectorFormProvider
+      detectorType={detector.type}
+      project={project}
+      detector={detector}
+    >
       <EditExistingDetectorForm detector={detector} />
     </DetectorFormProvider>
   );

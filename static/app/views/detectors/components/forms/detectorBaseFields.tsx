@@ -13,6 +13,8 @@ import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/co
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 export function DetectorBaseFields() {
+  const {setHasSetDetectorName} = useDetectorFormContext();
+
   return (
     <Flex gap="md" direction="column">
       <Layout.Title>
@@ -27,6 +29,7 @@ export function DetectorBaseFields() {
                     value: newValue,
                   },
                 });
+                setHasSetDetectorName(true);
               }}
               errorMessage={t('Please set a title')}
               placeholder={t('New Monitor')}
