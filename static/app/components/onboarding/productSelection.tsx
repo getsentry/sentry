@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {useCallback, useEffect, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useEffectEvent, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -461,16 +461,14 @@ export function ProductSelection({
     [organization, disabledProductsProp]
   );
 
-  const safeDependencies = useRef({onLoad, urlProducts});
-
-  useEffect(() => {
-    safeDependencies.current = {onLoad, urlProducts};
+  // Use useEffectEvent to handle non-reactive mount initialization
+  const initializeProducts = useEffectEvent(() => {
+    onLoad?.(urlProducts as ProductSolution[]);
   });
 
+  // Call onLoad on mount
   useEffect(() => {
-    safeDependencies.current.onLoad?.(
-      safeDependencies.current.urlProducts as ProductSolution[]
-    );
+    initializeProducts();
   }, []);
 
   const handleClickProduct = useCallback(
