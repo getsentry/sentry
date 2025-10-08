@@ -1,4 +1,4 @@
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from drf_spectacular.utils import extend_schema
@@ -81,7 +81,7 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
         serializer = DataForwarderSerializer(data=data)
         if serializer.is_valid():
             try:
-                with transaction.atomic():
+                with transaction.atomic(using=router.db_for_write(DataForwarder)):
                     data_forwarder = serializer.save()
             except IntegrityError:
                 raise ConflictError(
