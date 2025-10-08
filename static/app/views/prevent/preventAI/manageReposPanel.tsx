@@ -251,7 +251,6 @@ function ManageReposPanel({
                 disabled={isLoading || !canEditSettings}
                 onChange={async () => {
                   const newValue = !repoConfig.bug_prediction.enabled;
-                  // Enable/disable the main bug prediction feature
                   await enableFeature({
                     feature: 'bug_prediction',
                     enabled: newValue,
