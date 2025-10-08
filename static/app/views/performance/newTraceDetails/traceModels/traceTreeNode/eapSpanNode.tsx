@@ -81,6 +81,10 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     }
   }
 
+  get id(): string {
+    return this.value.event_id;
+  }
+
   get type(): TraceTree.NodeType {
     return 'span';
   }
@@ -106,7 +110,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     };
   }
 
-  get directChildren(): Array<BaseNode<TraceTree.NodeValue>> {
+  get directVisibleChildren(): Array<BaseNode<TraceTree.NodeValue>> {
     if (isEAPTransaction(this.value) && !this.expanded) {
       // For collapsed eap-transactions we still render the embedded eap-transactions as visible children.
       // Mimics the behavior of non-eap traces, enabling a less noisy/summarized view of the trace
@@ -114,36 +118,6 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     }
 
     return this.children;
-  }
-
-  get visibleChildren(): Array<BaseNode<TraceTree.NodeValue>> {
-    const queue: BaseNode[] = [];
-    const visibleChildren: BaseNode[] = [];
-
-    if (this.expanded || isEAPTransaction(this.value)) {
-      const children = this.directChildren;
-
-      for (let i = children.length - 1; i >= 0; i--) {
-        queue.push(children[i]!);
-      }
-    }
-
-    while (queue.length > 0) {
-      const node = queue.pop()!;
-
-      visibleChildren.push(node);
-
-      // iterate in reverse to ensure nodes are processed in order
-      if (node.expanded || isEAPTransaction(node.value)) {
-        const children = node.directChildren;
-
-        for (let i = children.length - 1; i >= 0; i--) {
-          queue.push(children[i]!);
-        }
-      }
-    }
-
-    return visibleChildren;
   }
 
   private _reparentSSRUnderBrowserRequestSpan(node: BaseNode) {

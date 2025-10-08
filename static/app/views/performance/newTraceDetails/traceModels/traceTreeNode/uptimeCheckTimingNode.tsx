@@ -15,6 +15,10 @@ export class UptimeCheckTimingNode extends BaseNode<TraceTree.UptimeCheckTiming>
     return 'uptime-check-timing';
   }
 
+  get id(): string {
+    return this.value.event_id;
+  }
+
   get drawerTabsTitle(): string {
     return this.value.description || this.value.op;
   }

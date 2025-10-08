@@ -1383,7 +1383,7 @@ describe('TraceTree', () => {
   describe('DirectVisibleChildren', () => {
     it('returns children for transaction', () => {
       const tree = TraceTree.FromTrace(trace, traceOptions);
-      expect(tree.root.children[0]!.directChildren).toEqual(
+      expect(tree.root.children[0]!.directVisibleChildren).toEqual(
         tree.root.children[0]!.children
       );
     });
@@ -1404,7 +1404,9 @@ describe('TraceTree', () => {
       ) as ParentAutogroupNode;
 
       expect(parentAutogroup).not.toBeNull();
-      expect(parentAutogroup.directChildren[0]).toBe(parentAutogroup.tail.children[0]);
+      expect(parentAutogroup.directVisibleChildren[0]).toBe(
+        parentAutogroup.tail.children[0]
+      );
     });
     it('returns head for expanded parent autogroup', async () => {
       const tree = TraceTree.FromTrace(trace, traceOptions);
@@ -1423,7 +1425,7 @@ describe('TraceTree', () => {
 
       parentAutogroup.expand(true, tree);
 
-      expect(parentAutogroup.directChildren[0]).toBe(parentAutogroup.head);
+      expect(parentAutogroup.directVisibleChildren[0]).toBe(parentAutogroup.head);
     });
   });
 

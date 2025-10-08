@@ -1,3 +1,5 @@
+import {uuid4} from '@sentry/core';
+
 import {t} from 'sentry/locale';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -8,6 +10,10 @@ import {BaseNode} from './baseNode';
 
 export class RootNode extends BaseNode<null> {
   canShowDetails = false;
+
+  get id(): string {
+    return uuid4();
+  }
 
   get type(): TraceTree.NodeType {
     return 'root';
@@ -25,10 +31,6 @@ export class RootNode extends BaseNode<null> {
     return 'virtual root';
   }
 
-  pathToNode(): TraceTree.NodePath[] {
-    return [];
-  }
-
   analyticsName(): string {
     return 'root';
   }
@@ -37,10 +39,6 @@ export class RootNode extends BaseNode<null> {
     _props: TraceRowProps<T>
   ): React.ReactNode {
     return null;
-  }
-
-  matchByPath(_path: TraceTree.NodePath): boolean {
-    return false;
   }
 
   renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(

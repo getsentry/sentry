@@ -28,6 +28,10 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
     this.parent?.children.push(this);
   }
 
+  get id(): string {
+    return this.value.event_id;
+  }
+
   _createTimingNodes(): UptimeCheckTimingNode[] {
     const uptimeCheck = this.value;
     const attrs = uptimeCheck.additional_attributes || {};

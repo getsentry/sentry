@@ -37,6 +37,10 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
     this.parent?.children.push(this);
   }
 
+  get id(): string {
+    return this.value.event_id;
+  }
+
   get type(): TraceTree.NodeType {
     return 'error';
   }

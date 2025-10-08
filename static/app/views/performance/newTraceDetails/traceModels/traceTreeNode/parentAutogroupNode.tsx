@@ -1,4 +1,5 @@
 import type {Theme} from '@emotion/react';
+import {uuid4} from '@sentry/core';
 
 import {t} from 'sentry/locale';
 import {AutogroupNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/autogroup';
@@ -36,8 +37,8 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
     return 'ag';
   }
 
-  get id(): string | undefined {
-    return this.head.id ?? this.tail.id;
+  get id(): string {
+    return this.head.id ?? this.tail.id ?? uuid4();
   }
 
   get autogroupedSegments(): Array<[number, number]> {
@@ -106,35 +107,12 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
     };
   }
 
-  get directChildren(): BaseNode[] {
+  get directVisibleChildren(): BaseNode[] {
     if (this.expanded) {
       return [this.head];
     }
 
     return this.tail.children;
-  }
-
-  get visibleChildren(): BaseNode[] {
-    const queue: BaseNode[] = [];
-    const visibleChildren: BaseNode[] = [];
-
-    for (let i = this.directChildren.length - 1; i >= 0; i--) {
-      queue.push(this.directChildren[i]!);
-    }
-
-    while (queue.length > 0) {
-      const node = queue.pop()!;
-
-      visibleChildren.push(node);
-
-      const children = node.directChildren;
-
-      for (let i = children.length - 1; i >= 0; i--) {
-        queue.push(children[i]!);
-      }
-    }
-
-    return visibleChildren;
   }
 
   getNextTraversalNodes(): BaseNode[] {
@@ -143,20 +121,6 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
 
   matchById(_id: string): boolean {
     return false;
-  }
-
-  matchByPath(path: TraceTree.NodePath): boolean {
-    if (!path.startsWith(`${this.type}-`)) {
-      return false;
-    }
-
-    // Extract id after the first occurrence of `${this.type}-`
-    const id = path.slice(this.type.length + 1);
-    if (!id) {
-      return false;
-    }
-
-    return this.head.id === id || this.tail.id === id;
   }
 
   expand(expanding: boolean, tree: TraceTree): boolean {

@@ -21,6 +21,10 @@ export class TraceNode extends BaseNode<TraceTree.Trace> {
     this.parent?.children.push(this);
   }
 
+  get id(): string {
+    return 'root';
+  }
+
   get type(): TraceTree.NodeType {
     return 'trace';
   }
@@ -31,10 +35,6 @@ export class TraceNode extends BaseNode<TraceTree.Trace> {
 
   get traceHeaderTitle(): {title: string; subtitle?: string} {
     return {title: 'Trace'};
-  }
-
-  pathToNode(): TraceTree.NodePath[] {
-    return [`trace-root`];
   }
 
   analyticsName(): string {

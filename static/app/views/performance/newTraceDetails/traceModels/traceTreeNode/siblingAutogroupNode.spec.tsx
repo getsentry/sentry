@@ -93,15 +93,6 @@ describe('SiblingAutogroupNode', () => {
       expect(node.id).toBe('child-1');
     });
 
-    it('should return undefined when no children', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({});
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      expect(node.children).toEqual([]);
-      expect(node.id).toBeUndefined();
-    });
-
     it('should return correct op from value', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({
@@ -241,14 +232,7 @@ describe('SiblingAutogroupNode', () => {
       const autogroupValue = makeSiblingAutogroup({});
       const childSpanValue = makeSpan({span_id: 'child-span-id'});
 
-      const mockFn = jest.fn();
-      const transactionNode = new TransactionNode(
-        null,
-        transactionValue,
-        extra,
-        mockFn,
-        mockFn
-      );
+      const transactionNode = new TransactionNode(null, transactionValue, extra);
       const childNode = new SpanNode(transactionNode, childSpanValue, extra);
       const node = new SiblingAutogroupNode(transactionNode, autogroupValue, extra);
 
@@ -258,16 +242,6 @@ describe('SiblingAutogroupNode', () => {
       expect(path).toHaveLength(2);
       expect(path[0]).toBe('ag-child-span-id');
       expect(path[1]).toBe('txn-transaction-id');
-    });
-
-    it('should handle pathToNode when no children exist', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({});
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      const path = node.pathToNode();
-      expect(path).toHaveLength(1);
-      expect(path[0]).toBe('ag-undefined'); // Should handle undefined id
     });
   });
 
