@@ -11,9 +11,9 @@ import {useResettableState} from 'sentry/utils/useResettableState';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
 import MetricInfoTabs from 'sentry/views/explore/metrics/metricInfoTabs';
+import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricRow} from 'sentry/views/explore/metrics/metricRow';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
-import {type TraceMetric} from 'sentry/views/explore/metrics/traceMetric';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface MetricPanelProps {

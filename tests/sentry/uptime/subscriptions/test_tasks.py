@@ -516,11 +516,16 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
         )
 
     def test_handle_disable_detector_exceptions(self) -> None:
-        self.create_uptime_detector(
+        detector = self.create_uptime_detector(
             mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
             uptime_status=UptimeStatus.FAILED,
             uptime_status_update_date=timezone.now() - timedelta(days=8),
         )
+
+        # Update the detector state date to simulate an old failure
+        detector_state = detector.detectorstate_set.first()
+        assert detector_state is not None
+        detector_state.update(date_updated=timezone.now() - timedelta(days=8))
 
         with (
             self.tasks(),
@@ -547,6 +552,11 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
             uptime_status=uptime_status,
             uptime_status_update_date=update_date,
         )
+
+        # Update detector state date to match the test scenario
+        state = detector.detectorstate_set.first()
+        assert state is not None
+        state.update(date_updated=update_date)
 
         with self.tasks():
             broken_monitor_checker()
