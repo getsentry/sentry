@@ -20,6 +20,7 @@ import {
 } from 'getsentry/constants';
 import {
   AddOnCategory,
+  InvoiceItemType,
   OnDemandBudgetMode,
   PlanName,
   PlanTier,
@@ -29,7 +30,9 @@ import {
   type BillingMetricHistory,
   type BillingStatTotal,
   type EventBucket,
+  type InvoiceItem,
   type Plan,
+  type PreviewInvoiceItem,
   type ProductTrial,
   type Subscription,
 } from 'getsentry/types';
@@ -726,6 +729,18 @@ export function partnerPlanEndingModalIsDismissed(
   }
 }
 
+export function getPercentage(quantity: number, total: number | null) {
+  if (typeof total === 'number' && total > 0) {
+    return (Math.min(quantity, total) / total) * 100;
+  }
+  return 0;
+}
+
+export function displayPercentage(quantity: number, total: number | null) {
+  const percentage = getPercentage(quantity, total);
+  return percentage.toFixed(0) + '%';
+}
+
 /**
  * Returns true if some billing details are set.
  */
@@ -759,3 +774,55 @@ export const RETENTION_SETTINGS_CATEGORIES = new Set([
   DataCategory.SPANS,
   DataCategory.LOG_BYTE,
 ]);
+
+export function getCredits({
+  invoiceItems,
+}: {
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  return invoiceItems.filter(
+    item =>
+      [
+        InvoiceItemType.SUBSCRIPTION_CREDIT,
+        InvoiceItemType.CREDIT_APPLIED, // TODO(isabella): This is deprecated and replaced by BALANCE_CHANGE
+        InvoiceItemType.DISCOUNT,
+        InvoiceItemType.RECURRING_DISCOUNT,
+      ].includes(item.type) ||
+      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount < 0)
+  );
+}
+
+/**
+ * Returns the credit applied to an invoice or preview data.
+ * If the invoice items contain a BALANCE_CHANGE item with a negative amount,
+ * the invoice/preview data already accounts for the credit applied, so we return 0.
+ */
+export function getCreditApplied({
+  creditApplied,
+  invoiceItems,
+}: {
+  creditApplied: number;
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  const credits = getCredits({invoiceItems});
+  if (credits.some(item => item.type === InvoiceItemType.BALANCE_CHANGE)) {
+    return 0;
+  }
+  return creditApplied;
+}
+
+/**
+ * Returns extra fees included in the invoice or preview data, such as tax
+ * or cancellation fees.
+ */
+export function getFees({
+  invoiceItems,
+}: {
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  return invoiceItems.filter(
+    item =>
+      [InvoiceItemType.CANCELLATION_FEE, InvoiceItemType.SALES_TAX].includes(item.type) ||
+      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount > 0)
+  );
+}

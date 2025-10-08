@@ -49,7 +49,6 @@ function SubscriptionSettingsLayout(props: Props) {
           <SettingsSearch />
         </Flex>
       </StyledSettingsHeader>
-
       <Flex minWidth={0} flex="1" direction="column">
         {children}
       </Flex>
