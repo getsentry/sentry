@@ -1,5 +1,12 @@
 import HookOrDefault from 'sentry/components/hookOrDefault';
 
+export type DashboardCreateLimitWrapperResult = {
+  dashboardsLimit: number;
+  hasReachedDashboardLimit: boolean;
+  isLoading: boolean;
+  limitMessage: string | null;
+};
+
 export const DashboardCreateLimitWrapper = HookOrDefault({
   hookName: 'component:dashboards-limit-provider',
   defaultComponent: ({children}) =>
@@ -9,6 +16,6 @@ export const DashboardCreateLimitWrapper = HookOrDefault({
           dashboardsLimit: 0,
           isLoading: false,
           limitMessage: null,
-        })
+        } satisfies DashboardCreateLimitWrapperResult)
       : children,
 });
