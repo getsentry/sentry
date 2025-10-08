@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {Stack} from 'sentry/components/core/layout';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -13,7 +14,6 @@ import {
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -301,27 +301,19 @@ function PageWithProviders() {
 
 function LoadingPanel() {
   return (
-    <LoadingPlaceholder>
+    <Stack
+      position="relative"
+      justify="center"
+      gap="md"
+      height="100%"
+      border="primary"
+      radius="md"
+    >
       <LoadingMask visible />
       <LoadingIndicator size={24} />
-    </LoadingPlaceholder>
+    </Stack>
   );
 }
-
-const LoadingPlaceholder = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  position: relative;
-  height: 100%;
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  gap: ${space(1)};
-
-  padding-top: 32px;
-`;
 
 const LoadingMask = styled(TransparentLoadingMask)`
   background: ${p => p.theme.background};
