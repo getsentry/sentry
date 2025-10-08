@@ -3129,6 +3129,13 @@ register(
 )
 
 register(
+    "workflow_engine.group.type_id.open_periods_type_denylist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "workflow_engine.issue_alert.group.type_id.ga",
     type=Sequence,
     default=[],
