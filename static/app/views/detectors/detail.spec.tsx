@@ -269,10 +269,8 @@ describe('DetectorDetails', () => {
         await screen.findByRole('heading', {name: uptimeDetector.name})
       ).toBeInTheDocument();
 
-      expect(screen.getByText('Three consecutive failed checks.')).toBeInTheDocument();
-      expect(
-        screen.getByText('Three consecutive successful checks.')
-      ).toBeInTheDocument();
+      expect(screen.getByText('3 consecutive failed checks.')).toBeInTheDocument();
+      expect(screen.getByText('1 consecutive successful check.')).toBeInTheDocument();
 
       // Interval
       expect(screen.getByText('Every 1 minute')).toBeInTheDocument();
