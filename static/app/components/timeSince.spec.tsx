@@ -1,6 +1,7 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import TimeSince from 'sentry/components/timeSince';
+import {TimezoneProvider} from 'sentry/components/timezoneProvider';
 
 describe('TimeSince', () => {
   const now = new Date();
@@ -55,5 +56,19 @@ describe('TimeSince', () => {
   it('renders a custom suffix with shortened', () => {
     render(<TimeSince unitStyle="extraShort" date={pastTenMin} suffix="atrás" />);
     expect(screen.getByText('10m atrás')).toBeInTheDocument();
+  });
+
+  it('respects timezone in tooltip', async () => {
+    const date = new Date('2024-01-15T12:00:00Z');
+    render(
+      <TimezoneProvider timezone="America/New_York">
+        <TimeSince date={date} />
+      </TimezoneProvider>
+    );
+    const timeElement = screen.getByRole('time');
+    await userEvent.hover(timeElement);
+    await waitFor(() => {
+      expect(screen.getByText(/EST/)).toBeInTheDocument();
+    });
   });
 });

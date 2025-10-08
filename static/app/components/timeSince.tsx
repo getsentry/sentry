@@ -9,6 +9,8 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {useUser} from 'sentry/utils/useUser';
 
+import {useTimezone} from './timezoneProvider';
+
 function getDateObj(date: RelaxedDateType): Date {
   return typeof date === 'string' || isNumber(date) ? new Date(date) : date;
 }
@@ -120,6 +122,7 @@ function TimeSince({
   ...props
 }: Props) {
   const user = useUser();
+  const tz = useTimezone();
 
   // Counter to trigger periodic re-computation of relative time
   const [tick, setTick] = useState(0);
@@ -153,7 +156,7 @@ function TimeSince({
     : 'MMMM D, YYYY h:mm A z';
   const format = options?.clock24Hours ? 'MMMM D, YYYY HH:mm z' : tooltipFormat;
 
-  const tooltip = moment(dateObj).format(format);
+  const tooltip = moment.tz(dateObj, tz).format(format);
 
   return (
     <Tooltip
