@@ -46,7 +46,7 @@ type PartialSpendLimitUpdate = Partial<Record<DataCategory, number>> & {
   sharedMaxBudget?: number;
 };
 
-interface SpendLimitSettingsProps {
+export interface SpendLimitSettingsProps {
   activePlan: Plan;
   addOns: Partial<Record<AddOnCategory, {enabled: boolean}>>;
   currentReserved: Partial<Record<DataCategory, number>>;
@@ -169,7 +169,7 @@ function SharedSpendLimitPriceTableRow({children}: {children: React.ReactNode}) 
   );
 }
 
-function SharedSpendLimitPriceTable({
+export function SharedSpendLimitPriceTable({
   activePlan,
   currentReserved,
   organization,
@@ -369,7 +369,7 @@ function InnerSpendLimitSettings({
 
   const getPerCategoryWarning = (productName: string) => {
     return (
-      <Flex gap="xs" align="center">
+      <Flex gap="xs">
         <IconWarning size="sm" />
         <Text variant="muted" size="sm">
           {tct(
@@ -433,7 +433,7 @@ function InnerSpendLimitSettings({
                 padding="lg 0"
                 borderBottom={isLastInList ? undefined : 'primary'}
               >
-                <Flex gap="xs" align="center">
+                <Flex gap="xs" align="center" flexGrow={1}>
                   <Text bold>{upperFirst(pluralName)}</Text>
                   {showPerformanceUnits
                     ? renderPerformanceHovercard()
@@ -444,7 +444,7 @@ function InnerSpendLimitSettings({
                           size="xs"
                         />
                       )}
-                  <Text variant="muted">
+                  <Text variant="muted" wrap="nowrap">
                     {reserved === 0
                       ? t('None included')
                       : tct('[reserved] included', {
@@ -508,7 +508,7 @@ function InnerSpendLimitSettings({
                 padding="xl 0"
                 borderBottom={isLastInList ? undefined : 'primary'}
               >
-                <Flex gap="xs" align="center">
+                <Flex gap="xs" align="center" flexGrow={1}>
                   <Text bold>{upperFirst(addOnInfo.productName)}</Text>
                   {tooltipText && (
                     <QuestionTooltip title={tooltipText} position="top" size="xs" />
@@ -593,7 +593,7 @@ function BudgetModeSettings({
   }
 
   return (
-    <Grid columns="repeat(2, 1fr)" gap="xl">
+    <Grid columns={{xs: '1fr', md: 'repeat(2, 1fr)'}} gap="xl">
       {Object.values(OnDemandBudgetMode).map(budgetMode => {
         const budgetModeName = capitalize(budgetMode.replace('_', '-'));
         const isSelected = onDemandBudgets.budgetMode === budgetMode;
@@ -703,7 +703,11 @@ const InnerContainer = styled(Flex)`
 
 const StyledInput = styled(Input)`
   padding-left: ${p => p.theme.space['3xl']};
-  width: 344px;
+  width: 100px;
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    width: 344px;
+  }
 `;
 
 const Currency = styled('div')`

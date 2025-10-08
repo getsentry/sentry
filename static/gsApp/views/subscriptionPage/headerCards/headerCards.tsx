@@ -7,6 +7,7 @@ import {hasNewBillingUI} from 'getsentry/utils/billing';
 import BillingInfoCard from 'getsentry/views/subscriptionPage/headerCards/billingInfoCard';
 import LinksCard from 'getsentry/views/subscriptionPage/headerCards/linksCard';
 import NextBillCard from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
+import PaygCard from 'getsentry/views/subscriptionPage/headerCards/paygCard';
 import SeerAutomationAlert from 'getsentry/views/subscriptionPage/seerAutomationAlert';
 
 import {SubscriptionCard} from './subscriptionCard';
@@ -29,6 +30,12 @@ function getCards(organization: Organization, subscription: Subscription) {
         organization={organization}
       />
     );
+
+    if (subscription.supportsOnDemand) {
+      cards.push(
+        <PaygCard key="payg" subscription={subscription} organization={organization} />
+      );
+    }
   }
 
   if (
