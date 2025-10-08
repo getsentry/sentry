@@ -111,11 +111,11 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
       {key: 'product', name: t('Product'), width: 300},
       {key: 'currentUsage', name: t('Current usage'), width: 200},
       {key: 'reservedUsage', name: t('Reserved usage'), width: 200},
-      {key: 'reservedSpend', name: t('Reserved spend'), width: 50},
+      {key: 'reservedSpend', name: t('Reserved spend'), width: 200},
       {
         key: 'budgetSpend',
         name: t('%s spend', displayBudgetName(subscription.planDetails, {title: true})),
-        width: 50,
+        width: 200,
       },
       {
         key: 'cta',
