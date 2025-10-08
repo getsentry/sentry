@@ -570,7 +570,6 @@ class ReleaseSerializer(Serializer):
             raise TypeError("health data requires snuba")
 
         adoption_stages = {}
-        release_project_envs = None
         if self.with_adoption_stages:
             release_project_envs = self._get_release_project_envs(item_list, environments, project)
             adoption_stages = self._get_release_adoption_stages(release_project_envs)
