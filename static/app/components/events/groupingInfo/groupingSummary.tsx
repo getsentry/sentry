@@ -30,7 +30,7 @@ export function GroupInfoSummary({
         .join(', ')
     : t('nothing');
 
-  const groupingConfig = showGroupingConfig && groupInfo?.grouping_config;
+  const groupingConfig = showGroupingConfig && groupInfo?.grouping_config?.id;
 
   if (isPending && !hasPerformanceGrouping) {
     return (

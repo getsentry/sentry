@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import {
   EventGroupVariantType,
   type Event,
+  type EventGroupingConfig,
   type EventGroupVariant,
 } from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -10,7 +11,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 type EventGroupingInfoResponseOld = Record<string, EventGroupVariant>;
 type EventGroupingInfoResponse = {
-  grouping_config: string;
+  grouping_config: EventGroupingConfig | null;
   variants: Record<string, EventGroupVariant>;
 };
 
@@ -19,11 +20,8 @@ function eventGroupingInfoResponseOldToNew(
   old: EventGroupingInfoResponseOld | null
 ): EventGroupingInfoResponse | null {
   const grouping_config = old
-    ? (
-        Object.values(old).find(
-          variant => 'config' in variant && variant.config?.id
-        ) as any
-      )?.config?.id
+    ? (Object.values(old).find(variant => 'config' in variant && variant.config) as any)
+        ?.config
     : null;
   return old
     ? {
@@ -57,7 +55,7 @@ function generatePerformanceGroupInfo({
 
   return group
     ? {
-        grouping_config: 'performance',
+        grouping_config: null,
         variants: {
           [group.issueType]: {
             contributes: true,
