@@ -8,13 +8,14 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {DataCategory} from 'sentry/types/core';
 
 import {BILLION, GIGABYTE, MILLION, UNLIMITED} from 'getsentry/constants';
-import {OnDemandBudgetMode, type ProductTrial} from 'getsentry/types';
+import {InvoiceItemType, OnDemandBudgetMode, type ProductTrial} from 'getsentry/types';
 import {
   convertUsageToReservedUnit,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getActiveProductTrial,
   getBestActionToIncreaseEventLimits,
+  getCreditApplied,
   getOnDemandCategories,
   getProductTrial,
   getSlot,
@@ -1078,5 +1079,52 @@ describe('getBestActionToIncreaseEventLimits', () => {
       plan: 'am3_business',
     });
     expect(getBestActionToIncreaseEventLimits(organization, subscription)).toBe('');
+  });
+});
+
+describe('getCreditApplied', () => {
+  it('returns correct credit applied', () => {
+    expect(getCreditApplied({creditApplied: 100, invoiceItems: []})).toBe(100);
+    const commonCreditProps = {
+      amount: 50,
+      data: {},
+      description: '',
+      period_end: '',
+      period_start: '',
+    };
+    expect(
+      getCreditApplied({
+        creditApplied: 100,
+        invoiceItems: [
+          {
+            type: InvoiceItemType.SUBSCRIPTION_CREDIT,
+            ...commonCreditProps,
+          },
+        ],
+      })
+    ).toBe(100);
+    expect(
+      getCreditApplied({
+        creditApplied: 100,
+        invoiceItems: [
+          {
+            type: InvoiceItemType.BALANCE_CHANGE,
+            ...commonCreditProps,
+          },
+        ],
+      })
+    ).toBe(100);
+    expect(
+      getCreditApplied({
+        creditApplied: 100,
+        invoiceItems: [
+          {
+            type: InvoiceItemType.BALANCE_CHANGE,
+            ...commonCreditProps,
+            amount: -50,
+          },
+        ],
+      })
+    ).toBe(0);
   });
 });
