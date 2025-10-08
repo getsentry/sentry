@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from django.db import router, transaction
 from rest_framework import serializers
 from rest_framework.authentication import SessionAuthentication
@@ -14,9 +16,34 @@ from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 
 
+class CustomSchemeURLField(serializers.CharField):
+    """URLField that accepts any valid scheme, not just HTTP/HTTPS."""
+
+    default_error_messages = {
+        "invalid": "Enter a valid URL.",
+    }
+
+    def run_validation(self, data):
+        # First run the standard CharField validations
+        data = super().run_validation(data)
+
+        if data is None or data == "":
+            return data
+
+        # Basic URL structure validation
+        try:
+            parsed = urlparse(data)
+            if not parsed.scheme or not parsed.netloc:
+                self.fail("invalid")
+        except Exception:
+            self.fail("invalid")
+
+        return data
+
+
 class ApiApplicationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
-    redirectUris = ListField(child=serializers.URLField(max_length=255), required=False)
+    redirectUris = ListField(child=CustomSchemeURLField(max_length=255), required=False)
     allowedOrigins = ListField(
         # TODO(dcramer): make this validate origins
         child=serializers.CharField(max_length=255),
