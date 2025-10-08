@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import {wrapCreateBrowserRouterV6} from '@sentry/react';
 import {ReactQueryDevtools} from '@tanstack/react-query-devtools';
+import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
 
 import {AppQueryClientProvider} from 'sentry/appQueryClient';
 import {FrontendVersionProvider} from 'sentry/components/frontendVersionContext';
@@ -27,7 +28,9 @@ function Main() {
       <FrontendVersionProvider releaseVersion={SENTRY_RELEASE_VERSION ?? null}>
         <ThemeAndStyleProvider>
           <SentryTrackingProvider>
-            <RouterProvider router={router} />
+            <NuqsAdapter defaultOptions={{shallow: false}}>
+              <RouterProvider router={router} />
+            </NuqsAdapter>
           </SentryTrackingProvider>
           {USE_REACT_QUERY_DEVTOOL && (
             <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />

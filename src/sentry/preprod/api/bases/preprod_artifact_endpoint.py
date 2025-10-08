@@ -8,6 +8,11 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.preprod.models import PreprodArtifact
 
 
+class PreprodArtifactResourceDoesNotExist(APIException):
+    status_code = status.HTTP_404_NOT_FOUND
+    default_detail = "The requested preprod artifact does not exist"
+
+
 class HeadPreprodArtifactResourceDoesNotExist(APIException):
     status_code = status.HTTP_404_NOT_FOUND
     default_detail = "The requested head preprod artifact does not exist"
@@ -46,11 +51,12 @@ class PreprodArtifactEndpoint(ProjectEndpoint):
             return args, kwargs
 
         try:
-            head_artifact = PreprodArtifact.objects.get(id=head_artifact_id)
+            head_artifact = PreprodArtifact.objects.get(id=int(head_artifact_id))
+        except (PreprodArtifact.DoesNotExist, ValueError):
+            raise HeadPreprodArtifactResourceDoesNotExist
+        else:
             if head_artifact.project_id != project.id:
                 raise HeadPreprodArtifactResourceDoesNotExist
-        except PreprodArtifact.DoesNotExist:
-            raise HeadPreprodArtifactResourceDoesNotExist
 
         kwargs["head_artifact"] = head_artifact
 
@@ -59,11 +65,12 @@ class PreprodArtifactEndpoint(ProjectEndpoint):
             return args, kwargs
 
         try:
-            base_artifact = PreprodArtifact.objects.get(id=base_artifact_id)
+            base_artifact = PreprodArtifact.objects.get(id=int(base_artifact_id))
+        except (PreprodArtifact.DoesNotExist, ValueError):
+            raise BasePreprodArtifactResourceDoesNotExist
+        else:
             if base_artifact.project_id != project.id:
                 raise BasePreprodArtifactResourceDoesNotExist
-        except PreprodArtifact.DoesNotExist:
-            raise BasePreprodArtifactResourceDoesNotExist
 
         kwargs["base_artifact"] = base_artifact
         return args, kwargs

@@ -2,7 +2,7 @@ export enum NotificationProviderKey {
   EMAIL = 'email',
   SLACK = 'slack',
   DISCORD = 'discord',
-  TEAMS = 'teams',
+  TEAMS = 'msteams',
 }
 
 export interface NotificationTemplateRegistration {
@@ -20,6 +20,9 @@ export interface NotificationTemplateRegistration {
       subject: string;
       text_content: string;
     };
+    [NotificationProviderKey.TEAMS]: {card: Record<string, any>};
+    [NotificationProviderKey.SLACK]: {blocks: Array<Record<string, any>>};
+    [NotificationProviderKey.DISCORD]: Record<string, any>;
   };
   source: string;
 }

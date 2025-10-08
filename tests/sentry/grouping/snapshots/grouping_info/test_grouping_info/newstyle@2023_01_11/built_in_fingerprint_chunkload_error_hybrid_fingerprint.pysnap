@@ -1,10 +1,10 @@
 ---
-created: '2025-09-24T22:53:02.139683+00:00'
+created: '2025-10-06T22:48:50.578017+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_message": {
     "component": {
       "contributes": false,
       "hint": "ignored because built-in fingerprint takes precedence",
@@ -102,10 +102,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
+    "contributes": false,
     "description": "in-app",
     "hash": null,
     "hint": "ignored because built-in fingerprint takes precedence",
-    "key": "app",
+    "key": "app_exception_message",
     "type": "component"
   },
   "built_in_fingerprint": {
@@ -113,17 +114,18 @@ source: tests/sentry/grouping/test_grouping_info.py
       "{{ default }}",
       "dogs are great"
     ],
+    "contributes": true,
     "description": "Sentry defined fingerprint",
     "hash": "5d731dcf8ecc4f042eeacf528d8d8da9",
     "hint": null,
     "key": "built_in_fingerprint",
     "matched_rule": "family:\"javascript\" type:\"ChunkLoadError\" -> \"chunkloaderror\"",
-    "type": "built_in_fingerprint",
+    "type": "custom_fingerprint",
     "values": [
       "chunkloaderror"
     ]
   },
-  "system": {
+  "system_exception_stacktrace": {
     "component": {
       "contributes": false,
       "hint": "ignored because built-in fingerprint takes precedence",
@@ -221,10 +223,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
+    "contributes": false,
     "description": "exception stacktrace",
     "hash": null,
     "hint": "ignored because built-in fingerprint takes precedence",
-    "key": "system",
+    "key": "system_exception_stacktrace",
     "type": "component"
   }
 }

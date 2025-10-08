@@ -18,6 +18,8 @@ import {
   getIsAiCreateAgentSpan,
   getIsAiGenerationSpan,
   getIsAiRunSpan,
+  getIsExecuteToolSpan,
+  getIsHandoffSpan,
 } from 'sentry/views/insights/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -356,13 +358,13 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
       );
     }
     nodeInfo.color = colors[2];
-  } else if (op === 'gen_ai.execute_tool') {
+  } else if (getIsExecuteToolSpan({op})) {
     const toolName = getNodeAttribute(SpanFields.GEN_AI_TOOL_NAME);
     nodeInfo.icon = <IconTool size="md" />;
     nodeInfo.title = toolName || truncatedOp;
     nodeInfo.subtitle = toolName ? truncatedOp : '';
     nodeInfo.color = colors[5];
-  } else if (op === 'gen_ai.handoff') {
+  } else if (getIsHandoffSpan({op})) {
     nodeInfo.icon = <IconChevron size="md" isDouble direction="right" />;
     nodeInfo.subtitle = node.value.description || '';
     nodeInfo.color = colors[4];

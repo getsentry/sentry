@@ -1,4 +1,4 @@
-import {type ReactNode} from 'react';
+import {useState, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -18,8 +18,12 @@ import {AppSizeInsights} from 'sentry/views/preprod/buildDetails/main/insights/a
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {AppSizeCategories} from 'sentry/views/preprod/components/visualizations/appSizeCategories';
+import {AppSizeLegend} from 'sentry/views/preprod/components/visualizations/appSizeLegend';
 import {AppSizeTreemap} from 'sentry/views/preprod/components/visualizations/appSizeTreemap';
-import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
+import type {
+  AppSizeApiResponse,
+  TreemapType,
+} from 'sentry/views/preprod/types/appSizeTypes';
 import {
   BuildDetailsSizeAnalysisState,
   type BuildDetailsApiResponse,
@@ -34,7 +38,7 @@ interface LoadingContentProps {
 
 function LoadingContent({showSkeleton, children}: LoadingContentProps) {
   return (
-    <Flex direction="column" gap="lg" minHeight="700px">
+    <Flex direction="column" gap="lg" minHeight="700px" width="100%">
       <Grid
         columns="1fr"
         rows="1fr"
@@ -75,21 +79,29 @@ function LoadingContent({showSkeleton, children}: LoadingContentProps) {
 
 interface BuildDetailsMainContentProps {
   appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError>;
-  buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
+  isRerunning: boolean;
+  onRerunAnalysis: () => void;
+  buildDetailsData?: BuildDetailsApiResponse | null;
+  isBuildDetailsPending?: boolean;
 }
 
 export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
+  const {
+    isRerunning,
+    onRerunAnalysis,
+    appSizeQuery,
+    buildDetailsData,
+    isBuildDetailsPending = false,
+  } = props;
   const {
     data: appSizeData,
     isPending: isAppSizePending,
     isError: isAppSizeError,
     error: appSizeError,
-  } = props.appSizeQuery;
+  } = appSizeQuery;
 
   // If the main data fetch fails, this component will not be rendered
   // so we don't handle 'isBuildDetailsError'.
-  const {isPending: isBuildDetailsPending, data: buildDetailsData} =
-    props.buildDetailsQuery;
 
   const [selectedContentParam, setSelectedContentParam] = useQueryParamState<
     'treemap' | 'categories'
@@ -107,6 +119,22 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   const [searchQuery, setSearchQuery] = useQueryParamState<string>({
     fieldName: 'search',
   });
+
+  const [selectedCategories, setSelectedCategories] = useState<Set<TreemapType>>(
+    new Set()
+  );
+
+  const handleToggleCategory = (category: TreemapType) => {
+    setSelectedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(category)) {
+        next.delete(category);
+      } else {
+        next.add(category);
+      }
+      return next;
+    });
+  };
 
   const sizeInfo = buildDetailsData?.size_info;
 
@@ -158,7 +186,11 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
         message={
           sizeInfo.error_message || t("Something went wrong, we're looking into it.")
         }
-      />
+      >
+        <Button onClick={onRerunAnalysis} disabled={isRerunning}>
+          {isRerunning ? t('Rerunning...') : t('Retry analysis')}
+        </Button>
+      </BuildError>
     );
   }
 
@@ -185,7 +217,11 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
       <BuildError
         title={t('Size analysis failed')}
         message={t('The treemap data could not be loaded')}
-      />
+      >
+        <Button onClick={onRerunAnalysis} disabled={isRerunning}>
+          {isRerunning ? t('Rerunning...') : t('Retry analysis')}
+        </Button>
+      </BuildError>
     );
   }
 
@@ -199,11 +235,12 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     appSizeData.treemap.category_breakdown &&
     Object.keys(appSizeData.treemap.category_breakdown).length > 0;
 
-  // Filter data based on search query
+  // Filter data based on search query and categories
   const filteredRoot = filterTreemapElement(
     appSizeData.treemap.root,
     searchQuery || '',
-    ''
+    '',
+    selectedCategories.size > 0 ? selectedCategories : undefined
   );
   const filteredTreemapData = filteredRoot
     ? {
@@ -236,7 +273,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   }
 
   return (
-    <Flex direction="column" gap="lg" minHeight="700px">
+    <Flex direction="column" gap="lg" minHeight="700px" width="100%">
       <Flex align="center" gap="md">
         {categoriesEnabled && (
           <SegmentedControl value={selectedContent} onChange={handleContentChange}>
@@ -269,6 +306,13 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
           </InputGroup>
         )}
       </Flex>
+      {selectedContent === 'treemap' && appSizeData && (
+        <AppSizeLegend
+          root={appSizeData.treemap.root}
+          selectedCategories={selectedCategories}
+          onToggleCategory={handleToggleCategory}
+        />
+      )}
       <ChartContainer>{visualizationContent}</ChartContainer>
       {processedInsights.length > 0 && (
         <AppSizeInsights processedInsights={processedInsights} />

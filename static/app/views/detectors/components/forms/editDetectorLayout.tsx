@@ -14,6 +14,7 @@ import {
 } from 'sentry/views/detectors/components/details/common/actions';
 import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
+import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
 
 type EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload> = {
@@ -60,6 +61,7 @@ export function EditDetectorLayout<
         </EditLayout.HeaderContent>
 
         <EditLayout.Actions>
+          <MonitorFeedbackButton />
           <DisableDetectorAction detector={detector} />
           <DeleteDetectorAction detector={detector} />
           <Button type="submit" priority="primary" size="sm">

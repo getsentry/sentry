@@ -10,10 +10,7 @@ import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAt
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/agents/components/modelName';
-import {
-  hasAgentInsightsFeature,
-  hasMCPInsightsFeature,
-} from 'sentry/views/insights/agents/utils/features';
+import {hasMCPInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {AI_CREATE_AGENT_OPS, getIsAiSpan} from 'sentry/views/insights/agents/utils/query';
 
 type HighlightedAttribute = {
@@ -40,7 +37,7 @@ export function getHighlightedSpanAttributes({
 }): HighlightedAttribute[] {
   const attributeObject = ensureAttributeObject(attributes);
 
-  if (hasAgentInsightsFeature(organization) && getIsAiSpan({op})) {
+  if (getIsAiSpan({op})) {
     return getAISpanAttributes(attributeObject, op);
   }
 
