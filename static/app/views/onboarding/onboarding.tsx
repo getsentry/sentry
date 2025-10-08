@@ -22,6 +22,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 import {useBackActions} from 'sentry/views/onboarding/useBackActions';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
@@ -62,13 +63,10 @@ export const onboardingSteps: StepDescriptor[] = [
 ];
 
 function Onboarding(props: Props) {
+  const {step: stepId} = useParams<{step: string}>();
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
   const selectedProjectSlug = onboardingContext.selectedPlatform?.key;
-
-  const {
-    params: {step: stepId},
-  } = props;
 
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
