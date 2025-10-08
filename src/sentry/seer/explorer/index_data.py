@@ -11,7 +11,7 @@ from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index.index import parse_and_convert_issue_search_query
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer
-from sentry.api.utils import handle_query_errors
+from sentry.api.utils import default_start_end_dates, handle_query_errors
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -23,6 +23,7 @@ from sentry.seer.explorer.utils import (
     normalize_description,
 )
 from sentry.seer.sentry_data_models import (
+    EAPTrace,
     IssueDetails,
     ProfileData,
     Span,
@@ -36,7 +37,7 @@ from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
-from sentry.snuba.trace import SerializedEvent, query_trace_data
+from sentry.snuba.trace import query_trace_data
 
 logger = logging.getLogger(__name__)
 
@@ -62,12 +63,11 @@ def get_transactions_for_project(project_id: int) -> list[Transaction]:
         )
         return []
 
-    end_time = datetime.now(UTC)
-    start_time = end_time - timedelta(hours=24)
+    start, end = default_start_end_dates()  # Last 90 days.
 
     snuba_params = SnubaParams(
-        start=start_time,
-        end=end_time,
+        start=start,
+        end=end,
         projects=[project],
         organization=project.organization,
     )
@@ -554,16 +554,16 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
     )
 
 
-def get_trace_from_id(trace_id: str, organization_id: int) -> list[SerializedEvent] | None:
+def get_full_trace_from_id(trace_id: str, organization_id: int) -> EAPTrace:
     """
-    Get a trace from an ID.
+    Get a trace's spans and errors from a trace ID.
 
     Args:
         trace_id: The ID of the trace to fetch. Can be shortened to the first 8 characters.
         organization_id: The ID of the trace's organization
 
     Returns:
-        Trace details
+        The spans and errors in the trace, along with the full 32-character trace ID.
     """
 
     try:
@@ -597,23 +597,29 @@ def get_trace_from_id(trace_id: str, organization_id: int) -> list[SerializedEve
                 get_all_projects=lambda: projects,
             )
             subquery_result = executor.execute(0, 1)
-            full_trace_id = subquery_result.get("data", [{}])[0].get("trace")
+            full_trace_id = (
+                subquery_result["data"][0].get("trace") if subquery_result["data"] else None
+            )
     else:
         full_trace_id = trace_id
 
-    if isinstance(full_trace_id, str):
-        trace_data = query_trace_data(snuba_params, full_trace_id, referrer=Referrer.SEER_RPC)
-        if trace_data:
-            return trace_data
+    if not isinstance(full_trace_id, str):
+        logger.info(
+            "Trace not found from short id",
+            extra={
+                "organization_id": organization_id,
+                "trace_id": trace_id,
+            },
+        )
+        return None
 
-    logger.info(
-        "Trace not found",
-        extra={
-            "organization_id": organization_id,
-            "trace_id": trace_id,
-        },
+    events = query_trace_data(snuba_params, full_trace_id, referrer=Referrer.SEER_RPC)
+
+    return EAPTrace(
+        trace_id=full_trace_id,
+        org_id=organization_id,
+        trace=events,
     )
-    return None
 
 
 # RPC wrappers
@@ -640,6 +646,6 @@ def rpc_get_issues_for_transaction(transaction_name: str, project_id: int) -> di
     return issues.dict() if issues else {}
 
 
-def rpc_get_trace_from_id(trace_id: str, organization_id: int) -> dict[str, Any]:
-    trace = get_trace_from_id(trace_id, organization_id)
-    return {"trace": trace} if trace else {}
+def rpc_get_full_trace_from_id(trace_id: str, organization_id: int) -> dict[str, Any]:
+    trace = get_full_trace_from_id(trace_id, organization_id)
+    return trace.dict() if trace else {}
