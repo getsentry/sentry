@@ -217,6 +217,10 @@ class DashboardDetail extends Component<Props, State> {
   componentDidUpdate(prevProps: Props) {
     this.checkIfShouldMountWidgetViewerModal();
 
+    if (!this.state.isWidgetBuilderOpen && this.isWidgetBuilder()) {
+      this.setState({isWidgetBuilderOpen: true});
+    }
+
     if (prevProps.initialState !== this.props.initialState) {
       // Widget builder can toggle Edit state when saving
       this.setState({dashboardState: this.props.initialState});
@@ -1046,12 +1050,12 @@ class DashboardDetail extends Component<Props, State> {
             const checkDashboardRoute = (path: string) => {
               const dashboardRoutes = [
                 // Legacy routes
-                new RegExp('^\/organizations\/.+\/dashboards\/new\/'),
-                new RegExp(`^\/organizations\/.+\/dashboard\/${dashboard.id}\/`),
+                new RegExp('^/organizations/.+/dashboards/new/'),
+                new RegExp(`^/organizations/.+/dashboard/${dashboard.id}/`),
 
                 // Customer domain routes
-                new RegExp('^\/dashboards\/new\/'),
-                new RegExp(`^\/dashboard\/${dashboard.id}\/`),
+                new RegExp('^/dashboards/new/'),
+                new RegExp(`^/dashboard/${dashboard.id}/`),
               ];
 
               return dashboardRoutes.some(route => route.test(path ?? location.pathname));

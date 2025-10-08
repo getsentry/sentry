@@ -643,6 +643,8 @@ class Referrer(StrEnum):
     GETSENTRY_PROMOTION_MOBILE_PERFORMANCE_ADOPTION_CHECK_ELIGIBLE = (
         "getsentry.promotion.mobile_performance_adoption.check_eligible"
     )
+    GETSENTRY_EXPORT_SPANS_GET_TRACES = "getsentry.export.spans.get_traces"
+    GETSENTRY_EXPORT_SPANS_GET_ITEM_DETAILS = "getsentry.export.spans.get_item_details"
     GITHUB_PR_COMMENT_BOT = "tasks.github_comment"
     GITLAB_PR_COMMENT_BOT = "tasks.gitlab_comment"
     GROUP_FILTER_BY_EVENT_ID = "group.filter_by_event_id"
@@ -749,6 +751,7 @@ class Referrer(StrEnum):
     REPLAYS_FILE_REFERRER = "replays.query.download_replay_segments"
     REPLAYS_SCRIPTS_DELETE_REPLAYS = "replays.scripts.delete_replays"
     FEEDBACKS_LABEL_QUERY = "feedbacks.label_query"
+    EU_DATA_EXPORT = "sentry.internal.eu-compliance-data-export"
     REPORTS_KEY_ERRORS = "reports.key_errors"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
     REPORTS_KEY_TRANSACTIONS_P95 = "reports.key_transactions.p95"

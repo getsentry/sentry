@@ -8,7 +8,7 @@ the `GroupHash` model file, so that existing records will get updated with the n
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, TypeIs, cast
 
 from django.utils import timezone
@@ -206,6 +206,18 @@ def create_or_update_grouphash_metadata_if_needed(
                     or grouphash.metadata.get_best_guess_schema_version(),
                     "new_version": GROUPHASH_METADATA_SCHEMA_VERSION,
                 }
+            )
+        # If the metadata is more than 90 days old, the event upon which it's based will have aged
+        # out, so refresh the data with this new event
+        elif (
+            grouphash.metadata.date_updated
+            and grouphash.metadata.date_updated < timezone.now() - timedelta(days=90)
+        ):
+            updated_data.update(
+                get_grouphash_metadata_data(event, project, variants, grouping_config_id)
+            )
+            db_hit_metadata.update(
+                {"reason": ("stale" if not db_hit_metadata.get("reason") else "stale_and_config")}
             )
 
         # Only hit the DB if there's something to change
@@ -452,7 +464,7 @@ def _get_fingerprint_hashing_metadata(
             if not matched_rule
             else (
                 "server_builtin_rule"
-                if contributing_variant.type == "built_in_fingerprint"
+                if contributing_variant.key == "built_in_fingerprint"
                 else "server_custom_rule"
             )
         ),

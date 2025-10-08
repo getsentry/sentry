@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import moment from 'moment-timezone';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -42,6 +42,27 @@ export function MetricTimePeriodSelect({dataset, interval}: TimePeriodSelectProp
     intervalSeconds: interval,
     urlStatsPeriod: location.query?.statsPeriod as string | undefined,
   });
+
+  // If there is no time selection in the URL, sync the resolved default period
+  // into the query params so that the rest of the page (chart, links, etc.)
+  // has a consistent source of truth.
+  useEffect(() => {
+    const hasStatsPeriod = Boolean(location.query?.statsPeriod);
+    if (!hasCustomRange && !hasStatsPeriod && selected) {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            statsPeriod: selected,
+            start: undefined,
+            end: undefined,
+          },
+        },
+        {replace: true}
+      );
+    }
+  }, [hasCustomRange, selected, navigate, location.pathname, location.query]);
 
   const selectOptions = useMemo(() => {
     if (hasCustomRange) {

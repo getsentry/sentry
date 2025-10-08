@@ -144,10 +144,10 @@ function ManageReposPanel({
               </Flex>
               <Switch
                 size="lg"
-                checked={repoConfig?.vanilla?.enabled}
+                checked={repoConfig.vanilla.enabled}
                 disabled={isLoading || !canEditSettings}
                 onChange={async () => {
-                  const newValue = !repoConfig?.vanilla?.enabled;
+                  const newValue = !repoConfig.vanilla.enabled;
                   await enableFeature({
                     feature: 'vanilla',
                     enabled: newValue,
@@ -174,6 +174,7 @@ function ManageReposPanel({
                     <CompactSelect
                       value={repoConfig.vanilla.sensitivity ?? 'medium'}
                       options={sensitivityOptions}
+                      disabled={isLoading || !canEditSettings}
                       onChange={async option =>
                         await enableFeature({
                           feature: 'vanilla',
@@ -250,6 +251,7 @@ function ManageReposPanel({
                 disabled={isLoading || !canEditSettings}
                 onChange={async () => {
                   const newValue = !repoConfig.bug_prediction.enabled;
+                  // Enable/disable the main bug prediction feature
                   await enableFeature({
                     feature: 'bug_prediction',
                     enabled: newValue,
@@ -276,6 +278,7 @@ function ManageReposPanel({
                     <CompactSelect
                       value={repoConfig.bug_prediction.sensitivity ?? 'medium'}
                       options={sensitivityOptions}
+                      disabled={isLoading || !canEditSettings}
                       onChange={async option =>
                         await enableFeature({
                           feature: 'bug_prediction',

@@ -20,7 +20,7 @@ export interface PreventAIOrg {
 interface PreventAIFeatureConfig {
   enabled: boolean;
   triggers: PreventAIFeatureTriggers;
-  sensitivity?: Sensitivity;
+  sensitivity?: string;
 }
 
 export interface PreventAIFeatureTriggers {

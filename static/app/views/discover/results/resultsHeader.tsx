@@ -11,7 +11,6 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -28,7 +27,6 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  router: InjectedRouter;
   setSavedQuery: (savedQuery?: SavedQuery) => void;
   yAxis: string[];
   isHomepage?: boolean;
@@ -123,7 +121,6 @@ class ResultsHeader extends Component<Props, State> {
       errorCode,
       eventView,
       yAxis,
-      router,
       setSavedQuery,
       isHomepage,
       splitDecision,
@@ -188,7 +185,6 @@ class ResultsHeader extends Component<Props, State> {
             disabled={errorCode >= 400 && errorCode < 500}
             updateCallback={() => this.fetchData()}
             yAxis={yAxis}
-            router={router}
             isHomepage={isHomepage}
             setHomepageQuery={updatedHomepageQuery => {
               this.setState({

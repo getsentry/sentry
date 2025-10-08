@@ -15,8 +15,12 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
             "(avg(span.duration):<10 OR span.duration:11) AND is_transaction:1",
         ),
         pytest.param(
-            "has:transaction.duration OR has:measurement.lcp",
-            "(has:span.duration OR has:measurement.lcp) AND is_transaction:1",
+            "has:transaction.duration OR has:measurements.lcp",
+            "(has:span.duration OR has:measurements.lcp) AND is_transaction:1",
+        ),
+        pytest.param(
+            "has:transaction.duration OR has:measurements.vcd.init",
+            "(has:span.duration OR has:tags[vcd.init,number]) AND is_transaction:1",
         ),
         pytest.param(
             "tags[foo]:10 OR transaction.duration:11",
@@ -35,8 +39,8 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
             "(sum(ai.total_cost):<10) AND is_transaction:1",
         ),
         pytest.param(
-            "event.type:transaction AND has:measurement.lcp",
-            "(is_transaction:1 AND has:measurement.lcp) AND is_transaction:1",
+            "event.type:transaction AND has:measurements.lcp",
+            "(is_transaction:1 AND has:measurements.lcp) AND is_transaction:1",
         ),
         pytest.param(
             "title:/api/0/foo AND http.method:POST",
@@ -86,6 +90,11 @@ def test_mep_to_eap_simple_query(input: str, expected: str) -> None:
         pytest.param(
             ["transaction.duration"],
             ["span.duration"],
+            [],
+        ),
+        pytest.param(
+            ["p75(measurements.fcp)", "p75(measurements.vcd)"],
+            ["p75(measurements.fcp)", "p75(tags[vcd,number])"],
             [],
         ),
         pytest.param(
@@ -216,6 +225,11 @@ def test_mep_to_eap_simple_selected_columns(
                     "reason": ["count_if(total.count,greater,300)"],
                 }
             ],
+        ),
+        pytest.param(
+            ["equation|p75(measurements.vcd)/p75(measurements.lcp)"],
+            ["equation|p75(tags[vcd,number])/p75(measurements.lcp)"],
+            [],
         ),
         pytest.param(
             ["equation|transaction.duration * 2"],

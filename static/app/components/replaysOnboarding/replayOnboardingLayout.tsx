@@ -1,6 +1,7 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from 'sentry/components/core/layout';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -104,7 +105,7 @@ export function ReplayOnboardingLayout({
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <Wrapper>
         {introduction && <Introduction>{introduction}</Introduction>}
-        <Steps>
+        <Stack gap="lg">
           {steps
             // TODO(aknaus): Move inserting the toggle into the docs definitions
             // once the content blocks migration is done. This logic here is very brittle.
@@ -141,17 +142,11 @@ export function ReplayOnboardingLayout({
             .map(step => (
               <Step key={step.title ?? step.type} {...step} />
             ))}
-        </Steps>
+        </Stack>
       </Wrapper>
     </AuthTokenGeneratorProvider>
   );
 }
-
-const Steps = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
 
 const Wrapper = styled('div')`
   h4 {
