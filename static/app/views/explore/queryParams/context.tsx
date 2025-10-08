@@ -388,6 +388,17 @@ export function useQueryParamsAggregateSortBys(): readonly Sort[] {
   return queryParams.aggregateSortBys;
 }
 
+export function useSetQueryParamsAggregateSortBys() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (aggregateSortBys: Sort[]) => {
+      setQueryParams({aggregateSortBys});
+    },
+    [setQueryParams]
+  );
+}
+
 export function useQueryParamsAggregateCursor(): string {
   const queryParams = useQueryParams();
   return queryParams.aggregateCursor;

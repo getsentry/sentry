@@ -249,18 +249,6 @@ export function useExploreDataset(): DiscoverDatasets {
   return DiscoverDatasets.SPANS;
 }
 
-export function useExploreSortBys(): Sort[] {
-  const pageParams = useExplorePageParams();
-  return pageParams.mode === Mode.AGGREGATE
-    ? pageParams.aggregateSortBys
-    : pageParams.sortBys;
-}
-
-export function useExploreAggregateSortBys(): Sort[] {
-  const pageParams = useExplorePageParams();
-  return pageParams.aggregateSortBys;
-}
-
 export function useExploreTitle(): string | undefined {
   const pageParams = useExplorePageParams();
   return pageParams.title;
@@ -495,20 +483,5 @@ export function useSetExplorePageParams(): (
       navigate(target);
     },
     [location, navigate, readablePageParams, managedFields, setManagedFields]
-  );
-}
-
-export function useSetExploreSortBys() {
-  const pageParams = useExplorePageParams();
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (sortBys: Sort[]) => {
-      setPageParams(
-        pageParams.mode === Mode.AGGREGATE
-          ? {aggregateSortBys: sortBys}
-          : {sampleSortBys: sortBys}
-      );
-    },
-    [pageParams, setPageParams]
   );
 }

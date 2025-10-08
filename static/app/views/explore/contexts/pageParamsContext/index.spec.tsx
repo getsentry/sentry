@@ -8,7 +8,6 @@ import {
   PageParamsProvider,
   useExplorePageParams,
   useSetExplorePageParams,
-  useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
@@ -18,10 +17,12 @@ import {
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
+  useSetQueryParamsAggregateSortBys,
   useSetQueryParamsFields,
   useSetQueryParamsGroupBys,
   useSetQueryParamsMode,
   useSetQueryParamsQuery,
+  useSetQueryParamsSortBys,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
@@ -56,7 +57,8 @@ describe('PageParamsProvider', () => {
   let setGroupBys: ReturnType<typeof useSetQueryParamsGroupBys>;
   let setMode: ReturnType<typeof useSetQueryParamsMode>;
   let setQuery: ReturnType<typeof useSetQueryParamsQuery>;
-  let setSortBys: ReturnType<typeof useSetExploreSortBys>;
+  let setSortBys: ReturnType<typeof useSetQueryParamsSortBys>;
+  let setAggregateSortBys: ReturnType<typeof useSetQueryParamsAggregateSortBys>;
   let setVisualizes: ReturnType<typeof useSetQueryParamsVisualizes>;
 
   function Component() {
@@ -66,7 +68,8 @@ describe('PageParamsProvider', () => {
     setGroupBys = useSetQueryParamsGroupBys();
     setMode = useSetQueryParamsMode();
     setQuery = useSetQueryParamsQuery();
-    setSortBys = useSetExploreSortBys();
+    setSortBys = useSetQueryParamsSortBys();
+    setAggregateSortBys = useSetQueryParamsAggregateSortBys();
     setVisualizes = useSetQueryParamsVisualizes();
     return <br />;
   }
@@ -393,7 +396,7 @@ describe('PageParamsProvider', () => {
       ],
     });
 
-    act(() => setSortBys([{field: 'max(span.duration)', kind: 'desc'}]));
+    act(() => setAggregateSortBys([{field: 'max(span.duration)', kind: 'desc'}]));
 
     expect(pageParams).toEqual(
       expect.objectContaining({
@@ -428,7 +431,7 @@ describe('PageParamsProvider', () => {
       ],
     });
 
-    act(() => setSortBys([{field: 'avg(span.duration)', kind: 'desc'}]));
+    act(() => setAggregateSortBys([{field: 'avg(span.duration)', kind: 'desc'}]));
 
     expect(pageParams).toEqual(
       expect.objectContaining({
@@ -463,7 +466,7 @@ describe('PageParamsProvider', () => {
       ],
     });
 
-    act(() => setSortBys([{field: 'sdk.name', kind: 'desc'}]));
+    act(() => setAggregateSortBys([{field: 'sdk.name', kind: 'desc'}]));
 
     expect(pageParams).toEqual(
       expect.objectContaining({
@@ -495,7 +498,7 @@ describe('PageParamsProvider', () => {
       ],
     });
 
-    act(() => setSortBys([{field: 'sdk.version', kind: 'desc'}]));
+    act(() => setAggregateSortBys([{field: 'sdk.version', kind: 'desc'}]));
 
     expect(pageParams).toEqual(
       expect.objectContaining({

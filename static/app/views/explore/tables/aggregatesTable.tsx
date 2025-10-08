@@ -30,10 +30,6 @@ import {
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
-import {
-  useExploreSortBys,
-  useSetExploreSortBys,
-} from 'sentry/views/explore/contexts/pageParamsContext';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
@@ -42,10 +38,12 @@ import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopE
 import {
   useQueryParamsAggregateCursor,
   useQueryParamsAggregateFields,
+  useQueryParamsAggregateSortBys,
   useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsQuery,
   useQueryParamsVisualizes,
+  useSetQueryParamsAggregateSortBys,
 } from 'sentry/views/explore/queryParams/context';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
@@ -66,8 +64,8 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const fields = useQueryParamsFields();
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
-  const sorts = useExploreSortBys();
-  const setSorts = useSetExploreSortBys();
+  const sorts = useQueryParamsAggregateSortBys();
+  const setSorts = useSetQueryParamsAggregateSortBys();
   const query = useQueryParamsQuery();
   const cursor = useQueryParamsAggregateCursor();
 

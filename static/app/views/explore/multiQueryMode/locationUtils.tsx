@@ -140,7 +140,7 @@ type WritableExploreQueryParts = {
   fields?: string[];
   groupBys?: readonly string[];
   query?: string;
-  sortBys?: Sort[];
+  sortBys?: readonly Sort[];
   yAxes?: string[];
 };
 
