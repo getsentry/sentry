@@ -295,7 +295,7 @@ describe('DetectorEdit', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
-      const snubaQuery = mockDetector.dataSources[0].queryObj!.snubaQuery;
+      const snubaQuery = mockDetector.dataSources[0].queryObj.snubaQuery;
       await waitFor(() => {
         expect(updateRequest).toHaveBeenCalledWith(
           `/organizations/${organization.slug}/detectors/1/`,
