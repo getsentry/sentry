@@ -280,13 +280,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         inbox_4 = add_group_to_inbox(owned_me_assigned_to_other, GroupInboxReason.NEW)
         inbox_4.update(date_added=inbox_1.date_added - timedelta(hours=1))
         GroupAssignee.objects.assign(owned_me_assigned_to_other, other_user)
-        GroupOwner.objects.create(
-            group=owned_me_assigned_to_other,
-            project=self.project,
-            organization=self.organization,
-            type=GroupOwnerType.OWNERSHIP_RULE.value,
-            user_id=self.user.id,
-        )
 
         unowned_assigned_to_other = self.store_event(
             data={
