@@ -3502,7 +3502,7 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
         item_id = self.random_item_id()
 
         attributes_proto = {
-            "sentry.metric.name": AnyValue(string_value=metric_name),
+            "sentry.metric_name": AnyValue(string_value=metric_name),
             "sentry.value": AnyValue(double_value=metric_value),
         }
 
