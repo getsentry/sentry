@@ -1,0 +1,1676 @@
+---
+alwaysApply: true
+---
+
+
+# Sentry Monorepo - Coding Guidelines
+
+## 🎯 Core Principles
+
+1. **TypeScript First**: All frontend code must be TypeScript with strict type checking
+2. **Django Best Practices**: Follow Django conventions for backend development
+3. **React Functional Components**: Use hooks and functional components exclusively
+4. **Error Boundaries**: Every major component must handle errors gracefully
+5. **Performance**: Optimize for event ingestion throughput and UI responsiveness
+6. **Accessibility**: Follow WCAG 2.1 AA standards for all UI components
+
+## 📝 TypeScript Standards
+
+### Type Definitions
+```typescript
+// static/app/types/index.ts
+export interface Organization {
+  id: string;
+  slug: string;
+  name: string;
+  dateCreated: string;
+  features: string[];
+  status: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface Project {
+  id: string;
+  slug: string;
+  name: string;
+  organization: Organization;
+  platform: string;
+  status: string;
+  dateCreated: string;
+}
+
+export interface Issue {
+  id: string;
+  shortId: string;
+  title: string;
+  culprit: string;
+  permalink: string;
+  logger: string;
+  level: string;
+  status: 'resolved' | 'unresolved' | 'ignored';
+  statusDetails: Record<string, any>;
+  isPublic: boolean;
+  platform: string;
+  project: Project;
+  type: string;
+  metadata: Record<string, any>;
+  numComments: number;
+  assignedTo: User | null;
+  isBookmarked: boolean;
+  isSubscribed: boolean;
+  subscriptionDetails: Record<string, any>;
+  hasSeen: boolean;
+  annotations: string[];
+  issueType: string;
+  issueCategory: string;
+  priority: string;
+  count: string;
+  userCount: number;
+  firstSeen: string;
+  lastSeen: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  username: string;
+  name: string;
+  avatarUrl: string;
+  isActive: boolean;
+  isManaged: boolean;
+  dateJoined: string;
+  lastLogin: string;
+  has2fa: boolean;
+  identities: Identity[];
+  avatar: Avatar;
+  hasPasswordAuth: boolean;
+  permissions: string[];
+  experiments: Record<string, any>;
+}
+```
+
+### Strict Configuration
+```typescript
+// tsconfig.json (already configured)
+{
+  "extends": "./config/tsconfig.base.json",
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true
+  }
+}
+```
+
+## 🏗️ Django Backend Standards
+
+### Model Definitions
+```python
+# src/sentry/models/organization.py
+from django.db import models
+from django.conf import settings
+from sentry.db.models import Model, FlexibleForeignKey
+
+class Organization(Model):
+    """
+    An organization represents a group of individuals which maintain ownership of projects.
+    """
+    __include_in_export__ = True
+
+    name = models.CharField(max_length=64)
+    slug = models.SlugField(unique=True)
+    status = models.PositiveSmallIntegerField(default=OrganizationStatus.ACTIVE)
+    date_added = models.DateTimeField(default=timezone.now)
+    default_role = models.CharField(max_length=32, default='member')
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_organization'
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def is_active(self):
+        return self.status == OrganizationStatus.ACTIVE
+```
+
+### API Endpoint Patterns
+```python
+# src/sentry/api/endpoints/organization_issues.py
+from rest_framework.response import Response
+from sentry.api.base import region_silo_endpoint
+from sentry.api.bases import OrganizationEndpoint
+from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.serializers import serialize
+from sentry.models import Group
+from sentry.search.utils import parse_query
+
+@region_silo_endpoint
+class OrganizationIssuesEndpoint(OrganizationEndpoint):
+    permission_classes = ()
+
+    def get(self, request, organization):
+        """
+        List an organization's issues.
+        """
+        try:
+            # Parse query parameters
+            query = request.GET.get('query', '')
+            sort_by = request.GET.get('sort', 'date')
+
+            # Build queryset
+            queryset = Group.objects.filter(
+                project__organization=organization,
+                status=GroupStatus.UNRESOLVED
+            )
+
+            # Apply search filters
+            if query:
+                queryset = parse_query(queryset, query, request.user)
+
+            # Apply sorting
+            if sort_by == 'date':
+                queryset = queryset.order_by('-last_seen')
+            elif sort_by == 'priority':
+                queryset = queryset.order_by('-priority')
+
+            # Paginate results
+            return self.paginate(
+                request=request,
+                queryset=queryset,
+                paginator_cls=GenericOffsetPaginator,
+                on_results=lambda results: serialize(results, request.user),
+            )
+
+        except Exception as e:
+            logger.exception('Error fetching organization issues')
+            return Response(
+                {'error': 'Internal server error'},
+                status=500
+            )
+```
+
+### Serializer Patterns
+```python
+# src/sentry/api/serializers/models/organization.py
+from sentry.api.serializers import Serializer, register
+from sentry.models import Organization
+
+@register(Organization)
+class OrganizationSerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs):
+        from sentry.features import batch_has
+
+        feature_list = []
+        if batch_has(['organizations:advanced-search'], obj, user=user):
+            feature_list.append('advanced-search')
+
+        return {
+            'id': str(obj.id),
+            'slug': obj.slug,
+            'name': obj.name,
+            'dateCreated': obj.date_added,
+            'status': {
+                'id': str(obj.status),
+                'name': obj.get_status_display(),
+            },
+            'features': feature_list,
+            'access': list(obj.get_audit_log_data().keys()),
+            'hasAuthProvider': obj.has_auth_provider,
+            'pendingAccessRequests': obj.pending_access_requests,
+            'avatar': {
+                'avatarType': obj.get_avatar_type_display(),
+                'avatarUuid': obj.avatar and obj.avatar.ident,
+            },
+            'isEarlyAdopter': obj.is_early_adopter,
+            'require2FA': obj.require_2fa,
+            'requireEmailVerification': obj.require_email_verification,
+            'samlEnabled': obj.saml_enabled,
+            'enhancedPrivacy': obj.enhanced_privacy,
+            'dataScrubber': obj.data_scrubber,
+            'dataScrubberDefaults': obj.data_scrubber_defaults,
+            'sensitiveFields': obj.sensitive_fields or [],
+            'safeFields': obj.safe_fields or [],
+            'storeCrashReports': obj.store_crash_reports,
+            'attachmentsRole': obj.attachments_role,
+            'debugFilesRole': obj.debug_files_role,
+            'eventProcessing': obj.event_processing,
+            'scrubIPAddresses': obj.scrub_ip_addresses,
+            'scrapeJavaScript': obj.scrape_javascript,
+            'allowedDomains': obj.allowed_domains,
+            'allowSharedIssues': obj.allow_shared_issues,
+            'isDefault': obj.is_default,
+            'defaultRole': obj.default_role,
+            'availableRoles': obj.get_available_roles(),
+            'openMembership': obj.open_membership,
+            'allowJoinRequests': obj.allow_join_requests,
+            'relayPiiConfig': obj.relay_pii_config,
+            'trustedRelays': obj.trusted_relays,
+        }
+```
+
+## 🎨 React Frontend Standards
+
+### Component Structure with Emotion
+```typescript
+// static/app/components/issueList.tsx
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+import {space} from 'sentry/styles/space';
+import {Issue} from 'sentry/types';
+import IssueListItem from './issueListItem';
+
+interface Props {
+  issues: Issue[];
+  onSelect: (issue: Issue) => void;
+  loading?: boolean;
+}
+
+const IssueList = ({issues, onSelect, loading = false}: Props) => {
+  if (loading) {
+    return <LoadingIndicator />;
+  }
+
+  if (issues.length === 0) {
+    return (
+      <EmptyState>
+        <EmptyStateIcon src="/static/images/empty-state.svg" />
+        <EmptyStateText>No issues found</EmptyStateText>
+      </EmptyState>
+    );
+  }
+
+  return (
+    <Container>
+      {issues.map(issue => (
+        <Fragment key={issue.id}>
+          <IssueListItem
+            issue={issue}
+            onSelect={() => onSelect(issue)}
+          />
+        </Fragment>
+      ))}
+    </Container>
+  );
+};
+
+const Container = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const EmptyState = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: ${space(4)};
+  text-align: center;
+`;
+
+const EmptyStateIcon = styled('img')`
+  width: 120px;
+  height: 120px;
+  margin-bottom: ${space(2)};
+  opacity: 0.4;
+`;
+
+const EmptyStateText = styled('p')`
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+export default IssueList;
+```
+
+### MobX Store Pattern
+```typescript
+// static/app/stores/issueStore.ts
+import {makeObservable, observable, action, computed, runInAction} from 'mobx';
+import {Issue} from 'sentry/types';
+import {Client} from 'sentry/api';
+
+class IssueStore {
+  issues: Issue[] = [];
+  loading = false;
+  error: string | null = null;
+
+  constructor(private api: Client) {
+    makeObservable(this, {
+      issues: observable,
+      loading: observable,
+      error: observable,
+      setLoading: action,
+      setError: action,
+      setIssues: action,
+      addIssue: action,
+      updateIssue: action,
+      removeIssue: action,
+      issueCount: computed,
+      unresolvedIssues: computed,
+    });
+  }
+
+  setLoading(loading: boolean) {
+    this.loading = loading;
+  }
+
+  setError(error: string | null) {
+    this.error = error;
+  }
+
+  setIssues(issues: Issue[]) {
+    this.issues = issues;
+  }
+
+  addIssue(issue: Issue) {
+    this.issues.unshift(issue);
+  }
+
+  updateIssue(issueId: string, updates: Partial<Issue>) {
+    const index = this.issues.findIndex(issue => issue.id === issueId);
+    if (index !== -1) {
+      this.issues[index] = {...this.issues[index], ...updates};
+    }
+  }
+
+  removeIssue(issueId: string) {
+    this.issues = this.issues.filter(issue => issue.id !== issueId);
+  }
+
+  get issueCount() {
+    return this.issues.length;
+  }
+
+  get unresolvedIssues() {
+    return this.issues.filter(issue => issue.status === 'unresolved');
+  }
+
+  async fetchIssues(orgSlug: string, query?: string) {
+    this.setLoading(true);
+    this.setError(null);
+
+    try {
+      const response = await this.api.requestPromise(
+        `/organizations/${orgSlug}/issues/`,
+        {
+          query: query ? {query} : undefined,
+        }
+      );
+
+      runInAction(() => {
+        this.setIssues(response);
+        this.setLoading(false);
+      });
+    } catch (error) {
+      runInAction(() => {
+        this.setError(error.message || 'Failed to fetch issues');
+        this.setLoading(false);
+      });
+    }
+  }
+
+  async updateIssueStatus(issueId: string, status: Issue['status']) {
+    try {
+      await this.api.requestPromise(`/issues/${issueId}/`, {
+        method: 'PUT',
+        data: {status},
+      });
+
+      this.updateIssue(issueId, {status});
+    } catch (error) {
+      this.setError(error.message || 'Failed to update issue');
+    }
+  }
+}
+
+export default IssueStore;
+```
+
+### React Hook Integration
+```typescript
+// static/app/utils/useIssues.ts
+import {useEffect, useContext} from 'react';
+import {observer} from 'mobx-react';
+import {StoreContext} from 'sentry/stores/storeProvider';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+export const useIssues = (query?: string) => {
+  const {issueStore} = useContext(StoreContext);
+  const organization = useOrganization();
+
+  useEffect(() => {
+    if (organization?.slug) {
+      issueStore.fetchIssues(organization.slug, query);
+    }
+  }, [organization?.slug, query, issueStore]);
+
+  return {
+    issues: issueStore.issues,
+    loading: issueStore.loading,
+    error: issueStore.error,
+    issueCount: issueStore.issueCount,
+    unresolvedIssues: issueStore.unresolvedIssues,
+    updateIssueStatus: issueStore.updateIssueStatus.bind(issueStore),
+  };
+};
+
+// Usage in component
+const IssueListContainer = observer(() => {
+  const {issues, loading, updateIssueStatus} = useIssues();
+
+  return (
+    <IssueList
+      issues={issues}
+      loading={loading}
+      onSelect={issue => updateIssueStatus(issue.id, 'resolved')}
+    />
+  );
+});
+```
+
+## 🎯 Error Handling Standards
+
+### Frontend Error Boundary
+```typescript
+// static/app/components/errorBoundary.tsx
+import React from 'react';
+import * as Sentry from '@sentry/react';
+import {Button} from 'sentry/components/button';
+import {IconWarning} from 'sentry/icons';
+
+interface Props {
+  children: React.ReactNode;
+  fallback?: React.ComponentType<{error: Error; retry: () => void}>;
+}
+
+interface State {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends React.Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = {hasError: false, error: null};
+  }
+
+  static getDerivedStateFromError(error: Error): State {
+    return {hasError: true, error};
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    Sentry.captureException(error, {
+      contexts: {
+        react: {
+          componentStack: errorInfo.componentStack,
+        },
+      },
+      tags: {
+        component: 'ErrorBoundary',
+      },
+    });
+  }
+
+  handleRetry = () => {
+    this.setState({hasError: false, error: null});
+  };
+
+  render() {
+    if (this.state.hasError && this.state.error) {
+      if (this.props.fallback) {
+        const FallbackComponent = this.props.fallback;
+        return <FallbackComponent error={this.state.error} retry={this.handleRetry} />;
+      }
+
+  return (
+        <div className="error-boundary">
+          <IconWarning size="lg" />
+          <h2>Something went wrong</h2>
+          <p>We've been notified about this error and are working to fix it.</p>
+          <Button onClick={this.handleRetry}>Try Again</Button>
+      </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+export default ErrorBoundary;
+```
+
+### Backend Error Handling
+```python
+# src/sentry/api/base.py
+import logging
+from rest_framework.views import exception_handler
+from rest_framework.response import Response
+from sentry.models import User
+from sentry.utils import metrics
+from sentry.utils.audit import create_audit_entry
+from sentry.utils.sdk import configure_scope
+
+logger = logging.getLogger(__name__)
+
+def custom_exception_handler(exc, context):
+    """
+    Custom exception handler that logs errors and returns appropriate responses.
+    """
+    # Log the exception with context
+    logger.exception('API Exception', extra={
+        'view': context.get('view').__class__.__name__,
+        'request': context.get('request').path,
+        'user': getattr(context.get('request'), 'user', None),
+    })
+
+    # Track metrics
+    metrics.incr('api.error', tags={
+        'view': context.get('view').__class__.__name__,
+        'exception': exc.__class__.__name__,
+    })
+
+    # Configure Sentry scope
+    with configure_scope() as scope:
+        scope.set_tag('api.view', context.get('view').__class__.__name__)
+        scope.set_context('request', {
+            'path': context.get('request').path,
+            'method': context.get('request').method,
+        })
+
+    # Call the default exception handler
+    response = exception_handler(exc, context)
+
+    # Customize error response
+    if response is not None:
+        if response.status_code >= 500:
+            response.data = {
+                'error': 'Internal server error',
+                'detail': 'An error occurred while processing your request.'
+            }
+
+        # Add error ID for tracking
+        response.data['error_id'] = generate_error_id()
+
+    return response
+
+class SentryAPIException(Exception):
+    """
+    Base exception class for Sentry API errors.
+    """
+    status_code = 500
+    message = 'An error occurred'
+
+    def __init__(self, message=None, status_code=None):
+        if message:
+            self.message = message
+        if status_code:
+            self.status_code = status_code
+        super().__init__(self.message)
+
+class ResourceNotFound(SentryAPIException):
+    status_code = 404
+    message = 'Resource not found'
+
+class PermissionDenied(SentryAPIException):
+    status_code = 403
+    message = 'Permission denied'
+
+class ValidationError(SentryAPIException):
+    status_code = 400
+    message = 'Validation failed'
+```
+
+## 🎨 Styling Standards
+
+### Design System Integration
+```typescript
+// static/app/styles/theme.ts
+export const theme = {
+  // Colors
+  colors: {
+    primary: '#6C5CE7',
+    primaryHover: '#5A4FCF',
+    secondary: '#A0A0A0',
+    success: '#00D924',
+    warning: '#FFC107',
+    error: '#E03E2F',
+    info: '#2196F3',
+
+    // Grays
+    gray100: '#FAFBFC',
+    gray200: '#F2F4F7',
+    gray300: '#E1E4E8',
+    gray400: '#BDC7D1',
+    gray500: '#7C8FA4',
+    gray600: '#5C6F7F',
+    gray700: '#3E4E5A',
+    gray800: '#2F3D4A',
+    gray900: '#1C2733',
+
+    // Background
+    background: '#FFFFFF',
+    backgroundSecondary: '#F8F9FA',
+
+    // Text
+    textColor: '#2B2233',
+    textColorSecondary: '#5C6F7F',
+    textColorLight: '#A0A0A0',
+  },
+
+  // Spacing
+  space: {
+    0.5: '4px',
+    1: '8px',
+    1.5: '12px',
+    2: '16px',
+    3: '24px',
+    4: '32px',
+    6: '48px',
+    8: '64px',
+    12: '96px',
+    16: '128px',
+  },
+
+  // Typography
+  fontSizes: {
+    xs: '12px',
+    sm: '14px',
+    md: '16px',
+    lg: '18px',
+    xl: '20px',
+    '2xl': '24px',
+    '3xl': '32px',
+    '4xl': '40px',
+  },
+
+  // Borders
+  borderRadius: {
+    sm: '4px',
+    md: '8px',
+    lg: '12px',
+    xl: '16px',
+    full: '9999px',
+  },
+
+  // Shadows
+  shadows: {
+    sm: '0 1px 2px rgba(0, 0, 0, 0.05)',
+    md: '0 4px 6px rgba(0, 0, 0, 0.1)',
+    lg: '0 10px 15px rgba(0, 0, 0, 0.1)',
+    xl: '0 25px 50px rgba(0, 0, 0, 0.25)',
+  },
+
+  // Breakpoints
+  breakpoints: {
+    sm: '@media (min-width: 640px)',
+    md: '@media (min-width: 768px)',
+    lg: '@media (min-width: 1024px)',
+    xl: '@media (min-width: 1280px)',
+  },
+};
+
+export type Theme = typeof theme;
+```
+
+### Component Styling Patterns
+```typescript
+// static/app/components/button.tsx
+import styled from '@emotion/styled';
+import {css} from '@emotion/react';
+import {Theme} from 'sentry/styles/theme';
+
+interface ButtonProps {
+  variant?: 'primary' | 'secondary' | 'danger';
+  size?: 'sm' | 'md' | 'lg';
+  disabled?: boolean;
+  loading?: boolean;
+}
+
+const buttonVariants = {
+  primary: (theme: Theme) => css`
+    background-color: ${theme.colors.primary};
+    color: white;
+    border: none;
+
+    &:hover:not(:disabled) {
+      background-color: ${theme.colors.primaryHover};
+    }
+  `,
+
+  secondary: (theme: Theme) => css`
+    background-color: transparent;
+    color: ${theme.colors.textColor};
+    border: 1px solid ${theme.colors.gray300};
+
+    &:hover:not(:disabled) {
+      background-color: ${theme.colors.gray100};
+    }
+  `,
+
+  danger: (theme: Theme) => css`
+    background-color: ${theme.colors.error};
+    color: white;
+    border: none;
+
+    &:hover:not(:disabled) {
+      background-color: ${theme.colors.error}dd;
+    }
+  `,
+};
+
+const buttonSizes = {
+  sm: (theme: Theme) => css`
+    padding: ${theme.space[1]} ${theme.space[2]};
+    font-size: ${theme.fontSizes.sm};
+  `,
+
+  md: (theme: Theme) => css`
+    padding: ${theme.space[1.5]} ${theme.space[3]};
+    font-size: ${theme.fontSizes.md};
+  `,
+
+  lg: (theme: Theme) => css`
+    padding: ${theme.space[2]} ${theme.space[4]};
+    font-size: ${theme.fontSizes.lg};
+  `,
+};
+
+const Button = styled('button')<ButtonProps>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: ${p => p.theme.borderRadius.md};
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  ${p => buttonVariants[p.variant || 'primary'](p.theme)}
+  ${p => buttonSizes[p.size || 'md'](p.theme)}
+
+  ${p => p.disabled && css`
+    opacity: 0.5;
+    cursor: not-allowed;
+  `}
+
+  ${p => p.loading && css`
+    cursor: wait;
+  `}
+`;
+
+export default Button;
+```
+
+## 📋 Quality Checklist
+
+Before submitting code, ensure:
+
+### Backend (Django)
+- [ ] Models follow Django conventions and include `__str__` methods
+- [ ] API endpoints are properly authenticated and authorized
+- [ ] Database queries are optimized and avoid N+1 problems
+- [ ] Error handling includes proper logging and user-friendly messages
+- [ ] Tests cover both success and failure scenarios
+- [ ] Migrations are safe and reversible
+
+### Frontend (React)
+- [ ] All components are TypeScript with proper type definitions
+- [ ] MobX stores are observable and actions are properly decorated
+- [ ] Components are responsive and accessible
+- [ ] Error boundaries are implemented for major features
+- [ ] Performance optimizations (memo, lazy loading) are applied
+- [ ] Styling follows the design system
+
+### General
+- [ ] Code passes ESLint and type checking
+- [ ] Tests are written and passing
+- [ ] Documentation is updated
+- [ ] Sentry error tracking is properly configured
+- [ ] Performance implications are considered
+- [ ] Security best practices are followed
+
+- [ ] Code is formatted with Prettier
+- [ ] Linting passes without errors
+
+# Sentry Monorepo - Coding Guidelines
+
+## 🎯 Core Principles
+
+1. **TypeScript First**: All frontend code must be TypeScript with strict type checking
+2. **Django Best Practices**: Follow Django conventions for backend development
+3. **React Functional Components**: Use hooks and functional components exclusively
+4. **Error Boundaries**: Every major component must handle errors gracefully
+5. **Performance**: Optimize for event ingestion throughput and UI responsiveness
+6. **Accessibility**: Follow WCAG 2.1 AA standards for all UI components
+
+## 📝 TypeScript Standards
+
+### Type Definitions
+```typescript
+// static/app/types/index.ts
+export interface Organization {
+  id: string;
+  slug: string;
+  name: string;
+  dateCreated: string;
+  features: string[];
+  status: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface Project {
+  id: string;
+  slug: string;
+  name: string;
+  organization: Organization;
+  platform: string;
+  status: string;
+  dateCreated: string;
+}
+
+export interface Issue {
+  id: string;
+  shortId: string;
+  title: string;
+  culprit: string;
+  permalink: string;
+  logger: string;
+  level: string;
+  status: 'resolved' | 'unresolved' | 'ignored';
+  statusDetails: Record<string, any>;
+  isPublic: boolean;
+  platform: string;
+  project: Project;
+  type: string;
+  metadata: Record<string, any>;
+  numComments: number;
+  assignedTo: User | null;
+  isBookmarked: boolean;
+  isSubscribed: boolean;
+  subscriptionDetails: Record<string, any>;
+  hasSeen: boolean;
+  annotations: string[];
+  issueType: string;
+  issueCategory: string;
+  priority: string;
+  count: string;
+  userCount: number;
+  firstSeen: string;
+  lastSeen: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  username: string;
+  name: string;
+  avatarUrl: string;
+  isActive: boolean;
+  isManaged: boolean;
+  dateJoined: string;
+  lastLogin: string;
+  has2fa: boolean;
+  identities: Identity[];
+  avatar: Avatar;
+  hasPasswordAuth: boolean;
+  permissions: string[];
+  experiments: Record<string, any>;
+}
+```
+
+### Strict Configuration
+```typescript
+// tsconfig.json (already configured)
+{
+  "extends": "./config/tsconfig.base.json",
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true
+  }
+}
+```
+
+## 🏗️ Django Backend Standards
+
+### Model Definitions
+```python
+# src/sentry/models/organization.py
+from django.db import models
+from django.conf import settings
+from sentry.db.models import Model, FlexibleForeignKey
+
+class Organization(Model):
+    """
+    An organization represents a group of individuals which maintain ownership of projects.
+    """
+    __include_in_export__ = True
+
+    name = models.CharField(max_length=64)
+    slug = models.SlugField(unique=True)
+    status = models.PositiveSmallIntegerField(default=OrganizationStatus.ACTIVE)
+    date_added = models.DateTimeField(default=timezone.now)
+    default_role = models.CharField(max_length=32, default='member')
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_organization'
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def is_active(self):
+        return self.status == OrganizationStatus.ACTIVE
+```
+
+### API Endpoint Patterns
+```python
+# src/sentry/api/endpoints/organization_issues.py
+from rest_framework.response import Response
+from sentry.api.base import region_silo_endpoint
+from sentry.api.bases import OrganizationEndpoint
+from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.serializers import serialize
+from sentry.models import Group
+from sentry.search.utils import parse_query
+
+@region_silo_endpoint
+class OrganizationIssuesEndpoint(OrganizationEndpoint):
+    permission_classes = ()
+
+    def get(self, request, organization):
+        """
+        List an organization's issues.
+        """
+        try:
+            # Parse query parameters
+            query = request.GET.get('query', '')
+            sort_by = request.GET.get('sort', 'date')
+
+            # Build queryset
+            queryset = Group.objects.filter(
+                project__organization=organization,
+                status=GroupStatus.UNRESOLVED
+            )
+
+            # Apply search filters
+            if query:
+                queryset = parse_query(queryset, query, request.user)
+
+            # Apply sorting
+            if sort_by == 'date':
+                queryset = queryset.order_by('-last_seen')
+            elif sort_by == 'priority':
+                queryset = queryset.order_by('-priority')
+
+            # Paginate results
+            return self.paginate(
+                request=request,
+                queryset=queryset,
+                paginator_cls=GenericOffsetPaginator,
+                on_results=lambda results: serialize(results, request.user),
+            )
+
+        except Exception as e:
+            logger.exception('Error fetching organization issues')
+            return Response(
+                {'error': 'Internal server error'},
+                status=500
+            )
+```
+
+### Serializer Patterns
+```python
+# src/sentry/api/serializers/models/organization.py
+from sentry.api.serializers import Serializer, register
+from sentry.models import Organization
+
+@register(Organization)
+class OrganizationSerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs):
+        from sentry.features import batch_has
+
+        feature_list = []
+        if batch_has(['organizations:advanced-search'], obj, user=user):
+            feature_list.append('advanced-search')
+
+        return {
+            'id': str(obj.id),
+            'slug': obj.slug,
+            'name': obj.name,
+            'dateCreated': obj.date_added,
+            'status': {
+                'id': str(obj.status),
+                'name': obj.get_status_display(),
+            },
+            'features': feature_list,
+            'access': list(obj.get_audit_log_data().keys()),
+            'hasAuthProvider': obj.has_auth_provider,
+            'pendingAccessRequests': obj.pending_access_requests,
+            'avatar': {
+                'avatarType': obj.get_avatar_type_display(),
+                'avatarUuid': obj.avatar and obj.avatar.ident,
+            },
+            'isEarlyAdopter': obj.is_early_adopter,
+            'require2FA': obj.require_2fa,
+            'requireEmailVerification': obj.require_email_verification,
+            'samlEnabled': obj.saml_enabled,
+            'enhancedPrivacy': obj.enhanced_privacy,
+            'dataScrubber': obj.data_scrubber,
+            'dataScrubberDefaults': obj.data_scrubber_defaults,
+            'sensitiveFields': obj.sensitive_fields or [],
+            'safeFields': obj.safe_fields or [],
+            'storeCrashReports': obj.store_crash_reports,
+            'attachmentsRole': obj.attachments_role,
+            'debugFilesRole': obj.debug_files_role,
+            'eventProcessing': obj.event_processing,
+            'scrubIPAddresses': obj.scrub_ip_addresses,
+            'scrapeJavaScript': obj.scrape_javascript,
+            'allowedDomains': obj.allowed_domains,
+            'allowSharedIssues': obj.allow_shared_issues,
+            'isDefault': obj.is_default,
+            'defaultRole': obj.default_role,
+            'availableRoles': obj.get_available_roles(),
+            'openMembership': obj.open_membership,
+            'allowJoinRequests': obj.allow_join_requests,
+            'relayPiiConfig': obj.relay_pii_config,
+            'trustedRelays': obj.trusted_relays,
+        }
+```
+
+## 🎨 React Frontend Standards
+
+### Component Structure with Emotion
+```typescript
+// static/app/components/issueList.tsx
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+import {space} from 'sentry/styles/space';
+import {Issue} from 'sentry/types';
+import IssueListItem from './issueListItem';
+
+interface Props {
+  issues: Issue[];
+  onSelect: (issue: Issue) => void;
+  loading?: boolean;
+}
+
+const IssueList = ({issues, onSelect, loading = false}: Props) => {
+  if (loading) {
+    return <LoadingIndicator />;
+  }
+
+  if (issues.length === 0) {
+  return (
+      <EmptyState>
+        <EmptyStateIcon src="/static/images/empty-state.svg" />
+        <EmptyStateText>No issues found</EmptyStateText>
+      </EmptyState>
+    );
+  }
+
+  return (
+    <Container>
+      {issues.map(issue => (
+        <Fragment key={issue.id}>
+          <IssueListItem
+            issue={issue}
+            onSelect={() => onSelect(issue)}
+          />
+        </Fragment>
+      ))}
+    </Container>
+  );
+};
+
+const Container = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const EmptyState = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: ${space(4)};
+  text-align: center;
+`;
+
+const EmptyStateIcon = styled('img')`
+  width: 120px;
+  height: 120px;
+  margin-bottom: ${space(2)};
+  opacity: 0.4;
+`;
+
+const EmptyStateText = styled('p')`
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+export default IssueList;
+```
+
+### MobX Store Pattern
+```typescript
+// static/app/stores/issueStore.ts
+import {makeObservable, observable, action, computed, runInAction} from 'mobx';
+import {Issue} from 'sentry/types';
+import {Client} from 'sentry/api';
+
+class IssueStore {
+  issues: Issue[] = [];
+  loading = false;
+  error: string | null = null;
+
+  constructor(private api: Client) {
+    makeObservable(this, {
+      issues: observable,
+      loading: observable,
+      error: observable,
+      setLoading: action,
+      setError: action,
+      setIssues: action,
+      addIssue: action,
+      updateIssue: action,
+      removeIssue: action,
+      issueCount: computed,
+      unresolvedIssues: computed,
+    });
+  }
+
+  setLoading(loading: boolean) {
+    this.loading = loading;
+  }
+
+  setError(error: string | null) {
+    this.error = error;
+  }
+
+  setIssues(issues: Issue[]) {
+    this.issues = issues;
+  }
+
+  addIssue(issue: Issue) {
+    this.issues.unshift(issue);
+  }
+
+  updateIssue(issueId: string, updates: Partial<Issue>) {
+    const index = this.issues.findIndex(issue => issue.id === issueId);
+    if (index !== -1) {
+      this.issues[index] = {...this.issues[index], ...updates};
+    }
+  }
+
+  removeIssue(issueId: string) {
+    this.issues = this.issues.filter(issue => issue.id !== issueId);
+  }
+
+  get issueCount() {
+    return this.issues.length;
+  }
+
+  get unresolvedIssues() {
+    return this.issues.filter(issue => issue.status === 'unresolved');
+  }
+
+  async fetchIssues(orgSlug: string, query?: string) {
+    this.setLoading(true);
+    this.setError(null);
+
+    try {
+      const response = await this.api.requestPromise(
+        `/organizations/${orgSlug}/issues/`,
+        {
+          query: query ? {query} : undefined,
+        }
+      );
+
+      runInAction(() => {
+        this.setIssues(response);
+        this.setLoading(false);
+      });
+    } catch (error) {
+      runInAction(() => {
+        this.setError(error.message || 'Failed to fetch issues');
+        this.setLoading(false);
+      });
+    }
+  }
+
+  async updateIssueStatus(issueId: string, status: Issue['status']) {
+    try {
+      await this.api.requestPromise(`/issues/${issueId}/`, {
+        method: 'PUT',
+        data: {status},
+      });
+
+      this.updateIssue(issueId, {status});
+    } catch (error) {
+      this.setError(error.message || 'Failed to update issue');
+    }
+  }
+}
+
+export default IssueStore;
+```
+
+### React Hook Integration
+```typescript
+// static/app/utils/useIssues.ts
+import {useEffect, useContext} from 'react';
+import {observer} from 'mobx-react';
+import {StoreContext} from 'sentry/stores/storeProvider';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+export const useIssues = (query?: string) => {
+  const {issueStore} = useContext(StoreContext);
+  const organization = useOrganization();
+
+  useEffect(() => {
+    if (organization?.slug) {
+      issueStore.fetchIssues(organization.slug, query);
+    }
+  }, [organization?.slug, query, issueStore]);
+
+  return {
+    issues: issueStore.issues,
+    loading: issueStore.loading,
+    error: issueStore.error,
+    issueCount: issueStore.issueCount,
+    unresolvedIssues: issueStore.unresolvedIssues,
+    updateIssueStatus: issueStore.updateIssueStatus.bind(issueStore),
+  };
+};
+
+// Usage in component
+const IssueListContainer = observer(() => {
+  const {issues, loading, updateIssueStatus} = useIssues();
+
+  return (
+    <IssueList
+      issues={issues}
+      loading={loading}
+      onSelect={issue => updateIssueStatus(issue.id, 'resolved')}
+    />
+  );
+});
+```
+
+## 🎯 Error Handling Standards
+
+### Frontend Error Boundary
+```typescript
+// static/app/components/errorBoundary.tsx
+import React from 'react';
+import * as Sentry from '@sentry/react';
+import {Button} from 'sentry/components/button';
+import {IconWarning} from 'sentry/icons';
+
+interface Props {
+  children: React.ReactNode;
+  fallback?: React.ComponentType<{error: Error; retry: () => void}>;
+}
+
+interface State {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends React.Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = {hasError: false, error: null};
+  }
+
+  static getDerivedStateFromError(error: Error): State {
+    return {hasError: true, error};
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    Sentry.captureException(error, {
+      contexts: {
+        react: {
+          componentStack: errorInfo.componentStack,
+        },
+      },
+      tags: {
+        component: 'ErrorBoundary',
+      },
+    });
+  }
+
+  handleRetry = () => {
+    this.setState({hasError: false, error: null});
+  };
+
+  render() {
+    if (this.state.hasError && this.state.error) {
+      if (this.props.fallback) {
+        const FallbackComponent = this.props.fallback;
+        return <FallbackComponent error={this.state.error} retry={this.handleRetry} />;
+      }
+
+      return (
+        <div className="error-boundary">
+          <IconWarning size="lg" />
+          <h2>Something went wrong</h2>
+          <p>We've been notified about this error and are working to fix it.</p>
+          <Button onClick={this.handleRetry}>Try Again</Button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+export default ErrorBoundary;
+```
+
+### Backend Error Handling
+```python
+# src/sentry/api/base.py
+import logging
+from rest_framework.views import exception_handler
+from rest_framework.response import Response
+from sentry.models import User
+from sentry.utils import metrics
+from sentry.utils.audit import create_audit_entry
+from sentry.utils.sdk import configure_scope
+
+logger = logging.getLogger(__name__)
+
+def custom_exception_handler(exc, context):
+    """
+    Custom exception handler that logs errors and returns appropriate responses.
+    """
+    # Log the exception with context
+    logger.exception('API Exception', extra={
+        'view': context.get('view').__class__.__name__,
+        'request': context.get('request').path,
+        'user': getattr(context.get('request'), 'user', None),
+    })
+
+    # Track metrics
+    metrics.incr('api.error', tags={
+        'view': context.get('view').__class__.__name__,
+        'exception': exc.__class__.__name__,
+    })
+
+    # Configure Sentry scope
+    with configure_scope() as scope:
+        scope.set_tag('api.view', context.get('view').__class__.__name__)
+        scope.set_context('request', {
+            'path': context.get('request').path,
+            'method': context.get('request').method,
+        })
+
+    # Call the default exception handler
+    response = exception_handler(exc, context)
+
+    # Customize error response
+    if response is not None:
+        if response.status_code >= 500:
+            response.data = {
+                'error': 'Internal server error',
+                'detail': 'An error occurred while processing your request.'
+            }
+
+        # Add error ID for tracking
+        response.data['error_id'] = generate_error_id()
+
+    return response
+
+class SentryAPIException(Exception):
+    """
+    Base exception class for Sentry API errors.
+    """
+    status_code = 500
+    message = 'An error occurred'
+
+    def __init__(self, message=None, status_code=None):
+        if message:
+            self.message = message
+        if status_code:
+            self.status_code = status_code
+        super().__init__(self.message)
+
+class ResourceNotFound(SentryAPIException):
+    status_code = 404
+    message = 'Resource not found'
+
+class PermissionDenied(SentryAPIException):
+    status_code = 403
+    message = 'Permission denied'
+
+class ValidationError(SentryAPIException):
+    status_code = 400
+    message = 'Validation failed'
+```
+
+## 🎨 Styling Standards
+
+### Design System Integration
+```typescript
+// static/app/styles/theme.ts
+export const theme = {
+  // Colors
+  colors: {
+    primary: '#6C5CE7',
+    primaryHover: '#5A4FCF',
+    secondary: '#A0A0A0',
+    success: '#00D924',
+    warning: '#FFC107',
+    error: '#E03E2F',
+    info: '#2196F3',
+
+    // Grays
+    gray100: '#FAFBFC',
+    gray200: '#F2F4F7',
+    gray300: '#E1E4E8',
+    gray400: '#BDC7D1',
+    gray500: '#7C8FA4',
+    gray600: '#5C6F7F',
+    gray700: '#3E4E5A',
+    gray800: '#2F3D4A',
+    gray900: '#1C2733',
+
+    // Background
+    background: '#FFFFFF',
+    backgroundSecondary: '#F8F9FA',
+
+    // Text
+    textColor: '#2B2233',
+    textColorSecondary: '#5C6F7F',
+    textColorLight: '#A0A0A0',
+  },
+
+  // Spacing
+  space: {
+    0.5: '4px',
+    1: '8px',
+    1.5: '12px',
+    2: '16px',
+    3: '24px',
+    4: '32px',
+    6: '48px',
+    8: '64px',
+    12: '96px',
+    16: '128px',
+  },
+
+  // Typography
+  fontSizes: {
+    xs: '12px',
+    sm: '14px',
+    md: '16px',
+    lg: '18px',
+    xl: '20px',
+    '2xl': '24px',
+    '3xl': '32px',
+    '4xl': '40px',
+  },
+
+  // Borders
+  borderRadius: {
+    sm: '4px',
+    md: '8px',
+    lg: '12px',
+    xl: '16px',
+    full: '9999px',
+  },
+
+  // Shadows
+  shadows: {
+    sm: '0 1px 2px rgba(0, 0, 0, 0.05)',
+    md: '0 4px 6px rgba(0, 0, 0, 0.1)',
+    lg: '0 10px 15px rgba(0, 0, 0, 0.1)',
+    xl: '0 25px 50px rgba(0, 0, 0, 0.25)',
+  },
+
+  // Breakpoints
+  breakpoints: {
+    sm: '@media (min-width: 640px)',
+    md: '@media (min-width: 768px)',
+    lg: '@media (min-width: 1024px)',
+    xl: '@media (min-width: 1280px)',
+  },
+};
+
+export type Theme = typeof theme;
+```
+
+### Component Styling Patterns
+```typescript
+// static/app/components/button.tsx
+import styled from '@emotion/styled';
+import {css} from '@emotion/react';
+import {Theme} from 'sentry/styles/theme';
+
+interface ButtonProps {
+  variant?: 'primary' | 'secondary' | 'danger';
+  size?: 'sm' | 'md' | 'lg';
+  disabled?: boolean;
+  loading?: boolean;
+}
+
+const buttonVariants = {
+  primary: (theme: Theme) => css`
+    background-color: ${theme.colors.primary};
+    color: white;
+    border: none;
+
+    &:hover:not(:disabled) {
+      background-color: ${theme.colors.primaryHover};
+    }
+  `,
+
+  secondary: (theme: Theme) => css`
+    background-color: transparent;
+    color: ${theme.colors.textColor};
+    border: 1px solid ${theme.colors.gray300};
+
+    &:hover:not(:disabled) {
+      background-color: ${theme.colors.gray100};
+    }
+  `,
+
+  danger: (theme: Theme) => css`
+    background-color: ${theme.colors.error};
+    color: white;
+    border: none;
+
+    &:hover:not(:disabled) {
+      background-color: ${theme.colors.error}dd;
+    }
+  `,
+};
+
+const buttonSizes = {
+  sm: (theme: Theme) => css`
+    padding: ${theme.space[1]} ${theme.space[2]};
+    font-size: ${theme.fontSizes.sm};
+  `,
+
+  md: (theme: Theme) => css`
+    padding: ${theme.space[1.5]} ${theme.space[3]};
+    font-size: ${theme.fontSizes.md};
+  `,
+
+  lg: (theme: Theme) => css`
+    padding: ${theme.space[2]} ${theme.space[4]};
+    font-size: ${theme.fontSizes.lg};
+  `,
+};
+
+const Button = styled('button')<ButtonProps>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: ${p => p.theme.borderRadius.md};
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  ${p => buttonVariants[p.variant || 'primary'](p.theme)}
+  ${p => buttonSizes[p.size || 'md'](p.theme)}
+
+  ${p => p.disabled && css`
+    opacity: 0.5;
+    cursor: not-allowed;
+  `}
+
+  ${p => p.loading && css`
+    cursor: wait;
+  `}
+`;
+
+export default Button;
+```
+
+## 📋 Quality Checklist
+
+Before submitting code, ensure:
+
+### Backend (Django)
+- [ ] Models follow Django conventions and include `__str__` methods
+- [ ] API endpoints are properly authenticated and authorized
+- [ ] Database queries are optimized and avoid N+1 problems
+- [ ] Error handling includes proper logging and user-friendly messages
+- [ ] Tests cover both success and failure scenarios
+- [ ] Migrations are safe and reversible
+
+### Frontend (React)
+- [ ] All components are TypeScript with proper type definitions
+- [ ] MobX stores are observable and actions are properly decorated
+- [ ] Components are responsive and accessible
+- [ ] Error boundaries are implemented for major features
+- [ ] Performance optimizations (memo, lazy loading) are applied
+- [ ] Styling follows the design system
+
+### General
+- [ ] Code passes ESLint and type checking
+- [ ] Tests are written and passing
+- [ ] Documentation is updated
+- [ ] Sentry error tracking is properly configured
+- [ ] Performance implications are considered
+- [ ] Security best practices are followed
+
+- [ ] Code is formatted with Prettier
+- [ ] Linting passes without errors
