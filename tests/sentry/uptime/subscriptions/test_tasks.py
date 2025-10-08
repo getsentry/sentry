@@ -515,6 +515,29 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
             expected_priority_level=DetectorPriorityLevel.OK,
         )
 
+    def test_already_disabled(self) -> None:
+        """Test that already disabled detectors are not processed"""
+        detector = self.create_uptime_detector(
+            mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
+            detector_state=DetectorPriorityLevel.HIGH,
+            enabled=False,
+        )
+
+        # Update the detector state date to simulate an old failure
+        detector_state = detector.detectorstate_set.first()
+        assert detector_state is not None
+        detector_state.update(date_updated=timezone.now() - timedelta(days=8))
+
+        with (
+            self.tasks(),
+            mock.patch(
+                "sentry.uptime.subscriptions.subscriptions.disable_uptime_detector"
+            ) as mock_disable,
+        ):
+            broken_monitor_checker()
+            # Should not be called since detector is already disabled
+            mock_disable.assert_not_called()
+
     def test_handle_disable_detector_exceptions(self) -> None:
         detector = self.create_uptime_detector(
             mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
