@@ -141,6 +141,8 @@ describe('SentryAppDetailedView', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
       expect(deleteRequest).toHaveBeenCalledTimes(1);
 
+      expect(await screen.findAllByText('Pending Deletion')).toHaveLength(2);
+
       expect(
         await screen.findByRole('button', {name: 'Pending Deletion'})
       ).toBeInTheDocument();
