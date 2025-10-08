@@ -2,7 +2,6 @@ import {t} from 'sentry/locale';
 import {
   EventGroupVariantType,
   type Event,
-  type EventGroupingConfig,
   type EventGroupVariant,
 } from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -11,7 +10,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 type EventGroupingInfoResponseOld = Record<string, EventGroupVariant>;
 type EventGroupingInfoResponse = {
-  grouping_config: EventGroupingConfig | null;
+  grouping_config: string | null;
   variants: Record<string, EventGroupVariant>;
 };
 
@@ -20,8 +19,11 @@ function eventGroupingInfoResponseOldToNew(
   old: EventGroupingInfoResponseOld | null
 ): EventGroupingInfoResponse | null {
   const grouping_config = old
-    ? (Object.values(old).find(variant => 'config' in variant && variant.config) as any)
-        ?.config
+    ? (
+        Object.values(old).find(
+          variant => 'config' in variant && variant.config?.id
+        ) as any
+      )?.config?.id
     : null;
   return old
     ? {
