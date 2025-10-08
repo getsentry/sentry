@@ -145,7 +145,7 @@ function getSelectedValuesFromText(
       // Check if this value is selected by looking at the character after the value in
       // the text. If there's a comma after the value, it means this value is selected.
       // Use the actual token location from the parser instead of indexOf to avoid
-      // matching substrings (e.g., "artifact_bundle.assemble" inside "artifact_bundle.assemble.find_projects")
+      // matching substrings (e.g., "cool.property" inside "cool.property.thing")
       const selected = text.charAt(item.value?.location.end.offset ?? 0) === ',';
 
       return {value, selected};
