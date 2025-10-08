@@ -370,7 +370,6 @@ def _get_variants_from_strategies(
         variants[variant_name] = ComponentVariant(
             root_component=root_component,
             contributing_component=contributing_component,
-            strategy_config=context.config,
         )
 
     return variants

@@ -10,7 +10,6 @@ from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 
 if TYPE_CHECKING:
     from sentry.grouping.api import FingerprintInfo
-    from sentry.grouping.strategies.base import StrategyConfiguration
 
 
 class FingerprintVariantMetadata(TypedDict):
@@ -119,10 +118,8 @@ class ComponentVariant(BaseVariant):
         # method (exception, threads, message, etc.). For non-contributing variants, this will be
         # None.
         contributing_component: ContributingComponent | None,
-        strategy_config: StrategyConfiguration,
     ):
         self.root_component = root_component
-        self.config = strategy_config
         self.contributing_component = contributing_component
         self.variant_name = self.root_component.id  # "app", "system", or "default"
 
@@ -225,7 +222,6 @@ class SaltedComponentVariant(ComponentVariant):
             fingerprint=fingerprint,
             root_component=component_variant.root_component,
             contributing_component=component_variant.contributing_component,
-            strategy_config=component_variant.config,
             fingerprint_info=fingerprint_info,
         )
 
@@ -238,10 +234,9 @@ class SaltedComponentVariant(ComponentVariant):
         # method (exception, threads, message, etc.). For non-contributing variants, this will be
         # None.
         contributing_component: ContributingComponent | None,
-        strategy_config: StrategyConfiguration,
         fingerprint_info: FingerprintInfo,
     ):
-        super().__init__(root_component, contributing_component, strategy_config)
+        super().__init__(root_component, contributing_component)
         self.values = fingerprint
         self.fingerprint_info = fingerprint_info
 
