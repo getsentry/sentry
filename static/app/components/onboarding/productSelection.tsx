@@ -464,12 +464,12 @@ export function ProductSelection({
     [organization, disabledProductsProp]
   );
 
-  // Use useEffectEvent to handle non-reactive mount initialization
+  // Use useEffectEvent to pass urlProducts without adding it as a dependency
   const initializeProducts = useEffectEvent(() => {
     onLoad?.(urlProducts);
   });
 
-  // Call onLoad on mount
+  // Call onLoad once on mount
   useEffect(() => {
     initializeProducts();
   }, []);
