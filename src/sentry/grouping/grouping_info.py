@@ -28,8 +28,15 @@ def get_grouping_info(
     # different hashes here than the ones stored on the event.
     _check_for_mismatched_hashes(event, project, grouping_variants, hashes)
 
+    grouping_info_config = {
+        "base": grouping_config.base.id if grouping_config.base else None,
+        "delegates": list(grouping_config.delegates.keys()),
+        "id": grouping_config.id,
+        "strategies": list(grouping_config.strategies.keys()),
+    }
+
     grouping_info = {
-        "grouping_config": grouping_config.as_dict(),
+        "grouping_config": grouping_info_config,
         "variants": grouping_variants,
     }
 
