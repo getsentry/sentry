@@ -222,7 +222,7 @@ class SnubaProtocolEventStream(EventStream):
         return TraceItem(
             item_id=event_data["event_id"].encode("utf-8"),
             item_type=TRACE_ITEM_TYPE_OCCURRENCE,
-            trace_id=event_data["trace_id"],
+            trace_id=event_data["contexts"]["trace"]["trace_id"],
             timestamp=Timestamp(seconds=int(event_data["timestamp"])),
             organization_id=project.organization_id,
             project_id=project.id,
@@ -233,16 +233,14 @@ class SnubaProtocolEventStream(EventStream):
             attributes={"hardcoded_attribute_1": AnyValue(int_value=random.randint(0, 100))},
         )
 
-    def _contains_sufficient_item_fields(self, event_data: Mapping[str, Any]) -> bool:
-        return all(
-            field in event_data
-            for field in [
-                "event_id",
-                "trace_id",
-                "timestamp",
-                "tags",
-            ]
-        )
+    def _missing_required_item_fields(self, event_data: Mapping[str, Any]) -> list[str]:
+        root_level_fields = ["event_id", "timestamp", "tags"]
+        missing_fields = [field for field in root_level_fields if field not in event_data]
+        trace_id = event_data.get("contexts", {}).get("trace", {}).get("trace_id", None)
+        if trace_id is None:
+            missing_fields.append("trace_id")
+
+        return missing_fields
 
     def _forward_event_to_items(
         self, event_data: Mapping[str, Any], event_type: EventStreamEventType, project: Project
@@ -252,8 +250,12 @@ class SnubaProtocolEventStream(EventStream):
         ):
             return
 
-        # if not self._contains_sufficient_item_fields(event_data):
-        #     return
+        missing_fields = self._missing_required_item_fields(event_data)
+        if missing_fields:
+            logger.debug(
+                "Event data is missing required fields to forward to items: %s", missing_fields
+            )
+            return
 
         self._send_item(self._serialize_event_data_as_item(event_data, project))
 

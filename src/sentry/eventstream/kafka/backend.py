@@ -227,7 +227,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         producer = self.get_producer(Topic.SNUBA_ITEMS)
         try:
             producer.produce(
-                topic=Topic.SNUBA_ITEMS,
+                topic=Topic.SNUBA_ITEMS.value,
                 value=EAP_ITEMS_CODEC.encode(trace_item),
             )
         except Exception as error:
