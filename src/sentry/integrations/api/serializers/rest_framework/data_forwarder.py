@@ -9,6 +9,7 @@ from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
+from sentry.models.project import Project
 from sentry_plugins.amazon_sqs.plugin import get_regions
 
 
@@ -179,7 +180,25 @@ class DataForwarderSerializer(Serializer):
         return config
 
     def create(self, validated_data: MutableMapping[str, Any]) -> DataForwarder:
-        return DataForwarder.objects.create(**validated_data)
+        data_forwarder = DataForwarder.objects.create(**validated_data)
+
+        # Auto-enroll all existing projects in the organization
+        project_ids = Project.objects.filter(
+            organization_id=validated_data["organization_id"]
+        ).values_list("id", flat=True)
+
+        if project_ids:
+            project_configs = [
+                DataForwarderProject(
+                    data_forwarder=data_forwarder,
+                    project_id=project_id,
+                    is_enabled=True,
+                )
+                for project_id in project_ids
+            ]
+            DataForwarderProject.objects.bulk_create(project_configs, ignore_conflicts=True)
+
+        return data_forwarder
 
 
 class DataForwarderProjectSerializer(Serializer):

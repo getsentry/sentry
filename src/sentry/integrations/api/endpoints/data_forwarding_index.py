@@ -1,3 +1,4 @@
+from django.db import IntegrityError, transaction
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from drf_spectacular.utils import extend_schema
@@ -9,9 +10,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.exceptions import ConflictError
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_CONFLICT, RESPONSE_FORBIDDEN
 from sentry.apidocs.parameters import GlobalParams
 from sentry.integrations.api.serializers.models.data_forwarder import (
     DataForwarderSerializer as DataForwarderModelSerializer,
@@ -67,6 +69,7 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
             201: DataForwarderModelSerializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
+            409: RESPONSE_CONFLICT,
         },
     )
     @set_referrer_policy("strict-origin-when-cross-origin")
@@ -77,7 +80,13 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
 
         serializer = DataForwarderSerializer(data=data)
         if serializer.is_valid():
-            data_forwarder = serializer.save()
+            try:
+                with transaction.atomic():
+                    data_forwarder = serializer.save()
+            except IntegrityError:
+                raise ConflictError(
+                    "A data forwarder with this provider already exists for this organization"
+                )
 
             return self.respond(
                 serialize(data_forwarder, request.user), status=status.HTTP_201_CREATED

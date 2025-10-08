@@ -269,6 +269,20 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         response = self.get_error_response(self.organization.slug, status_code=400, **payload)
         assert "provider" in str(response.data).lower()
 
+    def test_create_duplicate_provider_returns_conflict(self) -> None:
+        DataForwarder.objects.create(
+            organization_id=self.organization.id,
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "existing_key"},
+        )
+
+        payload = {
+            "provider": DataForwarderProviderSlug.SEGMENT,
+            "config": {"write_key": "new_key"},
+        }
+        response = self.get_error_response(self.organization.slug, status_code=409, **payload)
+        assert "already exists" in str(response.data).lower()
+
     def test_create_missing_config(self) -> None:
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
@@ -290,3 +304,29 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
 
         response = self.get_error_response(self.organization.slug, status_code=400, **payload)
         assert "message_group_id" in str(response.data).lower()
+
+    def test_create_auto_enrolls_all_organization_projects(self) -> None:
+        # should be enrolled
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+        project3 = self.create_project(organization=self.organization)
+
+        # should not be enrolled
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+
+        payload = {
+            "provider": DataForwarderProviderSlug.SEGMENT,
+            "config": {"write_key": "test_key"},
+        }
+
+        response = self.get_success_response(self.organization.slug, status_code=201, **payload)
+
+        data_forwarder = DataForwarder.objects.get(id=response.data["id"])
+
+        enrolled_projects = DataForwarderProject.objects.filter(
+            data_forwarder=data_forwarder
+        ).values_list("project_id", flat=True)
+
+        assert set(enrolled_projects) == {project1.id, project2.id, project3.id}
+        assert other_project.id not in enrolled_projects
