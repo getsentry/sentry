@@ -52,7 +52,6 @@ import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/comp
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
-import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const TableControl = SegmentedControl<TableType>;
@@ -156,7 +155,6 @@ function AgentsOverviewPage() {
 
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
-      <AgentsPageHeader module={ModuleName.AGENTS} />
       <ModuleFeature moduleName={ModuleName.AGENTS}>
         <Layout.Body>
           <Layout.Main fullWidth>

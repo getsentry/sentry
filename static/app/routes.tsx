@@ -1999,6 +1999,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
+          handle: {module: ModuleName.AGENTS},
           component: make(() => import('sentry/views/insights/agents/views/overview')),
         },
       ],
@@ -2008,6 +2009,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
+          handle: {module: ModuleName.MCP},
           component: make(() => import('sentry/views/insights/mcp/views/overview')),
         },
       ],
@@ -2080,6 +2082,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: `${AGENTS_LANDING_SUB_PATH}/`,
+      component: make(() => import('sentry/views/insights/pages/agents/layout')),
       children: [
         {
           index: true,
