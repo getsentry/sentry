@@ -29,9 +29,9 @@ describe('DetectorDetails', () => {
   const ownerTeam = TeamFixture();
   const dataSource = SnubaQueryDataSourceFixture({
     queryObj: {
-      ...defaultDataSource.queryObj!,
+      ...defaultDataSource.queryObj,
       snubaQuery: {
-        ...defaultDataSource.queryObj!.snubaQuery,
+        ...defaultDataSource.queryObj.snubaQuery,
         query: 'test',
         environment: 'test-environment',
       },
@@ -121,7 +121,7 @@ describe('DetectorDetails', () => {
       expect(screen.getByLabelText('event.type:error test')).toBeInTheDocument();
       // Displays the environment
       expect(
-        screen.getByText(dataSource.queryObj!.snubaQuery.environment!)
+        screen.getByText(dataSource.queryObj.snubaQuery.environment!)
       ).toBeInTheDocument();
       // Displays the owner team
       expect(screen.getByText(`Assign to #${ownerTeam.slug}`)).toBeInTheDocument();
