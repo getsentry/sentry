@@ -129,7 +129,7 @@ export function useLocalStorageState<S>(
   // as the value will already be initialized from the initialState and it would be unnecessary to re-initialize
   const renderRef = useRef(false);
 
-  // Using a useEffectEvent allows us to access initialState without causing a re-render
+  // Using a useEffectEvent allows us to access initialState without declaring it in the dependency array
   const initializeFromStorage = useEffectEvent((newKey: string) => {
     setValue(initializeStorage(newKey, initialState));
   });
