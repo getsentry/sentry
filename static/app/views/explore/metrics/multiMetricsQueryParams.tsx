@@ -135,13 +135,3 @@ export function useAddMetricQuery() {
     navigate(target);
   };
 }
-
-export function useSetMetricName(i: number) {
-  const {metricQueries} = useMultiMetricsQueryParamsContext();
-
-  if (!defined(metricQueries[i])) {
-    throw new Error('Metric query not found');
-  }
-
-  return metricQueries[i].setMetricName;
-}

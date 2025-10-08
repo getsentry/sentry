@@ -16,14 +16,13 @@ import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParam
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface MetricPanelProps {
-  metricIndex: number;
   traceMetric: TraceMetric;
 }
 
 const MIN_LEFT_WIDTH = 400;
 const MIN_RIGHT_WIDTH = 400;
 
-export function MetricPanel({traceMetric, metricIndex}: MetricPanelProps) {
+export function MetricPanel({traceMetric}: MetricPanelProps) {
   const visualize = useMetricVisualize();
   const measureRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: measureRef});
@@ -46,7 +45,7 @@ export function MetricPanel({traceMetric, metricIndex}: MetricPanelProps) {
   return (
     <Panel>
       <PanelHeader>
-        <MetricRow traceMetric={traceMetric} metricIndex={metricIndex} />
+        <MetricRow traceMetric={traceMetric} />
       </PanelHeader>
       <PanelBody>
         <div ref={measureRef}>

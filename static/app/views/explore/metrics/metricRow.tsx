@@ -11,8 +11,10 @@ import {
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
-import {useSetMetricName} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {
+  useMetricVisualize,
+  useSetMetricName,
+} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {
   useQueryParamsGroupBys,
   useQueryParamsQuery,
@@ -22,11 +24,10 @@ import type {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface MetricRowProps {
-  metricIndex: number;
   traceMetric: TraceMetric;
 }
 
-export function MetricRow({traceMetric, metricIndex}: MetricRowProps) {
+export function MetricRow({traceMetric}: MetricRowProps) {
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
 
@@ -53,13 +54,11 @@ export function MetricRow({traceMetric, metricIndex}: MetricRowProps) {
       <MetricToolbar
         tracesItemSearchQueryBuilderProps={tracesItemSearchQueryBuilderProps}
         traceMetric={traceMetric}
-        metricIndex={metricIndex}
       />
     </SearchQueryBuilderProvider>
   );
 }
 interface MetricToolbarProps {
-  metricIndex: number;
   traceMetric: TraceMetric;
   tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps;
 }
@@ -67,13 +66,12 @@ interface MetricToolbarProps {
 function MetricToolbar({
   tracesItemSearchQueryBuilderProps,
   traceMetric,
-  metricIndex,
 }: MetricToolbarProps) {
   const visualize = useMetricVisualize() as VisualizeFunction;
   const groupBys = useQueryParamsGroupBys();
   const query = useQueryParamsQuery();
   const {data: metricOptionsData} = useMetricOptions();
-  const setMetricName = useSetMetricName(metricIndex);
+  const setMetricName = useSetMetricName();
 
   const metricOptions = useMemo(() => {
     return [

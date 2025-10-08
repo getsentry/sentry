@@ -81,8 +81,9 @@ function MetricsTabBodySection() {
               key={index}
               queryParams={metricQuery.queryParams}
               setQueryParams={metricQuery.setQueryParams}
+              setMetricName={metricQuery.setMetricName}
             >
-              <MetricPanel traceMetric={metricQuery.metric} metricIndex={index} />
+              <MetricPanel traceMetric={metricQuery.metric} />
             </MetricsQueryParamsProvider>
           );
         })}
