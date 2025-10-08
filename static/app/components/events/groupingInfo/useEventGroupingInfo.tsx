@@ -36,7 +36,7 @@ function eventGroupingInfoResponseOldToNew(
 // temporary function to check if the respinse is old type
 function isOld(
   data: EventGroupingInfoResponseOld | EventGroupingInfoResponse | null
-): boolean {
+): data is EventGroupingInfoResponseOld {
   return data ? !('grouping_config' in data) : false;
 }
 
@@ -46,7 +46,7 @@ function generatePerformanceGroupInfo({
 }: {
   event: Event;
   group: Group | undefined;
-}): EventGroupingInfoResponseOld | EventGroupingInfoResponse | null {
+}): EventGroupingInfoResponse | null {
   if (!event.occurrence) {
     return null;
   }
@@ -57,21 +57,24 @@ function generatePerformanceGroupInfo({
 
   return group
     ? {
-        [group.issueType]: {
-          contributes: true,
-          description: t('performance problem'),
-          hash: event.occurrence?.fingerprint[0] || '',
-          hashMismatch: false,
-          hint: null,
-          key: group.issueType,
-          type: EventGroupVariantType.PERFORMANCE_PROBLEM,
-          evidence: {
-            op: evidenceData?.op,
-            parent_span_ids: evidenceData?.parentSpanIds,
-            cause_span_ids: evidenceData?.causeSpanIds,
-            offender_span_ids: evidenceData?.offenderSpanIds,
-            desc: t('performance problem'),
-            fingerprint: hash,
+        grouping_config: 'performance',
+        variants: {
+          [group.issueType]: {
+            contributes: true,
+            description: t('performance problem'),
+            hash: event.occurrence?.fingerprint[0] || '',
+            hashMismatch: false,
+            hint: null,
+            key: group.issueType,
+            type: EventGroupVariantType.PERFORMANCE_PROBLEM,
+            evidence: {
+              op: evidenceData?.op,
+              parent_span_ids: evidenceData?.parentSpanIds,
+              cause_span_ids: evidenceData?.causeSpanIds,
+              offender_span_ids: evidenceData?.offenderSpanIds,
+              desc: t('performance problem'),
+              fingerprint: hash,
+            },
           },
         },
       }
@@ -98,16 +101,16 @@ export function useEventGroupingInfo({
     staleTime: Infinity,
   });
 
-  const groupInfo = hasPerformanceGrouping
+  const groupInfoRaw = hasPerformanceGrouping
     ? generatePerformanceGroupInfo({group, event})
     : (data ?? null);
 
-  const groupInfoNew = isOld(groupInfo)
-    ? eventGroupingInfoResponseOldToNew(groupInfo as EventGroupingInfoResponseOld)
-    : (groupInfo as EventGroupingInfoResponse);
+  const groupInfo = isOld(groupInfoRaw)
+    ? eventGroupingInfoResponseOldToNew(groupInfoRaw)
+    : groupInfoRaw;
 
   return {
-    groupInfo: groupInfoNew,
+    groupInfo,
     isPending,
     isError,
     isSuccess,
