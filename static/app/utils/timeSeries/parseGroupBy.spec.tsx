@@ -1,9 +1,9 @@
 import {parseGroupBy} from './parseGroupBy';
 
 describe('parseGroupBy', () => {
-  it('returns undefined for "Other" group name', () => {
+  it('returns null for "Other" group name', () => {
     const result = parseGroupBy('Other', ['field1', 'field2']);
-    expect(result).toBeUndefined();
+    expect(result).toBeNull();
   });
 
   it('parses single field and value correctly', () => {
@@ -47,6 +47,6 @@ describe('parseGroupBy', () => {
 
   it('handles empty fields array', () => {
     const result = parseGroupBy('', []);
-    expect(result).toBeUndefined();
+    expect(result).toBeNull();
   });
 });

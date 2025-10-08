@@ -5,9 +5,9 @@ import type {TimeSeriesGroupBy} from 'sentry/views/dashboards/widgets/common/typ
 export function parseGroupBy(
   groupName: string,
   fields: string[]
-): TimeSeriesGroupBy[] | undefined {
+): TimeSeriesGroupBy[] | null {
   if (groupName === 'Other') {
-    return undefined;
+    return null;
   }
 
   const groupKeys = fields;
@@ -22,5 +22,5 @@ export function parseGroupBy(
     return groupBy.key || groupBy.value;
   });
 
-  return groupBys.length > 0 ? groupBys : undefined;
+  return groupBys.length > 0 ? groupBys : null;
 }
