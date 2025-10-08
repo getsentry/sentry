@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import React, {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -24,13 +24,64 @@ import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {Color} from 'sentry/utils/theme';
 
-import type {AddOnCategory} from 'getsentry/types';
-import {getProductIcon} from 'getsentry/utils/billing';
-import {getSingularCategoryName} from 'getsentry/utils/dataCategory';
+import {AddOnCategory} from 'getsentry/types';
+import {getProductIcon, getReservedBudgetCategoryForAddOn} from 'getsentry/utils/billing';
+import {
+  getCategoryInfoFromPlural,
+  getSingularCategoryName,
+} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import CheckoutOption from 'getsentry/views/amCheckout/checkoutOption';
-import {SelectableProduct, type StepProps} from 'getsentry/views/amCheckout/types';
+import {type StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
+
+interface ProductCheckoutInfo {
+  categoryInfo: Partial<
+    Record<
+      DataCategory,
+      {
+        description: string;
+        maxEventPriceDigits: number;
+      }
+    >
+  >;
+  getProductDescription: (includedBudget: string) => React.ReactNode;
+  buttonBorderColor?: Color;
+  color?: Color;
+  gradientEndColor?: Color;
+}
+
+export function getProductCheckoutDescription({
+  product,
+  isNewCheckout,
+  withPunctuation,
+  includedBudget,
+}: {
+  isNewCheckout: boolean;
+  product: AddOnCategory;
+  withPunctuation: boolean;
+  includedBudget?: string;
+}) {
+  if (product === AddOnCategory.SEER) {
+    if (isNewCheckout) {
+      return tct('Detect and fix issues faster with our AI agent[punctuation]', {
+        punctuation: withPunctuation ? '.' : '',
+      });
+    }
+    return tct(
+      'Detect and fix issues faster with [budgetText]our AI agent[punctuation]',
+      {
+        budgetText: includedBudget
+          ? tct('[includedBudget]/mo in credits towards ', {
+              includedBudget,
+            })
+          : '',
+        punctuation: withPunctuation ? '.' : '',
+      }
+    );
+  }
+  return '';
+}
 
 function ProductSelect({
   activePlan,
@@ -38,42 +89,33 @@ function ProductSelect({
   onUpdate,
   isNewCheckout,
 }: Pick<StepProps, 'activePlan' | 'onUpdate' | 'formData' | 'isNewCheckout'>) {
-  const availableProducts = Object.values(activePlan.availableReservedBudgetTypes)
-    .filter(
-      productInfo =>
-        productInfo.isFixed && // NOTE: for now, we only supported fixed budget products in checkout
-        productInfo.billingFlag &&
-        activePlan.features.includes(productInfo.billingFlag)
-    )
-    .map(productInfo => {
-      return productInfo;
-    });
+  const availableAddOns = Object.values(activePlan.addOnCategories).filter(
+    addOnInfo =>
+      // if there's no billing flag, we assume it's launched
+      !addOnInfo.billingFlag || activePlan.features.includes(addOnInfo.billingFlag)
+  );
 
   const theme = useTheme();
   const PRODUCT_CHECKOUT_INFO = {
-    [SelectableProduct.SEER]: {
+    [AddOnCategory.SEER]: {
       color: theme.pink400 as Color,
       gradientEndColor: theme.pink100 as Color,
       buttonBorderColor: theme.pink200 as Color,
       getProductDescription: (includedBudget: string) =>
-        isNewCheckout
-          ? t('Detect and fix issues faster with our AI agent')
-          : tct(
-              'Detect and fix issues faster with [includedBudget]/mo in credits towards our AI agent',
-              {
-                includedBudget,
-              }
-            ),
+        getProductCheckoutDescription({
+          product: AddOnCategory.SEER,
+          isNewCheckout: !!isNewCheckout,
+          withPunctuation: false,
+          includedBudget,
+        }),
       categoryInfo: {
         [DataCategory.SEER_AUTOFIX]: {
-          perEventNameOverride: isNewCheckout ? 'run' : 'fix',
           description: t(
             'Uses the latest AI models with Sentry data to find root causes & proposes PRs'
           ),
           maxEventPriceDigits: 0,
         },
         [DataCategory.SEER_SCANNER]: {
-          perEventNameOverride: 'scan',
           description: t(
             'Triages issues as they happen, automatically flagging highly-fixable ones for followup'
           ),
@@ -81,54 +123,72 @@ function ProductSelect({
         },
       },
     },
-  };
+    [AddOnCategory.PREVENT]: {
+      getProductDescription: (includedBudget: string) =>
+        getProductCheckoutDescription({
+          product: AddOnCategory.PREVENT,
+          isNewCheckout: !!isNewCheckout,
+          withPunctuation: false,
+          includedBudget,
+        }),
+      categoryInfo: {
+        [DataCategory.PREVENT_USER]: {
+          description: t('Prevent problems, before they happen'),
+          maxEventPriceDigits: 0,
+        },
+      },
+      color: undefined,
+      gradientEndColor: undefined,
+      buttonBorderColor: undefined,
+    },
+  } satisfies Record<AddOnCategory, ProductCheckoutInfo>;
   const billingInterval = utils.getShortInterval(activePlan.billingInterval);
   const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
 
   return (
     <Fragment>
       {!isNewCheckout && <Separator orientation="horizontal" />}
-      {availableProducts.map(productInfo => {
-        const productName =
-          activePlan.addOnCategories[productInfo.apiName as unknown as AddOnCategory]
-            ?.productName ?? productInfo.productCheckoutName;
-        const checkoutInfo =
-          PRODUCT_CHECKOUT_INFO[productInfo.apiName as string as SelectableProduct];
+      {availableAddOns.map(addOnInfo => {
+        const {productName, apiName} = addOnInfo;
+        const checkoutInfo = PRODUCT_CHECKOUT_INFO[apiName];
         if (!checkoutInfo) {
           return null;
         }
 
-        const productIcon = getProductIcon(
-          productInfo.apiName as string as SelectableProduct,
-          'md'
-        );
+        const productIcon = getProductIcon(apiName, 'md');
 
         // how much the customer is paying for the product
-        const priceInCents = utils.getReservedPriceForReservedBudgetCategory({
+        const priceInCents = utils.getPrepaidPriceForAddOn({
           plan: activePlan,
-          reservedBudgetCategory: productInfo.apiName,
+          addOnCategory: apiName,
         });
+
         const priceInDollars = utils.formatPrice({
           cents: priceInCents,
         });
 
+        const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
+        let reservedBudgetInfo = null;
+        if (reservedBudgetCategory) {
+          reservedBudgetInfo =
+            activePlan.availableReservedBudgetTypes[reservedBudgetCategory];
+        }
+
         // how much the customer gets per month for the product
         // if no default budget, then the included budget is how much the customer is paying for the product
-        const formattedMonthlyBudget = formatCurrency(
-          productInfo.defaultBudget ?? priceInCents
-        );
+        const formattedMonthlyBudget = reservedBudgetInfo
+          ? formatCurrency(reservedBudgetInfo.defaultBudget ?? priceInCents)
+          : null;
 
-        const isSelected =
-          formData.selectedProducts?.[productInfo.apiName as string as SelectableProduct]
-            ?.enabled;
+        const isSelected = formData.addOns?.[apiName]?.enabled ?? false;
 
         const ariaLabel = t('Add %s to plan', productName);
 
         const toggleProductOption = () => {
           onUpdate({
-            selectedProducts: {
-              ...formData.selectedProducts,
-              [productInfo.apiName]: {
+            addOns: {
+              ...formData.addOns,
+              [apiName]: {
                 enabled: !isSelected,
               },
             },
@@ -138,9 +198,9 @@ function ProductSelect({
         if (isNewCheckout) {
           return (
             <CheckoutOption
-              key={productInfo.apiName}
+              key={apiName}
               ariaLabel={ariaLabel}
-              dataTestId={`product-option-${productInfo.apiName}`}
+              dataTestId={`product-option-${apiName}`}
               onClick={toggleProductOption}
               isSelected={!!isSelected}
               ariaRole="checkbox"
@@ -172,30 +232,32 @@ function ProductSelect({
                       </ProductIconContainer>
                     </Flex>
                     <ProductDescription isNewCheckout colorOverride={theme.subText}>
-                      {checkoutInfo.getProductDescription(formattedMonthlyBudget)}
+                      {checkoutInfo.getProductDescription(formattedMonthlyBudget ?? '')}
                     </ProductDescription>
                     <Container paddingTop="md">
                       <Text
-                        size={'2xl'}
+                        size="2xl"
                         bold
                         variant="primary"
                       >{`+$${priceInDollars}`}</Text>
-                      <Text size={'md'} variant="primary">{`/${billingInterval}`}</Text>
+                      <Text size="md" variant="primary">{`/${billingInterval}`}</Text>
                     </Container>
                   </Flex>
                 </Flex>
                 <Flex direction="column" gap="2xs">
                   <Separator orientation="horizontal" border="primary" />
                   <Flex direction="column" gap="sm" paddingTop="xl">
-                    <FeatureItem data-test-id={`product-option-feature-credits`}>
+                    <FeatureItem data-test-id="product-option-feature-credits">
                       <IconContainer>
                         <IconCheckmark color={theme.successText as Color} />
                       </IconContainer>
-                      <Text size={'md'}>
-                        {tct('Includes [includedBudget]/mo in credits', {
-                          includedBudget: formattedMonthlyBudget,
-                        })}
-                      </Text>
+                      {formattedMonthlyBudget && (
+                        <Text size="md">
+                          {tct('Includes [includedBudget]/mo in credits', {
+                            includedBudget: formattedMonthlyBudget,
+                          })}
+                        </Text>
+                      )}
                     </FeatureItem>
                     {Object.entries(checkoutInfo.categoryInfo).map(([category, info]) => {
                       const pricingInfo =
@@ -203,6 +265,16 @@ function ProductSelect({
                       const eventPrice = pricingInfo
                         ? pricingInfo[1]?.onDemandPrice
                         : null;
+                      const dataCategoryInfo = getCategoryInfoFromPlural(
+                        category as DataCategory
+                      );
+                      const perEventNameOverride =
+                        dataCategoryInfo?.shortenedUnitName ??
+                        getSingularCategoryName({
+                          plan: activePlan,
+                          category: category as DataCategory,
+                          capitalize: false,
+                        });
                       return (
                         <FeatureItem
                           key={category}
@@ -211,20 +283,19 @@ function ProductSelect({
                           <IconContainer>
                             <IconCheckmark color={theme.successText as Color} />
                           </IconContainer>
-                          <Text size={'md'}>
+                          <Text size="md">
                             <FeatureItemCategory>
                               {getSingularCategoryName({
                                 plan: activePlan,
                                 category: category as DataCategory,
                                 hadCustomDynamicSampling: false,
-                                title: true,
                               })}
                               {':'}
                             </FeatureItemCategory>
                             <span>
                               {info.description}.{' '}
                               {eventPrice &&
-                                `${utils.displayUnitPrice({cents: eventPrice, minDigits: 0, maxDigits: info.maxEventPriceDigits})}/${info.perEventNameOverride ?? getSingularCategoryName({plan: activePlan, category: category as DataCategory, hadCustomDynamicSampling: false, capitalize: false})}`}
+                                `${utils.displayUnitPrice({cents: eventPrice, minDigits: 0, maxDigits: info.maxEventPriceDigits})}/${perEventNameOverride}`}
                             </span>
                           </Text>
                         </FeatureItem>
@@ -239,9 +310,9 @@ function ProductSelect({
 
         return (
           <ProductOption
-            key={productInfo.apiName}
-            aria-label={productName}
-            data-test-id={`product-option-${productInfo.apiName}`}
+            key={apiName}
+            aria-label={isSelected ? t('Remove ') + productName : t('Add ') + productName}
+            data-test-id={`product-option-${apiName}`}
             onClick={toggleProductOption}
           >
             <AnimatedProductOptionContent
@@ -261,7 +332,7 @@ function ProductSelect({
                     </ProductName>
                   </ProductLabel>
                   <ProductDescription>
-                    {checkoutInfo.getProductDescription(formattedMonthlyBudget)}
+                    {checkoutInfo.getProductDescription(formattedMonthlyBudget ?? '')}
                   </ProductDescription>
                 </Column>
                 <PriceContainer>
@@ -277,6 +348,16 @@ function ProductSelect({
                 {Object.entries(checkoutInfo.categoryInfo).map(([category, info]) => {
                   const pricingInfo = activePlan.planCategories[category as DataCategory];
                   const eventPrice = pricingInfo ? pricingInfo[1]?.onDemandPrice : null;
+                  const dataCategoryInfo = getCategoryInfoFromPlural(
+                    category as DataCategory
+                  );
+                  const perEventNameOverride =
+                    dataCategoryInfo?.shortenedUnitName ??
+                    getSingularCategoryName({
+                      plan: activePlan,
+                      category: category as DataCategory,
+                      capitalize: false,
+                    });
                   return (
                     <Feature
                       key={category}
@@ -295,7 +376,7 @@ function ProductSelect({
                           })}
                         </span>
                         {eventPrice && (
-                          <EventPriceTag>{`${utils.displayUnitPrice({cents: eventPrice, minDigits: 0, maxDigits: info.maxEventPriceDigits})} / ${info.perEventNameOverride ?? getSingularCategoryName({plan: activePlan, category: category as DataCategory, hadCustomDynamicSampling: false, capitalize: false})}`}</EventPriceTag>
+                          <EventPriceTag>{`${utils.displayUnitPrice({cents: eventPrice, minDigits: 0, maxDigits: info.maxEventPriceDigits})} / ${perEventNameOverride}`}</EventPriceTag>
                         )}
                       </FeatureHeader>
                       <FeatureDescription>{info.description}</FeatureDescription>
@@ -307,16 +388,14 @@ function ProductSelect({
                 <StyledButton>
                   <ButtonContent
                     color={
-                      formData.selectedProducts?.[
-                        productInfo.apiName as string as SelectableProduct
-                      ]?.enabled && !prefersDarkMode
+                      formData.addOns?.[apiName]?.enabled &&
+                      !prefersDarkMode &&
+                      checkoutInfo.color
                         ? checkoutInfo.color
                         : theme.textColor
                     }
                   >
-                    {formData.selectedProducts?.[
-                      productInfo.apiName as string as SelectableProduct
-                    ]?.enabled ? (
+                    {formData.addOns?.[apiName]?.enabled ? (
                       <Fragment>
                         <IconCheckmark /> {t('Added to plan')}
                       </Fragment>
@@ -381,16 +460,18 @@ const ProductOptionContent = styled('div')<{
 `;
 
 const AnimatedProductOptionContent = styled(ProductOptionContent)<{
-  buttonBorderColor: string;
-  gradientColor: string;
   prefersDarkMode: boolean;
+  buttonBorderColor?: string;
+  gradientColor?: string;
 }>`
   background-color: ${p =>
-    p.isSelected ? p.gradientColor : p.theme.backgroundSecondary};
-  border: 1px solid ${p => (p.isSelected ? p.gradientColor : p.theme.innerBorder)};
+    p.isSelected && p.gradientColor ? p.gradientColor : p.theme.backgroundSecondary};
+  border: 1px solid
+    ${p => (p.isSelected && p.gradientColor ? p.gradientColor : p.theme.innerBorder)};
 
   button {
-    border-color: ${p => (p.isSelected ? p.buttonBorderColor : p.theme.innerBorder)};
+    border-color: ${p =>
+      p.isSelected && p.buttonBorderColor ? p.buttonBorderColor : p.theme.innerBorder};
     background-color: ${p => (p.isSelected ? 'transparent' : p.theme.background)};
   }
 
@@ -433,6 +514,7 @@ const AnimatedProductOptionContent = styled(ProductOptionContent)<{
 
   ${p =>
     !p.isSelected &&
+    p.gradientColor &&
     css`
       &:hover {
         background: linear-gradient(
@@ -592,7 +674,7 @@ const Feature = styled(Column)`
 const FeatureHeader = styled(Row)`
   justify-content: flex-start;
   flex-wrap: wrap;
-  gap: 0px;
+  gap: 10px;
   align-items: center;
 
   > span {

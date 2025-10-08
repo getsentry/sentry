@@ -39,10 +39,12 @@ export function ProcessedInsightFixture(
       },
       {
         path: 'src/assets/logo.png',
-        savings: 256000,
-        percentage: 4.0,
+        savings: 128000,
+        percentage: 2.0,
         data: {
           fileType: 'optimizable_image' as const,
+          minifyPercentage: 0,
+          conversionPercentage: 2.0,
           originalFile: {
             best_optimization_type: 'convert_to_heic',
             conversion_savings: 128000,

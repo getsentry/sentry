@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
+import {CodeBlock} from 'sentry/components/core/code';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {ItemType} from 'sentry/components/searchBar/types';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
@@ -851,7 +851,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
           implementation, clicking the button will open the dropdown for the first filter
           with the <code>focusOverride</code> prop.
         </p>
-        <CodeSnippet language="tsx">
+        <CodeBlock language="tsx">
           {`
 function OpenDropdownButton() {
   const {dispatch} = useSearchQueryBuilder();
@@ -884,7 +884,7 @@ function SearchQueryBuilderExample(queryBuilderProps: SearchQueryBuilderProps) {
   )
 }
       `}
-        </CodeSnippet>
+        </CodeBlock>
         <p>The following is the above code in action:</p>
         <SearchQueryBuilderExample />
       </Fragment>

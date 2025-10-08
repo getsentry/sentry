@@ -1,5 +1,5 @@
-import styled from '@emotion/styled';
-
+import {Text} from 'sentry/components/core/text';
+import List from 'sentry/components/list';
 import {t, tct} from 'sentry/locale';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
@@ -17,25 +17,17 @@ export function ViewResultsInsightsStep({step}: ViewResultsInsightsStepProps) {
       <OnboardingStep.Body>
         <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
         <OnboardingStep.Content>
-          <StyledP>
+          <Text>
             {t(
               "After the test run completion, you'll be able to see the failed tests result in the following areas:"
             )}
-          </StyledP>
-          <StyledUl>
+          </Text>
+          <List symbol="bullet">
             <li>{t('GitHub pull request comment')}</li>
             <li>{t('Tests Analytics dashboard here')}</li>
-          </StyledUl>
+          </List>
         </OnboardingStep.Content>
       </OnboardingStep.Body>
     </OnboardingStep.Container>
   );
 }
-
-const StyledP = styled('p')`
-  margin: 0;
-`;
-
-const StyledUl = styled('ul')`
-  margin: 0;
-`;

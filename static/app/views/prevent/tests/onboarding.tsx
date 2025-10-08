@@ -1,13 +1,13 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-import {useNavigate, useSearchParams} from 'react-router-dom';
+import {useSearchParams} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import testAnalyticsTestPerfDark from 'sentry-images/features/test-analytics-test-perf-dark.svg';
 import testAnalyticsTestPerf from 'sentry-images/features/test-analytics-test-perf.svg';
 
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
+import {Heading, Prose, Text} from 'sentry/components/core/text';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -20,6 +20,7 @@ import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AddScriptToYamlStep} from 'sentry/views/prevent/tests/onboardingSteps/addScriptToYamlStep';
 import {AddUploadTokenStep} from 'sentry/views/prevent/tests/onboardingSteps/addUploadTokenStep';
@@ -33,7 +34,6 @@ import {OutputCoverageFileStep} from 'sentry/views/prevent/tests/onboardingSteps
 import {RunTestSuiteStep} from 'sentry/views/prevent/tests/onboardingSteps/runTestSuiteStep';
 import {UploadFileCLIStep} from 'sentry/views/prevent/tests/onboardingSteps/uploadFileCLIStep';
 import {ViewResultsInsightsStep} from 'sentry/views/prevent/tests/onboardingSteps/viewResultsInsightsStep';
-import TestPreOnboardingPage from 'sentry/views/prevent/tests/preOnboarding';
 import {useRepo} from 'sentry/views/prevent/tests/queries/useRepo';
 import {EmptySelectorsMessage} from 'sentry/views/prevent/tests/tests';
 
@@ -45,32 +45,27 @@ enum SetupOption {
 export default function TestsOnboardingPage() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const organization = useOrganization();
   const {integratedOrgId, repository} = usePreventContext();
-  const {data: repoData, isSuccess} = useRepo();
+  const {data: repoData, isSuccess: isRepoSuccess} = useRepo();
+  const navigate = useNavigate();
   const opt = searchParams.get('opt');
 
   const theme = useTheme();
   const isDarkMode = theme.type === 'dark';
 
   const handleRadioChange = useCallback(
-    (newOption: SetupOption) => {
-      setSearchParams({opt: newOption});
-    },
+    (newOption: SetupOption) => setSearchParams({opt: newOption}),
     [setSearchParams]
   );
   const [selectedUploadPermission, setSelectedUploadPermission] =
     useState<UploadPermission>(UploadPermission.OIDC);
 
-  useEffect(() => {
-    if (repoData?.testAnalyticsEnabled && isSuccess) {
-      const queryString = getPreventParamsString(location);
-      navigate(`/prevent/tests${queryString ? `?${queryString}` : ''}`, {replace: true});
-    }
-  }, [repoData?.testAnalyticsEnabled, navigate, isSuccess, location]);
-
-  const {data: integrations = [], isPending} = useApiQuery<OrganizationIntegration[]>(
+  const {
+    data: integrations = [],
+    isPending: isIntegrationsPending,
+    isSuccess: isIntegrationsSuccess,
+  } = useApiQuery<OrganizationIntegration[]>(
     [
       `/organizations/${organization.slug}/integrations/`,
       {query: {includeConfig: 0, provider_key: 'github'}},
@@ -80,28 +75,49 @@ export default function TestsOnboardingPage() {
 
   const regionData = getRegionDataFromOrganization(organization);
   const isUSStorage = regionData?.name === 'us';
+  const cameFromTestsRoute = location.state?.from === '/prevent/tests';
 
-  if (!isUSStorage) {
-    return (
-      <LayoutGap>
-        <TestPreOnboardingPage />
-      </LayoutGap>
-    );
+  // We want to navigate to show TA if this repo should have data to show, if we need to show
+  // preOnboarding when they have no integrations, or if this org is not in the US region
+  useEffect(() => {
+    if (
+      !cameFromTestsRoute &&
+      ((repoData?.testAnalyticsEnabled && isRepoSuccess) ||
+        (!integrations.length && isIntegrationsSuccess) ||
+        !isUSStorage)
+    ) {
+      const queryString = getPreventParamsString(location);
+      navigate(`/prevent/tests${queryString ? `?${queryString}` : ''}`, {
+        state: {from: '/prevent/tests/new'},
+        replace: true,
+      });
+    }
+    // No `location` dependency as it causes infinite loop of redirect
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    cameFromTestsRoute,
+    repoData?.testAnalyticsEnabled,
+    isRepoSuccess,
+    integrations.length,
+    isIntegrationsSuccess,
+    isUSStorage,
+    navigate,
+  ]);
+
+  if (
+    !cameFromTestsRoute &&
+    ((repoData?.testAnalyticsEnabled && isRepoSuccess) ||
+      (!integrations.length && isIntegrationsSuccess) ||
+      !isUSStorage)
+  ) {
+    return null;
   }
 
-  if (isPending) {
+  if (isIntegrationsPending) {
     return (
-      <LayoutGap>
+      <Grid gap="xl">
         <LoadingIndicator />
-      </LayoutGap>
-    );
-  }
-
-  if (!integrations.length) {
-    return (
-      <LayoutGap>
-        <TestPreOnboardingPage />
-      </LayoutGap>
+      </Grid>
     );
   }
 
@@ -148,33 +164,39 @@ export default function TestsOnboardingPage() {
   );
 
   return (
-    <LayoutGap>
+    <Grid gap="xl">
       <PageFilterBar condensed>
         <IntegratedOrgSelector />
         <RepoSelector />
       </PageFilterBar>
       {integratedOrgId && repository ? (
-        <OnboardingContainer>
-          <OnboardingContent>
-            <IntroContainer>
-              <Flex justify="between" gap="2xl">
-                <div>
-                  <GetStartedHeader>
-                    {t('Get Started with Test Analytics')}
-                  </GetStartedHeader>
-                  <TAValueText>
-                    {t(
-                      'Test Analytics offers data on test run times, failure rates, and identifies flaky tests to help decrease the risk of deployment failures and make it easier to ship new features quickly.'
-                    )}
-                  </TAValueText>
-                </div>
-                <PreviewImg
-                  src={isDarkMode ? testAnalyticsTestPerfDark : testAnalyticsTestPerf}
-                  alt={t('Test Analytics example')}
-                />
-              </Flex>
-            </IntroContainer>
-            <SelectOptionHeader>{t('Select a setup option')}</SelectOptionHeader>
+        <Container padding="3xl" border="primary" maxWidth="1100px" radius="md">
+          <Flex gap="2xl" direction="column">
+            <Flex
+              justify="between"
+              gap="2xl"
+              borderBottom="muted"
+              paddingBottom="xl"
+              align="center"
+            >
+              <Prose>
+                <Heading as="h2" size="2xl">
+                  {t('Get Started with Test Analytics')}
+                </Heading>
+                <Text size="lg">
+                  {t(
+                    'Test Analytics offers data on test run times, failure rates, and identifies flaky tests to help decrease the risk of deployment failures and make it easier to ship new features quickly.'
+                  )}
+                </Text>
+              </Prose>
+              <img
+                src={isDarkMode ? testAnalyticsTestPerfDark : testAnalyticsTestPerf}
+                alt={t('Test Analytics example')}
+              />
+            </Flex>
+            <Heading as="h5" size="xl">
+              {t('Select a setup option')}
+            </Heading>
             <RadioGroup
               label="Select a setup option"
               value={
@@ -189,67 +211,21 @@ export default function TestsOnboardingPage() {
                 ],
               ]}
             />
-            <Flex direction="column" gap="2xl" maxWidth="1000px" padding="2xl 0 0 3xl">
+            <Flex direction="column" gap="2xl" maxWidth="1000px" paddingLeft="3xl">
               {opt === SetupOption.CLI ? cliSteps : githubActionSteps}
-              <div>
-                {tct(
-                  'To learn more about Test Analytics, please visit [ourDocs:our docs].',
-                  {
-                    ourDocs: (
-                      <ExternalLink href="https://docs.sentry.io/product/test-analytics/" />
-                    ),
-                  }
-                )}
-              </div>
+              <Text>
+                {tct('To learn more check out the [docsLink:Test Analytics docs].', {
+                  docsLink: (
+                    <ExternalLink href="https://docs.sentry.io/product/test-analytics/" />
+                  ),
+                })}
+              </Text>
             </Flex>
-          </OnboardingContent>
-        </OnboardingContainer>
+          </Flex>
+        </Container>
       ) : (
         <EmptySelectorsMessage />
       )}
-    </LayoutGap>
+    </Grid>
   );
 }
-
-const LayoutGap = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.xl};
-`;
-
-const OnboardingContainer = styled(Container)`
-  padding: ${p => p.theme.space['3xl']};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  max-width: 1200px;
-`;
-
-const OnboardingContent = styled('div')`
-  max-width: 1000px;
-`;
-
-const IntroContainer = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding-bottom: ${p => p.theme.space['2xl']};
-`;
-
-const PreviewImg = styled('img')`
-  align-self: center;
-`;
-
-const GetStartedHeader = styled('h2')`
-  font-size: 1.625rem;
-  color: ${p => p.theme.tokens.content.primary};
-  line-height: 40px;
-`;
-
-const TAValueText = styled('p')`
-  font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.tokens.content.primary};
-  margin: 0;
-`;
-
-const SelectOptionHeader = styled('h5')`
-  font-size: ${p => p.theme.fontSize.xl};
-  color: ${p => p.theme.tokens.content.primary};
-  padding-top: ${p => p.theme.space['2xl']};
-`;

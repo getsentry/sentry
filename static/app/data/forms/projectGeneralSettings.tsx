@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
@@ -79,7 +79,7 @@ export const fields = {
     options: platforms.map(({id, name}) => ({
       value: id,
       label: (
-        <Flex align="center" key={id}>
+        <Flex key={id} align="center">
           <StyledPlatformIcon platform={id} />
           {name}
         </Flex>
@@ -145,9 +145,9 @@ export const fields = {
       examples: (
         <Hovercard
           body={
-            <CodeSnippet hideCopyButton>
+            <CodeBlock hideCopyButton>
               {`https://example.com\n*.example.com\n*:80\n*`}
-            </CodeSnippet>
+            </CodeBlock>
           }
         >
           <Button priority="link" size="xs">
@@ -208,7 +208,12 @@ export const fields = {
         'Role required to download debug information files, proguard mappings and source maps. Overrides [organizationSettingsLink: organization settings].',
         {
           organizationSettingsLink: (
-            <Link to={`/settings/${organization.slug}/#debugFilesRole`} />
+            <Link
+              to={{
+                pathname: `/settings/${organization.slug}/`,
+                hash: 'debugFilesRole',
+              }}
+            />
           ),
         }
       ),

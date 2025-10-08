@@ -5,10 +5,10 @@ import {
   openDashboardWidgetQuerySelectorModal,
 } from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Link} from 'sentry/components/core/link';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -47,6 +47,30 @@ export const useIndexedEventsWarning = (): string | null => {
     : null;
 };
 
+export const useTransactionsDeprecationWarning = ({
+  widget,
+}: {
+  widget: Widget;
+}): React.JSX.Element | null => {
+  const organization = useOrganization();
+
+  if (
+    organization.features.includes('transaction-widget-deprecation-explore-view') &&
+    widget.widgetType === WidgetType.TRANSACTIONS &&
+    widget.exploreUrls &&
+    widget.exploreUrls.length > 0
+  ) {
+    return tct(
+      'Transactions widgets are in the process of being migrated to spans widgets. To see what your query could look like, open it in [explore:Explore].',
+      {
+        explore: <Link to={widget.exploreUrls[0]!} />,
+      }
+    );
+  }
+
+  return null;
+};
+
 export function getMenuOptions(
   dashboardFilters: DashboardFilters | undefined,
   organization: Organization,
@@ -56,7 +80,6 @@ export function getMenuOptions(
   widgetLimitReached: boolean,
   hasEditAccess = true,
   location: Location,
-  router: InjectedRouter,
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void
@@ -95,11 +118,7 @@ export function getMenuOptions(
           : widget.queries.length === 1
             ? discoverPath
             : undefined,
-        tooltip: isUsingPerformanceScore(widget)
-          ? performanceScoreTooltip
-          : t(
-              'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
-            ),
+        tooltip: isUsingPerformanceScore(widget) ? performanceScoreTooltip : null,
         tooltipOptions: {disabled: !optionDisabled},
         disabled: optionDisabled,
         showDetailsInOverlay: true,
@@ -183,7 +202,6 @@ export function getMenuOptions(
         openAddToDashboardModal({
           organization,
           location,
-          router,
           selection,
           widget: {
             ...widget,

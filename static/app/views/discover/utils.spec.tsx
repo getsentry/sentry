@@ -2,13 +2,11 @@ import type {Location} from 'history';
 import {EventFixture} from 'sentry-fixture/event';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
@@ -26,7 +24,6 @@ import {
   generateFieldOptions,
   getExpandedResults,
   handleAddQueryToDashboard,
-  pushEventViewToLocation,
 } from 'sentry/views/discover/utils';
 
 jest.mock('sentry/actionCreators/modal');
@@ -241,92 +238,6 @@ describe('decodeColumnOrder', () => {
       isSortable: true,
       type: 'duration',
     });
-  });
-});
-
-describe('pushEventViewToLocation', () => {
-  const state: EventViewOptions = {
-    ...baseView,
-    id: '1234',
-    name: 'best query',
-    fields: [{field: 'count()', width: 420}, {field: 'project.id'}],
-    sorts: [{field: 'count', kind: 'desc'}],
-    query: 'event.type:error',
-    project: [42],
-    start: '2019-10-01T00:00:00',
-    end: '2019-10-02T00:00:00',
-    statsPeriod: '14d',
-    environment: ['staging'],
-  };
-
-  const location = LocationFixture({
-    query: {
-      bestCountry: 'canada',
-    },
-  });
-
-  it('correct query string object pushed to history', () => {
-    const navigate = jest.fn();
-    const eventView = new EventView({...baseView, ...state});
-
-    pushEventViewToLocation({
-      navigate,
-      location,
-      nextEventView: eventView,
-    });
-
-    expect(navigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          id: '1234',
-          name: 'best query',
-          field: ['count()', 'project.id'],
-          widths: '420',
-          sort: '-count',
-          query: 'event.type:error',
-          project: '42',
-          start: '2019-10-01T00:00:00',
-          end: '2019-10-02T00:00:00',
-          statsPeriod: '14d',
-          environment: 'staging',
-          yAxis: 'count()',
-        }),
-      })
-    );
-  });
-
-  it('extra query params', () => {
-    const navigate = jest.fn();
-    const eventView = new EventView({...baseView, ...state});
-
-    pushEventViewToLocation({
-      navigate,
-      location,
-      nextEventView: eventView,
-      extraQuery: {
-        cursor: 'some cursor',
-      },
-    });
-
-    expect(navigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          id: '1234',
-          name: 'best query',
-          field: ['count()', 'project.id'],
-          widths: '420',
-          sort: '-count',
-          query: 'event.type:error',
-          project: '42',
-          start: '2019-10-01T00:00:00',
-          end: '2019-10-02T00:00:00',
-          statsPeriod: '14d',
-          environment: 'staging',
-          cursor: 'some cursor',
-          yAxis: 'count()',
-        }),
-      })
-    );
   });
 });
 
@@ -1033,12 +944,10 @@ describe('constructAddQueryToDashboardLink', () => {
 describe('handleAddQueryToDashboard', () => {
   let organization: Organization;
   let location: Location;
-  let router: InjectedRouter;
   let mockedOpenAddToDashboardModal: jest.Mock;
   beforeEach(() => {
     organization = OrganizationFixture();
     location = LocationFixture();
-    router = RouterFixture();
     mockedOpenAddToDashboardModal = jest.mocked(openAddToDashboardModal);
   });
 
@@ -1052,7 +961,6 @@ describe('handleAddQueryToDashboard', () => {
       eventView,
       organization,
       location,
-      router,
       widgetType: WidgetType.TRANSACTIONS,
       yAxis: ['count()'],
       source: DashboardWidgetSource.DISCOVERV2,
@@ -1091,7 +999,6 @@ describe('handleAddQueryToDashboard', () => {
       eventView,
       organization,
       location,
-      router,
       source: DashboardWidgetSource.DISCOVERV2,
       widgetType: WidgetType.TRANSACTIONS,
       yAxis: ['count()'],
@@ -1129,7 +1036,6 @@ describe('handleAddQueryToDashboard', () => {
       eventView,
       organization,
       location,
-      router,
       source: DashboardWidgetSource.DISCOVERV2,
       widgetType: WidgetType.TRANSACTIONS,
       yAxis: ['count()', 'count_unique(user)'],
@@ -1174,7 +1080,6 @@ describe('handleAddQueryToDashboard', () => {
         eventView,
         organization,
         location,
-        router,
         source: DashboardWidgetSource.DISCOVERV2,
         widgetType: WidgetType.TRANSACTIONS,
         yAxis: ['count()'],
@@ -1214,7 +1119,6 @@ describe('handleAddQueryToDashboard', () => {
         eventView,
         organization,
         location,
-        router,
         source: DashboardWidgetSource.DISCOVERV2,
         widgetType: WidgetType.TRANSACTIONS,
         yAxis: ['count()'],
@@ -1253,7 +1157,6 @@ describe('handleAddQueryToDashboard', () => {
         eventView,
         organization,
         location,
-        router,
         source: DashboardWidgetSource.DISCOVERV2,
         widgetType: WidgetType.TRANSACTIONS,
         yAxis: ['count()', 'count_unique(user)'],

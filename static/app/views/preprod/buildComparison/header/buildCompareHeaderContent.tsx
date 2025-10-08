@@ -6,7 +6,9 @@ import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {Heading} from 'sentry/components/core/text/heading';
-import {IconCode, IconDownload, IconJson} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {IconCode, IconDownload, IconJson, IconMobile} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   isSizeInfoCompleted,
@@ -47,7 +49,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
     <Flex direction="column" gap="lg" style={{padding: `0 0 ${theme.space.lg} 0`}}>
       <Breadcrumbs crumbs={breadcrumbs} />
       <Heading as="h1">Build comparison</Heading>
-      <Flex gap="lg">
+      <Flex gap="lg" wrap="wrap" align="center">
         <Flex gap="sm" align="center">
           <AppIcon>
             <AppIconPlaceholder>
@@ -76,6 +78,14 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
           </InfoIcon>
           <Text>{buildDetails.app_info.app_id}</Text>
         </Flex>
+        {buildDetails.app_info.build_configuration && (
+          <Flex gap="sm" align="center">
+            <IconMobile size="sm" color="gray300" />
+            <Tooltip title={t('Build configuration')}>
+              <Text monospace>{buildDetails.app_info.build_configuration}</Text>
+            </Tooltip>
+          </Flex>
+        )}
         {isSizeInfoCompleted(buildDetails.size_info) && (
           <Flex gap="sm" align="center">
             <IconDownload size="sm" color="gray300" />

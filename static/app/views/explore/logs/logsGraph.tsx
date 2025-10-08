@@ -16,7 +16,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {
@@ -28,7 +27,6 @@ import {
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
-import {useLogsSearch} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {
   ChartIntervalUnspecifiedStrategy,
@@ -40,6 +38,7 @@ import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
   useQueryParamsMode,
+  useQueryParamsSearch,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
   useSetQueryParamsVisualizes,
@@ -221,13 +220,12 @@ function ContextMenu({
   visualize: Visualize;
 }) {
   const location = useLocation();
-  const router = useRouter();
   const organization = useOrganization();
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
 
   const mode = useQueryParamsMode();
-  const search = useLogsSearch();
+  const search = useQueryParamsSearch();
   const aggregateFields = useQueryParamsAggregateFields();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
 
@@ -323,7 +321,6 @@ function ContextMenu({
           organization,
           location,
           eventView,
-          router,
           yAxis: visualize.yAxis,
           widgetType: WidgetType.LOGS,
           source: DashboardWidgetSource.LOGS,
@@ -357,7 +354,6 @@ function ContextMenu({
     organization,
     pageFilters,
     projects,
-    router,
     search,
     setVisible,
     visible,

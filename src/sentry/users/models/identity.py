@@ -101,7 +101,7 @@ class IdentityManager(BaseManager["Identity"]):
             )
             return None
 
-        from sentry.integrations.slack.analytics import IntegrationIdentityLinked
+        from sentry.integrations.slack.analytics import SlackIntegrationIdentityLinked
 
         defaults = {
             **(defaults or {}),
@@ -120,7 +120,7 @@ class IdentityManager(BaseManager["Identity"]):
             return self.reattach(idp, external_id, user, defaults)
 
         analytics.record(
-            IntegrationIdentityLinked(
+            SlackIntegrationIdentityLinked(
                 provider=IntegrationProviderSlug.SLACK.value,
                 # Note that prior to circa March 2023 this was user.actor_id. It changed
                 # when actor ids were no longer stable between regions for the same user

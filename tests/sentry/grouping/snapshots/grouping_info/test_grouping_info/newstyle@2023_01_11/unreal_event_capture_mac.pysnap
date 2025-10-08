@@ -1,10 +1,10 @@
 ---
-created: '2025-09-11T21:20:24.813399+00:00'
+created: '2025-10-06T21:57:35.837749+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_thread_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -21,7 +21,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": false,
@@ -1320,21 +1320,23 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app thread stack-trace",
+    "contributes": true,
+    "description": "thread stacktrace — in-app frames",
     "hash": "54e8028fb2526cf31b12dd66c01ad9e2",
-    "key": "app",
+    "hint": null,
+    "key": "app_thread_stacktrace",
     "type": "component"
   },
-  "default": {
+  "message": {
     "component": {
       "contributes": false,
-      "hint": "threads of app/system take precedence",
+      "hint": "ignored because app/system threads take precedence",
       "id": "default",
       "name": null,
       "values": [
         {
           "contributes": false,
-          "hint": "threads of app/system take precedence",
+          "hint": "ignored because app/system threads take precedence",
           "id": "message",
           "name": "message",
           "values": [
@@ -1363,12 +1365,14 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "default",
+    "contributes": false,
+    "description": "message",
     "hash": null,
-    "key": "default",
+    "hint": "ignored because app/system threads take precedence",
+    "key": "message",
     "type": "component"
   },
-  "system": {
+  "system_thread_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -1385,7 +1389,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": false,
@@ -2684,9 +2688,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "thread stack-trace",
+    "contributes": true,
+    "description": "thread stacktrace — all frames",
     "hash": "9e04decaf79ecba9dc0314dc0edd3993",
-    "key": "system",
+    "hint": null,
+    "key": "system_thread_stacktrace",
     "type": "component"
   }
 }

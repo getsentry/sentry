@@ -5,11 +5,9 @@ import os
 import random
 import signal
 import time
-from multiprocessing import cpu_count
 from typing import Any
 
 import click
-from django.utils import autoreload
 
 import sentry.taskworker.constants as taskworker_constants
 from sentry.bgtasks.api import managed_bgtasks
@@ -128,118 +126,6 @@ def web(
         SentryHTTPServer(host=bind[0], port=bind[1], workers=workers).run()
 
 
-def run_worker(**options: Any) -> None:
-    """
-    This is the inner function to actually start worker.
-    """
-    from django.conf import settings
-
-    if settings.CELERY_ALWAYS_EAGER:
-        raise click.ClickException(
-            "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
-        )
-
-    # These options are no longer used, but keeping around
-    # for backwards compatibility
-    for o in "without_gossip", "without_mingle", "without_heartbeat":
-        options.pop(o, None)
-
-    from sentry.celery import app
-
-    # NOTE: without_mingle breaks everything,
-    # we can't get rid of this. Intentionally kept
-    # here as a warning. Jobs will not process.
-    without_mingle = os.getenv("SENTRY_WORKER_FORCE_WITHOUT_MINGLE", "false").lower() == "true"
-
-    with managed_bgtasks(role="worker"):
-        worker = app.Worker(
-            without_mingle=without_mingle,
-            without_gossip=True,
-            without_heartbeat=True,
-            pool_cls="processes",
-            **options,
-        )
-        worker.start()
-        raise SystemExit(worker.exitcode)
-
-
-@run.command()
-@click.option(
-    "--hostname",
-    "-n",
-    help=(
-        "Set custom hostname, e.g. 'w1.%h'. Expands: %h" "(hostname), %n (name) and %d, (domain)."
-    ),
-)
-@click.option(
-    "--queues",
-    "-Q",
-    type=QueueSet,
-    help=(
-        "List of queues to enable for this worker, separated by "
-        "comma. By default all configured queues are enabled. "
-        "Example: -Q video,image"
-    ),
-)
-@click.option("--exclude-queues", "-X", type=QueueSet)
-@click.option(
-    "--concurrency",
-    "-c",
-    default=cpu_count(),
-    help=(
-        "Number of child processes processing the queue. The "
-        "default is the number of CPUs available on your "
-        "system."
-    ),
-)
-@click.option(
-    "--logfile", "-f", help=("Path to log file. If no logfile is specified, stderr is used.")
-)
-@click.option("--quiet", "-q", is_flag=True, default=False)
-@click.option("--no-color", is_flag=True, default=False)
-@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
-@click.option("--without-gossip", is_flag=True, default=False)
-@click.option("--without-mingle", is_flag=True, default=False)
-@click.option("--without-heartbeat", is_flag=True, default=False)
-@click.option("--max-tasks-per-child", default=10000)
-@click.option("--ignore-unknown-queues", is_flag=True, default=False)
-@log_options()
-@configuration
-def worker(ignore_unknown_queues: bool, **options: Any) -> None:
-    """Run background worker instance and autoreload if necessary."""
-
-    from sentry.celery import app
-
-    known_queues = frozenset(c_queue.name for c_queue in app.conf.CELERY_QUEUES)
-
-    if options["queues"] is not None:
-        if not options["queues"].issubset(known_queues):
-            unknown_queues = options["queues"] - known_queues
-            message = "Following queues are not found: %s" % ",".join(sorted(unknown_queues))
-            if ignore_unknown_queues:
-                options["queues"] -= unknown_queues
-                click.echo(message)
-            else:
-                raise click.ClickException(message)
-
-    if options["exclude_queues"] is not None:
-        if not options["exclude_queues"].issubset(known_queues):
-            unknown_queues = options["exclude_queues"] - known_queues
-            message = "Following queues cannot be excluded as they don't exist: %s" % ",".join(
-                sorted(unknown_queues)
-            )
-            if ignore_unknown_queues:
-                options["exclude_queues"] -= unknown_queues
-                click.echo(message)
-            else:
-                raise click.ClickException(message)
-
-    if options["autoreload"]:
-        autoreload.run_with_reloader(run_worker, **options)
-    else:
-        run_worker(**options)
-
-
 @run.command()
 @click.option(
     "--redis-cluster",
@@ -279,6 +165,87 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
         while True:
             sleep_time = runner.tick()
             time.sleep(sleep_time)
+
+
+@run.command()
+@click.option(
+    "--pidfile",
+    help=(
+        "Optional file used to store the process pid. The "
+        "program will not start if this file already exists and "
+        "the pid is still alive."
+    ),
+)
+@click.option(
+    "--logfile", "-f", help=("Path to log file. If no logfile is specified, stderr is used.")
+)
+@click.option("--quiet", "-q", is_flag=True, default=False)
+@click.option("--no-color", is_flag=True, default=False)
+@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
+@click.option("--without-gossip", is_flag=True, default=False)
+@click.option("--without-mingle", is_flag=True, default=False)
+@click.option("--without-heartbeat", is_flag=True, default=False)
+@log_options()
+@configuration
+def cron(**options: Any) -> None:
+    # TODO(taskworker) Remove this stub command
+    while True:
+        click.secho(
+            "The cron command has been removed. Use `sentry run taskworker-scheduler` instead.",
+            fg="yellow",
+        )
+        time.sleep(5)
+
+
+@run.command()
+@click.option(
+    "--hostname",
+    "-n",
+    help=(
+        "Set custom hostname, e.g. 'w1.%h'. Expands: %h" "(hostname), %n (name) and %d, (domain)."
+    ),
+)
+@click.option(
+    "--queues",
+    "-Q",
+    type=QueueSet,
+    help=(
+        "List of queues to enable for this worker, separated by "
+        "comma. By default all configured queues are enabled. "
+        "Example: -Q video,image"
+    ),
+)
+@click.option("--exclude-queues", "-X", type=QueueSet)
+@click.option(
+    "--concurrency",
+    "-c",
+    default=1,
+    help=(
+        "Number of child processes processing the queue. The "
+        "default is the number of CPUs available on your "
+        "system."
+    ),
+)
+@click.option(
+    "--logfile", "-f", help=("Path to log file. If no logfile is specified, stderr is used.")
+)
+@click.option("--quiet", "-q", is_flag=True, default=False)
+@click.option("--no-color", is_flag=True, default=False)
+@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
+@click.option("--without-gossip", is_flag=True, default=False)
+@click.option("--without-mingle", is_flag=True, default=False)
+@click.option("--without-heartbeat", is_flag=True, default=False)
+@click.option("--max-tasks-per-child", default=10000)
+@click.option("--ignore-unknown-queues", is_flag=True, default=False)
+@log_options()
+@configuration
+def worker(ignore_unknown_queues: bool, **options: Any) -> None:
+    # TODO(taskworker) Remove this stub command
+    while True:
+        click.secho(
+            "The worker command has been removed. Use `sentry run taskworker` instead.", fg="yellow"
+        )
+        time.sleep(5)
 
 
 @run.command()
@@ -478,59 +445,6 @@ def taskbroker_send_tasks(
     click.echo(message=f"Successfully sent {repeat} messages.")
 
 
-@run.command()
-@click.option(
-    "--pidfile",
-    help=(
-        "Optional file used to store the process pid. The "
-        "program will not start if this file already exists and "
-        "the pid is still alive."
-    ),
-)
-@click.option(
-    "--logfile", "-f", help=("Path to log file. If no logfile is specified, stderr is used.")
-)
-@click.option("--quiet", "-q", is_flag=True, default=False)
-@click.option("--no-color", is_flag=True, default=False)
-@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
-@click.option("--without-gossip", is_flag=True, default=False)
-@click.option("--without-mingle", is_flag=True, default=False)
-@click.option("--without-heartbeat", is_flag=True, default=False)
-@log_options()
-@configuration
-def cron(**options: Any) -> None:
-    "Run periodic task dispatcher."
-    from django.conf import settings
-
-    from sentry import options as runtime_options
-
-    if settings.CELERY_ALWAYS_EAGER:
-        raise click.ClickException(
-            "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
-        )
-
-    from sentry.celery import app
-
-    schedule = app.conf.CELERYBEAT_SCHEDULE
-    if runtime_options.get("taskworker.enabled"):
-        click.secho(
-            "You have `taskworker.enabled` active, run `sentry run taskworker-scheduler` instead.",
-            fg="yellow",
-        )
-        click.secho("Ignoring all schedules in settings.CELERYBEAT_SCHEDULE", fg="yellow")
-        schedule = {}
-
-    app.conf.update(CELERYBEAT_SCHEDULE=schedule)
-
-    with managed_bgtasks(role="cron"):
-        app.Beat(
-            # without_gossip=True,
-            # without_mingle=True,
-            # without_heartbeat=True,
-            **options
-        ).run()
-
-
 @run.command("consumer")
 @log_options()
 @click.argument(
@@ -659,6 +573,7 @@ def basic_consumer(
     """
     from sentry.consumers import get_stream_processor
     from sentry.metrics.middleware import add_global_tags
+    from sentry.options import get
 
     log_level = options.pop("log_level", None)
     if log_level is not None:
@@ -680,7 +595,11 @@ def basic_consumer(
     if not quantized_rebalance_delay_secs and consumer_name == "ingest-generic-metrics":
         quantized_rebalance_delay_secs = options.get("sentry-metrics.synchronized-rebalance-delay")
 
-    run_processor_with_signals(processor, quantized_rebalance_delay_secs)
+    dump_stacktrace_on_shutdown = consumer_name in get("consumer.dump_stacktrace_on_shutdown", [])
+
+    run_processor_with_signals(
+        processor, quantized_rebalance_delay_secs, dump_stacktrace_on_shutdown
+    )
 
 
 @run.command("dev-consumer")

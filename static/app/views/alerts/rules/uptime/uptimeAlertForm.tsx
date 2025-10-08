@@ -26,11 +26,11 @@ import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
@@ -39,8 +39,6 @@ import {HTTPSnippet} from './httpSnippet';
 import {UptimeHeadersField} from './uptimeHeadersField';
 
 interface Props {
-  organization: Organization;
-  project: Project;
   handleDelete?: () => void;
   rule?: UptimeRule;
 }
@@ -85,14 +83,20 @@ function getFormDataFromRule(rule: UptimeRule) {
   };
 }
 
-export function UptimeAlertForm({project, handleDelete, rule}: Props) {
+export function UptimeAlertForm({handleDelete, rule}: Props) {
   const navigate = useNavigate();
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const {projects} = useProjects();
+  const {selection} = usePageFilters();
+
+  const project =
+    projects.find(p => selection.projects[0]?.toString() === p.id) ??
+    (projects.length === 1 ? projects[0] : null);
 
   const initialData = rule
     ? getFormDataFromRule(rule)
-    : {projectSlug: project.slug, method: 'GET', headers: []};
+    : {projectSlug: project?.slug, method: 'GET', headers: []};
 
   const [formModel] = useState(() => new FormModel());
 
@@ -115,6 +119,16 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           : `/projects/${organization.slug}/${projectSlug}/uptime/`;
 
         function onSubmitSuccess(response: any) {
+          // Clear the cached uptime rule so subsequent edits load fresh data
+          const ruleId = response?.id ?? rule?.id;
+          if (ruleId) {
+            queryClient.invalidateQueries({
+              queryKey: [
+                `/projects/${organization.slug}/${projectSlug}/uptime/${ruleId}/`,
+              ],
+              exact: true,
+            });
+          }
           navigate(
             makeAlertsPathname({
               path: `/rules/uptime/${projectSlug}/${response.id}/details/`,
@@ -128,7 +142,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           setEnvironments(selectedProject.environments);
         }
       }),
-    [formModel, navigate, organization, projects, rule]
+    [formModel, navigate, organization, projects, rule, queryClient]
   );
 
   // When mutating the name field manually, we'll disable automatic name
@@ -434,7 +448,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           <SentryMemberTeamSelectorField
             name="owner"
             label={t('Owner')}
-            menuPlacement="auto"
             inline={false}
             flexibleControlStateSize
             stacked

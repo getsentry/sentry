@@ -93,7 +93,7 @@ function TraceAiSpans({traceSlug}: {traceSlug: string}) {
   return (
     <Wrapper>
       <HeaderCell>{t('Abbreviated Trace')}</HeaderCell>
-      <HeaderCell align={'right'}>
+      <HeaderCell align="right">
         <LinkButton
           size="xs"
           onClick={handleViewFullTraceClick}

@@ -1,10 +1,10 @@
 ---
-created: '2025-09-11T21:52:17.497094+00:00'
+created: '2025-10-06T21:57:33.151299+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_chained_exception_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -27,7 +27,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   "contributes": true,
                   "hint": null,
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": [
                     {
                       "contributes": true,
@@ -92,7 +92,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   "contributes": true,
                   "hint": null,
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": [
                     {
                       "contributes": true,
@@ -171,15 +171,17 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app exception stack-trace",
+    "contributes": true,
+    "description": "chained exception stacktraces — in-app frames",
     "hash": "669cb6664e0f5fed38665da04e464f7e",
-    "key": "app",
+    "hint": null,
+    "key": "app_chained_exception_stacktrace",
     "type": "component"
   },
-  "system": {
+  "system_chained_exception_stacktrace": {
     "component": {
       "contributes": false,
-      "hint": "exception of app takes precedence",
+      "hint": "ignored because app exception takes precedence",
       "id": "system",
       "name": null,
       "values": [
@@ -199,7 +201,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   "contributes": true,
                   "hint": null,
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": [
                     {
                       "contributes": true,
@@ -264,7 +266,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   "contributes": true,
                   "hint": null,
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": [
                     {
                       "contributes": true,
@@ -343,9 +345,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "system",
+    "contributes": false,
+    "description": "chained exception stacktraces — all frames",
     "hash": null,
-    "key": "system",
+    "hint": "ignored because app exception takes precedence",
+    "key": "system_chained_exception_stacktrace",
     "type": "component"
   }
 }

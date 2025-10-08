@@ -7,12 +7,6 @@ import localStorageWrapper from 'sentry/utils/localStorage';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import TestsPage from 'sentry/views/prevent/tests/tests';
 
-jest.mock('sentry/components/pagination', () => {
-  return function MockPagination() {
-    return <div>Pagination Component</div>;
-  };
-});
-
 jest.mock('sentry/utils/regions', () => ({
   getRegionDataFromOrganization: jest.fn(),
 }));
@@ -197,9 +191,8 @@ describe('CoveragePageWrapper', () => {
         expect(screen.getByRole('table')).toBeInTheDocument();
       });
 
-      await waitFor(() => {
-        expect(screen.getByText('Pagination Component')).toBeInTheDocument();
-      });
+      expect(await screen.findByRole('button', {name: 'Previous'})).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Next'})).toBeInTheDocument();
     });
   });
   describe('when the organization is not in the US region', () => {

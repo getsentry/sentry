@@ -108,13 +108,11 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'shell',
-          partialLoading: params.sourcePackageRegistries.isLoading,
           description: t('Package Manager:'),
           code: getInstallSnippetPackageManager(params),
         },
         {
           language: 'shell',
-          partialLoading: params.sourcePackageRegistries.isLoading,
           description: t('Using Entity Framework 6?'),
           code: getInstallSnippetEntityFramework(params),
         },

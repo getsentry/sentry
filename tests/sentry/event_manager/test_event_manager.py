@@ -85,7 +85,7 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.usage_accountant import usage_accountant_backend
-from sentry.testutils.performance_issues.event_generators import get_event
+from sentry.testutils.issue_detection.event_generators import get_event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
@@ -120,51 +120,6 @@ class EventManagerTestMixin:
 
 
 class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, PerformanceIssueTestCase):
-    def test_group_in_deletion_in_progress_should_not_create_new_group(self) -> None:
-        data = {"timestamp": before_now(minutes=1).isoformat()}
-
-        event = self.store_event(data=data, project_id=self.project.id)
-        assert event.group_id is not None
-        group = event.group
-        first_event_hash = event.get_primary_hash()
-
-        # New events will still be associated with the group in deletion in progress
-        group.update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
-        group.save()
-        new_event = self.store_event(data=data, project_id=self.project.id)
-        # The new event has the same hash as the first event
-        assert new_event.get_primary_hash() == first_event_hash
-        assert GroupHash.objects.get(group_id=new_event.group_id).group_id == group.id
-        assert new_event.group_id == group.id
-
-        # Now, if the group hash is deleted then the group will create a new group
-        assert len(GroupHash.objects.filter(group_id=group.id)) == 1
-        GroupHash.objects.get(group_id=group.id).delete()
-        new_event = self.store_event(data=data, project_id=self.project.id)
-        new_event_hash = new_event.get_primary_hash()
-        assert new_event_hash == first_event_hash
-        assert GroupHash.objects.get(group_id=new_event.group_id).group_id != group.id
-        assert new_event.group_id != group.id
-
-    @with_feature("organizations:no-group-match-when-deletion-in-progress")
-    def test_group_in_deletion_in_progress_should_create_new_group_when_flag_on(self) -> None:
-        data = {"timestamp": before_now(minutes=1).isoformat()}
-
-        event = self.store_event(data=data, project_id=self.project.id)
-        assert event.group_id is not None
-        group = event.group
-        first_event_hash = event.get_primary_hash()
-
-        # New events will create a new group since the group is in deletion in progress
-        group.update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
-        group.save()
-        new_event = self.store_event(data=data, project_id=self.project.id)
-        # The new event has the same hash as the first event
-        assert new_event.get_primary_hash() == first_event_hash
-        # The existing group hash will be associated to the new group
-        assert GroupHash.objects.get(group_id=new_event.group_id).group_id != group.id
-        assert new_event.group_id != group.id
-
     def test_ephemeral_interfaces_removed_on_save(self) -> None:
         manager = EventManager(make_event(platform="python"))
         manager.normalize()
@@ -394,7 +349,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group.title == "CompositeException: Can't call onError."
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
-    @with_feature("organizations:issue-open-periods")
     def test_unresolve_auto_resolved_group(self, send_robust: mock.MagicMock) -> None:
         ts = before_now(minutes=5).isoformat()
 
@@ -450,7 +404,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert open_period.date_ended == resolved_at
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
-    @with_feature("organizations:issue-open-periods")
     def test_unresolves_group(self, send_robust: mock.MagicMock) -> None:
         ts = before_now(minutes=5).isoformat()
 
@@ -505,7 +458,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert open_period.date_ended == resolved_at
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
-    @with_feature("organizations:issue-open-periods")
     def test_unresolves_group_without_open_period(self, send_robust: mock.MagicMock) -> None:
         ts = before_now(minutes=5).isoformat()
 
@@ -1212,7 +1164,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
 
     @mock.patch("sentry.models.Group.is_resolved")
-    @with_feature("organizations:issue-open-periods")
     def test_unresolves_group_with_auto_resolve(self, mock_is_resolved: mock.MagicMock) -> None:
         ts = before_now(minutes=5).isoformat()
         mock_is_resolved.return_value = False
@@ -1737,7 +1688,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.data["type"] == "default"
         assert group.data["metadata"]["title"] == "foo bar"
 
-    @with_feature("organizations:issue-open-periods")
     def test_error_event_type(self) -> None:
         from sentry.models.groupopenperiod import GroupOpenPeriod
 
@@ -1764,7 +1714,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert open_period[0].date_started == group.first_seen
         assert open_period[0].date_ended is None
 
-    @with_feature("organizations:issue-open-periods")
     def test_error_event_with_minified_stacktrace(self) -> None:
         with patch(
             "sentry.receivers.onboarding.record_event_with_first_minified_stack_trace_for_project",  # autospec=True
@@ -2823,7 +2772,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_perf_issue_creation(self) -> None:
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
             )
             data = event.data
             assert event.get_event_type() == "transaction"
@@ -2917,7 +2866,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_perf_issue_update(self) -> None:
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
             )
             group = event.group
             assert group is not None
@@ -2935,7 +2884,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
             with self.tasks():
                 self.create_performance_issue(
-                    event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
+                    event_data=make_event(
+                        **get_event("n-plus-one-db/n-plus-one-in-django-index-view")
+                    )
                 )
 
             # Make sure the original group is updated via buffers
@@ -2958,7 +2909,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         """Test that you can't associate a performance event with an error issue"""
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
             )
             assert event.group is not None
 
@@ -2968,7 +2919,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             group.type = ErrorGroupType.type_id
             group.save()
             event = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
             )
 
             assert event.group is None
@@ -2999,7 +2950,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_perf_issue_creation_ignored(self) -> None:
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view")),
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
                 noise_limit=2,
             )
             assert event.get_event_type() == "transaction"
@@ -3010,13 +2961,16 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_perf_issue_creation_over_ignored_threshold(self) -> None:
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event_1 = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view")), noise_limit=3
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
+                noise_limit=3,
             )
             event_2 = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view")), noise_limit=3
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
+                noise_limit=3,
             )
             event_3 = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view")), noise_limit=3
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
+                noise_limit=3,
             )
             assert event_1.get_event_type() == "transaction"
             assert event_2.get_event_type() == "transaction"
@@ -3036,7 +2990,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_perf_issue_slow_db_issue_is_created(self) -> None:
         def attempt_to_generate_slow_db_issue() -> Event:
             return self.create_performance_issue(
-                event_data=make_event(**get_event("slow-db-spans")),
+                event_data=make_event(**get_event("slow-db/slow-db-spans")),
                 issue_type=PerformanceSlowDBQueryGroupType,
             )
 

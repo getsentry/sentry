@@ -109,7 +109,7 @@ type BaseProps = {
   alertMenuOptions: MenuItemProps[];
   exploreUrl: LocationDescriptor;
   referrer: string;
-  addToDashboardOptions?: AddToSpanDashboardOptions;
+  addToDashboardOptions?: AddToSpanDashboardOptions | AddToSpanDashboardOptions[];
 };
 
 export function BaseChartActionDropdown({
@@ -137,7 +137,7 @@ export function BaseChartActionDropdown({
   ];
 
   if (addToDashboardOptions) {
-    menuOptions.push({
+    const menuOption: MenuItemProps = {
       key: 'add-to-dashboard',
       label: (
         <Feature
@@ -149,12 +149,24 @@ export function BaseChartActionDropdown({
         </Feature>
       ),
       textValue: t('Add to Dashboard'),
-      onAction: () => {
-        addToSpanDashboard(addToDashboardOptions);
-      },
-      isSubmenu: false,
       disabled: !hasDashboardEdit,
-    });
+    };
+    if (Array.isArray(addToDashboardOptions)) {
+      menuOption.isSubmenu = true;
+      menuOption.children = addToDashboardOptions.map((option, idx) => ({
+        key: `${option.chartType}-${idx}-${option.yAxes}`,
+        label: option.widgetName,
+        onAction: () => {
+          addToSpanDashboard(option);
+        },
+      }));
+    } else {
+      menuOption.isSubmenu = false;
+      menuOption.onAction = () => {
+        addToSpanDashboard(addToDashboardOptions);
+      };
+    }
+    menuOptions.push(menuOption);
   }
 
   if (alertMenuOptions.length > 0) {

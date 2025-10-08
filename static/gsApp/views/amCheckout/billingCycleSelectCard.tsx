@@ -9,6 +9,7 @@ import {t, tct} from 'sentry/locale';
 
 import {ANNUAL} from 'getsentry/constants';
 import type {Plan, Subscription} from 'getsentry/types';
+import {displayBudgetName, isDeveloperPlan} from 'getsentry/utils/billing';
 import CheckoutOption from 'getsentry/views/amCheckout/checkoutOption';
 import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
@@ -36,10 +37,15 @@ function BillingCycleSelectCard({
   const isPartnerMigration = !!subscription.partner?.partnership.id;
 
   const isCotermUpgrade = priceAfterDiscount >= subscription.planDetails.totalPrice;
+  const isCurrentUsageCycle = subscription.contractInterval === plan.contractInterval;
+  // the billing day would only change for billing cycle changes or for any upgrade from developer plan
+  const shouldApplyToExistingPeriod =
+    isCotermUpgrade && isCurrentUsageCycle && !isDeveloperPlan(subscription.planDetails);
   const today = moment();
-  const contractStartDate = isCotermUpgrade
-    ? today
-    : moment(subscription.contractPeriodEnd).add(1, 'day');
+  const contractStartDate =
+    !shouldApplyToExistingPeriod && isCotermUpgrade
+      ? today
+      : moment(subscription.contractPeriodEnd).add(1, 'day');
 
   const onCycleSelect = () => {
     const data: Partial<CheckoutFormData> = {
@@ -52,24 +58,24 @@ function BillingCycleSelectCard({
   let cycleInfo: ReactNode;
   if (isPartnerMigration) {
     if (isAnnual) {
-      cycleInfo = t('Billed every 12 months from your selected start date on submission');
+      cycleInfo = t('Billed annually from your selected start date on submission');
     } else {
       cycleInfo = t('Billed monthly starting on your selected start date on submission');
     }
   } else if (isAnnual) {
-    cycleInfo = tct('Billed every 12 months on the [day] of [month]', {
-      day: contractStartDate.format('Do'),
-      month: contractStartDate.format('MMMM'),
-    });
+    cycleInfo = t('Billed annually');
   } else {
-    cycleInfo = tct('Billed monthly starting on [contractStartDate]', {
-      contractStartDate: contractStartDate.format('MMMM DD'),
+    cycleInfo = tct('Billed on the [day] of each month', {
+      day: contractStartDate.format('Do'),
     });
   }
 
   const additionalInfo = isAnnual
-    ? tct("Discount doesn't apply to [budgetTerm] usage", {
-        budgetTerm: plan.budgetTerm,
+    ? tct('[budgetTerm] usage billed monthly, discount does not apply', {
+        budgetTerm:
+          plan.budgetTerm === 'pay-as-you-go'
+            ? 'PAYG'
+            : displayBudgetName(plan, {title: true}),
       })
     : t('Cancel anytime');
 
@@ -95,7 +101,7 @@ function BillingCycleSelectCard({
           <Flex align="center" gap="md">
             {formattedPriceBeforeDiscount && (
               <Text
-                variant={'muted'}
+                variant="muted"
                 strikethrough
                 size="2xl"
               >{`$${formattedPriceBeforeDiscount}`}</Text>

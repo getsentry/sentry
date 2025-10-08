@@ -77,7 +77,7 @@ class MockIntersectionObserver {
 
 describe('Dashboards > Detail', () => {
   const organization = OrganizationFixture({
-    features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
+    features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
   const projects = [ProjectFixture()];
   window.IntersectionObserver = MockIntersectionObserver as any;
@@ -205,7 +205,7 @@ describe('Dashboards > Detail', () => {
       });
       initialData = initializeOrg({
         organization: OrganizationFixture({
-          features: ['global-views', 'dashboards-basic', 'discover-query'],
+          features: ['dashboards-basic', 'discover-query'],
         }),
       });
 
@@ -293,14 +293,11 @@ describe('Dashboards > Detail', () => {
         },
       });
       PageFiltersStore.init();
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [],
-          environments: [],
-          datetime: {start: null, end: null, period: '14d', utc: null},
-        },
-        new Set()
-      );
+      PageFiltersStore.onInitializeUrlState({
+        projects: [],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      });
       widgets = [
         WidgetFixture({
           queries: [
@@ -601,12 +598,7 @@ describe('Dashboards > Detail', () => {
 
       initialData = initializeOrg({
         organization: OrganizationFixture({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-          ],
+          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
         }),
       });
 
@@ -1214,12 +1206,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-          ],
+          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
         }),
         router: {
           location: {
@@ -1291,12 +1278,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-          ],
+          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
         }),
         router: {
           location: {
@@ -1354,12 +1336,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-          ],
+          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
         }),
         router: {
           location: {
@@ -1424,12 +1401,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-          ],
+          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
         }),
         router: {
           location: {
@@ -1499,7 +1471,6 @@ describe('Dashboards > Detail', () => {
       const testData = initializeOrg({
         organization: OrganizationFixture({
           features: [
-            'global-views',
             'dashboards-basic',
             'dashboards-edit',
             'discover-basic',
@@ -1569,12 +1540,7 @@ describe('Dashboards > Detail', () => {
 
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-          ],
+          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
         }),
         router: {
           location: {
@@ -1629,12 +1595,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-          ],
+          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
         }),
         router: {
           location: {
@@ -1688,12 +1649,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-          ],
+          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
         }),
         router: {
           location: {
@@ -1754,12 +1710,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-          ],
+          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
         }),
         router: {
           location: LocationFixture(),
@@ -1826,7 +1777,6 @@ describe('Dashboards > Detail', () => {
       const testData = initializeOrg({
         organization: OrganizationFixture({
           features: [
-            'global-views',
             'dashboards-basic',
             'dashboards-edit',
             'discover-basic',
@@ -2335,12 +2285,7 @@ describe('Dashboards > Detail', () => {
       beforeEach(() => {
         initialData = initializeOrg({
           organization: OrganizationFixture({
-            features: [
-              'global-views',
-              'dashboards-basic',
-              'dashboards-edit',
-              'discover-query',
-            ],
+            features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
           }),
         });
 

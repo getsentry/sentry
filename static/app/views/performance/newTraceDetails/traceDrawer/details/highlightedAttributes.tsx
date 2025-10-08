@@ -5,15 +5,10 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/agents/components/modelName';
-import {
-  hasAgentInsightsFeature,
-  hasMCPInsightsFeature,
-} from 'sentry/views/insights/agents/utils/features';
 import {AI_CREATE_AGENT_OPS, getIsAiSpan} from 'sentry/views/insights/agents/utils/query';
 
 type HighlightedAttribute = {
@@ -31,20 +26,18 @@ function tryParseJson(value: string) {
 
 export function getHighlightedSpanAttributes({
   op,
-  organization,
   attributes = {},
 }: {
   attributes: Record<string, string> | undefined | TraceItemResponseAttribute[];
   op: string | undefined;
-  organization: Organization;
 }): HighlightedAttribute[] {
   const attributeObject = ensureAttributeObject(attributes);
 
-  if (hasAgentInsightsFeature(organization) && getIsAiSpan({op})) {
+  if (getIsAiSpan({op})) {
     return getAISpanAttributes(attributeObject, op);
   }
 
-  if (hasMCPInsightsFeature(organization) && op?.startsWith('mcp.')) {
+  if (op?.startsWith('mcp.')) {
     return getMCPAttributes(attributeObject);
   }
 

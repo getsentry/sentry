@@ -7,8 +7,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple, NotRequired, TypedDict
 
 import sentry_sdk
-from celery import Task
-from celery.exceptions import SoftTimeLimitExceeded
 from django.db.models import OuterRef, Subquery
 
 from sentry import buffer, features, nodestore
@@ -47,9 +45,9 @@ from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.post_process import should_retry_fetch
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
+from sentry.taskworker.task import Task
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
@@ -626,10 +624,6 @@ def fire_rules(
                         for callback, futures in callback_and_futures:
                             try:
                                 callback(groupevent, futures)
-                            except SoftTimeLimitExceeded:
-                                # If we're out of time, we don't want to continue.
-                                # Raise so we can retry.
-                                raise
                             except Exception as e:
                                 func_name = getattr(callback, "__name__", str(callback))
                                 logger.exception(
@@ -672,20 +666,10 @@ def cleanup_redis_buffer(
 
 @instrumented_task(
     name="sentry.rules.processing.delayed_processing",
-    queue="delayed_rules",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=50,
-    time_limit=60,
+    namespace=issues_tasks,
+    processing_deadline_duration=60,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=60,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any) -> None:
     """

@@ -13,7 +13,7 @@ class Row(TypedDict):
     incomplete: bool
     comparisonValue: NotRequired[float]
     sampleCount: NotRequired[float]
-    sampleRate: NotRequired[float]
+    sampleRate: NotRequired[float | None]
     confidence: NotRequired[Literal["low", "high"] | None]
     incompleteReason: NotRequired[str]
 
@@ -21,7 +21,7 @@ class Row(TypedDict):
 class SeriesMeta(TypedDict):
     order: NotRequired[int]
     isOther: NotRequired[bool]
-    valueUnit: NotRequired[str]
+    valueUnit: str | None
     dataScanned: NotRequired[Literal["partial", "full"]]
     valueType: str
     interval: float

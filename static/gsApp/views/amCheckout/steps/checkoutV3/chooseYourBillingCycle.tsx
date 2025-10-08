@@ -1,7 +1,6 @@
 import {useMemo, useState} from 'react';
 
 import {Flex, Grid} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {t} from 'sentry/locale';
 
 import {ANNUAL} from 'getsentry/constants';
@@ -32,7 +31,7 @@ function ChooseYourBillingCycle({
 
   let previousPlanPrice = 0;
   return (
-    <Flex direction="column" gap="sm">
+    <Flex direction="column" gap="xl">
       <StepHeader
         isActive
         isCompleted={false}
@@ -40,51 +39,46 @@ function ChooseYourBillingCycle({
         onToggleStep={setIsOpen}
         isOpen={isOpen}
         stepNumber={stepNumber}
-        title={t('Choose your billing cycle')}
+        title={t('Pay monthly or yearly, your choice')}
         isNewCheckout
       />
       {isOpen && (
-        <Flex direction="column" gap="xl">
-          <Text as="div" variant="muted">
-            {t('Additional usage is billed separately, at the start of the next cycle')}
-          </Text>
-          <Grid
-            columns={{xs: '1fr', md: `repeat(${intervalOptions.length}, 1fr)`}}
-            gap="xl"
-          >
-            {intervalOptions.map(plan => {
-              const isSelected = plan.id === formData.plan;
-              const isAnnual = plan.contractInterval === ANNUAL;
-              const priceAfterDiscount = utils.getReservedPriceCents({
-                plan,
-                reserved: formData.reserved,
-                selectedProducts: formData.selectedProducts,
-              });
-              const formattedPriceAfterDiscount = utils.formatPrice({
-                cents: priceAfterDiscount,
-              });
+        <Grid
+          columns={{xs: '1fr', md: `repeat(${intervalOptions.length}, 1fr)`}}
+          gap="xl"
+        >
+          {intervalOptions.map(plan => {
+            const isSelected = plan.id === formData.plan;
+            const isAnnual = plan.contractInterval === ANNUAL;
+            const priceAfterDiscount = utils.getReservedPriceCents({
+              plan,
+              reserved: formData.reserved,
+              addOns: formData.addOns,
+            });
+            const formattedPriceAfterDiscount = utils.formatPrice({
+              cents: priceAfterDiscount,
+            });
 
-              const priceBeforeDiscount = isAnnual ? previousPlanPrice * 12 : 0;
-              const formattedPriceBeforeDiscount = previousPlanPrice
-                ? utils.formatPrice({cents: priceBeforeDiscount})
-                : '';
-              previousPlanPrice = priceAfterDiscount;
+            const priceBeforeDiscount = isAnnual ? previousPlanPrice * 12 : 0;
+            const formattedPriceBeforeDiscount = previousPlanPrice
+              ? utils.formatPrice({cents: priceBeforeDiscount})
+              : '';
+            previousPlanPrice = priceAfterDiscount;
 
-              return (
-                <BillingCycleSelectCard
-                  key={plan.id}
-                  plan={plan}
-                  isSelected={isSelected}
-                  onUpdate={onUpdate}
-                  subscription={subscription}
-                  formattedPriceAfterDiscount={formattedPriceAfterDiscount}
-                  formattedPriceBeforeDiscount={formattedPriceBeforeDiscount}
-                  priceAfterDiscount={priceAfterDiscount}
-                />
-              );
-            })}
-          </Grid>
-        </Flex>
+            return (
+              <BillingCycleSelectCard
+                key={plan.id}
+                plan={plan}
+                isSelected={isSelected}
+                onUpdate={onUpdate}
+                subscription={subscription}
+                formattedPriceAfterDiscount={formattedPriceAfterDiscount}
+                formattedPriceBeforeDiscount={formattedPriceBeforeDiscount}
+                priceAfterDiscount={priceAfterDiscount}
+              />
+            );
+          })}
+        </Grid>
       )}
     </Flex>
   );

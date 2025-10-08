@@ -264,6 +264,7 @@ DEFAULT_ALERT_GROUP_THRESHOLD = (1000, 25)  # 1000%, 25 events
 # Default sort option for the group stream
 DEFAULT_SORT_OPTION = "date"
 
+
 # Setup languages for only available locales
 _language_map = dict(settings.LANGUAGES)
 LANGUAGES = [(k, _language_map[k]) for k in get_all_languages() if k in _language_map]
@@ -594,14 +595,17 @@ class SentryAppStatus:
 class SentryAppInstallationStatus:
     PENDING = 0
     INSTALLED = 1
+    PENDING_DELETION = 2
     PENDING_STR = "pending"
     INSTALLED_STR = "installed"
+    PENDING_DELETION_STR = "pending_deletion"
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, str]]:
         return (
             (cls.PENDING, cls.PENDING_STR),
             (cls.INSTALLED, cls.INSTALLED_STR),
+            (cls.PENDING_DELETION, cls.PENDING_DELETION_STR),
         )
 
     @classmethod
@@ -610,6 +614,8 @@ class SentryAppInstallationStatus:
             return cls.PENDING_STR
         elif status == cls.INSTALLED:
             return cls.INSTALLED_STR
+        elif status == cls.PENDING_DELETION:
+            return cls.PENDING_DELETION_STR
         else:
             raise ValueError(f"Not a SentryAppInstallationStatus int: {status!r}")
 
@@ -666,8 +672,6 @@ class InsightModules(Enum):
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 
-LEGACY_RATE_LIMIT_OPTIONS = frozenset(("sentry:project-rate-limit", "sentry:account-rate-limit"))
-
 
 # We need to limit the range of valid timestamps of an event because that
 # timestamp is used to control data retention.
@@ -692,8 +696,6 @@ ALL_ACCESS_PROJECTS_SLUG = "$all"
 MAX_TOP_EVENTS = 10
 
 # org option default values
-PROJECT_RATE_LIMIT_DEFAULT = 100
-ACCOUNT_RATE_LIMIT_DEFAULT = 0
 REQUIRE_SCRUB_DATA_DEFAULT = False
 REQUIRE_SCRUB_DEFAULTS_DEFAULT = False
 ATTACHMENTS_ROLE_DEFAULT = settings.SENTRY_DEFAULT_ROLE

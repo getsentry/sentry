@@ -1,10 +1,10 @@
 ---
-created: '2025-09-11T21:20:20.211727+00:00'
+created: '2025-10-06T19:13:32.320608+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "default": {
+  "csp_url": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -28,7 +28,7 @@ source: tests/sentry/grouping/test_grouping_info.py
             },
             {
               "contributes": false,
-              "hint": "not a local script violation",
+              "hint": "ignored because it's not a local script violation",
               "id": "violation",
               "name": "violation",
               "values": []
@@ -66,9 +66,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "URL",
+    "contributes": true,
+    "description": "directive and URL",
     "hash": "223cdacfe5b4b830dc700b5c18cc21b4",
-    "key": "default",
+    "hint": null,
+    "key": "csp_url",
     "type": "component"
   }
 }

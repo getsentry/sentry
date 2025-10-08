@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
@@ -6,11 +6,14 @@ import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import Hook from 'sentry/components/hook';
 import LogoSentry from 'sentry/components/logoSentry';
-import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {
+  OnboardingContextProvider,
+  useOnboardingContext,
+} from 'sentry/components/onboarding/onboardingContext';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import Redirect from 'sentry/components/redirect';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {getCategoryList} from 'sentry/data/platformPickerCategories';
+import {categoryList} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -61,7 +64,7 @@ export const onboardingSteps: StepDescriptor[] = [
   },
 ];
 
-function Onboarding(props: Props) {
+export function OnboardingWithoutContext(props: Props) {
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
   const selectedProjectSlug = onboardingContext.selectedPlatform?.key;
@@ -86,10 +89,6 @@ function Onboarding(props: Props) {
   const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
 
   const {activateSidebar} = useOnboardingSidebar();
-
-  const categories = useMemo(() => {
-    return getCategoryList(organization);
-  }, [organization]);
 
   useEffect(() => {
     return () => {
@@ -117,7 +116,7 @@ function Onboarding(props: Props) {
       }
 
       const frameworkCategory =
-        categories.find(category => {
+        categoryList.find(category => {
           return category.platforms?.has(platform.id);
         })?.id ?? 'all';
 
@@ -136,7 +135,6 @@ function Onboarding(props: Props) {
     onboardingContext,
     organization.slug,
     props.location.pathname,
-    categories,
   ]);
 
   const shallProjectBeDeleted =
@@ -329,6 +327,14 @@ function Onboarding(props: Props) {
         <AdaptivePageCorners animateVariant={cornerVariantControl} />
       </Container>
     </OnboardingWrapper>
+  );
+}
+
+function Onboarding(props: Props) {
+  return (
+    <OnboardingContextProvider>
+      <OnboardingWithoutContext {...props} />
+    </OnboardingContextProvider>
   );
 }
 

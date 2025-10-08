@@ -144,14 +144,11 @@ describe('Modals -> WidgetViewerModal', () => {
     });
 
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [1, 2],
-        environments: ['prod', 'dev'],
-        datetime: {start: null, end: null, period: '24h', utc: null},
-      },
-      new Set()
-    );
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1, 2],
+      environments: ['prod', 'dev'],
+      datetime: {start: null, end: null, period: '24h', utc: null},
+    });
   });
 
   afterEach(() => {
@@ -237,17 +234,6 @@ describe('Modals -> WidgetViewerModal', () => {
         expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
         expect(screen.getByText('Open in Discover')).toBeInTheDocument();
         expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeEnabled();
-      });
-
-      it('renders Open button disabled for discover widget if dataset selector flag enabled', async () => {
-        mockEvents();
-        await renderModal({initialData, widget: mockWidget});
-        expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
-        expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-        expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
-          'aria-disabled',
-          'true'
-        );
       });
 
       it('renders updated table columns and orderby', async () => {

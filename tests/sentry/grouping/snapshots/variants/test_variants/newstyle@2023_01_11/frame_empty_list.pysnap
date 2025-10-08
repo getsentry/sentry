@@ -1,12 +1,13 @@
 ---
-created: '2024-12-17T22:47:11.444360+00:00'
+created: '2025-10-07T20:41:47.441655+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   contributing component: null
-  component:
+  hint: None
+  root_component:
     app
       stacktrace (ignored because it contains no frames)
 --------------------------------------------------------------------------
@@ -16,6 +17,7 @@ fallback:
 system:
   hash: null
   contributing component: null
-  component:
+  hint: None
+  root_component:
     system
       stacktrace (ignored because it contains no frames)

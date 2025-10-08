@@ -132,7 +132,7 @@ export default function Ai() {
         <ErrorState
           organization={organization}
           startSummaryRequest={startSummaryRequest}
-          extraMessage={t('processing timed out.')}
+          extraMessage={t('timed out.')}
         />
       </AnalyticsArea>
     );
@@ -225,7 +225,7 @@ export default function Ai() {
           {segmentCount > 100 && (
             <Subtext>
               {t(
-                `Note: this replay is too long, so we're currently only summarizing part of it.`
+                `Note: this replay is very long, so we might not be summarizing all of it.`
               )}
             </Subtext>
           )}
@@ -288,7 +288,7 @@ function FeedbackButton({type}: {type: 'positive' | 'negative'}) {
       aria-label={t('Give feedback on the replay summary section')}
       icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
       title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
-      size={'xs'}
+      size="xs"
       onClick={() =>
         openForm({
           messagePlaceholder:

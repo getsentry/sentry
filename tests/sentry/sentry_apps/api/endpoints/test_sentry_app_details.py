@@ -4,10 +4,12 @@ import orjson
 from rest_framework.response import Response
 
 from sentry import audit_log, deletions
+from sentry.analytics.events.sentry_app_deleted import SentryAppDeletedEvent
 from sentry.analytics.events.sentry_app_schema_validation_error import (
     SentryAppSchemaValidationError,
 )
 from sentry.constants import SentryAppStatus
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import OrganizationMember
 from sentry.sentry_apps.api.endpoints.sentry_app_details import PARTNERSHIP_RESTRICTED_ERROR_MESSAGE
@@ -790,15 +792,19 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
             self.unpublished_app.slug,
             status_code=204,
         )
+        with self.tasks():
+            run_scheduled_deletions_control()
 
         assert AuditLogEntry.objects.filter(
             event=audit_log.get_event_id("SENTRY_APP_REMOVE")
         ).exists()
-        record.assert_called_with(
-            "sentry_app.deleted",
-            user_id=self.superuser.id,
-            organization_id=self.organization.id,
-            sentry_app=self.unpublished_app.slug,
+        assert_last_analytics_event(
+            record,
+            SentryAppDeletedEvent(
+                user_id=self.superuser.id,
+                organization_id=self.organization.id,
+                sentry_app=self.unpublished_app.slug,
+            ),
         )
 
     def test_superuser_delete_unpublished_app_with_installs(self) -> None:
@@ -812,6 +818,8 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
             self.unpublished_app.slug,
             status_code=204,
         )
+        with self.tasks():
+            run_scheduled_deletions_control()
 
         assert AuditLogEntry.objects.filter(
             event=audit_log.get_event_id("SENTRY_APP_REMOVE")

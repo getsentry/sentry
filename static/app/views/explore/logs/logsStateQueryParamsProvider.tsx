@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo, useState} from 'react';
 
+import {useResettableState} from 'sentry/utils/useResettableState';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {defaultSortBys} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {
@@ -25,7 +26,7 @@ export function LogsStateQueryParamsProvider({
   frozenParams,
 }: LogsStateQueryParamsProviderProps) {
   const [mode, _setMode] = useState(defaultMode());
-  const [query, _setQuery] = useState(defaultQuery());
+  const [query, setQuery] = useResettableState(defaultQuery);
 
   const [cursor, _setCursor] = useState(defaultCursor());
   const [fields, _setFields] = useState(defaultLogFields());
@@ -69,10 +70,10 @@ export function LogsStateQueryParamsProvider({
   );
 
   const setWritableQueryParams = useCallback(
-    (_writableQueryParams: WritableQueryParams) => {
-      // TODO
+    (writableQueryParams: WritableQueryParams) => {
+      setQuery(writableQueryParams.query);
     },
-    []
+    [setQuery]
   );
 
   return (

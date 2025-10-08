@@ -177,8 +177,8 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         assert comparison_data["error_message"] is None
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
-    def test_get_comparison_success_with_pending_comparison(self):
-        """Test GET endpoint returns pending comparison when no comparison exists yet"""
+    def test_get_comparison_success_with_no_comparison(self):
+        """Test GET endpoint returns no comparison when no comparison exists yet"""
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -186,15 +186,19 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             self.base_artifact.id,
         )
         data = response.data
-        comparison_data = data["comparisons"][0]
-        assert comparison_data["state"] == PreprodArtifactSizeComparison.State.PENDING
-        assert comparison_data["comparison_id"] is None
-        assert comparison_data["error_code"] is None
-        assert comparison_data["error_message"] is None
+        assert len(data["comparisons"]) == 0
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_get_comparison_success_with_no_matching_base_metric(self):
         """Test GET endpoint handles case where no matching base metric exists"""
+        PreprodArtifactSizeComparison.objects.create(
+            head_size_analysis=self.head_size_metric,
+            base_size_analysis=self.base_size_metric,
+            organization_id=self.organization.id,
+            state=PreprodArtifactSizeComparison.State.SUCCESS,
+            file_id=12345,
+        )
+
         # Create a head metric with different identifier
         PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=self.head_artifact,
@@ -349,6 +353,66 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         assert response.data["error"] == "Feature not enabled"
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
+    def test_get_comparison_multiple_metrics(self):
+        """Test GET endpoint handles multiple size metrics correctly"""
+        PreprodArtifactSizeComparison.objects.create(
+            head_size_analysis=self.head_size_metric,
+            base_size_analysis=self.base_size_metric,
+            organization_id=self.organization.id,
+            state=PreprodArtifactSizeComparison.State.SUCCESS,
+            file_id=12345,
+        )
+
+        # Create additional size metrics
+        head_watch_metric = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=self.head_artifact,
+            analysis_file_id=self.head_analysis_file.id,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            identifier="watch",
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        )
+
+        base_watch_metric = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=self.base_artifact,
+            analysis_file_id=self.base_analysis_file.id,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            identifier="watch",
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        )
+
+        # Create comparison for watch metrics
+        watch_comparison = PreprodArtifactSizeComparison.objects.create(
+            head_size_analysis=head_watch_metric,
+            base_size_analysis=base_watch_metric,
+            organization_id=self.organization.id,
+            state=PreprodArtifactSizeComparison.State.SUCCESS,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            self.head_artifact.id,
+            self.base_artifact.id,
+        )
+        data = response.data
+        assert len(data["comparisons"]) == 2
+
+        # Check main artifact comparison
+        main_comparison = next((c for c in data["comparisons"] if c["identifier"] == "main"), None)
+        assert main_comparison is not None
+        assert main_comparison["head_size_metric_id"] == self.head_size_metric.id
+        assert main_comparison["base_size_metric_id"] == self.base_size_metric.id
+
+        # Check watch artifact comparison
+        watch_comparison_data = next(
+            (c for c in data["comparisons"] if c["identifier"] == "watch"), None
+        )
+        assert watch_comparison_data is not None
+        assert watch_comparison_data["head_size_metric_id"] == head_watch_metric.id
+        assert watch_comparison_data["base_size_metric_id"] == base_watch_metric.id
+        assert watch_comparison_data["comparison_id"] == watch_comparison.id
+
+    @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     @patch("sentry.preprod.size_analysis.tasks.manual_size_analysis_comparison.apply_async")
     def test_post_comparison_success(self, mock_apply_async):
         """Test POST endpoint successfully triggers comparison"""
@@ -361,8 +425,10 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         )
         mock_apply_async.assert_called_once_with(
             kwargs={
-                "head_size_metric_id": self.head_size_metric.id,
-                "base_size_metric_id": self.base_size_metric.id,
+                "project_id": self.project.id,
+                "org_id": self.organization.id,
+                "head_artifact_id": self.head_artifact.id,
+                "base_artifact_id": self.base_artifact.id,
             }
         )
 
@@ -532,7 +598,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
     def test_post_comparison_multiple_metrics(self, mock_apply_async):
         """Test POST endpoint handles multiple size metrics correctly"""
         # Create additional size metrics
-        head_watch_metric = PreprodArtifactSizeMetrics.objects.create(
+        PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=self.head_artifact,
             analysis_file_id=self.head_analysis_file.id,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
@@ -540,7 +606,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
 
-        base_watch_metric = PreprodArtifactSizeMetrics.objects.create(
+        PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=self.base_artifact,
             analysis_file_id=self.base_analysis_file.id,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
@@ -551,31 +617,15 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         response = self.client.post(self._get_url())
 
         assert response.status_code == 200
-        # Should be called twice - once for main artifact, once for watch artifact
-        assert mock_apply_async.call_count == 2
 
-        # Check the calls
-        calls = mock_apply_async.call_args_list
-        call_kwargs = [call[1]["kwargs"] for call in calls]
-
-        # Should have calls for both main and watch metrics
-        main_call = next(
-            (
-                call
-                for call in call_kwargs
-                if call["head_size_metric_id"] == self.head_size_metric.id
-            ),
-            None,
+        mock_apply_async.assert_called_once_with(
+            kwargs={
+                "project_id": self.project.id,
+                "org_id": self.organization.id,
+                "head_artifact_id": self.head_artifact.id,
+                "base_artifact_id": self.base_artifact.id,
+            }
         )
-        watch_call = next(
-            (call for call in call_kwargs if call["head_size_metric_id"] == head_watch_metric.id),
-            None,
-        )
-
-        assert main_call is not None
-        assert watch_call is not None
-        assert main_call["base_size_metric_id"] == self.base_size_metric.id
-        assert watch_call["base_size_metric_id"] == base_watch_metric.id
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_post_comparison_no_matching_base_metric(self):
@@ -593,58 +643,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
 
         assert response.status_code == 400
         assert "Head and base size metrics cannot be compared" in response.json()["detail"]
-
-    @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
-    def test_get_comparison_multiple_metrics(self):
-        """Test GET endpoint handles multiple size metrics correctly"""
-        # Create additional size metrics
-        head_watch_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=self.head_artifact,
-            analysis_file_id=self.head_analysis_file.id,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
-            identifier="watch",
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-        )
-
-        base_watch_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=self.base_artifact,
-            analysis_file_id=self.base_analysis_file.id,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
-            identifier="watch",
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-        )
-
-        # Create comparison for watch metrics
-        watch_comparison = PreprodArtifactSizeComparison.objects.create(
-            head_size_analysis=head_watch_metric,
-            base_size_analysis=base_watch_metric,
-            organization_id=self.organization.id,
-            state=PreprodArtifactSizeComparison.State.SUCCESS,
-        )
-
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            self.head_artifact.id,
-            self.base_artifact.id,
-        )
-        data = response.data
-        assert len(data["comparisons"]) == 2
-
-        # Check main artifact comparison
-        main_comparison = next((c for c in data["comparisons"] if c["identifier"] == "main"), None)
-        assert main_comparison is not None
-        assert main_comparison["head_size_metric_id"] == self.head_size_metric.id
-        assert main_comparison["base_size_metric_id"] == self.base_size_metric.id
-
-        # Check watch artifact comparison
-        watch_comparison_data = next(
-            (c for c in data["comparisons"] if c["identifier"] == "watch"), None
-        )
-        assert watch_comparison_data is not None
-        assert watch_comparison_data["head_size_metric_id"] == head_watch_metric.id
-        assert watch_comparison_data["base_size_metric_id"] == base_watch_metric.id
-        assert watch_comparison_data["comparison_id"] == watch_comparison.id
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_post_comparison_different_build_configurations(self):

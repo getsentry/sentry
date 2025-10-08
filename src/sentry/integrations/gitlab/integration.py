@@ -230,7 +230,7 @@ MERGED_PR_COMMENT_BODY_TEMPLATE = """\
 ## Issues attributed to commits in this merge request
 The following issues were detected after merging:
 
-{issue_list}"""
+{issue_list}""".rstrip()
 
 
 class GitlabPRCommentWorkflow(PRCommentWorkflow):
@@ -281,7 +281,7 @@ OPEN_PR_COMMENT_BODY_TEMPLATE = """\
 ## 🔍 Existing Issues For Review
 Your merge request is modifying functions with the following pre-existing issues:
 
-{issue_tables}"""
+{issue_tables}""".rstrip()
 
 OPEN_PR_ISSUE_TABLE_TEMPLATE = """\
 📄 File: **{filename}**

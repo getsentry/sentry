@@ -42,6 +42,7 @@ export function useTypingAnimation({
   useEffect(() => {
     // If disabled, show full text immediately
     if (!enabled) {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setDisplayedText(text);
       currentIndexRef.current = text.length;
       if (animationFrameRef.current) {
@@ -108,6 +109,7 @@ export function useTypingAnimation({
   // Effect to immediately set full text if enabled becomes false
   useEffect(() => {
     if (!enabled) {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setDisplayedText(text);
       currentIndexRef.current = text.length;
     }

@@ -18,12 +18,10 @@ import {Select} from 'sentry/components/core/select';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -65,7 +63,6 @@ type AddToDashboardModalActions =
 export type AddToDashboardModalProps = {
   location: Location;
   organization: Organization;
-  router: InjectedRouter;
   selection: PageFilters;
   widget: Widget;
   actions?: AddToDashboardModalActions[];
@@ -97,7 +94,6 @@ function AddToDashboardModal({
   closeModal,
   location,
   organization,
-  router,
   selection,
   widget,
   actions = DEFAULT_ACTIONS,
@@ -190,18 +186,16 @@ function AddToDashboardModal({
 
     const widgetAsQueryParams = convertWidgetToBuilderStateParams(widget);
 
-    router.push(
-      normalizeUrl({
-        pathname,
-        query: {
-          ...widgetAsQueryParams,
-          title: newWidgetTitle,
-          sort: orderBy ?? widgetAsQueryParams.sort,
-          source,
-          ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
-        },
-      })
-    );
+    navigate({
+      pathname,
+      query: {
+        ...widgetAsQueryParams,
+        title: newWidgetTitle,
+        sort: orderBy ?? widgetAsQueryParams.sort,
+        source,
+        ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
+      },
+    });
     closeModal();
   }
 
@@ -321,7 +315,6 @@ function AddToDashboardModal({
             {({hasReachedDashboardLimit, isLoading, limitMessage}) => (
               <Select
                 disabled={dashboards === null}
-                menuPlacement="auto"
                 name="dashboard"
                 placeholder={t('Select Dashboard')}
                 value={selectedDashboardId}

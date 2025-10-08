@@ -1,10 +1,10 @@
 ---
-created: '2025-09-11T21:20:24.469372+00:00'
+created: '2025-10-06T21:57:35.574372+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -15,7 +15,7 @@ source: tests/sentry/grouping/test_grouping_info.py
           "contributes": true,
           "hint": null,
           "id": "stacktrace",
-          "name": "stack-trace",
+          "name": "stacktrace",
           "values": [
             {
               "contributes": true,
@@ -103,15 +103,17 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app stack-trace",
+    "contributes": true,
+    "description": "event-level stacktrace — in-app frames",
     "hash": "659ad79e2e70c822d30a53d7d889529e",
-    "key": "app",
+    "hint": null,
+    "key": "app_stacktrace",
     "type": "component"
   },
-  "system": {
+  "system_stacktrace": {
     "component": {
       "contributes": false,
-      "hint": "stacktrace of app takes precedence",
+      "hint": "ignored because app stacktrace takes precedence",
       "id": "system",
       "name": null,
       "values": [
@@ -119,7 +121,7 @@ source: tests/sentry/grouping/test_grouping_info.py
           "contributes": false,
           "hint": "ignored because hash matches app variant",
           "id": "stacktrace",
-          "name": "stack-trace",
+          "name": "stacktrace",
           "values": [
             {
               "contributes": true,
@@ -207,9 +209,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "system",
+    "contributes": false,
+    "description": "event-level stacktrace — all frames",
     "hash": null,
-    "key": "system",
+    "hint": "ignored because app stacktrace takes precedence",
+    "key": "system_stacktrace",
     "type": "component"
   }
 }

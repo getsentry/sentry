@@ -21,6 +21,7 @@ interface PlanSelectCardProps
     | 'planWarning'
     | 'priceHeader'
     | 'shouldShowEventPrice'
+    | 'highlightedFeatures'
   > {
   /**
    * Icon to use for the plan

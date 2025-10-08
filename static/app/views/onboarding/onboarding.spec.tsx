@@ -15,7 +15,7 @@ import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRe
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {PlatformKey, Project} from 'sentry/types/project';
-import Onboarding from 'sentry/views/onboarding/onboarding';
+import {OnboardingWithoutContext} from 'sentry/views/onboarding/onboarding';
 
 describe('Onboarding', () => {
   beforeAll(() => {
@@ -39,7 +39,7 @@ describe('Onboarding', () => {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,
@@ -62,7 +62,7 @@ describe('Onboarding', () => {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,
@@ -139,7 +139,7 @@ describe('Onboarding', () => {
           },
         }}
       >
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,
@@ -209,7 +209,7 @@ describe('Onboarding', () => {
           },
         }}
       >
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,
@@ -243,7 +243,7 @@ describe('Onboarding', () => {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,
@@ -319,7 +319,7 @@ describe('Onboarding', () => {
           },
         }}
       >
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,
@@ -372,7 +372,7 @@ describe('Onboarding', () => {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,

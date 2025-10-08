@@ -40,9 +40,10 @@ type PlatformOptionsControlProps = {
 function OptionControl({option, value, onChange, disabled}: OptionControlProps) {
   return (
     <CompactSelect
-      triggerLabel={
-        option.items.find(v => v.value === value)?.label ?? option.items[0]!.label
-      }
+      triggerProps={{
+        children:
+          option.items.find(v => v.value === value)?.label ?? option.items[0]!.label,
+      }}
       value={value}
       onChange={onChange}
       options={option.items}

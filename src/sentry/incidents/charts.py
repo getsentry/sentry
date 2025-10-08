@@ -24,6 +24,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import build_query_strings
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.workflow_engine.models import AlertRuleDetector
 
 CRASH_FREE_SESSIONS = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
 CRASH_FREE_USERS = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
@@ -134,6 +135,18 @@ def fetch_metric_issue_open_periods(
     user: User | RpcUser | None = None,
 ) -> list[Any]:
     try:
+        if features.has(
+            "organizations:workflow-engine-single-process-metric-issues",
+            organization,  # Metric issue single processing
+        ):
+            # temporarily fetch the alert rule ID from the detector ID
+            alert_rule_detector = AlertRuleDetector.objects.filter(
+                detector_id=open_period_identifier, alert_rule_id__isnull=False
+            ).first()
+            if alert_rule_detector is not None:
+                # open_period_identifier is a metric detector ID -> get the alert rule ID
+                open_period_identifier = alert_rule_detector.alert_rule_id
+
         resp = client.get(
             auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
             user=user,
@@ -147,6 +160,16 @@ def fetch_metric_issue_open_periods(
                 **time_period,
             },
         )
+        # TODO (mifu67): temporary log that I'm going to remove after debugging. Get the data for old and new
+        if organization.slug == "sentry" or organization.slug == "demo":
+            logger.info(
+                "fetching metric issue incidents",
+                extra={
+                    "organization_id": organization.id,
+                    "open_period_id": open_period_identifier,
+                    "response_data": resp.data,
+                },
+            )
         return resp.data
     except Exception as exc:
         logger.error(
