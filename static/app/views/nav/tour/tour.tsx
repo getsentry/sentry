@@ -105,6 +105,7 @@ export function NavTourElement({
     </TourElement>
   );
 }
+
 function useStackedNavigationTourCompleted() {
   const {data: assistantData} = useAssistant();
 
