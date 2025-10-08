@@ -27,8 +27,11 @@ class CustomSchemeURLField(serializers.CharField):
         # First run the standard CharField validations
         data = super().run_validation(data)
 
-        if data is None or data == "":
+        if data is None:
             return data
+
+        if data == "":
+            self.fail("invalid")
 
         # Basic URL structure validation
         try:

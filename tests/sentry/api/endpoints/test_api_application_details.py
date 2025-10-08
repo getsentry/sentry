@@ -70,6 +70,7 @@ class ApiApplicationUpdateTest(APITestCase):
             "not-a-url",  # No scheme or netloc
             "://missing-scheme.com",  # No scheme
             "scheme-only://",  # No netloc
+            "",  # Empty string should be rejected
         ]
 
         response = self.client.put(url, data={"redirectUris": invalid_uris})
