@@ -369,7 +369,13 @@ export function CreateProject() {
   );
 
   const handleProjectCreation = useCallback(
-    async ({platform, ...data}: Required<FormData>) => {
+    async ({platform, ...data}: FormData) => {
+      // At this point, platform should be defined
+      // otherwise the submit button would be disabled.
+      if (!platform) {
+        return;
+      }
+
       if (
         platform.type !== 'language' ||
         !Object.values(SupportedLanguages).includes(
@@ -567,9 +573,7 @@ export function CreateProject() {
                   priority="primary"
                   disabled={!(canUserCreateProject && formErrorCount === 0)}
                   busy={createProjectAndRules.isPending}
-                  onClick={() =>
-                    debounceHandleProjectCreation(formData as Required<FormData>)
-                  }
+                  onClick={() => debounceHandleProjectCreation(formData)}
                 >
                   {t('Create Project')}
                 </Button>
