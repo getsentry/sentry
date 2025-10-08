@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import type {Theme} from '@emotion/react';
+import {type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {YAXisComponentOption} from 'echarts';
 
@@ -12,6 +12,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -40,13 +41,16 @@ function incidentSeriesTooltip(ctx: IncidentTooltipContext) {
   const endTime = ctx.period.end
     ? defaultFormatAxisLabel(ctx.period.end, true, false, true, false)
     : '-';
-  const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${ctx.theme.red400};margin-right:6px;vertical-align:middle;"></span>`;
+  const color = ctx.period.priority === 'high' ? ctx.theme.red300 : ctx.theme.yellow300;
+  const priorityLabel = ctx.period.priority === 'high' ? t('Critical') : t('Warning');
+
+  const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
   return [
     '<div class="tooltip-series">',
     `<div><span class="tooltip-label"><strong>#${ctx.period.id}</strong></span></div>`,
     `<div><span class="tooltip-label">${t('Started')}</span> ${startTime}</div>`,
     `<div><span class="tooltip-label">${t('Ended')}</span> ${endTime}</div>`,
-    `<div><span class="tooltip-label">${t('Priority')}</span> ${priorityDot} ${t('Critical')}</div>`,
+    `<div><span class="tooltip-label">${t('Priority')}</span> ${priorityDot} ${priorityLabel}</div>`,
     '</div>',
     '<div class="tooltip-arrow arrow-top"></div>',
   ].join('');
@@ -54,12 +58,14 @@ function incidentSeriesTooltip(ctx: IncidentTooltipContext) {
 
 function incidentMarklineTooltip(ctx: IncidentTooltipContext) {
   const time = defaultFormatAxisLabel(ctx.period.start, true, false, true, false);
-  const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${ctx.theme.red400};margin-right:6px;vertical-align:middle;"></span>`;
+  const color = ctx.period.priority === 'high' ? ctx.theme.red300 : ctx.theme.yellow300;
+  const priorityLabel = ctx.period.priority === 'high' ? t('Critical') : t('Warning');
+  const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
   return [
     '<div class="tooltip-series">',
     `<div><span class="tooltip-label"><strong>${t('#%s Triggered', ctx.period.id)}</strong></span></div>`,
     `<div><span class="tooltip-label">${t('Started')}</span> ${time}</div>`,
-    `<div><span class="tooltip-label">${t('Priority')}</span> ${priorityDot} ${t('Critical')}</div>`,
+    `<div><span class="tooltip-label">${t('Priority')}</span> ${priorityDot} ${priorityLabel}</div>`,
     '</div>',
     '<div class="tooltip-arrow arrow-top"></div>',
   ].join('');
@@ -81,6 +87,53 @@ interface MetricDetectorChartProps {
   end?: string;
   start?: string;
   statsPeriod?: string;
+}
+
+function createTriggerIntervalMarkerData({
+  period,
+  intervalMs,
+}: {
+  intervalMs: number;
+  period: GroupOpenPeriod;
+}): IncidentPeriod {
+  return {
+    id: period.id,
+    end: new Date(period.start).getTime(),
+    priority: period.activities[0]?.value ?? 'high',
+    start: new Date(period.start).getTime() - intervalMs,
+    type: 'trigger-interval',
+  };
+}
+
+function createOpenPeriodMarkerData({
+  period,
+}: {
+  period: GroupOpenPeriod;
+}): IncidentPeriod[] {
+  const endDate = period.end ? new Date(period.end).getTime() : Date.now();
+
+  const segments = period.activities
+    .filter(activity => activity.type !== 'closed')
+    .map((activity, i) => {
+      const activityEndTime = new Date(
+        period.activities[i + 1]?.dateCreated ?? period.end ?? endDate
+      ).getTime();
+
+      return {
+        priority: activity.value,
+        end: activityEndTime,
+        start: new Date(activity.dateCreated).getTime(),
+      };
+    });
+
+  return segments.map((segment, i) => ({
+    type: i === 0 ? 'open-period-start' : 'open-period-transition',
+    end: segment.end,
+    id: period.id,
+    name: t('Open Periods'),
+    priority: segment.priority ?? 'high',
+    start: segment.start,
+  }));
 }
 
 function MetricDetectorChart({
@@ -127,28 +180,22 @@ function MetricDetectorChart({
   });
 
   const incidentPeriods = useMemo(() => {
-    const endDate = end ? new Date(end).getTime() : Date.now();
-
-    return openPeriods.map<IncidentPeriod>(period => ({
-      ...period,
-      // TODO: When open periods return a priority, use that to determine the color
-      color: 'red',
-      name: t('Open Periods'),
-      type: 'openPeriod',
-      end: period.end ? new Date(period.end).getTime() : endDate,
-      start: new Date(period.start).getTime(),
-    }));
-  }, [openPeriods, end]);
+    return openPeriods.flatMap<IncidentPeriod>(period => [
+      createTriggerIntervalMarkerData({
+        period,
+        intervalMs: snubaQuery.timeWindow * 1000,
+      }),
+      ...createOpenPeriodMarkerData({period}),
+    ]);
+  }, [openPeriods, snubaQuery.timeWindow]);
 
   const openPeriodMarkerResult = useIncidentMarkers({
     incidents: incidentPeriods,
-    includePreviousIntervalMarker: true,
     seriesName: t('Open Periods'),
     seriesId: '__incident_marker__',
     yAxisIndex: 1, // Use index 1 to avoid conflict with main chart axis
     seriesTooltip: incidentSeriesTooltip,
     markLineTooltip: incidentMarklineTooltip,
-    intervalMs: snubaQuery.timeWindow * 1000,
     onClick: context => {
       const startMs = context.period.start;
       const endMs = context.period.end ?? Date.now();

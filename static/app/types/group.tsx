@@ -943,7 +943,15 @@ export interface BaseGroup {
   substatus?: GroupSubstatus | null;
 }
 
+interface GroupOpenPeriodActivity {
+  dateCreated: string;
+  id: string;
+  type: 'opened' | 'status_change' | 'closed';
+  value: 'high' | 'medium' | null;
+}
+
 export interface GroupOpenPeriod {
+  activities: GroupOpenPeriodActivity[];
   duration: string;
   end: string;
   id: string;
