@@ -120,7 +120,9 @@ class OrganizationIssueTimeSeriesEndpoint(OrganizationEndpoint):
 
             # Group the smallest series into the "other" bucket.
             if len(grouped_series) > 4:
-                keys = [v[0] for v in nlargest(5, grouped_counter.items(), key=lambda i: i[0])]
+                keys = [
+                    v[0] for v in nlargest(5, grouped_counter.items(), key=lambda i: (i[1], i[0]))
+                ]
 
                 new_grouped_series: dict[str, list[Row]] = {}
                 other_series: collections.defaultdict[float, float] = collections.defaultdict(float)

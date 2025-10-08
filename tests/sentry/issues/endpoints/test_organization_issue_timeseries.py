@@ -400,18 +400,19 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             "end": self.end.timestamp() * 1000,
         }
         assert len(response.data["timeSeries"]) == 6
+        values = [(1, 2), (0, 3), (0, 1), (0, 1), (0, 1)]
         for index, timeseries in enumerate(response.data["timeSeries"][:5]):
             assert timeseries["yAxis"] == "count(new_issues)"
             assert timeseries["values"] == [
                 {
                     "incomplete": False,
                     "timestamp": self.start.timestamp() * 1000,
-                    "value": 0,
+                    "value": values[index][0],
                 },
                 {
                     "incomplete": False,
                     "timestamp": self.just_before_now.timestamp() * 1000,
-                    "value": 1 if index > 0 else 3,
+                    "value": values[index][1],
                 },
             ], index
             assert timeseries["meta"] == {
@@ -426,12 +427,12 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             {
                 "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000,
-                "value": 1,
+                "value": 0,
             },
             {
                 "incomplete": False,
                 "timestamp": self.just_before_now.timestamp() * 1000,
-                "value": 2,
+                "value": 1,
             },
         ]
         assert timeseries["meta"] == {
@@ -470,18 +471,19 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             "end": self.end.timestamp() * 1000,
         }
         assert len(response.data["timeSeries"]) == 6
+        values = [(2, 0), (1, 1), (1, 0), (1, 0), (1, 0)]
         for index, timeseries in enumerate(response.data["timeSeries"][:5]):
             assert timeseries["yAxis"] == "count(resolved_issues)"
             assert timeseries["values"] == [
                 {
                     "incomplete": False,
                     "timestamp": self.start.timestamp() * 1000,
-                    "value": 1,
+                    "value": values[index][0],
                 },
                 {
                     "incomplete": False,
                     "timestamp": self.just_before_now.timestamp() * 1000,
-                    "value": 1 if index == 0 else 0,
+                    "value": values[index][1],
                 },
             ], index
             assert timeseries["meta"] == {
@@ -496,7 +498,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             {
                 "incomplete": False,
                 "timestamp": self.start.timestamp() * 1000,
-                "value": 2,
+                "value": 1,
             },
             {
                 "incomplete": False,
