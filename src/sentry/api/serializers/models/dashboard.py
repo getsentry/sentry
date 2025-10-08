@@ -9,7 +9,6 @@ from django.db.models import prefetch_related_objects
 
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.discover.arithmetic import get_equation_alias_index, is_equation, is_equation_alias
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dashboard_permissions import DashboardPermissions
@@ -155,21 +154,9 @@ class DashboardWidgetSerializer(Serializer):
                     explore_mode = "samples"
 
             filters = obj.dashboard.filters
-            environment = []
             release = []
-            end = None
-            start = None
-            period = None
-            utc = None
-            all_projects = None
             if filters:
-                environment = filters.get("environment", [])
                 release = filters.get("release", [])
-                end = filters.get("end")
-                start = filters.get("start")
-                period = filters.get("period")
-                utc = filters.get("utc")
-                all_projects = filters.get("all_projects")
 
             non_aggregate_group_by_fields = [
                 field
@@ -249,18 +236,7 @@ class DashboardWidgetSerializer(Serializer):
                     for y_axis in y_axes
                 ]
 
-            if all_projects:
-                projects = [ALL_ACCESS_PROJECT_ID]
-            else:
-                projects = list(obj.dashboard.projects.all().values_list("id", flat=True))
-
             all_query_params = {
-                "project": projects,
-                "environment": environment,
-                "statsPeriod": period,
-                "start": start,
-                "end": end,
-                "utc": utc,
                 "mode": explore_mode,
                 # using aggregateField instead of visualize + groupBy because that format will be deprecated
                 "aggregateField": visualize,
