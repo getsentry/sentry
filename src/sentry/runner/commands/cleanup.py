@@ -231,24 +231,12 @@ def _cleanup(
 
         deletes = models_which_use_deletions_code_path()
 
-        remove_expired_values_for_lost_passwords(is_filtered, models_attempted)
+        _run_specialized_cleanups(is_filtered, days, silent, models_attempted)
 
-        remove_expired_values_for_org_members(is_filtered, days, models_attempted)
-
-        delete_api_models(is_filtered, models_attempted)
-
-        exported_data(is_filtered, silent, models_attempted)
-
-        project_id = None
-        organization_id = None
-        if SiloMode.get_current_mode() != SiloMode.CONTROL:
-            if project:
-                remove_cross_project_models(deletes)
-                project_id = get_project_id_or_fail(project)
-            elif organization:
-                organization_id = get_organization_id_or_fail(organization)
-            else:
-                remove_old_nodestore_values(days)
+        # Handle project/organization specific logic
+        project_id, organization_id = _handle_project_organization_cleanup(
+            project, organization, days, deletes
+        )
 
         run_bulk_query_deletes(
             bulk_query_deletes,
@@ -314,7 +302,7 @@ def _cleanup(
             task_queue.join()
 
         organization_deletion_query, to_delete_by_organization = prepare_deletes_by_organization(
-            organization, organization_id, is_filtered
+            organization_id, is_filtered
         )
 
         if organization_deletion_query is not None and len(to_delete_by_organization):
@@ -374,6 +362,38 @@ def _validate_and_setup_environment(concurrency: int, silent: bool) -> None:
     os.environ["_SENTRY_CLEANUP"] = "1"
     if silent:
         os.environ["SENTRY_CLEANUP_SILENT"] = "1"
+
+
+def _run_specialized_cleanups(
+    is_filtered: Callable[[type[Model]], bool], days: int, silent: bool, models_attempted: set[str]
+) -> None:
+    """Run specialized cleanup operations for specific models."""
+    remove_expired_values_for_lost_passwords(is_filtered, models_attempted)
+    remove_expired_values_for_org_members(is_filtered, days, models_attempted)
+    delete_api_models(is_filtered, models_attempted)
+    exported_data(is_filtered, silent, models_attempted)
+
+
+def _handle_project_organization_cleanup(
+    project: str | None,
+    organization: str | None,
+    days: int,
+    deletes: list[tuple[type[Model], str, str]],
+) -> tuple[int | None, int | None]:
+    """Handle project/organization specific cleanup logic."""
+    project_id = None
+    organization_id = None
+
+    if SiloMode.get_current_mode() != SiloMode.CONTROL:
+        if project:
+            remove_cross_project_models(deletes)
+            project_id = get_project_id_or_fail(project)
+        elif organization:
+            organization_id = get_organization_id_or_fail(organization)
+        else:
+            remove_old_nodestore_values(days)
+
+    return project_id, organization_id
 
 
 def _report_models_never_attempted(
@@ -641,9 +661,7 @@ def prepare_deletes_by_project(
 
 
 def prepare_deletes_by_organization(
-    organization: str | None,
-    organization_id: int | None,
-    is_filtered: Callable[[type[Model]], bool],
+    organization_id: int | None, is_filtered: Callable[[type[Model]], bool]
 ) -> tuple[QuerySet[Any] | None, list[tuple[Any, str, str]]]:
     from sentry.constants import ObjectStatus
     from sentry.models.organization import Organization

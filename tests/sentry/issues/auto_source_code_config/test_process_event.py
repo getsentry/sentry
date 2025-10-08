@@ -622,6 +622,31 @@ class TestPythonDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
 class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "java"
 
+    def test_extension_in_the_wrong_configuration(self) -> None:
+        # We do not include the extension in the configuration to demostrate
+        # that the correct platform -> extension mapping is needed
+        with patch(
+            "sentry.issues.auto_source_code_config.utils.platform.PLATFORMS_CONFIG",
+            {"java": {"extensions": []}},
+        ):
+            self._process_and_assert_configuration_changes(
+                repo_trees={REPO1: ["src/com/example/foo/Bar.sc"]},
+                frames=[self.frame_from_module("com.example.foo.Bar", "Bar.sc")],
+                platform=self.platform,
+                expected_new_code_mappings=[],  # Not expected
+                expected_new_in_app_stack_trace_rules=[],  # Not expected,
+            )
+
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/com/example/foo/Bar.sc"]},
+            frames=[self.frame_from_module("com.example.foo.Bar", "Bar.sc")],
+            platform=self.platform,
+            expected_new_code_mappings=[
+                self.code_mapping("com/example/foo/", "src/com/example/foo/")
+            ],
+            expected_new_in_app_stack_trace_rules=["stack.module:com.example.** +app"],
+        )
+
     def test_marked_in_app_already(self) -> None:
         self._process_and_assert_configuration_changes(
             repo_trees={REPO1: ["src/com/example/foo/Bar.kt"]},

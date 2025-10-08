@@ -190,10 +190,11 @@ TRACE_ITEM_TYPE_MAP = {
     "uptime_check": TraceItemType.TRACE_ITEM_TYPE_UPTIME_CHECK,
     "uptime_result": TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
     "replay": TraceItemType.TRACE_ITEM_TYPE_REPLAY,
+    "metric": TraceItemType.TRACE_ITEM_TYPE_METRIC,
 }
 
 TRACE_ITEM_TYPES = TLiteral[
-    "span", "error", "log", "uptime_check", "uptime_result", "replay"  # noqa
+    "span", "error", "log", "uptime_check", "uptime_result", "replay", "metric"  # noqa
 ]
 
 

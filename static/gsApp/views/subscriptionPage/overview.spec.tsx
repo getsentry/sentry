@@ -32,6 +32,7 @@ describe('Subscription > Overview', () => {
   const mockLocation = LocationFixture();
 
   beforeEach(() => {
+    organization.features = [];
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
@@ -81,6 +82,10 @@ describe('Subscription > Overview', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
     });
 
     SubscriptionStore.set(organization.slug, {});
@@ -146,6 +151,24 @@ describe('Subscription > Overview', () => {
       ).not.toBeInTheDocument();
     }
   }
+
+  it('renders for new billing UI', async () => {
+    const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
+    SubscriptionStore.set(organization.slug, subscription);
+    organization.features = ['subscriptions-v3'];
+    render(<Overview location={mockLocation} />, {organization});
+    expect(
+      await screen.findByRole('heading', {name: 'Subscription'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: 'Billing information'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: 'Receipts & notifications'})
+    ).toBeInTheDocument();
+    expect(screen.getByText('Business plan')).toBeInTheDocument();
+    expect(screen.queryByText('Overview')).not.toBeInTheDocument();
+  });
 
   it('renders for am3 DS plan without custom dynamic sampling toggled', async () => {
     const subscription = Am3DsEnterpriseSubscriptionFixture({organization});

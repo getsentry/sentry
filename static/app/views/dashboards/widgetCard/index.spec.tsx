@@ -30,22 +30,28 @@ jest.mock('sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization'
 jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
 
 describe('Dashboards > WidgetCard', () => {
-  const {router, organization} = initializeOrg({
+  const {organization} = initializeOrg({
     organization: OrganizationFixture({
       features: ['dashboards-edit', 'discover-basic'],
     }),
-    router: {orgId: 'orgId'},
   } as Parameters<typeof initializeOrg>[0]);
 
-  const renderWithProviders = (component: React.ReactNode) =>
+  const renderWithProviders = (component: React.ReactNode, features: string[] = []) =>
     render(
       <DashboardsMEPProvider>
         <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
       </DashboardsMEPProvider>,
       {
-        organization,
-        router,
-        deprecatedRouterMocks: true,
+        organization: {
+          ...organization,
+          features: [...organization.features, ...features],
+        },
+        initialRouterConfig: {
+          route: '/organizations/:orgId/dashboard/:dashboardId/',
+          location: {
+            pathname: '/organizations/org-slug/dashboard/42/',
+          },
+        },
       }
     );
 
@@ -72,6 +78,36 @@ describe('Dashboards > WidgetCard', () => {
         name: 'default',
         orderby: '',
       },
+    ],
+  };
+
+  const transactionQueryWidget: Widget = {
+    title: 'Transactions',
+    description: 'Valid widget description',
+    interval: '5m',
+    displayType: DisplayType.LINE,
+    widgetType: WidgetType.TRANSACTIONS,
+    queries: [
+      {
+        conditions: 'event.type:transaction',
+        fields: ['count()', 'failure_count()'],
+        aggregates: ['count()', 'failure_count()'],
+        columns: [],
+        name: 'transactions',
+        orderby: '',
+      },
+      {
+        conditions: '',
+        fields: ['count()', 'failure_count()'],
+        aggregates: ['count()', 'failure_count()'],
+        columns: [],
+        name: 'default',
+        orderby: '',
+      },
+    ],
+    exploreUrls: [
+      '/organizations/org-slug/explore/traces/results1',
+      '/organizations/org-slug/explore/traces/results2',
     ],
   };
   const selection = {
@@ -581,7 +617,8 @@ describe('Dashboards > WidgetCard', () => {
         },
       ],
     };
-    renderWithProviders(
+
+    const {router} = renderWithProviders(
       <WidgetCard
         api={api}
         widget={widget}
@@ -600,8 +637,8 @@ describe('Dashboards > WidgetCard', () => {
     );
 
     await userEvent.click(await screen.findByLabelText('Open Full-Screen View'));
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({pathname: '/mock-pathname/widget/10/'})
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/dashboard/42/widget/10/'
     );
   });
 
@@ -805,5 +842,35 @@ describe('Dashboards > WidgetCard', () => {
     );
 
     expect(await screen.findByText('Indexed')).toBeInTheDocument();
+  });
+
+  it('displays the transaction deprecation warning and explore links for transaction widgets', async () => {
+    renderWithProviders(
+      <WidgetCard
+        api={api}
+        organization={{
+          ...organization,
+          features: [
+            ...organization.features,
+            'transaction-widget-deprecation-explore-view',
+          ],
+        }}
+        widget={transactionQueryWidget}
+        selection={selection}
+        isEditingDashboard={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        showContextMenu
+        widgetLimitReached={false}
+        isPreview
+        widgetLegendState={widgetLegendState}
+      />,
+      // passed feature flag in context because the hook for the warning does not have org passed in
+      ['transaction-widget-deprecation-explore-view']
+    );
+
+    expect(await screen.findByLabelText('Widget warnings')).toBeInTheDocument();
   });
 });
