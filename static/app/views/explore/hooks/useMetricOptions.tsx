@@ -9,8 +9,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 interface EventsMetricResult {
   data: Array<{
-    metric_name: string;
-    metric_type: string;
+    ['metric.name']: string;
+    ['metric.type']: string;
   }>;
   meta?: {
     fields?: Record<string, string>;
@@ -34,10 +34,9 @@ function metricOptionsQueryKey({
 }): ApiQueryKey {
   const query: Record<string, string | string[] | number[]> = {
     dataset: DiscoverDatasets.TRACEMETRICS,
-    // count(metric_name) is added to allow the names to be aggregated, otherwise we automatically group by IDs
-    field: ['metric_name', 'metric_type', 'count(metric_name)'],
+    field: ['metric.name', 'metric.type', 'count(metric.name)'],
     referrer: 'api.explore.metric-options',
-    orderby: 'metric_name',
+    orderby: 'metric.name',
   };
 
   if (projectIds?.length) {

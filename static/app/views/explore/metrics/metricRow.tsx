@@ -76,8 +76,8 @@ function MetricToolbar({
   const metricOptions = useMemo(() => {
     return [
       ...(metricOptionsData?.data?.map(option => ({
-        label: `${option.metric_name} (${option.metric_type})`,
-        value: option.metric_name,
+        label: `${option['metric.name']} (${option['metric.type']})`,
+        value: option['metric.name'],
       })) ?? []),
       // TODO(nar): Remove these when we actually have metrics served
       // This is only used for providing an option to test current selection behavior

@@ -30,7 +30,7 @@ export function MetricPanel({traceMetric}: MetricPanelProps) {
 
   const timeseriesResult = useSortedTimeSeries(
     {
-      search: new MutableSearch(`metric_name:${traceMetric.name}`),
+      search: new MutableSearch(`metric.name:${traceMetric.name}`),
       yAxis: [visualize.yAxis],
       interval,
       fields: [],

@@ -50,9 +50,9 @@ describe('useMetricOptions', () => {
   it('fetches metric options from tracemetrics dataset', async () => {
     const mockData = {
       data: [
-        {metric_name: 'metric.a', metric_type: 'distribution'},
-        {metric_name: 'metric.b', metric_type: 'distribution'},
-        {metric_name: 'metric.c', metric_type: 'counter'},
+        {['metric.name']: 'metric.a', ['metric.type']: 'distribution'},
+        {['metric.name']: 'metric.b', ['metric.type']: 'distribution'},
+        {['metric.name']: 'metric.c', ['metric.type']: 'counter'},
       ],
     };
 
@@ -63,10 +63,9 @@ describe('useMetricOptions', () => {
       match: [
         MockApiClient.matchQuery({
           dataset: DiscoverDatasets.TRACEMETRICS,
-          field: ['metric_name', 'metric_type', 'count(metric_name)'],
-          per_page: '100',
+          field: ['metric.name', 'metric.type', 'count(metric.name)'],
           referrer: 'api.explore.metric-options',
-          orderby: 'metric_name',
+          orderby: 'metric.name',
         }),
       ],
     });
@@ -80,9 +79,9 @@ describe('useMetricOptions', () => {
     expect(mockRequest).toHaveBeenCalledTimes(1);
     await waitFor(() =>
       expect(result.current.data?.data).toEqual([
-        {metric_name: 'metric.a', metric_type: 'distribution'},
-        {metric_name: 'metric.b', metric_type: 'distribution'},
-        {metric_name: 'metric.c', metric_type: 'counter'},
+        {['metric.name']: 'metric.a', ['metric.type']: 'distribution'},
+        {['metric.name']: 'metric.b', ['metric.type']: 'distribution'},
+        {['metric.name']: 'metric.c', ['metric.type']: 'counter'},
       ])
     );
   });
@@ -107,7 +106,7 @@ describe('useMetricOptions', () => {
       `/organizations/${organization.slug}/events/`,
       expect.objectContaining({
         query: expect.objectContaining({
-          orderby: 'metric_name',
+          orderby: 'metric.name',
         }),
       })
     );
