@@ -352,6 +352,13 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         return time_window_seconds
 
     def _validate_performance_dataset(self, dataset):
+        if features.has(
+            "organizations:discover-saved-queries-deprecation", self.context["organization"]
+        ):
+            raise serializers.ValidationError(
+                f"The {dataset.value} dataset is being deprecated. Please use the 'events_analytics_platform' dataset with the `is_transaction:true` filter instead."
+            )
+
         if dataset != Dataset.Transactions:
             return dataset
 
