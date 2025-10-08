@@ -115,10 +115,53 @@ class SubscriptionProcessor:
 
     def __init__(self, subscription: QuerySubscription) -> None:
         self.subscription = subscription
+
+        try:
+            project = self.subscription.project
+            self._has_workflow_engine_processing_only = features.has(
+                "organizations:workflow-engine-single-process-metric-issues",
+                project.organization,
+            )
+            self._has_workflow_engine_processing = (
+                features.has(
+                    "organizations:workflow-engine-metric-alert-processing",
+                    project.organization,
+                )
+                or self._has_workflow_engine_processing_only
+            )
+        except Project.DoesNotExist:
+            # No processing to be done, project is gone.
+            self._has_workflow_engine_processing_only = False
+            self._has_workflow_engine_processing = False
+
         self._alert_rule: AlertRule | None = None
+        self.detector: Detector | None = None
         try:
             self._alert_rule = AlertRule.objects.get_for_subscription(subscription)
         except AlertRule.DoesNotExist:
+            if self._has_workflow_engine_processing_only:
+                # Single processing with no AlertRule, so we use new conventions for
+                # last_update storage.
+                try:
+                    self.detector = Detector.objects.get(
+                        data_sources__source_id=str(self.subscription.id),
+                        data_sources__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+                    )
+                    self.last_update = get_detector_last_update(self.detector, project.id)
+                except Detector.DoesNotExist:
+                    logger.warning(
+                        "Detector not found for subscription",
+                        extra={"subscription_id": self.subscription.id},
+                    )
+                    # This is a bug; if we're single processing, there should always be a detector.
+                    raise
+            else:
+                # This is a bug; if we aren't workflow engine only, there should always be an AlertRule.
+                # Should be handled cleanly in process_update.
+                logger.info(
+                    "No AlertRule found for subscription",
+                    extra={"subscription_id": self.subscription.id},
+                )
             return
 
         self.triggers = AlertRuleTrigger.objects.get_for_alert_rule(self._alert_rule)
@@ -131,18 +174,6 @@ class SubscriptionProcessor:
         ) = get_alert_rule_stats(self._alert_rule, self.subscription, self.triggers)
         self.orig_trigger_alert_counts = deepcopy(self.trigger_alert_counts)
         self.orig_trigger_resolve_counts = deepcopy(self.trigger_resolve_counts)
-
-        self._has_workflow_engine_processing_only = features.has(
-            "organizations:workflow-engine-single-process-metric-issues",
-            self.subscription.project.organization,
-        )
-        self._has_workflow_engine_processing = (
-            features.has(
-                "organizations:workflow-engine-metric-alert-processing",
-                self.subscription.project.organization,
-            )
-            or self._has_workflow_engine_processing_only
-        )
 
     @property
     def alert_rule(self) -> AlertRule:
@@ -362,7 +393,7 @@ class SubscriptionProcessor:
         detector = None
         if has_metric_alert_processing:
             try:
-                detector = Detector.objects.get(
+                detector = self.detector or Detector.objects.get(
                     data_sources__source_id=str(self.subscription.id),
                     data_sources__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
                 )
@@ -698,14 +729,15 @@ class SubscriptionProcessor:
         if self.has_downgraded(dataset, organization):
             return
 
-        if self._alert_rule is None:
-            # QuerySubscriptions must _always_ have an associated AlertRule
+        if self._alert_rule is None and not self._has_workflow_engine_processing_only:
+            # QuerySubscriptions must have an associated AlertRule if we are not using workflow engine only.
             # If the alert rule has been removed then clean up associated tables and return
             metrics.incr("incidents.alert_rules.no_alert_rule_for_subscription", sample_rate=1.0)
             logger.error(
                 "Deleting QuerySubscription due to lack of matching AlertRule",
                 extra={
                     "subscription_id": self.subscription.id,
+                    "dual_processing": self._has_workflow_engine_processing,
                 },
             )
             delete_snuba_subscription(self.subscription)
@@ -773,6 +805,10 @@ class SubscriptionProcessor:
                     else:
                         workflow_engine_results = self.process_results_workflow_engine(
                             detector, subscription_update, aggregation_value, organization
+                        )
+                        # Ensure that we have last_update stored for all Detector evaluations.
+                        store_detector_last_update(
+                            detector, self.subscription.project.id, self.last_update
                         )
 
                         if self._has_workflow_engine_processing_only:
@@ -1086,6 +1122,27 @@ def build_alert_rule_stat_keys(alert_rule: AlertRule, subscription: QuerySubscri
     """
     key_base = ALERT_RULE_BASE_KEY % (alert_rule.id, subscription.project_id)
     return [ALERT_RULE_BASE_STAT_KEY % (key_base, stat_key) for stat_key in ALERT_RULE_STAT_KEYS]
+
+
+type DetectorLastUpdateKey = str
+
+
+def build_detector_last_update_key(detector: Detector, project_id: int) -> DetectorLastUpdateKey:
+    return f"detector:{detector.id}:project:{project_id}:last_update"
+
+
+def get_detector_last_update(detector: Detector, project_id: int) -> datetime:
+    return to_datetime(
+        get_redis_client().get(build_detector_last_update_key(detector, project_id)) or 0
+    )
+
+
+def store_detector_last_update(detector: Detector, project_id: int, last_update: datetime) -> None:
+    get_redis_client().set(
+        build_detector_last_update_key(detector, project_id),
+        int(last_update.timestamp()),
+        ex=REDIS_TTL,
+    )
 
 
 def build_trigger_stat_keys(
