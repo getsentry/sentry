@@ -54,11 +54,16 @@ function NextBillCard({
     .filter(item => item.type.startsWith('ondemand_'))
     .reduce((acc, item) => acc + item.amount, 0);
   const fees = getFees({invoiceItems});
-  const credits = getCredits({invoiceItems});
-  const creditApplied = getCreditApplied({
-    creditApplied: nextBill?.creditApplied ?? 0,
-    invoiceItems,
-  });
+  const credits = getCredits({invoiceItems}); // these should all be negative already
+
+  // TODO(isabella): Update the getCreditApplied function to return a negative value
+  // and correct places where it's used
+  const creditApplied =
+    -1 *
+    getCreditApplied({
+      creditApplied: nextBill?.creditApplied ?? 0,
+      invoiceItems,
+    });
   const creditTotal = credits.reduce((acc, item) => acc + item.amount, 0) + creditApplied;
 
   // fallback to next on-demand period start
@@ -129,13 +134,13 @@ function NextBillCard({
                   </Text>
                 </Flex>
               ))}
-              {creditTotal > 0 && (
+              {creditTotal < 0 && (
                 <Flex justify="between" align="center">
                   <Text variant="muted" size="sm">
                     {t('Credits')}
                   </Text>
                   <Text variant="muted" size="sm">
-                    -{displayPriceWithCents({cents: creditTotal})}
+                    {displayPriceWithCents({cents: creditTotal})}
                   </Text>
                 </Flex>
               )}
