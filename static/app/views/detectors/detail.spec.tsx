@@ -124,7 +124,10 @@ describe('DetectorDetails', () => {
         screen.getByText(dataSource.queryObj.snubaQuery.environment!)
       ).toBeInTheDocument();
       // Displays the owner team
-      expect(screen.getByText(`Assign to #${ownerTeam.slug}`)).toBeInTheDocument();
+      expect(screen.getByText('Assign to')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('link', {name: `#${ownerTeam.slug}`})
+      ).toBeInTheDocument();
     });
 
     it('can edit the detector when the user has alerts:write access', async () => {
