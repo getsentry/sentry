@@ -519,11 +519,7 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
                     >
                       <Flex align="center" gap="sm">
                         <IconLightning size="xs" />
-                        <Container>
-                          {/* {isScreenSmall ? t('Start trial') :  */}
-                          {t('Start 14 day free trial')}
-                          {/* } */}
-                        </Container>
+                        <Container>{t('Start 14 day free trial')}</Container>
                       </Flex>
                     </StartTrialButton>
                   </Flex>
