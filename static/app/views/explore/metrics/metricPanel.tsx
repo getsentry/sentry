@@ -7,7 +7,6 @@ import SplitPanel from 'sentry/components/splitPanel';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {useResettableState} from 'sentry/utils/useResettableState';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
 import MetricInfoTabs from 'sentry/views/explore/metrics/metricInfoTabs';
@@ -17,26 +16,26 @@ import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParam
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface MetricPanelProps {
+  metricIndex: number;
   traceMetric: TraceMetric;
 }
 
 const MIN_LEFT_WIDTH = 400;
 const MIN_RIGHT_WIDTH = 400;
 
-export function MetricPanel({traceMetric}: MetricPanelProps) {
+export function MetricPanel({traceMetric, metricIndex}: MetricPanelProps) {
   const visualize = useMetricVisualize();
   const measureRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: measureRef});
   const [interval] = useChartInterval();
-  const [metricName, setMetricName] = useResettableState(() => '');
 
   const timeseriesResult = useSortedTimeSeries(
     {
-      search: new MutableSearch(`metric_name:${metricName}`),
+      search: new MutableSearch(`metric_name:${traceMetric.name}`),
       yAxis: [visualize.yAxis],
       interval,
       fields: [],
-      enabled: Boolean(metricName),
+      enabled: Boolean(traceMetric.name),
     },
     'api.explore.metrics-stats',
     DiscoverDatasets.TRACEMETRICS
@@ -47,11 +46,7 @@ export function MetricPanel({traceMetric}: MetricPanelProps) {
   return (
     <Panel>
       <PanelHeader>
-        <MetricRow
-          traceMetric={traceMetric}
-          metricName={metricName}
-          setMetricName={setMetricName}
-        />
+        <MetricRow traceMetric={traceMetric} metricIndex={metricIndex} />
       </PanelHeader>
       <PanelBody>
         <div ref={measureRef}>
