@@ -129,7 +129,7 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
     );
   }, [hasBillingPerms, subscription.planDetails, subscription.productTrials]);
 
-  // TODO(isabella): refactor this to have better types + be more efficient
+  // TODO(isabella): refactor this to have better types
   const productData: Array<{
     attrs: {
       hasAccess: boolean;
@@ -220,7 +220,7 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
             !addOnInfo.billingFlag ||
             organization.features.includes(addOnInfo.billingFlag)
         )
-        .map(([apiName, addOnInfo]) => {
+        .flatMap(([apiName, addOnInfo]) => {
           const addOnName = toTitleCase(addOnInfo.productName, {
             allowInnerUpperCase: true,
           });
@@ -265,74 +265,62 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
             : undefined;
           const recurringReservedSpend = bucket?.price ?? 0;
 
-          return {
-            attrs: {
-              addOnCategory: apiName as AddOnCategory,
-              hasAccess,
-              free: reservedBudget?.freeBudget ?? 0,
-              reserved: reservedBudget?.reservedBudget ?? 0,
-              isPaygOnly: !reservedBudget,
-              productTrial: activeProductTrial ?? potentialProductTrial ?? undefined,
-              hasToggle: true,
-              isOpen: openState[apiName],
-              onToggle: () => {
-                setOpenState(prev => ({...prev, [apiName]: !prev[apiName]}));
-              },
-              ariaLabel: openState[apiName]
-                ? t('Collapse %s info', addOnName)
-                : t('Expand %s info', addOnName),
-            },
-            gridData: {
-              product: addOnName,
-              currentUsage: (reservedBudget?.totalReservedSpend ?? 0) + paygTotal,
-              reservedUsage: percentUsed,
-              reservedSpend: recurringReservedSpend,
-              budgetSpend: paygTotal,
-            },
-          };
-        }),
-      ...Object.entries(subscription.addOns ?? {})
-        .filter(
-          ([apiName, addOnInfo]) =>
-            (!addOnInfo.billingFlag ||
-              organization.features.includes(addOnInfo.billingFlag)) &&
-            addOnInfo.enabled &&
-            openState[apiName]
-        )
-        .flatMap(([apiName, addOnInfo]) => {
-          const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(
-            apiName as AddOnCategory
-          );
-          const reservedBudget = reservedBudgetCategory
-            ? subscription.reservedBudgets?.find(
-                budget => (budget.apiName as string) === reservedBudgetCategory
-              )
-            : undefined;
-          return addOnInfo.dataCategories.map(addOnDataCategory => {
-            const reservedBudgetSpend =
-              reservedBudget?.categories[addOnDataCategory]?.reservedSpend ?? 0;
-            const paygTotal =
-              subscription.categories[addOnDataCategory]?.onDemandSpendUsed ?? 0;
-            const productName = getPlanCategoryName({
-              plan: subscription.planDetails,
-              category: addOnDataCategory,
-              title: true,
-            });
-            return {
+          const childCategoriesData = openState[apiName]
+            ? addOnInfo.dataCategories.map(addOnDataCategory => {
+                const childSpend =
+                  reservedBudget?.categories[addOnDataCategory]?.reservedSpend ?? 0;
+                const childPaygTotal =
+                  subscription.categories[addOnDataCategory]?.onDemandSpendUsed ?? 0;
+                const childProductName = getPlanCategoryName({
+                  plan: subscription.planDetails,
+                  category: addOnDataCategory,
+                  title: true,
+                });
+                return {
+                  attrs: {
+                    addOnCategory: apiName as AddOnCategory,
+                    isChildProduct: true,
+                    isOpen: openState[apiName],
+                    hasAccess: true,
+                    isPaygOnly: false,
+                  },
+                  gridData: {
+                    budgetSpend: childPaygTotal,
+                    currentUsage: (childSpend ?? 0) + childPaygTotal,
+                    product: childProductName,
+                  },
+                };
+              })
+            : null;
+
+          return [
+            {
               attrs: {
                 addOnCategory: apiName as AddOnCategory,
-                isChildProduct: true,
+                hasAccess,
+                free: reservedBudget?.freeBudget ?? 0,
+                reserved: reservedBudget?.reservedBudget ?? 0,
+                isPaygOnly: !reservedBudget,
+                productTrial: activeProductTrial ?? potentialProductTrial ?? undefined,
+                hasToggle: true,
                 isOpen: openState[apiName],
-                hasAccess: true,
-                isPaygOnly: false,
+                onToggle: () => {
+                  setOpenState(prev => ({...prev, [apiName]: !prev[apiName]}));
+                },
+                ariaLabel: openState[apiName]
+                  ? t('Collapse %s info', addOnName)
+                  : t('Expand %s info', addOnName),
               },
               gridData: {
+                product: addOnName,
+                currentUsage: (reservedBudget?.totalReservedSpend ?? 0) + paygTotal,
+                reservedUsage: percentUsed,
+                reservedSpend: recurringReservedSpend,
                 budgetSpend: paygTotal,
-                currentUsage: (reservedBudgetSpend ?? 0) + paygTotal,
-                product: productName,
               },
-            };
-          });
+            },
+            ...(childCategoriesData ?? []),
+          ];
         }),
     ];
   }, [subscription, allAddOnDataCategories, organization.features, openState]);
