@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Flex} from 'sentry/components/core/layout';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -50,10 +50,8 @@ function SubscriptionSettingsLayout(props: Props) {
         </Flex>
       </StyledSettingsHeader>
 
-      <Flex flex="1">
-        <Container minWidth={0} flex={1}>
-          {children}
-        </Container>
+      <Flex minWidth={0} flex="1" direction="column">
+        {children}
       </Flex>
     </SettingsColumn>
   );
