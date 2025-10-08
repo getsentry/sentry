@@ -256,9 +256,10 @@ export function Onboarding() {
             {label: 'Manual', value: 'manual'},
           ]
         : [
-            {label: 'Vercel AI SDK', value: 'vercelai'},
+            {label: 'Vercel AI SDK', value: 'vercel_ai'},
             {label: 'OpenAI SDK', value: 'openai'},
             {label: 'Anthropic SDK', value: 'anthropic'},
+            {label: 'Google Gen AI SDK', value: 'google_genai'},
             {label: 'Manual', value: 'manual'},
           ],
     },
