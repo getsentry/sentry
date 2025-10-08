@@ -279,6 +279,9 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
       if ([DataCategory.LOG_ITEM].includes(opt.value)) {
         return organization.features.includes('ourlogs-stats');
       }
+      if ([DataCategory.TRACE_METRICS].includes(opt.value)) {
+        return organization.features.includes('tracemetrics-stats');
+      }
       if (
         [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI].includes(
           opt.value

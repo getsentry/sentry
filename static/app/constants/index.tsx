@@ -583,6 +583,20 @@ export const DATA_CATEGORY_INFO = {
       showExternalStats: false, // TODO(prevent): add external stats when ready
     },
   },
+  [DataCategoryExact.TRACE_METRIC]: {
+    name: DataCategoryExact.TRACE_METRIC,
+    plural: DataCategory.TRACE_METRICS,
+    singular: 'traceMetric',
+    displayName: 'trace metric',
+    titleName: t('Metrics'),
+    productName: t('Trace Metrics'),
+    uid: 31,
+    isBilledCategory: false,
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+    },
+  },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
 // SmartSearchBar settings
