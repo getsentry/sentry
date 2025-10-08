@@ -41,6 +41,7 @@ from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import update_group_open_period
+from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
@@ -154,7 +155,19 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
     """
     current_release_version = None
     if follows_semver:
-        release = greatest_semver_release(group.project)
+        # Fetch all the release-packages associated with the group. We'll find the largest semver
+        # version for one of these packages.
+        group_packages = list(
+            GroupRelease.objects.filter(
+                group_id=group.id,
+                project_id=group.project_id,
+                release__package__isnull=False,
+            )
+            .distinct()
+            .values_list("release__package", flat=True)
+        )
+
+        release = greatest_semver_release(group.project, packages=group_packages)
         if release is not None:
             current_release_version = release.version
     else:
@@ -537,6 +550,10 @@ def process_group_resolution(
                     # in release
                     resolution_params.update(
                         {
+                            "release": Release.objects.filter(
+                                organization_id=group.organization_id,
+                                version=current_release_version,
+                            ).get(),
                             "type": GroupResolution.Type.in_release,
                             "status": GroupResolution.Status.resolved,
                         }
@@ -841,14 +858,20 @@ def most_recent_release_matching_commit(
     )
 
 
-def greatest_semver_release(project: Project) -> Release | None:
-    return get_semver_releases(project).first()
+def greatest_semver_release(project: Project, packages: list[str]) -> Release | None:
+    return get_semver_releases(project, packages).first()
 
 
-def get_semver_releases(project: Project) -> QuerySet[Release]:
+def get_semver_releases(project: Project, packages: list[str]) -> QuerySet[Release]:
+    query = Release.objects.filter(projects=project, organization_id=project.organization_id)
+
+    # Multiple packages may exist for a single project. If we were able to infer the packages
+    # associated with an issue we'll include them.
+    if packages:
+        query = query.filter(package__in=packages)
+
     return (
-        Release.objects.filter(projects=project, organization_id=project.organization_id)
-        .filter_to_semver()  # type: ignore[attr-defined]
+        query.filter_to_semver()  # type: ignore[attr-defined]
         .annotate_prerelease_column()
         .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])
     )
