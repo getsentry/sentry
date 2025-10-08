@@ -22,6 +22,7 @@ export enum DiscoverDatasets {
   OURLOGS = 'ourlogs',
   SPANS = 'spans',
   TRANSACTIONS = 'transactions',
+  TRACEMETRICS = 'tracemetrics',
 }
 
 export const DiscoverDatasetsToDatasetMap = {

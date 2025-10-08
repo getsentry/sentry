@@ -15,6 +15,7 @@ export interface BaseMetricQuery {
 }
 
 export interface MetricQuery extends BaseMetricQuery {
+  setMetricName: (metricName: string) => void;
   setQueryParams: (queryParams: ReadableQueryParams) => void;
 }
 
@@ -63,7 +64,7 @@ export function encodeMetricQueryParams(metricQuery: BaseMetricQuery): string {
 
 export function defaultMetricQuery(): BaseMetricQuery {
   return {
-    metric: {name: 'myfirstmetric'},
+    metric: {name: ''},
     queryParams: new ReadableQueryParams({
       extrapolate: true,
       mode: Mode.AGGREGATE,
@@ -93,9 +94,9 @@ function defaultSortBys(): Sort[] {
 }
 
 function defaultAggregateFields(): AggregateField[] {
-  return [new VisualizeFunction('count(span.duration)', {chartType: ChartType.BAR})];
+  return [new VisualizeFunction('sum(value)', {chartType: ChartType.BAR})];
 }
 
 function defaultAggregateSortBys(): Sort[] {
-  return [{field: 'count(span.duration)', kind: 'desc'}];
+  return [{field: 'sum(value)', kind: 'desc'}];
 }
