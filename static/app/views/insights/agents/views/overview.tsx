@@ -311,6 +311,7 @@ function LoadingPanel() {
 const LoadingPlaceholder = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+  position: relative;
   height: 100%;
 
   display: flex;
