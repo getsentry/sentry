@@ -554,7 +554,7 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
     )
 
 
-def get_full_trace_from_id(trace_id: str, organization_id: int) -> EAPTrace:
+def get_full_trace_from_id(trace_id: str, organization_id: int) -> EAPTrace | None:
     """
     Get a trace's spans and errors from a trace ID.
 
@@ -598,7 +598,7 @@ def get_full_trace_from_id(trace_id: str, organization_id: int) -> EAPTrace:
             )
             subquery_result = executor.execute(0, 1)
             full_trace_id = (
-                subquery_result["data"][0].get("trace") if subquery_result["data"] else None
+                subquery_result["data"][0]["trace"] if subquery_result.get("data") else None
             )
     else:
         full_trace_id = trace_id
