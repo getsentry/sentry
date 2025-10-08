@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Image} from 'sentry/components/core/image/image';
 import {CodeBlock} from 'sentry/components/core/code';
+import {Image} from 'sentry/components/core/image/image';
 import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
