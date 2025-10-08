@@ -399,6 +399,14 @@ function processDetectorConditions(
     conditionType = mainCondition.type;
   }
 
+  // Determine resolution strategy: automatic if OK threshold matches warning or critical
+  const resolutionValue = okCondition?.comparison ?? undefined;
+  const computedResolutionStrategy: 'automatic' | 'manual' =
+    defined(resolutionValue) &&
+    ![mainCondition?.comparison, highCondition?.comparison].includes(resolutionValue)
+      ? 'manual'
+      : 'automatic';
+
   return {
     initialPriorityLevel,
     conditionValue:
@@ -410,8 +418,7 @@ function processDetectorConditions(
       typeof highCondition?.comparison === 'number'
         ? highCondition.comparison.toString()
         : '',
-    resolutionStrategy:
-      typeof okCondition?.comparison === 'number' ? 'manual' : 'automatic',
+    resolutionStrategy: computedResolutionStrategy,
     resolutionValue:
       typeof okCondition?.comparison === 'number'
         ? okCondition.comparison.toString()

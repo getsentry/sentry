@@ -39,7 +39,6 @@ import {
   useActiveTable,
 } from 'sentry/views/insights/agents/hooks/useActiveTable';
 import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
-import {AIInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
 import {TwoColumnWidgetGrid, WidgetGrid} from 'sentry/views/insights/agents/views/styles';
@@ -53,8 +52,6 @@ import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/comp
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
-import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
-import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const TableControl = SegmentedControl<TableType>;
@@ -158,10 +155,6 @@ function AgentsOverviewPage() {
 
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
-      <AgentsPageHeader
-        module={ModuleName.AGENTS}
-        headerTitle={<Fragment>{getAIModuleTitle(organization)}</Fragment>}
-      />
       <ModuleFeature moduleName={ModuleName.AGENTS}>
         <Layout.Body>
           <Layout.Main fullWidth>
@@ -295,16 +288,14 @@ function ToolsView() {
 
 function PageWithProviders() {
   return (
-    <AIInsightsFeature>
-      <ModulePageProviders
-        moduleName={ModuleName.AGENTS}
-        analyticEventName="insight.page_loads.agents"
-      >
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <AgentsOverviewPage />
-        </TraceItemAttributeProvider>
-      </ModulePageProviders>
-    </AIInsightsFeature>
+    <ModulePageProviders
+      moduleName={ModuleName.AGENTS}
+      analyticEventName="insight.page_loads.agents"
+    >
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <AgentsOverviewPage />
+      </TraceItemAttributeProvider>
+    </ModulePageProviders>
   );
 }
 
@@ -320,6 +311,7 @@ function LoadingPanel() {
 const LoadingPlaceholder = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+  position: relative;
   height: 100%;
 
   display: flex;

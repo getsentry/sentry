@@ -22,6 +22,8 @@ import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/fil
 import ReleaseTableSearch from 'sentry/views/insights/sessions/components/releaseTableSearch';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
+import useHasDashboardsPlatformizedSessionHealth from 'sentry/views/insights/sessions/utils/useHasDashboardsPlatformizedSessionHealth';
+import {PlatformizedSessionsOverview} from 'sentry/views/insights/sessions/views/platformizedOverview';
 import {ModuleName} from 'sentry/views/insights/types';
 
 function SessionsOverview() {
@@ -128,6 +130,11 @@ function ViewSpecificCharts({
 }
 
 function PageWithProviders() {
+  const hasDashboardsPlatformizedSessionHealth =
+    useHasDashboardsPlatformizedSessionHealth();
+  if (hasDashboardsPlatformizedSessionHealth) {
+    return <PlatformizedSessionsOverview />;
+  }
   return (
     <ModulePageProviders moduleName="sessions">
       <SessionsOverview />

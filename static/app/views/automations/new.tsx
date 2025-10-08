@@ -53,7 +53,7 @@ export default function AutomationNew() {
   });
 
   return (
-    <SentryDocumentTitle title={t('New Automation')} noSuffix>
+    <SentryDocumentTitle title={t('New Automation')}>
       <Layout.Page>
         <StyledLayoutHeader>
           <Layout.HeaderContent>
