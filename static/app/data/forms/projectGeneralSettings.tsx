@@ -54,9 +54,9 @@ export const fields = {
     name: 'name',
     type: 'string',
     required: true,
-    label: t('Name'),
+    label: t('Slug'),
     placeholder: t('my-awesome-project'),
-    help: t('A name for this project'),
+    help: t('A slug for this project'),
     transformInput: slugify,
     getData: (data: {name?: string}) => {
       return {
