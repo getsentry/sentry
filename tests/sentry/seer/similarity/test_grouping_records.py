@@ -11,6 +11,7 @@ from sentry.conf.server import SEER_HASH_GROUPING_RECORDS_DELETE_URL
 from sentry.seer.similarity.grouping_records import (
     POST_BULK_GROUPING_RECORDS_TIMEOUT,
     CreateGroupingRecordsRequest,
+    call_seer_to_delete_project_grouping_records,
     call_seer_to_delete_these_hashes,
     post_bulk_grouping_records,
 )
@@ -175,7 +176,7 @@ def test_post_bulk_grouping_records_use_reranking(
 
 @django_db_all
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
-@mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
+@mock.patch("sentry.seer.similarity.grouping_records.make_signed_seer_api_request")
 def test_delete_grouping_records_by_hash_success(
     mock_seer_request: MagicMock, mock_logger: MagicMock
 ):
@@ -197,7 +198,7 @@ def test_delete_grouping_records_by_hash_success(
 
 @django_db_all
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
-@mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
+@mock.patch("sentry.seer.similarity.grouping_records.make_signed_seer_api_request")
 def test_delete_grouping_records_by_hash_timeout(
     mock_seer_request: MagicMock, mock_logger: MagicMock
 ):
@@ -220,7 +221,7 @@ def test_delete_grouping_records_by_hash_timeout(
 
 @django_db_all
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
-@mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
+@mock.patch("sentry.seer.similarity.grouping_records.make_signed_seer_api_request")
 def test_delete_grouping_records_by_hash_failure(
     mock_seer_request: MagicMock, mock_logger: MagicMock
 ):
@@ -238,4 +239,63 @@ def test_delete_grouping_records_by_hash_failure(
             "hashes": hashes,
             "project_id": project_id,
         },
+    )
+
+
+@django_db_all
+@mock.patch("sentry.seer.similarity.grouping_records.logger")
+@mock.patch("sentry.seer.similarity.grouping_records.make_signed_seer_api_request")
+def test_delete_project_grouping_records_success(
+    mock_seer_request: MagicMock, mock_logger: MagicMock
+):
+    mock_seer_request.return_value = HTTPResponse(
+        json.dumps({"success": True}).encode("utf-8"), status=200
+    )
+
+    project_id = 1
+    response = call_seer_to_delete_project_grouping_records(project_id)
+    assert response is True
+    mock_logger.info.assert_called_with(
+        "seer.delete_grouping_records.project.success",
+        extra={"project_id": project_id},
+    )
+
+
+@django_db_all
+@mock.patch("sentry.seer.similarity.grouping_records.logger")
+@mock.patch("sentry.seer.similarity.grouping_records.make_signed_seer_api_request")
+def test_delete_project_grouping_records_timeout(
+    mock_seer_request: MagicMock, mock_logger: MagicMock
+):
+    mock_seer_request.side_effect = ReadTimeoutError(
+        DUMMY_POOL, "/v0/issues/similar-issues/grouping-record/delete", "read timed out"
+    )
+    project_id = 1
+    response = call_seer_to_delete_project_grouping_records(project_id)
+    assert response is False
+    mock_logger.exception.assert_called_with(
+        "seer.delete_grouping_records.project.timeout",
+        extra={
+            "reason": "ReadTimeoutError",
+            "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT,
+        },
+    )
+
+
+@django_db_all
+@mock.patch("sentry.seer.similarity.grouping_records.logger")
+@mock.patch("sentry.seer.similarity.grouping_records.make_signed_seer_api_request")
+def test_delete_project_grouping_records_failure(
+    mock_seer_request: MagicMock, mock_logger: MagicMock
+):
+    mock_seer_request.return_value = HTTPResponse(
+        b"<!doctype html>\n<html lang=en>\n<title>500 Internal Server Error</title>\n<h1>Internal Server Error</h1>\n<p>The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.</p>\n",
+        reason="INTERNAL SERVER ERROR",
+        status=500,
+    )
+    project_id = 1
+    response = call_seer_to_delete_project_grouping_records(project_id)
+    assert response is False
+    mock_logger.error.assert_called_with(
+        "seer.delete_grouping_records.project.failure",
     )
