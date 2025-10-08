@@ -36,7 +36,7 @@ def execute_trace_query_chart(
         "query": query,
         "statsPeriod": stats_period,
         "yAxis": y_axes,
-        "project": project_ids,  # client.py handles lists properly with setlist()
+        "project": project_ids,
         "dataset": "spans",
         "referrer": Referrer.SEER_RPC,
         "transformAliasToInputFormat": "1",  # Required for RPC datasets
@@ -114,10 +114,10 @@ def execute_trace_query_table(
     params: dict[str, Any] = {
         "query": query,
         "statsPeriod": stats_period,
-        "field": fields,  # client.py handles lists properly with setlist()
+        "field": fields,
         "sort": sort if sort else ("-timestamp" if not group_by else None),
         "per_page": per_page,
-        "project": project_ids,  # client.py handles lists properly with setlist()
+        "project": project_ids,
         "dataset": "spans",
         "referrer": Referrer.SEER_RPC,
         "transformAliasToInputFormat": "1",  # Required for RPC datasets
