@@ -26,7 +26,6 @@ import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceIte
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
-import {McpInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -51,7 +50,6 @@ import McpTransportWidget from 'sentry/views/insights/mcp/components/mcpTranspor
 import {WidgetGrid} from 'sentry/views/insights/mcp/components/styles';
 import {Onboarding} from 'sentry/views/insights/mcp/views/onboarding';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
-import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const TableControl = SegmentedControl<ViewType>;
@@ -197,10 +195,7 @@ function McpOverviewPage() {
 
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
-      <AgentsPageHeader
-        module={ModuleName.MCP}
-        headerTitle={<Fragment>{getAIModuleTitle(organization)}</Fragment>}
-      />
+      <AgentsPageHeader module={ModuleName.MCP} />
       <ModuleFeature moduleName={ModuleName.MCP}>
         <Layout.Body>
           <Layout.Main fullWidth>
@@ -278,13 +273,11 @@ function McpOverviewPage() {
 
 function PageWithProviders() {
   return (
-    <McpInsightsFeature>
-      <ModulePageProviders moduleName={ModuleName.MCP}>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <McpOverviewPage />
-        </TraceItemAttributeProvider>
-      </ModulePageProviders>
-    </McpInsightsFeature>
+    <ModulePageProviders moduleName={ModuleName.MCP}>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <McpOverviewPage />
+      </TraceItemAttributeProvider>
+    </ModulePageProviders>
   );
 }
 
