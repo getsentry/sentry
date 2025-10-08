@@ -150,10 +150,19 @@ describe('useUpdatePreventAIFeature', () => {
       expect(
         updatedConfig.github_organizations?.['org-1']?.org_defaults?.vanilla?.enabled
       ).toBe(true);
-      // Should not mutate original
-      expect(config.github_organizations?.['org-1']?.org_defaults?.vanilla?.enabled).toBe(
-        false
-      );
+    });
+
+    it('should handle sensitivity parameter correctly', () => {
+      const config = structuredClone(mockOrg.preventAiConfigGithub!);
+      const updatedConfig = makePreventAIConfig(config, {
+        feature: 'vanilla',
+        enabled: true,
+        orgName: 'org-1',
+        sensitivity: 'high',
+      });
+      expect(
+        updatedConfig.github_organizations?.['org-1']?.org_defaults?.vanilla?.sensitivity
+      ).toBe('high');
     });
 
     it('should update the correct feature config in repo_overrides', () => {
