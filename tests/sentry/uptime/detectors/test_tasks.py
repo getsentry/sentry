@@ -225,7 +225,7 @@ class ProcessProjectUrlRankingTest(UptimeTestCase):
 
 @freeze_time()
 class ProcessCandidateUrlTest(UptimeTestCase):
-    @with_feature(["organizations:uptime", "organizations:uptime-automatic-subscription-creation"])
+    @with_feature("organizations:uptime")
     def test_succeeds_new(self) -> None:
         url = make_unique_test_url()
         assert not is_url_auto_monitored_for_project(self.project, url)
@@ -234,21 +234,27 @@ class ProcessCandidateUrlTest(UptimeTestCase):
         assert self.project.get_option("sentry:uptime_autodetection") is False
         assert self.organization.get_option("sentry:uptime_autodetection") is False
 
-    def test_succeeds_new_no_feature(self) -> None:
+    def test_succeeds_new_no_option(self) -> None:
         url = make_unique_test_url()
-        with mock.patch(
-            "sentry.uptime.detectors.tasks.monitor_url_for_project"
-        ) as mock_monitor_url_for_project:
+        with (
+            self.options({"uptime.automatic-subscription-creation": False}),
+            mock.patch(
+                "sentry.uptime.detectors.tasks.monitor_url_for_project"
+            ) as mock_monitor_url_for_project,
+        ):
             assert process_candidate_url(self.project, 100, url, 50)
             mock_monitor_url_for_project.assert_not_called()
             assert self.project.get_option("sentry:uptime_autodetection") is None
             assert self.organization.get_option("sentry:uptime_autodetection") is None
 
-        with self.feature(["organizations:uptime"]):
+        with (
+            self.options({"uptime.automatic-subscription-creation": False}),
+            self.feature("organizations:uptime"),
+        ):
             assert process_candidate_url(self.project, 100, url, 50)
             mock_monitor_url_for_project.assert_not_called()
 
-    @with_feature(["organizations:uptime", "organizations:uptime-automatic-subscription-creation"])
+    @with_feature("organizations:uptime")
     def test_succeeds_existing_subscription_other_project(self) -> None:
         other_project = self.create_project()
         url = make_unique_test_url()
@@ -262,7 +268,7 @@ class ProcessCandidateUrlTest(UptimeTestCase):
         assert self.project.get_option("sentry:uptime_autodetection") is False
         assert self.organization.get_option("sentry:uptime_autodetection") is False
 
-    @with_feature(["organizations:uptime", "organizations:uptime-automatic-subscription-creation"])
+    @with_feature("organizations:uptime")
     def test_succeeds_existing_subscription_this_project(self) -> None:
         url = make_unique_test_url()
         assert process_candidate_url(self.project, 100, url, 50)
