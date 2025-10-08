@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {CodeBlock} from 'sentry/components/core/code';
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {DebugNotificationsPreview} from 'sentry/debug/notifications/components/debugNotificationsPreview';
 import {
@@ -21,7 +21,7 @@ export function DiscordPreview({
   return (
     <DebugNotificationsPreview title="Discord">
       <Container border="primary" radius="md">
-        <DiscordMessageContainer>
+        <DiscordMessageContainer columns="auto 1fr" gap="xs" padding="xl">
           <SentryDiscordAppIcon />
           <Flex gap="md" align="end">
             <Flex gap="xs" align="center">
@@ -81,14 +81,10 @@ function SentryDiscordAppIcon() {
   );
 }
 
-const DiscordMessageContainer = styled('div')`
+const DiscordMessageContainer = styled(Grid)`
   border: 1px solid #5865f2;
   border-radius: 4px 4px 0 0;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: ${p => `${p.theme.space.xs} ${p.theme.space.md}`};
   background: #1a1a1e;
-  padding: ${p => p.theme.space.xl};
   cursor: default;
 `;
 
