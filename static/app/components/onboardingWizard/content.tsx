@@ -197,7 +197,7 @@ function Task({task, hidePanel}: TaskProps) {
         if (task.task === OnboardingTaskKey.PERFORMANCE_GUIDE) {
           tours?.[DemoTour.PERFORMANCE]?.startTour();
         } else if (task.task === OnboardingTaskKey.SIDEBAR_GUIDE) {
-          // tours?.[DemoTour.SIDEBAR]?.startTour();
+          // Demo mode uses existing sidebar tour
           sidebarTour.startTour();
         } else if (task.task === OnboardingTaskKey.RELEASE_GUIDE) {
           tours?.[DemoTour.RELEASES]?.startTour();

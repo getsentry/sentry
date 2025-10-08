@@ -211,8 +211,8 @@ export function DemoTourElement({
       id={id}
       title={title}
       description={description}
-      position={position}
       tourContextValue={tourContextValue}
+      position={position}
     >
       {children}
     </TourElementContent>
