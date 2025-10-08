@@ -33,7 +33,7 @@ from .detectors.experiments.n_plus_one_api_calls_detector import (
 )
 from .detectors.http_overhead_detector import HTTPOverheadDetector
 from .detectors.io_main_thread_detector import DBMainThreadDetector, FileIOMainThreadDetector
-from .detectors.large_payload_detector import LargeHTTPPayloadDetector
+from .detectors.large_http_payload_detector import LargeHTTPPayloadDetector
 from .detectors.mn_plus_one_db_span_detector import MNPlusOneDBSpanDetector
 from .detectors.n_plus_one_api_calls_detector import NPlusOneAPICallsDetector
 from .detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector

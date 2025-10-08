@@ -231,7 +231,7 @@ class AnomalyDetectionStoreDataTest(
             organization=self.organization, projects=[self.project], dataset=Dataset.Transactions
         )
         snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
-        event_data = get_event("n-plus-one-in-django-index-view")
+        event_data = get_event("n-plus-one-db/n-plus-one-in-django-index-view")
         event_data["timestamp"] = self.time_1_ts
         event1 = self.create_performance_issue(event_data=make_event(**event_data))
         event_data["timestamp"] = self.time_2_ts
