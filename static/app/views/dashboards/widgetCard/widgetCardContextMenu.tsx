@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import type {Location} from 'history';
 
 import {
@@ -11,6 +12,7 @@ import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {
   MEPState,
   useMEPSettingContext,
@@ -49,26 +51,63 @@ export const useIndexedEventsWarning = (): string | null => {
 
 export const useTransactionsDeprecationWarning = ({
   widget,
+  selection,
 }: {
+  selection: PageFilters;
   widget: Widget;
 }): React.JSX.Element | null => {
   const organization = useOrganization();
 
-  if (
-    organization.features.includes('transaction-widget-deprecation-explore-view') &&
-    widget.widgetType === WidgetType.TRANSACTIONS &&
-    widget.exploreUrls &&
-    widget.exploreUrls.length > 0
-  ) {
-    return tct(
-      'Transactions widgets are in the process of being migrated to spans widgets. To see what your query could look like, open it in [explore:Explore].',
-      {
-        explore: <Link to={widget.exploreUrls[0]!} />,
-      }
-    );
+  // memoize the URL to avoid recalculating it on every render
+  const exploreUrl = useMemo(() => {
+    if (
+      !organization.features.includes('transaction-widget-deprecation-explore-view') ||
+      widget.widgetType !== WidgetType.TRANSACTIONS ||
+      !widget.exploreUrls ||
+      widget.exploreUrls.length === 0
+    ) {
+      return null;
+    }
+    return createExploreUrl(widget.exploreUrls[0]!, selection);
+  }, [organization.features, widget.widgetType, widget.exploreUrls, selection]);
+
+  if (!exploreUrl) {
+    return null;
   }
 
-  return null;
+  return tct(
+    'Transactions widgets are in the process of being migrated to spans widgets. To see what your query could look like, open it in [explore:Explore].',
+    {
+      explore: <Link to={exploreUrl} />,
+    }
+  );
+};
+
+const createExploreUrl = (baseUrl: string, selection: PageFilters): string => {
+  const params: string[] = [];
+
+  if (selection.datetime?.start) {
+    params.push(`start=${getUtcDateString(selection.datetime.start)}`);
+  }
+  if (selection.datetime?.end) {
+    params.push(`end=${getUtcDateString(selection.datetime.end)}`);
+  }
+  if (selection.datetime?.period) {
+    params.push(`statsPeriod=${selection.datetime.period}`);
+  }
+  if (selection.datetime?.utc) {
+    params.push('utc=true');
+  }
+
+  selection.projects.forEach(project => {
+    params.push(`project=${project}`);
+  });
+
+  selection.environments.forEach(environment => {
+    params.push(`environment=${environment}`);
+  });
+
+  return params.length > 0 ? `${baseUrl}&${params.join('&')}` : baseUrl;
 };
 
 export function getMenuOptions(
