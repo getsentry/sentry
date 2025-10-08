@@ -18,9 +18,10 @@ interface HeaderCardsProps {
 }
 
 function getCards(organization: Organization, subscription: Subscription) {
+  const hasBillingPerms = organization.access?.includes('org:billing');
   const cards: React.ReactNode[] = [];
 
-  if (subscription.canSelfServe) {
+  if (subscription.canSelfServe && hasBillingPerms) {
     cards.push(
       <NextBillCard
         key="next-bill"
@@ -31,6 +32,7 @@ function getCards(organization: Organization, subscription: Subscription) {
   }
 
   if (
+    hasBillingPerms &&
     (subscription.canSelfServe || subscription.onDemandInvoiced) &&
     !subscription.isSelfServePartner
   ) {
@@ -43,7 +45,7 @@ function getCards(organization: Organization, subscription: Subscription) {
     );
   }
 
-  cards.push(<LinksCard key="links" />);
+  cards.push(<LinksCard key="links" organization={organization} />);
 
   return cards;
 }
