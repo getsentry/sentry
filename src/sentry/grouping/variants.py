@@ -119,8 +119,10 @@ class ComponentVariant(BaseVariant):
         # method (exception, threads, message, etc.). For non-contributing variants, this will be
         # None.
         contributing_component: ContributingComponent | None,
+        strategy_config: StrategyConfiguration,
     ):
         self.root_component = root_component
+        self.config = strategy_config
         self.contributing_component = contributing_component
         self.variant_name = self.root_component.id  # "app", "system", or "default"
 
@@ -152,7 +154,7 @@ class ComponentVariant(BaseVariant):
         return self.root_component.get_hash()
 
     def _get_metadata_as_dict(self) -> Mapping[str, Any]:
-        return {"component": self.root_component.as_dict(), "config": self.config.as_dict()}
+        return {"component": self.root_component.as_dict()}
 
     def __repr__(self) -> str:
         return super().__repr__() + f" contributes={self.contributes} ({self.description})"
