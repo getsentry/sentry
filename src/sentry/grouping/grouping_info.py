@@ -82,6 +82,7 @@ def _get_new_description(variant: BaseVariant) -> str:
         "csp_local_script_violation": "directive",
         "csp_url": "directive and URL",
         "custom_fingerprint": "custom fingerprint",
+        "exception": "exception",  # TODO: hotfix for case in which nothing in the exception contributes
         "exception_message": "exception message",
         "exception_stacktrace": "exception stacktrace",
         "exception_type": "exception type",
