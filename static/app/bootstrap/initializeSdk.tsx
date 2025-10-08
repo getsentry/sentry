@@ -79,7 +79,7 @@ function getSentryIntegrations() {
     }),
     Sentry.featureFlagsIntegration(),
     Sentry.consoleLoggingIntegration(),
-  ].filter(x => x !== null);
+  ].filter(integration => integration !== null);
 
   return integrations;
 }
