@@ -1,5 +1,5 @@
 ---
-created: '2025-10-03T22:58:44.759841+00:00'
+created: '2025-10-06T21:57:32.694439+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -1093,7 +1093,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": true,
-    "description": "in-app exception stacktrace",
+    "description": "exception stacktrace — in-app frames",
     "hash": "228c649a3aa0901622c0a0e66ab0522c",
     "hint": null,
     "key": "app_exception_stacktrace",
@@ -1138,7 +1138,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": false,
-    "description": "default",
+    "description": "message",
     "hash": null,
     "hint": "ignored because app/system exception takes precedence",
     "key": "message",
@@ -2233,7 +2233,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": true,
-    "description": "exception stacktrace",
+    "description": "exception stacktrace — all frames",
     "hash": "4ccd0f1953483581ba360c7518f90332",
     "hint": null,
     "key": "system_exception_stacktrace",

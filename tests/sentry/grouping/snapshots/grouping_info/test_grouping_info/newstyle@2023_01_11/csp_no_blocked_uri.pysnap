@@ -1,5 +1,5 @@
 ---
-created: '2025-10-03T22:58:44.994848+00:00'
+created: '2025-10-06T19:13:32.254483+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -67,7 +67,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": true,
-    "description": "URL",
+    "description": "directive and URL",
     "hash": "efddf1cde918097259aa7d4904fb1942",
     "hint": null,
     "key": "csp_url",

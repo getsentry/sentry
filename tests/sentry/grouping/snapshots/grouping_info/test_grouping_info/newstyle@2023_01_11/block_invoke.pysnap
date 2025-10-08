@@ -1,5 +1,5 @@
 ---
-created: '2025-10-03T22:58:44.777723+00:00'
+created: '2025-10-06T21:57:32.710788+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -143,7 +143,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": true,
-    "description": "in-app thread stacktrace",
+    "description": "thread stacktrace — in-app frames",
     "hash": "ff6c4ee7c54f118a9647ee86f0c2b0b0",
     "hint": null,
     "key": "app_thread_stacktrace",
@@ -188,7 +188,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": false,
-    "description": "default",
+    "description": "message",
     "hash": null,
     "hint": "ignored because app threads take precedence",
     "key": "message",
@@ -333,7 +333,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": false,
-    "description": "system",
+    "description": "thread stacktrace — all frames",
     "hash": null,
     "hint": "ignored because app threads take precedence",
     "key": "system_thread_stacktrace",

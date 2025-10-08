@@ -1,5 +1,5 @@
 ---
-created: '2025-10-03T22:58:45.027385+00:00'
+created: '2025-10-06T19:13:32.289018+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -78,7 +78,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": true,
-    "description": "violation",
+    "description": "directive",
     "hash": "56c6520f35bce2f89ed2c4e725ccef65",
     "hint": null,
     "key": "csp_local_script_violation",
