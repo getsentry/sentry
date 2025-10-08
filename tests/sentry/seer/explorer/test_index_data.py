@@ -6,9 +6,9 @@ import orjson
 
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.seer.explorer.index_data import (
-    get_full_trace_from_id,
     get_issues_for_transaction,
     get_profiles_for_trace,
+    get_trace_details,
     get_trace_for_transaction,
     get_transactions_for_project,
 )
@@ -778,7 +778,7 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
         assert issue2.id == event2.group.id
         assert issue2.transaction == transaction_name_in
 
-    def _test_get_full_trace_from_id(self, use_short_id: bool) -> None:
+    def _test_get_trace_details(self, use_short_id: bool) -> None:
         transaction_name = "api/users/profile"
         trace_id = uuid.uuid4().hex
         spans: list[dict] = []
@@ -797,9 +797,7 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
             spans.append(span)
 
         self.store_spans(spans, is_eap=True)
-        result = get_full_trace_from_id(
-            trace_id[:8] if use_short_id else trace_id, self.organization.id
-        )
+        result = get_trace_details(trace_id[:8] if use_short_id else trace_id, self.organization.id)
         assert isinstance(result, EAPTrace)
         assert result.trace_id == trace_id
         assert result.org_id == self.organization.id
@@ -841,13 +839,13 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
         assert set(seen_span_ids) == {s["span_id"] for s in spans}
         assert len(root_span_ids) == 1
 
-    def test_get_full_trace_from_short_id(self) -> None:
-        self._test_get_full_trace_from_id(use_short_id=True)
+    def test_get_trace_details_short_id(self) -> None:
+        self._test_get_trace_details(use_short_id=True)
 
-    def test_get_full_trace_from_id_full_id(self) -> None:
-        self._test_get_full_trace_from_id(use_short_id=False)
+    def test_get_trace_details_full_id(self) -> None:
+        self._test_get_trace_details(use_short_id=False)
 
-    def test_get_full_trace_from_id_wrong_project(self) -> None:
+    def test_get_trace_details_wrong_project(self) -> None:
         transaction_name = "api/users/profile"
         trace_id = uuid.uuid4().hex
         other_org = self.create_organization()
@@ -871,5 +869,5 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
         self.store_spans(spans, is_eap=True)
 
         # Call with short ID and wrong org
-        result = get_full_trace_from_id(trace_id[:8], self.organization.id)
+        result = get_trace_details(trace_id[:8], self.organization.id)
         assert result is None

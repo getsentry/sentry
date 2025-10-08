@@ -554,7 +554,7 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
     )
 
 
-def get_full_trace_from_id(trace_id: str, organization_id: int) -> EAPTrace | None:
+def get_trace_details(trace_id: str, organization_id: int) -> EAPTrace | None:
     """
     Get a trace's spans and errors from a trace ID.
 
@@ -646,6 +646,6 @@ def rpc_get_issues_for_transaction(transaction_name: str, project_id: int) -> di
     return issues.dict() if issues else {}
 
 
-def rpc_get_full_trace_from_id(trace_id: str, organization_id: int) -> dict[str, Any]:
-    trace = get_full_trace_from_id(trace_id, organization_id)
+def rpc_get_trace_details(trace_id: str, organization_id: int) -> dict[str, Any]:
+    trace = get_trace_details(trace_id, organization_id)
     return trace.dict() if trace else {}
