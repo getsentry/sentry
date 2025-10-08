@@ -78,10 +78,7 @@ class TestGetEventSeverity(TestCase):
         assert reason == "ml"
         assert cache.get(SEER_ERROR_COUNT_KEY) == 0
 
-        with (
-            override_options({"seer.api.use-shared-secret": 1.0}),
-            override_settings(SEER_API_SHARED_SECRET="some-secret"),
-        ):
+        with override_settings(SEER_API_SHARED_SECRET="some-secret"):
             _get_severity_score(event)
             mock_urlopen.assert_called_with(
                 "POST",
