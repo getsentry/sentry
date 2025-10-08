@@ -371,6 +371,11 @@ function comparator(
     return areNumbersAlmostEqual(valueA, valueB, 5);
   }
 
+  // This can be removed when ENG-5677 is resolved. There's a known bug here.
+  if (key === 'dataScanned') {
+    return true;
+  }
+
   // Otherwise use default deep comparison
   return undefined;
 }
