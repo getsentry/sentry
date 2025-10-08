@@ -165,6 +165,7 @@ export function useIssueListSearchBarDataProvider(
         return [
           ...(await fetchTagValues({
             ...fetchTagValuesPayload,
+            dataset: Dataset.ERRORS,
             // enabling this maps project ids to project slugs
             includeTransactions: true,
           })),
