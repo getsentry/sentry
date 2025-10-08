@@ -68,16 +68,6 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
   );
 }
 
-// {
-// <TourElement<StackedNavigationTour>
-//   tourContext={StackedNavigationTourContext}
-//   position="right-start"
-//   {...props}
-// >
-//   {children}
-// </TourElement>
-// }
-
 export function PrimaryNavigationItems() {
   const organization = useOrganization();
   const prefix = `organizations/${organization.slug}`;
@@ -88,10 +78,7 @@ export function PrimaryNavigationItems() {
   return (
     <Fragment>
       <SidebarBody ref={ref}>
-        <NavTourElement
-          id={StackedNavigationTour.ISSUES}
-          demoTourId={DemoTourStep.SIDEBAR_ISSUES}
-        >
+        <NavTourElement id={StackedNavigationTour.ISSUES} title={null} description={null}>
           <SidebarLink
             to={`/${prefix}/issues/`}
             analyticsKey="issues"
@@ -104,7 +91,8 @@ export function PrimaryNavigationItems() {
 
         <NavTourElement
           id={StackedNavigationTour.EXPLORE}
-          demoTourId={DemoTourStep.SIDEBAR_EXPLORE}
+          title={null}
+          description={null}
         >
           <SidebarLink
             to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
@@ -124,7 +112,8 @@ export function PrimaryNavigationItems() {
         >
           <NavTourElement
             id={StackedNavigationTour.DASHBOARDS}
-            demoTourId={DemoTourStep.SIDEBAR_DASHBOARDS}
+            title={null}
+            description={null}
           >
             <SidebarLink
               to={`/${prefix}/dashboards/`}
@@ -141,7 +130,8 @@ export function PrimaryNavigationItems() {
         <Feature features={['performance-view']}>
           <NavTourElement
             id={StackedNavigationTour.INSIGHTS}
-            demoTourId={DemoTourStep.SIDEBAR_INSIGHTS}
+            title={null}
+            description={null}
           >
             <SidebarLink
               to={`/${prefix}/insights/`}
@@ -174,7 +164,8 @@ export function PrimaryNavigationItems() {
 
         <NavTourElement
           id={StackedNavigationTour.SETTINGS}
-          demoTourId={DemoTourStep.SIDEBAR_SETTINGS}
+          title={null}
+          description={null}
         >
           <SidebarLink
             to={`/settings/${organization.slug}/`}

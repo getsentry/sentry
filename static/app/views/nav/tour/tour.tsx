@@ -6,6 +6,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {
   TourAction,
   TourContextProvider,
+  TourElement,
   TourGuide,
   type TourElementProps,
 } from 'sentry/components/tours/components';
@@ -14,7 +15,6 @@ import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {useAssistant, useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {DemoTourStep, SharedTourElement} from 'sentry/utils/demoMode/demoTours';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -93,33 +93,18 @@ export function useStackedNavigationTour(): TourContextType<StackedNavigationTou
 
 export function NavTourElement({
   children,
-  demoTourId,
-  id,
   ...props
-}: Omit<
-  TourElementProps<StackedNavigationTour>,
-  'tourContext' | 'title' | 'description'
-> & {
-  demoTourId?: DemoTourStep;
-}) {
-  const title = STACKED_NAVIGATION_TOUR_CONTENT[id].title;
-  const description = STACKED_NAVIGATION_TOUR_CONTENT[id].description;
-
+}: Omit<TourElementProps<StackedNavigationTour>, 'tourContext'>) {
   return (
-    <SharedTourElement<StackedNavigationTour>
+    <TourElement<StackedNavigationTour>
       {...props}
-      id={StackedNavigationTour.ISSUES}
-      title={title}
-      description={description}
       tourContext={StackedNavigationTourContext}
       position="right-start"
-      demoTourId={demoTourId}
     >
       {children}
-    </SharedTourElement>
+    </TourElement>
   );
 }
-
 function useStackedNavigationTourCompleted() {
   const {data: assistantData} = useAssistant();
 
