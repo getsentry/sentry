@@ -5,6 +5,7 @@ from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -69,6 +70,7 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Integrations"])
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {
