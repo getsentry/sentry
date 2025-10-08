@@ -2,7 +2,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   AGENTS_LANDING_SUB_PATH,
-  getAIModuleTitle,
+  AI_SIDEBAR_LABEL,
   MODULES,
 } from 'sentry/views/insights/pages/agents/settings';
 import {
@@ -22,7 +22,6 @@ type Props = {
 
 export function AgentsPageHeader({
   module,
-  headerTitle,
   headerActions,
   breadcrumbs,
   tabs,
@@ -38,8 +37,7 @@ export function AgentsPageHeader({
     <DomainViewHeader
       hasOverviewPage={false}
       domainBaseUrl={agentsBaseUrl}
-      headerTitle={headerTitle}
-      domainTitle={getAIModuleTitle(organization)}
+      domainTitle={AI_SIDEBAR_LABEL}
       modules={MODULES}
       selectedModule={module}
       additonalHeaderActions={headerActions}
