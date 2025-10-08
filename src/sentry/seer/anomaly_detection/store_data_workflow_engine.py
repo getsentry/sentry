@@ -1,7 +1,4 @@
 import logging
-from datetime import datetime, timedelta
-from enum import StrEnum
-from typing import Any
 
 import sentry_sdk
 from django.conf import settings
@@ -11,15 +8,15 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.api.bases.organization_events import get_query_columns
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleDetectionType, AlertRuleStatus
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
+from sentry.seer.anomaly_detection.store_data import SeerMethod
 from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
     AnomalyDetectionConfig,
+    DataSourceType,
     StoreDataRequest,
     StoreDataResponse,
-    TimeSeriesPoint,
 )
 from sentry.seer.anomaly_detection.utils import (
     fetch_historical_data,
@@ -29,9 +26,11 @@ from sentry.seer.anomaly_detection.utils import (
     translate_direction,
 )
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
-from sentry.utils import json, metrics
+from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
+from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
+from sentry.workflow_engine.types import SnubaQueryDataSourceType
 
 logger = logging.getLogger(__name__)
 
@@ -39,28 +38,44 @@ seer_anomaly_detection_connection_pool = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
-MIN_DAYS = 7
 
 
-class SeerMethod(StrEnum):
-    CREATE = "create"
-    UPDATE = "update"
+def update_detector_data(detector: Detector, data_source: SnubaQueryDataSourceType) -> None:
+    # TODO wrap in try/except
+    data_source = DataSourceDetector.objects.get(detector_id=detector.id).data_source
+    query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
+    snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
+
+    for k, v in data_source.items():
+        setattr(data_source, k, v)
+
+    for k, v in data_source.items():
+        if k == "dataset":
+            v = v.value
+        elif k == "time_window":
+            time_window = data_source.get("time_window")
+            v = (
+                int(time_window.total_seconds())
+                if time_window is not None
+                else snuba_query.time_window
+            )
+        elif k == "event_types":
+            continue
+        setattr(snuba_query, k, v)
+
+    handle_send_historical_data_to_seer(
+        detector,
+        data_source,
+        snuba_query,
+        detector.project,
+        SeerMethod.UPDATE,
+        data_source.event_types,
+    )
 
 
-def get_start_index(data: list[TimeSeriesPoint]) -> int:
-    """
-    Helper to return the first data points that has an event count. We can assume that all
-    subsequent data points without associated event counts have event counts of zero.
-    Used to determine whether we have at least a week's worth of data.
-    """
-    for i, datum in enumerate(data):
-        if datum.get("value", 0) != 0:
-            return i
-    return -1
-
-
-def handle_send_historical_data_to_seer_legacy(
-    alert_rule: AlertRule,
+def handle_send_historical_data_to_seer(
+    detector: Detector,
+    data_source: DataSource,
     snuba_query: SnubaQuery,
     project: Project,
     method: str,
@@ -68,104 +83,49 @@ def handle_send_historical_data_to_seer_legacy(
 ) -> None:
     event_types_param = event_types or snuba_query.event_types
     try:
-        rule_status = send_historical_data_to_seer_legacy(
-            alert_rule=alert_rule,
+        send_historical_data_to_seer(
+            detector=detector,
+            data_source=data_source,
             project=project,
             snuba_query=snuba_query,
             event_types=event_types_param,
         )
-        if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
-            # if we don't have at least seven days worth of data, then the dynamic alert won't fire
-            alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
-        elif (
-            rule_status == AlertRuleStatus.PENDING and alert_rule.status != AlertRuleStatus.PENDING
-        ):
-            alert_rule.update(status=AlertRuleStatus.PENDING.value)
+        # XXX: I think we decided to not do any of this for dynamic detectors
+        # if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
+        #     # if we don't have at least seven days worth of data, then the dynamic alert won't fire
+        #     alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
+        # elif (
+        #     rule_status == AlertRuleStatus.PENDING and alert_rule.status != AlertRuleStatus.PENDING
+        # ):
+        #     alert_rule.update(status=AlertRuleStatus.PENDING.value)
     except (TimeoutError, MaxRetryError):
-        raise TimeoutError(f"Failed to send data to Seer - cannot {method} alert rule.")
+        raise TimeoutError(f"Failed to send data to Seer - cannot {method} detector.")
     except ParseError:
         raise ParseError("Failed to parse Seer store data response")
     except ValidationError:
-        raise ValidationError(f"Failed to send data to Seer - cannot {method} alert rule.")
+        raise ValidationError(f"Failed to send data to Seer - cannot {method} detector.")
     except Exception as e:
         sentry_sdk.capture_exception(e)
-        raise ValidationError(f"Failed to send data to Seer - cannot {method} alert rule.")
+        raise ValidationError(f"Failed to send data to Seer - cannot {method} detector.")
 
 
-def send_new_rule_data(alert_rule: AlertRule, project: Project, snuba_query: SnubaQuery) -> None:
-    try:
-        handle_send_historical_data_to_seer_legacy(
-            alert_rule, snuba_query, project, SeerMethod.CREATE
-        )
-    except (TimeoutError, MaxRetryError, ParseError, ValidationError):
-        alert_rule.delete()
-        raise
-    else:
-        metrics.incr("anomaly_detection_alert.created")
-
-
-def update_rule_data_legacy(
-    alert_rule: AlertRule,
+def send_historical_data_to_seer(
+    detector: Detector,
+    data_source: DataSource,
     project: Project,
     snuba_query: SnubaQuery,
-    updated_fields: dict[str, Any],
-    updated_query_fields: dict[str, Any],
-) -> None:
-    # if the rule previously wasn't a dynamic type but it is now, we need to send Seer data for the first time
-    # OR it's dynamic but the query or aggregate is changing so we need to update the data Seer has
-    if updated_fields.get("detection_type") == AlertRuleDetectionType.DYNAMIC and (
-        alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC
-        or updated_query_fields.get("query")
-        or updated_query_fields.get("aggregate")
-    ):
-        # use setattr to avoid saving the rule until the Seer call has successfully finished,
-        # otherwise the rule wculd be in a bad state
-        for k, v in updated_fields.items():
-            setattr(alert_rule, k, v)
-
-        for k, v in updated_query_fields.items():
-            if k == "dataset":
-                v = v.value
-            elif k == "time_window":
-                time_window = updated_query_fields.get("time_window")
-                v = (
-                    int(time_window.total_seconds())
-                    if time_window is not None
-                    else snuba_query.time_window
-                )
-            elif k == "event_types":
-                continue
-            setattr(alert_rule.snuba_query, k, v)
-
-        handle_send_historical_data_to_seer_legacy(
-            alert_rule,
-            alert_rule.snuba_query,
-            project,
-            SeerMethod.UPDATE,
-            updated_query_fields.get("event_types"),
-        )
-
-
-def send_historical_data_to_seer_legacy(
-    alert_rule: AlertRule,
-    project: Project,
-    snuba_query: SnubaQuery | None = None,
     event_types: list[SnubaQueryEventType.EventType] | None = None,
-) -> AlertRuleStatus:
+) -> None:
     """
     Get 28 days of historical data and pass it to Seer to be used for prediction anomalies on the alert.
     """
-    if not snuba_query:
-        snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
     window_min = int(snuba_query.time_window / 60)
     event_types = get_event_types(snuba_query, event_types)
     dataset = get_dataset_from_label_and_event_types(snuba_query.dataset, event_types)
     query_columns = get_query_columns([snuba_query.aggregate], window_min)
-    if not alert_rule.organization:
-        raise ValidationError("Alert rule doesn't belong to an organization")
 
     historical_data = fetch_historical_data(
-        organization=alert_rule.organization,
+        organization=project.organization,
         snuba_query=snuba_query,
         query_columns=query_columns,
         project=project,
@@ -184,24 +144,17 @@ def send_historical_data_to_seer_legacy(
     if not formatted_data:
         raise ValidationError("Unable to get historical data for this alert.")
 
-    if (
-        not alert_rule.sensitivity
-        or not alert_rule.seasonality
-        or alert_rule.threshold_type is None
-        or alert_rule.organization is None
-    ):
-        # this won't happen because we've already gone through the serializer, but mypy insists
-        raise ValidationError("Missing expected configuration for a dynamic alert.")
-
     anomaly_detection_config = AnomalyDetectionConfig(
         time_period=window_min,
-        sensitivity=alert_rule.sensitivity,
-        direction=translate_direction(alert_rule.threshold_type),
-        expected_seasonality=alert_rule.seasonality,
+        sensitivity=detector.sensitivity,
+        direction=translate_direction(detector.threshold_type),
+        expected_seasonality=detector.seasonality,
     )
-    alert = AlertInSeer(id=alert_rule.id)
+    alert = AlertInSeer(
+        source_id=data_source.id, source_type=DataSourceType.SNUBA_QUERY_SUBSCRIPTION
+    )
     body = StoreDataRequest(
-        organization_id=alert_rule.organization.id,
+        organization_id=project.organization.id,
         project_id=project.id,
         alert=alert,
         config=anomaly_detection_config,
@@ -211,7 +164,7 @@ def send_historical_data_to_seer_legacy(
         "Sending data to Seer's store data endpoint",
         extra={
             "ad_config": anomaly_detection_config,
-            "alert": alert_rule.id,
+            "detector": detector.id,
             "dataset": snuba_query.dataset,
             "aggregate": snuba_query.aggregate,
             "meta": json.dumps(historical_data.data.get("meta", {}).get("fields", {})),
@@ -228,7 +181,7 @@ def send_historical_data_to_seer_legacy(
         logger.warning(
             "Timeout error when hitting Seer store data endpoint",
             extra={
-                "rule_id": alert_rule.id,
+                "detector_id": detector.id,
                 "project_id": project.id,
             },
         )
@@ -249,7 +202,7 @@ def send_historical_data_to_seer_legacy(
             data_format_error_string,
             extra={
                 "ad_config": anomaly_detection_config,
-                "alert": alert_rule.id,
+                "detector": detector.id,
                 "response_data": response.data,
                 "response_code": response.status,
             },
@@ -264,7 +217,7 @@ def send_historical_data_to_seer_legacy(
             parse_error_string,
             extra={
                 "ad_config": anomaly_detection_config,
-                "alert": alert_rule.id,
+                "detector": detector.id,
                 "response_data": response.data,
                 "response_code": response.status,
                 "dataset": snuba_query.dataset,
@@ -278,19 +231,10 @@ def send_historical_data_to_seer_legacy(
         logger.error(
             "Error when hitting Seer store data endpoint",
             extra={
-                "rule_id": alert_rule.id,
+                "detector_id": detector.id,
                 "project_id": project.id,
                 "error_message": message,
             },
         )
         raise Exception(message)
-
-    data_start_index = get_start_index(formatted_data)
-    if data_start_index == -1:
-        return AlertRuleStatus.NOT_ENOUGH_DATA
-
-    data_start_time = datetime.fromtimestamp(formatted_data[data_start_index]["timestamp"])
-    data_end_time = datetime.fromtimestamp(formatted_data[-1]["timestamp"])
-    if data_end_time - data_start_time < timedelta(days=MIN_DAYS):
-        return AlertRuleStatus.NOT_ENOUGH_DATA
-    return AlertRuleStatus.PENDING
+    return None

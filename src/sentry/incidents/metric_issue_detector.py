@@ -8,7 +8,7 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.logic import enable_disable_subscriptions
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
-from sentry.seer.anomaly_detection.store_data import update_rule_data
+from sentry.seer.anomaly_detection.store_data_workflow_engine import update_detector_data
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
@@ -23,7 +23,7 @@ from sentry.workflow_engine.endpoints.validators.base.data_condition import (
     BaseDataConditionValidator,
 )
 from sentry.workflow_engine.models import DataSource, Detector
-from sentry.workflow_engine.models.data_condition import Condition, DataCondition
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel, SnubaQueryDataSourceType
 
 
@@ -115,11 +115,6 @@ class MetricIssueComparisonConditionValidator(BaseDataConditionValidator):
 
         return result
 
-    def update(self, instance: DataCondition, validated_data: dict[str, Any]) -> DataCondition:
-        super().update(instance, validated_data)
-        # TODO if the DataCondition type is changing to become a dynamic alert, we need to call Seer
-        return instance
-
 
 class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
     conditions = serializers.ListField(required=True)
@@ -175,9 +170,6 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         return DetectorQuota(has_exceeded=has_exceeded, limit=detector_limit, count=detector_count)
 
     def update_data_source(self, instance: Detector, data_source: SnubaQueryDataSourceType):
-        if instance.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC:
-            update_rule_data()  # except this needs to be a new function
-
         try:
             source_instance = DataSource.objects.get(detector=instance)
         except DataSource.DoesNotExist:
@@ -220,9 +212,25 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             if query_subscriptions:
                 enable_disable_subscriptions(query_subscriptions, enabled)
 
+        detection_type = instance.config.get("detection_type")
+        # if detection_type == AlertRuleDetectionType.DYNAMIC and validated_data.get("config", {}).get("detection_type") != AlertRuleDetectionType.DYNAMIC:
+        # delete the data in Seer - it's been changed to not be a dynamic detector
+        # delete_rule_in_seer()
+
         if "data_source" in validated_data:
             data_source: SnubaQueryDataSourceType = validated_data.pop("data_source")
             if data_source:
+                if (
+                    not detection_type == AlertRuleDetectionType.DYNAMIC
+                    and validated_data.get("config", {}).get("detection_type")
+                    == AlertRuleDetectionType.DYNAMIC
+                ) or (
+                    detection_type == AlertRuleDetectionType.DYNAMIC
+                    and (data_source.query is not None or data_source.aggregate is not None)
+                ):
+                    # TODO check if we _always_ pass query and aggregate on update or if it's only passed when changed
+                    # it's been changed to become a dynamic detector OR the snubaquery has changed on a dynamic detector - update_detector_data
+                    update_detector_data(instance, data_source)
                 self.update_data_source(instance, data_source)
 
         instance.save()
