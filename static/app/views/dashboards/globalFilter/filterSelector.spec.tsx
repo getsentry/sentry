@@ -1,6 +1,4 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {FieldKind} from 'sentry/utils/fields';
 import FilterSelector from 'sentry/views/dashboards/globalFilter/filterSelector';
