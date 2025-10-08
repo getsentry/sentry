@@ -82,7 +82,7 @@ function ReservedUsageBar({percentUsed}: {percentUsed: number}) {
 }
 
 function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
-  const hasBillingPerms = organization.features.includes('billing');
+  const hasBillingPerms = organization.access.includes('org:billing');
   const [openState, setOpenState] = useState<Record<string, boolean>>({});
   const [trialButtonBusyState, setTrialButtonBusyState] = useState<
     Partial<Record<DataCategory, boolean>>
@@ -104,6 +104,9 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
   ).flatMap(addOn => addOn.dataCategories);
 
   const columnOrder: GridColumnOrder[] = useMemo(() => {
+    const hasAnyPotentialProductTrial = subscription.productTrials?.some(
+      trial => !trial.isStarted
+    );
     return [
       {key: 'product', name: t('Product'), width: 300},
       {key: 'currentUsage', name: t('Current usage'), width: 200},
@@ -119,8 +122,12 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
         name: '',
         width: 50,
       },
-    ].filter(column => hasBillingPerms || !column.key.endsWith('Spend'));
-  }, [hasBillingPerms, subscription.planDetails]);
+    ].filter(
+      column =>
+        (hasBillingPerms || !column.key.endsWith('Spend')) &&
+        (hasAnyPotentialProductTrial || column.key !== 'cta')
+    );
+  }, [hasBillingPerms, subscription.planDetails, subscription.productTrials]);
 
   // TODO(isabella): refactor this to have better types + be more efficient
   const productData: Array<{
@@ -428,20 +435,21 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
                     useUnitScaling: true,
                   })
                 : displayPriceWithCents({cents: (reserved ?? 0) + (free ?? 0)});
-              const formattedCurrentUsage = isPaygOnly
-                ? formattedTotal
-                : `${formattedTotal} / ${formattedReservedTotal}`;
+              const formattedCurrentUsage =
+                isPaygOnly || isChildProduct
+                  ? formattedTotal
+                  : `${formattedTotal} / ${formattedReservedTotal}`;
               return (
                 <Text as="div" textWrap="balance">
                   {formattedCurrentUsage}{' '}
-                  {!isPaygOnly && (
+                  {!(isPaygOnly || isChildProduct) && (
                     <QuestionTooltip
                       size="xs"
                       position="top"
                       title={tct('[formattedReserved] reserved[freeString]', {
                         formattedReserved,
-                        freeString: formattedFree
-                          ? tct('[formattedFree] gifted', {formattedFree})
+                        freeString: free
+                          ? tct(' + [formattedFree] gifted', {formattedFree})
                           : '',
                       })}
                     />
@@ -546,7 +554,7 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
 }
 
 function UsageOverview({subscription, organization}: UsageOverviewProps) {
-  const hasBillingPerms = organization.features.includes('billing');
+  const hasBillingPerms = organization.access.includes('org:billing');
   const {isCollapsed: navIsCollapsed} = useNavContext();
   const {currentHistory, isPending, isError} = useCurrentBillingHistory();
   return (
