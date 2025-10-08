@@ -1,25 +1,22 @@
-import type {
-  PreventAIFeatureConfig,
-  Sensitivity,
-} from 'sentry/types/prevent';
+import type {PreventAIFeatureConfig, Sensitivity} from 'sentry/types/prevent';
 
 describe('Prevent Types', () => {
   describe('Sensitivity', () => {
     it('should accept all valid sensitivity values', () => {
       const validSensitivities: Sensitivity[] = ['low', 'medium', 'high', 'critical'];
-      
+
       validSensitivities.forEach(sensitivity => {
         expect(typeof sensitivity).toBe('string');
         expect(['low', 'medium', 'high', 'critical']).toContain(sensitivity);
       });
     });
-    
+
     it('should be assignable to string but maintain type safety', () => {
       const lowSensitivity: Sensitivity = 'low';
       const mediumSensitivity: Sensitivity = 'medium';
       const highSensitivity: Sensitivity = 'high';
       const criticalSensitivity: Sensitivity = 'critical';
-      
+
       expect(lowSensitivity).toBe('low');
       expect(mediumSensitivity).toBe('medium');
       expect(highSensitivity).toBe('high');
@@ -37,10 +34,10 @@ describe('Prevent Types', () => {
         },
         sensitivity: 'high',
       };
-      
+
       expect(configWithSensitivity.sensitivity).toBe('high');
     });
-    
+
     it('should work without sensitivity field', () => {
       const configWithoutSensitivity: PreventAIFeatureConfig = {
         enabled: false,
@@ -49,13 +46,13 @@ describe('Prevent Types', () => {
           on_ready_for_review: false,
         },
       };
-      
+
       expect(configWithoutSensitivity.sensitivity).toBeUndefined();
     });
-    
+
     it('should handle all sensitivity levels in feature config', () => {
       const sensitivityLevels: Sensitivity[] = ['low', 'medium', 'high', 'critical'];
-      
+
       sensitivityLevels.forEach(sensitivity => {
         const config: PreventAIFeatureConfig = {
           enabled: true,
@@ -65,7 +62,7 @@ describe('Prevent Types', () => {
           },
           sensitivity,
         };
-        
+
         expect(config.sensitivity).toBe(sensitivity);
       });
     });
