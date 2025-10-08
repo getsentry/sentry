@@ -593,9 +593,9 @@ await Sentry.startSpan({
       },
     ];
 
-    const selected = (params.platformOptions as any)?.integration ?? 'vercelai';
+    const selected = (params.platformOptions as any)?.integration ?? 'vercel_ai';
     let content: ContentBlock[] = manualContent;
-    if (selected === 'vercelai') {
+    if (selected === 'vercel_ai') {
       content = vercelContent;
     }
     if (selected === 'anthropic') {
@@ -604,7 +604,7 @@ await Sentry.startSpan({
     if (selected === 'openai') {
       content = openaiContent;
     }
-    if (selected === 'googlegenai') {
+    if (selected === 'google_genai') {
       content = googleGenAIContent;
     }
     return [
@@ -615,7 +615,7 @@ await Sentry.startSpan({
     ];
   },
   verify: params => {
-    const selected = (params.platformOptions as any)?.integration ?? 'vercelai';
+    const selected = (params.platformOptions as any)?.integration ?? 'vercel_ai';
     const content: ContentBlock[] = [
       {
         type: 'text',
@@ -661,7 +661,7 @@ input: "Tell me a joke",
         ],
       });
     }
-    if (selected === 'googlegenai') {
+    if (selected === 'google_genai') {
       content.push({
         type: 'code',
         tabs: [
