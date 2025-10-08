@@ -1339,7 +1339,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         self.run_test_query(
             "assigned_or_suggested:[me]",
             [group, assigned_to_other_group],
-            [group1, group2, assigned_group, assigned_to_other_group],
+            [group1, group2, assigned_group],
         )
 
         self.run_test_query(
