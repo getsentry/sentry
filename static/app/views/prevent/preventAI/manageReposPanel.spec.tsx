@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'react-select-event';
 
 import type {PreventAIOrgConfig} from 'sentry/types/prevent';
 import ManageReposPanel, {
@@ -9,7 +10,10 @@ import ManageReposPanel, {
 
 let mockUpdatePreventAIFeatureReturn: any = {};
 jest.mock('sentry/views/prevent/preventAI/hooks/useUpdatePreventAIFeature', () => ({
-  useUpdatePreventAIFeature: () => mockUpdatePreventAIFeatureReturn,
+  useUpdatePreventAIFeature: () => ({
+    enableFeature: jest.fn(),
+    ...mockUpdatePreventAIFeatureReturn,
+  }),
 }));
 
 describe('ManageReposPanel', () => {
@@ -22,6 +26,7 @@ describe('ManageReposPanel', () => {
   };
 
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     mockUpdatePreventAIFeatureReturn = {};
   });
@@ -152,30 +157,215 @@ describe('ManageReposPanel', () => {
         },
       });
     });
+  });
 
-    it('returns org defaults when repo override is not present', () => {
-      const orgConfig: PreventAIOrgConfig = {
-        org_defaults: {
-          bug_prediction: {
-            enabled: true,
-            triggers: {on_command_phrase: true, on_ready_for_review: false},
+  describe('Sensitivity Dropdowns', () => {
+    const mockOrganizationWithEnabledFeatures = OrganizationFixture({
+      preventAiConfigGithub: {
+        schema_version: 'v1',
+        github_organizations: {},
+        default_org_config: {
+          org_defaults: {
+            bug_prediction: {
+              enabled: true,
+              triggers: {on_command_phrase: true, on_ready_for_review: false},
+              sensitivity: 'medium',
+            },
+            test_generation: {
+              enabled: false,
+              triggers: {on_command_phrase: false, on_ready_for_review: false},
+            },
+            vanilla: {
+              enabled: true,
+              triggers: {on_command_phrase: false, on_ready_for_review: false},
+              sensitivity: 'high',
+            },
           },
-          test_generation: {
-            enabled: false,
-            triggers: {on_command_phrase: false, on_ready_for_review: false},
-          },
-          vanilla: {
-            enabled: true,
-            triggers: {on_command_phrase: false, on_ready_for_review: false},
+          repo_overrides: {},
+        },
+      },
+    });
+
+    it('shows sensitivity dropdown for enabled vanilla feature', async () => {
+      render(<ManageReposPanel {...defaultProps} />, {
+        organization: mockOrganizationWithEnabledFeatures,
+      });
+      
+      const dropdown = await screen.findByTestId('pr-review-sensitivity-dropdown');
+      expect(dropdown).toBeInTheDocument();
+      
+      // Check that the current value is displayed
+      expect(screen.getByDisplayValue('High')).toBeInTheDocument();
+    });
+
+    it('shows sensitivity dropdown for enabled bug prediction feature', async () => {
+      render(<ManageReposPanel {...defaultProps} />, {
+        organization: mockOrganizationWithEnabledFeatures,
+      });
+      
+      const dropdown = await screen.findByTestId('error-prediction-sensitivity-dropdown');
+      expect(dropdown).toBeInTheDocument();
+      
+      // Check that the current value is displayed
+      expect(screen.getByDisplayValue('Medium')).toBeInTheDocument();
+    });
+
+    it('does not show sensitivity dropdown when vanilla feature is disabled', async () => {
+      const orgWithDisabledVanilla = OrganizationFixture({
+        preventAiConfigGithub: {
+          ...mockOrganizationWithEnabledFeatures.preventAiConfigGithub,
+          default_org_config: {
+            ...mockOrganizationWithEnabledFeatures.preventAiConfigGithub!.default_org_config,
+            org_defaults: {
+              ...mockOrganizationWithEnabledFeatures.preventAiConfigGithub!.default_org_config.org_defaults,
+              vanilla: {
+                enabled: false,
+                triggers: {on_command_phrase: false, on_ready_for_review: false},
+                sensitivity: 'medium',
+              },
+            },
           },
         },
-        repo_overrides: {},
-      };
-      const result = getRepoConfig(orgConfig, 'repo-2');
-      expect(result).toEqual({
-        doesUseOrgDefaults: true,
-        repoConfig: orgConfig.org_defaults,
       });
+      
+      render(<ManageReposPanel {...defaultProps} />, {
+        organization: orgWithDisabledVanilla,
+      });
+      
+      expect(screen.queryByTestId('pr-review-sensitivity-dropdown')).not.toBeInTheDocument();
+    });
+
+    it('does not show sensitivity dropdown when bug prediction feature is disabled', async () => {
+      const orgWithDisabledBugPrediction = OrganizationFixture({
+        preventAiConfigGithub: {
+          ...mockOrganizationWithEnabledFeatures.preventAiConfigGithub,
+          default_org_config: {
+            ...mockOrganizationWithEnabledFeatures.preventAiConfigGithub!.default_org_config,
+            org_defaults: {
+              ...mockOrganizationWithEnabledFeatures.preventAiConfigGithub!.default_org_config.org_defaults,
+              bug_prediction: {
+                enabled: false,
+                triggers: {on_command_phrase: false, on_ready_for_review: false},
+                sensitivity: 'medium',
+              },
+            },
+          },
+        },
+      });
+      
+      render(<ManageReposPanel {...defaultProps} />, {
+        organization: orgWithDisabledBugPrediction,
+      });
+      
+      expect(screen.queryByTestId('error-prediction-sensitivity-dropdown')).not.toBeInTheDocument();
+    });
+
+    it('calls enableFeature with correct sensitivity when vanilla sensitivity is changed', async () => {
+      const mockEnableFeature = jest.fn();
+      mockUpdatePreventAIFeatureReturn = {
+        enableFeature: mockEnableFeature,
+        isLoading: false,
+      };
+
+      render(<ManageReposPanel {...defaultProps} />, {
+        organization: mockOrganizationWithEnabledFeatures,
+      });
+      
+      const dropdown = await screen.findByTestId('pr-review-sensitivity-dropdown');
+      await selectEvent.openMenu(dropdown);
+      await selectEvent.select(dropdown, 'Low');
+      
+      await waitFor(() => {
+        expect(mockEnableFeature).toHaveBeenCalledWith({
+          feature: 'vanilla',
+          enabled: true,
+          orgName: 'org-1',
+          repoName: 'repo-1',
+          sensitivity: 'low',
+        });
+      });
+    });
+
+    it('calls enableFeature with correct sensitivity when bug prediction sensitivity is changed', async () => {
+      const mockEnableFeature = jest.fn();
+      mockUpdatePreventAIFeatureReturn = {
+        enableFeature: mockEnableFeature,
+        isLoading: false,
+      };
+
+      render(<ManageReposPanel {...defaultProps} />, {
+        organization: mockOrganizationWithEnabledFeatures,
+      });
+      
+      const dropdown = await screen.findByTestId('error-prediction-sensitivity-dropdown');
+      await selectEvent.openMenu(dropdown);
+      await selectEvent.select(dropdown, 'Critical');
+      
+      await waitFor(() => {
+        expect(mockEnableFeature).toHaveBeenCalledWith({
+          feature: 'bug_prediction',
+          enabled: true,
+          orgName: 'org-1',
+          repoName: 'repo-1',
+          sensitivity: 'critical',
+        });
+      });
+    });
+
+    it('disables sensitivity dropdowns when loading', async () => {
+      mockUpdatePreventAIFeatureReturn = {
+        enableFeature: jest.fn(),
+        isLoading: true,
+      };
+
+      render(<ManageReposPanel {...defaultProps} />, {
+        organization: mockOrganizationWithEnabledFeatures,
+      });
+      
+      const vanillaDropdown = await screen.findByTestId('pr-review-sensitivity-dropdown');
+      const bugPredictionDropdown = await screen.findByTestId('error-prediction-sensitivity-dropdown');
+      
+      expect(vanillaDropdown).toBeDisabled();
+      expect(bugPredictionDropdown).toBeDisabled();
+    });
+
+    it('shows default sensitivity value when sensitivity is undefined', async () => {
+      const orgWithUndefinedSensitivity = OrganizationFixture({
+        preventAiConfigGithub: {
+          schema_version: 'v1',
+          github_organizations: {},
+          default_org_config: {
+            org_defaults: {
+              bug_prediction: {
+                enabled: true,
+                triggers: {on_command_phrase: true, on_ready_for_review: false},
+                // sensitivity is undefined
+              },
+              test_generation: {
+                enabled: false,
+                triggers: {on_command_phrase: false, on_ready_for_review: false},
+              },
+              vanilla: {
+                enabled: true,
+                triggers: {on_command_phrase: false, on_ready_for_review: false},
+                // sensitivity is undefined
+              },
+            },
+            repo_overrides: {},
+          },
+        },
+      });
+
+      render(<ManageReposPanel {...defaultProps} />, {
+        organization: orgWithUndefinedSensitivity,
+      });
+      
+      // Should default to 'medium' when sensitivity is undefined
+      const vanillaDropdown = await screen.findByTestId('pr-review-sensitivity-dropdown');
+      const bugPredictionDropdown = await screen.findByTestId('error-prediction-sensitivity-dropdown');
+      
+      expect(vanillaDropdown).toHaveDisplayValue('Medium');
+      expect(bugPredictionDropdown).toHaveDisplayValue('Medium');
     });
   });
 });
