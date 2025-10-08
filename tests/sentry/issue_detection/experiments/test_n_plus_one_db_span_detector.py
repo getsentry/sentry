@@ -18,7 +18,7 @@ from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
-from sentry.testutils.issue_detection.event_generators import get_event
+from sentry.testutils.issue_detection.event_generators import create_event, create_span, get_event
 
 
 @pytest.mark.django_db
@@ -367,6 +367,34 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
         problems = self.find_problems(event)
         assert len(problems) == 1
         assert "mongoose" not in problems[0].desc
+
+    def test_does_not_detect_n_plus_one_with_pg_pool_connect(self) -> None:
+        source_span = create_span(
+            "db",
+            100,
+            "SELECT * FROM users WHERE id = 1",
+            hash="source_hash",
+        )
+
+        repeating_spans = [
+            create_span(
+                "db",
+                100,
+                "pg-pool.connect",
+                hash="pool_hash",
+            )
+            for _ in range(11)
+        ]
+
+        event = create_event([source_span] + repeating_spans)
+        event["contexts"] = {
+            "trace": {
+                "span_id": "a" * 16,
+                "op": "http.server",
+            }
+        }
+
+        assert self.find_problems(event) == []
 
 
 @pytest.mark.django_db
