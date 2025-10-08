@@ -295,10 +295,11 @@ class DataExportEndpoint(OrganizationEndpoint):
         }
         logger.info("API Request started", extra=extra)
 
-        # The data export feature is only available alongside `discover-query`.
+        # The data export feature is only available alongside `discover-query` (except for explore).
         # So to export issue tags, they must have have `discover-query`
         if not features.has("organizations:discover-query", organization):
-            return Response(status=404)
+            if request.data.get("query_type") != ExportQueryType.EXPLORE_STR:
+                return Response(status=404)
 
         # Get environment_id and limit if available
         try:

@@ -9,8 +9,12 @@ import {
   useSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
-import {type TraceMetric} from 'sentry/views/explore/metrics/traceMetric';
+import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
+import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {
+  useMetricVisualize,
+  useSetMetricName,
+} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {
   useQueryParamsGroupBys,
   useQueryParamsQuery,
@@ -54,7 +58,6 @@ export function MetricRow({traceMetric}: MetricRowProps) {
     </SearchQueryBuilderProvider>
   );
 }
-
 interface MetricToolbarProps {
   traceMetric: TraceMetric;
   tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps;
@@ -67,19 +70,39 @@ function MetricToolbar({
   const visualize = useMetricVisualize() as VisualizeFunction;
   const groupBys = useQueryParamsGroupBys();
   const query = useQueryParamsQuery();
+  const {data: metricOptionsData} = useMetricOptions();
+  const setMetricName = useSetMetricName();
+
+  const metricOptions = useMemo(() => {
+    return [
+      ...(metricOptionsData?.data?.map(option => ({
+        label: `${option['metric.name']} (${option['metric.type']})`,
+        value: option['metric.name'],
+      })) ?? []),
+      // TODO(nar): Remove these when we actually have metrics served
+      // This is only used for providing an option to test current selection behavior
+      {
+        label: 'test-metric',
+        value: 'test-metric',
+      },
+      {
+        label: 'mock-metric',
+        value: 'mock-metric',
+      },
+    ];
+  }, [metricOptionsData]);
+
   return (
     <div style={{width: '100%'}}>
       {traceMetric.name}/{visualize.yAxis}/ by {groupBys.join(',')}/ where {query}
       <Flex direction="row" gap="md" align="center">
         {t('Query')}
         <CompactSelect
-          options={[
-            {
-              label: 'span.duration',
-              value: 'span.duration',
-            },
-          ]}
-          value={visualize.parsedFunction?.arguments?.[0] ?? ''}
+          options={metricOptions ?? []}
+          value={traceMetric.name}
+          onChange={option => {
+            setMetricName(option.value);
+          }}
         />
         <CompactSelect
           options={[

@@ -764,3 +764,10 @@ export function getReservedBudgetCategoryForAddOn(addOnCategory: AddOnCategory) 
       return null;
   }
 }
+
+// There are the data categories whose retention settings
+// are exposed in Relay and can be set in _admin
+export const RETENTION_SETTINGS_CATEGORIES = new Set([
+  DataCategory.SPANS,
+  DataCategory.LOG_BYTE,
+]);

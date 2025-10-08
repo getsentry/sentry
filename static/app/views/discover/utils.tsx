@@ -7,7 +7,6 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {
   NewQuery,
   Organization,
@@ -638,7 +637,6 @@ export function handleAddQueryToDashboard({
   location,
   query,
   organization,
-  router,
   yAxis,
   widgetType,
   source,
@@ -646,7 +644,6 @@ export function handleAddQueryToDashboard({
   eventView: EventView;
   location: Location;
   organization: Organization;
-  router: InjectedRouter;
   source: DashboardWidgetSource;
   widgetType: WidgetType | undefined;
   query?: NewQuery;
@@ -709,7 +706,6 @@ export function handleAddQueryToDashboard({
       widgetType,
     },
     source,
-    router,
     location,
   });
   return;

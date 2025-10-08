@@ -1167,6 +1167,17 @@ class SnubaTestCase(BaseTestCase):
         )
         assert response.status_code == 200
 
+    def store_trace_metrics(self, trace_metrics):
+        files = {
+            f"trace_metric_{i}": trace_metric.SerializeToString()
+            for i, trace_metric in enumerate(trace_metrics)
+        }
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+            files=files,
+        )
+        assert response.status_code == 200
+
     def store_issues(self, issues):
         assert (
             requests.post(
@@ -3385,7 +3396,16 @@ def span_to_trace_item(span) -> TraceItem:
     )
 
 
-class OurLogTestCase(BaseTestCase):
+class TraceItemTestCase:
+    def random_item_id(self, item_id: str | None = None) -> UUID:
+        if item_id is None:
+            return uuid4()
+        # There's some flipping of bytes when ingesting the item id
+        # this ensures that the final item we get back is what we send
+        return UUID(bytes=bytes(reversed(UUID(item_id).bytes)))
+
+
+class OurLogTestCase(BaseTestCase, TraceItemTestCase):
     def create_ourlog(
         self,
         extra_data: _OptionalOurLogData | None = None,
@@ -3405,12 +3425,8 @@ class OurLogTestCase(BaseTestCase):
             attributes = {}
         if extra_data is None:
             extra_data = {}
-        if log_id is None:
-            item_id = uuid4()
-        else:
-            # There's some flipping of bytes when ingesting the item id
-            # this ensures that the final item we get back is what we send
-            item_id = UUID(bytes=bytes(reversed(UUID(log_id).bytes)))
+
+        item_id = self.random_item_id(log_id)
 
         trace_id = extra_data.pop("trace_id", uuid4().hex)
 
@@ -3451,6 +3467,51 @@ class OurLogTestCase(BaseTestCase):
             item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,
             timestamp=timestamp_proto,
             trace_id=trace_id,
+            item_id=item_id.bytes,
+            received=timestamp_proto,
+            retention_days=90,
+            attributes=attributes_proto,
+        )
+
+
+class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
+    def create_trace_metric(
+        self,
+        metric_name: str,
+        metric_value: float,
+        organization: Organization | None = None,
+        project: Project | None = None,
+        timestamp: datetime | None = None,
+        trace_id: str | None = None,
+    ) -> TraceItem:
+        if organization is None:
+            organization = self.organization
+            assert organization is not None
+
+        if project is None:
+            project = self.project
+            assert project is not None
+
+        if timestamp is None:
+            timestamp = datetime.now() - timedelta(minutes=1)
+            assert timestamp is not None
+
+        timestamp_proto = Timestamp()
+        timestamp_proto.FromDatetime(timestamp)
+
+        item_id = self.random_item_id()
+
+        attributes_proto = {
+            "sentry.metric_name": AnyValue(string_value=metric_name),
+            "sentry.value": AnyValue(double_value=metric_value),
+        }
+
+        return TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_METRIC,
+            timestamp=timestamp_proto,
+            trace_id=trace_id or uuid4().hex,
             item_id=item_id.bytes,
             received=timestamp_proto,
             retention_days=90,
