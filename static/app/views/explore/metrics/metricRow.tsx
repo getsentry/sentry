@@ -1,10 +1,9 @@
-import {useEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {
   TraceItemSearchQueryBuilder,
   useSearchQueryBuilderProps,
@@ -92,12 +91,6 @@ function MetricToolbar({
       },
     ];
   }, [metricOptionsData]);
-
-  useEffect(() => {
-    if (!traceMetric.name && defined(metricOptions[0])) {
-      setMetricName(metricOptions[0].value);
-    }
-  }, [traceMetric.name, metricOptions, setMetricName]);
 
   return (
     <div style={{width: '100%'}}>
