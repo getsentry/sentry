@@ -56,8 +56,14 @@ export type TimeSeriesItem = {
    */
   incomplete?: boolean;
   incompleteReason?: IncompleteReason;
-  sampleCount?: number;
-  sampleRate?: number;
+  /**
+   * Indicates the sample count that's associated with the data point. Might be `undefined` if the data set doesn't support extrapolation, or `null` if the extrapolation data was not known.
+   */
+  sampleCount?: number | null;
+  /**
+   * Indicates the sampling rate that's associated with the data point. Might be `undefined` if the data set doesn't support extrapolation, or `null` if the extrapolation data was not known.
+   */
+  sampleRate?: number | null;
 };
 
 /**

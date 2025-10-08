@@ -319,18 +319,21 @@ export function convertEventsStatsToTimeSeriesData(
         value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
       };
 
-      if (seriesData.meta?.accuracy?.confidence) {
-        item.confidence = seriesData.meta?.accuracy?.confidence?.[index]?.value ?? null;
-      }
+      if (seriesData.meta?.accuracy) {
+        const confidenceItem = seriesData.meta.accuracy.confidence?.[index];
+        if (defined(confidenceItem) && Object.hasOwn(confidenceItem, 'value')) {
+          item.confidence = confidenceItem.value;
+        }
 
-      if (seriesData.meta?.accuracy?.sampleCount) {
-        item.sampleCount =
-          seriesData.meta?.accuracy?.sampleCount?.[index]?.value ?? undefined;
-      }
+        const sampleCountItem = seriesData.meta.accuracy.sampleCount?.[index];
+        if (defined(sampleCountItem) && Object.hasOwn(sampleCountItem, 'value')) {
+          item.sampleCount = sampleCountItem.value;
+        }
 
-      if (seriesData.meta?.accuracy?.samplingRate) {
-        item.sampleRate =
-          seriesData.meta?.accuracy?.samplingRate?.[index]?.value ?? undefined;
+        const sampleRateItem = seriesData.meta.accuracy.samplingRate?.[index];
+        if (defined(sampleRateItem) && Object.hasOwn(sampleRateItem, 'value')) {
+          item.sampleRate = sampleRateItem.value;
+        }
       }
 
       return item;
