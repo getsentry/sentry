@@ -71,7 +71,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
             {t('Action Interval')}
           </Heading>
           <Text size="sm" variant="muted">
-            {t('Perform the actions above once this often for an issue.')}
+            {t('Perform the actions above this often for an issue.')}
           </Text>
         </Flex>
         <EmbeddedSelectField
