@@ -32,7 +32,7 @@ from sentry import (
     reprocessing2,
     tsdb,
 )
-from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
+from sentry.attachments import CachedAttachment, MissingAttachmentChunks
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
@@ -425,7 +425,7 @@ class EventManager:
         start_time: float | None = None,
         cache_key: str | None = None,
         skip_send_first_transaction: bool = False,
-        has_attachments: bool = False,
+        attachments: list[CachedAttachment] | None = None,
     ) -> Event:
         """
         After normalizing and processing an event, save adjacent models such as
@@ -494,13 +494,7 @@ class EventManager:
             # and adds support for differentiating based on platforms
             with metrics.timer("event_manager.save_error_events", tags=metric_tags):
                 return self.save_error_events(
-                    project,
-                    job,
-                    projects,
-                    metric_tags,
-                    raw,
-                    cache_key,
-                    has_attachments=has_attachments,
+                    project, job, projects, metric_tags, attachments or [], raw, cache_key
                 )
 
     @sentry_sdk.tracing.trace
@@ -510,9 +504,9 @@ class EventManager:
         job: Job,
         projects: ProjectsMapping,
         metric_tags: MutableTags,
+        attachments: list[CachedAttachment],
         raw: bool = False,
         cache_key: str | None = None,
-        has_attachments: bool = False,
     ) -> Event:
         jobs = [job]
 
@@ -532,15 +526,6 @@ class EventManager:
         _derive_interface_tags_many(jobs)
         _derive_client_error_sampling_rate(jobs, projects)
 
-        # Load attachments first, but persist them at the very last after
-        # posting to eventstream to make sure all counters and eventstream are
-        # incremented for sure. Also wait for grouping to remove attachments
-        # based on the group counter.
-        if has_attachments:
-            attachments = get_attachments(cache_key, job)
-        else:
-            attachments = []
-
         try:
             group_info = assign_event_to_group(event=job["event"], job=job, metric_tags=metric_tags)
 
@@ -549,7 +534,6 @@ class EventManager:
                 increment_group_tombstone_hit_counter(
                     getattr(e, "tombstone_id", None), job["event"]
                 )
-            # TODO: make sure that already stored attachments are deleted
             discard_event(job, attachments)
             raise
 
@@ -568,7 +552,6 @@ class EventManager:
         _tsdb_record_all_metrics(jobs)
 
         if attachments:
-            # TODO: make sure that already stored attachments are deleted
             attachments = filter_attachments_for_group(attachments, job)
 
         # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
@@ -2253,32 +2236,6 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
 
 
 @sentry_sdk.tracing.trace
-def get_attachments(cache_key: str | None, job: Job) -> list[Attachment]:
-    """
-    Retrieves the list of attachments for this event.
-
-    This method skips attachments that have been marked for rate limiting by
-    earlier ingestion pipeline.
-
-    :param cache_key: The cache key at which the event payload is stored in the
-                      cache. This is used to retrieve attachments.
-    :param job:       The job context container.
-    """
-    if cache_key is None:
-        return []
-
-    project = job["event"].project
-    if not features.has("organizations:event-attachments", project.organization, actor=None):
-        return []
-
-    attachments = list(attachment_cache.get(cache_key))
-    if not attachments:
-        return []
-
-    return [attachment for attachment in attachments if not attachment.rate_limited]
-
-
-@sentry_sdk.tracing.trace
 def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> list[Attachment]:
     """
     Removes crash reports exceeding the group-limit.
@@ -2343,6 +2300,9 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
 
                 # Quotas are counted with at least ``1`` for attachments.
                 refund_quantity += attachment.size or 1
+                # this instructs the attachment to be removed from storage:
+                attachment.rate_limited = True
+
                 continue
             stored_reports += 1
 

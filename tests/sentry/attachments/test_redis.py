@@ -46,6 +46,7 @@ def test_process_pending_one_batch(mocked_attachment_cache, mock_client) -> None
 
     (attachment,) = mocked_attachment_cache.get("foo")
     assert attachment.meta() == {
+        "key": "foo",
         "id": 0,
         "type": "event.attachment",
         "name": "foo.txt",
@@ -64,6 +65,7 @@ def test_chunked(mocked_attachment_cache, mock_client) -> None:
 
     (attachment,) = mocked_attachment_cache.get("foo")
     assert attachment.meta() == {
+        "key": "foo",
         "id": 0,
         "chunks": 3,
         "type": "event.attachment",
