@@ -195,3 +195,24 @@ function Content() {
   );
 }
 ```
+
+Use the core component <Image/> component instead of intrinsic img.
+
+```tsx
+// ❌ Do not use raw intrinsic elements or static paths
+function Component() {
+  return (
+    <img src="/path/to/image.jpg" />
+  );
+}
+
+// ✅ Use Image component and src loader
+import {Image} from 'sentry/componetn/core/image';
+import image from 'sentry-images/example.jpg';
+
+function Component() {
+  return (
+    <Image src={imagePath} alt="Descriptive Alt Attribute">
+  );
+}
+```

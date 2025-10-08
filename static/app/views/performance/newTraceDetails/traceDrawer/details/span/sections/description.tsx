@@ -4,6 +4,7 @@ import type {Location} from 'history';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Image} from 'sentry/components/core/image/image';
 import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
@@ -283,16 +284,15 @@ function ResourceImage(props: {
       </FilenameContainer>
       {showImage && !hasError ? (
         <ImageWrapper>
-          <img
+          <Image
             data-test-id="sample-image"
+            alt="Resource Image"
             onError={() => setHasError(true)}
             src={src}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
-              objectPosition: 'center',
-            }}
+            objectFit="contain"
+            objectPosition="center"
+            width="100%"
+            height="100%"
           />
         </ImageWrapper>
       ) : (
