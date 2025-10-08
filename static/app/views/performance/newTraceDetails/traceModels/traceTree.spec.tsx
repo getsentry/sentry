@@ -473,7 +473,7 @@ describe('TraceTree', () => {
       expect(tree.build().serialize()).toMatchSnapshot();
 
       mockSpansResponse([makeSpan({span_id: '0000'})], 'project', 'event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
       });
@@ -830,7 +830,7 @@ describe('TraceTree', () => {
         'event-id'
       );
 
-      await tree.expandBounds(true, txn, {
+      await tree.fetchNodeSubTree(true, txn, {
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
         api: new MockApiClient(),
@@ -867,7 +867,7 @@ describe('TraceTree', () => {
         'event-id'
       );
 
-      await tree.expandBounds(true, txn, {
+      await tree.fetchNodeSubTree(true, txn, {
         api: new MockApiClient(),
         organization,
       });
@@ -911,7 +911,7 @@ describe('TraceTree', () => {
 
       mockSpansResponse(parentAutogroupSpansWithTailChildren, 'project', 'event-id');
 
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -926,7 +926,7 @@ describe('TraceTree', () => {
     it('collapsing a parent autogroup node shows tail chain', async () => {
       const tree = TraceTree.FromTrace(trace, traceOptions);
       mockSpansResponse(parentAutogroupSpansWithTailChildren, 'project', 'event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -942,7 +942,7 @@ describe('TraceTree', () => {
     it('collapsing intermediary children is preserved', async () => {
       const tree = TraceTree.FromTrace(trace, traceOptions);
       mockSpansResponse(parentAutogroupSpansWithTailChildren, 'project', 'event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -971,7 +971,7 @@ describe('TraceTree', () => {
     it('expanding a sibling autogroup node shows sibling span', async () => {
       const tree = TraceTree.FromTrace(trace, traceOptions);
       mockSpansResponse(siblingAutogroupSpans, 'project', 'event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -988,7 +988,7 @@ describe('TraceTree', () => {
     it('collapsing a sibling autogroup node hides children', async () => {
       const tree = TraceTree.FromTrace(trace, traceOptions);
       mockSpansResponse(siblingAutogroupSpans, 'project', 'event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -1015,7 +1015,7 @@ describe('TraceTree', () => {
       const request = mockSpansResponse([], 'project', 'event-id');
 
       tree.root.children[0]!.children[0]!.canFetchChildren = false;
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -1028,13 +1028,13 @@ describe('TraceTree', () => {
       const tree = TraceTree.FromTrace(traceWithEventId, traceOptions);
       const request = mockSpansResponse([], 'project', 'event-id');
 
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
         api: new MockApiClient(),
@@ -1050,11 +1050,15 @@ describe('TraceTree', () => {
       // Zoom mutates the list, so we need to build first
       tree.build();
 
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!.children[0]!, {
-        api: new MockApiClient(),
-        organization,
-        preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
-      });
+      await tree.fetchNodeSubTree(
+        true,
+        tree.root.children[0]!.children[0]!.children[0]!,
+        {
+          api: new MockApiClient(),
+          organization,
+          preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+        }
+      );
 
       expect(tree.build().serialize()).toMatchSnapshot();
     });
@@ -1065,15 +1069,19 @@ describe('TraceTree', () => {
       tree.build();
       // Zoom in on child span
       mockSpansResponse([makeSpan()], 'project', 'child-event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!.children[0]!, {
-        api: new MockApiClient(),
-        organization,
-        preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
-      });
+      await tree.fetchNodeSubTree(
+        true,
+        tree.root.children[0]!.children[0]!.children[0]!,
+        {
+          api: new MockApiClient(),
+          organization,
+          preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+        }
+      );
 
       // Then zoom in on a parent
       mockSpansResponse([makeSpan()], 'project', 'event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -1108,14 +1116,18 @@ describe('TraceTree', () => {
       tree.build();
 
       mockSpansResponse([makeSpan({span_id: '0001'})], 'project', 'child-event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!.children[0]!, {
-        organization,
-        preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
-        api: new MockApiClient(),
-      });
+      await tree.fetchNodeSubTree(
+        true,
+        tree.root.children[0]!.children[0]!.children[0]!,
+        {
+          organization,
+          preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+          api: new MockApiClient(),
+        }
+      );
 
       mockSpansResponse([makeSpan({span_id: '0000'})], 'project', 'parent-event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
         api: new MockApiClient(),
@@ -1157,7 +1169,7 @@ describe('TraceTree', () => {
       tree.build();
 
       mockSpansResponse([makeSpan({span_id: '0000'})], 'project', 'parent-event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -1208,7 +1220,7 @@ describe('TraceTree', () => {
 
       mockSpansResponse([makeSpan({span_id: '0000'})], 'project', 'parent-event-id');
       for (const bool of [true, false]) {
-        await tree.expandBounds(bool, tree.root.children[0]!.children[0]!, {
+        await tree.fetchNodeSubTree(bool, tree.root.children[0]!.children[0]!, {
           api: new MockApiClient(),
           organization,
           preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -1261,7 +1273,7 @@ describe('TraceTree', () => {
       const child = tree.root.findChild(
         node => isTransactionNode(node) && node.value.event_id === 'child-event-id'
       );
-      await tree.expandBounds(true, child!, {
+      await tree.fetchNodeSubTree(true, child!, {
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
         api: new MockApiClient(),
@@ -1276,13 +1288,13 @@ describe('TraceTree', () => {
       const grandchild = tree.root.findChild(
         node => isTransactionNode(node) && node.value.event_id === 'grandchild-event-id'
       );
-      await tree.expandBounds(true, grandchild!, {
+      await tree.fetchNodeSubTree(true, grandchild!, {
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
         api: new MockApiClient(),
       });
 
-      await tree.expandBounds(false, child!, {
+      await tree.fetchNodeSubTree(false, child!, {
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
         api: new MockApiClient(),
@@ -1380,7 +1392,7 @@ describe('TraceTree', () => {
       const tree = TraceTree.FromTrace(trace, traceOptions);
 
       mockSpansResponse(parentAutogroupSpansWithTailChildren, 'project', 'event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
       });
@@ -1398,7 +1410,7 @@ describe('TraceTree', () => {
       const tree = TraceTree.FromTrace(trace, traceOptions);
 
       mockSpansResponse(parentAutogroupSpans, 'project', 'event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
       });
@@ -1451,7 +1463,7 @@ describe('TraceTree', () => {
             'project',
             'event-id'
           );
-          await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+          await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
             api: new MockApiClient(),
             organization,
           });
@@ -1471,7 +1483,7 @@ describe('TraceTree', () => {
         const tree = TraceTree.FromTrace(trace, traceOptions);
 
         mockSpansResponse(siblingAutogroupSpans, 'project', 'event-id');
-        await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+        await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
           api: new MockApiClient(),
           organization,
         });
@@ -1533,7 +1545,7 @@ describe('TraceTree', () => {
 
         const tree = TraceTree.FromTrace(trace, traceOptions);
         mockSpansResponse(siblingSpans, 'project', 'event-id');
-        await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+        await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
           api: new MockApiClient(),
           organization,
         });
@@ -1552,7 +1564,7 @@ describe('TraceTree', () => {
         const tree = TraceTree.FromTrace(trace, traceOptions);
 
         mockSpansResponse(parentAutogroupSpans, 'project', 'event-id');
-        await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+        await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
           api: new MockApiClient(),
           organization,
         });
@@ -1579,7 +1591,7 @@ describe('TraceTree', () => {
 
         const tree = TraceTree.FromTrace(trace, traceOptions);
         mockSpansResponse(childSpans, 'project', 'event-id');
-        await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+        await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
           api: new MockApiClient(),
           organization,
         });
@@ -1599,7 +1611,7 @@ describe('TraceTree', () => {
         const tree = TraceTree.FromTrace(trace, traceOptions);
 
         mockSpansResponse(parentAutogroupSpansWithTailChildren, 'project', 'event-id');
-        await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+        await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
           api: new MockApiClient(),
           organization,
         });
@@ -1731,7 +1743,7 @@ describe('TraceTree', () => {
       )!;
 
       mockSpansResponse([makeSpan({span_id: 'span-id'})], 'project', 'child-event-id');
-      await tree.expandBounds(true, child, {
+      await tree.fetchNodeSubTree(true, child, {
         api: new MockApiClient(),
         organization,
       });
@@ -1763,7 +1775,7 @@ describe('TraceTree', () => {
           node => isTransactionNode(node) && node.value.transaction === 'child'
         )!;
         mockSpansResponse(pathParentAutogroupSpans, 'project', 'child-event-id');
-        await tree.expandBounds(true, child, {
+        await tree.fetchNodeSubTree(true, child, {
           api: new MockApiClient(),
           organization,
         });
@@ -1782,7 +1794,7 @@ describe('TraceTree', () => {
           node => isTransactionNode(node) && node.value.transaction === 'child'
         )!;
         mockSpansResponse(pathParentAutogroupSpans, 'project', 'child-event-id');
-        await tree.expandBounds(true, child, {
+        await tree.fetchNodeSubTree(true, child, {
           api: new MockApiClient(),
           organization,
         });
@@ -1847,7 +1859,7 @@ describe('TraceTree', () => {
           node => isTransactionNode(node) && node.value.transaction === 'child'
         )!;
         mockSpansResponse(pathSiblingAutogroupSpans, 'project', 'child-event-id');
-        await tree.expandBounds(true, child, {
+        await tree.fetchNodeSubTree(true, child, {
           api: new MockApiClient(),
           organization,
         });
@@ -1867,7 +1879,7 @@ describe('TraceTree', () => {
           node => isTransactionNode(node) && node.value.transaction === 'child'
         )!;
         mockSpansResponse(pathSiblingAutogroupSpans, 'project', 'child-event-id');
-        await tree.expandBounds(true, child, {
+        await tree.fetchNodeSubTree(true, child, {
           api: new MockApiClient(),
           organization,
         });
@@ -1905,7 +1917,7 @@ describe('TraceTree', () => {
         node => isTransactionNode(node) && node.value.transaction === 'child'
       )!;
       mockSpansResponse(missingInstrumentationSpans, 'project', 'child-event-id');
-      await tree.expandBounds(true, child, {
+      await tree.fetchNodeSubTree(true, child, {
         api: new MockApiClient(),
         organization,
       });
@@ -1998,7 +2010,7 @@ describe('TraceTree', () => {
       });
 
       mockSpansResponse([prefetchSpan, regularSpan], 'project', 'event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
         api: new MockApiClient(),
@@ -2019,7 +2031,7 @@ describe('TraceTree', () => {
       });
 
       mockSpansResponse([falsePrefetchSpan], 'project', 'event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
       });

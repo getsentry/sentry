@@ -584,7 +584,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return tree;
   }
 
-  async expandBounds(
+  async fetchNodeSubTree(
     expanding: boolean,
     node: BaseNode,
     options: {
@@ -1118,7 +1118,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     ) as TransactionNode[];
 
     const promises = transactionNodes.map(node =>
-      tree.expandBounds(true, node, {
+      tree.fetchNodeSubTree(true, node, {
         api: options.api,
         organization: options.organization,
         preferences: options.preferences,

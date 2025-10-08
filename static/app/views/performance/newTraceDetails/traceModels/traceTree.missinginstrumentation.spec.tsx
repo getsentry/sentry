@@ -104,7 +104,7 @@ describe('missing instrumentation', () => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
 
     mockSpansResponse(missingInstrumentationSpans, 'project', 'event-id');
-    await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+    await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
       api: new MockApiClient(),
       organization,
       preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -118,7 +118,7 @@ describe('missing instrumentation', () => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
 
     mockSpansResponse(childrenMissingInstrumentationSpans, 'project', 'event-id');
-    await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+    await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
       api: new MockApiClient(),
       organization,
       preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -172,7 +172,7 @@ describe('missing instrumentation', () => {
       'event-id'
     );
 
-    await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+    await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
       api: new MockApiClient(),
       organization,
       preferences: {...DEFAULT_TRACE_VIEW_PREFERENCES, missing_instrumentation: false},
@@ -187,7 +187,7 @@ describe('missing instrumentation', () => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
 
     mockSpansResponse(missingInstrumentationSpans, 'project', 'event-id');
-    await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+    await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
       api: new MockApiClient(),
       organization,
       preferences: {...DEFAULT_TRACE_VIEW_PREFERENCES, missing_instrumentation: false},
@@ -211,7 +211,7 @@ describe('missing instrumentation', () => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
 
     mockSpansResponse(missingInstrumentationSpans, 'project', 'event-id');
-    await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+    await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
       api: new MockApiClient(),
       organization,
       preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -228,7 +228,7 @@ describe('missing instrumentation', () => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
 
     mockSpansResponse(setup, 'project', 'event-id');
-    await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+    await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
       api: new MockApiClient(),
       organization,
       preferences: DEFAULT_TRACE_VIEW_PREFERENCES,

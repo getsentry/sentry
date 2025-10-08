@@ -160,7 +160,7 @@ describe('autogrouping', () => {
     it('groups parent chain with same op', async () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       mockSpansResponse(parentAutogroupSpans, 'project', 'event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -196,7 +196,7 @@ describe('autogrouping', () => {
         'project',
         'event-id'
       );
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -220,7 +220,7 @@ describe('autogrouping', () => {
         'project',
         'event-id'
       );
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -233,7 +233,7 @@ describe('autogrouping', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       mockSpansResponse(parentAutogroupSpans, 'project', 'event-id');
 
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -251,7 +251,7 @@ describe('autogrouping', () => {
     it('collapsing parent autogroup removes its children', async () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       mockSpansResponse(parentAutogroupSpans, 'project', 'event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -302,7 +302,7 @@ describe('autogrouping', () => {
         'event-id'
       );
 
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -349,7 +349,7 @@ describe('autogrouping', () => {
         'event-id'
       );
 
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: {
@@ -368,7 +368,7 @@ describe('autogrouping', () => {
     it('removes collapsed parent autogroup', async () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       mockSpansResponse(parentAutogroupSpansWithChilden, 'project', 'event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: {
@@ -393,7 +393,7 @@ describe('autogrouping', () => {
     it('removes expanded parent autogroup', async () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       mockSpansResponse(parentAutogroupSpansWithChilden, 'project', 'event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: {
@@ -525,7 +525,7 @@ describe('autogrouping', () => {
     it('groups spans with the same op and description', async () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       mockSpansResponse(siblingAutogroupSpans, 'project', 'event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -539,7 +539,7 @@ describe('autogrouping', () => {
     it('does not autogroup if count is less 5', async () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       mockSpansResponse(siblingAutogroupSpans.slice(0, 4), 'project', 'event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -560,7 +560,7 @@ describe('autogrouping', () => {
         'project',
         'event-id'
       );
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -572,7 +572,7 @@ describe('autogrouping', () => {
     it('expanding sibling autogroup renders its children', async () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       mockSpansResponse(siblingAutogroupSpans, 'project', 'event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -590,7 +590,7 @@ describe('autogrouping', () => {
     it('collapsing sibling autogroup removes its children', async () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       mockSpansResponse(siblingAutogroupSpans, 'project', 'event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -613,7 +613,7 @@ describe('autogrouping', () => {
     it('removes sibling autogroup', async () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       mockSpansResponse(siblingAutogroupSpans, 'project', 'event-id');
-      await tree.expandBounds(true, tree.root.children[0]!.children[0]!, {
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
         api: new MockApiClient(),
         organization,
         preferences: {
