@@ -63,7 +63,6 @@ function Overview({location, subscription, promotionData}: Props) {
   const organization = useOrganization();
   const isNewBillingUI = hasNewBillingUI(organization);
   const navigate = useNavigate();
-  const isNewBillingUI = hasNewBillingUI(organization);
 
   const displayMode = ['cost', 'usage'].includes(location.query.displayMode as string)
     ? (location.query.displayMode as 'cost' | 'usage')
