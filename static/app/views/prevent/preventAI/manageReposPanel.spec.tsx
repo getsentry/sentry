@@ -35,6 +35,7 @@ describe('ManageReposPanel', () => {
           bug_prediction: {
             enabled: true,
             triggers: {on_command_phrase: true, on_ready_for_review: false},
+            sensitivity: 'medium',
           },
           test_generation: {
             enabled: false,
@@ -43,6 +44,7 @@ describe('ManageReposPanel', () => {
           vanilla: {
             enabled: true,
             triggers: {on_command_phrase: false, on_ready_for_review: false},
+            sensitivity: 'medium',
           },
         },
         repo_overrides: {},
@@ -69,9 +71,9 @@ describe('ManageReposPanel', () => {
 
   it('shows feature toggles with correct initial state', async () => {
     render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
-    expect(await screen.findByLabelText(/PR Review/i)).toBeChecked();
-    expect(await screen.findByLabelText(/Test Generation/i)).not.toBeChecked();
-    expect(await screen.findByLabelText(/Error Prediction/i)).toBeChecked();
+    expect(await screen.findByLabelText(/Enable PR Review/i)).toBeChecked();
+    expect(await screen.findByLabelText(/Enable Test Generation/i)).not.toBeChecked();
+    expect(await screen.findByLabelText(/Enable Error Prediction/i)).toBeChecked();
     expect(
       await screen.findByLabelText(/Auto Run on Opened Pull Requests/i)
     ).not.toBeChecked();
@@ -84,9 +86,9 @@ describe('ManageReposPanel', () => {
       isLoading: true,
     };
     render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
-    expect(await screen.findByLabelText(/PR Review/i)).toBeDisabled();
-    expect(await screen.findByLabelText(/Test Generation/i)).toBeDisabled();
-    expect(await screen.findByLabelText(/Error Prediction/i)).toBeDisabled();
+    expect(await screen.findByLabelText(/Enable PR Review/i)).toBeDisabled();
+    expect(await screen.findByLabelText(/Enable Test Generation/i)).toBeDisabled();
+    expect(await screen.findByLabelText(/Enable Error Prediction/i)).toBeDisabled();
   });
 
   it('shows error message if updateError is present', async () => {
@@ -97,6 +99,22 @@ describe('ManageReposPanel', () => {
     };
     render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
     expect(await screen.findByText(/Could not update settings/i)).toBeInTheDocument();
+  });
+
+  it('shows sensitivity options when feature is enabled', async () => {
+    render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
+    const prReviewCheckbox = await screen.findByLabelText(/Enable PR Review/i);
+    const errorPredictionCheckbox = await screen.findByLabelText(
+      /Enable Error Prediction/i
+    );
+    expect(prReviewCheckbox).toBeChecked();
+    expect(errorPredictionCheckbox).toBeChecked();
+    expect(
+      await screen.findByTestId(/pr-review-sensitivity-dropdown/i)
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByTestId(/error-prediction-sensitivity-dropdown/i)
+    ).toBeInTheDocument();
   });
 
   describe('getRepoConfig', () => {

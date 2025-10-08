@@ -1,5 +1,6 @@
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Switch} from 'sentry/components/core/switch';
@@ -9,7 +10,7 @@ import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {type PreventAIOrgConfig} from 'sentry/types/prevent';
-import type {PreventAIFeatureConfigsByName} from 'sentry/types/prevent';
+import type {PreventAIFeatureConfigsByName, Sensitivity} from 'sentry/types/prevent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUpdatePreventAIFeature} from 'sentry/views/prevent/preventAI/hooks/useUpdatePreventAIFeature';
 
@@ -19,6 +20,31 @@ interface ManageReposPanelProps {
   orgName: string;
   repoName: string;
 }
+
+interface SensitivityOption {
+  details: string;
+  label: string;
+  value: Sensitivity;
+}
+
+const sensitivityOptions: SensitivityOption[] = [
+  {value: 'low', label: 'Low', details: 'Post all potential issues for maximum breadth.'},
+  {
+    value: 'medium',
+    label: 'Medium',
+    details: 'Post likely issues for a balance of thoroughness and noise.',
+  },
+  {
+    value: 'high',
+    label: 'High',
+    details: 'Post only major issues to highlight most impactful findings.',
+  },
+  {
+    value: 'critical',
+    label: 'Critical',
+    details: 'Post only high-impact, high-sensitivity issues for maximum focus.',
+  },
+];
 
 function ManageReposPanel({
   collapsed,
@@ -111,9 +137,9 @@ function ManageReposPanel({
               justify="between"
             >
               <Flex direction="column" gap="sm">
-                <Text size="md">Enable PR Review</Text>
+                <Text size="md">{t('Enable PR Review')}</Text>
                 <Text variant="muted" size="sm">
-                  Run when @sentry review is commented on a PR.
+                  {t('Run when @sentry review is commented on a PR.')}
                 </Text>
               </Flex>
               <Switch
@@ -132,6 +158,41 @@ function ManageReposPanel({
                 aria-label="Enable PR Review"
               />
             </Flex>
+            {repoConfig.vanilla.enabled && (
+              <Flex paddingLeft="xl" direction="column">
+                <Flex direction="column" borderLeft="muted" paddingLeft="md">
+                  <FieldGroup
+                    label={<Text size="md">{t('Sensitivity')}</Text>}
+                    help={
+                      <Text size="xs" variant="muted">
+                        {t('Set the sensitivity level for PR review analysis.')}
+                      </Text>
+                    }
+                    alignRight
+                    flexibleControlStateSize
+                  >
+                    <CompactSelect
+                      value={repoConfig.vanilla.sensitivity ?? 'medium'}
+                      options={sensitivityOptions}
+                      disabled={isLoading || !canEditSettings}
+                      onChange={async option =>
+                        await enableFeature({
+                          feature: 'vanilla',
+                          enabled: true,
+                          orgName,
+                          repoName,
+                          sensitivity: option.value,
+                        })
+                      }
+                      aria-label="PR Review Sensitivity"
+                      menuWidth={350}
+                      maxMenuWidth={500}
+                      data-test-id="pr-review-sensitivity-dropdown"
+                    />
+                  </FieldGroup>
+                </Flex>
+              </Flex>
+            )}
           </Flex>
 
           {/* Test Generation Feature */}
@@ -145,9 +206,9 @@ function ManageReposPanel({
               justify="between"
             >
               <Flex direction="column" gap="sm">
-                <Text size="md">Enable Test Generation</Text>
+                <Text size="md">{t('Enable Test Generation')}</Text>
                 <Text variant="muted" size="sm">
-                  Run when @sentry generate-test is commented on a PR.
+                  {t('Run when @sentry generate-test is commented on a PR.')}
                 </Text>
               </Flex>
               <Switch
@@ -179,9 +240,9 @@ function ManageReposPanel({
               justify="between"
             >
               <Flex direction="column" gap="sm">
-                <Text size="md">Enable Error Prediction</Text>
+                <Text size="md">{t('Enable Error Prediction')}</Text>
                 <Text variant="muted" size="sm">
-                  Allow organization members to review potential bugs.
+                  {t('Allow organization members to review potential bugs.')}
                 </Text>
               </Flex>
               <Switch
@@ -190,7 +251,6 @@ function ManageReposPanel({
                 disabled={isLoading || !canEditSettings}
                 onChange={async () => {
                   const newValue = !repoConfig.bug_prediction.enabled;
-                  // Enable/disable the main bug prediction feature
                   await enableFeature({
                     feature: 'bug_prediction',
                     enabled: newValue,
@@ -202,15 +262,37 @@ function ManageReposPanel({
               />
             </Flex>
             {repoConfig.bug_prediction.enabled && (
-              // width 150% because FieldGroup > FieldDescription has fixed width 50%
-              <Flex paddingLeft="xl" width="150%">
-                <Flex
-                  direction="column"
-                  borderLeft="muted"
-                  radius="md"
-                  paddingLeft="md"
-                  width="100%"
-                >
+              <Flex paddingLeft="xl" direction="column">
+                <Flex direction="column" borderLeft="muted" paddingLeft="md">
+                  <FieldGroup
+                    label={<Text size="md">{t('Sensitivity')}</Text>}
+                    help={
+                      <Text size="xs" variant="muted">
+                        {t('Set the sensitivity level for error prediction.')}
+                      </Text>
+                    }
+                    alignRight
+                    flexibleControlStateSize
+                  >
+                    <CompactSelect
+                      value={repoConfig.bug_prediction.sensitivity ?? 'medium'}
+                      options={sensitivityOptions}
+                      disabled={isLoading || !canEditSettings}
+                      onChange={async option =>
+                        await enableFeature({
+                          feature: 'bug_prediction',
+                          enabled: true,
+                          orgName,
+                          repoName,
+                          sensitivity: option.value,
+                        })
+                      }
+                      aria-label="Error Prediction Sensitivity"
+                      menuWidth={350}
+                      maxMenuWidth={500}
+                      data-test-id="error-prediction-sensitivity-dropdown"
+                    />
+                  </FieldGroup>
                   <FieldGroup
                     label={<Text size="md">{t('Auto Run on Opened Pull Requests')}</Text>}
                     help={
@@ -218,7 +300,7 @@ function ManageReposPanel({
                         {t('Run when a PR is published, ignoring new pushes.')}
                       </Text>
                     }
-                    inline
+                    alignRight
                     flexibleControlStateSize
                   >
                     <Switch
@@ -243,10 +325,10 @@ function ManageReposPanel({
                     label={<Text size="md">{t('Run When Mentioned')}</Text>}
                     help={
                       <Text size="xs" variant="muted">
-                        {t('Run when @sentry review is commented on a PR')}
+                        {t('Run when @sentry review is commented on a PR.')}
                       </Text>
                     }
-                    inline
+                    alignRight
                     flexibleControlStateSize
                   >
                     <Switch
