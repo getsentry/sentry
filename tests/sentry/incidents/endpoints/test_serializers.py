@@ -187,6 +187,37 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             },
         )
 
+    def test_transactions_dataset_deprecation_validation(self) -> None:
+        """Test that transactions dataset is rejected when discover-saved-queries-deprecation flag is enabled"""
+        params = self.valid_transaction_params.copy()
+
+        with self.feature("organizations:discover-saved-queries-deprecation"):
+            self.run_fail_validation_test(
+                params,
+                {
+                    "dataset": [
+                        "The transactions dataset is being deprecated. Please use the 'events_analytics_platform' dataset with the `is_transaction:true` filter instead."
+                    ]
+                },
+            )
+
+    def test_generic_metrics_dataset_deprecation_validation(self) -> None:
+        """Test that generic_metrics dataset is rejected when discover-saved-queries-deprecation flag is enabled"""
+        params = self.valid_params.copy()
+        params["dataset"] = Dataset.PerformanceMetrics.value
+        params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
+        params["aggregate"] = "p95(transaction.duration)"
+
+        with self.feature("organizations:discover-saved-queries-deprecation"):
+            self.run_fail_validation_test(
+                params,
+                {
+                    "dataset": [
+                        "The generic_metrics dataset is being deprecated. Please use the 'events_analytics_platform' dataset with the `is_transaction:true` filter instead."
+                    ]
+                },
+            )
+
     def test_dataset(self) -> None:
         invalid_values = ["Invalid dataset, valid values are %s" % [item.value for item in Dataset]]
         self.run_fail_validation_test({"dataset": "events_wrong"}, {"dataset": invalid_values})
