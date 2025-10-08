@@ -64,11 +64,33 @@ export function MultiMetricsQueryParamsProvider({
       };
     }
 
+    function setMetricNameForIndex(i: number) {
+      return function (newMetricName: string) {
+        const target = {...location, query: {...location.query}};
+        target.query.metric = metricQueries
+          .map((metric: BaseMetricQuery, j: number) => {
+            if (i !== j) {
+              return metric;
+            }
+            return {
+              ...metric,
+              metric: {name: newMetricName},
+            };
+          })
+          .map((metric: BaseMetricQuery) => encodeMetricQueryParams(metric))
+          .filter(defined)
+          .filter(Boolean);
+
+        navigate(target);
+      };
+    }
+
     return {
       metricQueries: metricQueries.map((metric: BaseMetricQuery, index: number) => {
         return {
           ...metric,
           setQueryParams: setQueryParamsForIndex(index),
+          setMetricName: setMetricNameForIndex(index),
         };
       }),
     };
