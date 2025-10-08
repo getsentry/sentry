@@ -25,6 +25,7 @@ SPAN_KAFKA_MESSAGE: SpanEvent = {
         "my.neg.float.field": {"value": -101.2, "type": "double"},
         "my.true.bool.field": {"value": True, "type": "boolean"},
         "my.u64.field": {"value": 9447000002305251000, "type": "integer"},
+        "my.invalid.field": None,
         "num_of_spans": {"value": 50.0, "type": "string"},
         "relay_endpoint_version": {"value": "3", "type": "string"},
         "relay_id": {"value": "88888888-4444-4444-8444-cccccccccccc", "type": "string"},
@@ -75,6 +76,13 @@ SPAN_KAFKA_MESSAGE: SpanEvent = {
     "end_timestamp": 1721319572.768806,
     "name": "endpoint",
     "status": "ok",
+    "_meta": {
+        "attributes": {
+            "my.invalid.field": {
+                "": {"err": ["invalid_data"], "val": {"type": "string", "value": True}}
+            }
+        }
+    },
 }
 
 
@@ -150,6 +158,9 @@ def test_convert_span_to_item() -> None:
         "spans_over_limit": AnyValue(string_value="False"),
         "thread.id": AnyValue(string_value="8522009600"),
         "thread.name": AnyValue(string_value="uWSGIWorker1Core0"),
+        "sentry._meta.fields.attributes.my.invalid.field": AnyValue(
+            string_value=r"""{"meta":{"":{"err":["invalid_data"],"val":{"type":"string","value":true}}}}"""
+        ),
     }
 
 
