@@ -42,24 +42,43 @@ describe('SubscriptionHeader', () => {
       url: `/organizations/org-slug/prompts-activity/`,
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/customers/org-slug/subscription/next-bill/`,
+      method: 'GET',
+    });
   });
 
   async function assertNewHeaderCards({
+    hasNextBillCard,
     hasBillingInfoCard,
   }: {
     hasBillingInfoCard: boolean;
+    hasNextBillCard: boolean;
   }) {
     await screen.findByRole('heading', {name: 'Subscription'});
 
+    if (hasNextBillCard) {
+      await screen.findByRole('heading', {name: 'Next bill'});
+    } else {
+      expect(screen.queryByRole('heading', {name: 'Next bill'})).not.toBeInTheDocument();
+    }
+
     if (hasBillingInfoCard) {
-      await screen.findByText('Billing information');
+      await screen.findByRole('heading', {name: 'Billing information'});
       screen.getByRole('button', {name: 'Edit billing information'});
     } else {
-      expect(screen.queryByText('Billing information')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', {name: 'Billing information'})
+      ).not.toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: 'Edit billing information'})
       ).not.toBeInTheDocument();
     }
+
+    // all subscriptions have links card
+    expect(
+      screen.getByRole('heading', {name: 'Receipts & notifications'})
+    ).toBeInTheDocument();
   }
 
   it('renders new header cards for self-serve customers', () => {
@@ -75,7 +94,7 @@ describe('SubscriptionHeader', () => {
     render(
       <SubscriptionHeader organization={organization} subscription={subscription} />
     );
-    assertNewHeaderCards({hasBillingInfoCard: true});
+    assertNewHeaderCards({hasNextBillCard: true, hasBillingInfoCard: true});
   });
 
   it('renders new header cards for self-serve partner customers', () => {
@@ -92,7 +111,7 @@ describe('SubscriptionHeader', () => {
     render(
       <SubscriptionHeader organization={organization} subscription={subscription} />
     );
-    assertNewHeaderCards({hasBillingInfoCard: false});
+    assertNewHeaderCards({hasNextBillCard: true, hasBillingInfoCard: false});
   });
 
   it('renders new header cards for managed customers', () => {
@@ -109,7 +128,7 @@ describe('SubscriptionHeader', () => {
     render(
       <SubscriptionHeader organization={organization} subscription={subscription} />
     );
-    assertNewHeaderCards({hasBillingInfoCard: false});
+    assertNewHeaderCards({hasNextBillCard: false, hasBillingInfoCard: false});
   });
 
   it('renders new header cards for managed customers with legacy invoiced OD', () => {
@@ -127,7 +146,7 @@ describe('SubscriptionHeader', () => {
     render(
       <SubscriptionHeader organization={organization} subscription={subscription} />
     );
-    assertNewHeaderCards({hasBillingInfoCard: true});
+    assertNewHeaderCards({hasNextBillCard: false, hasBillingInfoCard: true});
   });
 
   it('renders new header cards for self-serve customers and user without billing perms', () => {
@@ -142,7 +161,7 @@ describe('SubscriptionHeader', () => {
     render(
       <SubscriptionHeader organization={organization} subscription={subscription} />
     );
-    assertNewHeaderCards({hasBillingInfoCard: false});
+    assertNewHeaderCards({hasNextBillCard: false, hasBillingInfoCard: false});
   });
 
   it('does not render editable sections for YY partnership', async () => {

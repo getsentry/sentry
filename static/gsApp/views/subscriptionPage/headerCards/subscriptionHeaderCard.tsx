@@ -34,7 +34,7 @@ function SubscriptionHeaderCard({
       )}
 
       {subtitle && <Text variant="muted">{subtitle}</Text>}
-      <Flex direction="column" gap="lg" align="start">
+      <Flex direction="column" gap="lg" align="start" height="100%">
         {sections.map((section, index) => {
           return <Fragment key={index}>{section}</Fragment>;
         })}
