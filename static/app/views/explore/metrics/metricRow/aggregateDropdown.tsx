@@ -14,8 +14,24 @@ const OPTIONS_BY_TYPE = {
   ],
   distribution: [
     {
-      label: 'percentile',
-      value: 'percentile',
+      label: 'p50',
+      value: 'p50',
+    },
+    {
+      label: 'p75',
+      value: 'p75',
+    },
+    {
+      label: 'p90',
+      value: 'p90',
+    },
+    {
+      label: 'p95',
+      value: 'p95',
+    },
+    {
+      label: 'p99',
+      value: 'p99',
     },
     {
       label: 'avg',
