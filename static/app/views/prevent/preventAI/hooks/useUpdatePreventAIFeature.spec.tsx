@@ -25,6 +25,7 @@ describe('useUpdatePreventAIFeature', () => {
             test_generation: {
               enabled: false,
               triggers: {on_command_phrase: false, on_ready_for_review: false},
+              sensitivity: 'medium',
             },
             bug_prediction: {
               enabled: false,
@@ -45,6 +46,7 @@ describe('useUpdatePreventAIFeature', () => {
           test_generation: {
             enabled: false,
             triggers: {on_command_phrase: false, on_ready_for_review: false},
+            sensitivity: 'medium',
           },
           bug_prediction: {
             enabled: false,
@@ -191,19 +193,19 @@ describe('useUpdatePreventAIFeature', () => {
       expect(feature?.triggers.on_ready_for_review).toBe(true);
     });
 
-    it('should update sensitivity', () => {
+    it('should preserve sensitivity', () => {
       const config = structuredClone(mockOrg.preventAiConfigGithub!);
       const updatedConfig = makePreventAIConfig(config, {
         feature: 'bug_prediction',
-        enabled: true,
+        enabled: false,
         orgName: 'org-1',
         repoName: 'repo-xyz',
-        sensitivity: 'low',
+        trigger: {on_ready_for_review: true},
       });
       const feature =
         updatedConfig.github_organizations?.['org-1']?.repo_overrides?.['repo-xyz']
           ?.bug_prediction;
-      expect(feature?.sensitivity).toBe('low');
+      expect(feature?.sensitivity).toBe('medium');
     });
   });
 });
