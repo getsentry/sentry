@@ -220,11 +220,11 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
               size="sm"
               style={{maxWidth: overlayProps.style!.maxWidth}}
             />
-            {/* {isLoading && anyItemsShowing ? (
+            {isLoading && anyItemsShowing ? (
               <LoadingWrapper height="32px" width="100%">
                 <LoadingIndicator size={24} />
               </LoadingWrapper>
-            ) : null} */}
+            ) : null}
             <Footer
               isMultiSelect={isMultiSelect}
               canUseWildcard={canUseWildcard}
