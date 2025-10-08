@@ -1,5 +1,6 @@
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Placeholder from 'sentry/components/placeholder';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
@@ -47,9 +48,9 @@ function AssignToUser({userId}: {userId: string}) {
 
   const title = user?.name ?? user?.email ?? t('Unknown user');
   return (
-    <div>
-      {t('Assign to')} {title}
-    </div>
+    <Tooltip title={title} showOnlyOnOverflow>
+      {t('Assign to %s', title)}
+    </Tooltip>
   );
 }
 
