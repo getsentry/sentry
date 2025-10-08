@@ -141,7 +141,7 @@ export function UptimeDetectorFormDetectSection() {
               const downDuration = intervalSeconds * threshold;
 
               return tct(
-                'Issue created after [threshold] consecutive failures (after [downtime] of downtime).',
+                'Automations Triggered after [threshold] consecutive failures (after [downtime] of downtime).',
                 {
                   threshold: <strong>{threshold}</strong>,
                   downtime: <strong>{getDuration(downDuration)}</strong>,
