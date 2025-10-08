@@ -1251,7 +1251,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert len(response.data) == 0
 
-        GroupOwner.objects.create(
+        other_group_suggested_owner = GroupOwner.objects.create(
             group=assigned_to_other_event.group,
             project=assigned_to_other_event.group.project,
             organization=assigned_to_other_event.group.project.organization,
@@ -1274,7 +1274,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(response.data[0]["id"]) == event.group.id
         assert int(response.data[1]["id"]) == assigned_to_other_event.group.id
 
-        # Because assigned_to_other_event is assigned to self.other_user, it should not show up in assigned_or_suggested search for anyone but self.other_user. (aka. they are now the only owner)
+        # Since the original owner is still a suggested owner, issue should show up in assigned_or_suggested search for the original user.
         other_user = self.create_user("other@user.com", is_superuser=False)
         GroupAssignee.objects.create(
             group=assigned_to_other_event.group,
@@ -1283,8 +1283,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         response = self.get_response(sort_by="date", limit=10, query="assigned_or_suggested:me")
         assert response.status_code == 200
-        assert len(response.data) == 1
+        assert len(response.data) == 2
         assert int(response.data[0]["id"]) == event.group.id
+        assert int(response.data[1]["id"]) == assigned_to_other_event.group.id
 
         response = self.get_response(
             sort_by="date", limit=10, query=f"assigned_or_suggested:{other_user.email}"
@@ -1292,6 +1293,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == assigned_to_other_event.group.id
+
+        other_group_suggested_owner.delete()
 
         GroupAssignee.objects.create(
             group=assigned_event.group, project=assigned_event.group.project, user_id=self.user.id
