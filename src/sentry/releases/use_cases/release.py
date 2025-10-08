@@ -139,7 +139,7 @@ def get_projects(
             "slug": project.slug,
             "name": project.name,
             "platform": project.platform,
-            "newGroups": 0,  # Default value, will be overridden per release
+            "newGroups": -1,  # Default value, will be overridden per release
             "platforms": platforms[project.id],
             "hasHealthData": False,
         }
