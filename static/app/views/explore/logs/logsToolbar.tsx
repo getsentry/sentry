@@ -256,14 +256,7 @@ function VisualizeDropdown({
         ].toSorted((a, b) => {
           const aLabel = prettifyTagKey(a.value);
           const bLabel = prettifyTagKey(b.value);
-          if (aLabel < bLabel) {
-            return -1;
-          }
-
-          if (aLabel > bLabel) {
-            return 1;
-          }
-          return 0;
+          return aLabel.localeCompare(bLabel);
         })
       : sortedNumberKeys.map(key => {
           const label = prettifyTagKey(key);
@@ -374,15 +367,7 @@ function ToolbarGroupBy({numberTags, stringTags}: LogsToolbarProps) {
       ].toSorted((a, b) => {
         const aLabel = prettifyTagKey(a.value);
         const bLabel = prettifyTagKey(b.value);
-        if (aLabel < bLabel) {
-          return -1;
-        }
-
-        if (aLabel > bLabel) {
-          return 1;
-        }
-
-        return 0;
+        return aLabel.localeCompare(bLabel);
       }),
     [numberTags, stringTags]
   );
