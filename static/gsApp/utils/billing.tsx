@@ -729,6 +729,18 @@ export function partnerPlanEndingModalIsDismissed(
   }
 }
 
+export function getPercentage(quantity: number, total: number | null) {
+  if (typeof total === 'number' && total > 0) {
+    return (Math.min(quantity, total) / total) * 100;
+  }
+  return 0;
+}
+
+export function displayPercentage(quantity: number, total: number | null) {
+  const percentage = getPercentage(quantity, total);
+  return percentage.toFixed(0) + '%';
+}
+
 /**
  * Returns true if some billing details are set.
  */
