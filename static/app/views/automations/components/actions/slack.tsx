@@ -56,10 +56,10 @@ export function SlackNode() {
   return (
     <Flex direction="column" gap="md" flex="1">
       <RowLine>
-        {tct('Send a [logo] Slack message to [workspace] workspace, to [channel]', {
+        {tct('Send a [logo] Slack message to the [workspace] workspace, to [channel]', {
           logo: ActionMetadata[ActionType.SLACK]?.icon,
           workspace: <IntegrationField />,
-          channel: <TargetDisplayField placeholder={t('channel name or ID')} />,
+          channel: <TargetDisplayField placeholder={t('e.g., #critical, Jane')} />,
         })}
       </RowLine>
       <OptionalRowLine>
@@ -88,7 +88,7 @@ function NotesField() {
     <AutomationBuilderInput
       name={`${actionId}.data.notes`}
       aria-label={t('Notes')}
-      placeholder={t('example notes')}
+      placeholder={t('e.g. @jane, @on-call')}
       value={action.data.notes}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({

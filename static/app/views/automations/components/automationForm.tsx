@@ -66,9 +66,14 @@ export default function AutomationForm({model}: {model: FormModel}) {
         <AutomationBuilder />
       </Card>
       <Card>
-        <Heading as="h2" size="lg">
-          {t('Action Interval')}
-        </Heading>
+        <Flex direction="column" gap="sm">
+          <Heading as="h2" size="lg">
+            {t('Action Interval')}
+          </Heading>
+          <Text size="sm" variant="muted">
+            {t('Perform the actions above once this often for an issue.')}
+          </Text>
+        </Flex>
         <EmbeddedSelectField
           required
           name="frequency"
