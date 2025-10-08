@@ -175,13 +175,13 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
   return <DemoToursContext value={tours}>{children}</DemoToursContext>;
 }
 
-const getTourFromStep = (step: DemoTourStep): DemoTour | null => {
+const getTourFromStep = (step: DemoTourStep): DemoTour => {
   for (const [category, steps] of Object.entries(TOUR_STEPS)) {
     if (steps.includes(step)) {
       return category as DemoTour;
     }
   }
-  return null;
+  throw new Error(`Unknown tour step: ${step}`);
 };
 
 type DemoTourElementProps = Omit<
@@ -199,35 +199,6 @@ export function DemoTourElement({
   ...props
 }: DemoTourElementProps) {
   const tourKey = getTourFromStep(id);
-
-  if (!tourKey) {
-    return children;
-  }
-
-  return (
-    <DemoTourElementContent
-      {...props}
-      id={id}
-      title={title}
-      description={description}
-      position={position}
-      tourKey={tourKey}
-    >
-      {children}
-    </DemoTourElementContent>
-  );
-}
-
-function DemoTourElementContent({
-  id,
-  title,
-  description,
-  children,
-  position = 'top-start',
-  disabled = false,
-  tourKey,
-  ...props
-}: DemoTourElementProps & {tourKey: DemoTour}) {
   const tourContextValue = useDemoTour(tourKey);
 
   if (!isDemoModeActive() || !tourContextValue || disabled) {
@@ -240,8 +211,8 @@ function DemoTourElementContent({
       id={id}
       title={title}
       description={description}
-      tourContextValue={tourContextValue}
       position={position}
+      tourContextValue={tourContextValue}
     >
       {children}
     </TourElementContent>
@@ -261,8 +232,8 @@ export function SharedTourElement<T extends TourEnumType>({
   children,
   tourContext,
   ...props
-}: TourElementProps<T> & {demoTourId?: DemoTourStep}) {
-  if (isDemoModeActive() && demoTourId) {
+}: TourElementProps<T> & {demoTourId: DemoTourStep}) {
+  if (isDemoModeActive()) {
     return (
       <DemoTourElement id={demoTourId} title={title} description={description}>
         {children}

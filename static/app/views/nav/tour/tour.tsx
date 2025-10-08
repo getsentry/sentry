@@ -80,7 +80,7 @@ export const STACKED_NAVIGATION_TOUR_CONTENT = {
 
 const STACKED_NAVIGATION_TOUR_GUIDE_KEY = 'tour.stacked_navigation';
 
-export const StackedNavigationTourContext =
+const StackedNavigationTourContext =
   createContext<TourContextType<StackedNavigationTour> | null>(null);
 
 export function useStackedNavigationTour(): TourContextType<StackedNavigationTour> {
@@ -97,9 +97,9 @@ export function NavTourElement({
 }: Omit<TourElementProps<StackedNavigationTour>, 'tourContext'>) {
   return (
     <TourElement<StackedNavigationTour>
-      {...props}
       tourContext={StackedNavigationTourContext}
       position="right-start"
+      {...props}
     >
       {children}
     </TourElement>

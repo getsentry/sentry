@@ -14,7 +14,6 @@ import {
   IconPrevent,
   IconSettings,
 } from 'sentry/icons';
-import {DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {ChonkOptInBanner} from 'sentry/utils/theme/ChonkOptInBanner';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
