@@ -2,7 +2,6 @@ import logging
 from collections import defaultdict
 
 import orjson
-import requests
 from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,9 +15,17 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.net.http import connection_from_url
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
 logger = logging.getLogger(__name__)
+
+PREVENT_AI_CONNECTION_POOL = connection_from_url(
+    settings.SEER_PREVENT_AI_URL,
+    maxsize=3,
+)
+
+SEER_PREVENT_AI_TIMEOUT = 30
 
 
 @region_silo_endpoint
@@ -48,15 +55,19 @@ class OrganizationPreventGitHubReposEndpoint(OrganizationEndpoint):
             }
         )
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            connection_pool=PREVENT_AI_CONNECTION_POOL,
+            path=path,
+            body=body,
+            timeout=SEER_PREVENT_AI_TIMEOUT,
         )
-        response.raise_for_status()
+
+        if response.status >= 400:
+            logger.warning(
+                "Failed to fetch integrated repos from Seer",
+                extra={"status": response.status, "organization_names": organization_names},
+            )
+            return {}
 
         return response.json().get("integrated_repos", {})
 
