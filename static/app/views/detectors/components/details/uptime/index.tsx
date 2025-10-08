@@ -4,7 +4,7 @@ import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import Section from 'sentry/components/workflowEngine/ui/section';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import getDuration from 'sentry/utils/duration/getDuration';
@@ -58,9 +58,19 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>
         <DetailLayout.Sidebar>
-          <Section title={t('Detect')}>{t('Three consecutive failed checks.')}</Section>
+          <Section title={t('Detect')}>
+            {tn(
+              '%s consecutive failed check.',
+              '%s consecutive failed checks.',
+              detector.config.downtimeThreshold
+            )}
+          </Section>
           <Section title={t('Resolve')}>
-            {t('Three consecutive successful checks.')}
+            {tn(
+              '%s consecutive successful check.',
+              '%s consecutive successful checks.',
+              detector.config.recoveryThreshold
+            )}
           </Section>
           <Section title={t('Legend')}>
             <DetailsTimelineLegend showMissedLegend={showMissedLegend} />
