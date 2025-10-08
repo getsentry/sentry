@@ -11,7 +11,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar} from 'sentry/icons';
+import {IconCalendar, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useIsLive from 'sentry/utils/replays/hooks/useIsLive';
@@ -98,20 +98,19 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                 <Tooltip
                   showUnderline
                   underlineColor="success"
-                  title={t(
-                    'This replay is still in progress. Refresh for the latest activity.'
-                  )}
+                  title={t('This replay is still in progress.')}
                 >
                   <Live />
                 </Tooltip>
               ) : null}
               {replayUpdated ? (
                 <RefreshButton
-                  title={t('Refresh for latest data')}
+                  title={t('Replay is outdated. Refresh for latest activity.')}
                   size="xs"
                   onClick={handleRefresh}
                   borderless
                 >
+                  <RefreshIcon />
                   {t('Refresh')}
                 </RefreshButton>
               ) : null}
@@ -215,4 +214,8 @@ const RefreshButton = styled(Button)`
   &:hover {
     color: ${p => p.theme.yellow400};
   }
+`;
+
+const RefreshIcon = styled(IconRefresh)`
+  margin-right: 5px;
 `;
