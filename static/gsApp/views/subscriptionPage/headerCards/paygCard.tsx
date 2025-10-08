@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -66,7 +67,11 @@ function PaygCard({
   const formattedTotalBudget = displayPriceWithCents({cents: totalBudget});
   const totalSpent = subscription.onDemandSpendUsed;
   const formattedTotalSpent = displayPriceWithCents({cents: totalSpent});
-  const daysLeft = -1 * getDaysSinceDate(subscription.onDemandPeriodEnd);
+  const daysLeft =
+    -1 *
+    getDaysSinceDate(
+      moment(subscription.onDemandPeriodEnd).add(1, 'days').format('YYYY-MM-DD')
+    );
   const isLegacy = subscription.planDetails.hasOnDemandModes;
 
   return (
@@ -159,8 +164,12 @@ function PaygCard({
                   {tct('Resets in [daysLeft] days', {daysLeft})}
                 </Text>
                 <Text size="sm" variant="muted">
-                  {tct('[formattedTotalBudget] limit', {
+                  {tct('[formattedTotalBudget] limit[note]', {
                     formattedTotalBudget,
+                    note:
+                      paygBudget.budgetMode === OnDemandBudgetMode.PER_CATEGORY
+                        ? t(' (combined total)')
+                        : '',
                   })}
                 </Text>
               </Flex>,
