@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import sentry_sdk
 from django.http import QueryDict
 
 from sentry.constants import ObjectStatus
@@ -19,6 +20,7 @@ from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.taskworker.retry import Retry
 from sentry.users.services.user.service import user_service
 from sentry.utils.email import MessageBuilder
+from sentry.utils.json import JSONDecodeError
 
 MIN_SAMPLES_FOR_NOTIFICATION = 10
 
@@ -82,14 +84,19 @@ def get_num_samples(rule: CustomDynamicSamplingRule) -> int:
         organization=rule.organization,
     )
 
-    result = discover.query(
-        selected_columns=["count()"],
-        snuba_params=params,
-        query=rule.query if rule.query is not None else "",
-        referrer="dynamic_sampling.tasks.custom_rule_notifications",
-    )
-
-    return result["data"][0]["count"]
+    try:
+        result = discover.query(
+            selected_columns=["count()"],
+            snuba_params=params,
+            query=rule.query if rule.query is not None else "",
+            referrer="dynamic_sampling.tasks.custom_rule_notifications",
+        )
+        return result["data"][0]["count"]
+    except JSONDecodeError:
+        with sentry_sdk.new_scope() as scope:
+            scope.set_tag("rule_id", rule.id)
+            sentry_sdk.capture_exception()
+        return 0
 
 
 def send_notification(rule: CustomDynamicSamplingRule, num_samples: int) -> None:
