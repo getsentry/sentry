@@ -97,7 +97,9 @@ function FilterSelector({
           value: '',
         });
       }}
-      emptyMessage={t('No filter values found')}
+      emptyMessage={
+        isFetching ? t('Loading filter values...') : t('No filter values found')
+      }
       menuTitle={t('%s filter', getDatasetLabel(dataset))}
       menuHeaderTrailingItems={
         <Button
