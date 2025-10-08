@@ -2495,7 +2495,6 @@ export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.DETECTOR,
   FieldKey.FIRST_RELEASE,
   FieldKey.FIRST_SEEN,
-  FieldKey.PROJECT,
   FieldKey.HAS,
   FieldKey.IS,
   FieldKey.ISSUE_CATEGORY,
@@ -2571,6 +2570,9 @@ export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.OTA_UPDATES_CHANNEL,
   FieldKey.OTA_UPDATES_RUNTIME_VERSION,
   FieldKey.OTA_UPDATES_UPDATE_ID,
+
+  // Field aliases defined in src/sentry/api/event_search.py
+  FieldKey.PROJECT,
 ];
 
 export const ISSUE_FIELDS: FieldKey[] = [

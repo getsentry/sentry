@@ -161,6 +161,16 @@ export function useIssueListSearchBarDataProvider(
         });
       }
 
+      if (key === FieldKey.PROJECT) {
+        return [
+          ...(await fetchTagValues({
+            ...fetchTagValuesPayload,
+            // enabling this maps project ids to project slugs
+            includeTransactions: true,
+          })),
+        ];
+      }
+
       if (key === FieldKey.FIRST_RELEASE) {
         const includeLatest = 'latest'.startsWith(search.toLowerCase());
         return [
