@@ -498,10 +498,13 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
 
     def test_explore_url_for_table_widget(self) -> None:
         with self.feature("organizations:transaction-widget-deprecation-explore-view"):
+            start = before_now(days=2)
+            end = before_now(days=1)
             dashboard_deprecation = Dashboard.objects.create(
                 title="Dashboard With Transaction Widget",
                 created_by_id=self.user.id,
                 organization=self.organization,
+                filters={"all_projects": True, "start": start.isoformat(), "end": end.isoformat()},
             )
             widget_deprecation = DashboardWidget.objects.create(
                 dashboard=dashboard_deprecation,
@@ -532,6 +535,65 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             # need to sort because fields order is not guaranteed
             assert params["field"].sort() == ["id", "transaction"].sort()
             assert "aggregateField" not in params
+            assert params["project"] == ["-1"]
+            assert params["start"] == [start.isoformat()]
+            assert params["end"] == [end.isoformat()]
+
+    def test_explore_url_for_widget_with_env_params(self) -> None:
+        with self.feature("organizations:transaction-widget-deprecation-explore-view"):
+            project = self.create_project()
+            project2 = self.create_project()
+            environment = self.create_environment(project=project)
+            environment2 = self.create_environment(project=project2)
+            dashboard_deprecation = Dashboard.objects.create(
+                title="Dashboard With Transaction Widget",
+                created_by_id=self.user.id,
+                organization=self.organization,
+                filters={
+                    "environment": [environment.name, environment2.name],
+                    "release": ["1.0.0"],
+                    "period": "14d",
+                },
+            )
+            dashboard_deprecation.projects.set([project, project2])
+            widget_deprecation = DashboardWidget.objects.create(
+                dashboard=dashboard_deprecation,
+                title="transaction widget",
+                display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+                widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+                interval="1d",
+                detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            )
+
+            DashboardWidgetQuery.objects.create(
+                widget=widget_deprecation,
+                fields=["count()", "transaction"],
+                columns=["transaction"],
+                aggregates=["count()"],
+                conditions="count():>50",
+                orderby="-count",
+                order=0,
+            )
+
+            response = self.do_request("get", self.url(dashboard_deprecation.id))
+            assert response.status_code == 200
+            explore_url = response.data["widgets"][0]["exploreUrls"][0]
+            assert "http://testserver/explore/traces/" in explore_url
+
+            params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
+            assert params["query"] == [
+                "(count(span.duration):>50) AND is_transaction:1 AND release:1.0.0"
+            ]
+            assert params["sort"] == ["-count(span.duration)"]
+            assert params["mode"] == ["aggregate"]
+            assert params["aggregateField"] == [
+                '{"groupBy":"transaction"}',
+                '{"yAxes":["count(span.duration)"],"chartType":1}',
+            ]
+
+            assert params["environment"] == [environment.name, environment2.name]
+            assert params["project"] == [str(project.id), str(project2.id)]
+            assert params["statsPeriod"] == ["14d"]
 
     def test_explore_url_for_deformed_widget(self) -> None:
         with self.feature("organizations:transaction-widget-deprecation-explore-view"):

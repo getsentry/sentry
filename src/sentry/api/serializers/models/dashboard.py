@@ -9,6 +9,7 @@ from django.db.models import prefetch_related_objects
 
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.discover.arithmetic import get_equation_alias_index, is_equation, is_equation_alias
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dashboard_permissions import DashboardPermissions
@@ -77,20 +78,6 @@ class DashboardWidgetResponse(TypedDict):
 class DashboardPermissionsResponse(TypedDict):
     isEditableByEveryone: bool
     teamsWithEditAccess: list[int]
-
-
-class ExploreQuery(TypedDict, total=False):
-    mode: str
-    aggregateField: list[dict[str, str | list[str]]]
-    field: list[str]
-    query: str
-    orderby: str
-    interval: str
-    projects: list[int]
-    environment: list[str]
-    start: str
-    end: str
-    statsPeriod: str
 
 
 @register(DashboardWidget)
@@ -174,6 +161,7 @@ class DashboardWidgetSerializer(Serializer):
             start = None
             period = None
             utc = None
+            all_projects = None
             if filters:
                 environment = filters.get("environment", [])
                 release = filters.get("release", [])
@@ -181,6 +169,7 @@ class DashboardWidgetSerializer(Serializer):
                 start = filters.get("start")
                 period = filters.get("period")
                 utc = filters.get("utc")
+                all_projects = filters.get("all_projects")
 
             non_aggregate_group_by_fields = [
                 field
@@ -260,7 +249,10 @@ class DashboardWidgetSerializer(Serializer):
                     for y_axis in y_axes
                 ]
 
-            projects = list(obj.dashboard.projects.all().values_list("id", flat=True))
+            if all_projects:
+                projects = [ALL_ACCESS_PROJECT_ID]
+            else:
+                projects = list(obj.dashboard.projects.all().values_list("id", flat=True))
 
             all_query_params = {
                 "project": projects,
