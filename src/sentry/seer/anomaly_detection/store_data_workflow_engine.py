@@ -27,7 +27,7 @@ from sentry.seer.anomaly_detection.utils import (
 )
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 from sentry.workflow_engine.types import SnubaQueryDataSourceType
@@ -40,12 +40,45 @@ seer_anomaly_detection_connection_pool = connection_from_url(
 )
 
 
-def update_detector_data(detector: Detector, data_source: SnubaQueryDataSourceType) -> None:
-    # TODO wrap in try/except
-    data_source = DataSourceDetector.objects.get(detector_id=detector.id).data_source
-    query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
-    snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
+def send_new_detector_data(detector: Detector, project: Project, snuba_query: SnubaQuery) -> None:
+    try:
+        data_source = DataSourceDetector.objects.get(detector_id=detector.id).data_source
+    except DataSourceDetector.DoesNotExist:
+        raise Exception("Could not update detector, data source detector not found.")
+    try:
+        query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
+    except QuerySubscription.DoesNotExist:
+        raise Exception("Could not update detector, query subscription not found.")
+    try:
+        snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
+    except SnubaQuery.DoesNotExist:
+        raise Exception("Could not update detector, snuba query not found.")
 
+    try:
+        handle_send_historical_data_to_seer(detector, snuba_query, project, SeerMethod.CREATE)
+    except (TimeoutError, MaxRetryError, ParseError, ValidationError):
+        detector.delete()
+        raise
+    else:
+        metrics.incr("anomaly_detection_monitor.created")
+
+
+def update_detector_data(detector: Detector, data_source: SnubaQueryDataSourceType) -> None:
+    try:
+        data_source = DataSourceDetector.objects.get(detector_id=detector.id).data_source
+    except DataSourceDetector.DoesNotExist:
+        raise Exception("Could not update detector, data source detector not found.")
+    try:
+        query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
+    except QuerySubscription.DoesNotExist:
+        raise Exception("Could not update detector, query subscription not found.")
+    try:
+        snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
+    except SnubaQuery.DoesNotExist:
+        raise Exception("Could not update detector, snuba query not found.")
+
+    # use setattr to avoid saving the detector until the Seer call has successfully finished,
+    # otherwise the detector would be in a bad state
     for k, v in data_source.items():
         setattr(data_source, k, v)
 
@@ -90,14 +123,6 @@ def handle_send_historical_data_to_seer(
             snuba_query=snuba_query,
             event_types=event_types_param,
         )
-        # XXX: I think we decided to not do any of this for dynamic detectors
-        # if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
-        #     # if we don't have at least seven days worth of data, then the dynamic alert won't fire
-        #     alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
-        # elif (
-        #     rule_status == AlertRuleStatus.PENDING and alert_rule.status != AlertRuleStatus.PENDING
-        # ):
-        #     alert_rule.update(status=AlertRuleStatus.PENDING.value)
     except (TimeoutError, MaxRetryError):
         raise TimeoutError(f"Failed to send data to Seer - cannot {method} detector.")
     except ParseError:
@@ -117,7 +142,7 @@ def send_historical_data_to_seer(
     event_types: list[SnubaQueryEventType.EventType] | None = None,
 ) -> None:
     """
-    Get 28 days of historical data and pass it to Seer to be used for prediction anomalies on the alert.
+    Get 28 days of historical data and pass it to Seer to be used for prediction anomalies on the detector.
     """
     window_min = int(snuba_query.time_window / 60)
     event_types = get_event_types(snuba_query, event_types)
@@ -142,7 +167,7 @@ def send_historical_data_to_seer(
         organization=project.organization,
     )
     if not formatted_data:
-        raise ValidationError("Unable to get historical data for this alert.")
+        raise ValidationError("Unable to get historical data for this detector.")
 
     anomaly_detection_config = AnomalyDetectionConfig(
         time_period=window_min,
