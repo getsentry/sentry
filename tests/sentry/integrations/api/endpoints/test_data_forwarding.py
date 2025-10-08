@@ -17,8 +17,7 @@ class DataForwardingIndexEndpointTest(APITestCase):
 @region_silo_test
 class DataForwardingIndexGetTest(DataForwardingIndexEndpointTest):
     def test_get_single_data_forwarder(self) -> None:
-        data_forwarder = DataForwarder.objects.create(
-            organization=self.organization,
+        data_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "test_key"},
             is_enabled=True,
@@ -32,13 +31,11 @@ class DataForwardingIndexGetTest(DataForwardingIndexEndpointTest):
         assert response.data[0]["isEnabled"] is True
 
     def test_get_multiple_data_forwarders(self) -> None:
-        segment_forwarder = DataForwarder.objects.create(
-            organization=self.organization,
+        segment_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "segment_key"},
         )
-        sqs_forwarder = DataForwarder.objects.create(
-            organization=self.organization,
+        sqs_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SQS,
             config={
                 "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue",
@@ -56,8 +53,7 @@ class DataForwardingIndexGetTest(DataForwardingIndexEndpointTest):
         assert str(sqs_forwarder.id) in forwarder_ids
 
     def test_get_data_forwarder_with_project_configs(self) -> None:
-        data_forwarder = DataForwarder.objects.create(
-            organization=self.organization,
+        data_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "test_key"},
         )
@@ -89,14 +85,13 @@ class DataForwardingIndexGetTest(DataForwardingIndexEndpointTest):
         assert str(project_config2.id) in project_config_ids
 
     def test_get_only_returns_organization_data_forwarders(self) -> None:
-        my_forwarder = DataForwarder.objects.create(
-            organization=self.organization,
+        my_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "my_key"},
         )
 
         other_org = self.create_organization()
-        DataForwarder.objects.create(
+        self.create_data_forwarder(
             organization=other_org,
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "other_key"},
@@ -113,8 +108,7 @@ class DataForwardingIndexGetTest(DataForwardingIndexEndpointTest):
         self.get_error_response(self.organization.slug, status_code=403)
 
     def test_get_with_disabled_data_forwarder(self) -> None:
-        data_forwarder = DataForwarder.objects.create(
-            organization=self.organization,
+        data_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "test_key"},
             is_enabled=False,
@@ -198,8 +192,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         assert response.data["enrollNewProjects"] is False
 
     def test_create_duplicate_provider_fails(self) -> None:
-        DataForwarder.objects.create(
-            organization=self.organization,
+        self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "existing_key"},
         )
@@ -214,8 +207,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         assert "already exists" in str(response.data).lower()
 
     def test_create_different_providers_succeeds(self) -> None:
-        DataForwarder.objects.create(
-            organization=self.organization,
+        self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "segment_key"},
         )
@@ -270,8 +262,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         assert "provider" in str(response.data).lower()
 
     def test_create_duplicate_provider_returns_error(self) -> None:
-        DataForwarder.objects.create(
-            organization_id=self.organization.id,
+        self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "existing_key"},
         )
