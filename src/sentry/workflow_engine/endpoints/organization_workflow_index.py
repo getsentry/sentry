@@ -103,6 +103,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
+    permission_classes = (OrganizationWorkflowPermission,)
 
     def filter_workflows(self, request: Request, organization: Organization) -> QuerySet[Workflow]:
         """
