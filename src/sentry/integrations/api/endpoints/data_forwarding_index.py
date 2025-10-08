@@ -13,9 +13,6 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.parameters import GlobalParams
-from sentry.integrations.api.serializers.models.data_forwarder import (  # noqa: F401
-    DataForwarderProjectSerializer as DataForwarderProjectModelSerializer,
-)
 from sentry.integrations.api.serializers.models.data_forwarder import (
     DataForwarderSerializer as DataForwarderModelSerializer,
 )
