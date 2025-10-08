@@ -167,6 +167,39 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.data == {"detail": "Seer has not been acknowledged by the organization."}
         mock_get_seer_org_acknowledgement.assert_called_once_with(self.organization.id)
 
+    def test_post_without_open_team_membership_returns_403(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        with patch(
+            "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
+            return_value=True,
+        ):
+            data = {"query": "Test query"}
+            response = self.client.post(self.url, data, format="json")
+
+            assert response.status_code == 403
+            assert (
+                response.data["detail"]
+                == "Organization does not have open team membership enabled. Seer requires this to aggregate context across all projects and allow members to ask questions freely."
+            )
+
+    def test_get_without_open_team_membership_returns_403(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        with patch(
+            "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
+            return_value=True,
+        ):
+            response = self.client.get(f"{self.url}123/")
+
+            assert response.status_code == 403
+            assert (
+                response.data["detail"]
+                == "Organization does not have open team membership enabled. Seer requires this to aggregate context across all projects and allow members to ask questions freely."
+            )
+
 
 class OrganizationSeerExplorerChatEndpointFeatureFlagTest(APITestCase):
     """Test feature flag requirements separately without the decorator"""
