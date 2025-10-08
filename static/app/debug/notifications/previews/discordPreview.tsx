@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {DebugNotificationsPreview} from 'sentry/debug/notifications/components/debugNotificationsPreview';
@@ -61,9 +61,9 @@ export function DiscordPreview({
             preview tool, so we're mocking it here, so use this as an approximation of
             what it'll look like on Discord.
           </Text>
-          <CodeSnippet language="json">
+          <CodeBlock language="json">
             {payload ? JSON.stringify(payload, null, 2) : ''}
-          </CodeSnippet>
+          </CodeBlock>
         </Flex>
       </Container>
     </DebugNotificationsPreview>

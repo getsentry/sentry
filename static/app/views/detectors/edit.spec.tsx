@@ -384,7 +384,7 @@ describe('DetectorEdit', () => {
       expect(screen.getByRole('option', {name: 'Last 7 days'})).toBeInTheDocument();
     });
 
-    it('sets resolution method to Automatic when OK equals critical threshold', async () => {
+    it('sets resolution method to Default when OK equals critical threshold', async () => {
       const detectorWithOkEqualsHigh = MetricDetectorFixture({
         conditionGroup: {
           id: 'cg2',
@@ -424,10 +424,12 @@ describe('DetectorEdit', () => {
         await screen.findByRole('link', {name: detectorWithOkEqualsHigh.name})
       ).toBeInTheDocument();
 
-      expect(screen.getByRole('radio', {name: 'Automatic'})).toBeChecked();
+      expect(screen.getByText('Default').closest('label')).toHaveClass(
+        'css-1aktlwe-RadioLineItem'
+      );
 
-      // Switching to Manual should reveal prefilled resolution input with the current OK value
-      await userEvent.click(screen.getByRole('radio', {name: 'Manual'}));
+      // Switching to Custom should reveal prefilled resolution input with the current OK value
+      await userEvent.click(screen.getByText('Custom').closest('label')!);
       const resolutionInput = await screen.findByLabelText('Resolution threshold');
       expect(resolutionInput).toHaveValue(10);
     });

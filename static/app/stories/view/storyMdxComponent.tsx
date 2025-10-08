@@ -1,6 +1,6 @@
 import type {HTMLProps} from 'react';
 
-import {InlineCode} from 'sentry/components/core/inlineCode';
+import {InlineCode} from 'sentry/components/core/code';
 import {Stack} from 'sentry/components/core/layout';
 import type {TextProps} from 'sentry/components/core/text/text';
 import {Text} from 'sentry/components/core/text/text';

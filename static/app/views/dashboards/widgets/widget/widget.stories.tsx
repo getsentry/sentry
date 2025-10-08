@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import types from '!!type-loader!sentry/views/dashboards/widgets/widget/widget';
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {CodeBlock} from 'sentry/components/core/code';
 import * as Storybook from 'sentry/stories';
 import {sampleDurationTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/fixtures/sampleDurationTimeSeries';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -98,7 +98,7 @@ export default Storybook.story('Widget', (story, APIReference) => {
           shown above.
         </p>
 
-        <CodeSnippet language="jsx">
+        <CodeBlock language="jsx">
           {`import {LineChartWidgetVisualization} from '../lineChartWidget/lineChartWidgetVisualization';
 import {sampleDurationTimeSeries} from '../lineChartWidget/fixtures/sampleDurationTimeSeries';
 
@@ -127,7 +127,7 @@ import {Widget} from './widget';
 />
 
         `}
-        </CodeSnippet>
+        </CodeBlock>
       </Fragment>
     );
   });
@@ -186,7 +186,7 @@ import {Widget} from './widget';
           guidance on how to do it well.
         </p>
 
-        <CodeSnippet language="jsx">
+        <CodeBlock language="jsx">
           {`import {Widget} from './widget';
 
 function InsightsLineChart() {
@@ -284,7 +284,7 @@ function InsightsLineChart() {
 }
 
                 `}
-        </CodeSnippet>
+        </CodeBlock>
       </Fragment>
     );
   });

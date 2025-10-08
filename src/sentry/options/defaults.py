@@ -3173,7 +3173,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-
 register(
     "uptime.date_cutoff_epoch_seconds",
     type=Int,
@@ -3183,6 +3182,30 @@ register(
 
 register(
     "uptime.snuba_uptime_results.enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Controls whether uptime monitoring creates issues via the issue platform.
+register(
+    "uptime.create-issues",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Controls whether uptime monitoring automatically detects hostnames from error events.
+register(
+    "uptime.automatic-hostname-detection",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Controls whether uptime monitoring automatically creates subscriptions for detected URLs.
+register(
+    "uptime.automatic-subscription-creation",
     type=Bool,
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

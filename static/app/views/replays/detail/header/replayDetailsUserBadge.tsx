@@ -194,6 +194,12 @@ const LiveIndicator = styled('div')`
   border-radius: 50%;
   margin-left: 6px;
 
+  @media (prefers-reduced-motion: reduce) {
+    &:before {
+      display: none;
+    }
+  }
+
   &:before {
     content: '';
     animation: ${pulse} 3s ease-out infinite;

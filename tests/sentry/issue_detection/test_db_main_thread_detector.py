@@ -28,7 +28,7 @@ class DBMainThreadDetectorTest(TestCase):
         return list(detector.stored_problems.values())
 
     def test_detects_db_main_thread(self) -> None:
-        event = get_event("db-on-main-thread")
+        event = get_event("db-on-main-thread/db-on-main-thread")
 
         assert self.find_problems(event) == [
             PerformanceProblem(
@@ -51,7 +51,7 @@ class DBMainThreadDetectorTest(TestCase):
 
     def test_respects_project_option(self) -> None:
         project = self.create_project()
-        event = get_event("db-on-main-thread")
+        event = get_event("db-on-main-thread/db-on-main-thread")
         event["project_id"] = project.id
 
         settings = get_detection_settings(project.id)
@@ -71,19 +71,19 @@ class DBMainThreadDetectorTest(TestCase):
         assert not detector.is_creation_allowed_for_project(project)
 
     def test_does_not_detect_db_main_thread(self) -> None:
-        event = get_event("db-on-main-thread")
+        event = get_event("db-on-main-thread/db-on-main-thread")
         event["spans"][0]["data"]["blocked_main_thread"] = False
 
         assert self.find_problems(event) == []
 
     def test_gives_problem_correct_title(self) -> None:
-        event = get_event("db-on-main-thread")
+        event = get_event("db-on-main-thread/db-on-main-thread")
         event["spans"][0]["data"]["blocked_main_thread"] = True
         problem = self.find_problems(event)[0]
         assert problem.title == "DB on Main Thread"
 
     def test_duplicate_calls_do_not_change_callstack(self) -> None:
-        event = get_event("db-on-main-thread")
+        event = get_event("db-on-main-thread/db-on-main-thread")
         event["spans"][0]["data"]["blocked_main_thread"] = True
         single_span_problem = self.find_problems(event)[0]
         single_problem_fingerprint = single_span_problem.fingerprint

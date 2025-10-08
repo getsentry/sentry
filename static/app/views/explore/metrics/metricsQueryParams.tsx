@@ -1,7 +1,8 @@
 import type {ReactNode} from 'react';
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {defined} from 'sentry/utils';
+import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {defaultQuery} from 'sentry/views/explore/metrics/metricQuery';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {
@@ -13,9 +14,19 @@ import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQuer
 import {parseVisualize} from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
+interface MetricNameContextValue {
+  setMetricName: (metricName: string) => void;
+}
+
+const [_MetricNameContextProvider, useMetricNameContext, MetricNameContext] =
+  createDefinedContext<MetricNameContextValue>({
+    name: 'MetricNameContext',
+  });
+
 interface MetricsQueryParamsProviderProps {
   children: ReactNode;
   queryParams: ReadableQueryParams;
+  setMetricName: (metricName: string) => void;
   setQueryParams: (queryParams: ReadableQueryParams) => void;
 }
 
@@ -23,6 +34,7 @@ export function MetricsQueryParamsProvider({
   children,
   queryParams,
   setQueryParams,
+  setMetricName,
 }: MetricsQueryParamsProviderProps) {
   const setWritableQueryParams = useCallback(
     (writableQueryParams: WritableQueryParams) => {
@@ -35,15 +47,24 @@ export function MetricsQueryParamsProvider({
     [queryParams, setQueryParams]
   );
 
+  const metricNameContextValue = useMemo(
+    () => ({
+      setMetricName,
+    }),
+    [setMetricName]
+  );
+
   return (
-    <QueryParamsContextProvider
-      queryParams={queryParams}
-      setQueryParams={setWritableQueryParams}
-      isUsingDefaultFields
-      shouldManageFields={false}
-    >
-      {children}
-    </QueryParamsContextProvider>
+    <MetricNameContext value={metricNameContextValue}>
+      <QueryParamsContextProvider
+        queryParams={queryParams}
+        setQueryParams={setWritableQueryParams}
+        isUsingDefaultFields
+        shouldManageFields={false}
+      >
+        {children}
+      </QueryParamsContextProvider>
+    </MetricNameContext>
   );
 }
 
@@ -68,6 +89,11 @@ export function useMetricVisualize() {
     return visualizes[0]!;
   }
   throw new Error('Only 1 visualize per metric allowed');
+}
+
+export function useSetMetricName() {
+  const {setMetricName} = useMetricNameContext();
+  return setMetricName;
 }
 
 function updateQueryParams(

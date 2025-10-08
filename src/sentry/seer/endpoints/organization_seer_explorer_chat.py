@@ -152,6 +152,13 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             return Response(
                 {"detail": "Seer has not been acknowledged by the organization."}, status=403
             )
+        if not organization.flags.allow_joinleave:
+            return Response(
+                {
+                    "detail": "Organization does not have open team membership enabled. Seer requires this to aggregate context across all projects and allow members to ask questions freely."
+                },
+                status=403,
+            )
 
         if not run_id:
             return Response({"session": None}, status=404)
@@ -185,6 +192,13 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         if not get_seer_org_acknowledgement(organization.id):
             return Response(
                 {"detail": "Seer has not been acknowledged by the organization."}, status=403
+            )
+        if not organization.flags.allow_joinleave:
+            return Response(
+                {
+                    "detail": "Organization does not have open team membership enabled. Seer requires this to aggregate context across all projects and allow members to ask questions freely."
+                },
+                status=403,
             )
 
         serializer = SeerExplorerChatSerializer(data=request.data)

@@ -15,25 +15,25 @@ function ManageReposToolbar({
   selectedRepo,
 }: {
   installedOrgs: PreventAIOrg[];
-  onOrgChange: (orgId: string) => void;
-  onRepoChange: (repoId: string) => void;
+  onOrgChange: (orgName: string) => void;
+  onRepoChange: (repoName: string) => void;
   selectedOrg: string;
   selectedRepo: string;
 }) {
   const organizationOptions = useMemo(
     () =>
       installedOrgs.map(org => ({
-        value: org.id,
+        value: org.name,
         label: org.name,
       })),
     [installedOrgs]
   );
 
   const repositoryOptions = useMemo(() => {
-    const org = installedOrgs.find(o => o.id === selectedOrg);
+    const org = installedOrgs.find(o => o.name === selectedOrg);
     return (
       org?.repos.map(repo => ({
-        value: repo.id,
+        value: repo.name,
         label: repo.name,
       })) ?? []
     );
