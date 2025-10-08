@@ -18,19 +18,12 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 export const DEMO_TOURS_STATE_KEY = 'demo-mode:tours';
 
 export const enum DemoTour {
-  SIDEBAR = 'sidebar',
   ISSUES = 'issues',
   RELEASES = 'releases',
   PERFORMANCE = 'performance',
 }
 
 export const enum DemoTourStep {
-  // Sidebar steps
-  SIDEBAR_PROJECTS = 'demo-tour-sidebar-projects',
-  SIDEBAR_ISSUES = 'demo-tour-sidebar-issues',
-  SIDEBAR_PERFORMANCE = 'demo-tour-sidebar-performance',
-  SIDEBAR_RELEASES = 'demo-tour-sidebar-releases',
-  SIDEBAR_DISCOVER = 'demo-tour-sidebar-discover',
   // Issues steps
   ISSUES_STREAM = 'demo-tour-issues-stream',
   ISSUES_AGGREGATES = 'demo-tour-issues-aggregates',
@@ -51,7 +44,6 @@ type DemoToursContextType = {
   issues: TourContextType<DemoTourStep>;
   performance: TourContextType<DemoTourStep>;
   releases: TourContextType<DemoTourStep>;
-  sidebar: TourContextType<DemoTourStep>;
 };
 
 const DemoToursContext = createContext<DemoToursContextType | null>(null);
@@ -73,18 +65,11 @@ export function useDemoTour(tourKey: DemoTour): TourContextType<DemoTourStep> | 
 }
 
 const TOUR_STEPS: Record<DemoTour, DemoTourStep[]> = {
-  [DemoTour.SIDEBAR]: [
-    DemoTourStep.SIDEBAR_PROJECTS,
-    DemoTourStep.SIDEBAR_ISSUES,
-    DemoTourStep.SIDEBAR_PERFORMANCE,
-    DemoTourStep.SIDEBAR_RELEASES,
-    DemoTourStep.SIDEBAR_DISCOVER,
-  ],
   [DemoTour.ISSUES]: [
     DemoTourStep.ISSUES_STREAM,
-    DemoTourStep.ISSUES_AGGREGATES, // Metadata and metrics // view data in aggregate 1/6
-    DemoTourStep.ISSUES_EVENT_DETAILS, // Explore details // Explore details 3/6
-    DemoTourStep.ISSUES_DETAIL_SIDEBAR, // Share updates // 6/6
+    DemoTourStep.ISSUES_AGGREGATES,
+    DemoTourStep.ISSUES_EVENT_DETAILS,
+    DemoTourStep.ISSUES_DETAIL_SIDEBAR,
   ],
   [DemoTour.RELEASES]: [
     DemoTourStep.RELEASES_COMPARE,
@@ -107,11 +92,6 @@ const emptyTourState = {
 };
 
 const TOUR_STATE_INITIAL_VALUE: Record<DemoTour, TourState<any>> = {
-  [DemoTour.SIDEBAR]: {
-    ...emptyTourState,
-    orderedStepIds: TOUR_STEPS[DemoTour.SIDEBAR],
-    tourKey: DemoTour.SIDEBAR,
-  },
   [DemoTour.ISSUES]: {
     ...emptyTourState,
     orderedStepIds: TOUR_STEPS[DemoTour.ISSUES],
@@ -168,11 +148,6 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
     [handleEndTour, handleStepChange]
   );
 
-  const sidebarTour = useTourReducer<DemoTourStep>(
-    tourState[DemoTour.SIDEBAR],
-    getTourOptions(DemoTour.SIDEBAR)
-  );
-
   const issuesTour = useTourReducer<DemoTourStep>(
     tourState[DemoTour.ISSUES],
     getTourOptions(DemoTour.ISSUES)
@@ -190,12 +165,11 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
 
   const tours = useMemo(
     () => ({
-      [DemoTour.SIDEBAR]: sidebarTour,
       [DemoTour.ISSUES]: issuesTour,
       [DemoTour.RELEASES]: releasesTour,
       [DemoTour.PERFORMANCE]: performanceTour,
     }),
-    [issuesTour, releasesTour, performanceTour, sidebarTour]
+    [issuesTour, releasesTour, performanceTour]
   );
 
   return <DemoToursContext value={tours}>{children}</DemoToursContext>;
