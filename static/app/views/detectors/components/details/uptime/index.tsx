@@ -1,5 +1,6 @@
 import {useCallback, useState} from 'react';
 
+import {CodeBlock} from 'sentry/components/core/code';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
@@ -58,7 +59,12 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>
         <DetailLayout.Sidebar>
-          <Section title={t('Detect')}>{t('Three consecutive failed checks.')}</Section>
+          <Section title={t('Detect')}>
+            <div>{t('Three consecutive failed checks.')}</div>
+            <CodeBlock
+              hideCopyButton
+            >{`${dataSource.queryObj.method} ${dataSource.queryObj.url}`}</CodeBlock>
+          </Section>
           <Section title={t('Resolve')}>
             {t('Three consecutive successful checks.')}
           </Section>
@@ -70,14 +76,6 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
             <KeyValueTableRow
               keyName={t('Interval')}
               value={t('Every %s', getDuration(dataSource.queryObj.intervalSeconds))}
-            />
-            <KeyValueTableRow
-              keyName={t('URL')}
-              value={detector.dataSources[0].queryObj.url}
-            />
-            <KeyValueTableRow
-              keyName={t('Method')}
-              value={detector.dataSources[0].queryObj.method}
             />
             <DetectorExtraDetails.Environment detector={detector} />
             <DetectorExtraDetails.DateCreated detector={detector} />
