@@ -367,11 +367,11 @@ function Overview({location, subscription, promotionData}: Props) {
         <RecurringCredits displayType="discount" planDetails={planDetails} />
         <RecurringCredits displayType="data" planDetails={planDetails} />
         <OnDemandDisabled subscription={subscription} />
+        <UsageAlert subscription={subscription} usage={usageData} />
         {isNewBillingUI ? (
           <UsageOverview subscription={subscription} organization={organization} />
         ) : (
           <Fragment>
-            <UsageAlert subscription={subscription} usage={usageData} />
             <DisplayModeToggle
               subscription={subscription}
               displayMode={displayMode}
@@ -380,9 +380,9 @@ function Overview({location, subscription, promotionData}: Props) {
             {renderUsageChart(usageData)}
             {renderUsageCards(usageData)}
             <OnDemandSettings organization={organization} subscription={subscription} />
-            <TrialEnded subscription={subscription} />
           </Fragment>
         )}
+        <TrialEnded subscription={subscription} />
       </Fragment>
     );
   }
@@ -392,8 +392,14 @@ function Overview({location, subscription, promotionData}: Props) {
       <Fragment>
         <OnDemandDisabled subscription={subscription} />
         <UsageAlert subscription={subscription} usage={usageData} />
-        {renderUsageChart(usageData)}
-        {renderUsageCards(usageData)}
+        {isNewBillingUI ? (
+          <UsageOverview subscription={subscription} organization={organization} />
+        ) : (
+          <Fragment>
+            {renderUsageChart(usageData)}
+            {renderUsageCards(usageData)}
+          </Fragment>
+        )}
         <TrialEnded subscription={subscription} />
       </Fragment>
     );

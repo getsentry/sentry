@@ -1,4 +1,4 @@
-import React, {Fragment, useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -22,6 +22,7 @@ import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import {useNavContext} from 'sentry/views/nav/context';
 
 import ProductTrialTag from 'getsentry/components/productTrial/productTrialTag';
 import StartTrialButton from 'getsentry/components/startTrialButton';
@@ -81,6 +82,7 @@ function ReservedUsageBar({percentUsed}: {percentUsed: number}) {
 }
 
 function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
+  const hasBillingPerms = organization.features.includes('billing');
   const [openState, setOpenState] = useState<Record<string, boolean>>({});
   const [trialButtonBusyState, setTrialButtonBusyState] = useState<
     Partial<Record<DataCategory, boolean>>
@@ -101,25 +103,24 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
     subscription.planDetails.addOnCategories
   ).flatMap(addOn => addOn.dataCategories);
 
-  const tableHeaderProps = {
-    variant: 'muted' as const,
-    bold: true,
-  };
-
-  const columnOrder: GridColumnOrder[] = [
-    {key: 'product', name: t('Product'), width: 400},
-    {key: 'currentUsage', name: t('Current usage')},
-    {key: 'reservedUsage', name: t('Reserved usage')},
-    {key: 'reservedSpend', name: t('Reserved spend')},
-    {
-      key: 'budgetSpend',
-      name: t('%s spend', displayBudgetName(subscription.planDetails, {title: true})),
-    },
-    {
-      key: 'cta',
-      name: '',
-    },
-  ];
+  const columnOrder: GridColumnOrder[] = useMemo(() => {
+    return [
+      {key: 'product', name: t('Product'), width: 300},
+      {key: 'currentUsage', name: t('Current usage'), width: 200},
+      {key: 'reservedUsage', name: t('Reserved usage'), width: 200},
+      {key: 'reservedSpend', name: t('Reserved spend'), width: 50},
+      {
+        key: 'budgetSpend',
+        name: t('%s spend', displayBudgetName(subscription.planDetails, {title: true})),
+        width: 50,
+      },
+      {
+        key: 'cta',
+        name: '',
+        width: 50,
+      },
+    ].filter(column => hasBillingPerms || !column.key.endsWith('Spend'));
+  }, [hasBillingPerms, subscription.planDetails]);
 
   // TODO(isabella): refactor this to have better types + be more efficient
   const productData: Array<{
@@ -330,237 +331,238 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
   }, [subscription, allAddOnDataCategories, organization.features, openState]);
 
   return (
-    <Fragment>
-      <Container maxWidth={{xs: '992px', md: '100%'}}>
-        <GridEditable
-          bodyStyle={{
-            borderTopLeftRadius: '0px',
-            borderTopRightRadius: '0px',
-            borderLeft: 'none',
-            borderRight: 'none',
-            borderBottom: 'none',
-            marginBottom: '0px',
-          }}
-          minimumColWidth={200}
-          fit="max-content"
-          columnOrder={columnOrder}
-          data={productData.map(product => product.gridData)}
-          columnSortBy={[]}
-          grid={{
-            renderHeadCell: column => {
-              return <Text {...tableHeaderProps}>{column.name}</Text>;
-            },
-            renderBodyCell: (column, row) => {
-              const attrs = productData.find(
-                product => product.gridData.product === row.product
-              )?.attrs;
-              if (!attrs) {
-                return row[column.key as keyof typeof row];
-              }
-              const {
-                dataCategory,
-                hasAccess,
-                isPaygOnly,
-                free,
-                reserved,
-                isOpen,
-                isChildProduct,
-              } = attrs;
+    <GridEditable
+      bodyStyle={{
+        borderTopLeftRadius: '0px',
+        borderTopRightRadius: '0px',
+        borderLeft: 'none',
+        borderRight: 'none',
+        borderBottom: 'none',
+        marginBottom: '0px',
+      }}
+      fit="max-content"
+      columnOrder={columnOrder}
+      data={productData.map(product => product.gridData)}
+      columnSortBy={[]}
+      grid={{
+        renderHeadCell: column => {
+          return <Text>{column.name}</Text>;
+        },
+        renderBodyCell: (column, row) => {
+          const attrs = productData.find(
+            product => product.gridData.product === row.product
+          )?.attrs;
+          if (!attrs) {
+            return row[column.key as keyof typeof row];
+          }
+          const {
+            dataCategory,
+            hasAccess,
+            isPaygOnly,
+            free,
+            reserved,
+            isOpen,
+            isChildProduct,
+          } = attrs;
 
-              if (defined(isOpen) && !isOpen && isChildProduct) {
-                return null;
-              }
+          if (defined(isOpen) && !isOpen && isChildProduct) {
+            return null;
+          }
 
-              switch (column.key) {
-                case 'product': {
-                  const {hasToggle, onToggle, ariaLabel, productTrial} = attrs;
-                  const title = (
-                    <Flex gap="xs">
-                      <Container>
-                        {!hasAccess && <IconLock locked size="xs" />}
-                        <Text textWrap="pretty" bold>
-                          {' '}
-                          {row.product}
-                        </Text>
-                      </Container>
-                      {productTrial && <ProductTrialTag trial={productTrial} />}
-                    </Flex>
-                  );
+          switch (column.key) {
+            case 'product': {
+              const {hasToggle, onToggle, ariaLabel, productTrial} = attrs;
+              const title = (
+                <Text as="div" textWrap="balance">
+                  <Text bold>
+                    {!hasAccess && <IconLock locked size="xs" />} {row.product}{' '}
+                  </Text>{' '}
+                  {productTrial && <ProductTrialTag trial={productTrial} />}
+                </Text>
+              );
 
-                  if (hasToggle) {
-                    return (
-                      <Container>
-                        <StyledButton
-                          borderless
-                          icon={
-                            isOpen ? (
-                              <IconChevron direction="up" />
-                            ) : (
-                              <IconChevron direction="down" />
-                            )
-                          }
-                          aria-label={ariaLabel}
-                          onClick={() => onToggle?.()}
-                        >
-                          {title}
-                        </StyledButton>
-                      </Container>
-                    );
-                  }
-                  return (
-                    <Container paddingLeft={isChildProduct ? '2xl' : undefined}>
+              if (hasToggle) {
+                return (
+                  <Container>
+                    <StyledButton
+                      borderless
+                      icon={
+                        isOpen ? (
+                          <IconChevron direction="up" />
+                        ) : (
+                          <IconChevron direction="down" />
+                        )
+                      }
+                      aria-label={ariaLabel}
+                      onClick={() => onToggle?.()}
+                    >
                       {title}
-                    </Container>
-                  );
-                }
-                case 'currentUsage': {
-                  const formattedTotal = dataCategory
-                    ? formatUsageWithUnits(row.currentUsage, dataCategory, {
-                        useUnitScaling: true,
-                      })
-                    : displayPriceWithCents({cents: row.currentUsage});
-                  const formattedReserved = dataCategory
-                    ? formatReservedWithUnits(reserved ?? 0, dataCategory, {
-                        useUnitScaling: true,
-                      })
-                    : displayPriceWithCents({cents: reserved ?? 0});
-                  const formattedFree = dataCategory
-                    ? formatReservedWithUnits(free ?? 0, dataCategory, {
-                        useUnitScaling: true,
-                      })
-                    : displayPriceWithCents({cents: free ?? 0});
-                  const formattedReservedTotal = dataCategory
-                    ? formatReservedWithUnits(
-                        (reserved ?? 0) + (free ?? 0),
-                        dataCategory,
-                        {
-                          useUnitScaling: true,
-                        }
-                      )
-                    : displayPriceWithCents({cents: (reserved ?? 0) + (free ?? 0)});
-                  const formattedCurrentUsage = isPaygOnly
-                    ? formattedTotal
-                    : `${formattedTotal} / ${formattedReservedTotal}`;
-                  return (
-                    <Text as="div" textWrap="balance">
-                      {formattedCurrentUsage}{' '}
-                      {!isPaygOnly && (
-                        <QuestionTooltip
-                          size="xs"
-                          position="top"
-                          title={tct('[formattedReserved] reserved[freeString]', {
-                            formattedReserved,
-                            freeString: formattedFree
-                              ? tct('[formattedFree] gifted', {formattedFree})
-                              : '',
-                          })}
-                        />
-                      )}
-                    </Text>
-                  );
-                }
-                case 'reservedUsage': {
-                  if (isPaygOnly) {
-                    return (
-                      <Container alignSelf="start" justifySelf="center">
-                        <Tag>
-                          {tct('[budgetTerm] only', {
-                            budgetTerm: displayBudgetName(subscription.planDetails, {
-                              title: true,
-                            }),
-                          })}
-                        </Tag>
-                      </Container>
-                    );
-                  }
-                  const percentUsed = row.reservedUsage;
-                  if (defined(percentUsed)) {
-                    return (
-                      <Flex gap="sm" align="center">
-                        <ReservedUsageBar percentUsed={percentUsed / 100} />
-                        <Text>{percentUsed.toFixed(0) + '%'}</Text>
-                      </Flex>
-                    );
-                  }
-                  return <div />;
-                  break;
-                }
-                case 'reservedSpend':
-                case 'budgetSpend': {
-                  const spend = row[column.key as keyof typeof row];
-                  const formattedSpend = spend
-                    ? displayPriceWithCents({cents: spend as number})
-                    : '-';
-                  return <CurrencyCell>{formattedSpend}</CurrencyCell>;
-                }
-                case 'cta': {
-                  const productTrial = attrs.productTrial;
-                  if (productTrial && !productTrial.isStarted) {
-                    return (
-                      <Flex justify="center">
-                        <StartTrialButton
-                          organization={organization}
-                          source="usage-overview"
-                          requestData={{
-                            productTrial: {
-                              category: productTrial.category,
-                              reasonCode: productTrial.reasonCode,
-                            },
-                          }}
-                          aria-label={t('Start 14 day free %s trial', row.product)}
-                          priority="primary"
-                          handleClick={() => {
-                            setTrialButtonBusyState(prev => ({
-                              ...prev,
-                              [productTrial.category]: true,
-                            }));
-                          }}
-                          onTrialStarted={() => {
-                            setTrialButtonBusyState(prev => ({
-                              ...prev,
-                              [productTrial.category]: true,
-                            }));
-                          }}
-                          onTrialFailed={() => {
-                            setTrialButtonBusyState(prev => ({
-                              ...prev,
-                              [productTrial.category]: false,
-                            }));
-                          }}
-                          busy={trialButtonBusyState[productTrial.category]}
-                          disabled={trialButtonBusyState[productTrial.category]}
-                          size="xs"
-                        >
-                          <Flex align="center" gap="sm">
-                            <IconLightning size="xs" />
-                            <Container>
-                              {/* {isScreenSmall ? t('Start trial') :  */}
-                              {t('Start 14 day free trial')}
-                              {/* } */}
-                            </Container>
-                          </Flex>
-                        </StartTrialButton>
-                      </Flex>
-                    );
-                  }
-                  return <div />;
-                  break;
-                }
-                default:
-                  return row[column.key as keyof typeof row];
+                    </StyledButton>
+                  </Container>
+                );
               }
-            },
-          }}
-        />
-      </Container>
-    </Fragment>
+              return (
+                <Container paddingLeft={isChildProduct ? '2xl' : undefined}>
+                  {title}
+                </Container>
+              );
+            }
+            case 'currentUsage': {
+              const formattedTotal = dataCategory
+                ? formatUsageWithUnits(row.currentUsage, dataCategory, {
+                    useUnitScaling: true,
+                  })
+                : displayPriceWithCents({cents: row.currentUsage});
+              const formattedReserved = dataCategory
+                ? formatReservedWithUnits(reserved ?? 0, dataCategory, {
+                    useUnitScaling: true,
+                  })
+                : displayPriceWithCents({cents: reserved ?? 0});
+              const formattedFree = dataCategory
+                ? formatReservedWithUnits(free ?? 0, dataCategory, {
+                    useUnitScaling: true,
+                  })
+                : displayPriceWithCents({cents: free ?? 0});
+              const formattedReservedTotal = dataCategory
+                ? formatReservedWithUnits((reserved ?? 0) + (free ?? 0), dataCategory, {
+                    useUnitScaling: true,
+                  })
+                : displayPriceWithCents({cents: (reserved ?? 0) + (free ?? 0)});
+              const formattedCurrentUsage = isPaygOnly
+                ? formattedTotal
+                : `${formattedTotal} / ${formattedReservedTotal}`;
+              return (
+                <Text as="div" textWrap="balance">
+                  {formattedCurrentUsage}{' '}
+                  {!isPaygOnly && (
+                    <QuestionTooltip
+                      size="xs"
+                      position="top"
+                      title={tct('[formattedReserved] reserved[freeString]', {
+                        formattedReserved,
+                        freeString: formattedFree
+                          ? tct('[formattedFree] gifted', {formattedFree})
+                          : '',
+                      })}
+                    />
+                  )}
+                </Text>
+              );
+            }
+            case 'reservedUsage': {
+              if (isPaygOnly) {
+                return (
+                  <Container alignSelf="start" justifySelf="center">
+                    <Tag>
+                      {tct('[budgetTerm] only', {
+                        budgetTerm: displayBudgetName(subscription.planDetails, {
+                          title: true,
+                        }),
+                      })}
+                    </Tag>
+                  </Container>
+                );
+              }
+              const percentUsed = row.reservedUsage;
+              if (defined(percentUsed)) {
+                return (
+                  <Flex gap="sm" align="center">
+                    <ReservedUsageBar percentUsed={percentUsed / 100} />
+                    <Text>{percentUsed.toFixed(0) + '%'}</Text>
+                  </Flex>
+                );
+              }
+              return <div />;
+              break;
+            }
+            case 'reservedSpend':
+            case 'budgetSpend': {
+              const spend = row[column.key as keyof typeof row];
+              const formattedSpend = spend
+                ? displayPriceWithCents({cents: spend as number})
+                : '-';
+              return <CurrencyCell>{formattedSpend}</CurrencyCell>;
+            }
+            case 'cta': {
+              const productTrial = attrs.productTrial;
+              if (productTrial && !productTrial.isStarted) {
+                return (
+                  <Flex justify="center">
+                    <StartTrialButton
+                      organization={organization}
+                      source="usage-overview"
+                      requestData={{
+                        productTrial: {
+                          category: productTrial.category,
+                          reasonCode: productTrial.reasonCode,
+                        },
+                      }}
+                      aria-label={t('Start 14 day free %s trial', row.product)}
+                      priority="primary"
+                      handleClick={() => {
+                        setTrialButtonBusyState(prev => ({
+                          ...prev,
+                          [productTrial.category]: true,
+                        }));
+                      }}
+                      onTrialStarted={() => {
+                        setTrialButtonBusyState(prev => ({
+                          ...prev,
+                          [productTrial.category]: true,
+                        }));
+                      }}
+                      onTrialFailed={() => {
+                        setTrialButtonBusyState(prev => ({
+                          ...prev,
+                          [productTrial.category]: false,
+                        }));
+                      }}
+                      busy={trialButtonBusyState[productTrial.category]}
+                      disabled={trialButtonBusyState[productTrial.category]}
+                      size="xs"
+                    >
+                      <Flex align="center" gap="sm">
+                        <IconLightning size="xs" />
+                        <Container>
+                          {/* {isScreenSmall ? t('Start trial') :  */}
+                          {t('Start 14 day free trial')}
+                          {/* } */}
+                        </Container>
+                      </Flex>
+                    </StartTrialButton>
+                  </Flex>
+                );
+              }
+              return <div />;
+              break;
+            }
+            default:
+              return row[column.key as keyof typeof row];
+          }
+        },
+      }}
+    />
   );
 }
 
 function UsageOverview({subscription, organization}: UsageOverviewProps) {
+  const hasBillingPerms = organization.features.includes('billing');
+  const {isCollapsed: navIsCollapsed} = useNavContext();
   const {currentHistory, isPending, isError} = useCurrentBillingHistory();
   return (
-    <Container radius="md" border="primary" background="primary">
+    <Container
+      // TODO(isabella): move spacing to parent component
+      margin="xl 0"
+      radius="md"
+      border="primary"
+      background="primary"
+      // XXX: this is a very hacky way to ensure that if columns are resized, it doesn't
+      // make the page wider than the viewport
+      // padding = 64px; sidebar = 74px; secondary nav = 190px;
+      maxWidth={
+        navIsCollapsed ? 'calc(100vw - 64px - 74px)' : 'calc(100vw - 64px - 74px - 190px)'
+      }
+    >
       <Flex
         justify="between"
         align={{xs: 'start', sm: 'center'}}
@@ -571,28 +573,30 @@ function UsageOverview({subscription, organization}: UsageOverviewProps) {
         <Heading as="h3" size="lg">
           {t('Usage Overview')}
         </Heading>
-        <Flex gap="lg">
-          <LinkButton
-            icon={<IconGraph />}
-            aria-label={t('View usage history')}
-            priority="link"
-            to="/settings/billing/usage/"
-          >
-            {t('View usage history')}
-          </LinkButton>
-          <Button
-            icon={<IconDownload />}
-            aria-label={t('Download as CSV')}
-            disabled={isPending || isError}
-            onClick={() => {
-              if (currentHistory) {
-                window.open(currentHistory.links.csv, '_blank');
-              }
-            }}
-          >
-            {t('Download as CSV')}
-          </Button>
-        </Flex>
+        {hasBillingPerms && (
+          <Flex gap="lg">
+            <LinkButton
+              icon={<IconGraph />}
+              aria-label={t('View usage history')}
+              priority="link"
+              to="/settings/billing/usage/"
+            >
+              {t('View usage history')}
+            </LinkButton>
+            <Button
+              icon={<IconDownload />}
+              aria-label={t('Download as CSV')}
+              disabled={isPending || isError}
+              onClick={() => {
+                if (currentHistory) {
+                  window.open(currentHistory.links.csv, '_blank');
+                }
+              }}
+            >
+              {t('Download as CSV')}
+            </Button>
+          </Flex>
+        )}
       </Flex>
       <UsageOverviewTable subscription={subscription} organization={organization} />
     </Container>
