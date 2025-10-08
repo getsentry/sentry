@@ -87,9 +87,9 @@ CRASH_RATE_ALERT_MINIMUM_THRESHOLD: int | None = None
 T = TypeVar("T")
 
 
-class MetricAlertDetectorConfig(TypedDict):
+class MetricIssueDetectorConfig(TypedDict):
     """
-    Schema for Metric Alert Detector.config.
+    Schema for Metric Issue Detector.config.
     """
 
     comparison_delta: int | None
@@ -350,7 +350,7 @@ class SubscriptionProcessor:
         comparison_delta = None
 
         if detector:
-            detector_cfg: MetricAlertDetectorConfig = detector.config
+            detector_cfg: MetricIssueDetectorConfig = detector.config
             comparison_delta = detector_cfg.get("comparison_delta")
         else:
             # If we don't have a Detector, we must have an AlertRule.
@@ -481,7 +481,7 @@ class SubscriptionProcessor:
         aggregation_value: float,
         organization: Organization,
     ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
-        detector_cfg: MetricAlertDetectorConfig = detector.config
+        detector_cfg: MetricIssueDetectorConfig = detector.config
         if detector_cfg["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
             anomaly_detection_packet = AnomalyDetectionUpdate(
                 entity=subscription_update.get("entity", ""),
