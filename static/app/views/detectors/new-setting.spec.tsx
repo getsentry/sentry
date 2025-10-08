@@ -307,8 +307,8 @@ describe('DetectorEdit', () => {
       // Set initial trigger threshold
       await userEvent.type(screen.getByRole('spinbutton', {name: 'Threshold'}), '100');
 
-      // Enable manual resolution and set resolution threshold
-      await userEvent.click(screen.getByRole('radio', {name: 'Manual'}));
+      // Enable custom resolution and set resolution threshold
+      await userEvent.click(screen.getByText('Custom').closest('label')!);
       await userEvent.type(
         screen.getByRole('spinbutton', {name: 'Resolution threshold'}),
         '80'
