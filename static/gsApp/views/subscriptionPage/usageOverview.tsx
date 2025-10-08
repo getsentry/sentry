@@ -469,7 +469,6 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
                 );
               }
               return <div />;
-              break;
             }
             case 'reservedSpend':
             case 'budgetSpend': {
@@ -526,7 +525,6 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
                 );
               }
               return <div />;
-              break;
             }
             default:
               return row[column.key as keyof typeof row];
