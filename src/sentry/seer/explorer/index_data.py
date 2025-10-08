@@ -640,6 +640,6 @@ def rpc_get_issues_for_transaction(transaction_name: str, project_id: int) -> di
     return issues.dict() if issues else {}
 
 
-def rpc_get_trace_from_id(trace_id: str, project_id: int) -> dict[str, Any]:
-    trace = get_trace_from_id(trace_id, project_id)
+def rpc_get_trace_from_id(trace_id: str, organization_id: int) -> dict[str, Any]:
+    trace = get_trace_from_id(trace_id, organization_id)
     return {"trace": trace} if trace else {}

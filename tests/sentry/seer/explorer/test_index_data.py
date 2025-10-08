@@ -802,39 +802,36 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
         seen_span_ids = []
         root_span_ids = []
 
-        def check(e):
-            assert "event_id" in e
-            assert e["transaction"] == transaction_name
-            assert e["project_id"] == self.project.id
+        def check_span(s):
+            assert "event_id" in s
+            assert s["transaction"] == transaction_name
+            assert s["project_id"] == self.project.id
+            assert "op" in s
+            assert "description" in s
+            assert "parent_span_id" in s
+            assert "children" in s
 
-            # TODO: handle non-span events
-
-            # Is a span
-            assert "op" in e
-            assert "description" in e
-            assert "parent_span_id" in e
-            assert "children" in e
-
-            desc = e["description"]
+            desc = s["description"]
             assert isinstance(desc, str)
             if desc:
                 assert desc.startswith("span-")
 
-            # TODO: test connected errors/occurrences
+            seen_span_ids.append(s["event_id"])
 
-            seen_span_ids.append(e["event_id"])
-
-            if e["parent_span_id"] is None:
-                # Is root
-                assert e["is_transaction"]
-                root_span_ids.append(e["event_id"])
+            # Is root
+            if s["parent_span_id"] is None:
+                assert s["is_transaction"]
+                root_span_ids.append(s["event_id"])
 
             # Recurse
-            for child in e["children"]:
-                check(child)
+            for child in s["children"]:
+                check_span(child)
 
         for event in result:
-            check(event)
+            if "children" in event:
+                check_span(event)
+
+            # TODO: test connected errors/occurrences
 
         assert set(seen_span_ids) == {s["span_id"] for s in spans}
         assert len(root_span_ids) == 1
