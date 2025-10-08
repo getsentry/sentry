@@ -493,7 +493,12 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 },
                 path_replacer=KeepFieldPathReplacer(fields={"module", "package", "filename"}),
             ),
-            sdk_crash_ignore_matchers=set(),
+            sdk_crash_ignore_matchers={
+                FunctionAndModulePattern(
+                    module_pattern="Sentry.Samples.**",
+                    function_pattern="*",
+                ),
+            },
         )
         configs.append(dotnet_config)
 
