@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def get_grouping_info(
     grouping_config: StrategyConfiguration, project: Project, event: Event | GroupEvent
-) -> dict[str, dict[str, Any]]:
+) -> dict[str, str | dict[str, Any]]:
     # We always fetch the stored hashes here. The reason for this is
     # that we want to show in the UI if the forced grouping algorithm
     # produced hashes that would normally also appear in the event.
@@ -20,13 +20,18 @@ def get_grouping_info(
 
     variants = event.get_grouping_variants(grouping_config, normalize_stacktraces=True)
 
-    grouping_info = get_grouping_info_from_variants(variants, use_legacy_format=False)
+    grouping_variants = get_grouping_info_from_variants(variants, use_legacy_format=False)
 
     # One place we use this info is in the grouping info section of the event details page, and for
     # that we recalculate hashes/variants on the fly since we don't store the variants as part of
     # event data. If the grouping config has been changed since the event was ingested, we may get
     # different hashes here than the ones stored on the event.
-    _check_for_mismatched_hashes(event, project, grouping_info, hashes)
+    _check_for_mismatched_hashes(event, project, grouping_variants, hashes)
+
+    grouping_info = {
+        "grouping_config": grouping_config.as_dict(),
+        "variants": grouping_variants,
+    }
 
     return grouping_info
 
