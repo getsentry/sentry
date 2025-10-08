@@ -361,13 +361,24 @@ export function convertEventsStatsToTimeSeriesData(
   return [delayedTimeSeries.meta.order ?? 0, delayedTimeSeries];
 }
 
+const NUMERIC_KEYS: Array<symbol | string | number> = [
+  'value',
+  'sampleCount',
+  'sampleRate',
+];
+
 function comparator(
   valueA: unknown,
   valueB: unknown,
   key: symbol | string | number | undefined
 ) {
   // Compare numbers by near equality, which makes the comparison less sensitive to small natural variations in value caused by request sequencing
-  if (key === 'value' && typeof valueA === 'number' && typeof valueB === 'number') {
+  if (
+    key &&
+    NUMERIC_KEYS.includes(key) &&
+    typeof valueA === 'number' &&
+    typeof valueB === 'number'
+  ) {
     return areNumbersAlmostEqual(valueA, valueB, 5);
   }
 
