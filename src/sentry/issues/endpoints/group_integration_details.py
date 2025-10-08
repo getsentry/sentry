@@ -72,58 +72,11 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.UNKNOWN,
     }
-
-    def _has_issue_feature(self, organization, user) -> bool:
-        has_issue_basic = features.has(
-            "organizations:integrations-issue-basic", organization, actor=user
-        )
-
-        has_issue_sync = features.has(
-            "organizations:integrations-issue-sync", organization, actor=user
-        )
-
-        return has_issue_sync or has_issue_basic
-
-    def _has_issue_feature_on_integration(self, integration: RpcIntegration) -> bool:
-        return integration.has_feature(
-            feature=IntegrationFeatures.ISSUE_BASIC
-        ) or integration.has_feature(feature=IntegrationFeatures.ISSUE_SYNC)
-
-    def _get_installation(
-        self, integration: RpcIntegration, organization_id: int
-    ) -> IssueBasicIntegration:
-        installation = integration.get_installation(organization_id=organization_id)
-        if not isinstance(installation, IssueBasicIntegration):
-            raise ValueError(installation)
-        return installation
-
-    def create_issue_activity(
-        self,
-        request: Request,
-        group: Group,
-        installation: IssueBasicIntegration,
-        external_issue: ExternalIssue,
-        new: bool,
-    ):
-        issue_information = {
-            "title": external_issue.title,
-            "provider": installation.model.get_provider().name,
-            "location": installation.get_issue_url(external_issue.key),
-            "label": installation.get_issue_display_name(external_issue) or external_issue.key,
-            "new": new,
-        }
-        Activity.objects.create(
-            project=group.project,
-            group=group,
-            type=ActivityType.CREATE_ISSUE.value,
-            user_id=request.user.id,
-            data=issue_information,
-        )
 
     def get(self, request: Request, group, integration_id) -> Response:
         if not request.user.is_authenticated:
@@ -408,3 +361,50 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 external_issue.delete()
 
         return Response(status=204)
+
+    def _has_issue_feature(self, organization, user) -> bool:
+        has_issue_basic = features.has(
+            "organizations:integrations-issue-basic", organization, actor=user
+        )
+
+        has_issue_sync = features.has(
+            "organizations:integrations-issue-sync", organization, actor=user
+        )
+
+        return has_issue_sync or has_issue_basic
+
+    def _has_issue_feature_on_integration(self, integration: RpcIntegration) -> bool:
+        return integration.has_feature(
+            feature=IntegrationFeatures.ISSUE_BASIC
+        ) or integration.has_feature(feature=IntegrationFeatures.ISSUE_SYNC)
+
+    def _get_installation(
+        self, integration: RpcIntegration, organization_id: int
+    ) -> IssueBasicIntegration:
+        installation = integration.get_installation(organization_id=organization_id)
+        if not isinstance(installation, IssueBasicIntegration):
+            raise ValueError(installation)
+        return installation
+
+    def create_issue_activity(
+        self,
+        request: Request,
+        group: Group,
+        installation: IssueBasicIntegration,
+        external_issue: ExternalIssue,
+        new: bool,
+    ):
+        issue_information = {
+            "title": external_issue.title,
+            "provider": installation.model.get_provider().name,
+            "location": installation.get_issue_url(external_issue.key),
+            "label": installation.get_issue_display_name(external_issue) or external_issue.key,
+            "new": new,
+        }
+        Activity.objects.create(
+            project=group.project,
+            group=group,
+            type=ActivityType.CREATE_ISSUE.value,
+            user_id=request.user.id,
+            data=issue_information,
+        )
