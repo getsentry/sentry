@@ -436,7 +436,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         proxy_response = self.client.get(self.path, **headers)
 
         assert proxy_response.status_code == 400
-        assert proxy_response.data is None
+        assert proxy_response.data == {"detail": ""}
 
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
@@ -478,7 +478,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         proxy_response = self.client.get(self.path, **headers)
 
         assert proxy_response.status_code == 503
-        assert proxy_response.data is None
+        assert proxy_response.data == {"detail": "API request failed"}
 
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
@@ -521,7 +521,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         proxy_response = self.client.get(self.path, **headers)
 
         assert proxy_response.status_code == 504
-        assert proxy_response.data is None
+        assert proxy_response.data == {"detail": "API request timed out"}
 
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
