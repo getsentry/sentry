@@ -3203,6 +3203,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Controls whether uptime monitoring automatically creates subscriptions for detected URLs.
+register(
+    "uptime.automatic-subscription-creation",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Configures the list of public IP addresses that are returned from the
 # `uptime-ips` API. This does NOT control what actual IPs are used to make the
 # check, we simply have this as an option so that we can quickly update this
