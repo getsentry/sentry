@@ -1,4 +1,4 @@
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {tct} from 'sentry/locale';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
@@ -51,9 +51,9 @@ export function GHAWorkflowExpandable() {
         </div>
       }
     >
-      <CodeSnippet dark language="yaml" linesToHighlight={[8, 9, 10, 29, 30, 31, 32]}>
+      <CodeBlock dark language="yaml" linesToHighlight={[8, 9, 10, 29, 30, 31, 32]}>
         {GHA_WORKFLOW_SNIPPET}
-      </CodeSnippet>
+      </CodeBlock>
     </OnboardingStep.ExpandableDropdown>
   );
 }

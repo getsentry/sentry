@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import testAnalyticsRepoSecretDark from 'sentry-images/features/test-analytics-repo-secret-dark.png';
 import testAnalyticsRepoSecretLight from 'sentry-images/features/test-analytics-repo-secret-light.png';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
@@ -113,6 +113,6 @@ export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
   );
 }
 
-const RightPaddedCodeSnippet = styled(CodeSnippet)`
+const RightPaddedCodeSnippet = styled(CodeBlock)`
   padding-right: ${p => p.theme.space['2xl']};
 `;

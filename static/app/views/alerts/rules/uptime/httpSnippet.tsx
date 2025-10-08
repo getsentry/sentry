@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {generateSentryTraceHeader} from '@sentry/core';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {t} from 'sentry/locale';
 import {safeURL} from 'sentry/utils/url/safeURL';
 
@@ -57,7 +57,7 @@ export function HTTPSnippet({body, headers, method, url, traceSampling}: Props) 
   );
 }
 
-const MaxSizedSnippet = styled(CodeSnippet)`
+const MaxSizedSnippet = styled(CodeBlock)`
   pre {
     overflow-y: auto;
     max-height: 400px;

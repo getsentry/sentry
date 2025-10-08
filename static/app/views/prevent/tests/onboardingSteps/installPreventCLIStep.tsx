@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import {Text} from 'sentry/components/core/text';
@@ -73,9 +73,9 @@ export function InstallPreventCLIStep({step}: InstallPreventCLIStepProps) {
                   'If you have Python installed already, you can run the script below to install the Sentry Prevent CLI.'
                 )}
               </Text>
-              <CodeSnippet dark language="bash">
+              <CodeBlock dark language="bash">
                 {PIP_SNIPPET}
-              </CodeSnippet>
+              </CodeBlock>
               {CLILink}
             </Fragment>
           )}
@@ -94,9 +94,9 @@ export function InstallPreventCLIStep({step}: InstallPreventCLIStepProps) {
                   setSelectedPlatform(option.value)
                 }
               />
-              <CodeSnippet dark language="bash">
+              <CodeBlock dark language="bash">
                 {getBinarySnippet(selectedPlatform)}
-              </CodeSnippet>
+              </CodeBlock>
               {CLILink}
             </Fragment>
           )}

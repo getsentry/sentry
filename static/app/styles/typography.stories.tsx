@@ -7,7 +7,7 @@ import LetterSpacingGraphic from 'sentry-images/stories/typography/letter-spacin
 import LineHeightGraphic from 'sentry-images/stories/typography/line-height.svg';
 import WeightGraphic from 'sentry-images/stories/typography/weight.svg';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import Panel from 'sentry/components/panels/panel';
@@ -326,9 +326,9 @@ export default function TypographyStories() {
         </li>
       </ul>
       <Block>
-        <CodeSnippet filename="Styled Components" language="typescript">
+        <CodeBlock filename="Styled Components" language="typescript">
           {InlineLinkExampleStyles}
-        </CodeSnippet>
+        </CodeBlock>
       </Block>
       <h5>Standalone</h5>
       <Block>
@@ -360,9 +360,9 @@ export default function TypographyStories() {
         </li>
       </ul>
       <Block>
-        <CodeSnippet filename="Styled Components" language="typescript">
+        <CodeBlock filename="Styled Components" language="typescript">
           {StandaloneLinkExampleStyles}
-        </CodeSnippet>
+        </CodeBlock>
       </Block>
       <hr />
       <h4>Lists</h4>
@@ -387,9 +387,9 @@ export default function TypographyStories() {
         </ul>
       </ExamplePanel>
       <Block>
-        <CodeSnippet filename="CSS" language="css">
+        <CodeBlock filename="CSS" language="css">
           {UnorderedListExampleStyles}
-        </CodeSnippet>
+        </CodeBlock>
       </Block>
       <Block>
         <Flex gap="md" align="start">
@@ -425,9 +425,9 @@ export default function TypographyStories() {
         </ol>
       </ExamplePanel>
       <Block>
-        <CodeSnippet filename="CSS" language="css">
+        <CodeBlock filename="CSS" language="css">
           {OrderedListExampleStyles}
-        </CodeSnippet>
+        </CodeBlock>
       </Block>
       <Block>
         <Flex gap="md" align="start">
@@ -462,9 +462,9 @@ export default function TypographyStories() {
         <TabularNum>1.11111</TabularNum>
       </PanelTable>
       <Block>
-        <CodeSnippet filename="CSS" language="css">
+        <CodeBlock filename="CSS" language="css">
           {TabularNumsExampleStyles}
-        </CodeSnippet>
+        </CodeBlock>
       </Block>
       <h5>Ligatures</h5>
       <Block>
@@ -492,9 +492,9 @@ export default function TypographyStories() {
         </Flex>
       </Block>
       <Block>
-        <CodeSnippet filename="CSS" language="css">
+        <CodeBlock filename="CSS" language="css">
           {FontLigatureExampleStyles}
-        </CodeSnippet>
+        </CodeBlock>
       </Block>
       <h5>Fractions</h5>
       <SideBySideList>
@@ -523,9 +523,9 @@ export default function TypographyStories() {
         </Flex>
       </Block>
       <Block>
-        <CodeSnippet filename="CSS" language="css">
+        <CodeBlock filename="CSS" language="css">
           {FontFractionExampleStyles}
-        </CodeSnippet>
+        </CodeBlock>
       </Block>
     </FixedWidth>
   );

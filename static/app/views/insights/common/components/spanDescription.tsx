@@ -2,7 +2,7 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
@@ -137,9 +137,9 @@ export function DatabaseSpanDescription({
         </WithPadding>
       ) : (
         <QueryClippedBox clipHeight={500} isExpanded={isExpanded}>
-          <CodeSnippet language={system === 'mongodb' ? 'json' : 'sql'} isRounded={false}>
+          <CodeBlock language={system === 'mongodb' ? 'json' : 'sql'} isRounded={false}>
             {formattedDescription ?? ''}
-          </CodeSnippet>
+          </CodeBlock>
         </QueryClippedBox>
       )}
 

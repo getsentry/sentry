@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import compassImage from 'sentry-images/spot/onboarding-compass.svg';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Input} from 'sentry/components/core/input';
 import {Flex} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -90,7 +90,7 @@ export default Storybook.story('Tours', story => {
         <li>Create a usage hook to refine types.</li>
         <li>Add a tour key to save the viewed/dismissed status.</li>
       </ol>
-      <CodeSnippet language="tsx">
+      <CodeBlock language="tsx">
         {`import {createContext, useContext} from 'react';
 
 import {TourElement, type TourElementProps} from 'sentry/components/tours/components';
@@ -123,7 +123,7 @@ function useMyTour(): TourContextType<MyTour> {
 export const MY_TOUR_KEY = 'tour.my_tour';
 
 `}
-      </CodeSnippet>
+      </CodeBlock>
     </Fragment>
   ));
 
@@ -134,7 +134,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
         <Storybook.JSXNode name="TourContextProvider" /> and pass in the context, and
         ordered steps you created earlier.
       </p>
-      <CodeSnippet language="tsx">
+      <CodeBlock language="tsx">
         {`<TourContextProvider<MyTour>
   orderedStepIds={ORDERED_MY_TOUR}
   tourContext={MyTourContext}
@@ -142,13 +142,13 @@ export const MY_TOUR_KEY = 'tour.my_tour';
 >
   {/* All focused elements in the tour should be within this provider */}
 </TourContextProvider>`}
-      </CodeSnippet>
+      </CodeBlock>
 
       <p>
         Now, you can use the <Storybook.JSXNode name="TourElement" /> component to wrap
         the component you wish to highlight.
       </p>
-      <CodeSnippet language="tsx">
+      <CodeBlock language="tsx">
         {`// Before...
 <Input placeholder="Name" />
 
@@ -162,7 +162,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
   <Input placeholder="Name" />
 </TourElement>
 `}
-      </CodeSnippet>
+      </CodeBlock>
 
       <p>
         Then, whenever you'd like to start your tour, just import your context and call
@@ -176,7 +176,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
         <code>isRegistered</code> property of the context.
       </Alert>
       <br />
-      <CodeSnippet language="tsx">
+      <CodeBlock language="tsx">
         {`function StartMyTourButton() {
   const {startTour, isRegistered} = useMyTour();
   return (
@@ -188,7 +188,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
     </Button>
   );
 }`}
-      </CodeSnippet>
+      </CodeBlock>
       <br />
       <TourProvider>
         <TourElement<MyTour>

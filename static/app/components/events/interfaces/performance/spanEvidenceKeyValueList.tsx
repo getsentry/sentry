@@ -7,8 +7,8 @@ import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
 import ClippedBox from 'sentry/components/clippedBox';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
@@ -620,7 +620,7 @@ function getSpanEvidenceValue(span: Span | null) {
   return `${span.op} - ${span.description}`;
 }
 
-const StyledCodeSnippet = styled(CodeSnippet)`
+const StyledCodeSnippet = styled(CodeBlock)`
   pre {
     /* overflow is set to visible in global styles so need to enforce auto here */
     overflow: auto !important;

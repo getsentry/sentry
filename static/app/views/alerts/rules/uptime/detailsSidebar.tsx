@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Grid} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -33,7 +33,7 @@ export function UptimeDetailsSidebar({
     <Fragment>
       <MonitorUrlContainer>
         <SectionHeading>{t('Checked URL')}</SectionHeading>
-        <CodeSnippet hideCopyButton>{`${uptimeSub.method} ${uptimeSub.url}`}</CodeSnippet>
+        <CodeBlock hideCopyButton>{`${uptimeSub.method} ${uptimeSub.url}`}</CodeBlock>
       </MonitorUrlContainer>
       <Grid
         columns={summary && summary.avgDurationUs !== null ? '2fr 1fr 1fr' : '1fr 1fr'}

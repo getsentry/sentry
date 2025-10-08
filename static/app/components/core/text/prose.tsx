@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {inlineCodeStyles} from 'sentry/components/core/inlineCode';
+import {inlineCodeStyles} from 'sentry/components/core/code/inlineCode';
 
 type ProsePropsWithChildren<T extends keyof HTMLElementTagNameMap = 'div'> = {
   as?: T;

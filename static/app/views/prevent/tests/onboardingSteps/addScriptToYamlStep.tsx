@@ -1,4 +1,4 @@
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
 import {GHAWorkflowExpandable} from 'sentry/views/prevent/tests/onboardingSteps/GHAWorkflowExpandable';
@@ -33,9 +33,9 @@ export function AddScriptToYamlStep({step}: AddScriptToYamlStepProps) {
           <Text>
             {t('In your CI YAML file, add below scripts to the end of your test run.')}
           </Text>
-          <CodeSnippet dark language="yaml">
+          <CodeBlock dark language="yaml">
             {SNIPPET}
-          </CodeSnippet>
+          </CodeBlock>
           <Text>
             {t(
               'This action will download the Sentry Prevent CLI, and upload the junit.xml file generated in the previous step to Sentry.'

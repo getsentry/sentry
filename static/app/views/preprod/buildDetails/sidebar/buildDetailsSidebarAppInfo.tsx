@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -228,6 +228,6 @@ const InstallableLink = styled('button')`
   }
 `;
 
-const InlineCodeSnippet = styled(CodeSnippet)`
+const InlineCodeSnippet = styled(CodeBlock)`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
 `;

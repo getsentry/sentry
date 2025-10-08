@@ -1,0 +1,355 @@
+---
+title: CodeBlock
+description: CodeBlock displays multi-line code snippets with syntax highlighting, copy functionality, and support for tabs, filenames, and line highlighting.
+source: 'sentry/components/core/code'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/code/codeBlock.tsx
+  a11y:
+    WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
+    WCAG 1.4.8: https://www.w3.org/TR/WCAG22/#visual-presentation
+---
+
+import {Fragment, useState} from 'react';
+
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {CodeBlock} from 'sentry/components/core/code';
+import {IconStar} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
+
+import types from '!!type-loader!sentry/components/core/code/codeBlock';
+
+export {types};
+
+export const sampleJavaScript = `Sentry.init({
+  // Note, Replay is NOT instantiated below:
+  integrations: [],
+});
+
+// Sometime later
+const { replayIntegration } = await import("@sentry/browser");
+Sentry.addIntegration(replayIntegration());`;
+
+export const samplePython = `sentry_sdk.metrics.incr(
+	key="button_click",
+	value=1,
+	tags={
+		"browser": "Firefox",
+		"app_version": "1.0.0"
+	}
+)`;
+
+The `<CodeBlock>` component is useful when you want to render code instructions in onboarding or other setup situations. By default, code blocks can be copied, selected, have rounded corners, and display in light mode. They also apply syntax highlighting automatically if the language is specified.
+
+```jsx
+<CodeBlock language="javascript">{sampleJavaScript}</CodeBlock>
+```
+
+## Basic Usage
+
+Use `<CodeBlock>` to display multi-line code snippets with syntax highlighting.
+
+<Storybook.Demo>
+  <p>JavaScript example:</p>
+  <CodeBlock language="javascript">{sampleJavaScript}</CodeBlock>
+
+  <p>Python example:</p>
+  <CodeBlock language="python">{samplePython}</CodeBlock>
+</Storybook.Demo>
+```jsx
+<CodeBlock language="javascript">{sampleJavaScript}</CodeBlock>
+
+<CodeBlock language="python">{samplePython}</CodeBlock>
+```
+
+## Dark Mode
+
+Use the `dark` prop to display the code block with a dark theme.
+
+<Storybook.Demo>
+  <CodeBlock dark language="javascript">
+    {sampleJavaScript}
+  </CodeBlock>
+</Storybook.Demo>
+```jsx
+<CodeBlock dark language="javascript">
+  {sampleJavaScript}
+</CodeBlock>
+```
+
+## With Filename
+
+Display a filename at the top of the code block using the `filename` prop.
+
+<Storybook.Demo>
+  <CodeBlock filename="index.tsx" language="javascript">
+    {`const myVariable = 'testing';`}
+  </CodeBlock>
+</Storybook.Demo>
+```jsx
+<CodeBlock filename="index.tsx" language="javascript">
+  {`const myVariable = 'testing';`}
+</CodeBlock>
+```
+
+### Dark Filename
+
+<Storybook.Demo>
+  <CodeBlock dark filename="index.tsx" language="javascript">
+    {`const myVariable = 'testing';`}
+  </CodeBlock>
+</Storybook.Demo>
+```jsx
+<CodeBlock dark filename="index.tsx" language="javascript">
+  {`const myVariable = 'testing';`}
+</CodeBlock>
+```
+
+## With Tabs
+
+Use the `tabs`, `selectedTab`, and `onTabClick` props to create tabbed code blocks for showing different installation methods or configurations.
+
+export function TabExample() {
+  const [tab, setTab] = useState('npm');
+  return (
+    <CodeBlock
+      tabs={[
+        {label: 'npm', value: 'npm'},
+        {label: 'Yarn', value: 'yarn'},
+      ]}
+      selectedTab={tab}
+      onTabClick={t => setTab(t)}
+      language="bash"
+    >
+      {tab === 'npm' ? `npm install --save @sentry/browser` : 'yarn add @sentry/browser'}
+    </CodeBlock>
+  );
+}
+
+<Storybook.Demo>
+  <TabExample />
+</Storybook.Demo>
+```jsx const [tab, setTab] = useState('npm');
+
+<CodeBlock
+  tabs={[
+    {label: 'npm', value: 'npm'},
+    {label: 'Yarn', value: 'yarn'},
+  ]}
+  selectedTab={tab}
+  onTabClick={t => setTab(t)}
+  language="bash"
+>
+  {tab === 'npm' ? `npm install --save @sentry/browser` : 'yarn add @sentry/browser'}
+</CodeBlock>
+```
+
+## Without Rounded Corners
+
+Set `isRounded={false}` to remove rounded corners.
+
+<Storybook.Demo>
+  <CodeBlock isRounded={false} dark language="javascript">
+    {sampleJavaScript}
+  </CodeBlock>
+</Storybook.Demo>
+```jsx
+<CodeBlock isRounded={false} dark language="javascript">
+  {sampleJavaScript}
+</CodeBlock>
+```
+
+## Hide Copy Button
+
+Use `hideCopyButton` to hide the copy button in the top right.
+
+<Storybook.Demo>
+  <CodeBlock hideCopyButton language="javascript">
+    {sampleJavaScript}
+  </CodeBlock>
+</Storybook.Demo>
+```jsx
+<CodeBlock hideCopyButton language="javascript">
+  {sampleJavaScript}
+</CodeBlock>
+```
+
+## Disable User Selection
+
+Use `disableUserSelection` to prevent users from manually selecting and copying text. Useful when loading parts of a code snippet.
+
+<Storybook.Demo>
+  <CodeBlock disableUserSelection language="javascript">
+    {sampleJavaScript}
+  </CodeBlock>
+</Storybook.Demo>
+```jsx
+<CodeBlock disableUserSelection language="javascript">
+  {sampleJavaScript}
+</CodeBlock>
+```
+
+## With Icon
+
+Add a custom icon next to the copy button using the `icon` prop.
+
+<Storybook.Demo>
+  <CodeBlock icon={<IconStar />} language="javascript">
+    {sampleJavaScript}
+  </CodeBlock>
+  <br />
+  <CodeBlock icon={<IconStar />} filename="yourModule.tsx" language="javascript">
+    {sampleJavaScript}
+  </CodeBlock>
+</Storybook.Demo>
+```jsx
+<CodeBlock icon={<IconStar />} language="javascript">
+  {sampleJavaScript}
+</CodeBlock>
+
+<CodeBlock icon={<IconStar />} filename="yourModule.tsx" language="javascript">
+  {sampleJavaScript}
+</CodeBlock>
+```
+
+## Line Highlighting
+
+Use `linesToHighlight` to visually highlight specific line numbers.
+
+<Storybook.Demo>
+  <CodeBlock linesToHighlight={[1, 3, 4]} disableUserSelection language="javascript">
+    {sampleJavaScript}
+  </CodeBlock>
+</Storybook.Demo>
+```jsx
+<CodeBlock linesToHighlight={[1, 3, 4]} disableUserSelection language="javascript">
+  {sampleJavaScript}
+</CodeBlock>
+```
+
+## Callbacks
+
+Customize behavior with callback props.
+
+### onCopy Callback
+
+Fires when the user clicks the copy button.
+
+export function OnCopyExample() {
+  const onCopy = () => {
+    addSuccessMessage('Copied!');
+  };
+  return (
+    <CodeBlock onCopy={onCopy} language="javascript">
+      {sampleJavaScript}
+    </CodeBlock>
+  );
+}
+
+<Storybook.Demo>
+  <p>Try pressing the copy button:</p>
+  <OnCopyExample />
+</Storybook.Demo>
+
+```jsx
+// track analytics, show toast, etc
+const onCopy = () => addSuccessMessage('Copied!');
+
+<CodeBlock onCopy={onCopy} language="javascript">
+  {sampleJavaScript}
+</CodeBlock>;
+```
+
+### onSelectAndCopy Callback
+
+Fires when the user manually selects and copies code.
+
+export function OnSelectAndCopyExample() {
+  const onSelectAndCopy = () => {
+    addSuccessMessage(
+      'Copied...but you know you can just press the copy button to copy it all, right?'
+    );
+  };
+  return (
+    <CodeBlock onSelectAndCopy={onSelectAndCopy} language="javascript">
+      {sampleJavaScript}
+    </CodeBlock>
+  );
+}
+
+<Storybook.Demo>
+  <p>Try manually selecting and copying code:</p>
+  <OnSelectAndCopyExample />
+</Storybook.Demo>
+
+```jsx
+const onSelectAndCopy = () => addSuccessMessage('Copied...but you know you can just
+press the copy button?');
+
+<CodeBlock onSelectAndCopy={onSelectAndCopy} language="javascript">
+  {sampleJavaScript}
+</CodeBlock>
+```
+
+### onTabClick Callback
+
+Fires when the user switches tabs.
+
+export function OnTabClickExample() {
+  const [tab, setTab] = useState('npm');
+  function handleTabClick(t) {
+      setTab(t);
+      addSuccessMessage('Clicked a different tab');
+  };
+
+return (
+
+<CodeBlock
+tabs={[
+{label: 'npm', value: 'npm'},
+{label: 'Yarn', value: 'yarn'},
+]}
+selectedTab={tab}
+onTabClick={handleTabClick}
+language="bash" >
+{tab === 'npm' ? `npm install --save @sentry/browser` : 'yarn add @sentry/browser'}
+
+</CodeBlock>
+);
+}
+
+<Storybook.Demo>
+  <p>Try switching tabs:</p>
+  <OnTabClickExample />
+</Storybook.Demo>
+
+```jsx
+const [tab, setTab] = useState('npm');
+const onTabClick = () => addSuccessMessage('Clicked a different tab');
+
+<CodeBlock
+  tabs={[
+    {label: 'npm', value: 'npm'},
+    {label: 'Yarn', value: 'yarn'},
+  ]}
+  selectedTab={tab}
+  onTabClick={t => {
+    setTab(t);
+    onTabClick();
+  }}
+  language="bash"
+>
+  {tab === 'npm' ? `npm install --save @sentry/browser` : 'yarn add @sentry/browser'}
+</CodeBlock>;
+```
+
+## Related Components
+
+For different code display needs, consider these alternatives:
+
+- [**`<InlineCode>`**](/stories/core/inline-code): Use for short code snippets within text content
+- [**`<Prose>`**](/stories/typography/prose): Use for long-form content that may contain code elements
+- [**`<Text monospace>`**](/stories/typography/text#monospace): Use for monospace text that isn't necessarily code
+
+## Accessibility
+
+`<CodeBlock>` uses semantic HTML with proper `<pre>` and `<code>` elements for screen readers. The copy button includes proper ARIA labels and keyboard navigation support. The component maintains sufficient color contrast in both light and dark modes to meet WCAG 2.2 AA requirements.

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -44,9 +44,9 @@ export function OtherPlatformsInfo({
         "We cannot provide instructions for '%s' projects. However, please find below the DSN key for this project, which is required to instrument Sentry.",
         platform
       )}
-      <CodeSnippet dark language="properties">
+      <CodeBlock dark language="properties">
         {t('dsn: %s', data[0]!.dsn.public)}
-      </CodeSnippet>
+      </CodeBlock>
       <Suggestion>
         {t(
           'Since it can be a lot of work creating a Sentry SDK from scratch, we suggest you review the following SDKs which are applicable for a wide variety of applications:'

@@ -2,12 +2,12 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
 import beautify from 'js-beautify';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {AuthTokenGenerator} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {PACKAGE_LOADING_PLACEHOLDER} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 interface OnboardingCodeSnippetProps
-  extends Omit<React.ComponentProps<typeof CodeSnippet>, 'onAfterHighlight'> {}
+  extends Omit<React.ComponentProps<typeof CodeBlock>, 'onAfterHighlight'> {}
 
 /**
  * Replaces tokens in a DOM element with a span element.
@@ -47,7 +47,7 @@ export function OnboardingCodeSnippet({
 
   return (
     <Fragment>
-      <CodeSnippet
+      <CodeBlock
         dark
         language={language}
         hideCopyButton={partialLoading}
@@ -63,7 +63,7 @@ export function OnboardingCodeSnippet({
               brace_style: 'preserve-inline',
             })
           : children.trim()}
-      </CodeSnippet>
+      </CodeBlock>
       {authTokenNodes.map(node => createPortal(<AuthTokenGenerator />, node))}
     </Fragment>
   );

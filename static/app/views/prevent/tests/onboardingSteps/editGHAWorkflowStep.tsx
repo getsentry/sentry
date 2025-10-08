@@ -1,4 +1,4 @@
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Heading, Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
@@ -38,9 +38,9 @@ export function EditGHAWorkflowStep({step}: EditGHAWorkflowStepProps) {
               }
             )}
           </Text>
-          <CodeSnippet dark language="yaml">
+          <CodeBlock dark language="yaml">
             {PERMISSIONS_SNIPPET}
-          </CodeSnippet>
+          </CodeBlock>
           <Text>
             {tct(
               'Set this permission at the workflow or job level. For better security, define it at the job level as it limits access to only the job that needs the OIDC token. Learn more about [link:permissions settings].',
@@ -62,9 +62,9 @@ export function EditGHAWorkflowStep({step}: EditGHAWorkflowStepProps) {
           <Text>
             {t('In your CI YAML file, add below scripts to the end of your test run.')}
           </Text>
-          <CodeSnippet dark language="yaml">
+          <CodeBlock dark language="yaml">
             {ACTION_SNIPPET}
-          </CodeSnippet>
+          </CodeBlock>
           <Text>
             {t(
               'This action will download the Sentry Prevent CLI, and upload the junit.xml file generated in the previous step to Sentry.'
