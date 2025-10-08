@@ -269,7 +269,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         response = self.get_error_response(self.organization.slug, status_code=400, **payload)
         assert "provider" in str(response.data).lower()
 
-    def test_create_duplicate_provider_returns_conflict(self) -> None:
+    def test_create_duplicate_provider_returns_error(self) -> None:
         DataForwarder.objects.create(
             organization_id=self.organization.id,
             provider=DataForwarderProviderSlug.SEGMENT,
@@ -280,7 +280,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
             "provider": DataForwarderProviderSlug.SEGMENT,
             "config": {"write_key": "new_key"},
         }
-        response = self.get_error_response(self.organization.slug, status_code=409, **payload)
+        response = self.get_error_response(self.organization.slug, status_code=400, **payload)
         assert "already exists" in str(response.data).lower()
 
     def test_create_missing_config(self) -> None:
