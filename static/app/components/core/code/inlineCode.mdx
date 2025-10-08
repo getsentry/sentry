@@ -1,7 +1,7 @@
 ---
 title: InlineCode
 description: InlineCode provides styling for short snippets of code within text content, such as variable names, function names, or short commands.
-source: 'sentry/components/core/inlineCode'
+source: 'sentry/components/core/code'
 status: stable
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/inlineCode/index.tsx
@@ -10,12 +10,12 @@ resources:
     WCAG 1.4.4: https://www.w3.org/TR/WCAG22/#resize-text
 ---
 
-import {InlineCode} from 'sentry/components/core/inlineCode';
+import {InlineCode} from 'sentry/components/core/code/inlineCode';
 import {Text} from 'sentry/components/core/text';
 import {Prose} from 'sentry/components/core/text/prose';
 import * as Storybook from 'sentry/stories';
 
-import types from '!!type-loader!sentry/components/core/inlineCode';
+import types from '!!type-loader!sentry/components/core/code/inlineCode';
 
 export {types};
 
@@ -138,14 +138,6 @@ For long form content, `<code>` elements are automatically styled within the [`<
 </ul>
 ```
 
-## Related Components
-
-For different code display needs, consider these alternatives:
-
-- **`<Prose>`**: Use for long-form content that may contain multiple `<InlineCode>` elements with proper spacing and typography
-- **`<CodeSnippet>`**: Use for multi-line code blocks with syntax highlighting and copy functionality
-- **`<Text monospace>`**: Use for monospace text that isn't necessarily code (like IDs or timestamps)
-
 <Storybook.Demo>
   <Prose>
     <p>
@@ -174,6 +166,14 @@ For different code display needs, consider these alternatives:
   For non-code content like user IDs, use <Text monospace>usr_1234567890</Text> instead.
 </Text>
 ```
+
+## Related Components
+
+For different code display needs, consider these alternatives:
+
+- [**`<CodeBlock>`**](/stories/core/code-block): Use for multi-line code snippets with syntax highlighting
+- [**`<Prose>`**](/stories/typography/prose): Use for long-form content that may contain code elements
+- [**`<Text monospace>`**](/stories/typography/text#monospace): Use for monospace text that isn't necessarily code
 
 ## Accessibility
 
