@@ -5,7 +5,7 @@ import re
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from http import HTTPStatus
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
 from urllib.parse import urlparse
 
 import rest_framework
@@ -157,14 +157,26 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
     if follows_semver:
         # Fetch all the release-packages associated with the group. We'll find the largest semver
         # version for one of these packages.
-        group_packages = list(
+        release_ids = list(
             GroupRelease.objects.filter(
                 group_id=group.id,
                 project_id=group.project_id,
-                release__package__isnull=False,
             )
             .distinct()
-            .values_list("release__package", flat=True)
+            .values_list("release_id", flat=True)
+        )
+
+        group_packages = cast(
+            list[str],
+            list(
+                Release.objects.filter(
+                    organization_id=group.project.organization_id,
+                    id__in=release_ids,
+                    package__isnull=False,
+                )
+                .distinct()
+                .values_list("package", flat=True)
+            ),
         )
 
         release = greatest_semver_release(group.project, packages=group_packages)
@@ -551,7 +563,7 @@ def process_group_resolution(
                     resolution_params.update(
                         {
                             "release": Release.objects.filter(
-                                organization_id=group.organization_id,
+                                organization_id=release.organization_id,
                                 version=current_release_version,
                             ).get(),
                             "type": GroupResolution.Type.in_release,
@@ -836,7 +848,11 @@ def get_release_to_resolve_by(project: Project) -> Release | None:
     follows_semver = follows_semver_versioning_scheme(
         org_id=project.organization_id, project_id=project.id
     )
-    return greatest_semver_release(project) if follows_semver else most_recent_release(project)
+    return (
+        greatest_semver_release(project, packages=[])
+        if follows_semver
+        else most_recent_release(project)
+    )
 
 
 def most_recent_release(project: Project) -> Release | None:
