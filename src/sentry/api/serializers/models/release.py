@@ -538,7 +538,9 @@ class ReleaseSerializer(Serializer):
         return release_project_envs
 
     def _get_release_project_envs_unordered(self, item_list, environments, project):
-        release_project_envs = ReleaseProjectEnvironment.objects.filter(release__in=item_list)
+        release_project_envs = ReleaseProjectEnvironment.objects.filter(
+            release__in=item_list
+        ).select_related("release")
 
         if environments is not None:
             release_project_envs = release_project_envs.filter(environment__name__in=environments)
