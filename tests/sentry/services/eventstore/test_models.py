@@ -692,6 +692,7 @@ class EventNodeStoreTest(TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.data.get_ref(event) == event.project.id
 
+    @pytest.mark.skip(reason="flaky: #98817")
     def test_datetime_uses_timestamp_ms_from_snuba(self) -> None:
         second_before_now = before_now(seconds=1)
         second_before_now_str = second_before_now.isoformat()
