@@ -9,9 +9,11 @@ from sentry.conf.types.topic_definition import TopicDefinition
 SUPPORTED_KAFKA_CONFIGURATION = (
     # Check https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md
     # for the full list of available options
+    "batch.num.messages",
     "bootstrap.servers",
     "compression.type",
     "message.max.bytes",
+    "queue.buffering.max.ms",
     "sasl.mechanism",
     "sasl.username",
     "sasl.password",
