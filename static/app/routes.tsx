@@ -2510,7 +2510,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/feedback/index')),
     withOrgPath: true,
     children: feedbackV2Children,
-    deprecatedRouteProps: true,
   };
 
   const issueTabs: SentryRouteObject[] = [
@@ -2638,7 +2637,6 @@ function buildRoutes(): RouteObject[] {
       path: 'feedback/',
       component: make(() => import('sentry/views/feedback/index')),
       children: feedbackV2Children,
-      deprecatedRouteProps: true,
     },
     {
       path: 'alerts/',
