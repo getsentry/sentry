@@ -12,7 +12,6 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import json
 
@@ -130,7 +129,7 @@ def get_event_batches(
 # TODO: run as task?
 @instrumented_task(
     name="sentry.issues.tasks.export_project_errors_async",
-    taskworker_config=TaskworkerConfig(namespace=issues_tasks),
+    namespace=issues_tasks,
 )
 def export_project_errors_async(
     project_id: int, organization_id: int, destination_bucket: str, gcs_prefix: str
