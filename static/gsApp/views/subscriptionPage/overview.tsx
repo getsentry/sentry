@@ -24,7 +24,7 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
-import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
+import {hasAccessToSubscriptionOverview, hasNewBillingUI} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   isPartOfReservedBudget,
@@ -61,6 +61,7 @@ function Overview({location, subscription, promotionData}: Props) {
   const api = useApi();
   const organization = useOrganization();
   const navigate = useNavigate();
+  const isNewBillingUI = hasNewBillingUI(organization);
 
   const displayMode = ['cost', 'usage'].includes(location.query.displayMode as string)
     ? (location.query.displayMode as 'cost' | 'usage')
@@ -168,7 +169,7 @@ function Overview({location, subscription, promotionData}: Props) {
   // Whilst self-serve accounts do.
   if (!hasBillingPerms && !subscription.canSelfServe) {
     return (
-      <SubscriptionPageContainer background="primary" organization={organization}>
+      <SubscriptionPageContainer background="secondary" organization={organization}>
         <ContactBillingMembers />
       </SubscriptionPageContainer>
     );
@@ -325,23 +326,6 @@ function Overview({location, subscription, promotionData}: Props) {
     );
   }
 
-  if (isPending) {
-    return (
-      <SubscriptionPageContainer background="primary" organization={organization}>
-        <SubscriptionHeader subscription={subscription} organization={organization} />
-        <LoadingIndicator />
-      </SubscriptionPageContainer>
-    );
-  }
-
-  if (isError) {
-    return (
-      <SubscriptionPageContainer background="primary" organization={organization}>
-        <LoadingError onRetry={refetchUsage} />
-      </SubscriptionPageContainer>
-    );
-  }
-
   /**
    * It's important to separate the views for folks with billing permissions (org:billing) and those without.
    * Only owners and billing admins have the billing scope, everyone else including managers, admins, and members lack that scope.
@@ -392,13 +376,29 @@ function Overview({location, subscription, promotionData}: Props) {
   }
 
   return (
-    <SubscriptionPageContainer background="primary" organization={organization}>
-      <SubscriptionHeader organization={organization} subscription={subscription} />
-      <div>
-        {hasBillingPerms
-          ? contentWithBillingPerms(usage, subscription.planDetails)
-          : contentWithoutBillingPerms(usage)}
-      </div>
+    <SubscriptionPageContainer
+      background="secondary"
+      organization={organization}
+      header={
+        isNewBillingUI ? (
+          <SubscriptionHeader organization={organization} subscription={subscription} />
+        ) : undefined
+      }
+    >
+      {!isNewBillingUI && (
+        <SubscriptionHeader organization={organization} subscription={subscription} />
+      )}
+      {isPending ? (
+        <LoadingIndicator />
+      ) : isError ? (
+        <LoadingError onRetry={refetchUsage} />
+      ) : (
+        <div>
+          {hasBillingPerms
+            ? contentWithBillingPerms(usage, subscription.planDetails)
+            : contentWithoutBillingPerms(usage)}
+        </div>
+      )}
     </SubscriptionPageContainer>
   );
 }

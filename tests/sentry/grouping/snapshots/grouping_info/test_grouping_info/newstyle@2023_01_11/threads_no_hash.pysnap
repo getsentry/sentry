@@ -1,10 +1,10 @@
 ---
-created: '2025-10-03T16:56:46.382467+00:00'
+created: '2025-10-03T22:58:48.347995+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_thread_stacktrace": {
     "component": {
       "contributes": false,
       "hint": null,
@@ -44,7 +44,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     "description": "in-app",
     "hash": null,
     "hint": null,
-    "key": "app",
+    "key": "app_thread_stacktrace",
     "type": "component"
   },
   "fallback": {

@@ -19,7 +19,9 @@ import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayO
 import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOptions';
 
 describe('ReleasesList', () => {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({
+    features: ['search-query-builder-input-flow-changes'],
+  });
   const projects = [ProjectFixture({features: ['releases']})];
   const semverVersionInfo = {
     buildHash: null,
@@ -543,6 +545,7 @@ describe('ReleasesList', () => {
 
     await userEvent.clear(smartSearchBar);
     await userEvent.click(screen.getByRole('option', {name: 'release.version'}));
+    await userEvent.click(screen.getByRole('option', {name: 'is'}));
 
     expect(await screen.findByText('sentry@0.5.3')).toBeInTheDocument();
   });
