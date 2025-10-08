@@ -232,7 +232,7 @@ jobs:
       # it reduces large coverage fluctuations.
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: always()
+        if: ${{ !cancelled() }}
         continue-on-error: true
         timeout-minutes: 5
         with:

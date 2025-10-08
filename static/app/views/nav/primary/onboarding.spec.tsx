@@ -5,7 +5,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
+import {NavContextProvider} from 'sentry/views/nav/context';
 import {PrimaryNavigationOnboarding} from 'sentry/views/nav/primary/onboarding';
+import {NavigationTourProvider} from 'sentry/views/nav/tour/tour';
 
 jest.mock('framer-motion', () => ({
   ...jest.requireActual('framer-motion'),
@@ -47,6 +49,11 @@ describe('Onboarding Status', () => {
       url: '/organizations/org-slug/onboarding-tasks/',
       method: 'POST',
     });
+
+    MockApiClient.addMockResponse({
+      url: `/assistant/`,
+      body: [],
+    });
   });
 
   it('displays pending tasks', async () => {
@@ -65,9 +72,16 @@ describe('Onboarding Status', () => {
 
     const {mutateUserOptionsMock} = renderMockRequests(organization);
 
-    render(<PrimaryNavigationOnboarding />, {
-      organization,
-    });
+    render(
+      <NavContextProvider>
+        <NavigationTourProvider>
+          <PrimaryNavigationOnboarding />
+        </NavigationTourProvider>
+      </NavContextProvider>,
+      {
+        organization,
+      }
+    );
 
     expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.getByTestId('pending-seen-indicator')).toBeInTheDocument();

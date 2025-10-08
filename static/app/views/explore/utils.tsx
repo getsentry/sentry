@@ -274,7 +274,7 @@ export function generateTargetQuery({
   projects: Project[];
   row: Record<string, any>;
   search: MutableSearch;
-  sorts: Sort[];
+  sorts: readonly Sort[];
   yAxes: string[];
 }) {
   search = search.copy();
@@ -372,7 +372,7 @@ export function viewSamplesTarget({
   projects: Project[];
   query: string;
   row: Record<string, any>;
-  sorts: Sort[];
+  sorts: readonly Sort[];
   visualizes: readonly Visualize[];
 }) {
   const search = new MutableSearch(query);

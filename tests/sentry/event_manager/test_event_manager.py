@@ -2772,7 +2772,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_perf_issue_creation(self) -> None:
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
             )
             data = event.data
             assert event.get_event_type() == "transaction"
@@ -2866,7 +2866,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_perf_issue_update(self) -> None:
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
             )
             group = event.group
             assert group is not None
@@ -2884,7 +2884,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
             with self.tasks():
                 self.create_performance_issue(
-                    event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
+                    event_data=make_event(
+                        **get_event("n-plus-one-db/n-plus-one-in-django-index-view")
+                    )
                 )
 
             # Make sure the original group is updated via buffers
@@ -2907,7 +2909,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         """Test that you can't associate a performance event with an error issue"""
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
             )
             assert event.group is not None
 
@@ -2917,7 +2919,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             group.type = ErrorGroupType.type_id
             group.save()
             event = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
             )
 
             assert event.group is None
@@ -2948,7 +2950,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_perf_issue_creation_ignored(self) -> None:
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view")),
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
                 noise_limit=2,
             )
             assert event.get_event_type() == "transaction"
@@ -2959,13 +2961,16 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_perf_issue_creation_over_ignored_threshold(self) -> None:
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event_1 = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view")), noise_limit=3
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
+                noise_limit=3,
             )
             event_2 = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view")), noise_limit=3
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
+                noise_limit=3,
             )
             event_3 = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view")), noise_limit=3
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
+                noise_limit=3,
             )
             assert event_1.get_event_type() == "transaction"
             assert event_2.get_event_type() == "transaction"
@@ -2985,7 +2990,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_perf_issue_slow_db_issue_is_created(self) -> None:
         def attempt_to_generate_slow_db_issue() -> Event:
             return self.create_performance_issue(
-                event_data=make_event(**get_event("slow-db-spans")),
+                event_data=make_event(**get_event("slow-db/slow-db-spans")),
                 issue_type=PerformanceSlowDBQueryGroupType,
             )
 

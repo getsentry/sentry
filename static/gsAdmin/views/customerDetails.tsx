@@ -55,6 +55,7 @@ import {CustomerStats} from 'admin/components/customers/customerStats';
 import {CustomerStatsFilters} from 'admin/components/customers/customerStatsFilters';
 import OrganizationStatus from 'admin/components/customers/organizationStatus';
 import PendingChanges from 'admin/components/customers/pendingChanges';
+import openUpdateRetentionSettingsModal from 'admin/components/customers/updateRetentionSettingsModal';
 import deleteBillingMetricHistory from 'admin/components/deleteBillingMetricHistory';
 import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
 import DetailsPage from 'admin/components/detailsPage';
@@ -844,6 +845,19 @@ export default function CustomerDetails() {
             skipConfirmModal: true,
             onAction: () => {
               openToggleConsolePlatformsModal({organization, onSuccess: reloadData});
+            },
+          },
+          {
+            key: 'updateRetentions',
+            name: 'Update Retentions',
+            help: 'Change the retention policy settings for a specific data category.',
+            skipConfirmModal: true,
+            onAction: () => {
+              openUpdateRetentionSettingsModal({
+                organization,
+                subscription,
+                onSuccess: reloadData,
+              });
             },
           },
         ]}

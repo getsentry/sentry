@@ -48,11 +48,6 @@ export function LogsLocationQueryParamsProvider({
     (writableQueryParams: WritableQueryParams) => {
       const toPersist: Partial<PersistedLogsPageParams> = {};
 
-      const fields = writableQueryParams.fields;
-      if (defined(fields)) {
-        toPersist.fields = fields;
-      }
-
       const sortBys = writableQueryParams.sortBys;
       if (defined(sortBys)) {
         toPersist.sortBys = sortBys;

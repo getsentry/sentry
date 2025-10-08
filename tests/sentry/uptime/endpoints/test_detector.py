@@ -3,7 +3,7 @@ from rest_framework import status
 
 from sentry.testutils.cases import APITestCase
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_uptime_subscription
+from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.workflow_engine.models import Detector
 
@@ -54,7 +54,6 @@ class UptimeDetectorBaseTest(APITestCase):
             headers=[],
             body=None,
             trace_sampling=False,
-            uptime_status=UptimeStatus.OK,
         )
 
         self.detector = self.create_uptime_detector(

@@ -30,14 +30,14 @@ export function MetricPanel({traceMetric}: MetricPanelProps) {
 
   const timeseriesResult = useSortedTimeSeries(
     {
-      search: new MutableSearch(''),
+      search: new MutableSearch(`metric.name:${traceMetric.name}`),
       yAxis: [visualize.yAxis],
       interval,
       fields: [],
-      enabled: true,
+      enabled: Boolean(traceMetric.name),
     },
     'api.explore.metrics-stats',
-    DiscoverDatasets.SPANS
+    DiscoverDatasets.TRACEMETRICS
   );
 
   const hasSize = width > 0;

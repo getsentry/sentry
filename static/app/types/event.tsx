@@ -51,7 +51,6 @@ export const enum EventGroupVariantType {
   CHECKSUM = 'checksum',
   FALLBACK = 'fallback',
   CUSTOM_FINGERPRINT = 'custom_fingerprint',
-  BUILT_IN_FINGERPRINT = 'built_in_fingerprint',
   COMPONENT = 'component',
   SALTED_COMPONENT = 'salted_component',
   PERFORMANCE_PROBLEM = 'performance_problem',
@@ -91,10 +90,6 @@ interface CustomFingerprintVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.CUSTOM_FINGERPRINT;
 }
 
-interface BuiltInFingerprintVariant extends BaseVariant, HasComponentGrouping {
-  type: EventGroupVariantType.BUILT_IN_FINGERPRINT;
-}
-
 interface SaltedComponentVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.SALTED_COMPONENT;
 }
@@ -110,7 +105,6 @@ export type EventGroupVariant =
   | ComponentVariant
   | SaltedComponentVariant
   | CustomFingerprintVariant
-  | BuiltInFingerprintVariant
   | PerformanceProblemVariant;
 
 /**

@@ -13,21 +13,20 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {ApiApplication} from 'sentry/types/user';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import Row from 'sentry/views/settings/account/apiApplications/row';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 const ROUTE_PREFIX = '/settings/account/api/';
 
-type Props = RouteComponentProps;
-
-function ApiApplications({router}: Props) {
+export default function ApiApplications() {
   const api = useApi();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const ENDPOINT = '/api-applications/';
 
@@ -58,7 +57,7 @@ function ApiApplications({router}: Props) {
       });
 
       addSuccessMessage(t('Created a new API Application'));
-      router.push(`${ROUTE_PREFIX}applications/${app.id}/`);
+      navigate(`${ROUTE_PREFIX}applications/${app.id}/`);
     } catch {
       addErrorMessage(t('Unable to remove application. Please try again.'));
     }
@@ -104,5 +103,3 @@ function ApiApplications({router}: Props) {
     </SentryDocumentTitle>
   );
 }
-
-export default ApiApplications;

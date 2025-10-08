@@ -13,6 +13,7 @@ from uuid import uuid4
 import click
 import sentry_sdk
 from django.conf import settings
+from django.db import router as db_router
 from django.db.models import Model, QuerySet
 from django.utils import timezone
 
@@ -184,173 +185,117 @@ def _cleanup(
     # before we import or configure the app
     pool, task_queue = _start_pool(concurrency)
 
-    try:
-        from sentry.runner import configure
+    # Start transaction AFTER creating the multiprocessing pool to avoid
+    # transaction context issues in child processes. This ensures only the
+    # main process tracks the overall cleanup operation performance.
+    with sentry_sdk.start_transaction(op="cleanup", name="cleanup") as transaction:
+        transaction.set_tag("router", router)
+        transaction.set_tag("model", model)
+        try:
+            from sentry.runner import configure
 
-        configure()
+            configure()
 
-        from django.db import router as db_router
+            from sentry.utils import metrics
 
-        from sentry.db.deletion import BulkDeleteQuery
-        from sentry.utils import metrics
-        from sentry.utils.query import RangeQuerySetWrapper
+            start_time = None
+            if timed:
+                start_time = time.time()
 
-        start_time = None
-        if timed:
-            start_time = time.time()
+            # list of models which this query is restricted to
+            model_list = {m.lower() for m in model}
+            # Track which models were attempted for deletion
+            models_attempted: set[str] = set()
+            # Track which models were filtered out for legitimate reasons (silo/router)
+            models_legitimately_filtered: set[str] = set()
 
-        transaction = None
-        # Making sure we're not running in local dev to prevent a local error
-        if not os.environ.get("SENTRY_DEVENV_HOME"):
-            transaction = sentry_sdk.start_transaction(op="cleanup", name="cleanup")
-            transaction.__enter__()
-            transaction.set_tag("router", router)
-            transaction.set_tag("model", model)
+            def is_filtered(model: type[Model]) -> bool:
+                model_name = model.__name__.lower()
+                silo_limit = getattr(model._meta, "silo_limit", None)
+                if isinstance(silo_limit, SiloLimit) and not silo_limit.is_available():
+                    models_legitimately_filtered.add(model_name)
+                    return True
+                if router is not None and db_router.db_for_write(model) != router:
+                    models_legitimately_filtered.add(model_name)
+                    return True
+                if not model_list:
+                    return False
+                return model.__name__.lower() not in model_list
 
-        # list of models which this query is restricted to
-        model_list = {m.lower() for m in model}
-        # Track which models were attempted for deletion
-        models_attempted: set[str] = set()
-        # Track which models were filtered out for legitimate reasons (silo/router)
-        models_legitimately_filtered: set[str] = set()
+            deletes = models_which_use_deletions_code_path()
 
-        def is_filtered(model: type[Model]) -> bool:
-            model_name = model.__name__.lower()
-            silo_limit = getattr(model._meta, "silo_limit", None)
-            if isinstance(silo_limit, SiloLimit) and not silo_limit.is_available():
-                models_legitimately_filtered.add(model_name)
-                return True
-            if router is not None and db_router.db_for_write(model) != router:
-                models_legitimately_filtered.add(model_name)
-                return True
-            if not model_list:
-                return False
-            return model.__name__.lower() not in model_list
+            # Track timing for each deletion stage to monitor execution progress and identify bottlenecks
+            with metrics.timer(
+                "cleanup.stage", instance=router, tags={"stage": "specialized_cleanups"}
+            ):
+                _run_specialized_cleanups(is_filtered, days, silent, models_attempted)
 
-        bulk_query_deletes = generate_bulk_query_deletes()
+                # Handle project/organization specific logic
+                project_id, organization_id = _handle_project_organization_cleanup(
+                    project, organization, days, deletes
+                )
+                if organization_id is not None:
+                    transaction.set_tag("organization_id", organization_id)
+                if project_id is not None:
+                    transaction.set_tag("project_id", project_id)
 
-        deletes = models_which_use_deletions_code_path()
-
-        _run_specialized_cleanups(is_filtered, days, silent, models_attempted)
-
-        # Handle project/organization specific logic
-        project_id, organization_id = _handle_project_organization_cleanup(
-            project, organization, days, deletes
-        )
-
-        run_bulk_query_deletes(
-            bulk_query_deletes,
-            is_filtered,
-            days,
-            project,
-            project_id,
-            models_attempted,
-        )
-
-        debug_output("Running bulk deletes in DELETES")
-        for model_tp, dtfield, order_by in deletes:
-            debug_output(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
-
-            if is_filtered(model_tp):
-                debug_output(">> Skipping %s" % model_tp.__name__)
-            else:
-                models_attempted.add(model_tp.__name__.lower())
-                imp = ".".join((model_tp.__module__, model_tp.__name__))
-
-                q = BulkDeleteQuery(
-                    model=model_tp,
-                    dtfield=dtfield,
-                    days=days,
-                    project_id=project_id,
-                    order_by=order_by,
+            # This does not use the deletions code path, but rather uses the BulkDeleteQuery class
+            # to delete records in bulk (i.e. does not need to worry about child relations)
+            with metrics.timer(
+                "cleanup.stage", instance=router, tags={"stage": "bulk_query_deletes"}
+            ):
+                run_bulk_query_deletes(
+                    is_filtered,
+                    days,
+                    project,
+                    project_id,
+                    models_attempted,
                 )
 
-                for chunk in q.iterator(chunk_size=100):
-                    task_queue.put((imp, chunk))
-
-                task_queue.join()
-
-        project_deletion_query, to_delete_by_project = prepare_deletes_by_project(
-            project, project_id, is_filtered
-        )
-
-        if project_deletion_query is not None and len(to_delete_by_project):
-            debug_output("Running bulk deletes in DELETES_BY_PROJECT")
-            for project_id_for_deletion in RangeQuerySetWrapper(
-                project_deletion_query.values_list("id", flat=True),
-                result_value_getter=lambda item: item,
+            with metrics.timer(
+                "cleanup.stage", instance=router, tags={"stage": "bulk_deletes_in_deletes"}
             ):
-                for model_tp, dtfield, order_by in to_delete_by_project:
-                    models_attempted.add(model_tp.__name__.lower())
-                    debug_output(
-                        f"Removing {model_tp.__name__} for days={days} project={project_id_for_deletion}"
-                    )
+                run_bulk_deletes_in_deletes(
+                    task_queue,
+                    deletes,
+                    is_filtered,
+                    days,
+                    project,
+                    project_id,
+                    models_attempted,
+                )
 
-                    imp = ".".join((model_tp.__module__, model_tp.__name__))
-
-                    q = BulkDeleteQuery(
-                        model=model_tp,
-                        dtfield=dtfield,
-                        days=days,
-                        project_id=project_id_for_deletion,
-                        order_by=order_by,
-                    )
-
-                    for chunk in q.iterator(chunk_size=100):
-                        task_queue.put((imp, chunk))
-
-            task_queue.join()
-
-        organization_deletion_query, to_delete_by_organization = prepare_deletes_by_organization(
-            organization_id, is_filtered
-        )
-
-        if organization_deletion_query is not None and len(to_delete_by_organization):
-            debug_output("Running bulk deletes in DELETES_BY_ORGANIZATION")
-            for organization_id_for_deletion in RangeQuerySetWrapper(
-                organization_deletion_query.values_list("id", flat=True),
-                result_value_getter=lambda item: item,
+            with metrics.timer(
+                "cleanup.stage", instance=router, tags={"stage": "bulk_deletes_by_project"}
             ):
-                for model_tp, dtfield, order_by in to_delete_by_organization:
-                    models_attempted.add(model_tp.__name__.lower())
-                    debug_output(
-                        f"Removing {model_tp.__name__} for days={days} organization={organization_id_for_deletion}"
-                    )
+                run_bulk_deletes_by_project(
+                    task_queue, project, project_id, is_filtered, days, models_attempted
+                )
 
-                    imp = ".".join((model_tp.__module__, model_tp.__name__))
+            with metrics.timer(
+                "cleanup.stage", instance=router, tags={"stage": "bulk_deletes_by_organization"}
+            ):
+                run_bulk_deletes_by_organization(
+                    task_queue, organization_id, is_filtered, days, models_attempted
+                )
 
-                    q = BulkDeleteQuery(
-                        model=model_tp,
-                        dtfield=dtfield,
-                        days=days,
-                        organization_id=organization_id_for_deletion,
-                        order_by=order_by,
-                    )
+            with metrics.timer("cleanup.stage", instance=router, tags={"stage": "file_blobs"}):
+                remove_file_blobs(is_filtered, silent, models_attempted)
 
-                    for chunk in q.iterator(chunk_size=100):
-                        task_queue.put((imp, chunk))
+        finally:
+            # Shut down our pool
+            _stop_pool(pool, task_queue)
 
-        task_queue.join()
+            if timed and start_time:
+                duration = int(time.time() - start_time)
+                metrics.timing("cleanup.duration", duration, instance=router, sample_rate=1.0)
+                click.echo("Clean up took %s second(s)." % duration)
 
-        remove_file_blobs(is_filtered, silent, models_attempted)
-
-    finally:
-        # Shut down our pool
-        _stop_pool(pool, task_queue)
-
-        if timed and start_time:
-            duration = int(time.time() - start_time)
-            metrics.timing("cleanup.duration", duration, instance=router, sample_rate=1.0)
-            click.echo("Clean up took %s second(s)." % duration)
-
-        # Check for models that were specified but never attempted
-        if model_list:
-            _report_models_never_attempted(
-                model_list, models_attempted, models_legitimately_filtered
-            )
-
-        if transaction:
-            transaction.__exit__(None, None, None)
+            # Check for models that were specified but never attempted
+            if model_list:
+                _report_models_never_attempted(
+                    model_list, models_attempted, models_legitimately_filtered
+                )
 
 
 def _validate_and_setup_environment(concurrency: int, silent: bool) -> None:
@@ -425,6 +370,9 @@ def _start_pool(concurrency: int) -> tuple[list[Process], _WorkQueue]:
 
 
 def _stop_pool(pool: Sequence[Process], task_queue: _WorkQueue) -> None:
+    # First, ensure all queued tasks are completed
+    task_queue.join()
+
     # Stop the pool
     for _ in pool:
         task_queue.put(_STOP_WORKER)
@@ -599,7 +547,6 @@ def generate_bulk_query_deletes() -> list[tuple[type[Model], str, str | None]]:
 
 
 def run_bulk_query_deletes(
-    bulk_query_deletes: list[tuple[type[Model], str, str | None]],
     is_filtered: Callable[[type[Model]], bool],
     days: int,
     project: str | None,
@@ -609,6 +556,7 @@ def run_bulk_query_deletes(
     from sentry.db.deletion import BulkDeleteQuery
 
     debug_output("Running bulk query deletes in bulk_query_deletes")
+    bulk_query_deletes = generate_bulk_query_deletes()
     for model_tp, dtfield, order_by in bulk_query_deletes:
         chunk_size = 10000
 
@@ -624,6 +572,129 @@ def run_bulk_query_deletes(
                 project_id=project_id,
                 order_by=order_by,
             ).execute(chunk_size=chunk_size)
+
+
+def run_bulk_deletes_in_deletes(
+    task_queue: _WorkQueue,
+    deletes: list[tuple[type[Model], str, str]],
+    is_filtered: Callable[[type[Model]], bool],
+    days: int,
+    project: str | None,
+    project_id: int | None,
+    models_attempted: set[str],
+) -> None:
+    from sentry.db.deletion import BulkDeleteQuery
+
+    debug_output("Running bulk deletes in DELETES")
+    for model_tp, dtfield, order_by in deletes:
+        debug_output(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
+
+        if is_filtered(model_tp):
+            debug_output(">> Skipping %s" % model_tp.__name__)
+        else:
+            models_attempted.add(model_tp.__name__.lower())
+            imp = ".".join((model_tp.__module__, model_tp.__name__))
+
+            q = BulkDeleteQuery(
+                model=model_tp,
+                dtfield=dtfield,
+                days=days,
+                project_id=project_id,
+                order_by=order_by,
+            )
+
+            for chunk in q.iterator(chunk_size=100):
+                task_queue.put((imp, chunk))
+
+    # Ensure all tasks are completed before exiting
+    task_queue.join()
+
+
+def run_bulk_deletes_by_project(
+    task_queue: _WorkQueue,
+    project: str | None,
+    project_id: int | None,
+    is_filtered: Callable[[type[Model]], bool],
+    days: int,
+    models_attempted: set[str],
+) -> None:
+    from sentry.db.deletion import BulkDeleteQuery
+    from sentry.utils.query import RangeQuerySetWrapper
+
+    project_deletion_query, to_delete_by_project = prepare_deletes_by_project(
+        project, project_id, is_filtered
+    )
+
+    if project_deletion_query is not None and len(to_delete_by_project):
+        debug_output("Running bulk deletes in DELETES_BY_PROJECT")
+        for project_id_for_deletion in RangeQuerySetWrapper(
+            project_deletion_query.values_list("id", flat=True),
+            result_value_getter=lambda item: item,
+        ):
+            for model_tp, dtfield, order_by in to_delete_by_project:
+                models_attempted.add(model_tp.__name__.lower())
+                debug_output(
+                    f"Removing {model_tp.__name__} for days={days} project={project_id_for_deletion}"
+                )
+
+                imp = ".".join((model_tp.__module__, model_tp.__name__))
+
+                q = BulkDeleteQuery(
+                    model=model_tp,
+                    dtfield=dtfield,
+                    days=days,
+                    project_id=project_id_for_deletion,
+                    order_by=order_by,
+                )
+
+                for chunk in q.iterator(chunk_size=100):
+                    task_queue.put((imp, chunk))
+
+    # Ensure all tasks are completed before exiting
+    task_queue.join()
+
+
+def run_bulk_deletes_by_organization(
+    task_queue: _WorkQueue,
+    organization_id: int | None,
+    is_filtered: Callable[[type[Model]], bool],
+    days: int,
+    models_attempted: set[str],
+) -> None:
+    from sentry.db.deletion import BulkDeleteQuery
+    from sentry.utils.query import RangeQuerySetWrapper
+
+    organization_deletion_query, to_delete_by_organization = prepare_deletes_by_organization(
+        organization_id, is_filtered
+    )
+
+    if organization_deletion_query is not None and len(to_delete_by_organization):
+        debug_output("Running bulk deletes in DELETES_BY_ORGANIZATION")
+        for organization_id_for_deletion in RangeQuerySetWrapper(
+            organization_deletion_query.values_list("id", flat=True),
+            result_value_getter=lambda item: item,
+        ):
+            for model_tp, dtfield, order_by in to_delete_by_organization:
+                models_attempted.add(model_tp.__name__.lower())
+                debug_output(
+                    f"Removing {model_tp.__name__} for days={days} organization={organization_id_for_deletion}"
+                )
+
+                imp = ".".join((model_tp.__module__, model_tp.__name__))
+
+                q = BulkDeleteQuery(
+                    model=model_tp,
+                    dtfield=dtfield,
+                    days=days,
+                    organization_id=organization_id_for_deletion,
+                    order_by=order_by,
+                )
+
+                for chunk in q.iterator(chunk_size=100):
+                    task_queue.put((imp, chunk))
+
+    # Ensure all tasks are completed before exiting
+    task_queue.join()
 
 
 def prepare_deletes_by_project(

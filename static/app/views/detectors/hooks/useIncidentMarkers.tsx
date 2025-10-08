@@ -38,72 +38,38 @@ const DEFAULT_INCIDENT_MARKER_X_AXIS_CONFIG = {
  */
 export interface IncidentPeriod {
   /**
-   * Color for the marker
-   */
-  color: string;
-  /**
    * End timestamp in milliseconds
    */
   end: number;
+  /**
+   * Unique identifier for the incident/event
+   */
   id: string;
   /**
-   * Display name for the incident
+   * Priority of the incident/event
    */
-  name: string;
+  priority: 'high' | 'medium';
   /**
    * Start timestamp in milliseconds
    */
   start: number;
   /**
-   * Type identifier for the incident
+   * Type of the incident/event. This determines how the marker is rendered.
+   * - `trigger-interval`: A marker for the duration of the interval before the beginning of an open period.
+   * - `open-period-start`: A marker for the start of an open period.
+   * - `open-period-transition`: Used for priority transitions within an open period.
    */
-  type: string;
-  /**
-   * Color for hover state (optional)
-   */
-  hoverColor?: string;
+  type: 'trigger-interval' | 'open-period-start' | 'open-period-transition';
 }
 
 interface IncidentMarkerSeriesProps {
   incidentPeriods: IncidentPeriod[];
-  intervalMs: number;
   markLineTooltip: UseIncidentMarkersProps['markLineTooltip'];
   seriesId: string;
   seriesName: string;
   seriesTooltip: UseIncidentMarkersProps['seriesTooltip'];
   theme: Theme;
   yAxisIndex: number;
-  includePreviousIntervalMarker?: boolean;
-}
-
-interface IncidentMarkerPeriod extends IncidentPeriod {
-  type: 'trigger-interval' | 'open-period';
-}
-
-function createTriggerPeriodMarkerData({
-  period,
-  intervalMs,
-}: {
-  intervalMs: number;
-  period: IncidentPeriod;
-}): IncidentMarkerPeriod {
-  return {
-    ...period,
-    start: period.start - intervalMs,
-    end: period.start,
-    type: 'trigger-interval',
-  };
-}
-
-function createOpenPeriodMarkerData({
-  period,
-}: {
-  period: IncidentPeriod;
-}): IncidentMarkerPeriod {
-  return {
-    ...period,
-    type: 'open-period',
-  };
 }
 
 const makeStripeBackgroundSvgNode = (color: string) => {
@@ -132,6 +98,16 @@ const makeStripeBackgroundSvgNode = (color: string) => {
   };
 };
 
+const getPriorityColor = ({
+  priority,
+  theme,
+}: {
+  priority: 'high' | 'medium';
+  theme: Theme;
+}) => {
+  return priority === 'medium' ? theme.yellow300 : theme.red300;
+};
+
 /**
  * Creates a custom series that renders incident highlights underneath the main chart
  */
@@ -143,22 +119,10 @@ function IncidentMarkerSeries({
   yAxisIndex,
   seriesTooltip,
   markLineTooltip,
-  intervalMs,
-  includePreviousIntervalMarker,
 }: IncidentMarkerSeriesProps): CustomSeriesOption | null {
   if (!incidentPeriods.length) {
     return null;
   }
-
-  // TODO: Handle case where trigger period may overlap previous open period
-  const markerData = incidentPeriods.flatMap(period => {
-    return includePreviousIntervalMarker
-      ? [
-          createTriggerPeriodMarkerData({period, intervalMs}),
-          createOpenPeriodMarkerData({period}),
-        ]
-      : [createOpenPeriodMarkerData({period})];
-  });
 
   /**
    * Renders incident highlight rectangles underneath the main chart
@@ -167,11 +131,17 @@ function IncidentMarkerSeries({
     params: CustomSeriesRenderItemParams,
     api: CustomSeriesRenderItemAPI
   ): CustomSeriesRenderItemReturn => {
-    const dataItem = markerData[params.dataIndex];
+    const dataItem = incidentPeriods[params.dataIndex];
 
     if (!dataItem) {
       return {type: 'group', children: []};
     }
+
+    const allItemsWithinPeriod = incidentPeriods
+      .filter(period => period.id === dataItem?.id)
+      .toSorted((a, b) => a.start - b.start);
+    const isLastItem =
+      allItemsWithinPeriod.indexOf(dataItem) === allItemsWithinPeriod.length - 1;
 
     // Use the start/end timestamps to get the chart coordinates to draw the
     // rectangle. The 2nd tuple passed to `api.coord()` is always 0 because we
@@ -199,12 +169,22 @@ function IncidentMarkerSeries({
 
     const shape = {
       // Position the rectangle in the space created by the grid/xAxis offset
-      x: incidentStartX + renderMarkerPadding / 2 - 1,
+      x: incidentStartX,
       y: incidentStartY + renderMarkerPadding - 1,
-      width: width - renderMarkerPadding,
+      width,
       height: INCIDENT_MARKER_HEIGHT,
-      r: [0, 2, 2, 0],
+      r:
+        dataItem.type === 'trigger-interval'
+          ? [2, 0, 0, 2]
+          : isLastItem
+            ? [0, 2, 2, 0]
+            : [0, 0, 0, 0],
     };
+
+    const color = getPriorityColor({
+      priority: dataItem.priority,
+      theme,
+    });
 
     return {
       type: 'rect',
@@ -214,29 +194,34 @@ function IncidentMarkerSeries({
         fill:
           dataItem.type === 'trigger-interval'
             ? {
-                svgElement: makeStripeBackgroundSvgNode(dataItem.color),
+                svgElement: makeStripeBackgroundSvgNode(color),
                 svgWidth: 2,
                 svgHeight: INCIDENT_MARKER_HEIGHT,
               }
-            : dataItem.color,
+            : color,
         opacity: 1,
       },
     };
   };
 
   // Create mark lines for the start of each incident period
-  const markLineData: MarkLineComponentOption['data'] = markerData
-    .filter(period => period.type === 'open-period')
-    .map(period => {
+  const markLineData: MarkLineComponentOption['data'] = incidentPeriods
+    .filter(period => period.type === 'open-period-start')
+    .map(data => {
+      const color = getPriorityColor({
+        priority: data.priority,
+        theme,
+      });
+
       const lineStyle: MarkLineComponentOption['lineStyle'] = {
-        color: period.color ?? theme.gray400,
+        color,
         type: 'solid',
         width: 1,
         opacity: 0.8,
       };
 
       return {
-        xAxis: period.start,
+        xAxis: data.start,
         lineStyle,
         emphasis: {
           lineStyle: {
@@ -253,7 +238,10 @@ function IncidentMarkerSeries({
           position: 'bottom',
           formatter: markLineTooltip
             ? () => {
-                return markLineTooltip({theme, period});
+                return markLineTooltip({
+                  theme,
+                  period: data,
+                });
               }
             : undefined,
         },
@@ -266,7 +254,7 @@ function IncidentMarkerSeries({
     type: 'custom',
     yAxisIndex,
     renderItem: renderIncidentHighlight,
-    data: markerData,
+    data: incidentPeriods,
     color: theme.red300,
     animation: false,
     markLine: MarkLine({
@@ -291,19 +279,7 @@ function IncidentMarkerSeries({
 
 interface UseIncidentMarkersProps {
   incidents: IncidentPeriod[];
-  intervalMs: number;
   seriesName: string;
-  /**
-   * If true, adds a marker for the duration of the interval before the beginning
-   * of an open period. This is used to communicate to the user that the change was
-   * detected in the preceding interval, which can be a source of confusion in the
-   * case of large intervals (like 1 day).
-   *
-   * If we stored a historical list of evaluated values from the detector, we could
-   * plot that as a line series instead of using this marker, but that is not something
-   * that is supported at present.
-   */
-  includePreviousIntervalMarker?: boolean;
   /**
    * Provide a custom tooltip for the mark line items
    */
@@ -339,8 +315,6 @@ export function useIncidentMarkers({
   markLineTooltip,
   yAxisIndex = 0,
   onClick,
-  intervalMs,
-  includePreviousIntervalMarker,
 }: UseIncidentMarkersProps): UseIncidentMarkersResult {
   const theme = useTheme();
   const chartRef = useRef<ECharts | null>(null);
@@ -422,7 +396,10 @@ export function useIncidentMarkers({
           renderItem: () => null,
           markArea: {
             itemStyle: {
-              color: data.hoverColor ?? data.color,
+              color: getPriorityColor({
+                priority: data.priority,
+                theme,
+              }),
               opacity: 0.2,
             },
             data: [
@@ -504,7 +481,7 @@ export function useIncidentMarkers({
         echartsInstance.off('click', handleClick);
       };
     },
-    [seriesId, incidentPeriods, onClick]
+    [incidentPeriods, seriesId, theme, onClick]
   );
 
   const incidentMarkerSeries = useMemo(() => {
@@ -520,8 +497,6 @@ export function useIncidentMarkers({
       seriesId,
       seriesTooltip,
       markLineTooltip,
-      intervalMs,
-      includePreviousIntervalMarker,
     });
   }, [
     incidentPeriods,
@@ -531,8 +506,6 @@ export function useIncidentMarkers({
     seriesId,
     seriesTooltip,
     markLineTooltip,
-    intervalMs,
-    includePreviousIntervalMarker,
   ]);
 
   return {

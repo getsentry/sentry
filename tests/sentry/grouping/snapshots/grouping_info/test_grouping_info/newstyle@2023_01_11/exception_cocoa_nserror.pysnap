@@ -1,5 +1,5 @@
 ---
-created: '2025-10-03T22:58:45.199295+00:00'
+created: '2025-10-06T21:57:33.120005+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -822,7 +822,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": true,
-    "description": "in-app exception",
+    "description": "NSError",
     "hash": "029f3b967068b1539f96957b7c0451d7",
     "hint": null,
     "key": "app_ns_error",
@@ -1587,7 +1587,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": false,
-    "description": "system",
+    "description": "thread stacktrace — all frames",
     "hash": null,
     "hint": "ignored because app exception takes precedence",
     "key": "system_thread_stacktrace",

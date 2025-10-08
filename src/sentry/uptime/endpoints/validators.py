@@ -14,7 +14,6 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
 from sentry.uptime.models import (
-    UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionDataSourceHandler,
     get_audit_log_data,
@@ -453,7 +452,6 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
                 interval_seconds=validated_data["interval_seconds"],
                 timeout_ms=validated_data["timeout_ms"],
                 trace_sampling=validated_data.get("trace_sampling", False),
-                uptime_status=UptimeStatus.OK,
                 method=validated_data.get("method", "GET"),
                 headers=validated_data.get("headers", None),
                 body=validated_data.get("body", None),

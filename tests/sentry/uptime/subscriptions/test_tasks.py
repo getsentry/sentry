@@ -22,7 +22,7 @@ from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_kafka
 from sentry.uptime.config_producer import get_partition_keys
-from sentry.uptime.models import UptimeStatus, UptimeSubscription, UptimeSubscriptionRegion
+from sentry.uptime.models import UptimeSubscription, UptimeSubscriptionRegion
 from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.uptime.subscriptions.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
@@ -481,45 +481,44 @@ class UpdateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
 class BrokenMonitorCheckerTest(UptimeTestCase):
     def test(self) -> None:
         self.run_test(
-            UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
-            UptimeStatus.FAILED,
-            timezone.now() - timedelta(days=8),
-            ObjectStatus.DISABLED,
-            DetectorPriorityLevel.OK,
+            mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
+            detector_state=DetectorPriorityLevel.HIGH,
+            update_date=timezone.now() - timedelta(days=8),
+            expected_status=ObjectStatus.DISABLED,
+            expected_priority_level=DetectorPriorityLevel.OK,
         )
 
     def test_manual(self) -> None:
         self.run_test(
-            UptimeMonitorMode.MANUAL,
-            UptimeStatus.FAILED,
-            timezone.now() - timedelta(days=8),
-            ObjectStatus.ACTIVE,
-            DetectorPriorityLevel.HIGH,
+            mode=UptimeMonitorMode.MANUAL,
+            detector_state=DetectorPriorityLevel.HIGH,
+            update_date=timezone.now() - timedelta(days=8),
+            expected_status=ObjectStatus.ACTIVE,
+            expected_priority_level=DetectorPriorityLevel.HIGH,
         )
 
     def test_auto_young(self) -> None:
         self.run_test(
-            UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
-            UptimeStatus.FAILED,
-            timezone.now() - timedelta(days=4),
-            ObjectStatus.ACTIVE,
-            DetectorPriorityLevel.HIGH,
+            mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
+            detector_state=DetectorPriorityLevel.HIGH,
+            update_date=timezone.now() - timedelta(days=4),
+            expected_status=ObjectStatus.ACTIVE,
+            expected_priority_level=DetectorPriorityLevel.HIGH,
         )
 
     def test_auto_not_failed(self) -> None:
         self.run_test(
-            UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
-            UptimeStatus.OK,
-            timezone.now() - timedelta(days=8),
-            ObjectStatus.ACTIVE,
-            DetectorPriorityLevel.OK,
+            mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
+            detector_state=DetectorPriorityLevel.OK,
+            update_date=timezone.now() - timedelta(days=8),
+            expected_status=ObjectStatus.ACTIVE,
+            expected_priority_level=DetectorPriorityLevel.OK,
         )
 
     def test_handle_disable_detector_exceptions(self) -> None:
         detector = self.create_uptime_detector(
             mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
-            uptime_status=UptimeStatus.FAILED,
-            uptime_status_update_date=timezone.now() - timedelta(days=8),
+            detector_state=DetectorPriorityLevel.HIGH,
         )
 
         # Update the detector state date to simulate an old failure
@@ -542,15 +541,14 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
     def run_test(
         self,
         mode: UptimeMonitorMode,
-        uptime_status: UptimeStatus,
+        detector_state: DetectorPriorityLevel,
         update_date: datetime,
         expected_status: int,
         expected_priority_level: DetectorPriorityLevel,
     ):
         detector = self.create_uptime_detector(
             mode=mode,
-            uptime_status=uptime_status,
-            uptime_status_update_date=update_date,
+            detector_state=detector_state,
         )
 
         # Update detector state date to match the test scenario
@@ -567,10 +565,10 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
         else:
             assert not detector.enabled
 
-        detector_state = detector.detectorstate_set.first()
-        assert detector_state is not None
-        assert detector_state.priority_level == expected_priority_level
+        state = detector.detectorstate_set.first()
+        assert state is not None
+        assert state.priority_level == expected_priority_level
         if expected_priority_level == DetectorPriorityLevel.HIGH:
-            assert detector_state.is_triggered
+            assert state.is_triggered
         else:
-            assert not detector_state.is_triggered
+            assert not state.is_triggered

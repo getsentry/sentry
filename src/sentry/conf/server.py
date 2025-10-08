@@ -2756,6 +2756,7 @@ SEER_SEVERITY_RETRIES = 1
 
 SEER_AUTOFIX_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_SUMMARIZATION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+SEER_PREVENT_AI_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_FIXABILITY_TIMEOUT = 0.6  # 600 milliseconds
 
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL

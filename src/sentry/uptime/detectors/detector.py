@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sentry import features
+from sentry import options
 from sentry.uptime.detectors.ranking import (
     add_base_url_to_rank,
     should_detect_for_organization,
@@ -19,7 +19,7 @@ def detect_base_url_for_project(project: Project, url: str) -> None:
     # Note: We might end up removing the `should_detect_for_project` check here if/when we decide to use detected
     # urls as suggestions as well.
     if (
-        not features.has("organizations:uptime-automatic-hostname-detection", project.organization)
+        not options.get("uptime.automatic-hostname-detection")
         or not should_detect_for_project(project)
         or not should_detect_for_organization(project.organization)
     ):

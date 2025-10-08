@@ -52,7 +52,7 @@ class FileIOMainThreadDetectorTest(TestCase):
 
     def test_respects_project_option(self) -> None:
         project = self.create_project()
-        event = get_event("file-io-on-main-thread")
+        event = get_event("file-io-on-main-thread/file-io-on-main-thread")
         event["project_id"] = project.id
 
         settings = get_detection_settings(project.id)
@@ -72,7 +72,7 @@ class FileIOMainThreadDetectorTest(TestCase):
         assert not detector.is_creation_allowed_for_project(project)
 
     def test_detects_file_io_main_thread(self) -> None:
-        event = get_event("file-io-on-main-thread")
+        event = get_event("file-io-on-main-thread/file-io-on-main-thread")
 
         assert self.find_problems(event) == [
             PerformanceProblem(
@@ -94,30 +94,30 @@ class FileIOMainThreadDetectorTest(TestCase):
         ]
 
     def test_does_not_detect_file_io_main_thread(self) -> None:
-        event = get_event("file-io-on-main-thread")
+        event = get_event("file-io-on-main-thread/file-io-on-main-thread")
         event["spans"][0]["data"]["blocked_main_thread"] = False
 
         assert self.find_problems(event) == []
 
     def test_ignores_nib_files(self) -> None:
-        event = get_event("file-io-on-main-thread")
+        event = get_event("file-io-on-main-thread/file-io-on-main-thread")
         event["spans"][0]["data"]["file.path"] = "somethins/stuff.txt/blah/yup/ios.nib"
 
         assert self.find_problems(event) == []
 
     def test_ignores_keyboard_files(self) -> None:
-        event = get_event("file-io-on-main-thread")
+        event = get_event("file-io-on-main-thread/file-io-on-main-thread")
         event["spans"][0]["data"]["file.path"] = "somethins/stuff/blah/yup/KBLayout_iPhone.dat"
         assert self.find_problems(event) == []
 
     def test_gives_problem_correct_title(self) -> None:
-        event = get_event("file-io-on-main-thread")
+        event = get_event("file-io-on-main-thread/file-io-on-main-thread")
         event["spans"][0]["data"]["blocked_main_thread"] = True
         problem = self.find_problems(event)[0]
         assert problem.title == "File IO on Main Thread"
 
     def test_duplicate_calls_do_not_change_callstack(self) -> None:
-        event = get_event("file-io-on-main-thread")
+        event = get_event("file-io-on-main-thread/file-io-on-main-thread")
         event["spans"][0]["data"]["blocked_main_thread"] = True
         single_span_problem = self.find_problems(event)[0]
         single_problem_fingerprint = single_span_problem.fingerprint
@@ -127,7 +127,7 @@ class FileIOMainThreadDetectorTest(TestCase):
         assert double_span_problem.fingerprint == single_problem_fingerprint
 
     def test_file_io_with_proguard(self) -> None:
-        event = get_event("file-io-on-main-thread-with-obfuscation")
+        event = get_event("file-io-on-main-thread/file-io-on-main-thread-with-obfuscation")
         event["project"] = self.project.id
 
         uuid = event["debug_meta"]["images"][0]["uuid"]
@@ -143,19 +143,21 @@ class FileIOMainThreadDetectorTest(TestCase):
         assert problem.title == "File IO on Main Thread"
 
     def test_parallel_spans_detected(self) -> None:
-        event = get_event("file-io-on-main-thread-with-parallel-spans")
+        event = get_event("file-io-on-main-thread/file-io-on-main-thread-with-parallel-spans")
         problem = self.find_problems(event)[0]
         assert problem.offender_span_ids == ["054ba3a374d543eb", "054ba3a3a4d543ab"]
 
     def test_parallel_spans_not_detected_when_total_too_short(self) -> None:
-        event = get_event("file-io-on-main-thread-with-parallel-spans")
+        event = get_event("file-io-on-main-thread/file-io-on-main-thread-with-parallel-spans")
         event["spans"][1]["timestamp"] = 1669031858.015
 
         problems = self.find_problems(event)
         assert len(problems) == 0
 
     def test_complicated_structure(self) -> None:
-        event = get_event("file-io-on-main-thread-with-complicated-structure")
+        event = get_event(
+            "file-io-on-main-thread/file-io-on-main-thread-with-complicated-structure"
+        )
 
         problem = self.find_problems(event)[0]
         assert problem.offender_span_ids == [

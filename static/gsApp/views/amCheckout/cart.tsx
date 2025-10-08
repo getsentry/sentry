@@ -31,6 +31,9 @@ import {
 import {
   displayBudgetName,
   formatReservedWithUnits,
+  getCreditApplied,
+  getCredits,
+  getFees,
   getPlanIcon,
   getProductIcon,
   getReservedBudgetCategoryForAddOn,
@@ -522,9 +525,9 @@ function TotalSummary({
     return subtext;
   };
 
-  const fees = utils.getFees({invoiceItems: previewData?.invoiceItems ?? []});
-  const credits = utils.getCredits({invoiceItems: previewData?.invoiceItems ?? []});
-  const creditApplied = utils.getCreditApplied({
+  const fees = getFees({invoiceItems: previewData?.invoiceItems ?? []});
+  const credits = getCredits({invoiceItems: previewData?.invoiceItems ?? []});
+  const creditApplied = getCreditApplied({
     creditApplied: previewData?.creditApplied ?? 0,
     invoiceItems: previewData?.invoiceItems ?? [],
   });

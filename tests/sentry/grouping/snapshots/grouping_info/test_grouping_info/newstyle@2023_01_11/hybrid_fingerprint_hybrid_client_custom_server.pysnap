@@ -1,5 +1,5 @@
 ---
-created: '2025-10-03T22:58:46.978236+00:00'
+created: '2025-10-06T21:57:34.538786+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -816,7 +816,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": false,
-    "description": "in-app exception stacktrace",
+    "description": "exception stacktrace — in-app frames",
     "hash": null,
     "hint": "ignored because custom server fingerprint takes precedence",
     "key": "app_exception_stacktrace",
@@ -1651,7 +1651,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": false,
-    "description": "exception stacktrace",
+    "description": "exception stacktrace — all frames",
     "hash": null,
     "hint": "ignored because custom server fingerprint takes precedence",
     "key": "system_exception_stacktrace",

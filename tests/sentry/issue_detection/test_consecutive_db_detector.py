@@ -166,7 +166,7 @@ class ConsecutiveDbDetectorTest(TestCase):
         assert problems == []
 
     def test_does_not_detect_consecutive_db_in_query_waterfall_event(self) -> None:
-        event = get_event("query-waterfall-in-django-random-view")
+        event = get_event("n-plus-one-db/query-waterfall-in-django-random-view")
 
         problems = self.find_problems(event)
 

@@ -183,7 +183,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         assert self.find_problems(event) == []
 
     def test_does_not_detect_n_plus_one(self) -> None:
-        event = get_event("n-plus-one-in-django-index-view")
+        event = get_event("n-plus-one-db/n-plus-one-in-django-index-view")
         assert self.find_problems(event) == []
 
     def test_does_not_detect_when_parent_is_transaction(self) -> None:

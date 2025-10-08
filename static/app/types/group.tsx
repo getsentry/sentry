@@ -196,7 +196,7 @@ export enum IssueTitle {
   PERFORMANCE_SLOW_DB_QUERY = 'Slow DB Query',
   PERFORMANCE_RENDER_BLOCKING_ASSET = 'Large Render Blocking Asset',
   PERFORMANCE_UNCOMPRESSED_ASSET = 'Uncompressed Asset',
-  PERFORMANCE_LARGE_HTTP_PAYLOAD = 'Large HTTP payload',
+  PERFORMANCE_LARGE_HTTP_PAYLOAD = 'Large HTTP Payload',
   PERFORMANCE_HTTP_OVERHEAD = 'HTTP/1.1 Overhead',
   PERFORMANCE_ENDPOINT_REGRESSION = 'Endpoint Regression',
 
@@ -943,7 +943,15 @@ export interface BaseGroup {
   substatus?: GroupSubstatus | null;
 }
 
+interface GroupOpenPeriodActivity {
+  dateCreated: string;
+  id: string;
+  type: 'opened' | 'status_change' | 'closed';
+  value: 'high' | 'medium' | null;
+}
+
 export interface GroupOpenPeriod {
+  activities: GroupOpenPeriodActivity[];
   duration: string;
   end: string;
   id: string;

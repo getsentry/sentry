@@ -106,9 +106,6 @@ function GroupingVariant({event, variant, showNonContributing}: GroupingVariantP
       case EventGroupVariantType.CUSTOM_FINGERPRINT:
         addFingerprintInfo(data, variant, showNonContributing);
         break;
-      case EventGroupVariantType.BUILT_IN_FINGERPRINT:
-        addFingerprintInfo(data, variant, showNonContributing);
-        break;
       case EventGroupVariantType.SALTED_COMPONENT:
         component = variant.component;
         addFingerprintInfo(data, variant, showNonContributing);

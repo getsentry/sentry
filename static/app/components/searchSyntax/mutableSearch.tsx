@@ -628,6 +628,63 @@ export class MutableSearch {
     return this;
   }
 
+  private _addFilterValueList(
+    key: string,
+    values: string[],
+    shouldEscape = true,
+    operator:
+      | ''
+      | WildcardOperators.CONTAINS
+      | WildcardOperators.STARTS_WITH
+      | WildcardOperators.ENDS_WITH
+  ): this {
+    const escapedValues = values.map(value => {
+      const escaped = shouldEscape ? escapeFilterValue(value) : value;
+      return quoteIfNeeded(escaped);
+    });
+
+    this.tokens.push({
+      type: TokenType.FILTER,
+      key,
+      value: `${operator}[${escapedValues.join(',')}]`,
+      listValues: escapedValues,
+      text: `${key}:${operator}[${escapedValues.join(',')}]`,
+      wildcard: operator || undefined,
+    });
+    return this;
+  }
+
+  addFilterValueList(key: string, values: string[], shouldEscape = true): this {
+    return this._addFilterValueList(key, values, shouldEscape, '');
+  }
+
+  addContainsFilterValueList(key: string, values: string[], shouldEscape = true): this {
+    return this._addFilterValueList(
+      key,
+      values,
+      shouldEscape,
+      WildcardOperators.CONTAINS
+    );
+  }
+
+  addStartsWithFilterValueList(key: string, values: string[], shouldEscape = true): this {
+    return this._addFilterValueList(
+      key,
+      values,
+      shouldEscape,
+      WildcardOperators.STARTS_WITH
+    );
+  }
+
+  addEndsWithFilterValueList(key: string, values: string[], shouldEscape = true): this {
+    return this._addFilterValueList(
+      key,
+      values,
+      shouldEscape,
+      WildcardOperators.ENDS_WITH
+    );
+  }
+
   getFilters(): Record<string, string[]> {
     return this.tokens.reduce<Record<string, string[]>>((acc, t) => {
       if (!isFilterToken(t)) {

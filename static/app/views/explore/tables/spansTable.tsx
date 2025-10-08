@@ -22,14 +22,14 @@ import {
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
-import {
-  useExploreSortBys,
-  useSetExploreSortBys,
-} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
-import {useQueryParamsFields} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsFields,
+  useQueryParamsSortBys,
+  useSetQueryParamsSortBys,
+} from 'sentry/views/explore/queryParams/context';
 
 import {FieldRenderer} from './fieldRenderer';
 
@@ -39,8 +39,8 @@ interface SpansTableProps {
 
 export function SpansTable({spansTableResult}: SpansTableProps) {
   const fields = useQueryParamsFields();
-  const sortBys = useExploreSortBys();
-  const setSortBys = useSetExploreSortBys();
+  const sortBys = useQueryParamsSortBys();
+  const setSortBys = useSetQueryParamsSortBys();
 
   const visibleFields = useMemo(
     () => (fields.includes('id') ? [...fields] : ['id', ...fields]),
