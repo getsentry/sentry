@@ -17,7 +17,6 @@ export const inlineCodeStyles = (theme: Theme) => css`
 
   color: ${theme.tokens.content.promotion};
   background: color-mix(in oklab, currentColor, transparent 92%);
-  border-top: 2px solid transparent;
 
   padding-inline: 0.3ch;
   margin-inline: -0.15ch;
