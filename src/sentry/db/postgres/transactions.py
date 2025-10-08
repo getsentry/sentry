@@ -115,3 +115,34 @@ def enforce_constraints(transaction: Atomic) -> Generator[None]:
     with transaction:
         yield
         get_connection(transaction.using or "default").check_constraints()
+
+
+@contextlib.contextmanager
+def unset_statement_timeout(using: str) -> Generator[None]:
+    """
+    Temporarily disables the statement_timeout for long-running database operations.
+
+    This is useful for operations like cleanup tasks that need to run expensive queries
+    that might exceed the default statement_timeout configured on the database.
+
+    The previous timeout value is restored after the context exits.
+    """
+    connection = connections[using]
+
+    # Only PostgreSQL databases support statement_timeout
+    if connection.vendor != "postgresql":
+        yield
+        return
+
+    with connection.cursor() as cursor:
+        # Save the current statement_timeout value
+        cursor.execute("SHOW statement_timeout")
+        previous_timeout = cursor.fetchone()[0]
+
+        try:
+            # Disable statement_timeout (0 means unlimited)
+            cursor.execute("SET statement_timeout = 0")
+            yield
+        finally:
+            # Restore the previous timeout value
+            cursor.execute(f"SET statement_timeout = '{previous_timeout}'")
