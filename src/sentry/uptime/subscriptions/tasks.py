@@ -201,14 +201,15 @@ def broken_monitor_checker(**kwargs):
     from sentry.workflow_engine.types import DetectorPriorityLevel
 
     count = 0
-    for detector_state in RangeQuerySetWrapper(
-        DetectorState.objects.filter(
-            state=DetectorPriorityLevel.HIGH,
-            date_updated__lt=timezone.now() - BROKEN_MONITOR_AGE_LIMIT,
-            detector__type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
-            detector__config__mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
-        ).select_related("detector")
-    ):
+    queryset = DetectorState.objects.filter(
+        state=DetectorPriorityLevel.HIGH,
+        date_updated__lt=timezone.now() - BROKEN_MONITOR_AGE_LIMIT,
+        detector__type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+        detector__config__mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
+        detector__enabled=True,
+    ).select_related("detector")
+
+    for detector_state in RangeQuerySetWrapper(queryset):
         detector = detector_state.detector
         try:
             disable_uptime_detector(detector)
