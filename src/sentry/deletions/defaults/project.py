@@ -89,6 +89,15 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         ):
             relations.append(ModelRelation(m1, {"project_id": instance.id}, BulkModelDeletionTask))
 
+        # AlertRule must be deleted before QuerySubscription to avoid ProtectedError
+        # since AlertRule has a protected foreign key to SnubaQuery
+        relations.append(
+            ModelRelation(
+                AlertRule,
+                {"snuba_query__subscriptions__project": instance},
+            )
+        )
+
         for m2 in (
             # GroupOpenPeriod should be deleted before Activity
             GroupOpenPeriod,
@@ -99,13 +108,6 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             Rule,
         ):
             relations.append(ModelRelation(m2, {"project_id": instance.id}))
-
-        relations.append(
-            ModelRelation(
-                AlertRule,
-                {"snuba_query__subscriptions__project": instance},
-            )
-        )
         relations.append(ModelRelation(Detector, {"project_id": instance.id}))
 
         # Release needs to handle deletes after Group is cleaned up as the foreign
