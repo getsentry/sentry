@@ -1,5 +1,6 @@
 import logging
 import time
+import uuid
 from datetime import timedelta
 from unittest.mock import MagicMock, Mock, patch
 
@@ -413,3 +414,44 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             assert "contexts" in send_extra_data_data
             contexts_after_processing = send_extra_data_data["contexts"]
             assert contexts_after_processing == {**{"geo": geo_interface}}
+
+    def test_event_forwarding_to_items(self):
+        create_default_projects()
+        es = self.kafka_eventstream
+
+        # Prepare a generic event with a span item
+        profile_message = load_data("generic-event-profiling")
+        event_data = {
+            **profile_message["event"],
+            "trace_id": uuid.uuid4().hex,
+            "timestamp": timezone.now().isoformat(),
+        }
+        project_id = event_data.get("project_id", self.project.id)
+
+        occurrence, group_info = self.process_occurrence(
+            event_id=event_data["event_id"],
+            project_id=project_id,
+            event_data=event_data,
+        )
+        assert group_info is not None
+
+        event = Event(
+            event_id=occurrence.event_id,
+            project_id=project_id,
+            data=nodestore.backend.get(Event.generate_node_id(project_id, occurrence.event_id)),
+        )
+        group_event = event.for_group(group_info.group)
+        group_event.occurrence = occurrence
+
+        with self.options({"eventstream.eap_forwarding": 1.0}):
+            with patch.object(es, "_send_item") as send:
+                es.insert(
+                    group_event,
+                    is_new=True,
+                    is_regression=True,
+                    is_new_group_environment=False,
+                    primary_hash="",
+                    skip_consume=False,
+                    received_timestamp=event_data["timestamp"],
+                )
+                send.assert_called_once()
