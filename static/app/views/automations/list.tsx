@@ -78,9 +78,9 @@ export default function AutomationsList() {
   }, [pageLinks]);
 
   return (
-    <SentryDocumentTitle title={t('Automations')} noSuffix>
+    <SentryDocumentTitle title={t('Automations')}>
       <PageFiltersContainer>
-        <ListLayout actions={<Actions />}>
+        <ListLayout actions={<Actions />} title={t('Automations')}>
           <TableHeader />
           <div>
             <AutomationListTable
