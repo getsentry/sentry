@@ -23,7 +23,7 @@ import {decodeSorts} from 'sentry/utils/queryString';
 import {getTimeSeriesInterval} from 'sentry/utils/timeSeries/getTimeSeriesInterval';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
-import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -121,7 +121,8 @@ export const useSortedTimeSeries = <
     useIsSampled(0.1, key) &&
     organization.features.includes('explore-events-time-series-spot-check');
 
-  const timeSeriesResult = useFetchSpanTimeSeries(
+  const timeSeriesResult = useFetchEventsTimeSeries(
+    dataset ?? DiscoverDatasets.SPANS,
     {
       yAxis: yAxis as unknown as any,
       query: search,
