@@ -125,22 +125,23 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
 
   const centerKeyInView = useCallback(
     (key: Key | null) => {
-      if (key === null) return;
-      const container = listBoxRef.current;
-      if (!container) return;
-      const elId = getItemId(state as any, key as any);
-      if (!elId) return;
-      const el = document.getElementById(elId);
+      if (key === null || !listBoxRef.current) return;
+
+      const el = document.getElementById(getItemId(state as any, key as any));
       if (!el) return;
 
-      const containerRect = container.getBoundingClientRect();
       const elRect = el.getBoundingClientRect();
-      const offsetTopWithinContainer =
-        container.scrollTop + (elRect.top - containerRect.top);
-      const targetScrollTop =
-        offsetTopWithinContainer - container.clientHeight / 2 + elRect.height / 2;
+      const containerRect = listBoxRef.current.getBoundingClientRect();
 
-      container.scrollTop = Math.max(0, targetScrollTop);
+      const offsetTopWithinContainer =
+        listBoxRef.current.scrollTop + (elRect.top - containerRect.top);
+
+      const targetScrollTop =
+        offsetTopWithinContainer -
+        listBoxRef.current.clientHeight / 2 +
+        elRect.height / 2;
+
+      listBoxRef.current.scrollTop = Math.max(0, targetScrollTop);
     },
     [listBoxRef, state]
   );
@@ -151,15 +152,13 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
 
   useLayoutEffect(() => {
     if (!isOpen) return;
-    if (
-      lastFocusedKeyRef.current !== null &&
-      state.selectionManager.focusedKey === null
-    ) {
-      const keyToRestore = lastFocusedKeyRef.current;
-      state.selectionManager.setFocusedKey(keyToRestore);
-      centerKeyInView(keyToRestore);
-    }
+    if (!lastFocusedKeyRef.current) return;
+    if (state.selectionManager.focusedKey !== null) return;
+
+    state.selectionManager.setFocusedKey(lastFocusedKeyRef.current);
+    centerKeyInView(lastFocusedKeyRef.current);
   }, [isOpen, state, centerKeyInView]);
+
   const totalOptions = items.reduce(
     (acc, item) => acc + (itemIsSection(item) ? item.options.length : 1),
     0
@@ -221,11 +220,11 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
               size="sm"
               style={{maxWidth: overlayProps.style!.maxWidth}}
             />
-            {isLoading && anyItemsShowing ? (
+            {/* {isLoading && anyItemsShowing ? (
               <LoadingWrapper height="32px" width="100%">
                 <LoadingIndicator size={24} />
               </LoadingWrapper>
-            ) : null}
+            ) : null} */}
             <Footer
               isMultiSelect={isMultiSelect}
               canUseWildcard={canUseWildcard}
