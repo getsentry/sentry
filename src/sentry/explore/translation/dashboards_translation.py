@@ -96,7 +96,8 @@ def translate_dashboard_widget_queries(
         is_function_field = is_function(field)
 
         if is_equation_field:
-            new_fields.append(eap_query_parts["equations"][equation_index])
+            if old_index < original_fields_length:
+                new_fields.append(eap_query_parts["equations"][equation_index])
             new_aggregates.append(eap_query_parts["equations"][equation_index])
             equation_index += 1
 
