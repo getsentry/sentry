@@ -10,6 +10,10 @@ export function isOnDemandMetricAlert(
   aggregate: string,
   query: string
 ): boolean {
+  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    return false;
+  }
+
   if (isOnDemandAggregate(aggregate)) {
     return true;
   }

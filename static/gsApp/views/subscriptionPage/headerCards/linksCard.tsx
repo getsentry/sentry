@@ -1,5 +1,6 @@
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {IconList, IconSubscribed, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -16,21 +17,27 @@ function LinksCard() {
             icon={<IconList />}
             to="/settings/billing/receipts/"
           >
-            {t('View all receipts')}
+            <Text size="sm" variant="accent">
+              {t('View all receipts')}
+            </Text>
           </LinkButton>
           <LinkButton
             priority="link"
             icon={<IconTimer />}
             to="/settings/billing/usage-log/"
           >
-            {t('View activity')}
+            <Text size="sm" variant="accent">
+              {t('View activity')}
+            </Text>
           </LinkButton>
           <LinkButton
             priority="link"
             icon={<IconSubscribed />}
             to="/settings/billing/notifications/"
           >
-            {t('Manage spend notifications')}
+            <Text size="sm" variant="accent">
+              {t('Manage spend notifications')}
+            </Text>
           </LinkButton>
         </Flex>,
       ]}

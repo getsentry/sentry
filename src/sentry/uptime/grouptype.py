@@ -8,7 +8,7 @@ from typing import override
 from django.utils import timezone as django_timezone
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckResult, CheckStatus
 
-from sentry import features, options
+from sentry import options
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
@@ -143,17 +143,14 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
         uptime_subscription = data_packet.packet.subscription
         metric_tags = data_packet.packet.metric_tags
 
-        issue_creation_flag_enabled = features.has(
-            "organizations:uptime-create-issues",
-            self.detector.project.organization,
-        )
+        issue_creation_enabled = options.get("uptime.create-issues")
         restricted_host_provider_ids = options.get(
             "uptime.restrict-issue-creation-by-hosting-provider-id"
         )
         host_provider_id = uptime_subscription.host_provider_id
         host_provider_enabled = host_provider_id not in restricted_host_provider_ids
 
-        issue_creation_allowed = issue_creation_flag_enabled and host_provider_enabled
+        issue_creation_allowed = issue_creation_enabled and host_provider_enabled
 
         # XXX(epurkhiser): We currently are duplicating the detector state onto
         # the uptime_subscription when the detector changes state. Once we stop
