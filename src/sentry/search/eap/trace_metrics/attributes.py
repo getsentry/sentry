@@ -38,7 +38,6 @@ TRACE_METRICS_ATTRIBUTE_DEFINITIONS = {
             internal_type=constants.STRING,  # Stored as string, but we want to search as a number.
             search_type="number",
         ),
-        simple_sentry_field("value", search_type="number"),
         simple_sentry_field("browser.name"),
         simple_sentry_field("browser.version"),
         simple_sentry_field("environment"),
@@ -49,9 +48,22 @@ TRACE_METRICS_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("sdk.version"),
         simple_sentry_field("origin"),
         # Trace Metric specific fields
-        simple_sentry_field("metric.name"),
-        simple_sentry_field("metric.type"),
-        simple_sentry_field("metric.unit"),
+        simple_sentry_field("value", search_type="number"),
+        ResolvedAttribute(
+            public_alias="metric.name",
+            internal_name="sentry.metric_name",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="metric.type",
+            internal_name="sentry.metric_type",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="metric.unit",
+            internal_name="sentry.metric_unit",
+            search_type="string",
+        ),
     ]
 }
 

@@ -1,5 +1,5 @@
 ---
-created: '2025-10-06T22:48:50.578017+00:00'
+created: '2025-10-07T22:42:53.909474+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -103,7 +103,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": false,
-    "description": "in-app",
+    "description": "exception message",
     "hash": null,
     "hint": "ignored because built-in fingerprint takes precedence",
     "key": "app_exception_message",
@@ -115,7 +115,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       "dogs are great"
     ],
     "contributes": true,
-    "description": "Sentry defined fingerprint",
+    "description": "Sentry-defined fingerprint",
     "hash": "5d731dcf8ecc4f042eeacf528d8d8da9",
     "hint": null,
     "key": "built_in_fingerprint",
@@ -224,7 +224,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": false,
-    "description": "exception stacktrace",
+    "description": "exception stacktrace — all frames",
     "hash": null,
     "hint": "ignored because built-in fingerprint takes precedence",
     "key": "system_exception_stacktrace",

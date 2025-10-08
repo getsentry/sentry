@@ -6,7 +6,10 @@ import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import Hook from 'sentry/components/hook';
 import LogoSentry from 'sentry/components/logoSentry';
-import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {
+  OnboardingContextProvider,
+  useOnboardingContext,
+} from 'sentry/components/onboarding/onboardingContext';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import Redirect from 'sentry/components/redirect';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -62,7 +65,7 @@ export const onboardingSteps: StepDescriptor[] = [
   },
 ];
 
-function Onboarding(props: Props) {
+export function OnboardingWithoutContext(props: Props) {
   const {step: stepId} = useParams<{step: string}>();
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
@@ -295,6 +298,14 @@ function Onboarding(props: Props) {
         />
       </Container>
     </OnboardingWrapper>
+  );
+}
+
+function Onboarding(props: Props) {
+  return (
+    <OnboardingContextProvider>
+      <OnboardingWithoutContext {...props} />
+    </OnboardingContextProvider>
   );
 }
 

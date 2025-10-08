@@ -222,7 +222,7 @@ export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.QUEUE]: ['insight-modules'],
   [ModuleName.AGENTS]: ['insight-modules'],
   [ModuleName.SCREEN_LOAD]: ['insight-modules'],
-  [ModuleName.MCP]: ['insight-modules', 'mcp-insights'],
+  [ModuleName.MCP]: ['insight-modules'],
   [ModuleName.MOBILE_UI]: ['insight-modules'],
   [ModuleName.MOBILE_VITALS]: ['insight-modules'],
   [ModuleName.SCREEN_RENDERING]: ['insight-modules'],

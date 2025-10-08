@@ -117,21 +117,6 @@ function Overview({location, subscription, promotionData}: Props) {
         openPerformanceQuotaCreditsPromoModal({api, promotionData, organization});
         return;
       }
-
-      promotion = promotionData.availablePromotions?.find(
-        promo => promo.promptActivityTrigger === 'performance_reserved_txns_discount'
-      );
-
-      if (promotion) {
-        openPerformanceReservedTransactionsDiscountModal({
-          api,
-          promotionData,
-          organization,
-          promptFeature: 'performance_reserved_txns_discount',
-          navigate,
-        });
-        return;
-      }
     }
 
     // open the codecov modal if the query param is present

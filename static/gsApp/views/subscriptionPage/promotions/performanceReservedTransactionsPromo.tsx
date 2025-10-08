@@ -16,9 +16,7 @@ type Props = {
   navigate: ReturnType<typeof useNavigate>;
   organization: Organization;
   promotionData: PromotionData;
-  promptFeature:
-    | 'performance_reserved_txns_discount'
-    | 'performance_reserved_txns_discount_v1';
+  promptFeature: 'performance_reserved_txns_discount_v1';
 };
 
 function PromotionModalBody() {

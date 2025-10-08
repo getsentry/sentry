@@ -1,5 +1,5 @@
 ---
-created: '2025-10-03T16:56:42.876169+00:00'
+created: '2025-10-06T19:13:32.140180+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -7,7 +7,7 @@ source: tests/sentry/grouping/test_grouping_info.py
   "hashed_checksum": {
     "checksum": "de46d023e69b171b90ccf3ebca7aede4",
     "contributes": true,
-    "description": "hashed legacy checksum",
+    "description": "hashed checksum",
     "hash": "de46d023e69b171b90ccf3ebca7aede4",
     "hint": null,
     "key": "hashed_checksum",

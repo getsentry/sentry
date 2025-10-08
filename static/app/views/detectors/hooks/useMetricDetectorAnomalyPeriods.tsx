@@ -1,8 +1,5 @@
 import {useMemo} from 'react';
-import type {Theme} from '@emotion/react';
-import {useTheme} from '@emotion/react';
 
-import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {
   AlertRuleSensitivity,
@@ -56,7 +53,6 @@ interface UseMetricDetectorAnomalyPeriodsResult {
  */
 function groupAnomaliesForBubbles(
   anomalies: Anomaly[],
-  theme: Theme,
   timePeriodMs?: number
 ): IncidentPeriod[] {
   const periods: IncidentPeriod[] = [];
@@ -78,12 +74,8 @@ function groupAnomaliesForBubbles(
         currentPeriod = {
           // Anomaly id is not shown
           id: anomalies.indexOf(anomaly).toString(),
-          type: anomaly.anomaly.anomaly_type,
-          name: isHighConfidence
-            ? t('High Confidence Anomaly')
-            : t('Low Confidence Anomaly'),
-          color: isHighConfidence ? theme.red400 : theme.yellow400,
-          hoverColor: isHighConfidence ? theme.red300 : theme.yellow400,
+          type: 'open-period-start',
+          priority: isHighConfidence ? 'high' : 'medium',
           start: timestampMs,
           end: timestampMs,
         };
@@ -92,10 +84,7 @@ function groupAnomaliesForBubbles(
         currentPeriod.end = timestampMs;
         // Use higher confidence if available
         if (isHighConfidence) {
-          currentPeriod.type = AnomalyType.HIGH_CONFIDENCE;
-          currentPeriod.name = t('High Confidence Anomaly');
-          currentPeriod.color = theme.red400;
-          currentPeriod.hoverColor = theme.red300;
+          currentPeriod.priority = 'high';
         }
       }
     } else if (currentPeriod) {
@@ -142,8 +131,6 @@ export function useMetricDetectorAnomalyPeriods({
   sensitivity,
   enabled,
 }: UseMetricDetectorAnomalyPeriodsProps): UseMetricDetectorAnomalyPeriodsResult {
-  const theme = useTheme();
-
   // Fetch historical data with extended time period for anomaly detection baseline comparison
   const isFiveMinuteInterval = interval === 300;
   // EAP datasets have to select fewer historical data points
@@ -206,15 +193,8 @@ export function useMetricDetectorAnomalyPeriods({
     }
     // Convert timePeriod from seconds to milliseconds for minimum anomaly width
     const timePeriodMs = interval ? interval * 1000 : undefined;
-    return groupAnomaliesForBubbles(anomalies, theme, timePeriodMs);
-  }, [
-    anomalies,
-    theme,
-    interval,
-    isHistoricalLoading,
-    isAnomalyLoading,
-    isLoadingSeries,
-  ]);
+    return groupAnomaliesForBubbles(anomalies, timePeriodMs);
+  }, [anomalies, interval, isHistoricalLoading, isAnomalyLoading, isLoadingSeries]);
 
   return {
     anomalyPeriods,
