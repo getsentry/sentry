@@ -265,7 +265,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   const durationUnit = isDurationChart
     ? timeseriesResults && getDurationUnit(timeseriesResults, legendOptions)
     : undefined;
-  const bucketSize = getBucketSize(timeseriesResults);
+  const bucketSize = getBucketSize(series);
 
   const valueFormatter = (value: number, seriesName?: string) => {
     const decodedSeriesName = seriesName
