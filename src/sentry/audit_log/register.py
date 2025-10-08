@@ -686,3 +686,11 @@ default_manager.add(
         template="{console_platforms}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=220,
+        name="DATA_FORWARDER_ADD",
+        api_name="data_forwarder.add",
+        template="added data forwarder with provider {provider}",
+    )
+)
