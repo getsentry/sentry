@@ -10,6 +10,7 @@ from sentry.integrations.source_code_management.repo_trees import (
     RepoAndBranch,
     RepoTree,
     RepoTreesIntegration,
+    get_extension,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -41,6 +42,12 @@ class CodeMapping(NamedTuple):
 SLASH = "/"
 BACKSLASH = "\\"  # This is the Python representation of a single backslash
 
+# Maximum number of reprocessing iterations to prevent infinite loops
+MAX_REPROCESSING_ITERATIONS = 5
+
+# Maximum number of files to check per repository to prevent excessive processing
+MAX_FILES_TO_CHECK_PER_REPO = 10000
+
 
 def derive_code_mappings(
     organization: Organization,
@@ -68,6 +75,8 @@ class CodeMappingTreesHelper:
     def __init__(self, trees: Mapping[str, RepoTree]):
         self.trees = trees
         self.code_mappings: dict[str, CodeMapping] = {}
+        # Cache for fast lookups when checking existing code mappings
+        self._source_path_prefixes: set[str] = set()
 
     def generate_code_mappings(
         self, frames: Sequence[Mapping[str, Any]], platform: str | None = None
@@ -76,6 +85,7 @@ class CodeMappingTreesHelper:
         # We need to make sure that calling this method with a new list of stack traces
         # should always start with a clean slate
         self.code_mappings = {}
+        self._source_path_prefixes = set()
         self.platform = platform
 
         with metrics.timer(
@@ -88,7 +98,9 @@ class CodeMappingTreesHelper:
             # This allows for idempotency since the order of the stackframes will not matter
             # This has no performance issue because stackframes that match an existing code mapping
             # will be skipped
-            while True:
+            iterations = 0
+            while iterations < MAX_REPROCESSING_ITERATIONS:
+                iterations += 1
                 if not self._process_stackframes(buckets):
                     break
 
@@ -169,17 +181,27 @@ class CodeMappingTreesHelper:
                         # were matching more than one file
                         reprocess = True
                         self.code_mappings[stackframe_root] = code_mapping
+                        # Update the source path prefix cache
+                        self._source_path_prefixes.add(code_mapping.source_path)
         return reprocess
 
     def _find_code_mapping(self, frame_filename: FrameInfo) -> CodeMapping | None:
         """Look for the file path through all the trees and a generate code mapping for it if a match is found"""
         code_mappings: list[CodeMapping] = []
+        frame_extension = get_extension(frame_filename.normalized_path)
+        
         # XXX: This will need optimization by changing the data structure of the trees
         for repo_full_name in self.trees.keys():
+            repo_tree = self.trees[repo_full_name]
+            
+            # Skip repository if no files match the frame extension
+            if frame_extension and not self._repo_has_extension(repo_tree, frame_extension):
+                continue
+            
             try:
                 code_mappings.extend(
                     self._generate_code_mapping_from_tree(
-                        self.trees[repo_full_name], frame_filename
+                        repo_tree, frame_filename
                     )
                 )
             except NotImplementedError:
@@ -208,11 +230,28 @@ class CodeMappingTreesHelper:
         Finds a match in the repo tree and generates a code mapping for it. At most one code mapping is generated, if any.
         If more than one potential match is found, do not generate a code mapping and return an empty list.
         """
-        matched_files = [
-            src_path
-            for src_path in repo_tree.files
-            if self._is_potential_match(src_path, frame_filename)
-        ]
+        matched_files = []
+        files_checked = 0
+        
+        for src_path in repo_tree.files:
+            # Circuit breaker: stop checking after MAX_FILES_TO_CHECK_PER_REPO
+            if files_checked >= MAX_FILES_TO_CHECK_PER_REPO:
+                logger.warning(
+                    "Reached max files limit for repo",
+                    extra={
+                        "repo": repo_tree.repo.name,
+                        "frame": frame_filename.raw_path,
+                        "files_checked": files_checked,
+                    },
+                )
+                break
+            
+            files_checked += 1
+            if self._is_potential_match(src_path, frame_filename):
+                matched_files.append(src_path)
+                # Early exit if we already have more than one match
+                if len(matched_files) > 1:
+                    return []
 
         if len(matched_files) != 1:
             return []
@@ -262,6 +301,12 @@ class CodeMappingTreesHelper:
                 l2_idx -= 1
             return True
 
+        # Exit early for file extension mismatch to avoid cross-language comparisons
+        src_extension = get_extension(src_file)
+        frame_extension = get_extension(frame_filename.normalized_path)
+        if src_extension and frame_extension and src_extension != frame_extension:
+            return False
+
         # Exit early because we should not be processing source files for existing code maps
         if self._matches_existing_code_mappings(src_file):
             return False
@@ -278,11 +323,21 @@ class CodeMappingTreesHelper:
 
     def _matches_existing_code_mappings(self, src_file: str) -> bool:
         """Check if the source file is already covered by an existing code mapping"""
-        return any(
-            code_mapping.source_path
-            for code_mapping in self.code_mappings.values()
-            if src_file.startswith(f"{code_mapping.source_path}/")
-        )
+        # Use set-based lookup for O(1) average case instead of O(n) iteration
+        for source_path in self._source_path_prefixes:
+            if src_file.startswith(f"{source_path}/"):
+                return True
+        return False
+
+    def _repo_has_extension(self, repo_tree: RepoTree, extension: str) -> bool:
+        """Quick check if repository contains files with the given extension"""
+        # Sample first N files to determine if repo has the extension
+        # This avoids checking all files in large repos
+        sample_size = min(100, len(repo_tree.files))
+        for i in range(sample_size):
+            if get_extension(repo_tree.files[i]) == extension:
+                return True
+        return False
 
     def __repr__(self) -> str:
         return f"CodeMappingTreesHelper(trees={self.trees}, code_mappings={self.code_mappings})"
