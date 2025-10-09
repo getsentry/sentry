@@ -194,7 +194,7 @@ function BillingDetailsForm({
   };
 
   useEffect(() => {
-    const requiredFields = ['addressLine1', 'city', 'countryCode', 'postalCode'];
+    const requiredFields = ['addressLine1', 'city', 'countryCode'];
     requiredFields.forEach(field => {
       form.setFieldDescriptor(field, {
         required: true,
