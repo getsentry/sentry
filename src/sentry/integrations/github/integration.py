@@ -28,7 +28,7 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.credentials_service.types import CredentialLeasableMixin
+from sentry.integrations.credentials_service.types import CredentialLeasable
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.codecov_account_link import codecov_account_link
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
@@ -230,7 +230,7 @@ class GitHubIntegration(
     IssueSyncIntegration,
     CommitContextIntegration,
     RepoTreesIntegration,
-    CredentialLeasableMixin,
+    CredentialLeasable,
 ):
     integration_name = IntegrationProviderSlug.GITHUB
 

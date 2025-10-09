@@ -19,6 +19,7 @@ from sentry.integrations.base import (
     IntegrationFeatures,
     IntegrationMetadata,
 )
+from sentry.integrations.credentials_service.types import CredentialLeasable
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.integration import GitHubIntegrationProvider, build_repository_query
 from sentry.integrations.github.issues import GitHubIssuesSpec
@@ -153,7 +154,7 @@ API_ERRORS = {
 
 
 class GitHubEnterpriseIntegration(
-    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration
+    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration, CredentialLeasable
 ):
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
