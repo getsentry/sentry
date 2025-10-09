@@ -505,10 +505,18 @@ class DashboardDetail extends Component<Props, State> {
     }
 
     const filterParams: DashboardFilters = {};
-    Object.keys(activeFilters).forEach(key => {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      filterParams[key] = activeFilters[key].length ? activeFilters[key] : '';
-    });
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    filterParams[DashboardFilterKeys.RELEASE] = activeFilters[DashboardFilterKeys.RELEASE]
+      ?.length
+      ? activeFilters[DashboardFilterKeys.RELEASE]
+      : '';
+
+    const globalFilterParams: Record<string, string[]> = {};
+    if (activeFilters[DashboardFilterKeys.GLOBAL_FILTER]) {
+      globalFilterParams[DashboardFilterKeys.GLOBAL_FILTER] = activeFilters[
+        DashboardFilterKeys.GLOBAL_FILTER
+      ].map(filter => JSON.stringify(filter));
+    }
 
     if (
       !isEqualWith(activeFilters, dashboard.filters, (a, b) => {
@@ -524,6 +532,7 @@ class DashboardDetail extends Component<Props, State> {
         query: {
           ...location.query,
           ...filterParams,
+          ...globalFilterParams,
         },
       });
     }
