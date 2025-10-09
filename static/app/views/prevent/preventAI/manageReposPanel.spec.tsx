@@ -269,9 +269,7 @@ describe('ManageReposPanel', () => {
         organization: mockOrganization,
       });
 
-      const dropdown = await screen.findByTestId(
-        'error-prediction-sensitivity-dropdown'
-      );
+      const dropdown = await screen.findByTestId('error-prediction-sensitivity-dropdown');
       expect(dropdown).toHaveTextContent('Medium');
     });
 
@@ -334,9 +332,7 @@ describe('ManageReposPanel', () => {
         organization: mockOrganization,
       });
 
-      const dropdown = await screen.findByTestId(
-        'error-prediction-sensitivity-dropdown'
-      );
+      const dropdown = await screen.findByTestId('error-prediction-sensitivity-dropdown');
       await userEvent.click(dropdown);
 
       const lowOption = await screen.findByText('Low');
@@ -397,9 +393,7 @@ describe('ManageReposPanel', () => {
         organization: orgWithoutPerms,
       });
 
-      const dropdown = await screen.findByTestId(
-        'error-prediction-sensitivity-dropdown'
-      );
+      const dropdown = await screen.findByTestId('error-prediction-sensitivity-dropdown');
       expect(dropdown.querySelector('button')).toBeDisabled();
     });
   });
