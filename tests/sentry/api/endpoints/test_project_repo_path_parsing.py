@@ -1,8 +1,10 @@
+# Added Repository import for new assertions
 from django.urls import reverse
 from rest_framework.response import Response
 
 from sentry.api.endpoints.project_repo_path_parsing import PathMappingSerializer
 from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -123,9 +125,10 @@ class PathMappingSerializerTest(TestCase):
         assert not serializer.is_valid()
         assert serializer.errors["sourceUrl"][0] == "Could not find integration"
 
-    def test_no_repo(self) -> None:
+    def test_missing_repo_is_created(self) -> None:
+        """Serializer should auto-create a repository when none exists."""
         new_org = self.create_organization()
-        self.integration, self.oi = self.create_provider_integration_for(
+        self.integration, _oi = self.create_provider_integration_for(
             new_org,
             self.user,
             provider="github",
@@ -133,6 +136,7 @@ class PathMappingSerializerTest(TestCase):
             external_id="1235",
             metadata={"domain_name": "github.com/getsentry"},
         )
+
         serializer = PathMappingSerializer(
             context={"organization_id": new_org.id},
             data={
@@ -140,8 +144,16 @@ class PathMappingSerializerTest(TestCase):
                 "stack_path": "/capybaras_and_chameleons.py",
             },
         )
-        assert not serializer.is_valid()
-        assert serializer.errors["sourceUrl"][0] == "Could not find repo"
+
+        assert serializer.is_valid(), serializer.errors
+
+        # A repository record should now exist in the database.
+        repo = Repository.objects.get(
+            organization_id=new_org.id,
+            integration_id=self.integration.id,
+            name="getsentry/sentry",
+        )
+        assert repo.url == "https://github.com/getsentry/sentry"
 
 
 class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
