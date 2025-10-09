@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import datetime
 import logging
 import re
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Any, TypedDict
 from urllib.parse import parse_qsl
@@ -272,16 +271,11 @@ class GitHubIntegration(
         assert access_token_data is not None, "Expected Integration to have an access token"
         return access_token_data["access_token"]
 
-    def does_access_token_expire_within(self, token_minimum_validity_time: timedelta) -> bool:
-        if "access_token" not in self.model.metadata:
-            return True
-
-        expires_at = self.model.metadata.get("expires_at")
-        if not expires_at:
-            return True
-        expires_at = datetime.datetime.fromisoformat(expires_at).replace(tzinfo=datetime.UTC)
-        minimum_expiry_time = datetime.datetime.now(datetime.UTC) + token_minimum_validity_time
-        return expires_at < minimum_expiry_time
+    def get_current_access_token_expiration(self) -> datetime | None:
+        expiration = self.model.metadata.get("expires_at")
+        if not expiration:
+            return None
+        return datetime.fromisoformat(expiration)
 
     # IntegrationInstallation methods
 
