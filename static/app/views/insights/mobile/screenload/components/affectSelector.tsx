@@ -4,7 +4,7 @@ import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSe
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useTTFDConfigured} from 'sentry/views/insights/common/queries/useHasTtfdConfigured';
-import {useAffectsSelection} from 'sentry/views/insights/mobile/screenload/components/useAffectsSelection';
+import {useAffectsSelection} from 'sentry/views/insights/mobile/screenload/data/useAffectsSelection';
 
 export function AffectSelector({transaction}: {transaction?: string}) {
   const {value, setValue} = useAffectsSelection();

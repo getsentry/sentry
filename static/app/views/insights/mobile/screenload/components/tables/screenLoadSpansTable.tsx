@@ -38,8 +38,8 @@ import {
   SpanOpSelector,
   TTID_CONTRIBUTING_SPAN_OPS,
 } from 'sentry/views/insights/mobile/screenload/components/spanOpSelector';
-import {useAffectsSelection} from 'sentry/views/insights/mobile/screenload/components/useAffectsSelection';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
+import {useAffectsSelection} from 'sentry/views/insights/mobile/screenload/data/useAffectsSelection';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/mobile/screenload/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
