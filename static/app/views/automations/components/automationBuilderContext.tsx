@@ -478,11 +478,11 @@ function getDefaultConfig(actionHandler: ActionHandler): ActionConfig {
     actionHandler.sentryApp?.id ??
     actionHandler.integrations?.[0]?.services?.[0]?.id ??
     actionHandler.services?.[0]?.slug ??
-    undefined;
+    '';
 
   return {
     targetType,
-    ...(targetIdentifier && {targetIdentifier}),
+    targetIdentifier,
     ...(actionHandler.sentryApp?.id && {
       sentryAppIdentifier: SentryAppIdentifier.SENTRY_APP_ID,
     }),
