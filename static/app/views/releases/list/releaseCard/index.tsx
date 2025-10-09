@@ -22,7 +22,6 @@ import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
-import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {useUser} from 'sentry/utils/useUser';
 import useFinalizeRelease from 'sentry/views/releases/components/useFinalizeRelease';
 import type {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
