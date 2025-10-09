@@ -4,7 +4,6 @@ import sentry_sdk
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from parsimonious.exceptions import ParseError
-from rest_framework import serializers
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.api.bases.organization_events import get_query_columns
@@ -31,7 +30,6 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
 from sentry.workflow_engine.models import DataCondition, DataSource, DataSourceDetector, Detector
-from sentry.workflow_engine.types import SnubaQueryDataSourceType
 
 logger = logging.getLogger(__name__)
 
@@ -60,61 +58,15 @@ def send_new_detector_data(detector: Detector) -> None:
         )
     except DataCondition.DoesNotExist:
         raise Exception("Could not create detector, data condition not found.")
-
     try:
         handle_send_historical_data_to_seer(
             detector, data_source, data_condition, snuba_query, detector.project, SeerMethod.CREATE
         )
     except (TimeoutError, MaxRetryError, ParseError, ValidationError):
-        # detector.delete()
-        # TODO gotta delete the data condition and dcg too
-        # if I raise a validation error will it block everything?
-        raise serializers.ValidationError("Couldn't send data to Seer, unable to create detector")
+        data_condition.delete()
+        raise ValidationError("Couldn't send data to Seer, unable to create detector")
     else:
         metrics.incr("anomaly_detection_monitor.created")
-
-
-def update_detector_data(detector: Detector, data_source: SnubaQueryDataSourceType) -> None:
-    try:
-        data_source = DataSourceDetector.objects.get(detector_id=detector.id).data_source
-    except DataSourceDetector.DoesNotExist:
-        raise Exception("Could not update detector, data source detector not found.")
-    try:
-        query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
-    except QuerySubscription.DoesNotExist:
-        raise Exception("Could not update detector, query subscription not found.")
-    try:
-        snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
-    except SnubaQuery.DoesNotExist:
-        raise Exception("Could not update detector, snuba query not found.")
-
-    # use setattr to avoid saving the detector until the Seer call has successfully finished,
-    # otherwise the detector would be in a bad state
-    for k, v in data_source.items():
-        setattr(data_source, k, v)
-
-    for k, v in data_source.items():
-        if k == "dataset":
-            v = v.value
-        elif k == "time_window":
-            time_window = data_source.get("time_window")
-            v = (
-                int(time_window.total_seconds())
-                if time_window is not None
-                else snuba_query.time_window
-            )
-        elif k == "event_types":
-            continue
-        setattr(snuba_query, k, v)
-
-    handle_send_historical_data_to_seer(
-        detector,
-        data_source,
-        snuba_query,
-        detector.project,
-        SeerMethod.UPDATE,
-        data_source.event_types,
-    )
 
 
 def handle_send_historical_data_to_seer(

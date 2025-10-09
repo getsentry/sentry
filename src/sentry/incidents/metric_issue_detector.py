@@ -8,10 +8,7 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.logic import enable_disable_subscriptions
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
-from sentry.seer.anomaly_detection.store_data_workflow_engine import (
-    send_new_detector_data,
-    update_detector_data,
-)
+from sentry.seer.anomaly_detection.store_data_workflow_engine import send_new_detector_data
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
@@ -215,24 +212,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             if query_subscriptions:
                 enable_disable_subscriptions(query_subscriptions, enabled)
 
-        detection_type = instance.config.get("detection_type")
-
         if "data_source" in validated_data:
             data_source: SnubaQueryDataSourceType = validated_data.pop("data_source")
             if data_source:
-                if (
-                    not detection_type == AlertRuleDetectionType.DYNAMIC
-                    and validated_data.get("config", {}).get("detection_type")
-                    == AlertRuleDetectionType.DYNAMIC
-                ) or (
-                    detection_type == AlertRuleDetectionType.DYNAMIC
-                    and (data_source.query is not None or data_source.aggregate is not None)
-                ):
-                    # TODO check if we _always_ pass query and aggregate on update or if it's only passed when changed
-                    # currently I get an error trying to edit a metric monitor so I can't check in prod
-
-                    # it's been changed to become a dynamic detector OR the snubaquery has changed on a dynamic detector - update_detector_data
-                    send_new_detector_data, update_detector_data(instance, data_source)
                 self.update_data_source(instance, data_source)
 
         instance.save()
