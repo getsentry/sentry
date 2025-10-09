@@ -9,6 +9,10 @@ interface EmbeddedSpendLimitSettingsProps
   initialOnDemandBudgets: OnDemandBudgets;
 }
 
+/**
+ * A wrapper for the SpendLimitSettings component that allows for embedded use in other components,
+ * without controlling state or mutations directly.
+ */
 function EmbeddedSpendLimitSettings(props: EmbeddedSpendLimitSettingsProps) {
   const {initialOnDemandBudgets, onUpdate} = props;
   const [currentOnDemandBudgets, setCurrentOnDemandBudgets] =

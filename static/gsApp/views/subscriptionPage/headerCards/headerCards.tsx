@@ -30,12 +30,12 @@ function getCards(organization: Organization, subscription: Subscription) {
         organization={organization}
       />
     );
+  }
 
-    if (subscription.supportsOnDemand) {
-      cards.push(
-        <PaygCard key="payg" subscription={subscription} organization={organization} />
-      );
-    }
+  if (subscription.supportsOnDemand && hasBillingPerms) {
+    cards.push(
+      <PaygCard key="payg" subscription={subscription} organization={organization} />
+    );
   }
 
   if (

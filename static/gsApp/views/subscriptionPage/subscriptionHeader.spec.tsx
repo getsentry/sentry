@@ -54,9 +54,13 @@ describe('SubscriptionHeader', () => {
     organization,
     hasNextBillCard,
     hasBillingInfoCard,
+    hasPaygCard,
+    hasOnDemandCard,
   }: {
     hasBillingInfoCard: boolean;
     hasNextBillCard: boolean;
+    hasOnDemandCard: boolean;
+    hasPaygCard: boolean;
     organization: Organization;
   }) {
     await screen.findByRole('heading', {name: 'Subscription'});
@@ -79,6 +83,24 @@ describe('SubscriptionHeader', () => {
       ).not.toBeInTheDocument();
     }
 
+    if (hasPaygCard) {
+      await screen.findByRole('heading', {name: 'Pay-as-you-go'});
+      screen.getByRole('button', {name: 'Edit limit'});
+    } else {
+      expect(
+        screen.queryByRole('heading', {name: 'Pay-as-you-go'})
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Edit limit'})).not.toBeInTheDocument();
+    }
+
+    if (hasOnDemandCard) {
+      await screen.findByRole('heading', {name: 'On-Demand'});
+      screen.getByRole('button', {name: 'Edit limit'});
+    } else {
+      expect(screen.queryByRole('heading', {name: 'On-Demand'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Edit limit'})).not.toBeInTheDocument();
+    }
+
     const hasBillingPerms = organization.access?.includes('org:billing');
 
     // all subscriptions have links card
@@ -93,6 +115,7 @@ describe('SubscriptionHeader', () => {
       // assertions for args to catch user errors :)
       expect(hasNextBillCard).toBe(false);
       expect(hasBillingInfoCard).toBe(false);
+      expect(hasPaygCard && hasOnDemandCard).not.toBe(true);
     }
   }
 
@@ -113,6 +136,8 @@ describe('SubscriptionHeader', () => {
       organization,
       hasNextBillCard: true,
       hasBillingInfoCard: true,
+      hasPaygCard: true,
+      hasOnDemandCard: false,
     });
   });
 
@@ -134,6 +159,8 @@ describe('SubscriptionHeader', () => {
       organization,
       hasNextBillCard: true,
       hasBillingInfoCard: false,
+      hasPaygCard: true,
+      hasOnDemandCard: false,
     });
   });
 
@@ -155,10 +182,12 @@ describe('SubscriptionHeader', () => {
       organization,
       hasNextBillCard: false,
       hasBillingInfoCard: false,
+      hasPaygCard: false,
+      hasOnDemandCard: false,
     });
   });
 
-  it('renders new header cards for managed customers with legacy invoiced OD', async () => {
+  it('renders new header cards for managed customers with OD supported', async () => {
     const organization = OrganizationFixture({
       features: ['subscriptions-v3'],
       access: ['org:billing'],
@@ -167,7 +196,7 @@ describe('SubscriptionHeader', () => {
       organization,
       plan: 'am3_f',
       canSelfServe: false,
-      onDemandInvoiced: true,
+      supportsOnDemand: true,
     });
     SubscriptionStore.set(organization.slug, subscription);
     render(
@@ -177,6 +206,8 @@ describe('SubscriptionHeader', () => {
       organization,
       hasNextBillCard: false,
       hasBillingInfoCard: true,
+      hasPaygCard: true,
+      hasOnDemandCard: false,
     });
   });
 
@@ -196,6 +227,8 @@ describe('SubscriptionHeader', () => {
       organization,
       hasNextBillCard: false,
       hasBillingInfoCard: false,
+      hasPaygCard: false,
+      hasOnDemandCard: false,
     });
   });
 
