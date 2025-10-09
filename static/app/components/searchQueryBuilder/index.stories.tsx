@@ -716,7 +716,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
   });
 
   story('Case sensitivity', () => {
-    const [caseInsensitive, setCaseInsensitive] = useState(false);
+    const [caseInsensitive, setCaseInsensitive] = useState<1 | null>(null);
 
     return (
       <Fragment>
@@ -750,7 +750,10 @@ export default Storybook.story('SearchQueryBuilder', story => {
           getTagValues={getTagValues}
           searchSource="storybook"
           caseInsensitive={caseInsensitive}
-          onCaseInsensitiveClick={() => setCaseInsensitive(!caseInsensitive)}
+          onCaseInsensitiveClick={value => {
+            setCaseInsensitive(value);
+            return Promise.resolve(new URLSearchParams(value ? 'caseInsensitive=1' : ''));
+          }}
         />
       </Fragment>
     );
