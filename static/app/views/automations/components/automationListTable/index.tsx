@@ -216,7 +216,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: 2.5fr 1fr 1fr 1fr;
+    grid-template-columns: 2.5fr minmax(160px, 1fr) 1fr 1fr;
 
     [data-column-name='last-triggered'] {
       display: flex;
@@ -224,7 +224,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: minmax(0, 3fr) 1fr 1fr 1fr 1fr;
+    grid-template-columns: minmax(0, 3fr) minmax(160px, 1fr) 1fr 1fr 1fr;
 
     [data-column-name='connected-monitors'] {
       display: flex;
