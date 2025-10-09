@@ -24,6 +24,8 @@ interface AIMessage {
   role: string;
 }
 
+const ALLOWED_MESSAGE_ROLES = new Set(['system', 'user', 'assistant', 'tool']);
+
 function renderTextMessages(content: any) {
   if (!Array.isArray(content)) {
     return content;
@@ -46,6 +48,22 @@ function parseAIMessages(messages: string): AIMessage[] | string {
         if (!message.role || !message.content) {
           return null;
         }
+
+        if (!ALLOWED_MESSAGE_ROLES.has(message.role)) {
+          Sentry.captureMessage('Gen AI message with invalid role', {
+            level: 'warning',
+            tags: {
+              feature: 'agent-monitoring',
+              message_role: message.role,
+            },
+            extra: {
+              message_role: message.role,
+              allowed_roles: Array.from(ALLOWED_MESSAGE_ROLES),
+              message,
+            },
+          });
+        }
+
         return {
           role: message.role,
           content:
