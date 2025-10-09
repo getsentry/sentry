@@ -423,7 +423,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         profile_message = load_data("generic-event-profiling")
         event_data = {
             **profile_message["event"],
-            "trace_id": uuid.uuid4().hex,
+            "contexts": {"trace": {"trace_id": uuid.uuid4().hex}},
             "timestamp": timezone.now().isoformat(),
         }
         project_id = event_data.get("project_id", self.project.id)
