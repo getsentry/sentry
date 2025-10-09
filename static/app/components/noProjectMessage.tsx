@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
@@ -72,9 +73,9 @@ function NoProjectMessage({
 
   return (
     <Wrapper>
-      <NoProjectEmptyState />
+      <StyledNoProjectEmptyState />
 
-      <Content>
+      <Flex direction="column" justify="center">
         <Layout.Title>{t('Remain Calm')}</Layout.Title>
         <HelpMessage>{t('You need at least one project to use this view')}</HelpMessage>
         <Actions>
@@ -87,12 +88,26 @@ function NoProjectMessage({
             createProjectAction
           )}
         </Actions>
-      </Content>
+      </Flex>
     </Wrapper>
   );
 }
 
 export default NoProjectMessage;
+
+const StyledNoProjectEmptyState = styled(NoProjectEmptyState)`
+  display: none;
+  height: auto;
+  width: 300px;
+
+  @media (min-width: ${p => p.theme.breakpoints.xs}) {
+    display: inline;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    width: auto;
+  }
+`;
 
 const HelpMessage = styled('div')`
   margin-bottom: ${space(2)};
@@ -103,13 +118,13 @@ const Wrapper = styled('div')`
   flex: 1;
   align-items: center;
   justify-content: center;
-`;
-
-const Content = styled('div')`
-  display: flex;
+  gap: ${p => p.theme.space['3xl']};
+  padding: ${p => p.theme.space.lg};
   flex-direction: column;
-  justify-content: center;
-  margin-left: 40px;
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    flex-direction: row;
+  }
 `;
 
 const Actions = styled(ButtonBar)`
