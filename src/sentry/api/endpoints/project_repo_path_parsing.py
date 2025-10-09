@@ -136,6 +136,14 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
 
         branch = installation.extract_branch_from_source_url(repo, source_url)
         source_path = installation.extract_source_path_from_source_url(repo, source_url)
+        
+        # Validate that we successfully extracted a source path from the URL
+        if not source_path:
+            return self.respond(
+                {"detail": "Invalid source URL format. Please provide a valid repository file URL."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
         stack_root, source_root = find_roots(frame_info, source_path)
 
         return self.respond(
