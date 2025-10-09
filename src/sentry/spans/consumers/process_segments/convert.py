@@ -69,6 +69,9 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
             attributes[eap_name] = attributes.pop(convention_name)
 
     try:
+        attributes["sentry.start_timestamp_ms"] = AnyValue(
+            int_value=int(1000 * span["start_timestamp"])
+        )
         # TODO: Move this to Relay
         attributes["sentry.duration_ms"] = AnyValue(
             int_value=int(1000 * (span["end_timestamp"] - span["start_timestamp"]))
