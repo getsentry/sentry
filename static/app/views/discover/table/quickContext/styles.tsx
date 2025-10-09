@@ -1,14 +1,12 @@
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout/flex';
+import {Stack} from 'sentry/components/core/layout/stack';
 import {space} from 'sentry/styles/space';
 
-export const ContextContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
+export const ContextContainer = Stack;
 
-export const ContextHeader = styled('div')`
-  display: flex;
+export const ContextHeader = styled(Flex)`
   align-items: center;
   margin-bottom: ${space(0.75)};
 `;
@@ -46,7 +44,6 @@ export const NoContextWrapper = styled('div')`
   min-width: 320px;
 `;
 
-export const ContextRow = styled('div')`
-  display: flex;
+export const ContextRow = styled(Flex)`
   justify-content: space-between;
 `;

@@ -10,6 +10,7 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Stack} from 'sentry/components/core/layout/stack';
 import {ExternalLink} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
@@ -143,7 +144,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const anyStepIncomplete = incompleteStepIndices.length > 0;
 
   return (
-    <NoticesContainer>
+    <Stack align="stretch">
       {/* Collapsed summary */}
       {!isLoadingPreferences && anyStepIncomplete && stepsCollapsed && (
         <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>
@@ -410,7 +411,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
               )}
         </StyledAlert>
       )}
-    </NoticesContainer>
+    </Stack>
   );
 }
 
@@ -422,17 +423,9 @@ const StyledAlert = styled(Alert)`
   margin-bottom: ${space(2)};
 `;
 
-const NoticesContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-`;
-
-const CardDescription = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
+const CardDescription = styled((props: React.ComponentProps<typeof Stack>) => (
+  <Stack gap="md" {...props} />
+))``;
 
 const CardIllustration = styled('img')`
   width: 100%;
