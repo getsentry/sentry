@@ -35,7 +35,7 @@ export function MetricSelector({traceMetric}: {traceMetric: TraceMetric}) {
   }, [metricOptionsData]);
 
   useEffect(() => {
-    if (!traceMetric.name) {
+    if (metricOptions.length && !traceMetric.name) {
       setTraceMetric({
         name: metricOptions[0]?.value ?? '',
         type: metricOptions[0]?.type ?? '',
