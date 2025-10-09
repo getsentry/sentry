@@ -23,7 +23,7 @@ import {decodeSorts} from 'sentry/utils/queryString';
 import {getTimeSeriesInterval} from 'sentry/utils/timeSeries/getTimeSeriesInterval';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
-import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -121,7 +121,8 @@ export const useSortedTimeSeries = <
     useIsSampled(0.1, key) &&
     organization.features.includes('explore-events-time-series-spot-check');
 
-  const timeSeriesResult = useFetchSpanTimeSeries(
+  const timeSeriesResult = useFetchEventsTimeSeries(
+    dataset ?? DiscoverDatasets.SPANS,
     {
       yAxis: yAxis as unknown as any,
       query: search,
@@ -319,18 +320,21 @@ export function convertEventsStatsToTimeSeriesData(
         value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
       };
 
-      if (seriesData.meta?.accuracy?.confidence) {
-        item.confidence = seriesData.meta?.accuracy?.confidence?.[index]?.value ?? null;
-      }
+      if (seriesData.meta?.accuracy) {
+        const confidenceItem = seriesData.meta.accuracy.confidence?.[index];
+        if (defined(confidenceItem) && Object.hasOwn(confidenceItem, 'value')) {
+          item.confidence = confidenceItem.value;
+        }
 
-      if (seriesData.meta?.accuracy?.sampleCount) {
-        item.sampleCount =
-          seriesData.meta?.accuracy?.sampleCount?.[index]?.value ?? undefined;
-      }
+        const sampleCountItem = seriesData.meta.accuracy.sampleCount?.[index];
+        if (defined(sampleCountItem) && Object.hasOwn(sampleCountItem, 'value')) {
+          item.sampleCount = sampleCountItem.value;
+        }
 
-      if (seriesData.meta?.accuracy?.samplingRate) {
-        item.sampleRate =
-          seriesData.meta?.accuracy?.samplingRate?.[index]?.value ?? undefined;
+        const sampleRateItem = seriesData.meta.accuracy.samplingRate?.[index];
+        if (defined(sampleRateItem) && Object.hasOwn(sampleRateItem, 'value')) {
+          item.sampleRate = sampleRateItem.value;
+        }
       }
 
       return item;
@@ -357,14 +361,30 @@ export function convertEventsStatsToTimeSeriesData(
   return [delayedTimeSeries.meta.order ?? 0, delayedTimeSeries];
 }
 
+const NUMERIC_KEYS: Array<symbol | string | number> = [
+  'value',
+  'sampleCount',
+  'sampleRate',
+];
+
 function comparator(
   valueA: unknown,
   valueB: unknown,
   key: symbol | string | number | undefined
 ) {
   // Compare numbers by near equality, which makes the comparison less sensitive to small natural variations in value caused by request sequencing
-  if (key === 'value' && typeof valueA === 'number' && typeof valueB === 'number') {
+  if (
+    key &&
+    NUMERIC_KEYS.includes(key) &&
+    typeof valueA === 'number' &&
+    typeof valueB === 'number'
+  ) {
     return areNumbersAlmostEqual(valueA, valueB, 5);
+  }
+
+  // This can be removed when ENG-5677 is resolved. There's a known bug here.
+  if (key === 'dataScanned') {
+    return true;
   }
 
   // Otherwise use default deep comparison

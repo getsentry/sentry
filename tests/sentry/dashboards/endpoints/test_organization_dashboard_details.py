@@ -533,6 +533,52 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             assert params["field"].sort() == ["id", "transaction"].sort()
             assert "aggregateField" not in params
 
+    def test_explore_url_for_widget_with_discover_split_param(self) -> None:
+        with self.feature("organizations:transaction-widget-deprecation-explore-view"):
+            dashboard_deprecation = Dashboard.objects.create(
+                title="Dashboard With Transaction Widget",
+                created_by_id=self.user.id,
+                organization=self.organization,
+                filters={
+                    "release": ["1.0.0", "2.0.0"],
+                },
+            )
+            widget_deprecation = DashboardWidget.objects.create(
+                dashboard=dashboard_deprecation,
+                title="transaction widget",
+                display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+                widget_type=DashboardWidgetTypes.DISCOVER,
+                discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,
+                interval="1d",
+                detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            )
+
+            DashboardWidgetQuery.objects.create(
+                widget=widget_deprecation,
+                fields=["count()", "transaction"],
+                columns=["transaction"],
+                aggregates=["count()"],
+                conditions="count():>50",
+                orderby="-count",
+                order=0,
+            )
+
+            response = self.do_request("get", self.url(dashboard_deprecation.id))
+            assert response.status_code == 200
+            explore_url = response.data["widgets"][0]["exploreUrls"][0]
+            assert "http://testserver/explore/traces/" in explore_url
+
+            params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
+            assert params["query"] == [
+                "(count(span.duration):>50) AND is_transaction:1 AND release:1.0.0,2.0.0"
+            ]
+            assert params["sort"] == ["-count(span.duration)"]
+            assert params["mode"] == ["aggregate"]
+            assert params["aggregateField"] == [
+                '{"groupBy":"transaction"}',
+                '{"yAxes":["count(span.duration)"],"chartType":1}',
+            ]
+
     def test_explore_url_for_deformed_widget(self) -> None:
         with self.feature("organizations:transaction-widget-deprecation-explore-view"):
             dashboard_deprecation = Dashboard.objects.create(

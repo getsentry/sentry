@@ -1,8 +1,15 @@
 import type {Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
+import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isBaseVisualize,
+  isVisualize,
+  Visualize,
+  VisualizeFunction,
+  type BaseVisualize,
+} from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export interface TraceMetric {
@@ -15,6 +22,7 @@ export interface BaseMetricQuery {
 }
 
 export interface MetricQuery extends BaseMetricQuery {
+  setMetricName: (metricName: string) => void;
   setQueryParams: (queryParams: ReadableQueryParams) => void;
 }
 
@@ -36,6 +44,23 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
     return null;
   }
 
+  const rawAggregateFields = json.aggregateFields;
+  if (!Array.isArray(rawAggregateFields)) {
+    return null;
+  }
+
+  const visualizes = rawAggregateFields
+    .filter<BaseVisualize>(isBaseVisualize)
+    .flatMap(vis => Visualize.fromJSON(vis));
+
+  if (!visualizes.length) {
+    return null;
+  }
+
+  const groupBys = rawAggregateFields.filter<GroupBy>(isGroupBy);
+
+  const aggregateFields = [...visualizes, ...groupBys];
+
   return {
     metric: {name: metric},
     queryParams: new ReadableQueryParams({
@@ -48,7 +73,7 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
       sortBys: defaultSortBys(),
 
       aggregateCursor: '',
-      aggregateFields: defaultAggregateFields(),
+      aggregateFields,
       aggregateSortBys: defaultAggregateSortBys(),
     }),
   };
@@ -58,12 +83,20 @@ export function encodeMetricQueryParams(metricQuery: BaseMetricQuery): string {
   return JSON.stringify({
     metric: metricQuery.metric.name,
     query: metricQuery.queryParams.query,
+    aggregateFields: metricQuery.queryParams.aggregateFields.map(field => {
+      if (isVisualize(field)) {
+        return field.serialize();
+      }
+
+      // Keep Group By as-is
+      return field;
+    }),
   });
 }
 
 export function defaultMetricQuery(): BaseMetricQuery {
   return {
-    metric: {name: 'myfirstmetric'},
+    metric: {name: ''},
     queryParams: new ReadableQueryParams({
       extrapolate: true,
       mode: Mode.AGGREGATE,
@@ -93,9 +126,9 @@ function defaultSortBys(): Sort[] {
 }
 
 function defaultAggregateFields(): AggregateField[] {
-  return [new VisualizeFunction('count(span.duration)', {chartType: ChartType.BAR})];
+  return [new VisualizeFunction('sum(value)', {chartType: ChartType.BAR})];
 }
 
 function defaultAggregateSortBys(): Sort[] {
-  return [{field: 'count(span.duration)', kind: 'desc'}];
+  return [{field: 'sum(value)', kind: 'desc'}];
 }

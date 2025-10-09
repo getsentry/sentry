@@ -1,8 +1,8 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {DebugNotificationsPreview} from 'sentry/debug/notifications/components/debugNotificationsPreview';
@@ -58,9 +58,9 @@ export function TeamsPreview({
             Below is the AdaptiveCard JSON payload that will be sent to MS Teams. To
             preview it, copy the JSON and paste it into the Designer linked above.
           </Text>
-          <CodeSnippet language="json">
+          <CodeBlock language="json">
             {card ? JSON.stringify(card, null, 2) : ''}
-          </CodeSnippet>
+          </CodeBlock>
         </Flex>
       </Container>
     </DebugNotificationsPreview>

@@ -9,14 +9,18 @@ import {
   useSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
+import {AggregateDropdown} from 'sentry/views/explore/metrics/metricRow/aggregateDropdown';
+import {
+  useMetricVisualize,
+  useSetMetricName,
+} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {
   useQueryParamsGroupBys,
   useQueryParamsQuery,
   useSetQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
-import type {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface MetricRowProps {
@@ -54,7 +58,6 @@ export function MetricRow({traceMetric}: MetricRowProps) {
     </SearchQueryBuilderProvider>
   );
 }
-
 interface MetricToolbarProps {
   traceMetric: TraceMetric;
   tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps;
@@ -64,32 +67,53 @@ function MetricToolbar({
   tracesItemSearchQueryBuilderProps,
   traceMetric,
 }: MetricToolbarProps) {
-  const visualize = useMetricVisualize() as VisualizeFunction;
+  const visualize = useMetricVisualize();
   const groupBys = useQueryParamsGroupBys();
   const query = useQueryParamsQuery();
+  const {data: metricOptionsData} = useMetricOptions();
+  const setMetricName = useSetMetricName();
+
+  const metricOptions = useMemo(() => {
+    return [
+      ...(metricOptionsData?.data?.map(option => ({
+        label: `${option['metric.name']} (${option['metric.type']})`,
+        value: option['metric.name'],
+        type: option['metric.type'],
+      })) ?? []),
+      // TODO(nar): Remove these when we actually have metrics served
+      // This is only used for providing an option to test current selection behavior
+      {
+        label: 'test-distribution',
+        value: 'test-distribution',
+        type: 'distribution' as const,
+      },
+      {
+        label: 'test-gauge',
+        value: 'test-gauge',
+        type: 'gauge' as const,
+      },
+    ];
+  }, [metricOptionsData]);
+
+  // TODO(nar): This should come from the metric data context
+  // so we can display different types with conflicting names
+  const currentMetricType = useMemo(() => {
+    return metricOptions?.find(metricData => metricData.value === traceMetric.name)?.type;
+  }, [metricOptions, traceMetric.name]);
+
   return (
     <div style={{width: '100%'}}>
       {traceMetric.name}/{visualize.yAxis}/ by {groupBys.join(',')}/ where {query}
       <Flex direction="row" gap="md" align="center">
         {t('Query')}
         <CompactSelect
-          options={[
-            {
-              label: 'span.duration',
-              value: 'span.duration',
-            },
-          ]}
-          value={visualize.parsedFunction?.arguments?.[0] ?? ''}
+          options={metricOptions ?? []}
+          value={traceMetric.name}
+          onChange={option => {
+            setMetricName(option.value);
+          }}
         />
-        <CompactSelect
-          options={[
-            {
-              label: 'count',
-              value: 'count',
-            },
-          ]}
-          value={visualize.parsedFunction?.name}
-        />
+        <AggregateDropdown type={currentMetricType} />
         {t('by')}
         <CompactSelect options={[]} value={groupBys[0] ?? ''} />
         {t('where')}

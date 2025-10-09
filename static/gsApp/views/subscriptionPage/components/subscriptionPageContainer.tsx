@@ -31,7 +31,7 @@ function SubscriptionPageContainer({
       <Container
         padding={{xs: 'xl', md: '3xl'}}
         background={background}
-        height="100%"
+        flexGrow={1}
         data-test-id={dataTestId}
         borderTop={background === 'secondary' ? 'primary' : undefined}
       >
