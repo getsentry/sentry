@@ -59,7 +59,6 @@ function parseAIMessages(messages: string): AIMessage[] | string {
             extra: {
               message_role: message.role,
               allowed_roles: Array.from(ALLOWED_MESSAGE_ROLES),
-              message,
             },
           });
         }
