@@ -5,6 +5,7 @@ import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/gr
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {DeviceName} from 'sentry/components/deviceName';
@@ -206,7 +207,7 @@ export function GroupTagValues() {
 
       return (
         <Fragment key={tagValueIdx}>
-          <NameColumn>
+          <NameColumn align="center">
             <NameWrapper data-test-id="group-tag-value">
               <GlobalSelectionLink
                 to={{
@@ -240,12 +241,16 @@ export function GroupTagValues() {
               </StyledExternalLink>
             )}
           </NameColumn>
-          <RightAlignColumn>{pct}</RightAlignColumn>
-          <RightAlignColumn>{tagValue.count.toLocaleString()}</RightAlignColumn>
-          <RightAlignColumn>
+          <Flex align="center" justify="end">
+            {pct}
+          </Flex>
+          <Flex align="center" justify="end">
+            {tagValue.count.toLocaleString()}
+          </Flex>
+          <Flex align="center" justify="end">
             <TimeSince date={tagValue.lastSeen} />
-          </RightAlignColumn>
-          <RightAlignColumn>
+          </Flex>
+          <Flex align="center" justify="end">
             <DropdownMenu
               size="sm"
               position="bottom-end"
@@ -281,7 +286,7 @@ export function GroupTagValues() {
                 },
               ]}
             />
-          </RightAlignColumn>
+          </Flex>
         </Fragment>
       );
     });
@@ -399,24 +404,14 @@ const StyledExternalLink = styled(ExternalLink)`
   margin-left: ${space(0.5)};
 `;
 
-const Column = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const NameColumn = styled(Column)`
+const NameColumn = styled(Flex)`
   ${p => p.theme.overflowEllipsis};
-  display: flex;
   min-width: 320px;
 `;
 
 const NameWrapper = styled('span')`
   ${p => p.theme.overflowEllipsis};
   width: auto;
-`;
-
-const RightAlignColumn = styled(Column)`
-  justify-content: flex-end;
 `;
 
 const StyledPagination = styled(Pagination)`
