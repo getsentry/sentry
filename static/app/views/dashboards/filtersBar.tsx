@@ -23,6 +23,7 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 
+import FilterSelector from './globalFilter/filterSelector';
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import ReleasesSelectControl from './releasesSelectControl';
 import type {DashboardFilters, DashboardPermissions} from './types';
@@ -122,7 +123,17 @@ export default function FiltersBar({
           </ReleasesProvider>
 
           {organization.features.includes('dashboards-global-filters') && (
-            <AddFilter onAddFilter={() => {}} />
+            <Fragment>
+              {filters[DashboardFilterKeys.GLOBAL_FILTER]?.map(globalFilter => (
+                <FilterSelector
+                  key={globalFilter.tag.key}
+                  globalFilter={globalFilter}
+                  onUpdateFilter={() => {}}
+                  onRemoveFilter={() => {}}
+                />
+              ))}
+              <AddFilter onAddFilter={() => {}} />
+            </Fragment>
           )}
         </FilterButtons>
         {hasUnsavedChanges && !isEditingDashboard && !isPreview && (
