@@ -131,11 +131,22 @@ def get_grouping_info_from_variants(
     if use_legacy_format:
         return {key: {"key": key, **variant.as_dict()} for key, variant in variants.items()}
 
-    return {
+    grouping_config_id = None
+    for variant in variants.values():
+        if grouping_config_id:
+            break
+        grouping_config_id = variant.config.id if hasattr(variant, "config") else None
+
+    variant_json = {
         # Overwrite the description with a new, improved version
         variant.key: {
             **variant.as_dict(),
             "description": _get_new_description(variant),
         }
         for variant in variants.values()
+    }
+
+    return {
+        "grouping_config": grouping_config_id,
+        "variants": variant_json,
     }
