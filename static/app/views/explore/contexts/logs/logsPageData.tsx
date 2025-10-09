@@ -4,7 +4,10 @@ import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
-import {useInfiniteLogsQuery} from 'sentry/views/explore/logs/useLogsQuery';
+import {
+  useInfiniteLogsQuery,
+  useLogsQueryHighFidelity,
+} from 'sentry/views/explore/logs/useLogsQuery';
 
 interface LogsPageData {
   infiniteLogsQueryResult: UseInfiniteLogsQueryResult;
@@ -24,7 +27,7 @@ export function LogsPageDataProvider({
 }) {
   const organization = useOrganization();
   const feature = isLogsEnabled(organization);
-  const highFidelity = organization.features.includes('ourlogs-high-fidelity');
+  const highFidelity = useLogsQueryHighFidelity();
   const infiniteLogsQueryResult = useInfiniteLogsQuery({
     disabled: !feature,
     highFidelity,
