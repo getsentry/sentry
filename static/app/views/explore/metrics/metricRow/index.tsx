@@ -81,18 +81,6 @@ function MetricToolbar({
         value: option['metric.name'],
         type: option['metric.type'],
       })) ?? []),
-      // TODO(nar): Remove these when we actually have metrics served
-      // This is only used for providing an option to test current selection behavior
-      {
-        label: 'test-distribution',
-        value: 'test-distribution',
-        type: 'distribution' as const,
-      },
-      {
-        label: 'test-gauge',
-        value: 'test-gauge',
-        type: 'gauge' as const,
-      },
     ];
   }, [metricOptionsData]);
 
@@ -104,7 +92,6 @@ function MetricToolbar({
 
   return (
     <div style={{width: '100%'}}>
-      {traceMetric.name}/{visualize.yAxis}/ by {groupBys.join(',')}/ where {query}
       <Flex direction="row" gap="md" align="center">
         {t('Query')}
         <CompactSelect
