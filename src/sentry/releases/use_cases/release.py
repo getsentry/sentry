@@ -438,8 +438,10 @@ def fetch_project_platforms(project_ids: Iterable[int]) -> list[tuple[int, str]]
     )
 
 
-def fetch_packages_for_group(organization_id: int, project_id: int, group_id: int) -> list[str]:
-    """Fetch a unique list of release packages associated with the group."""
+def fetch_semver_packages_for_group(
+    organization_id: int, project_id: int, group_id: int
+) -> list[str]:
+    """Fetch a unique list of semver release packages associated with the group."""
     release_ids = (
         GroupRelease.objects.filter(
             group_id=group_id,
@@ -452,7 +454,8 @@ def fetch_packages_for_group(organization_id: int, project_id: int, group_id: in
     return cast(
         list[str],
         list(
-            Release.objects.filter(
+            Release.objects.filter_to_semver()
+            .filter(
                 organization_id=organization_id,
                 id__in=release_ids,
                 package__isnull=False,

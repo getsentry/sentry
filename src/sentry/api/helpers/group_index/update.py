@@ -49,7 +49,7 @@ from sentry.models.grouptombstone import TOMBSTONE_FIELDS_FROM_GROUP, GroupTombs
 from sentry.models.project import Project
 from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
-from sentry.releases.use_cases.release import fetch_packages_for_group
+from sentry.releases.use_cases.release import fetch_semver_packages_for_group
 from sentry.signals import issue_resolved
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor, ActorType
@@ -157,7 +157,7 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
     if follows_semver:
         # Fetch all the release-packages associated with the group. We'll find the largest semver
         # version for one of these packages.
-        group_packages = fetch_packages_for_group(
+        group_packages = fetch_semver_packages_for_group(
             organization_id=group.project.organization_id,
             project_id=group.project_id,
             group_id=group.id,
