@@ -446,7 +446,7 @@ class DashboardFiltersMixin:
             page_filters["utc"] = dashboard_filters["utc"]
 
         tag_filters: DashboardFilters = {}
-        for filter_key in ("release", "releaseId"):
+        for filter_key in ("release", "releaseId", "globalFilter"):
             if dashboard_filters.get(camel_to_snake_case(filter_key)):
                 tag_filters[filter_key] = dashboard_filters[camel_to_snake_case(filter_key)]
 
@@ -563,6 +563,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
 class DashboardFilters(TypedDict, total=False):
     release: list[str]
     releaseId: list[str]
+    globalFilter: list[dict[str, Any]]
 
 
 class DashboardDetailsResponseOptional(TypedDict, total=False):

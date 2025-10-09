@@ -694,7 +694,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
     def update_dashboard_filters(self, instance, validated_data):
         page_filter_keys = ["environment", "period", "start", "end", "utc"]
-        dashboard_filter_keys = ["release", "release_id"]
+        dashboard_filter_keys = ["release", "release_id", "global_filter"]
 
         filters = {}
 
