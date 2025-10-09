@@ -84,17 +84,25 @@ def process_in_batches(client: ProjectDelayedWorkflowClient) -> None:
 
 
 class ProjectChooser:
+    """
+    ProjectChooser assists in determining which projects to process based on the cohort updates.
+    """
+
     def __init__(self, buffer_client: DelayedWorkflowClient, num_cohorts: int):
         self.client = buffer_client
         assert num_cohorts > 0 and num_cohorts <= 255
         self.num_cohorts = num_cohorts
 
-    def project_id_to_cohort(self, project_id: int) -> int:
+    def _project_id_to_cohort(self, project_id: int) -> int:
         return hashlib.sha256(project_id.to_bytes(8)).digest()[0] % self.num_cohorts
 
     def project_ids_to_process(
         self, fetch_time: float, cohort_updates: CohortUpdates, all_project_ids: list[int]
     ) -> list[int]:
+        """
+        Given the time, the cohort update history, and the list of project ids in need of processing,
+        determine which project ids should be processed.
+        """
         must_process = set[int]()
         may_process = set[int]()
         now = fetch_time
@@ -113,7 +121,7 @@ class ProjectChooser:
         return [
             project_id
             for project_id in all_project_ids
-            if self.project_id_to_cohort(project_id) in must_process
+            if self._project_id_to_cohort(project_id) in must_process
         ]
 
 
@@ -121,6 +129,10 @@ class ProjectChooser:
 def chosen_projects(
     project_chooser: ProjectChooser, fetch_time: float, all_project_ids: list[int]
 ) -> Generator[list[int]]:
+    """
+    Context manager that yields the project ids to be processed, and manages the
+    cohort state after the processing is complete.
+    """
     cohort_updates = project_chooser.client.fetch_updates()
     project_ids_to_process = project_chooser.project_ids_to_process(
         fetch_time, cohort_updates, all_project_ids

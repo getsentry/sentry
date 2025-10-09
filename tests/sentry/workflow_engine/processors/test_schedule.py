@@ -198,7 +198,7 @@ class TestProjectChooser:
         used_cohorts: set[int] = set()
         project_id = 1
         while len(used_cohorts) < num_cohorts:
-            cohort = chooser.project_id_to_cohort(project_id)
+            cohort = chooser._project_id_to_cohort(project_id)
             if cohort not in used_cohorts:
                 all_project_ids.append(project_id)
                 used_cohorts.add(cohort)
@@ -207,7 +207,7 @@ class TestProjectChooser:
 
     def test_project_id_to_cohort_distribution(self, project_chooser):
         project_ids = list(range(1, 1001))  # 1000 project IDs
-        cohorts = [project_chooser.project_id_to_cohort(pid) for pid in project_ids]
+        cohorts = [project_chooser._project_id_to_cohort(pid) for pid in project_ids]
 
         # Check all cohorts are used
         assert set(cohorts) == set(range(6))
@@ -219,9 +219,9 @@ class TestProjectChooser:
 
     def test_project_id_to_cohort_consistent(self, project_chooser):
         for project_id in [123, 999, 4, 193848493]:
-            cohort1 = project_chooser.project_id_to_cohort(project_id)
-            cohort2 = project_chooser.project_id_to_cohort(project_id)
-            cohort3 = project_chooser.project_id_to_cohort(project_id)
+            cohort1 = project_chooser._project_id_to_cohort(project_id)
+            cohort2 = project_chooser._project_id_to_cohort(project_id)
+            cohort3 = project_chooser._project_id_to_cohort(project_id)
 
             assert cohort1 == cohort2 == cohort3
             assert 0 <= cohort1 < 6
@@ -240,7 +240,7 @@ class TestProjectChooser:
         result = project_chooser.project_ids_to_process(fetch_time, cohort_updates, all_project_ids)
 
         # Should include projects from cohort 0 (over 1 minute old)
-        expected_cohort = project_chooser.project_id_to_cohort(10)
+        expected_cohort = project_chooser._project_id_to_cohort(10)
         if expected_cohort == 0:
             assert 10 in result
 
@@ -263,7 +263,7 @@ class TestProjectChooser:
         # Should choose the oldest from may_process cohorts (cohort 0)
         # and update cohort_updates accordingly
         assert len(result) > 0  # Should process something
-        processed_cohorts = {project_chooser.project_id_to_cohort(pid) for pid in result}
+        processed_cohorts = {project_chooser._project_id_to_cohort(pid) for pid in result}
 
         # The processed cohorts should be updated in cohort_updates
         for cohort in processed_cohorts:
@@ -306,7 +306,7 @@ class TestProjectChooser:
                 fetch_time, cohort_updates, all_project_ids
             )
             processed_cohorts = {
-                project_chooser.project_id_to_cohort(pid) for pid in processed_projects
+                project_chooser._project_id_to_cohort(pid) for pid in processed_projects
             }
 
             # Every run should process all 6 cohorts.
@@ -340,7 +340,7 @@ class TestProjectChooser:
                 fetch_time, cohort_updates, all_project_ids
             )
             processed_cohorts = {
-                project_chooser.project_id_to_cohort(pid) for pid in processed_projects
+                project_chooser._project_id_to_cohort(pid) for pid in processed_projects
             }
             if run == 0:
                 assert (
@@ -371,7 +371,7 @@ class TestProjectChooser:
 
         # Verify all projects map to cohort 0
         for project_id in all_project_ids:
-            cohort = chooser.project_id_to_cohort(project_id)
+            cohort = chooser._project_id_to_cohort(project_id)
             assert cohort == 0, f"Project {project_id} should map to cohort 0, got {cohort}"
 
         cohort_updates = CohortUpdates(values={})
@@ -383,7 +383,7 @@ class TestProjectChooser:
             processed_projects = chooser.project_ids_to_process(
                 fetch_time, cohort_updates, all_project_ids
             )
-            processed_cohorts = {chooser.project_id_to_cohort(pid) for pid in processed_projects}
+            processed_cohorts = {chooser._project_id_to_cohort(pid) for pid in processed_projects}
 
             # With cohort count = 1, should always process cohort 0
             assert processed_cohorts == {
