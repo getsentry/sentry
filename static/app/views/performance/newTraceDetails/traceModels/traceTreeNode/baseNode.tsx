@@ -20,6 +20,10 @@ export interface TraceTreeNodeExtra {
 }
 
 export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> {
+  abstract id: string;
+
+  abstract type: TraceTree.NodeType;
+
   /**
    * The parent node of this node.
    */
@@ -182,10 +186,6 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     }
   }
 
-  get id(): string | undefined {
-    return this.value && 'event_id' in this.value ? this.value.event_id : undefined;
-  }
-
   get op(): string | undefined {
     return this.value && 'op' in this.value ? this.value.op : undefined;
   }
@@ -261,9 +261,9 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   get visibleChildren(): BaseNode[] {
     const queue: BaseNode[] = [];
     const visibleChildren: BaseNode[] = [];
-    if (this.expanded) {
-      for (let i = this.directChildren.length - 1; i >= 0; i--) {
-        queue.push(this.directChildren[i]!);
+    if (this.directVisibleChildren.length > 0) {
+      for (let i = this.directVisibleChildren.length - 1; i >= 0; i--) {
+        queue.push(this.directVisibleChildren[i]!);
       }
     }
 
@@ -273,9 +273,9 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       visibleChildren.push(node);
 
       // iterate in reverse to ensure nodes are processed in order
-      if (node.expanded || node.visibleChildren.length > 0) {
-        for (let i = node.directChildren.length - 1; i >= 0; i--) {
-          queue.push(node.directChildren[i]!);
+      if (node.directVisibleChildren.length > 0) {
+        for (let i = node.directVisibleChildren.length - 1; i >= 0; i--) {
+          queue.push(node.directVisibleChildren[i]!);
         }
       }
     }
@@ -283,7 +283,11 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return visibleChildren;
   }
 
-  get directChildren(): BaseNode[] {
+  get directVisibleChildren(): BaseNode[] {
+    if (!this.expanded) {
+      return [];
+    }
+
     return this.children;
   }
 
@@ -481,10 +485,8 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     if (!id) {
       return false;
     }
-    return this.matchById(id);
+    return this.id === id;
   }
-
-  abstract get type(): TraceTree.NodeType;
 
   abstract get drawerTabsTitle(): string;
 

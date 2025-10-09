@@ -1,4 +1,5 @@
 import type {Theme} from '@emotion/react';
+import {uuid4} from '@sentry/core';
 
 import {t} from 'sentry/locale';
 import {AutogroupNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/autogroup';
@@ -12,6 +13,9 @@ import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {computeCollapsedBarSpace} from './utils';
 
 export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
+  id: string;
+  type: TraceTree.NodeType;
+
   groupCount = 0;
 
   private _autogroupedSegments: Array<[number, number]> | undefined;
@@ -22,16 +26,11 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
     extra: TraceTreeNodeExtra
   ) {
     super(parent, node, extra);
+
+    this.id = this.parent?.id ?? uuid4();
+    this.type = 'ag';
+
     this.expanded = false;
-  }
-
-  get type(): TraceTree.NodeType {
-    return 'ag';
-  }
-
-  get id(): string | undefined {
-    const firstChild = this.children[0];
-    return firstChild?.id;
   }
 
   get op(): string {
@@ -87,20 +86,6 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
 
   matchById(_id: string): boolean {
     return false;
-  }
-
-  matchByPath(path: TraceTree.NodePath): boolean {
-    if (!path.startsWith(`${this.type}-`)) {
-      return false;
-    }
-
-    // Extract id after the first occurrence of `${this.type}-`
-    const id = path.slice(this.type.length + 1);
-    if (!id) {
-      return false;
-    }
-
-    return this.id === id;
   }
 
   matchWithFreeText(query: string): boolean {

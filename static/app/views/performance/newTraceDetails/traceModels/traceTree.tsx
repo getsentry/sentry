@@ -528,7 +528,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
         c.parent &&
         c.op === 'pageload' &&
         c.parent.op === 'http.server' &&
-        c.parent.directChildren.filter(child => child.op === 'pageload').length === 1
+        c.parent.directVisibleChildren.filter(child => child.op === 'pageload').length ===
+          1
       ) {
         //   // The swap can occur at a later point when new transactions are fetched,
         //   // which means we need to invalidate the tree and re-render the UI.
@@ -841,7 +842,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         throw new Error('Parent node is missing, this should be unreachable code');
       }
 
-      const children = node.parent.directChildren;
+      const children = node.parent.directVisibleChildren;
       const index = children.indexOf(node);
       if (index === -1) {
         throw new Error('Node is not a child of its parent');

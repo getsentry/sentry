@@ -25,6 +25,9 @@ import {traceChronologicalSort} from './utils';
 const {info, fmt} = Sentry.logger;
 
 export class TransactionNode extends BaseNode<TraceTree.Transaction> {
+  id: string;
+  type: TraceTree.NodeType;
+
   private _spanPromises: Map<string, Promise<EventTransaction>> = new Map();
   extra: TraceTreeNodeExtra;
 
@@ -36,6 +39,9 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     extra: TraceTreeNodeExtra
   ) {
     super(parent, value, extra);
+
+    this.id = this.value.event_id;
+    this.type = 'txn';
 
     this.extra = extra;
     const spanChildrenCount = extra.meta?.transaction_child_count_map[this.id];
@@ -56,14 +62,6 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     }
 
     this.parent?.children.push(this);
-  }
-
-  get type(): TraceTree.NodeType {
-    return 'txn';
-  }
-
-  get id(): string {
-    return this.value.event_id;
   }
 
   get projectSlug(): string {

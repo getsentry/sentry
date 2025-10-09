@@ -19,6 +19,9 @@ import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {traceChronologicalSort} from './utils';
 
 export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
+  id: string;
+  type: TraceTree.NodeType;
+
   reparentedEAPTransactions = new Set<EapSpanNode>();
   /**
    * The breakdown of the node's children's operations by count.
@@ -37,6 +40,9 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       : parent;
 
     super(parentNode, value, extra);
+
+    this.id = value.event_id;
+    this.type = 'span';
 
     this.searchPriority = this.value.is_transaction ? 1 : 2;
     this.isEAPEvent = true;
@@ -81,10 +87,6 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     }
   }
 
-  get type(): TraceTree.NodeType {
-    return 'span';
-  }
-
   get description(): string | undefined {
     const isOtelFriendlyUi = this.extra?.organization.features.includes(
       'performance-otel-friendly-ui'
@@ -106,44 +108,14 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     };
   }
 
-  get directChildren(): Array<BaseNode<TraceTree.NodeValue>> {
+  get directVisibleChildren(): Array<BaseNode<TraceTree.NodeValue>> {
     if (isEAPTransaction(this.value) && !this.expanded) {
       // For collapsed eap-transactions we still render the embedded eap-transactions as visible children.
       // Mimics the behavior of non-eap traces, enabling a less noisy/summarized view of the trace
       return this.children.filter(child => isEAPTransaction(child.value));
     }
 
-    return this.children;
-  }
-
-  get visibleChildren(): Array<BaseNode<TraceTree.NodeValue>> {
-    const queue: BaseNode[] = [];
-    const visibleChildren: BaseNode[] = [];
-
-    if (this.expanded || isEAPTransaction(this.value)) {
-      const children = this.directChildren;
-
-      for (let i = children.length - 1; i >= 0; i--) {
-        queue.push(children[i]!);
-      }
-    }
-
-    while (queue.length > 0) {
-      const node = queue.pop()!;
-
-      visibleChildren.push(node);
-
-      // iterate in reverse to ensure nodes are processed in order
-      if (node.expanded || isEAPTransaction(node.value)) {
-        const children = node.directChildren;
-
-        for (let i = children.length - 1; i >= 0; i--) {
-          queue.push(children[i]!);
-        }
-      }
-    }
-
-    return visibleChildren;
+    return super.directVisibleChildren;
   }
 
   private _reparentSSRUnderBrowserRequestSpan(node: BaseNode) {
