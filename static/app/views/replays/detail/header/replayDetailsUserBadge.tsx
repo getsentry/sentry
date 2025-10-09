@@ -45,13 +45,12 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
     orgSlug,
   });
 
-  if (
-    countSegments !== undefined &&
-    replayRecord !== undefined &&
-    countSegments !== replayRecord.count_segments &&
-    !showRefreshButton
-  ) {
-    setShowRefreshButton(true);
+  if (countSegments && replayRecord) {
+    if (countSegments !== replayRecord.count_segments && !showRefreshButton) {
+      setShowRefreshButton(true);
+    } else if (countSegments === replayRecord.count_segments && showRefreshButton) {
+      setShowRefreshButton(false);
+    }
   }
 
   // Generate search query based on available user data
