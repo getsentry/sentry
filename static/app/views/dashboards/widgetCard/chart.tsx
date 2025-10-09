@@ -59,6 +59,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {useTrackAnalyticsOnSpanMigrationError} from 'sentry/views/dashboards/hooks/useTrackAnalyticsOnSpanMigrationError';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
@@ -146,6 +147,8 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   const chartRef = useRef<ReactEchartsRef>(null);
   const location = useLocation();
   const theme = useTheme();
+
+  useTrackAnalyticsOnSpanMigrationError({errorMessage, widget, loading});
 
   const handleChartReady = useCallback(
     (instance: ECharts) => {
