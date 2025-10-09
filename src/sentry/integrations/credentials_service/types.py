@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 
 class CredentialLeasableMixin(ABC):
@@ -25,7 +27,18 @@ class CredentialLeasableMixin(ABC):
     def get_active_access_token(self) -> str: ...
 
     @abstractmethod
-    def does_access_token_expire_within(self, token_minimum_validity_time: timedelta) -> bool: ...
+    def get_current_access_token_expiration(self) -> datetime | None: ...
+
+    def does_access_token_expire_within(self, token_minimum_validity_time: timedelta) -> bool:
+        expires_at = self.get_current_access_token_expiration()
+        if not expires_at:
+            return True
+
+        # Ensure the expiration date we've been given is in UTC timezone.
+        expires_at = expires_at.astimezone(UTC)
+
+        minimum_expiry_time = datetime.now(UTC) + token_minimum_validity_time
+        return expires_at < minimum_expiry_time
 
 
 class InvalidCredentialLeaseTarget(Exception):
