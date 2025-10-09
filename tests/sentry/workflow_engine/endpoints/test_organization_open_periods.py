@@ -16,7 +16,6 @@ from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenP
 from sentry.testutils.cases import APITestCase
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.models.detector_group import DetectorGroup
 
 
 class OrganizationOpenPeriodsTest(APITestCase):
@@ -35,7 +34,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         self.group.save()
 
         # Link detector to group
-        DetectorGroup.objects.create(detector=self.detector, group=self.group)
+        self.create_detector_group(detector=self.detector, group=self.group)
 
         self.group_open_period = GroupOpenPeriod.objects.get(group=self.group)
 
