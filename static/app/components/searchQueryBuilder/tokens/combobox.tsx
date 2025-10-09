@@ -41,6 +41,7 @@ import {
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -413,6 +414,8 @@ export function SearchQueryBuilderCombobox<
     // We handle closing on blur ourselves to prevent the combobox from closing
     // when the user clicks inside the custom menu
     shouldCloseOnBlur: false,
+    // We handle opening and closing ourselves to prevent the combobox from opening unexpectedly
+    menuTrigger: 'manual',
     ...comboBoxProps,
   });
 
@@ -451,8 +454,11 @@ export function SearchQueryBuilderCombobox<
             state.close();
             onCustomValueCommitted(inputValue);
             return;
-          default:
+          default: {
+            if (isOpen || isCtrlKeyPressed(e)) return;
+            state.open();
             return;
+          }
         }
       },
       onKeyUp,
