@@ -30,9 +30,10 @@ export const enum DemoTourStep {
   ISSUES_EVENT_DETAILS = 'demo-tour-issues-event-details',
   ISSUES_DETAIL_SIDEBAR = 'demo-tour-issues-detail-sidebar',
   // Releases steps
-  RELEASES_COMPARE = 'demo-tour-releases-compare',
-  RELEASES_DETAILS = 'demo-tour-releases-details',
-  RELEASES_STATES = 'demo-tour-releases-states',
+  RELEASES_LIST = 'demo-tour-releases-list',
+  RELEASES_CHART = 'demo-tour-releases-chart',
+  RELEASES_ISSUES = 'demo-tour-releases-issues',
+  RELEASES_STATS = 'demo-tour-releases-stats',
   // Performance steps
   PERFORMANCE_TABLE = 'demo-tour-performance-table',
   PERFORMANCE_USER_MISERY = 'demo-tour-performance-user-misery',
@@ -54,10 +55,12 @@ export function useDemoTours(): DemoToursContextType | null {
   return tourContext;
 }
 
-export function useDemoTour(tourKey: DemoTour): TourContextType<DemoTourStep> | null {
+export function useDemoTour(
+  tourKey: DemoTour | null
+): TourContextType<DemoTourStep> | null {
   const tourContext = useDemoTours();
 
-  if (!tourContext) {
+  if (!tourContext || !tourKey) {
     return null;
   }
 
@@ -72,9 +75,10 @@ const TOUR_STEPS: Record<DemoTour, DemoTourStep[]> = {
     DemoTourStep.ISSUES_DETAIL_SIDEBAR,
   ],
   [DemoTour.RELEASES]: [
-    DemoTourStep.RELEASES_COMPARE,
-    DemoTourStep.RELEASES_DETAILS,
-    DemoTourStep.RELEASES_STATES,
+    DemoTourStep.RELEASES_LIST,
+    DemoTourStep.RELEASES_CHART,
+    DemoTourStep.RELEASES_ISSUES,
+    DemoTourStep.RELEASES_STATS,
   ],
   [DemoTour.PERFORMANCE]: [
     DemoTourStep.PERFORMANCE_TABLE,
@@ -175,13 +179,13 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
   return <DemoToursContext value={tours}>{children}</DemoToursContext>;
 }
 
-const getTourFromStep = (step: DemoTourStep): DemoTour => {
+const getTourFromStep = (step: DemoTourStep): DemoTour | null => {
   for (const [category, steps] of Object.entries(TOUR_STEPS)) {
     if (steps.includes(step)) {
       return category as DemoTour;
     }
   }
-  throw new Error(`Unknown tour step: ${step}`);
+  return null;
 };
 
 type DemoTourElementProps = Omit<
