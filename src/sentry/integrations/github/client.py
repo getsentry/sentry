@@ -120,6 +120,7 @@ class GithubProxyClient(IntegrationProxyClient):
     class AccessTokenData(TypedDict):
         access_token: str
         permissions: dict[str, str] | None
+        expires_at: datetime
 
     def _get_installation_id(self) -> str:
         """
@@ -175,6 +176,7 @@ class GithubProxyClient(IntegrationProxyClient):
         return {
             "access_token": access_token,
             "permissions": permissions,
+            "expires_at": expires_at,
         }
 
     @control_silo_function

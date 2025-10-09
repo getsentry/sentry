@@ -16,6 +16,7 @@ from django.urls import reverse
 import sentry
 from fixtures.github import INSTALLATION_EVENT_EXAMPLE
 from sentry.constants import ObjectStatus
+from sentry.integrations.credentials_service.types import CredentialLease
 from sentry.integrations.github import client
 from sentry.integrations.github import integration as github_integration
 from sentry.integrations.github.client import MINIMUM_REQUESTS, GithubSetupApiClient
@@ -1781,7 +1782,17 @@ class GithubIntegrationCredentialLeasingTest(IntegrationTestCase):
         self._stub_github_credentials()
         installation = self.integration.get_installation(organization_id=self.organization.id)
         assert installation is not None
-        assert installation.get_active_access_token() == self.access_token
+        assert installation.get_active_access_token() == CredentialLease(
+            access_token=self.access_token,
+            permissions={
+                "administration": "read",
+                "contents": "read",
+                "issues": "write",
+                "metadata": "read",
+                "pull_requests": "read",
+            },
+            expires_at=datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
+        )
 
     @responses.activate
     def test_get_maximum_lease_duration_seconds(self) -> None:
@@ -1794,7 +1805,16 @@ class GithubIntegrationCredentialLeasingTest(IntegrationTestCase):
         self._stub_github_credentials()
         installation = self.integration.get_installation(organization_id=self.organization.id)
         assert installation is not None
-        assert (
-            installation.refresh_access_token_with_minimum_validity_time(timedelta(minutes=1))
-            == self.access_token
+        assert installation.refresh_access_token_with_minimum_validity_time(
+            timedelta(minutes=1)
+        ) == CredentialLease(
+            access_token=self.access_token,
+            permissions={
+                "administration": "read",
+                "contents": "read",
+                "issues": "write",
+                "metadata": "read",
+                "pull_requests": "read",
+            },
+            expires_at=datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
         )
