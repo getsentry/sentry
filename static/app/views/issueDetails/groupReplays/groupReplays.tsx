@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout/flex';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import {
@@ -110,14 +111,14 @@ export default function GroupReplays({group}: Props) {
       <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
         <ReplayHeader>
           {hasStreamlinedUI ? <ReplayFilterMessage /> : null}
-          <ReplayCountHeader>
+          <Flex align="center" gap="md">
             <IconUser size="sm" />
             {isFetching ? (
               <Placeholder height="18px" width="400px" />
             ) : (
               t('No replay data available.')
             )}
-          </ReplayCountHeader>
+          </Flex>
         </ReplayHeader>
         <ReplayTable
           columns={isMobilePlatform ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS}
@@ -137,7 +138,7 @@ export default function GroupReplays({group}: Props) {
       <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
         <ReplayHeader>
           {hasStreamlinedUI ? <ReplayFilterMessage /> : null}
-          <ReplayCountHeader>
+          <Flex align="center" gap="md">
             <IconUser size="sm" />
             {replayCount > 50
               ? tn(
@@ -150,7 +151,7 @@ export default function GroupReplays({group}: Props) {
                   tn('is %s replay', 'are %s replays', replayCount),
                   tn('%s event', '%s events', group.count)
                 )}
-          </ReplayCountHeader>
+          </Flex>
         </ReplayHeader>
 
         <GroupReplaysTable
@@ -318,12 +319,6 @@ const StyledLayoutPage = styled(Layout.Page)<{hasStreamlinedUI?: boolean}>`
       border-radius: ${p.theme.borderRadius};
       padding: ${space(1.5)};
     `}
-`;
-
-const ReplayCountHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const ReplayHeader = styled('div')`
