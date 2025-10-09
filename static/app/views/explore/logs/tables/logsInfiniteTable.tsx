@@ -14,6 +14,7 @@ import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {
@@ -331,6 +332,7 @@ export function LogsInfiniteTable({
       '.log-table-row-chevron-button': {
         width: theme.isChonk ? '24px' : '18px',
         height: theme.isChonk ? '24px' : '18px',
+        padding: `${space(0.5)} ${space(0.75)}`,
         marginRight: '4px',
         display: 'flex',
         alignItems: 'center',

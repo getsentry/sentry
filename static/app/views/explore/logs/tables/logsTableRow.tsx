@@ -6,6 +6,7 @@ import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/core/button';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconAdd, IconJson, IconSubtract, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -22,6 +23,7 @@ import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
+import useProjects from 'sentry/utils/useProjects';
 import CellAction, {
   Actions,
   ActionTriggerType,
@@ -36,6 +38,7 @@ import {
 import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useFetchTraceItemDetailsOnHover} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
+  AlwaysPresentLogFields,
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT,
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT_WITH_AUTO_REFRESH,
   HiddenLogDetailFields,
@@ -149,6 +152,7 @@ export const LogRowContent = memo(function LogRowContent({
   const location = useLocation();
   const organization = useOrganization();
   const fields = useQueryParamsFields();
+  const projects = useProjects();
 
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
@@ -227,9 +231,9 @@ export const LogRowContent = memo(function LogRowContent({
 
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
   const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
-  const project = useProjectFromId({
-    project_id: '' + dataRow[OurLogKnownFieldKey.PROJECT_ID],
-  });
+  const projectId: (typeof AlwaysPresentLogFields)[1] =
+    dataRow[OurLogKnownFieldKey.PROJECT_ID];
+  const project = projects.projects.find(p => p.id === '' + projectId);
   const projectSlug = project?.slug ?? '';
 
   const level = getLogSeverityLevel(
@@ -335,6 +339,7 @@ export const LogRowContent = memo(function LogRowContent({
               <span className="log-table-row-chevron-button">{chevronIcon}</span>
             )}
             <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
+            {project ? <ProjectBadge project={project} avatarSize={12} hideName /> : null}
           </LogFirstCellContent>
         </LogsTableBodyFirstCell>
         {fields?.map(field => {
