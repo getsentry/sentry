@@ -10,6 +10,10 @@ import {
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
+import type {
+  CaseInsensitive,
+  SetCaseInsensitive,
+} from 'sentry/components/searchQueryBuilder/hooks';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
 import {
   useQueryBuilderState,
@@ -59,10 +63,10 @@ interface SearchQueryBuilderContextData {
   setDisplayAskSeerFeedback: (enabled: boolean) => void;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement | null>;
-  caseInsensitive?: boolean;
+  caseInsensitive?: CaseInsensitive;
   filterKeyAliases?: TagCollection;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
-  onCaseInsensitiveClick?: (caseInsensitive: boolean) => void;
+  onCaseInsensitiveClick?: SetCaseInsensitive;
   placeholder?: string;
   /**
    * The element to render the combobox popovers into.

@@ -1,3 +1,5 @@
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
+
 export const SAMPLING_MODE = {
   NORMAL: 'NORMAL',
   HIGH_ACCURACY: 'HIGHEST_ACCURACY',
@@ -18,7 +20,7 @@ const NON_EXTRAPOLATED_SAMPLING_MODE_QUERY_EXTRAS = {
 
 export type SamplingMode = (typeof SAMPLING_MODE)[keyof typeof SAMPLING_MODE];
 export type SpansRPCQueryExtras = {
-  caseInsensitive?: boolean;
+  caseInsensitive?: CaseInsensitive;
   disableAggregateExtrapolation?: string;
   samplingMode?: SamplingMode;
 };

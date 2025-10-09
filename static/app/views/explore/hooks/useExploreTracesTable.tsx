@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
@@ -8,7 +9,7 @@ interface UseExploreTracesTableOptions {
   enabled: boolean;
   limit: number;
   query: string;
-  queryExtras?: {caseInsensitive?: boolean};
+  queryExtras?: {caseInsensitive?: CaseInsensitive};
 }
 
 export interface TracesTableResult {

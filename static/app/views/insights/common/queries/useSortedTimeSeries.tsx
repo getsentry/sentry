@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import isEmpty from 'lodash/isEmpty';
 import isEqualWith from 'lodash/isEqualWith';
 
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {NODE_ENV} from 'sentry/constants';
 import type {
   EventsStats,
@@ -52,7 +53,7 @@ const {warn} = Sentry.logger;
 type SeriesMap = Record<string, TimeSeries[]>;
 
 interface Options<Fields> {
-  caseInsensitive?: boolean;
+  caseInsensitive?: CaseInsensitive;
   disableAggregateExtrapolation?: string;
   enabled?: boolean;
   fields?: string[];

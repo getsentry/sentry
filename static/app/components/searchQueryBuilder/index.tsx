@@ -9,6 +9,10 @@ import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
+import type {
+  CaseInsensitive,
+  SetCaseInsensitive,
+} from 'sentry/components/searchQueryBuilder/hooks';
 import {useOnChange} from 'sentry/components/searchQueryBuilder/hooks/useOnChange';
 import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
@@ -44,10 +48,10 @@ export interface SearchQueryBuilderProps {
   autoFocus?: boolean;
   /**
    * Controls the state of the case sensitivity toggle.
-   * - `true` = case insensitive
-   * - `false` = case sensitive
+   * - `1` = case insensitive
+   * - `null` = case sensitive
    */
-  caseInsensitive?: boolean;
+  caseInsensitive?: CaseInsensitive;
   className?: string;
   disabled?: boolean;
   /**
@@ -129,7 +133,7 @@ export interface SearchQueryBuilderProps {
    * When passed, this will display the case sensitivity toggle, and will be called when
    * the user clicks on the case sensitivity button.
    */
-  onCaseInsensitiveClick?: (caseInsensitive: boolean) => void;
+  onCaseInsensitiveClick?: SetCaseInsensitive;
   /**
    * Called when the query value changes
    */
@@ -200,13 +204,13 @@ function ActionButtons({
       {defined(onCaseInsensitiveClick) && hasCaseSensitiveSearch ? (
         <ActionButton
           aria-label={t('Toggle case sensitivity')}
-          aria-pressed={caseInsensitive === true}
+          aria-pressed={caseInsensitive === 1}
           size="zero"
           icon={<IconCase color={caseInsensitive ? 'active' : 'subText'} />}
           borderless
-          active={caseInsensitive === true}
+          active={caseInsensitive === 1}
           onClick={() => {
-            onCaseInsensitiveClick?.(!caseInsensitive);
+            onCaseInsensitiveClick?.(caseInsensitive === 1 ? null : 1);
           }}
         />
       ) : null}

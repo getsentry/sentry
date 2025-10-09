@@ -1,6 +1,7 @@
 import {keepPreviousData as keepPreviousDataFn} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {PageFilters} from 'sentry/types/core';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {parseError} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -59,7 +60,7 @@ interface TraceResults {
 
 interface UseTracesOptions
   extends Pick<UseApiQueryOptions<TraceResults>, 'refetchInterval'> {
-  caseInsensitive?: boolean;
+  caseInsensitive?: CaseInsensitive;
   cursor?: string;
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
