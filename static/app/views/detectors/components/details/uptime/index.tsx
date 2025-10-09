@@ -82,6 +82,10 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
               value={t('Every %s', getDuration(dataSource.queryObj.intervalSeconds))}
             />
             <KeyValueTableRow
+              keyName={t('Timeout')}
+              value={t('After %s', getDuration(dataSource.queryObj.timeoutMs / 1000, 2))}
+            />
+            <KeyValueTableRow
               keyName={t('URL')}
               value={detector.dataSources[0].queryObj.url}
             />
