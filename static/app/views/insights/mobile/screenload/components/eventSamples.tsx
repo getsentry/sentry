@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -27,10 +28,9 @@ const DEFAULT_SORT = {
 
 type Props = {
   cursorName: string;
-  release: string;
+  release: string | undefined;
   sortKey: string;
   transaction: string;
-  showDeviceClassSelector?: boolean;
 };
 
 export function ScreenLoadEventSamples({
@@ -38,7 +38,6 @@ export function ScreenLoadEventSamples({
   transaction,
   release,
   sortKey,
-  showDeviceClassSelector,
 }: Props) {
   const location = useLocation();
   const {selection} = usePageFilters();
@@ -50,12 +49,18 @@ export function ScreenLoadEventSamples({
   const subregions = decodeList(location.query[SpanFields.USER_GEO_SUBREGION]);
 
   const searchQuery = useMemo(() => {
-    const mutableQuery = new MutableSearch([
+    const baseFilters = [
       'span.op:[ui.load,navigation]',
       `is_transaction:true`,
       `transaction:${transaction}`,
-      `release:${release}`,
-    ]);
+    ];
+
+    // Only add release filter if release is not empty (not "All")
+    if (release) {
+      baseFilters.push(`release:${release}`);
+    }
+
+    const mutableQuery = new MutableSearch(baseFilters);
 
     if (subregions.length > 0) {
       mutableQuery.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
@@ -79,10 +84,12 @@ export function ScreenLoadEventSamples({
   const sort = decodeSorts(location.query[sortKey])[0] ?? DEFAULT_SORT;
 
   const columnNameMap = {
-    id: t(
-      'Event ID (%s)',
-      release === primaryRelease ? PRIMARY_RELEASE_ALIAS : SECONDARY_RELEASE_ALIAS
-    ),
+    id: defined(release)
+      ? t(
+          'Event ID (%s)',
+          release === primaryRelease ? PRIMARY_RELEASE_ALIAS : SECONDARY_RELEASE_ALIAS
+        )
+      : t('Event ID'),
     'profile.id': t('Profile'),
     'measurements.time_to_initial_display': t('TTID'),
     'measurements.time_to_full_display': t('TTFD'),
@@ -138,9 +145,9 @@ export function ScreenLoadEventSamples({
       eventView={eventView}
       sortKey={sortKey}
       data={{data, meta}}
-      showDeviceClassSelector={showDeviceClassSelector}
       columnNameMap={columnNameMap}
       sort={sort}
+      footerAlignedPagination
     />
   );
 }
