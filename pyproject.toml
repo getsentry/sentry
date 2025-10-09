@@ -515,7 +515,6 @@ module = [
     "sentry.issues.status_change_message",
     "sentry.issues.update_inbox",
     "sentry.lang.java.processing",
-    "sentry.llm.*",
     "sentry.mail.*",
     "sentry.metrics.*",
     "sentry.middleware.integrations.*",
