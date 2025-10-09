@@ -504,7 +504,7 @@ function EAPSpanNodeDetailsContent({
 
         <LogDetails />
 
-        {organization.features.includes('trace-view-span-links') && links?.length ? (
+        {links?.length ? (
           <TraceSpanLinks
             tree={tree}
             node={node}
