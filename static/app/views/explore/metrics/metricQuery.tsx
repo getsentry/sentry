@@ -36,7 +36,7 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
   }
 
   const metric = json.metric;
-  if (typeof metric !== 'object') {
+  if (typeof metric !== 'object' || !metric.name || !metric.type) {
     return null;
   }
 
