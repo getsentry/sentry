@@ -32,32 +32,28 @@ class ApiApplicationUpdateTest(APITestCase):
         app = ApiApplication.objects.get(id=app.id)
         assert app.name == "foobaz"
 
-    def test_redirect_uris_with_custom_schemes(self) -> None:
+    def test_redirect_uris_with_allowed_schemes(self) -> None:
         app = ApiApplication.objects.create(owner=self.user, name="a")
 
         self.login_as(self.user)
         url = reverse("sentry-api-0-api-application-details", args=[app.client_id])
 
-        # Test various custom schemes
-        custom_uris = [
-            "myapp://callback",
-            "custom-scheme://auth/callback",
-            "app123://redirect",
-            "http://example.com/callback",  # Standard HTTP still works
-            "https://example.com/callback",  # Standard HTTPS still works
+        # Test allowed schemes
+        allowed_uris = [
+            "http://example.com/callback",
+            "https://example.com/callback",
+            "sentry-mobile-agent://callback",
         ]
 
-        response = self.client.put(url, data={"redirectUris": custom_uris})
+        response = self.client.put(url, data={"redirectUris": allowed_uris})
         assert response.status_code == 200, (response.status_code, response.content)
 
         app = ApiApplication.objects.get(id=app.id)
         saved_uris = app.get_redirect_uris()
-        assert len(saved_uris) == 5
-        assert "myapp://callback" in saved_uris
-        assert "custom-scheme://auth/callback" in saved_uris
-        assert "app123://redirect" in saved_uris
+        assert len(saved_uris) == 3
         assert "http://example.com/callback" in saved_uris
         assert "https://example.com/callback" in saved_uris
+        assert "sentry-mobile-agent://callback" in saved_uris
 
     def test_invalid_redirect_uris_rejected(self) -> None:
         app = ApiApplication.objects.create(owner=self.user, name="a")
@@ -76,6 +72,49 @@ class ApiApplicationUpdateTest(APITestCase):
         response = self.client.put(url, data={"redirectUris": invalid_uris})
         assert response.status_code == 400, (response.status_code, response.content)
         assert "redirectUris" in response.data
+
+    def test_disallowed_schemes_rejected(self) -> None:
+        app = ApiApplication.objects.create(owner=self.user, name="a")
+
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-application-details", args=[app.client_id])
+
+        # Test schemes that are not in the allowlist
+        disallowed_uris = [
+            # Dangerous schemes
+            "javascript:alert('xss')",
+            "vbscript:msgbox('xss')",
+            "data:text/html,<script>alert('xss')</script>",
+            "file:///etc/passwd",
+            # Database connections
+            "jdbc:mysql://localhost:3306/db",
+            "odbc:DSN=myDataSource",
+            # Administrative/system
+            "admin://system",
+            "rdar://problem/12345",
+            "shortcuts://run-shortcut?name=test",
+            # Communication
+            "mailto:test@example.com",
+            "tel:+1234567890",
+            "sms:+1234567890",
+            # File transfer
+            "ftp://example.com/file",
+            "ftps://example.com/file",
+            "sftp://example.com/file",
+            # Custom schemes not in allowlist
+            "myapp://callback",
+            "com.example.app://auth",
+            "custom-scheme://redirect",
+        ]
+
+        for disallowed_uri in disallowed_uris:
+            response = self.client.put(url, data={"redirectUris": [disallowed_uri]})
+            assert response.status_code == 400, (
+                f"Expected {disallowed_uri} to be rejected",
+                response.status_code,
+                response.content,
+            )
+            assert "redirectUris" in response.data
 
 
 @control_silo_test

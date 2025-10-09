@@ -17,10 +17,23 @@ from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 
 
 class CustomSchemeURLField(serializers.CharField):
-    """URLField that accepts any valid scheme, not just HTTP/HTTPS."""
+    """URLField that only allows specific safe schemes for OAuth redirect URIs.
+
+    Uses an allowlist approach for maximum security, only permitting:
+    - http/https: Standard web protocols
+    - sentry-mobile-agent: Sentry's custom mobile app scheme
+    """
+
+    # Only these schemes are allowed for OAuth redirect URIs
+    ALLOWED_SCHEMES = {
+        "http",  # Standard HTTP
+        "https",  # Secure HTTP
+        "sentry-mobile-agent",  # Sentry mobile app custom scheme
+    }
 
     default_error_messages = {
         "invalid": "Enter a valid URL.",
+        "disallowed_scheme": "This URL scheme is not allowed. Only http, https, and sentry-mobile-agent schemes are permitted.",
     }
 
     def run_validation(self, data):
@@ -38,6 +51,10 @@ class CustomSchemeURLField(serializers.CharField):
             parsed = urlparse(data)
             if not parsed.scheme or not parsed.netloc:
                 self.fail("invalid")
+
+            # Check if the scheme is in the allowlist
+            if parsed.scheme.lower() not in self.ALLOWED_SCHEMES:
+                self.fail("disallowed_scheme")
         except Exception:
             self.fail("invalid")
 
