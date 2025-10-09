@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {useCallback, useEffect, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useEffectEvent, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -450,7 +450,10 @@ export function ProductSelection({
   onLoad,
 }: ProductSelectionProps) {
   const [params, setParams] = useOnboardingQueryParams();
-  const urlProducts = useMemo(() => params.product ?? [], [params.product]);
+  const urlProducts = useMemo(
+    () => (params.product ?? []) as ProductSolution[],
+    [params.product]
+  );
 
   const products: ProductSolution[] | undefined = platform
     ? platformProductAvailability[platform]
@@ -461,16 +464,14 @@ export function ProductSelection({
     [organization, disabledProductsProp]
   );
 
-  const safeDependencies = useRef({onLoad, urlProducts});
-
-  useEffect(() => {
-    safeDependencies.current = {onLoad, urlProducts};
+  // Use useEffectEvent to pass urlProducts without adding it as a dependency
+  const initializeProducts = useEffectEvent(() => {
+    onLoad?.(urlProducts);
   });
 
+  // Call onLoad once on mount
   useEffect(() => {
-    safeDependencies.current.onLoad?.(
-      safeDependencies.current.urlProducts as ProductSolution[]
-    );
+    initializeProducts();
   }, []);
 
   const handleClickProduct = useCallback(
@@ -479,7 +480,7 @@ export function ProductSelection({
         urlProducts.includes(product)
           ? urlProducts.filter(p => p !== product)
           : [...urlProducts, product]
-      ) as Set<ProductSolution>;
+      );
 
       if (products?.includes(ProductSolution.PROFILING)) {
         // Ensure that if profiling is enabled, tracing is also enabled
@@ -499,7 +500,7 @@ export function ProductSelection({
       const selectedProducts = Array.from(newProduct);
 
       onChange?.({
-        previousProducts: urlProducts as ProductSolution[],
+        previousProducts: urlProducts,
         products: selectedProducts,
       });
       setParams({product: selectedProducts});
