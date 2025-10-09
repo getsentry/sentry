@@ -266,6 +266,7 @@ def make_timeseries_result(
     meta = SeriesMeta(
         interval=interval.seconds * 1000,
         valueType="integer",
+        valueUnit=None,
     )
     if is_other is not None:
         meta["isOther"] = is_other
