@@ -196,6 +196,9 @@ export function initializeSdk(config: Config) {
     },
     enableLogs: true,
     sendDefaultPii: true,
+    _experiments: {
+      enableMetrics: true,
+    },
   });
 
   // Track timeOrigin Selection by the SDK to see if it improves transaction durations
