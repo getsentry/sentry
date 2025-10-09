@@ -4,6 +4,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {
   AutofixStatus,
   AutofixStepType,
+  AutofixStoppingPoint,
   CodingAgentStatus,
   type AutofixData,
   type GroupWithAutofix,
@@ -236,7 +237,7 @@ export const useAiAutofix = (
   );
 
   const triggerAutofix = useCallback(
-    async (instruction: string) => {
+    async (instruction: string, stoppingPoint?: AutofixStoppingPoint) => {
       setIsReset(false);
       setCurrentRunId(null);
       setWaitingForNextRun(true);
@@ -254,6 +255,7 @@ export const useAiAutofix = (
             data: {
               event_id: event.id,
               instruction,
+              ...(stoppingPoint && {stopping_point: stoppingPoint}),
             },
           }
         );
