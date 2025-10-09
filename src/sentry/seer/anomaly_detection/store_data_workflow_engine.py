@@ -56,14 +56,17 @@ def send_new_detector_data(detector: Detector) -> None:
         data_condition = DataCondition.objects.get(
             condition_group=detector.workflow_condition_group
         )
-    except DataCondition.DoesNotExist:
-        raise Exception("Could not create detector, data condition not found.")
+    except (DataCondition.DoesNotExist, DataCondition.MultipleObjectsReturned):
+        # there should only ever be one data condition for a dynamic metric detector, we dont actually expect a MultipleObjectsReturned
+        raise Exception("Could not create detector, data condition not found or too many found.")
     try:
         handle_send_historical_data_to_seer(
             detector, data_source, data_condition, snuba_query, detector.project, SeerMethod.CREATE
         )
     except (TimeoutError, MaxRetryError, ParseError, ValidationError):
+        data_condition_group = data_condition.condition_group
         data_condition.delete()
+        data_condition_group.delete()
         raise ValidationError("Couldn't send data to Seer, unable to create detector")
     else:
         metrics.incr("anomaly_detection_monitor.created")

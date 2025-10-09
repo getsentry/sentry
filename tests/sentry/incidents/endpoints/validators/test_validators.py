@@ -351,7 +351,8 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
 
         mock_seer_request.side_effect = TimeoutError
 
-        count_before = DataCondition.objects.filter(type=Condition.ANOMALY_DETECTION).count()
+        assert not DataCondition.objects.filter(type=Condition.ANOMALY_DETECTION).exists()
+        DataConditionGroup.objects.all().delete()
 
         validator = MetricIssueDetectorValidator(
             data=self.valid_anomaly_detection_data,
@@ -365,9 +366,8 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                 detector = validator.save()
 
         assert not detector
-        assert (
-            count_before == DataCondition.objects.filter(type=Condition.ANOMALY_DETECTION).count()
-        )
+        assert not DataCondition.objects.filter(type=Condition.ANOMALY_DETECTION).exists()
+        assert DataConditionGroup.objects.all().count() == 0
 
         mock_seer_request.side_effect = MaxRetryError(
             seer_anomaly_detection_connection_pool, SEER_ANOMALY_DETECTION_STORE_DATA_URL
@@ -378,15 +378,13 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         )
         assert validator.is_valid(), validator.errors
 
-        detector = None
         with self.tasks():
             with pytest.raises(ValidationError):
                 detector = validator.save()
 
         assert not detector
-        assert (
-            count_before == DataCondition.objects.filter(type=Condition.ANOMALY_DETECTION).count()
-        )
+        assert not DataCondition.objects.filter(type=Condition.ANOMALY_DETECTION).exists()
+        assert DataConditionGroup.objects.all().count() == 0
 
     def test_invalid_detector_type(self) -> None:
         data = {**self.valid_data, "type": "invalid_type"}
