@@ -191,7 +191,10 @@ function WidgetCard(props: Props) {
   const extractionStatus = useExtractionStatus({queryKey: widget});
   const indexedEventsWarning = useIndexedEventsWarning();
   const onDemandWarning = useOnDemandWarning({widget});
-  const transactionsDeprecationWarning = useTransactionsDeprecationWarning({widget});
+  const transactionsDeprecationWarning = useTransactionsDeprecationWarning({
+    widget,
+    selection,
+  });
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
   const spanTimeRangeWarning = useTimeRangeWarning({widget});
 
