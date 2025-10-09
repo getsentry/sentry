@@ -58,29 +58,29 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
         """
         Check for updates for a preprod artifact
         """
-        main_binary_identifier = request.GET.get("main_binary_identifier")
-        app_id = request.GET.get("app_id")
 
-        platform = request.GET.get("platform")
+        provided_main_binary_identifier = request.GET.get("main_binary_identifier")
+        provided_app_id = request.GET.get("app_id")
+        provided_platform = request.GET.get("platform")
         provided_build_version = request.GET.get("build_version")
         provided_build_number = request.GET.get("build_number")
-        provided_build_configuration_name = request.GET.get("build_configuration")
+        provided_build_configuration = request.GET.get("build_configuration")
 
-        if not app_id or not platform or not provided_build_version:
+        if not provided_app_id or not provided_platform or not provided_build_version:
             return Response({"error": "Missing required parameters"}, status=400)
 
-        if not main_binary_identifier and not provided_build_number:
+        if not provided_main_binary_identifier and not provided_build_number:
             return Response(
                 {"error": "Either main_binary_identifier or build_number must be provided"},
                 status=400,
             )
 
-        provided_build_configuration = None
-        if provided_build_configuration_name:
+        build_configuration = None
+        if provided_build_configuration:
             try:
-                provided_build_configuration = PreprodBuildConfiguration.objects.get(
+                build_configuration = PreprodBuildConfiguration.objects.get(
                     project=project,
-                    name=provided_build_configuration_name,
+                    name=provided_build_configuration,
                 )
             except PreprodBuildConfiguration.DoesNotExist:
                 return Response({"error": "Invalid build configuration"}, status=400)
@@ -93,15 +93,15 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
         def get_base_filters():
             filter_kwargs = {
                 "project": project,
-                "app_id": app_id,
+                "app_id": provided_app_id,
             }
 
-            if platform == "android":
+            if provided_platform == "android":
                 filter_kwargs["artifact_type__in"] = [
                     PreprodArtifact.ArtifactType.AAB,
                     PreprodArtifact.ArtifactType.APK,
                 ]
-            elif platform == "ios":
+            elif provided_platform == "ios":
                 filter_kwargs["artifact_type"] = PreprodArtifact.ArtifactType.XCARCHIVE
 
             return filter_kwargs
@@ -115,8 +115,8 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
             )
 
             # Add main_binary_identifier filter if provided
-            if main_binary_identifier:
-                current_filter_kwargs["main_binary_identifier"] = main_binary_identifier
+            if provided_main_binary_identifier:
+                current_filter_kwargs["main_binary_identifier"] = provided_main_binary_identifier
 
             # Add build_number filter if provided
             if provided_build_number is not None:
@@ -125,8 +125,8 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
                 except ValueError:
                     return Response({"error": "Invalid build_number format"}, status=400)
 
-            if provided_build_configuration:
-                current_filter_kwargs["build_configuration"] = provided_build_configuration
+            if build_configuration:
+                current_filter_kwargs["build_configuration"] = build_configuration
 
             preprod_artifact = PreprodArtifact.objects.filter(**current_filter_kwargs).latest(
                 "date_added"
@@ -156,8 +156,8 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
         new_build_filter_kwargs = get_base_filters()
         if preprod_artifact:
             new_build_filter_kwargs["build_configuration"] = preprod_artifact.build_configuration
-        elif provided_build_configuration:
-            new_build_filter_kwargs["build_configuration"] = provided_build_configuration
+        elif build_configuration:
+            new_build_filter_kwargs["build_configuration"] = build_configuration
         all_versions = (
             PreprodArtifact.objects.filter(**new_build_filter_kwargs)
             .values_list("build_version", flat=True)
