@@ -354,7 +354,6 @@ export function SearchQueryBuilderCombobox<
   onInputChange,
   onOpenChange,
   autoFocus,
-  openOnFocus,
   onFocus,
   tabIndex = -1,
   maxOptions,
@@ -404,6 +403,9 @@ export function SearchQueryBuilderCombobox<
     allowsCustomValue: true,
     disabledKeys,
     isDisabled: disabled,
+    // We want to manually open and close the menu ourselves, preventing the menu from
+    // opening at unexpected times.
+    menuTrigger: 'manual',
   };
 
   const state = useComboBoxState<T>({
@@ -424,9 +426,7 @@ export function SearchQueryBuilderCombobox<
       popoverRef,
       shouldFocusWrap: true,
       onFocus: e => {
-        if (openOnFocus) {
-          state.open();
-        }
+        state.open();
         onFocus?.(e);
       },
       onBlur: e => {
@@ -451,6 +451,7 @@ export function SearchQueryBuilderCombobox<
             onCustomValueCommitted(inputValue);
             return;
           default:
+            state.open();
             return;
         }
       },
