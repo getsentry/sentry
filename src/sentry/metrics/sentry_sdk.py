@@ -1,6 +1,6 @@
 from typing import Any
 
-import sentry_sdk.metrics
+import sentry_sdk._metrics
 
 from .base import MetricsBackend, Tags
 
@@ -28,11 +28,11 @@ class SentrySDKMetricsBackend(MetricsBackend):
         if instance:
             metric_tags["instance"] = instance
 
-        sentry_sdk.metrics.incr(
-            key=self._get_key(key),
+        sentry_sdk._metrics.count(
+            name=self._get_key(key),
             value=amount,
             unit=unit or "none",
-            tags=metric_tags,
+            attributes=metric_tags,
         )
 
     def timing(
@@ -63,11 +63,11 @@ class SentrySDKMetricsBackend(MetricsBackend):
         if instance:
             metric_tags["instance"] = instance
 
-        sentry_sdk.metrics.gauge(
-            key=self._get_key(key),
+        sentry_sdk._metrics.gauge(
+            name=self._get_key(key),
             value=value,
             unit=unit or "none",
-            tags=metric_tags,
+            attributes=metric_tags,
         )
 
     def distribution(
@@ -87,11 +87,11 @@ class SentrySDKMetricsBackend(MetricsBackend):
         if instance:
             metric_tags["instance"] = instance
 
-        sentry_sdk.metrics.distribution(
-            key=self._get_key(key),
+        sentry_sdk._metrics.distribution(
+            name=self._get_key(key),
             value=value,
             unit=unit or "none",
-            tags=metric_tags,
+            attributes=metric_tags,
         )
 
     def event(

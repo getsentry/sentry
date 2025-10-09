@@ -12,10 +12,10 @@ __all__ = ["CompositeExperimentalMetricsBackend"]
 
 class CompositeExperimentalMetricsBackend(MetricsBackend):
     def __init__(self, **kwargs: Any):
+        primary_backend = kwargs.pop("primary_backend", None)
+        primary_backend_args = kwargs.pop("primary_backend_args", {})
         super().__init__(**kwargs)
-        self._initialize_backends(
-            kwargs.pop("primary_backend", None), kwargs.pop("primary_backend_args", {})
-        )
+        self._initialize_backends(primary_backend, primary_backend_args)
         self._deny_prefixes = tuple(kwargs.pop("deny_prefixes", []))
 
     def _initialize_backends(

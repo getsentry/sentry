@@ -89,8 +89,8 @@ class TestCompositeExperimentalMetricsBackend:
 
     @override_options({"tracemetrics.sentry_sdk_metrics_backend_rate": 1.0})
     def test_should_send_to_sentry_sdk(self, backend):
-        with mock.patch("sentry.utils.options.sample_modulo", return_value=True):
+        with mock.patch("sentry.metrics.composite_experimental.sample_modulo", return_value=True):
             assert backend._should_send_to_sentry_sdk("test.metric") is True
 
-        with mock.patch("sentry.utils.options.sample_modulo", return_value=False):
+        with mock.patch("sentry.metrics.composite_experimental.sample_modulo", return_value=False):
             assert backend._should_send_to_sentry_sdk("test.metric") is False
