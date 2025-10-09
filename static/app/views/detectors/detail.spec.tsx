@@ -277,10 +277,8 @@ describe('DetectorDetails', () => {
 
       // Interval
       expect(screen.getByText('Every 1 minute')).toBeInTheDocument();
-      // URL
-      expect(screen.getByText('https://example.com')).toBeInTheDocument();
-      // Method
-      expect(screen.getByText('GET')).toBeInTheDocument();
+      // URL + Method
+      expect(screen.getByText('GET https://example.com')).toBeInTheDocument();
       // Environment
       expect(screen.getByText('production')).toBeInTheDocument();
 
