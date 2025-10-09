@@ -275,7 +275,13 @@ class DashboardWidgetSerializer(Serializer):
             widget_type = DashboardWidgetTypes.get_type_name(obj.discover_widget_split)
 
         explore_urls = None
-        if obj.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE and features.has(
+        if (
+            obj.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE
+            or (
+                obj.widget_type == DashboardWidgetTypes.DISCOVER
+                and obj.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
+            )
+        ) and features.has(
             "organizations:transaction-widget-deprecation-explore-view",
             organization=obj.dashboard.organization,
             actor=user,
@@ -595,7 +601,7 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
         )
 
         for dashboard in item_list:
-            dashboard_widgets = [w for w in widgets if w["dashboardId"] == str(dashboard.id)]
+            dashboard_widgets = [w for w in widgets if w and w["dashboardId"] == str(dashboard.id)]
             result[dashboard] = {"widgets": dashboard_widgets}
 
         return result

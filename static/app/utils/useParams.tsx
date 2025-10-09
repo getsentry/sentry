@@ -44,6 +44,7 @@ type ParamKeys =
   | 'sentryAppSlug'
   | 'shareId'
   | 'spanSlug'
+  | 'step'
   | 'storySlug'
   | 'storyType'
   | 'tagKey'
