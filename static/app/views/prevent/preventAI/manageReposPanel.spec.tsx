@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {PreventAIOrgConfig} from 'sentry/types/prevent';
 import ManageReposPanel, {
@@ -152,30 +152,255 @@ describe('ManageReposPanel', () => {
         },
       });
     });
+  });
 
-    it('returns org defaults when repo override is not present', () => {
-      const orgConfig: PreventAIOrgConfig = {
-        org_defaults: {
-          bug_prediction: {
-            enabled: true,
-            triggers: {on_command_phrase: true, on_ready_for_review: false},
+  describe('Sensitivity Dropdowns', () => {
+    it('renders sensitivity dropdown for PR Review when enabled', async () => {
+      const enabledConfig = {
+        ...mockOrganization.preventAiConfigGithub,
+        default_org_config: {
+          org_defaults: {
+            ...mockOrganization.preventAiConfigGithub!.default_org_config.org_defaults,
+            vanilla: {
+              enabled: true,
+              triggers: {on_command_phrase: false, on_ready_for_review: false},
+              sensitivity: 'medium',
+            },
           },
-          test_generation: {
-            enabled: false,
-            triggers: {on_command_phrase: false, on_ready_for_review: false},
-          },
-          vanilla: {
-            enabled: true,
-            triggers: {on_command_phrase: false, on_ready_for_review: false},
-          },
+          repo_overrides: {},
         },
-        repo_overrides: {},
       };
-      const result = getRepoConfig(orgConfig, 'repo-2');
-      expect(result).toEqual({
-        doesUseOrgDefaults: true,
-        repoConfig: orgConfig.org_defaults,
+
+      const orgWithEnabledVanilla = {
+        ...mockOrganization,
+        preventAiConfigGithub: enabledConfig,
+      };
+
+      render(<ManageReposPanel {...defaultProps} />, {
+        organization: orgWithEnabledVanilla,
       });
+
+      expect(
+        await screen.findByTestId('pr-review-sensitivity-dropdown')
+      ).toBeInTheDocument();
+    });
+
+    it('does not render sensitivity dropdown for PR Review when disabled', async () => {
+      render(<ManageReposPanel {...defaultProps} />, {
+        organization: mockOrganization,
+      });
+
+      expect(
+        screen.queryByTestId('pr-review-sensitivity-dropdown')
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders sensitivity dropdown for Error Prediction when enabled', async () => {
+      render(<ManageReposPanel {...defaultProps} />, {
+        organization: mockOrganization,
+      });
+
+      expect(
+        await screen.findByTestId('error-prediction-sensitivity-dropdown')
+      ).toBeInTheDocument();
+    });
+
+    it('does not render sensitivity dropdown for Error Prediction when disabled', async () => {
+      const disabledConfig = {
+        ...mockOrganization.preventAiConfigGithub,
+        default_org_config: {
+          org_defaults: {
+            ...mockOrganization.preventAiConfigGithub!.default_org_config.org_defaults,
+            bug_prediction: {
+              enabled: false,
+              triggers: {on_command_phrase: false, on_ready_for_review: false},
+              sensitivity: 'medium',
+            },
+          },
+          repo_overrides: {},
+        },
+      };
+
+      const orgWithDisabledBugPrediction = {
+        ...mockOrganization,
+        preventAiConfigGithub: disabledConfig,
+      };
+
+      render(<ManageReposPanel {...defaultProps} />, {
+        organization: orgWithDisabledBugPrediction,
+      });
+
+      expect(
+        screen.queryByTestId('error-prediction-sensitivity-dropdown')
+      ).not.toBeInTheDocument();
+    });
+
+    it('displays correct default sensitivity value for PR Review', async () => {
+      const enabledConfig = {
+        ...mockOrganization.preventAiConfigGithub,
+        default_org_config: {
+          org_defaults: {
+            ...mockOrganization.preventAiConfigGithub!.default_org_config.org_defaults,
+            vanilla: {
+              enabled: true,
+              triggers: {on_command_phrase: false, on_ready_for_review: false},
+              sensitivity: 'high',
+            },
+          },
+          repo_overrides: {},
+        },
+      };
+
+      const orgWithHighSensitivity = {
+        ...mockOrganization,
+        preventAiConfigGithub: enabledConfig,
+      };
+
+      render(<ManageReposPanel {...defaultProps} />, {
+        organization: orgWithHighSensitivity,
+      });
+
+      const dropdown = await screen.findByTestId('pr-review-sensitivity-dropdown');
+      expect(dropdown).toHaveTextContent('High');
+    });
+
+    it('displays correct default sensitivity value for Error Prediction', async () => {
+      render(<ManageReposPanel {...defaultProps} />, {
+        organization: mockOrganization,
+      });
+
+      const dropdown = await screen.findByTestId(
+        'error-prediction-sensitivity-dropdown'
+      );
+      expect(dropdown).toHaveTextContent('Medium');
+    });
+
+    it('updates sensitivity when selecting a different option for PR Review', async () => {
+      const mockEnableFeature = jest.fn().mockResolvedValue({});
+      mockUpdatePreventAIFeatureReturn = {
+        enableFeature: mockEnableFeature,
+        isLoading: false,
+      };
+
+      const enabledConfig = {
+        ...mockOrganization.preventAiConfigGithub,
+        default_org_config: {
+          org_defaults: {
+            ...mockOrganization.preventAiConfigGithub!.default_org_config.org_defaults,
+            vanilla: {
+              enabled: true,
+              triggers: {on_command_phrase: false, on_ready_for_review: false},
+              sensitivity: 'medium',
+            },
+          },
+          repo_overrides: {},
+        },
+      };
+
+      const orgWithEnabledVanilla = {
+        ...mockOrganization,
+        preventAiConfigGithub: enabledConfig,
+      };
+
+      render(<ManageReposPanel {...defaultProps} />, {
+        organization: orgWithEnabledVanilla,
+      });
+
+      const dropdown = await screen.findByTestId('pr-review-sensitivity-dropdown');
+      await userEvent.click(dropdown);
+
+      const criticalOption = await screen.findByText('Critical');
+      await userEvent.click(criticalOption);
+
+      await waitFor(() => {
+        expect(mockEnableFeature).toHaveBeenCalledWith({
+          feature: 'vanilla',
+          enabled: true,
+          orgName: 'org-1',
+          repoName: 'repo-1',
+          sensitivity: 'critical',
+        });
+      });
+    });
+
+    it('updates sensitivity when selecting a different option for Error Prediction', async () => {
+      const mockEnableFeature = jest.fn().mockResolvedValue({});
+      mockUpdatePreventAIFeatureReturn = {
+        enableFeature: mockEnableFeature,
+        isLoading: false,
+      };
+
+      render(<ManageReposPanel {...defaultProps} />, {
+        organization: mockOrganization,
+      });
+
+      const dropdown = await screen.findByTestId(
+        'error-prediction-sensitivity-dropdown'
+      );
+      await userEvent.click(dropdown);
+
+      const lowOption = await screen.findByText('Low');
+      await userEvent.click(lowOption);
+
+      await waitFor(() => {
+        expect(mockEnableFeature).toHaveBeenCalledWith({
+          feature: 'bug_prediction',
+          enabled: true,
+          orgName: 'org-1',
+          repoName: 'repo-1',
+          sensitivity: 'low',
+        });
+      });
+    });
+
+    it('disables sensitivity dropdown when loading', async () => {
+      mockUpdatePreventAIFeatureReturn = {
+        enableFeature: jest.fn(),
+        isLoading: true,
+      };
+
+      const enabledConfig = {
+        ...mockOrganization.preventAiConfigGithub,
+        default_org_config: {
+          org_defaults: {
+            ...mockOrganization.preventAiConfigGithub!.default_org_config.org_defaults,
+            vanilla: {
+              enabled: true,
+              triggers: {on_command_phrase: false, on_ready_for_review: false},
+              sensitivity: 'medium',
+            },
+          },
+          repo_overrides: {},
+        },
+      };
+
+      const orgWithEnabledVanilla = {
+        ...mockOrganization,
+        preventAiConfigGithub: enabledConfig,
+      };
+
+      render(<ManageReposPanel {...defaultProps} />, {
+        organization: orgWithEnabledVanilla,
+      });
+
+      const dropdown = await screen.findByTestId('pr-review-sensitivity-dropdown');
+      expect(dropdown.querySelector('button')).toBeDisabled();
+    });
+
+    it('disables sensitivity dropdown when user lacks permissions', async () => {
+      const orgWithoutPerms = {
+        ...mockOrganization,
+        access: [],
+      };
+
+      render(<ManageReposPanel {...defaultProps} />, {
+        organization: orgWithoutPerms,
+      });
+
+      const dropdown = await screen.findByTestId(
+        'error-prediction-sensitivity-dropdown'
+      );
+      expect(dropdown.querySelector('button')).toBeDisabled();
     });
   });
 });
