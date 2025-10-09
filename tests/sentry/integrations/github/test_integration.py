@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest import mock
 from unittest.mock import ANY, MagicMock, patch
@@ -50,6 +50,7 @@ from sentry.testutils.asserts import (
 )
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -1900,3 +1901,114 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         # Should not make any API calls when user is None and assign=True
         assert len(responses.calls) == 0
+
+
+@control_silo_test
+class GithubIntegrationCredentialLeasingTest(IntegrationTestCase):
+    base_url = "https://api.github.com"
+    access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+
+    def setUp(self) -> None:
+        self.organization = self.create_organization(owner=self.create_user("test@example.com"))
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="Test Integration",
+            external_id="123",
+        )
+
+    @pytest.fixture(autouse=True)
+    def stub_get_jwt(self):
+        with mock.patch.object(client, "get_jwt", return_value="jwt_token_1"):
+            yield
+
+    @pytest.fixture(autouse=True)
+    def stub_get_jwt_function(self):
+        with mock.patch("sentry.integrations.github.utils.get_jwt", return_value="jwt_token_1"):
+            yield
+
+    def _stub_github_credentials(self):
+        responses.add(
+            responses.POST,
+            "https://github.com/login/oauth/access_token",
+            body=f"access_token={self.access_token}",
+        )
+
+        responses.add(responses.GET, self.base_url + "/user", json={"login": "octocat"})
+
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.integration.external_id}/access_tokens",
+            json={
+                "token": self.access_token,
+                "expires_at": "2025-01-01T12:00:00Z",
+                "permissions": {
+                    "administration": "read",
+                    "contents": "read",
+                    "issues": "write",
+                    "metadata": "read",
+                    "pull_requests": "read",
+                },
+                "repository_selection": "all",
+            },
+        )
+
+    @responses.activate
+    def test_get_active_access_token(self) -> None:
+        self._stub_github_credentials()
+        installation = self.integration.get_installation(organization_id=self.organization.id)
+        assert installation is not None
+        assert installation.get_active_access_token() == self.access_token
+
+    @responses.activate
+    def test_get_maximum_lease_duration_seconds(self) -> None:
+        installation = self.integration.get_installation(organization_id=self.organization.id)
+        assert installation is not None
+        assert installation.get_maximum_lease_duration_seconds() == 3600
+
+    @responses.activate
+    def test_refresh_access_token_with_minimum_validity_time(self) -> None:
+        self._stub_github_credentials()
+        installation = self.integration.get_installation(organization_id=self.organization.id)
+        assert installation is not None
+        assert (
+            installation.refresh_access_token_with_minimum_validity_time(timedelta(minutes=1))
+            == self.access_token
+        )
+
+    @responses.activate
+    def test_does_access_token_expire_within(self) -> None:
+        self._stub_github_credentials()
+        installation = self.integration.get_installation(organization_id=self.organization.id)
+        assert installation is not None
+
+        # Without token, with 1 hour to expiration
+        with freeze_time("2025-01-01T11:00:00Z"):
+            assert installation.does_access_token_expire_within(timedelta(minutes=1)) is True
+
+        assert installation.get_active_access_token() is not None
+        # Annoying quirk with our "installations", we have to refresh the model
+        # before calling `get_installation` for it to populate the metadata
+        # after the token is refreshed.
+        self.integration.refresh_from_db()
+        installation = self.integration.get_installation(organization_id=self.organization.id)
+
+        assert self.integration.metadata["access_token"] is not None
+
+        # With 0 time left to expiration
+        with freeze_time("2025-01-01T12:00:00Z"):
+            assert installation.does_access_token_expire_within(timedelta(minutes=1)) is True
+            assert installation.does_access_token_expire_within(timedelta(seconds=1)) is True
+
+        # with 1 second left
+        with freeze_time("2025-01-01T11:01:00Z"):
+            assert installation.does_access_token_expire_within(timedelta(seconds=1)) is False
+
+        with freeze_time("2025-01-01T11:59:01Z"):
+            assert installation.does_access_token_expire_within(timedelta(minutes=1)) is True
+            assert installation.does_access_token_expire_within(timedelta(minutes=2)) is True
+
+        # With 1 hour
+        with freeze_time("2025-01-01T11:00:01Z"):
+            assert installation.does_access_token_expire_within(timedelta(seconds=3599)) is False
+            assert installation.does_access_token_expire_within(timedelta(seconds=3600)) is True
