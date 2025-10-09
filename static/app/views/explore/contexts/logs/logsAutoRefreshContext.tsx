@@ -6,7 +6,6 @@ import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
   useLogsQueryHighFidelity,
   useLogsQueryKeyWithInfinite,
@@ -123,7 +122,6 @@ function pausedAtAllowedToContinue(pausedAt: number | undefined) {
 }
 
 export function useSetLogsAutoRefresh() {
-  const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
   const highFidelity = useLogsQueryHighFidelity();

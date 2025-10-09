@@ -458,7 +458,7 @@ interface BaseLogsPageParams {
 }
 
 interface FlexTimePageParam extends BaseLogsPageParams {
-  cursor?: string;
+  cursor: string | undefined;
 }
 
 interface InfiniteScrollPageParam extends BaseLogsPageParams {
@@ -584,6 +584,41 @@ export function useInfiniteLogsQuery({
     refetch,
   } = queryResult;
 
+  useEffect(() => {
+    // Remove empty pages from the query data. In the case of auto refresh it's possible that the most recent page in time is empty.
+    queryClient.setQueryData(
+      queryKeyWithInfinite,
+      (oldData: InfiniteData<ApiResult<EventsLogsResult>> | undefined) => {
+        if (highFidelity) {
+          // TODO: properly remove empty pages in high fidelity mode
+          // to avoid reaching max pages
+          return oldData;
+        }
+
+        if (!oldData) {
+          return oldData;
+        }
+        const pageIndexWithMostRecentTimestamp =
+          getTimeBasedSortBy(sortBys)?.kind === 'asc' ? 0 : oldData.pages.length - 1;
+
+        if (
+          (oldData.pages?.[pageIndexWithMostRecentTimestamp]?.[0]?.data?.length ?? 0) > 0
+        ) {
+          return oldData;
+        }
+
+        return {
+          pages: oldData.pages.filter(
+            (_, index) => index !== pageIndexWithMostRecentTimestamp
+          ),
+          pageParams: oldData.pageParams.filter(
+            (_, index) => index !== pageIndexWithMostRecentTimestamp
+          ),
+        };
+      }
+    );
+  }, [highFidelity, queryClient, queryKeyWithInfinite, sortBys]);
+
   const {virtualStreamedTimestamp} = useVirtualStreaming({data, highFidelity});
 
   const _data = useMemo(() => {
@@ -645,11 +680,11 @@ export function useInfiniteLogsQuery({
   const lastPageLength = data?.pages?.[data.pages.length - 1]?.[0]?.data?.length ?? 0;
   const limit = autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT;
   const shouldAutoFetchNextPage =
-    highFidelity &&
+    !!highFidelity &&
     hasNextPage &&
     nextPageHasData &&
     (lastPageLength === 0 || _data.length < limit);
-  const [waitingToAutoFetch, setWaitingToAutoFetch] = useState(false);
+  const [waitingToAutoFetch, setWaitingToAutoFetch] = useState<boolean>(false);
 
   useEffect(() => {
     if (!shouldAutoFetchNextPage) {
