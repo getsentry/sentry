@@ -1704,9 +1704,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_incident_activity(incident, type, comment=None, user_id=None):
+    def create_incident_activity(incident, type, comment=None, user_id=None, **kwargs):
         return IncidentActivity.objects.create(
-            incident=incident, type=type, comment=comment, user_id=user_id
+            incident=incident, type=type, comment=comment, user_id=user_id, **kwargs
         )
 
     @staticmethod
