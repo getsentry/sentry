@@ -84,7 +84,7 @@ class SlowDBQueryDetectorTest(TestCase):
         ]
 
     def test_detects_slow_span_in_solved_n_plus_one_query(self) -> None:
-        n_plus_one_event = get_event("solved-n-plus-one-in-django-index-view")
+        n_plus_one_event = get_event("slow-db/solved-n-plus-one-in-django-index-view")
 
         assert self.find_problems(n_plus_one_event) == [
             PerformanceProblem(

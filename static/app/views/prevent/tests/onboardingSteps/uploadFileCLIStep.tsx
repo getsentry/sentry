@@ -1,4 +1,4 @@
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
@@ -32,9 +32,9 @@ export function UploadFileCLIStep({previousStep, step}: UploadFileCLIStepProps) 
               'The following snippet instructs the CLI to upload this report to Sentry Prevent.'
             )}
           </Text>
-          <CodeSnippet dark language="bash">
+          <CodeBlock dark language="bash">
             {SNIPPET}
-          </CodeSnippet>
+          </CodeBlock>
           <Text>
             {tct(
               'Be sure to specify [code:--report-type] as [code:test_results] and include the file you created in Step [previousStep]. This will not necessarily upload coverage reports to Sentry.',

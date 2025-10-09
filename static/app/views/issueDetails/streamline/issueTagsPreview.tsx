@@ -277,9 +277,9 @@ export default function IssueTagsPreview({
     return uniqueTags.slice(0, 4);
   }, [tags, project.platform, highlightTagKeys]);
 
-  const includeFeatureFlags =
-    featureFlagDrawerPlatforms.includes(project.platform ?? 'other') &&
-    organization.features.includes('feature-flag-distribution-flyout');
+  const includeFeatureFlags = featureFlagDrawerPlatforms.includes(
+    project.platform ?? 'other'
+  );
 
   if (
     searchQuery ||

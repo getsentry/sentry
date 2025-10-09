@@ -147,11 +147,14 @@ describe('IssueListSearchBar', () => {
         body: tagValueResponse,
       });
 
-      render(<IssueListSearchBar {...newDefaultProps} />);
+      render(<IssueListSearchBar {...newDefaultProps} />, {
+        organization: {features: ['search-query-builder-input-flow-changes']},
+      });
 
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.paste(tagKey, {delay: null});
       await userEvent.click(screen.getByRole('option', {name: tagKey}));
+      await userEvent.click(screen.getByRole('option', {name: 'is'}));
       expect(await screen.findByRole('option', {name: tagValue})).toBeInTheDocument();
 
       await waitFor(() => {

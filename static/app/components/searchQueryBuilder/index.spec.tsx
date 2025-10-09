@@ -35,6 +35,7 @@ import {
   FieldValueType,
   getFieldDefinition,
 } from 'sentry/utils/fields';
+import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
 import {getHasTag} from 'sentry/utils/tag';
 
 const FILTER_KEYS: TagCollection = {
@@ -356,7 +357,7 @@ describe('SearchQueryBuilder', () => {
       ).not.toBeInTheDocument();
       await userEvent.type(
         screen.getByRole('combobox', {name: 'Add a search term'}),
-        'foo a:b{enter}'
+        'foo a:{enter}b{enter}'
       );
 
       await waitFor(() => expect(mockOnChange).toHaveBeenCalled());
@@ -784,12 +785,15 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('escapes values with spaces and reserved characters', async () => {
-      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
+        organization: {features: ['search-query-builder-input-flow-changes']},
+      });
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
-      await userEvent.type(
-        screen.getByRole('combobox', {name: 'Add a search term'}),
-        'assigned:some" value{enter}'
-      );
+
+      await userEvent.keyboard('assigned:');
+      await userEvent.click(screen.getByRole('option', {name: 'is'}));
+      await userEvent.keyboard('some" value{enter}');
+
       // Value should be surrounded by quotes and escaped
       expect(
         screen.getByRole('row', {name: 'assigned:"some\\" value"'})
@@ -911,23 +915,27 @@ describe('SearchQueryBuilder', () => {
     it('can add an unsupported filter key and value', async () => {
       const mockOnChange = jest.fn();
       render(
-        <SearchQueryBuilder {...defaultProps} onChange={mockOnChange} initialQuery="" />
+        <SearchQueryBuilder {...defaultProps} onChange={mockOnChange} initialQuery="" />,
+        {organization: {features: ['search-query-builder-input-flow-changes']}}
       );
       await userEvent.click(getLastInput());
 
       // Typing "foo", then " a:b" should add the "foo" text followed by a new token "a:b"
       await userEvent.type(
         screen.getByRole('combobox', {name: 'Add a search term'}),
-        'foo a:b{enter}'
+        'foo '
       );
-      expect(screen.getByRole('row', {name: 'foo'})).toBeInTheDocument();
-      expect(screen.getByRole('row', {name: 'a:b'})).toBeInTheDocument();
 
-      await waitFor(() => {
-        expect(mockOnChange).toHaveBeenCalledWith('foo a:b', expect.anything());
-      });
+      await userEvent.keyboard('a:');
+      expect(await screen.findByRole('option', {name: 'is'})).toHaveFocus();
+      await userEvent.keyboard('{enter}');
+      await userEvent.keyboard('b{enter}');
+
+      expect(await screen.findByRole('row', {name: 'foo'})).toBeInTheDocument();
+      expect(await screen.findByRole('row', {name: 'a:b'})).toBeInTheDocument();
 
       expect(mockOnChange).toHaveBeenCalledTimes(1);
+      expect(mockOnChange).toHaveBeenCalledWith('foo a:b', expect.anything());
     });
 
     it('adds default value for filter when typing <filter>:', async () => {
@@ -971,7 +979,9 @@ describe('SearchQueryBuilder', () => {
 
     it('can add a new token by clicking a key suggestion', async () => {
       const mockOnChange = jest.fn();
-      render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />);
+      render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />, {
+        organization: {features: ['search-query-builder-input-flow-changes']},
+      });
 
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
@@ -980,6 +990,11 @@ describe('SearchQueryBuilder', () => {
       expect(screen.getByRole('row', {name: 'browser.name:""'})).toBeInTheDocument();
       // onChange should not be called until exiting edit mode
       expect(mockOnChange).not.toHaveBeenCalled();
+
+      // Should have focus on the operator option
+      const operatorOption = await screen.findByRole('option', {name: 'is'});
+      expect(operatorOption).toHaveFocus();
+      await userEvent.click(operatorOption);
 
       await userEvent.click(await screen.findByRole('option', {name: 'Firefox'}));
 
@@ -1010,7 +1025,9 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('can add a filter after some free text', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      render(<SearchQueryBuilder {...defaultProps} />, {
+        organization: {features: ['search-query-builder-input-flow-changes']},
+      });
 
       await userEvent.click(getLastInput());
 
@@ -1021,6 +1038,11 @@ describe('SearchQueryBuilder', () => {
       await userEvent.type(screen.getByRole('combobox'), 'some free text brow');
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
       jest.restoreAllMocks();
+
+      // Should have focus on the operator option
+      const operatorOption = await screen.findByRole('option', {name: 'is'});
+      expect(operatorOption).toHaveFocus();
+      await userEvent.click(operatorOption);
 
       // Filter value should have focus
       expect(await screen.findByLabelText('Edit filter value')).toHaveFocus();
@@ -3515,21 +3537,35 @@ describe('SearchQueryBuilder', () => {
       });
 
       it('focuses on the filter value when user selects an aggregate filter with no arguments', async () => {
-        render(<SearchQueryBuilder {...aggregateDefaultProps} />);
+        render(<SearchQueryBuilder {...aggregateDefaultProps} />, {
+          organization: {features: ['search-query-builder-input-flow-changes']},
+        });
 
         await userEvent.click(getLastInput());
         await userEvent.keyboard('count');
         await userEvent.click(screen.getByRole('option', {name: 'count()'}));
         expect(screen.getByLabelText('count():>100')).toBeInTheDocument();
+
+        const gtOption = screen.getByRole('option', {name: '>'});
+        expect(gtOption).toHaveFocus();
+        await userEvent.click(gtOption);
+
         expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
       });
 
       it('focuses on the filter value when user input looks like an aggregate filter with no arguments', async () => {
-        render(<SearchQueryBuilder {...aggregateDefaultProps} />);
+        render(<SearchQueryBuilder {...aggregateDefaultProps} />, {
+          organization: {features: ['search-query-builder-input-flow-changes']},
+        });
 
         await userEvent.click(getLastInput());
         await userEvent.keyboard('count(');
         expect(screen.getByLabelText('count():>100')).toBeInTheDocument();
+
+        const gtOption = screen.getByRole('option', {name: '>'});
+        expect(gtOption).toHaveFocus();
+        await userEvent.click(gtOption);
+
         expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
       });
 
@@ -4324,19 +4360,6 @@ describe('SearchQueryBuilder', () => {
 
     describe('user clicks on ask seer button', () => {
       it('renders the seer combobox', async () => {
-        function AskSeerTestComponent({children}: {children: React.ReactNode}) {
-          const {displayAskSeer, query} = useSearchQueryBuilder();
-          return displayAskSeer ? <AskSeerComboBox initialQuery={query} /> : children;
-        }
-
-        function AskSeerWrapper({children}: {children: React.ReactNode}) {
-          return (
-            <SearchQueryBuilderProvider {...defaultProps} enableAISearch>
-              <AskSeerTestComponent>{children}</AskSeerTestComponent>
-            </SearchQueryBuilderProvider>
-          );
-        }
-
         MockApiClient.addMockResponse({
           url: `/organizations/org-slug/prompts-activity/`,
           method: 'PUT',
@@ -4371,6 +4394,62 @@ describe('SearchQueryBuilder', () => {
             ],
           },
         });
+
+        function AskSeerTestComponent({children}: {children: React.ReactNode}) {
+          const {displayAskSeer, query} = useSearchQueryBuilder();
+          return displayAskSeer ? (
+            <AskSeerComboBox
+              initialQuery={query}
+              applySeerSearchQuery={() => {}}
+              askSeerMutationOptions={mutationOptions({
+                mutationFn: async (_value: string) => {
+                  const data = await fetchMutation<{
+                    queries: Array<{
+                      group_by: string[];
+                      mode: string;
+                      query: string;
+                      sort: string;
+                      stats_period: string;
+                      visualization: Array<{chart_type: number; y_axes: string[]}>;
+                    }>;
+                    status: string;
+                    unsupported_reason: string | null;
+                  }>({
+                    url: `/organizations/org-slug/trace-explorer-ai/query/`,
+                    method: 'POST',
+                    data: {},
+                  });
+
+                  return {
+                    ...data,
+                    queries: data.queries.map(q => ({
+                      visualizations:
+                        q?.visualization?.map((v: any) => ({
+                          chartType: v?.chart_type,
+                          yAxes: v?.y_axes,
+                        })) ?? [],
+                      query: q?.query,
+                      sort: q?.sort ?? '',
+                      groupBys: q?.group_by ?? [],
+                      statsPeriod: q?.stats_period ?? '',
+                      mode: q?.mode ?? 'spans',
+                    })),
+                  };
+                },
+              })}
+            />
+          ) : (
+            children
+          );
+        }
+
+        function AskSeerWrapper({children}: {children: React.ReactNode}) {
+          return (
+            <SearchQueryBuilderProvider {...defaultProps} enableAISearch>
+              <AskSeerTestComponent>{children}</AskSeerTestComponent>
+            </SearchQueryBuilderProvider>
+          );
+        }
 
         render(
           <AskSeerWrapper>

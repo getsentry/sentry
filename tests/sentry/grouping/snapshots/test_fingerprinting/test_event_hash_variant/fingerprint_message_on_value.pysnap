@@ -1,5 +1,5 @@
 ---
-created: '2025-10-03T17:19:39.623948+00:00'
+created: '2025-10-06T17:30:32.700627+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -25,10 +25,12 @@ variants:
       hint: ignored because custom server fingerprint takes precedence
     contributes: false
     hint: ignored because custom server fingerprint takes precedence
+    key: app_exception_message
     type: component
   custom_fingerprint:
     contributes: true
     hint: null
+    key: custom_fingerprint
     matched_rule: message:"*love*" -> "what-is-love{{ message }}"
     type: custom_fingerprint
     values:
@@ -40,4 +42,5 @@ variants:
       hint: ignored because custom server fingerprint takes precedence
     contributes: false
     hint: ignored because custom server fingerprint takes precedence
+    key: system_exception_message
     type: component

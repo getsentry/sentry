@@ -58,7 +58,7 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 type FormData = {
   projectName: string;
   alertRule?: Partial<AlertRuleOptions>;
-  platform?: Partial<OnboardingSelectedSDK>;
+  platform?: OnboardingSelectedSDK;
   team?: string;
 };
 
@@ -69,12 +69,6 @@ type CreatedProject = Pick<Project, 'name' | 'id'> & {
   team?: string;
 };
 
-function isNotPartialPlatform(
-  platform: Partial<OnboardingSelectedSDK> | undefined
-): platform is OnboardingSelectedSDK {
-  return !!platform?.key;
-}
-
 function getMissingValues({
   team,
   projectName,
@@ -83,6 +77,7 @@ function getMissingValues({
   shouldCreateRule,
   shouldCreateCustomRule,
   isOrgMemberWithNoAccess,
+  platform,
 }: {
   isOrgMemberWithNoAccess: boolean;
   notificationProps: {
@@ -91,6 +86,7 @@ function getMissingValues({
   };
   projectName: string;
   team: string | undefined;
+  platform?: OnboardingSelectedSDK;
 } & Partial<
   Pick<RequestDataFragment, 'conditions' | 'shouldCreateCustomRule' | 'shouldCreateRule'>
 >) {
@@ -106,6 +102,7 @@ function getMissingValues({
       shouldCreateRule &&
       notificationProps.actions?.includes(MultipleCheckboxOptions.INTEGRATION) &&
       !notificationProps.channel,
+    isMissingPlatform: !platform,
   };
 }
 
@@ -113,6 +110,7 @@ function getSubmitTooltipText({
   isMissingProjectName,
   isMissingAlertThreshold,
   isMissingMessagingIntegrationChannel,
+  isMissingPlatform,
   formErrorCount,
 }: ReturnType<typeof getMissingValues> & {
   formErrorCount: number;
@@ -121,7 +119,7 @@ function getSubmitTooltipText({
     return t('Please fill out all the required fields');
   }
   if (isMissingProjectName) {
-    return t('Please provide a project name');
+    return t('Please provide a project slug');
   }
   if (isMissingAlertThreshold) {
     return t('Please provide an alert threshold');
@@ -129,7 +127,9 @@ function getSubmitTooltipText({
   if (isMissingMessagingIntegrationChannel) {
     return t('Please provide an integration channel for alert notifications');
   }
-
+  if (isMissingPlatform) {
+    return t('Please select a platform');
+  }
   return t('Please select a team');
 }
 
@@ -207,9 +207,11 @@ export function CreateProject() {
     shouldCreateCustomRule: alertRuleConfig.shouldCreateCustomRule,
     shouldCreateRule: alertRuleConfig.shouldCreateRule,
     conditions: alertRuleConfig.conditions,
+    platform: formData.platform,
   });
 
   const formErrorCount = [
+    missingValues.isMissingPlatform,
     missingValues.isMissingTeam,
     missingValues.isMissingProjectName,
     missingValues.isMissingAlertThreshold,
@@ -253,11 +255,6 @@ export function CreateProject() {
         platform: OnboardingSelectedSDK;
       }) => {
       const selectedPlatform = selectedFramework ?? platform;
-
-      if (!selectedPlatform) {
-        addErrorMessage(t('Please select a platform in Step 1'));
-        return;
-      }
 
       let projectToRollback: Project | undefined;
 
@@ -372,21 +369,20 @@ export function CreateProject() {
   );
 
   const handleProjectCreation = useCallback(
-    async (data: FormData) => {
-      const selectedPlatform = data.platform;
-
-      if (!isNotPartialPlatform(selectedPlatform)) {
-        addErrorMessage(t('Please select a platform in Step 1'));
+    async ({platform, ...data}: FormData) => {
+      // At this point, platform should be defined
+      // otherwise the submit button would be disabled.
+      if (!platform) {
         return;
       }
 
       if (
-        selectedPlatform.type !== 'language' ||
+        platform.type !== 'language' ||
         !Object.values(SupportedLanguages).includes(
-          selectedPlatform.language as SupportedLanguages
+          platform.language as SupportedLanguages
         )
       ) {
-        configurePlatform({...data, platform: selectedPlatform});
+        configurePlatform({...data, platform});
         return;
       }
 
@@ -399,11 +395,11 @@ export function CreateProject() {
           <FrameworkSuggestionModal
             {...deps}
             organization={organization}
-            selectedPlatform={selectedPlatform}
+            selectedPlatform={platform}
             onConfigure={selectedFramework => {
-              configurePlatform({...data, platform: selectedPlatform, selectedFramework});
+              configurePlatform({...data, platform, selectedFramework});
             }}
-            onSkip={() => configurePlatform({...data, platform: selectedPlatform})}
+            onSkip={() => configurePlatform({...data, platform})}
           />
         ),
         {
@@ -412,7 +408,7 @@ export function CreateProject() {
             trackAnalytics(
               'project_creation.select_framework_modal_close_button_clicked',
               {
-                platform: selectedPlatform.key,
+                platform: platform.key,
                 organization,
               }
             );
@@ -527,7 +523,7 @@ export function CreateProject() {
           </StyledListItem>
           <FormFieldGroup>
             <div>
-              <FormLabel>{t('Project name')}</FormLabel>
+              <FormLabel>{t('Project slug')}</FormLabel>
               <ProjectNameInputWrap>
                 <StyledPlatformIcon
                   platform={formData.platform?.key ?? 'other'}
@@ -536,7 +532,7 @@ export function CreateProject() {
                 <ProjectNameInput
                   type="text"
                   name="name"
-                  placeholder={t('project-name')}
+                  placeholder={t('project-slug')}
                   autoComplete="off"
                   value={formData.projectName}
                   onChange={e => updateFormData('projectName', slugify(e.target.value))}

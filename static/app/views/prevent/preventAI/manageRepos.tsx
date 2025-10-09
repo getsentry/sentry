@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,9 +12,9 @@ import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {PreventAIOrg} from 'sentry/types/prevent';
 import ManageReposPanel from 'sentry/views/prevent/preventAI/manageReposPanel';
 import ManageReposToolbar from 'sentry/views/prevent/preventAI/manageReposToolbar';
-import type {PreventAIOrg} from 'sentry/views/prevent/preventAI/types';
 
 import {FeatureOverview} from './onboarding';
 
@@ -22,41 +22,53 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
   const theme = useTheme();
   const [isPanelOpen, setIsPanelOpen] = useState(false);
 
-  const [selectedOrg, setSelectedOrg] = useState(() => installedOrgs[0]?.id ?? '');
-  const [selectedRepo, setSelectedRepo] = useState(
-    () => installedOrgs[0]?.repos?.[0]?.id ?? ''
+  const [selectedOrgName, setSelectedOrgName] = useState(
+    () => installedOrgs[0]?.name ?? ''
+  );
+  const [selectedRepoName, setSelectedRepoName] = useState(
+    () => installedOrgs[0]?.repos?.[0]?.name ?? ''
   );
 
-  const selectedOrgData = useMemo(
-    () => installedOrgs.find(org => org.id === selectedOrg),
-    [installedOrgs, selectedOrg]
-  );
-  const selectedRepoData = useMemo(
-    () => selectedOrgData?.repos?.find(repo => repo.id === selectedRepo),
-    [selectedOrgData, selectedRepo]
+  // If the selected org is not present in the list of orgs, use the first org
+  const selectedOrg = useMemo(() => {
+    const found = installedOrgs.find(org => org.name === selectedOrgName);
+    return found ?? installedOrgs[0];
+  }, [installedOrgs, selectedOrgName]);
+
+  // Ditto for repos
+  const selectedRepo = useMemo(() => {
+    const found = selectedOrg?.repos?.find(repo => repo.name === selectedRepoName);
+    return found ?? selectedOrg?.repos?.[0];
+  }, [selectedOrg, selectedRepoName]);
+
+  // When the org changes, if the selected repo is not present in the new org,
+  // use the first repo in the new org
+  const setSelectedOrgNameWithCascadeRepoName = useCallback(
+    (orgName: string) => {
+      setSelectedOrgName(orgName);
+      const newSelectedOrgData = installedOrgs.find(org => org.name === orgName);
+      if (
+        newSelectedOrgData &&
+        !newSelectedOrgData.repos.some(repo => repo.name === selectedRepoName)
+      ) {
+        setSelectedRepoName(newSelectedOrgData.repos[0]?.name ?? '');
+      }
+    },
+    [installedOrgs, selectedRepoName]
   );
 
-  // Reset repo selection when org changes
-  useEffect(() => {
-    const org = installedOrgs.find(o => o.id === selectedOrg);
-    if (org && !org.repos.some(repo => repo.id === selectedRepo)) {
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-      setSelectedRepo(org.repos[0]?.id ?? '');
-    }
-  }, [selectedOrg, installedOrgs, selectedRepo]);
-
-  const isOrgSelected = !!selectedOrgData;
-  const isRepoSelected = !!selectedRepoData;
+  const isOrgSelected = !!selectedOrg;
+  const isRepoSelected = !!selectedRepo;
 
   return (
     <Flex direction="column" maxWidth="1000px" gap="xl">
       <Flex align="center" justify="between">
         <ManageReposToolbar
           installedOrgs={installedOrgs}
-          selectedOrg={selectedOrg}
-          selectedRepo={selectedRepo}
-          onOrgChange={setSelectedOrg}
-          onRepoChange={setSelectedRepo}
+          selectedOrg={selectedOrgName}
+          selectedRepo={selectedRepoName}
+          onOrgChange={setSelectedOrgNameWithCascadeRepoName}
+          onRepoChange={setSelectedRepoName}
         />
         <Flex style={{transform: 'translateY(-70px)'}}>
           <Tooltip
@@ -125,11 +137,11 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
       </Flex>
 
       <ManageReposPanel
-        key={`${selectedOrg || 'no-org'}-${selectedRepo || 'no-repo'}`}
+        key={`${selectedOrgName || 'no-org'}-${selectedRepoName || 'no-repo'}`}
         collapsed={!isPanelOpen}
         onClose={() => setIsPanelOpen(false)}
-        orgName={selectedOrgData?.name ?? ''}
-        repoName={selectedRepoData?.name ?? ''}
+        orgName={selectedOrg?.name ?? ''}
+        repoName={selectedRepo?.name ?? ''}
       />
     </Flex>
   );

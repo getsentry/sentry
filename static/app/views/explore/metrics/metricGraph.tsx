@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -13,7 +13,10 @@ import {
   useChartInterval,
 } from 'sentry/views/explore/hooks/useChartInterval';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
-import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
+import {
+  useMetricVisualize,
+  useSetMetricVisualize,
+} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {useQueryParamsTopEventsLimit} from 'sentry/views/explore/queryParams/context';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {
@@ -29,13 +32,10 @@ interface MetricsGraphProps {
 
 export function MetricsGraph({timeseriesResult}: MetricsGraphProps) {
   const visualize = useMetricVisualize();
+  const setVisualize = useSetMetricVisualize();
 
-  // TODO: This should be a hook provided by the query params context
-  const [chartType, setChartType] = useState<ChartType>(visualize.chartType);
-
-  // Stub functions for chart interactions - not fully implemented yet
   function handleChartTypeChange(newChartType: ChartType) {
-    setChartType(newChartType);
+    setVisualize(visualize.replace({chartType: newChartType}));
   }
 
   return (
@@ -43,18 +43,16 @@ export function MetricsGraph({timeseriesResult}: MetricsGraphProps) {
       visualize={visualize}
       timeseriesResult={timeseriesResult}
       onChartTypeChange={handleChartTypeChange}
-      chartType={chartType}
     />
   );
 }
 
 interface GraphProps extends MetricsGraphProps {
-  chartType: ChartType;
   onChartTypeChange: (chartType: ChartType) => void;
   visualize: ReturnType<typeof useMetricVisualize>;
 }
 
-function Graph({onChartTypeChange, timeseriesResult, visualize, chartType}: GraphProps) {
+function Graph({onChartTypeChange, timeseriesResult, visualize}: GraphProps) {
   const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
 
@@ -67,7 +65,7 @@ function Graph({onChartTypeChange, timeseriesResult, visualize, chartType}: Grap
     const isTopEvents = defined(topEventsLimit);
     const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopEvents);
     return {
-      chartType,
+      chartType: visualize.chartType,
       series,
       timeseriesResult,
       yAxis: aggregate,
@@ -78,14 +76,18 @@ function Graph({onChartTypeChange, timeseriesResult, visualize, chartType}: Grap
       samplingMode: undefined,
       topEvents: isTopEvents ? TOP_EVENTS_LIMIT : undefined,
     };
-  }, [chartType, timeseriesResult, aggregate, topEventsLimit]);
+  }, [visualize.chartType, timeseriesResult, aggregate, topEventsLimit]);
 
   const Title = (
     <Widget.WidgetTitle title={prettifyAggregation(aggregate) ?? aggregate} />
   );
 
   const chartIcon =
-    chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
+    visualize.chartType === ChartType.LINE
+      ? 'line'
+      : visualize.chartType === ChartType.AREA
+        ? 'area'
+        : 'bar';
 
   const Actions = (
     <Fragment>
@@ -97,7 +99,7 @@ function Graph({onChartTypeChange, timeseriesResult, visualize, chartType}: Grap
             showChevron: false,
             size: 'xs',
           }}
-          value={chartType}
+          value={visualize.chartType}
           menuTitle="Type"
           options={EXPLORE_CHART_TYPE_OPTIONS}
           onChange={option => onChartTypeChange(option.value)}

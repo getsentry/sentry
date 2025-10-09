@@ -5,7 +5,6 @@ import {
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import type {FlexProps} from 'sentry/components/core/layout';
 import {Flex} from 'sentry/components/core/layout';
 import type FormModel from 'sentry/components/forms/model';
 import type {FieldValue} from 'sentry/components/forms/model';
@@ -42,9 +41,10 @@ export function addUndoableFormChangeMessage(
 
   // Hide the change text when formatMessageValue is explicitly set to false
   const showChangeText = model.getDescriptor(fieldName, 'formatMessageValue') !== false;
+  const root = <Flex align="center" />;
 
   const tctArgsSuccess = {
-    root: <MessageContainer />,
+    root,
     fieldName: <FieldName>{label}</FieldName>,
     oldValue: <FormValue>{prettifyValue(change.old)}</FormValue>,
     newValue: <FormValue>{prettifyValue(change.new)}</FormValue>,
@@ -75,7 +75,7 @@ export function addUndoableFormChangeMessage(
 
         if (!maybeSaveResultPromise) {
           const tctArgsFail = {
-            root: <MessageContainer />,
+            root,
             fieldName: <FieldName>{label}</FieldName>,
             oldValue: <FormValue>{prettifyValue(oldValue)}</FormValue>,
             newValue: <FormValue>{prettifyValue(newValue)}</FormValue>,
@@ -93,7 +93,7 @@ export function addUndoableFormChangeMessage(
         }
 
         const tctArgsRestored = {
-          root: <MessageContainer />,
+          root,
           fieldName: <FieldName>{label}</FieldName>,
           oldValue: <FormValue>{prettifyValue(oldValue)}</FormValue>,
           newValue: <FormValue>{prettifyValue(newValue)}</FormValue>,
@@ -157,7 +157,3 @@ const FieldName = styled('span')`
   font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0 ${space(0.5)};
 `;
-
-function MessageContainer(props: FlexProps) {
-  return <Flex align="center" {...props} />;
-}

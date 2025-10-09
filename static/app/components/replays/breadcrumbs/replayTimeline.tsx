@@ -87,7 +87,6 @@ export default function ReplayTimeline() {
 
 const CenteredStack = styled(Stacked)`
   align-items: center;
-  position: absolute;
 `;
 
 const VisibleStack = styled(Stacked)`

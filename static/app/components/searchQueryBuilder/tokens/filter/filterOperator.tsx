@@ -1,6 +1,7 @@
-import {useMemo, type ReactNode} from 'react';
+import {useLayoutEffect, useMemo, useRef, useState, type ReactNode} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
+import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
@@ -33,6 +34,7 @@ import {
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {FieldDefinition} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface FilterOperatorProps {
@@ -86,16 +88,21 @@ function FilterKeyOperatorLabel({
   );
 }
 
-export function getOperatorInfo(
-  token: TokenResult<Token.FILTER>,
-  hasWildcardOperators: boolean
-): {
+export function getOperatorInfo({
+  filterToken,
+  hasWildcardOperators,
+  fieldDefinition,
+}: {
+  fieldDefinition: FieldDefinition | null;
+  filterToken: TokenResult<Token.FILTER>;
+  hasWildcardOperators: boolean;
+}): {
   label: ReactNode;
   operator: TermOperator;
   options: Array<SelectOption<TermOperator>>;
 } {
-  if (isDateToken(token)) {
-    const operator = getOperatorFromDateToken(token);
+  if (isDateToken(filterToken)) {
+    const operator = getOperatorFromDateToken(filterToken);
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const opLabel = DATE_OP_LABELS[operator] ?? operator;
 
@@ -114,15 +121,18 @@ export function getOperatorInfo(
     };
   }
 
-  const {operator, label} = getLabelAndOperatorFromToken(token, hasWildcardOperators);
+  const {operator, label} = getLabelAndOperatorFromToken(
+    filterToken,
+    hasWildcardOperators
+  );
 
-  if (token.filter === FilterType.IS) {
+  if (filterToken.filter === FilterType.IS) {
     return {
       operator,
       label: (
         <FilterKeyOperatorLabel
-          keyValue={token.key.value}
-          keyLabel={token.key.text}
+          keyValue={filterToken.key.value}
+          keyLabel={filterToken.key.text}
           opLabel={operator === TermOperator.NOT_EQUAL ? 'not' : undefined}
           includeKeyLabel
         />
@@ -132,8 +142,8 @@ export function getOperatorInfo(
           value: TermOperator.DEFAULT,
           label: (
             <FilterKeyOperatorLabel
-              keyLabel={token.key.text}
-              keyValue={token.key.value}
+              keyLabel={filterToken.key.text}
+              keyValue={filterToken.key.value}
               includeKeyLabel
             />
           ),
@@ -143,8 +153,8 @@ export function getOperatorInfo(
           value: TermOperator.NOT_EQUAL,
           label: (
             <FilterKeyOperatorLabel
-              keyLabel={token.key.text}
-              keyValue={token.key.value}
+              keyLabel={filterToken.key.text}
+              keyValue={filterToken.key.value}
               opLabel="not"
               includeKeyLabel
             />
@@ -155,12 +165,12 @@ export function getOperatorInfo(
     };
   }
 
-  if (token.filter === FilterType.HAS) {
+  if (filterToken.filter === FilterType.HAS) {
     return {
       operator,
       label: (
         <FilterKeyOperatorLabel
-          keyValue={token.key.value}
+          keyValue={filterToken.key.value}
           keyLabel={operator === TermOperator.NOT_EQUAL ? 'does not have' : 'has'}
           includeKeyLabel
         />
@@ -171,7 +181,7 @@ export function getOperatorInfo(
           label: (
             <FilterKeyOperatorLabel
               keyLabel="has"
-              keyValue={token.key.value}
+              keyValue={filterToken.key.value}
               includeKeyLabel
             />
           ),
@@ -182,7 +192,7 @@ export function getOperatorInfo(
           label: (
             <FilterKeyOperatorLabel
               keyLabel="does not have"
-              keyValue={token.key.value}
+              keyValue={filterToken.key.value}
               includeKeyLabel
             />
           ),
@@ -192,12 +202,16 @@ export function getOperatorInfo(
     };
   }
 
-  const keyLabel = token.key.text;
+  const keyLabel = filterToken.key.text;
 
   return {
     operator,
     label: <OpLabel>{label}</OpLabel>,
-    options: getValidOpsForFilter(token, hasWildcardOperators)
+    options: getValidOpsForFilter({
+      filterToken,
+      hasWildcardOperators,
+      fieldDefinition,
+    })
       .filter(op => op !== TermOperator.EQUAL)
       .map((op): SelectOption<TermOperator> => {
         const optionOpLabel = OP_LABELS[op] ?? op;
@@ -216,33 +230,80 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
   const hasWildcardOperators = organization.features.includes(
     'search-query-builder-wildcard-operators'
   );
-
-  const {dispatch, searchSource, query, recentSearches, disabled} =
-    useSearchQueryBuilder();
+  const {
+    dispatch,
+    searchSource,
+    query,
+    recentSearches,
+    disabled,
+    focusOverride,
+    getFieldDefinition,
+  } = useSearchQueryBuilder();
   const filterButtonProps = useFilterButtonProps({state, item});
+  const {focusWithinProps} = useFocusWithin({});
 
   const {operator, label, options} = useMemo(
-    () => getOperatorInfo(token, hasWildcardOperators),
-    [token, hasWildcardOperators]
+    () =>
+      getOperatorInfo({
+        filterToken: token,
+        hasWildcardOperators,
+        fieldDefinition: getFieldDefinition(token.key.text),
+      }),
+    [token, hasWildcardOperators, getFieldDefinition]
   );
 
   const onlyOperator = token.filter === FilterType.IS || token.filter === FilterType.HAS;
 
+  const [autoFocus, setAutoFocus] = useState(false);
+  // track to see if we have already clicked the button
+  const initialOpClickedRef = useRef(false);
+  // track to see if we have already set the initial operator
+  const initialOpSettingRef = useRef(false);
+
+  useLayoutEffect(() => {
+    if (focusOverride?.itemKey === item.key && focusOverride.part === 'op') {
+      setAutoFocus(true);
+      initialOpSettingRef.current = true;
+      dispatch({type: 'RESET_FOCUS_OVERRIDE'});
+    }
+  }, [dispatch, focusOverride, item.key, onOpenChange]);
+
   return (
     <CompactSelect
       disabled={disabled}
-      trigger={triggerProps => (
-        <OpButton
-          disabled={disabled}
-          aria-label={t('Edit operator for filter: %s', token.key.text)}
-          onlyOperator={onlyOperator}
-          {...mergeProps(triggerProps, filterButtonProps)}
-        >
-          <InteractionStateLayer />
-          {label}
-        </OpButton>
-      )}
+      trigger={triggerProps => {
+        return (
+          <OpButton
+            disabled={disabled}
+            aria-label={t('Edit operator for filter: %s', token.key.text)}
+            onlyOperator={onlyOperator}
+            {...mergeProps(triggerProps, filterButtonProps, focusWithinProps)}
+            ref={r => {
+              if (!r || !triggerProps.ref) return;
+
+              if (typeof triggerProps.ref === 'function') {
+                triggerProps.ref(r);
+              } else {
+                triggerProps.ref.current = r;
+              }
+
+              if (
+                autoFocus &&
+                !initialOpClickedRef.current &&
+                initialOpSettingRef.current
+              ) {
+                r.click();
+                initialOpClickedRef.current = true;
+              }
+            }}
+          >
+            <InteractionStateLayer />
+            {label}
+          </OpButton>
+        );
+      }}
       size="sm"
+      autoFocus={autoFocus}
       options={options}
       value={operator}
       onOpenChange={onOpenChange}
@@ -256,13 +317,26 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
           search_operator: option.value,
           filter_key: getKeyName(token.key),
         });
+
         dispatch({
           type: 'UPDATE_FILTER_OP',
           token,
           op: option.value,
+          focusOverride: initialOpSettingRef.current
+            ? {
+                itemKey: `${item.key}`,
+                part: 'value',
+              }
+            : undefined,
+          shouldCommitQuery: !initialOpSettingRef.current,
         });
+        initialOpSettingRef.current = false;
+        setAutoFocus(false);
       }}
       offset={MENU_OFFSET}
+      onInteractOutside={() => {
+        setAutoFocus(false);
+      }}
     />
   );
 }
