@@ -78,6 +78,7 @@ def _get_new_description(variant: BaseVariant) -> str:
         "chained_exception_message": "chained exception messages",
         "chained_exception_stacktrace": "chained exception stacktraces",
         "chained_exception_type": "chained exception types",
+        "chained_ns_error": "chained NSErrors",
         "checksum": "checksum",
         "csp_local_script_violation": "directive",
         "csp_url": "directive and URL",
