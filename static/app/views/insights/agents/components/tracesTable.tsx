@@ -126,9 +126,9 @@ export function TracesTable() {
 
   const traceErrorRequest = useSpans(
     {
-      // Get all generations and tool calls with status unknown
+      // Get all generations and tool calls with error status
       search: `has:span.status span.status:*error trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
-      fields: ['trace', ...AI_AGENT_SUB_OPS],
+      fields: ['trace', 'count(span.duration)'],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
     },
@@ -142,12 +142,7 @@ export function TracesTable() {
     // sum up the error spans for a trace
     const errors = traceErrorRequest.data?.reduce(
       (acc, span) => {
-        const sum = AI_AGENT_SUB_OPS.reduce(
-          (errorSum, key) => errorSum + (span[key] ?? 0),
-          0
-        );
-
-        acc[span.trace] = sum;
+        acc[span.trace] = span['count(span.duration)'];
         return acc;
       },
       {} as Record<string, number>
@@ -297,7 +292,7 @@ const BodyCell = memo(function BodyCell({
         <ErrorCell
           value={dataRow.errors}
           target={getExploreUrl({
-            query: `${query} has:span.status !span.status:ok trace:[${dataRow.traceId}]`,
+            query: `span.status:*error trace:[${dataRow.traceId}]`,
             organization,
             selection,
             referrer: Referrer.TRACES_TABLE,
