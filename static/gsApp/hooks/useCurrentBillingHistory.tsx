@@ -13,7 +13,7 @@ export function useCurrentBillingHistory() {
     isPending,
     isError,
   } = useApiQuery<BillingHistory>([`/customers/${organization.slug}/history/current/`], {
-    staleTime: Infinity,
+    staleTime: 0,
   });
 
   const currentHistory: BillingHistory | null = useMemo(() => {
