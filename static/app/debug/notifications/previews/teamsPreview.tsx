@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Disclosure} from '@sentry/scraps/disclosure';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -95,15 +97,21 @@ export function TeamsPreview({
             </TeamsCard>
           </TeamsMessage>
         </TeamsPreviewContainer>
-        <Flex direction="column" padding="xl" align="start" gap="xl">
-          <Text>
-            Below is the AdaptiveCard JSON payload that will be sent to MS Teams. To
-            preview it, copy the JSON and paste it into the Designer linked above.
-          </Text>
-          <CodeBlock language="json">
-            {card ? JSON.stringify(card, null, 2) : ''}
-          </CodeBlock>
-        </Flex>
+        <Disclosure>
+          <Disclosure.Title>AdaptiveCard Payload</Disclosure.Title>
+          <Disclosure.Content>
+            <Flex direction="column" align="start" gap="xl">
+              <Text>
+                Below is the AdaptiveCard JSON payload that will be sent to MS Teams. For
+                a dynamic preview, copy the JSON and paste it into the Designer linked
+                above.
+              </Text>
+              <CodeBlock language="json">
+                {card ? JSON.stringify(card, null, 2) : ''}
+              </CodeBlock>
+            </Flex>
+          </Disclosure.Content>
+        </Disclosure>
       </Container>
     </DebugNotificationsPreview>
   );

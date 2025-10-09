@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Disclosure} from '@sentry/scraps/disclosure';
+
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CodeBlock} from 'sentry/components/core/code';
 import {Image} from 'sentry/components/core/image/image';
@@ -84,16 +86,21 @@ export function SlackPreview({
             )}
           </Flex>
         </SlackMessageContainer>
-        <Flex direction="column" padding="xl" align="start" gap="xl">
-          <Text>
-            Below is the BlockKit JSON payload that will be sent to Slack. To preview it,
-            use the builder link above. The mock here is static, use this if you don't
-            have a developer Slack account.
-          </Text>
-          <CodeBlock language="json">
-            {blocks ? JSON.stringify(blocks, null, 2) : ''}
-          </CodeBlock>
-        </Flex>
+        <Disclosure>
+          <Disclosure.Title>BlockKit Payload</Disclosure.Title>
+          <Disclosure.Content>
+            <Flex direction="column" align="start" gap="xl">
+              <Text>
+                Below is the BlockKit JSON payload that will be sent to Slack. For a
+                dynamic preview, use the builder link above. The mock here is static, use
+                this if you don't have a developer Slack account.
+              </Text>
+              <CodeBlock language="json">
+                {blocks ? JSON.stringify(blocks, null, 2) : ''}
+              </CodeBlock>
+            </Flex>
+          </Disclosure.Content>
+        </Disclosure>
       </Container>
     </DebugNotificationsPreview>
   );
