@@ -21,7 +21,6 @@ import {
   ParameterRefinements,
   PrimarySelectRow,
   StyledArithmeticInput,
-  StyledDeleteButton,
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize/index';
 import {ColumnCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
@@ -204,7 +203,7 @@ function VisualizeGhostField({
               onChange={() => {}}
             />
           )}
-          <StyledDeleteButton
+          <Button
             borderless
             icon={<IconDelete />}
             size="zero"
