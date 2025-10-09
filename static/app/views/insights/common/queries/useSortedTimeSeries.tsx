@@ -370,14 +370,18 @@ const NUMERIC_KEYS: Array<symbol | string | number> = [
 function comparator(
   valueA: unknown,
   valueB: unknown,
-  key: symbol | string | number | undefined
+  key: symbol | string | number | undefined,
+  objA: Record<PropertyKey, unknown>,
+  objB: Record<PropertyKey, unknown>
 ) {
   // Compare numbers by near equality, which makes the comparison less sensitive to small natural variations in value caused by request sequencing
   if (
     key &&
     NUMERIC_KEYS.includes(key) &&
     typeof valueA === 'number' &&
-    typeof valueB === 'number'
+    typeof valueB === 'number' &&
+    !objA?.incomplete &&
+    !objB?.incomplete
   ) {
     return areNumbersAlmostEqual(valueA, valueB, 5);
   }
