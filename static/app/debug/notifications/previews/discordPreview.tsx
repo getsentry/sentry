@@ -47,13 +47,13 @@ export function DiscordPreview({
             {chart && <DiscordChart src={chart.url} alt={chart.alt_text} />}
             {footer && <DiscordWhiteText size="xs">{footer}</DiscordWhiteText>}
           </DiscordEmbedContainer>
-          <DiscordActionRow>
+          <Flex gap="xs">
             {actions.map(action => (
               <DiscordLinkButton key={action.label} href={action.link}>
                 {action.label}
               </DiscordLinkButton>
             ))}
-          </DiscordActionRow>
+          </Flex>
         </DiscordMessageContainer>
         <Flex direction="column" gap="xl" padding="2xl">
           <Text>
@@ -118,11 +118,6 @@ const DiscordChart = styled('img')`
   height: 100px;
   object-fit: contain;
   border-radius: 4px;
-`;
-
-const DiscordActionRow = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.xs};
 `;
 
 const DiscordLinkButton = styled('a')`

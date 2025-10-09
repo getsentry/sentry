@@ -41,24 +41,24 @@ export function SlackPreview({
         <SlackMessageContainer columns="auto 1fr" gap="0 lg" padding="xl">
           <SentrySlackAppIcon />
           <Flex gap="md" align="end">
-            <Text bold size="lg">
+            <SlackBlackText bold size="lg">
               Sentry
-            </Text>
+            </SlackBlackText>
             <SlackAppBadge bold>APP</SlackAppBadge>
             <SlackTimeText>{previewTime}</SlackTimeText>
           </Flex>
           <Flex direction="column" align="start" padding="sm 0" gap="md">
-            <Text size="xl" bold>
+            <SlackBlackText size="xl" bold>
               {subject}
-            </Text>
-            <SlackText>{body}</SlackText>
-            <SlackActionRow>
+            </SlackBlackText>
+            <SlackBodyText>{body}</SlackBodyText>
+            <Flex gap="xs">
               {actions.map(action => (
                 <SlackLinkButton key={action.label} href={action.link}>
                   {action.label}
                 </SlackLinkButton>
               ))}
-            </SlackActionRow>
+            </Flex>
             {chart && (
               <Flex direction="column" gap="xs">
                 <Flex align="center" gap="xs">
@@ -71,9 +71,9 @@ export function SlackPreview({
               </Flex>
             )}
             {footer && (
-              <Text size="xs" variant="muted">
+              <SlackBlackText size="xs" variant="muted">
                 {footer}
-              </Text>
+              </SlackBlackText>
             )}
           </Flex>
         </SlackMessageContainer>
@@ -130,7 +130,12 @@ const SlackAppBadge = styled(Text)`
   color: #454447;
 `;
 
-const SlackText = styled(Text)`
+const SlackBlackText = styled(Text)`
+  color: black;
+  opacity: ${p => (p.variant === 'muted' ? 0.7 : 1)};
+`;
+
+const SlackBodyText = styled(SlackBlackText)`
   max-width: 540px;
 `;
 
@@ -138,11 +143,6 @@ const SlackChart = styled('img')`
   height: 100px;
   object-fit: contain;
   border-radius: 4px;
-`;
-
-const SlackActionRow = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.xs};
 `;
 
 const SlackLinkButton = styled('a')`
