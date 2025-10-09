@@ -35,13 +35,7 @@ interface PlanFeatureInfo {
 type PlanTierName = 'developer' | 'team' | 'business';
 
 const COMMON_FEATURES: Partial<Record<PlanTierName, string[]>> = {
-  team: [
-    t('Can add event volume to subscription'),
-    t('Third-party integrations'),
-    t('Seer: AI debugging agent (subscription required)'),
-    t('Single Sign-On'),
-    t('Up to 90 day retention'),
-  ],
+  team: [t('Third-party integrations'), t('SSO'), t('Up to 90 day retention')],
   business: [t('Code Owners support'), t('SAML + SCIM support'), t('BAA')],
 };
 
