@@ -758,15 +758,26 @@ class SubscriptionProcessor:
                 legacy_results = None
 
                 if self._has_workflow_engine_processing:
-                    assert detector is not None
-                    workflow_engine_results = self.process_results_workflow_engine(
-                        detector, subscription_update, aggregation_value, organization
-                    )
+                    if detector is None:
+                        logger.error(
+                            "Detector not found for subscription, skipping workflow engine processing",
+                            extra={
+                                "subscription_id": self.subscription.id,
+                                "project_id": self.subscription.project.id,
+                            },
+                        )
+                        if self._has_workflow_engine_processing_only:
+                            # Nothing more we can do.
+                            return
+                    else:
+                        workflow_engine_results = self.process_results_workflow_engine(
+                            detector, subscription_update, aggregation_value, organization
+                        )
 
-                    if self._has_workflow_engine_processing_only:
-                        # Send a metric if are only evaluating in workflow engine
-                        # This can be used to show the amount of traffic on workflow_engine
-                        metrics.incr(f"{metric_prefix}.single")
+                        if self._has_workflow_engine_processing_only:
+                            # Send a metric if are only evaluating in workflow engine
+                            # This can be used to show the amount of traffic on workflow_engine
+                            metrics.incr(f"{metric_prefix}.single")
 
                 if not self._has_workflow_engine_processing_only:
                     """
