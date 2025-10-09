@@ -39,6 +39,7 @@ import {
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
+import {ResolveSection} from 'sentry/views/detectors/components/forms/metric/resolveSection';
 import {useInitialMetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/useInitialMetricDetectorFormData';
 import {useIntervalChoices} from 'sentry/views/detectors/components/forms/metric/useIntervalChoices';
 import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
@@ -46,7 +47,6 @@ import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDete
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
-import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
 import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 function MetricDetectorForm() {
@@ -147,53 +147,6 @@ function DetectionType() {
       choices={options}
       preserveOnUnmount
     />
-  );
-}
-
-function ResolveSection() {
-  const detectionType = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.detectionType
-  );
-  const conditionValue = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.conditionValue
-  );
-  const conditionType = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.conditionType
-  );
-  const conditionComparisonAgo = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.conditionComparisonAgo
-  );
-  const aggregate = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
-  );
-  const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
-
-  const description = getResolutionDescription(
-    detectionType === 'percent'
-      ? {
-          detectionType: 'percent',
-          conditionType,
-          conditionValue,
-          comparisonDelta: conditionComparisonAgo ?? 3600, // Default to 1 hour if not set
-          thresholdSuffix,
-        }
-      : detectionType === 'static'
-        ? {
-            detectionType: 'static',
-            conditionType,
-            conditionValue,
-            thresholdSuffix,
-          }
-        : {
-            detectionType: 'dynamic',
-            thresholdSuffix,
-          }
-  );
-
-  return (
-    <Container>
-      <Section title={t('Resolve')} description={description} />
-    </Container>
   );
 }
 
@@ -523,6 +476,7 @@ const DetectionTypeField = styled(SegmentedRadioField)`
     padding: 0;
   }
 `;
+
 const ThresholdField = styled(NumberField)`
   padding: 0;
   margin: 0;
@@ -530,7 +484,7 @@ const ThresholdField = styled(NumberField)`
 
   > div {
     padding: 0;
-    width: 10ch;
+    width: 18ch;
   }
 `;
 

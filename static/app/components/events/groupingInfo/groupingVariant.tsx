@@ -74,7 +74,7 @@ function GroupingVariant({event, variant, showNonContributing}: GroupingVariantP
     const data: VariantData = [];
     let component: EventGroupComponent | undefined;
 
-    if (!showNonContributing && variant.hash === null) {
+    if (!showNonContributing && !variant.contributes) {
       return [data, component];
     }
 
@@ -104,9 +104,6 @@ function GroupingVariant({event, variant, showNonContributing}: GroupingVariantP
         component = variant.component;
         break;
       case EventGroupVariantType.CUSTOM_FINGERPRINT:
-        addFingerprintInfo(data, variant, showNonContributing);
-        break;
-      case EventGroupVariantType.BUILT_IN_FINGERPRINT:
         addFingerprintInfo(data, variant, showNonContributing);
         break;
       case EventGroupVariantType.SALTED_COMPONENT:
@@ -156,7 +153,7 @@ function GroupingVariant({event, variant, showNonContributing}: GroupingVariantP
   };
 
   const renderTitle = () => {
-    const isContributing = variant.hash !== null;
+    const isContributing = variant.contributes;
 
     const hint = variant.hint;
 

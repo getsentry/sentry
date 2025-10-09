@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 
-export const MODULE_TITLE = t('Overview');
+export const MODULE_TITLE = t('Agents');
 export const BASE_URL = 'agents';
 
 export const DATA_TYPE = t('Agent');
@@ -8,4 +8,4 @@ export const DATA_TYPE_PLURAL = t('Agents');
 
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/agents/';
 
-export const MODULE_FEATURES = ['agents-insights'];
+export const MODULE_FEATURES = [];

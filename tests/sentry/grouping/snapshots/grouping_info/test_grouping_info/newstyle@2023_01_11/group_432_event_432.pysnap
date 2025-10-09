@@ -1,10 +1,10 @@
 ---
-created: '2025-10-03T16:56:44.908655+00:00'
+created: '2025-10-07T22:42:55.867121+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_message": {
     "component": {
       "contributes": false,
       "hint": "ignored because system exception takes precedence",
@@ -1134,13 +1134,13 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": false,
-    "description": "in-app",
+    "description": "exception message",
     "hash": null,
     "hint": "ignored because system exception takes precedence",
-    "key": "app",
+    "key": "app_exception_message",
     "type": "component"
   },
-  "system": {
+  "system_exception_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -2270,10 +2270,10 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": true,
-    "description": "exception stacktrace",
+    "description": "exception stacktrace — all frames",
     "hash": "6148c73af04344a8597354711f5951ea",
     "hint": null,
-    "key": "system",
+    "key": "system_exception_stacktrace",
     "type": "component"
   }
 }

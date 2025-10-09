@@ -3,12 +3,13 @@ from django.views.generic import TemplateView
 
 import sentry.web.frontend.debug.mail
 from sentry.web.frontend.debug import debug_auth_views
+from sentry.web.frontend.debug.charts.debug_chart_renderer import DebugChartRendererView
+from sentry.web.frontend.debug.charts.metric_alert_charts import DebugMetricAlertChartRendererView
 from sentry.web.frontend.debug.debug_assigned_email import (
     DebugAssignedEmailView,
     DebugSelfAssignedEmailView,
     DebugSelfAssignedTeamEmailView,
 )
-from sentry.web.frontend.debug.debug_chart_renderer import DebugChartRendererView
 from sentry.web.frontend.debug.debug_codeowners_auto_sync_failure_email import (
     DebugCodeOwnersAutoSyncFailureView,
 )
@@ -155,7 +156,8 @@ urlpatterns = [
     ),
     re_path(r"^debug/oauth/authorize/$", DebugOAuthAuthorizeView.as_view()),
     re_path(r"^debug/oauth/authorize/error/$", DebugOAuthAuthorizeErrorView.as_view()),
-    re_path(r"^debug/chart-renderer/$", DebugChartRendererView.as_view()),
+    re_path(r"^debug/charts/chart-renderer/$", DebugChartRendererView.as_view()),
+    re_path(r"^debug/charts/metric-alert-charts/$", DebugMetricAlertChartRendererView.as_view()),
     re_path(r"^debug/mail/cron-broken-monitor-email/$", DebugCronBrokenMonitorEmailView.as_view()),
     re_path(r"^debug/mail/cron-muted-monitor-email/$", DebugCronMutedMonitorEmailView.as_view()),
 ]

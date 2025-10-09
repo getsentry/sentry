@@ -1356,7 +1356,7 @@ describe('Subscription > CombinedUsageTotals', () => {
     expect(screen.getByTestId('locked-product-message-seer')).toHaveTextContent(
       'Start your Seer trial to view usage'
     );
-    expect(screen.getByText('Trial Available')).toBeInTheDocument();
+    expect(screen.getByText('Trial available')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Start trial'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Enable Seer'})).not.toBeInTheDocument();
   });

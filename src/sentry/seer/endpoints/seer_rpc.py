@@ -73,6 +73,7 @@ from sentry.seer.explorer.index_data import (
     rpc_get_trace_for_transaction,
     rpc_get_transactions_for_project,
 )
+from sentry.seer.explorer.tools import execute_trace_query_chart, execute_trace_query_table
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
@@ -233,6 +234,21 @@ class SeerRpcServiceEndpoint(Endpoint):
 def get_organization_slug(*, org_id: int) -> dict:
     org: Organization = Organization.objects.get(id=org_id)
     return {"slug": org.slug}
+
+
+def get_organization_project_ids(*, org_id: int) -> dict:
+    """Get all project IDs for an organization"""
+    from sentry.models.project import Project
+
+    try:
+        organization = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        return {"project_ids": []}
+
+    project_ids = list(
+        Project.objects.filter(organization=organization).values_list("id", flat=True)
+    )
+    return {"project_ids": project_ids}
 
 
 def _can_use_prevent_ai_features(org: Organization) -> bool:
@@ -973,6 +989,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Common to Seer features
     "get_organization_seer_consent_by_org_name": get_organization_seer_consent_by_org_name,
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
+    "get_organization_project_ids": get_organization_project_ids,
     #
     # Autofix
     "get_organization_slug": get_organization_slug,
@@ -1001,6 +1018,8 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_profiles_for_trace": rpc_get_profiles_for_trace,
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
     "get_trace_details": rpc_get_trace_details,
+    "execute_trace_query_chart": execute_trace_query_chart,
+    "execute_trace_query_table": execute_trace_query_table,
     #
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,
