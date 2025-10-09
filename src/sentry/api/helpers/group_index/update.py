@@ -5,7 +5,7 @@ import re
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from http import HTTPStatus
-from typing import Any, NotRequired, TypedDict, cast
+from typing import Any, NotRequired, TypedDict
 from urllib.parse import urlparse
 
 import rest_framework
@@ -41,7 +41,6 @@ from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import update_group_open_period
-from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
@@ -50,6 +49,7 @@ from sentry.models.grouptombstone import TOMBSTONE_FIELDS_FROM_GROUP, GroupTombs
 from sentry.models.project import Project
 from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
+from sentry.releases.use_cases.release import fetch_packages_for_group
 from sentry.signals import issue_resolved
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor, ActorType
@@ -157,28 +157,11 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
     if follows_semver:
         # Fetch all the release-packages associated with the group. We'll find the largest semver
         # version for one of these packages.
-        release_ids = list(
-            GroupRelease.objects.filter(
-                group_id=group.id,
-                project_id=group.project_id,
-            )
-            .distinct()
-            .values_list("release_id", flat=True)
+        group_packages = fetch_packages_for_group(
+            organization_id=group.project.organization_id,
+            project_id=group.project_id,
+            group_id=group.id,
         )
-
-        group_packages = cast(
-            list[str],
-            list(
-                Release.objects.filter(
-                    organization_id=group.project.organization_id,
-                    id__in=release_ids,
-                    package__isnull=False,
-                )
-                .distinct()
-                .values_list("package", flat=True)
-            ),
-        )
-
         release = greatest_semver_release(group.project, packages=group_packages)
         if release is not None:
             current_release_version = release.version
