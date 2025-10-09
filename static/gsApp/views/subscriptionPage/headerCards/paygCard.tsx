@@ -187,7 +187,7 @@ function PaygCard({
 }
 
 function UsageBar({totalBudget, totalSpend}: {totalBudget: number; totalSpend: number}) {
-  const percentUsed = Math.round((totalSpend / totalBudget) * 100);
+  const percentUsed = totalBudget > 0 ? Math.round((totalSpend / totalBudget) * 100) : 0;
 
   return <ProgressBar value={percentUsed} variant="small" />;
 }
