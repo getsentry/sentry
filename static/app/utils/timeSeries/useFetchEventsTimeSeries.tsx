@@ -25,6 +25,10 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   yAxis: YAxis | YAxis[];
   /**
+   * Whether the request should disable aggregate extrapolation. Extrapolation is on by default.
+   */
+  disableAggregateExtrapolation?: boolean;
+  /**
    * Boolean. If missing, the query is enabled. If supplied, the query will obey the prop as specified.
    */
   enabled?: boolean;
@@ -83,6 +87,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     excludeOther,
     enabled,
     groupBy,
+    disableAggregateExtrapolation,
     interval,
     query,
     sampling,
@@ -128,6 +133,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           topEvents,
           groupBy,
           sort: sort ? encodeSort(sort) : undefined,
+          disableAggregateExtrapolation,
         },
       },
     ],
