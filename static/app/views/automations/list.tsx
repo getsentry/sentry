@@ -8,7 +8,6 @@ import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import ListLayout from 'sentry/components/workflowEngine/layout/list';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -137,20 +136,11 @@ function TableHeader() {
 
 function Actions() {
   const organization = useOrganization();
-  const {selection} = usePageFilters();
-
-  let project: number | undefined;
-  if (selection.projects) {
-    project = selection.projects.find(pid => pid !== ALL_ACCESS_PROJECTS);
-  }
   return (
     <Flex gap="sm">
       <AutomationFeedbackButton />
       <LinkButton
-        to={{
-          pathname: `${makeAutomationBasePathname(organization.slug)}new/`,
-          query: project ? {project} : undefined,
-        }}
+        to={`${makeAutomationBasePathname(organization.slug)}new/`}
         priority="primary"
         icon={<IconAdd />}
         size="sm"
