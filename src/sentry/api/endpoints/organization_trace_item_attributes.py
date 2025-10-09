@@ -152,19 +152,25 @@ def get_column_definitions(item_type: SupportedTraceItemType) -> ColumnDefinitio
 
 
 def resolve_attribute_referrer(item_type: str, attribute_type: str) -> Referrer:
-    return (
-        Referrer.API_SPANS_TAG_KEYS_RPC
-        if item_type == SupportedTraceItemType.SPANS.value
-        else Referrer.API_LOGS_TAG_KEYS_RPC
-    )
+    if item_type == SupportedTraceItemType.SPANS.value:
+        return Referrer.API_SPANS_TAG_KEYS_RPC
+    elif item_type == SupportedTraceItemType.LOGS.value:
+        return Referrer.API_LOGS_TAG_KEYS_RPC
+    elif item_type == SupportedTraceItemType.TRACEMETRICS.value:
+        return Referrer.API_TRACE_METRICS_TAG_KEYS_RPC
+    else:
+        raise ValueError(f"Invalid item type: {item_type}")
 
 
 def resolve_attribute_values_referrer(item_type: str) -> Referrer:
-    return (
-        Referrer.API_SPANS_TAG_VALUES_RPC
-        if item_type == SupportedTraceItemType.SPANS.value
-        else Referrer.API_LOGS_TAG_VALUES_RPC
-    )
+    if item_type == SupportedTraceItemType.SPANS.value:
+        return Referrer.API_SPANS_TAG_VALUES_RPC
+    elif item_type == SupportedTraceItemType.LOGS.value:
+        return Referrer.API_LOGS_TAG_VALUES_RPC
+    elif item_type == SupportedTraceItemType.TRACEMETRICS.value:
+        return Referrer.API_TRACE_METRICS_TAG_VALUES_RPC
+    else:
+        raise ValueError(f"Invalid item type: {item_type}")
 
 
 def as_attribute_key(
