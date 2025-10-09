@@ -78,7 +78,7 @@ export const useTransactionsDeprecationWarning = ({
   }
 
   return tct(
-    'Transactions widgets are in the process of being migrated to spans widgets. To see what your query could look like, open it in [explore:Explore].',
+    'Transaction based widgets will soon be migrated to spans widgets. To see what your query could look like, open it in [explore:Explore].',
     {
       explore: <Link to={exploreUrl} />,
     }
