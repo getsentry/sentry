@@ -28,7 +28,10 @@ def create_frame_info(frame: Mapping[str, Any], platform: str | None = None) -> 
     if platform:
         platform_config = PlatformConfig(platform)
         if platform_config.extracts_filename_from_module():
-            return ModuleBasedFrameInfo(frame)
+            # Check if the frame has the required data for ModuleBasedFrameInfo
+            # If not, fall back to PathBasedFrameInfo to handle platform misclassification
+            if frame.get("module") and frame.get("abs_path"):
+                return ModuleBasedFrameInfo(frame)
 
     return PathBasedFrameInfo(frame)
 
