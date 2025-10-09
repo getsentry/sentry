@@ -34,7 +34,6 @@ export function MetricsGraph({timeseriesResult}: MetricsGraphProps) {
   const visualize = useMetricVisualize();
   const setVisualize = useSetMetricVisualize();
 
-  // Stub functions for chart interactions - not fully implemented yet
   function handleChartTypeChange(newChartType: ChartType) {
     setVisualize(visualize.replace({chartType: newChartType}));
   }
