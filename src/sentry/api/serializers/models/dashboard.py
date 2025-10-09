@@ -612,7 +612,7 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
 
         if not features.has(
             "organizations:dashboards-global-filters",
-            organization=obj.dashboard.organization,
+            organization=obj.organization,
             actor=user,
         ):
             tag_filters["globalFilter"] = []
