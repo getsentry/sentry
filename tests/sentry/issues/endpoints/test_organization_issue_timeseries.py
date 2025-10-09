@@ -184,6 +184,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         ]
         assert timeseries["meta"] == {
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
 
@@ -220,6 +221,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         ]
         assert timeseries["meta"] == {
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
 
@@ -256,6 +258,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         ]
         assert timeseries["meta"] == {
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
         timeseries = response.data["timeSeries"][1]
@@ -275,6 +278,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         ]
         assert timeseries["meta"] == {
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
 
@@ -315,6 +319,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             "isOther": False,
             "order": 0,
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
 
@@ -337,6 +342,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             "isOther": False,
             "order": 1,
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
 
@@ -373,6 +379,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         ]
         assert timeseries["meta"] == {
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
 
@@ -419,6 +426,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
                 "isOther": False,
                 "order": index,
                 "valueType": "integer",
+                "valueUnit": None,
                 "interval": 3_600_000,
             }
         timeseries = response.data["timeSeries"][-1]
@@ -439,6 +447,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             "isOther": True,
             "order": 5,
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
 
@@ -490,6 +499,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
                 "isOther": False,
                 "order": index,
                 "valueType": "integer",
+                "valueUnit": None,
                 "interval": 3_600_000,
             }
         timeseries = response.data["timeSeries"][-1]
@@ -510,5 +520,6 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             "isOther": True,
             "order": 5,
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
