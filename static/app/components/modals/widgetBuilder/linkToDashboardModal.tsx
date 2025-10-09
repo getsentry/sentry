@@ -147,11 +147,7 @@ export function LinkToDashboardModal({Header, Body, Footer, closeModal}: Props) 
       <Body>
         <Wrapper>
           <DashboardCreateLimitWrapper>
-            {({
-              hasReachedDashboardLimit,
-              isLoading,
-              limitMessage,
-            }: DashboardCreateLimitWrapperResult) => (
+            {({hasReachedDashboardLimit, isLoading, limitMessage}) => (
               <Select
                 disabled={dashboards === null}
                 name="dashboard"
@@ -169,7 +165,6 @@ export function LinkToDashboardModal({Header, Body, Footer, closeModal}: Props) 
           </DashboardCreateLimitWrapper>
         </Wrapper>
       </Body>
-
       <Footer>
         <StyledButtonBar gap="lg">
           <Button
