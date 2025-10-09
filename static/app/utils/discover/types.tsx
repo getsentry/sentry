@@ -41,6 +41,7 @@ export enum DatasetSource {
   UNKNOWN = 'unknown',
   INFERRED = 'inferred',
   FORCED = 'forced',
+  SPAN_MIGRATION = 'span_migration_version_1',
 }
 
 export const TOP_EVENT_MODES: string[] = [DisplayModes.TOP5, DisplayModes.DAILYTOP5];
