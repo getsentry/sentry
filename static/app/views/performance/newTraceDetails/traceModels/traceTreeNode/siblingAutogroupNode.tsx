@@ -13,6 +13,9 @@ import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {computeCollapsedBarSpace} from './utils';
 
 export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
+  id: string;
+  type: TraceTree.NodeType;
+
   groupCount = 0;
 
   private _autogroupedSegments: Array<[number, number]> | undefined;
@@ -23,16 +26,11 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
     extra: TraceTreeNodeExtra
   ) {
     super(parent, node, extra);
+
+    this.id = this.parent?.id ?? uuid4();
+    this.type = 'ag';
+
     this.expanded = false;
-  }
-
-  get type(): TraceTree.NodeType {
-    return 'ag';
-  }
-
-  get id(): string {
-    const firstChild = this.children[0];
-    return firstChild?.id ?? uuid4();
   }
 
   get op(): string {

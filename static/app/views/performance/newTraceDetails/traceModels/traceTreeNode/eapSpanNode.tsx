@@ -19,6 +19,9 @@ import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {traceChronologicalSort} from './utils';
 
 export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
+  id: string;
+  type: TraceTree.NodeType;
+
   reparentedEAPTransactions = new Set<EapSpanNode>();
   /**
    * The breakdown of the node's children's operations by count.
@@ -37,6 +40,9 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       : parent;
 
     super(parentNode, value, extra);
+
+    this.id = value.event_id;
+    this.type = 'span';
 
     this.searchPriority = this.value.is_transaction ? 1 : 2;
     this.isEAPEvent = true;
@@ -81,14 +87,6 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     }
   }
 
-  get id(): string {
-    return this.value.event_id;
-  }
-
-  get type(): TraceTree.NodeType {
-    return 'span';
-  }
-
   get description(): string | undefined {
     const isOtelFriendlyUi = this.extra?.organization.features.includes(
       'performance-otel-friendly-ui'
@@ -117,7 +115,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       return this.children.filter(child => isEAPTransaction(child.value));
     }
 
-    return this.children;
+    return super.directVisibleChildren;
   }
 
   private _reparentSSRUnderBrowserRequestSpan(node: BaseNode) {

@@ -14,6 +14,9 @@ import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {UptimeCheckTimingNode} from './uptimeCheckTimingNode';
 
 export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
+  id: string;
+  type: TraceTree.NodeType;
+
   searchPriority = 1;
   constructor(
     parent: BaseNode | null,
@@ -24,12 +27,10 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
     const timingNodes = this._createTimingNodes();
     timingNodes.forEach(timingNode => this.children.push(timingNode));
     this.isEAPEvent = true;
+    this.id = this.value.event_id;
+    this.type = 'uptime-check';
 
     this.parent?.children.push(this);
-  }
-
-  get id(): string {
-    return this.value.event_id;
   }
 
   _createTimingNodes(): UptimeCheckTimingNode[] {
@@ -109,10 +110,6 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
     fakeSpans.sort((a, b) => a.value.start_timestamp - b.value.start_timestamp);
 
     return fakeSpans;
-  }
-
-  get type(): TraceTree.NodeType {
-    return 'uptime-check';
   }
 
   get description(): string | undefined {

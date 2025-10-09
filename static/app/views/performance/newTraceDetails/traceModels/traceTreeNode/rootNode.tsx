@@ -9,15 +9,10 @@ import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/trace
 import {BaseNode} from './baseNode';
 
 export class RootNode extends BaseNode<null> {
+  id: string = uuid4();
+  type: TraceTree.NodeType = 'root';
+
   canShowDetails = false;
-
-  get id(): string {
-    return uuid4();
-  }
-
-  get type(): TraceTree.NodeType {
-    return 'root';
-  }
 
   get drawerTabsTitle(): string {
     return t('Root');

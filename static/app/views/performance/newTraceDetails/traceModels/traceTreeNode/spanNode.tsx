@@ -13,6 +13,9 @@ import {TraceSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/tr
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 
 export class SpanNode extends BaseNode<TraceTree.Span> {
+  id: string;
+  type: TraceTree.NodeType;
+
   event: EventTransaction | null = null;
   canAutogroup = true;
   allowNoInstrumentationNodes = true;
@@ -32,19 +35,14 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
       ];
     }
 
+    this.id = this.value.span_id;
+    this.type = 'span';
+
     // Android creates TCP connection spans which are noisy and not useful in most cases.
     // Unless the span has a child txn which would indicate a continuaton of the trace, we collapse it.
     this.expanded = !(
       this.value.op === 'http.client' && this.value.origin === 'auto.http.okhttp'
     );
-  }
-
-  get type(): TraceTree.NodeType {
-    return 'span';
-  }
-
-  get id(): string {
-    return this.value.span_id;
   }
 
   get description(): string | undefined {

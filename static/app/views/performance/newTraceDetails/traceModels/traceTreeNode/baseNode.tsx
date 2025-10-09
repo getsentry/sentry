@@ -20,6 +20,10 @@ export interface TraceTreeNodeExtra {
 }
 
 export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> {
+  abstract id: string;
+
+  abstract type: TraceTree.NodeType;
+
   /**
    * The parent node of this node.
    */
@@ -483,10 +487,6 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     }
     return this.id === id;
   }
-
-  abstract get id(): string;
-
-  abstract get type(): TraceTree.NodeType;
 
   abstract get drawerTabsTitle(): string;
 

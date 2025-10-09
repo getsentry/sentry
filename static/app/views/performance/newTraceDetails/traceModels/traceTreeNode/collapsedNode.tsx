@@ -9,6 +9,8 @@ import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/trace
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 
 export class CollapsedNode extends BaseNode<TraceTree.CollapsedNode> {
+  id: string;
+  type: TraceTree.NodeType;
   readonly expanded: boolean = false;
 
   constructor(
@@ -17,13 +19,11 @@ export class CollapsedNode extends BaseNode<TraceTree.CollapsedNode> {
     extra: TraceTreeNodeExtra | null
   ) {
     super(parent, value, extra);
+    this.id = uuid4();
+    this.type = 'collapsed';
     this.canShowDetails = false;
 
     this.parent?.children.push(this);
-  }
-
-  get type(): TraceTree.NodeType {
-    return 'collapsed';
   }
 
   get drawerTabsTitle(): string {
@@ -32,10 +32,6 @@ export class CollapsedNode extends BaseNode<TraceTree.CollapsedNode> {
 
   get traceHeaderTitle(): {title: string; subtitle?: string} {
     return {title: 'Collapsed'};
-  }
-
-  get id(): string {
-    return uuid4();
   }
 
   printNode(): string {

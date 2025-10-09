@@ -1,5 +1,4 @@
 import type {Theme} from '@emotion/react';
-import {uuid4} from '@sentry/core';
 
 import {t} from 'sentry/locale';
 import {AutogroupNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/autogroup';
@@ -14,6 +13,9 @@ import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {computeCollapsedBarSpace} from './utils';
 
 export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
+  id: string;
+  type: TraceTree.NodeType;
+
   head: BaseNode;
   tail: BaseNode;
   groupCount = 0;
@@ -30,15 +32,9 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
     super(parent, node, extra);
     this.head = head;
     this.tail = tail;
+    this.id = this.head.id || this.tail.id;
+    this.type = 'ag';
     this.expanded = false;
-  }
-
-  get type(): TraceTree.NodeType {
-    return 'ag';
-  }
-
-  get id(): string {
-    return this.head.id ?? this.tail.id ?? uuid4();
   }
 
   get autogroupedSegments(): Array<[number, number]> {

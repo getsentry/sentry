@@ -9,6 +9,9 @@ import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import type {RootNode} from './rootNode';
 
 export class TraceNode extends BaseNode<TraceTree.Trace> {
+  id: string;
+  type: TraceTree.NodeType;
+
   // We want to enforce the parent to only be a RootNode or null
   constructor(
     parent: RootNode | null,
@@ -17,16 +20,10 @@ export class TraceNode extends BaseNode<TraceTree.Trace> {
   ) {
     super(parent, value, extra);
     this.canShowDetails = false;
+    this.id = 'root';
+    this.type = 'trace';
 
     this.parent?.children.push(this);
-  }
-
-  get id(): string {
-    return 'root';
-  }
-
-  get type(): TraceTree.NodeType {
-    return 'trace';
   }
 
   get drawerTabsTitle(): string {

@@ -13,6 +13,9 @@ import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/trace
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 
 export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumentationSpan> {
+  id: string;
+  type: TraceTree.NodeType;
+
   previous: BaseNode;
   next: BaseNode;
 
@@ -28,20 +31,15 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
     this.previous = previous;
     this.next = next;
 
+    this.id = this.previous.id || this.next.id || uuid4();
+    this.type = 'ms';
+
     if (this.previous.endTimestamp && this.next.startTimestamp) {
       this.space = [
         this.previous.endTimestamp * 1e3,
         (this.next.startTimestamp - this.previous.endTimestamp) * 1e3,
       ];
     }
-  }
-
-  get type(): TraceTree.NodeType {
-    return 'ms';
-  }
-
-  get id(): string {
-    return this.previous.id || this.next.id || uuid4();
   }
 
   get drawerTabsTitle(): string {

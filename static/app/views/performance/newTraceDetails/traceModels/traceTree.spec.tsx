@@ -1872,7 +1872,7 @@ describe('TraceTree', () => {
         ) as SiblingAutogroupNode;
 
         const path = siblingAutogroup.pathToNode();
-        expect(path).toEqual(['ag-0', 'txn-child-event-id']);
+        expect(path).toEqual(['ag-child-event-id', 'txn-child-event-id']);
       });
 
       it('path to child of sibling autogroup skips autogroup', async () => {
