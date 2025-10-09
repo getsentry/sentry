@@ -33,7 +33,7 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   excludeOther?: boolean;
   /**
-   * Whether the request should disable aggregate extrapolation. Extrapolation is on by default.
+   * Whether the request should enable aggregate extrapolation. Extrapolation is on by default.
    */
   extrapolate?: boolean;
   /**
