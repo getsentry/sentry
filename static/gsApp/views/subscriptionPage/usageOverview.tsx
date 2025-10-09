@@ -7,6 +7,7 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import type {TextProps} from 'sentry/components/core/text/text';
+import useDrawer from 'sentry/components/globalDrawer';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import GridEditable from 'sentry/components/tables/gridEditable';
@@ -16,12 +17,15 @@ import {
   IconGraph,
   IconLightning,
   IconLock,
+  IconOpen,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useNavContext} from 'sentry/views/nav/context';
 
 import ProductTrialTag from 'getsentry/components/productTrial/productTrialTag';
@@ -31,6 +35,7 @@ import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory
 import {
   AddOnCategory,
   OnDemandBudgetMode,
+  type CustomerUsage,
   type ProductTrial,
   type Subscription,
 } from 'getsentry/types';
@@ -43,12 +48,19 @@ import {
   getPotentialProductTrial,
   getReservedBudgetCategoryForAddOn,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
+import {
+  getCategoryInfoFromPlural,
+  getPlanCategoryName,
+  sortCategories,
+} from 'getsentry/utils/dataCategory';
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
+import CategoryUsageDrawer from 'getsentry/views/subscriptionPage/components/categoryUsageDrawer';
+import {EMPTY_STAT_TOTAL} from 'getsentry/views/subscriptionPage/usageTotals';
 
 interface UsageOverviewProps {
   organization: Organization;
   subscription: Subscription;
+  usageData: CustomerUsage;
 }
 
 function CurrencyCell({
@@ -81,9 +93,12 @@ function ReservedUsageBar({percentUsed}: {percentUsed: number}) {
   );
 }
 
-function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
+function UsageOverviewTable({subscription, organization, usageData}: UsageOverviewProps) {
   const hasBillingPerms = organization.access.includes('org:billing');
+  const navigate = useNavigate();
+  const location = useLocation();
   const [openState, setOpenState] = useState<Record<string, boolean>>({});
+  const {isDrawerOpen, openDrawer} = useDrawer();
   const [trialButtonBusyState, setTrialButtonBusyState] = useState<
     Partial<Record<DataCategory, boolean>>
   >({});
@@ -98,6 +113,60 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
         setOpenState(prev => ({...prev, [apiName]: true}));
       });
   }, [subscription.addOns, organization.features]);
+
+  useEffect(() => {
+    if (!isDrawerOpen && location.query.drawer) {
+      const dataCategory = location.query.drawer as DataCategory;
+      const categoryInfo = subscription.categories[dataCategory];
+      const productName = getPlanCategoryName({
+        plan: subscription.planDetails,
+        category: dataCategory,
+        title: true,
+      });
+      if (!categoryInfo) {
+        navigate(
+          {
+            pathname: location.pathname,
+            query: {
+              ...location.query,
+              drawer: undefined,
+            },
+          },
+          {replace: true}
+        );
+        return;
+      }
+      openDrawer(
+        () => (
+          <CategoryUsageDrawer
+            categoryInfo={categoryInfo}
+            stats={usageData.stats[dataCategory] ?? []}
+            subscription={subscription}
+            periodStart={usageData.periodStart}
+            periodEnd={usageData.periodEnd}
+            eventTotals={usageData.eventTotals?.[dataCategory] ?? {}}
+            totals={usageData.totals[dataCategory] ?? EMPTY_STAT_TOTAL}
+          />
+        ),
+        {
+          ariaLabel: t('Usage for %s', productName),
+          drawerKey: 'usage-overview-drawer',
+          onClose: () => {
+            navigate(
+              {
+                pathname: location.pathname,
+                query: {
+                  ...location.query,
+                  drawer: undefined,
+                },
+              },
+              {replace: true}
+            );
+          },
+        }
+      );
+    }
+  });
 
   const allAddOnDataCategories = Object.values(
     subscription.planDetails.addOnCategories
@@ -372,7 +441,7 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
                   <Text bold>
                     {!hasAccess && <IconLock locked size="xs" />} {row.product}{' '}
                   </Text>{' '}
-                  {productTrial && <ProductTrialTag trial={productTrial} />}
+                  {productTrial && <ProductTrialTag trial={productTrial} />}{' '}
                 </Text>
               );
 
@@ -427,22 +496,41 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
                 isPaygOnly || isChildProduct
                   ? formattedTotal
                   : `${formattedTotal} / ${formattedReservedTotal}`;
+
+              const dataCategoryInfo = dataCategory
+                ? getCategoryInfoFromPlural(dataCategory)
+                : null;
               return (
-                <Text as="div" textWrap="balance">
-                  {formattedCurrentUsage}{' '}
-                  {!(isPaygOnly || isChildProduct) && (
-                    <QuestionTooltip
+                <Flex align="center" gap="sm">
+                  <Text as="div" textWrap="balance">
+                    {formattedCurrentUsage}{' '}
+                    {!(isPaygOnly || isChildProduct) && (
+                      <QuestionTooltip
+                        size="xs"
+                        position="top"
+                        title={tct('[formattedReserved] reserved[freeString]', {
+                          formattedReserved,
+                          freeString: free
+                            ? tct(' + [formattedFree] gifted', {formattedFree})
+                            : '',
+                        })}
+                      />
+                    )}
+                  </Text>
+                  {dataCategory && dataCategoryInfo?.tallyType === 'usage' && (
+                    <Button
+                      aria-label={t('See detailed usage')}
+                      icon={<IconOpen />}
                       size="xs"
-                      position="top"
-                      title={tct('[formattedReserved] reserved[freeString]', {
-                        formattedReserved,
-                        freeString: free
-                          ? tct(' + [formattedFree] gifted', {formattedFree})
-                          : '',
-                      })}
+                      onClick={() =>
+                        navigate({
+                          pathname: location.pathname,
+                          query: {...location.query, drawer: dataCategory},
+                        })
+                      }
                     />
                   )}
-                </Text>
+                </Flex>
               );
             }
             case 'reservedUsage': {
@@ -535,7 +623,7 @@ function UsageOverviewTable({subscription, organization}: UsageOverviewProps) {
   );
 }
 
-function UsageOverview({subscription, organization}: UsageOverviewProps) {
+function UsageOverview({subscription, organization, usageData}: UsageOverviewProps) {
   const hasBillingPerms = organization.access.includes('org:billing');
   const {isCollapsed: navIsCollapsed} = useNavContext();
   const {currentHistory, isPending, isError} = useCurrentBillingHistory();
@@ -588,7 +676,11 @@ function UsageOverview({subscription, organization}: UsageOverviewProps) {
           </Flex>
         )}
       </Flex>
-      <UsageOverviewTable subscription={subscription} organization={organization} />
+      <UsageOverviewTable
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+      />
     </Container>
   );
 }
