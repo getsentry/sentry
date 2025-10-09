@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from datetime import UTC, datetime, timedelta
 
 
-class CredentialLeasableMixin(ABC):
+class CredentialLeasable(ABC):
     """
     Interface for integrations that can lease credentials to other services.
 
