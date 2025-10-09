@@ -81,7 +81,7 @@ function MetricsTabBodySection() {
               key={index}
               queryParams={metricQuery.queryParams}
               setQueryParams={metricQuery.setQueryParams}
-              setMetricName={metricQuery.setMetricName}
+              setTraceMetric={metricQuery.setTraceMetric}
             >
               <MetricPanel traceMetric={metricQuery.metric} />
             </MetricsQueryParamsProvider>

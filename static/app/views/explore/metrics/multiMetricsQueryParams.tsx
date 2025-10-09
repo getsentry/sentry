@@ -12,6 +12,7 @@ import {
   encodeMetricQueryParams,
   type BaseMetricQuery,
   type MetricQuery,
+  type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 
@@ -63,18 +64,15 @@ export function MultiMetricsQueryParamsProvider({
       };
     }
 
-    function setMetricNameForIndex(i: number) {
-      return function (newMetricName: string) {
+    function setTraceMetricForIndex(i: number) {
+      return function (newTraceMetric: TraceMetric) {
         const target = {...location, query: {...location.query}};
         target.query.metric = metricQueries
-          .map((metric: BaseMetricQuery, j: number) => {
+          .map((metricQuery: BaseMetricQuery, j: number) => {
             if (i !== j) {
-              return metric;
+              return metricQuery;
             }
-            return {
-              ...metric,
-              metric: {name: newMetricName},
-            };
+            return {...metricQuery, metric: newTraceMetric};
           })
           .map((metric: BaseMetricQuery) => encodeMetricQueryParams(metric))
           .filter(defined)
@@ -89,7 +87,7 @@ export function MultiMetricsQueryParamsProvider({
         return {
           ...metric,
           setQueryParams: setQueryParamsForIndex(index),
-          setMetricName: setMetricNameForIndex(index),
+          setTraceMetric: setTraceMetricForIndex(index),
         };
       }),
     };
