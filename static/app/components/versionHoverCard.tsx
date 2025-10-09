@@ -205,10 +205,10 @@ function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
   return (
     <Flex align="center" gap="xs">
       {t('Release:')}
-      <VersionWrapper>
+      <Flex align="center" gap="xs" justify="end">
         <StyledVersion version={releaseVersion} truncate anchor={false} />
         <CopyToClipboardButton borderless size="zero" text={releaseVersion} />
-      </VersionWrapper>
+      </Flex>
     </Flex>
   );
 }
@@ -223,13 +223,6 @@ const ConnectRepo = styled('div')`
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const VersionWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  justify-content: flex-end;
 `;
 
 const StyledVersion = styled(Version)`
