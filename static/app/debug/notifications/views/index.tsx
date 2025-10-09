@@ -54,11 +54,11 @@ export default function DebugNotificationsIndex() {
                     <Tag type="success">{selectedRegistration.category}</Tag>
                   </Flex>
                 </Heading>
-                <Grid columns="minmax(400px, 1fr) 300px" gap="2xl" position="relative">
+                <Grid columns={{md: '1fr', lg: '1fr auto'}} gap="2xl" position="relative">
                   <Flex
                     direction="column"
                     position="relative"
-                    minWidth="0"
+                    minWidth="400px"
                     justify="start"
                   >
                     <EmailPreview registration={selectedRegistration} />
@@ -107,6 +107,8 @@ const SidebarContainer = styled('nav')`
 const ExampleContainer = styled('div')`
   position: sticky;
   top: ${p => `calc(${HEADER_HEIGHT}px + ${p.theme.space.xl})`};
-  max-width: 375px;
   align-self: flex-start;
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    max-width: 450px;
+  }
 `;
