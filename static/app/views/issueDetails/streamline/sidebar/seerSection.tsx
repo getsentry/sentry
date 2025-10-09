@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
 import {Button} from 'sentry/components/core/button';
+import {Stack} from 'sentry/components/core/layout/stack';
 import {Text} from 'sentry/components/core/text';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {GroupSummaryWithAutofix} from 'sentry/components/group/groupSummaryWithAutofix';
@@ -27,19 +28,19 @@ import {SeerSectionCtaButton} from './seerSectionCtaButton';
 function SeerWelcomeEntrypoint() {
   return (
     <WelcomeContainer>
-      <WelcomeTextContainer>
+      <Stack gap="sm">
         <Text>{t('Meet Seer, the AI debugging agent.')}</Text>
-      </WelcomeTextContainer>
+      </Stack>
       <WelcomeImageContainer>
         <img src={autofixSetupImg} alt="Seer AI debugging agent" />
       </WelcomeImageContainer>
-      <WelcomeTextContainer>
+      <Stack gap="sm">
         <Text>
           {t(
             'Find the root cause of the issue, and even open a PR to fix it, in minutes.'
           )}
         </Text>
-      </WelcomeTextContainer>
+      </Stack>
     </WelcomeContainer>
   );
 }
@@ -139,7 +140,7 @@ export default function SeerSection({
       sectionKey={SectionKey.SEER}
       preventCollapse={!hasStreamlinedUI}
     >
-      <SeerSectionContainer>
+      <Stack>
         {(aiConfig.orgNeedsGenAiAcknowledgement || !aiConfig.hasAutofixQuota) &&
         !aiConfig.isAutofixSetupLoading ? (
           <SeerWelcomeEntrypoint />
@@ -170,15 +171,10 @@ export default function SeerSection({
             hasStreamlinedUI={hasStreamlinedUI}
           />
         )}
-      </SeerSectionContainer>
+      </Stack>
     </SidebarFoldSection>
   );
 }
-
-const SeerSectionContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
 
 const Summary = styled('div')`
   margin-bottom: ${space(0.5)};
@@ -248,10 +244,4 @@ const WelcomeImageContainer = styled('div')`
     max-width: 100%;
     height: auto;
   }
-`;
-
-const WelcomeTextContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.sm};
 `;
