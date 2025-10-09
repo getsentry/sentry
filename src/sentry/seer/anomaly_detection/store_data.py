@@ -119,7 +119,7 @@ def update_rule_data_legacy(
         or updated_query_fields.get("aggregate")
     ):
         # use setattr to avoid saving the rule until the Seer call has successfully finished,
-        # otherwise the rule wculd be in a bad state
+        # otherwise the rule would be in a bad state
         for k, v in updated_fields.items():
             setattr(alert_rule, k, v)
 
