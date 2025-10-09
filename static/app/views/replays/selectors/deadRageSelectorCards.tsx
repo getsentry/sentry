@@ -110,7 +110,7 @@ function AccordionWidget({
           <StyledPlaceholder />
         </LoadingContainer>
       ) : isError || (!isLoading && filteredData.length === 0) ? (
-        <CenteredContentContainer>
+        <Flex flex="1 1 auto" direction="column" justify="center">
           <StyledEmptyStateWarning withIcon={false}>
             <EmptyHeader>
               <IconSearch size="sm" />
@@ -123,9 +123,9 @@ function AccordionWidget({
               )}
             </EmptySubtitle>
           </StyledEmptyStateWarning>
-        </CenteredContentContainer>
+        </Flex>
       ) : (
-        <LeftAlignedContentContainer>
+        <Flex flex="1 1 auto" direction="column" justify="start">
           <Accordion
             collapsible
             expandedIndex={selectedListIndex}
@@ -155,7 +155,7 @@ function AccordionWidget({
               };
             })}
           />
-        </LeftAlignedContentContainer>
+        </Flex>
       )}
     </StyledWidgetContainer>
   );
@@ -219,14 +219,6 @@ const StyledHeaderContainer = styled(HeaderContainer)`
   grid-template-columns: 30px auto;
 `;
 
-function LeftAlignedContentContainer(props: FlexProps) {
-  return <Flex flex="1 1 auto" direction="column" justify="start" {...props} />;
-}
-
-function CenteredContentContainer(props: FlexProps) {
-  return <Flex flex="1 1 auto" direction="column" justify="center" {...props} />;
-}
-
 const StyledAccordionHeader = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
@@ -268,8 +260,9 @@ const EmptySubtitle = styled('div')`
   padding-right: ${space(1)};
 `;
 
-const LoadingContainer = styled(LeftAlignedContentContainer)`
-  gap: ${space(0.25)};
+const LoadingContainer = styled((props: FlexProps) => (
+  <Flex gap="2xs" flex="1 1 auto" direction="column" justify="start" {...props} />
+))`
   padding: ${space(1)} ${space(0.5)} 3px ${space(0.5)};
 `;
 
