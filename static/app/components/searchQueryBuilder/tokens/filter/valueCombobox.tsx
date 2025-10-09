@@ -938,7 +938,6 @@ export function SearchQueryBuilderValueCombobox({
         onClick={updateSelectionIndex}
         autoFocus
         maxOptions={50}
-        openOnFocus
         customMenu={customMenu}
         shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
       >

@@ -178,7 +178,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         maxOptions={50}
         shouldFilterResults={false}
         autoFocus
-        openOnFocus
       >
         {keyItem => (
           <Item {...keyItem} key={keyItem.key}>
