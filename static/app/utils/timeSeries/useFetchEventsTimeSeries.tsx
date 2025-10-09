@@ -1,5 +1,6 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
+import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -94,7 +95,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     excludeOther,
     enabled,
     groupBy,
-    extrapolate = true,
+    extrapolate,
     query,
     sampling,
     pageFilters,
@@ -141,7 +142,11 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           topEvents,
           groupBy,
           sort: sort ? encodeSort(sort) : undefined,
-          disableAggregateExtrapolation: extrapolate ? '0' : '1',
+          disableAggregateExtrapolation: defined(extrapolate)
+            ? extrapolate
+              ? '0'
+              : '1'
+            : undefined,
         },
       },
     ],
