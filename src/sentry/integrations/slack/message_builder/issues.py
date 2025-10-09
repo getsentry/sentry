@@ -655,6 +655,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         action_text = ""
 
+        # TODO: Fix this condition to check self.is_unfurl to prevent interactive elements
+        # from being included in Slack unfurl payloads. Slack's chat.unfurl API does not
+        # support interactive components like buttons and external_select menus, causing
+        # 'invalid_blocks' errors. The is_unfurl flag is set but currently ignored here.
+        # See: https://api.slack.com/methods/chat.unfurl
         if not self.issue_details or (self.recipient and self.recipient.is_team):
             payload_actions, action_text, has_action = build_actions(
                 self.group, project, text, self.actions, self.identity
