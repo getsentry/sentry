@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -104,7 +105,7 @@ function UserStats({
     <Fragment>
       {hasWebVitals && (
         <Fragment>
-          <VitalsHeading>
+          <Flex justify="between" align="center">
             <SectionHeading>
               {t('Web Vitals')}
               <QuestionTooltip
@@ -120,7 +121,7 @@ function UserStats({
                 <IconOpen />
               </Link>
             )}
-          </VitalsHeading>
+          </Flex>
           <VitalInfo
             location={location}
             vital={[WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS]}
@@ -162,11 +163,5 @@ function UserStats({
     </Fragment>
   );
 }
-
-const VitalsHeading = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
 
 export default UserStats;
