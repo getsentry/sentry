@@ -91,7 +91,7 @@ function ReserveAdditionalVolume({
   );
 
   return (
-    <Flex direction="column" gap="md">
+    <Flex direction="column" gap="2xs" paddingTop="xl" borderTop="primary">
       <Flex gap="md" align="center" justify="between" width="100%" height="28px">
         <Flex align="center" gap="md">
           <Button
@@ -120,7 +120,7 @@ function ReserveAdditionalVolume({
         </Flex>
         {reservedVolumeTotal > 0 && (
           <Container>
-            <Text size="2xl" bold density="compressed">
+            <Text size="lg" bold density="compressed">
               +${formatPrice({cents: reservedVolumeTotal})}
             </Text>
             <Text size="lg" variant="muted">

@@ -1085,8 +1085,7 @@ const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
         right: 0;
         top: 0;
         min-height: 100vh;
-        min-width: 430px;
-        max-width: 520px;
+        max-width: 360px;
         border-top: none;
         border-left: 1px solid ${p.theme.border};
       }
