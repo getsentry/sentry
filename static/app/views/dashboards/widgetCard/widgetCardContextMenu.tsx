@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import type {Location} from 'history';
+import qs from 'query-string';
 
 import {
   openAddToDashboardModal,
@@ -12,11 +13,11 @@ import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getUtcDateString} from 'sentry/utils/dates';
 import {
   MEPState,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {safeURL} from 'sentry/utils/url/safeURL';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
@@ -33,6 +34,7 @@ import {
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 
@@ -68,8 +70,8 @@ export const useTransactionsDeprecationWarning = ({
     ) {
       return null;
     }
-    return createExploreUrl(widget.exploreUrls[0]!, selection);
-  }, [organization.features, widget.widgetType, widget.exploreUrls, selection]);
+    return createExploreUrl(widget.exploreUrls[0]!, selection, organization);
+  }, [organization, widget.widgetType, widget.exploreUrls, selection]);
 
   if (!exploreUrl) {
     return null;
@@ -83,31 +85,25 @@ export const useTransactionsDeprecationWarning = ({
   );
 };
 
-const createExploreUrl = (baseUrl: string, selection: PageFilters): string => {
-  const params: string[] = [];
+const createExploreUrl = (
+  baseUrl: string,
+  selection: PageFilters,
+  organization: Organization
+): string => {
+  const parsedUrl = safeURL(baseUrl);
+  const queryParams = qs.parse(parsedUrl?.search ?? '');
 
-  if (selection.datetime?.start) {
-    params.push(`start=${getUtcDateString(selection.datetime.start)}`);
+  if (queryParams.aggregateField) {
+    // we need to parse the aggregateField because it comes in stringified but needs to be passed in JSON format
+    if (typeof queryParams.aggregateField === 'string') {
+      queryParams.aggregateField = JSON.parse(queryParams.aggregateField);
+    } else if (Array.isArray(queryParams.aggregateField)) {
+      queryParams.aggregateField = queryParams.aggregateField.map(item =>
+        JSON.parse(item)
+      );
+    }
   }
-  if (selection.datetime?.end) {
-    params.push(`end=${getUtcDateString(selection.datetime.end)}`);
-  }
-  if (selection.datetime?.period) {
-    params.push(`statsPeriod=${selection.datetime.period}`);
-  }
-  if (selection.datetime?.utc) {
-    params.push('utc=true');
-  }
-
-  selection.projects.forEach(project => {
-    params.push(`project=${project}`);
-  });
-
-  selection.environments.forEach(environment => {
-    params.push(`environment=${environment}`);
-  });
-
-  return params.length > 0 ? `${baseUrl}&${params.join('&')}` : baseUrl;
+  return getExploreUrl({organization, selection, ...queryParams});
 };
 
 export function getMenuOptions(
