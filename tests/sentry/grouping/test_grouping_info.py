@@ -16,7 +16,7 @@ from tests.sentry.grouping import run_as_grouping_inputs_snapshot_test, to_json
 def test_grouping_info(
     variants: dict[str, BaseVariant], create_snapshot: InstaSnapshotter, **kwargs: Any
 ) -> None:
-    grouping_info = get_grouping_info_from_variants(variants, use_legacy_format=False)
+    grouping_info = get_grouping_info_from_variants(variants)
     create_snapshot(to_json(grouping_info, pretty_print=True))
 
 
