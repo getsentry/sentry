@@ -1,4 +1,4 @@
-import {Fragment, useLayoutEffect, useState} from 'react';
+import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -48,21 +48,6 @@ function parseAIMessages(messages: string): AIMessage[] | string {
         if (!message.role || !message.content) {
           return null;
         }
-
-        if (!ALLOWED_MESSAGE_ROLES.has(message.role)) {
-          Sentry.captureMessage('Gen AI message with invalid role', {
-            level: 'warning',
-            tags: {
-              feature: 'agent-monitoring',
-              message_role: message.role,
-            },
-            extra: {
-              message_role: message.role,
-              allowed_roles: Array.from(ALLOWED_MESSAGE_ROLES),
-            },
-          });
-        }
-
         return {
           role: message.role,
           content:
@@ -152,6 +137,33 @@ export function hasAIInputAttribute(
   );
 }
 
+function useInvalidRoleDetection(roles: string[]) {
+  const hasReportedInvalidRoles = useRef(false);
+
+  useEffect(() => {
+    if (hasReportedInvalidRoles.current || roles.length === 0) {
+      return;
+    }
+
+    const invalidRoles = roles.filter(role => !ALLOWED_MESSAGE_ROLES.has(role));
+
+    if (invalidRoles.length > 0) {
+      Sentry.captureMessage('Gen AI message with invalid role', {
+        level: 'warning',
+        tags: {
+          feature: 'agent-monitoring',
+          invalid_role_count: invalidRoles.length,
+        },
+        extra: {
+          invalid_roles: invalidRoles,
+          allowed_roles: Array.from(ALLOWED_MESSAGE_ROLES),
+        },
+      });
+      hasReportedInvalidRoles.current = true;
+    }
+  }, [roles]);
+}
+
 export function AIInputSection({
   node,
   attributes,
@@ -161,17 +173,13 @@ export function AIInputSection({
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {
-  if (!getIsAiNode(node) || !hasAIInputAttribute(node, attributes, event)) {
-    return null;
-  }
+  const shouldRender = getIsAiNode(node) && hasAIInputAttribute(node, attributes, event);
 
-  let promptMessages = getTraceNodeAttribute(
-    'gen_ai.request.messages',
-    node,
-    event,
-    attributes
-  );
-  if (!promptMessages) {
+  let promptMessages = shouldRender
+    ? getTraceNodeAttribute('gen_ai.request.messages', node, event, attributes)
+    : null;
+
+  if (!promptMessages && shouldRender) {
     const inputMessages = getTraceNodeAttribute(
       'ai.input_messages',
       node,
@@ -180,7 +188,7 @@ export function AIInputSection({
     );
     promptMessages = inputMessages && transformInputMessages(inputMessages.toString());
   }
-  if (!promptMessages) {
+  if (!promptMessages && shouldRender) {
     const messages = getTraceNodeAttribute('ai.prompt', node, event, attributes);
     if (messages) {
       promptMessages = transformPrompt(messages.toString());
@@ -190,6 +198,9 @@ export function AIInputSection({
   const messages = defined(promptMessages) && parseAIMessages(promptMessages.toString());
 
   const toolArgs = getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes);
+
+  const roles = Array.isArray(messages) ? messages.map(m => m.role) : [];
+  useInvalidRoleDetection(roles);
 
   if ((!messages || messages.length === 0) && !toolArgs) {
     return null;
