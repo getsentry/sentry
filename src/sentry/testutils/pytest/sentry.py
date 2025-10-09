@@ -258,6 +258,9 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.SENTRY_OPTIONS["filestore.control.backend"] = "filesystem"
     settings.SENTRY_OPTIONS["filestore.control.options"] = {"location": "/tmp/sentry-files"}
 
+    # Configure objectstore for local development
+    settings.SENTRY_OPTIONS["objectstore.config"] = {"base_url": "http://localhost:8888/"}
+
     # This is so tests can assume this feature is off by default
     settings.SENTRY_FEATURES["organizations:performance-view"] = False
 
