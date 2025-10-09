@@ -169,6 +169,7 @@ interface AutomationActions {
 
 export const AutomationBuilderContext = createContext<{
   actions: AutomationActions;
+  showTriggerLogicTypeSelector: boolean;
   state: AutomationBuilderState;
 } | null>(null);
 
