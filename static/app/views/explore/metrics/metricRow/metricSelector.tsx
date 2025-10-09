@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 
 import {Tag} from '@sentry/scraps/badge/tag';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
@@ -33,6 +33,15 @@ export function MetricSelector({traceMetric}: {traceMetric: TraceMetric}) {
       })) ?? []),
     ];
   }, [metricOptionsData]);
+
+  useEffect(() => {
+    if (!traceMetric.name) {
+      setTraceMetric({
+        name: metricOptions[0]?.value ?? '',
+        type: metricOptions[0]?.type ?? '',
+      });
+    }
+  }, [metricOptions, setTraceMetric, traceMetric.name]);
 
   return (
     <CompactSelect
