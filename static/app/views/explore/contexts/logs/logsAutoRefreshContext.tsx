@@ -6,7 +6,11 @@ import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useLogsQueryKeyWithInfinite} from 'sentry/views/explore/logs/useLogsQuery';
+import useOrganization from 'sentry/utils/useOrganization';
+import {
+  useLogsQueryHighFidelity,
+  useLogsQueryKeyWithInfinite,
+} from 'sentry/views/explore/logs/useLogsQuery';
 
 export const LOGS_AUTO_REFRESH_KEY = 'live';
 export const LOGS_REFRESH_INTERVAL_KEY = 'refreshEvery';
@@ -119,11 +123,14 @@ function pausedAtAllowedToContinue(pausedAt: number | undefined) {
 }
 
 export function useSetLogsAutoRefresh() {
+  const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
+  const highFidelity = useLogsQueryHighFidelity();
   const {queryKey} = useLogsQueryKeyWithInfinite({
     referrer: 'api.explore.logs-table',
     autoRefresh: true,
+    highFidelity,
   });
   const queryClient = useQueryClient();
   const {setPausedAt, pausedAt: currentPausedAt} = useLogsAutoRefresh();
