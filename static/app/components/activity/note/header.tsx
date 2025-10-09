@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {ActivityAuthor} from 'sentry/components/activity/author';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -22,7 +23,7 @@ function NoteHeader({authorName, user, onEdit, onDelete}: Props) {
   const canEdit = activeUser && (activeUser.isSuperuser || user?.id === activeUser.id);
 
   return (
-    <Container>
+    <Flex align="center" gap="md">
       <ActivityAuthor>{authorName}</ActivityAuthor>
       {canEdit && (
         <DropdownMenu
@@ -61,14 +62,8 @@ function NoteHeader({authorName, user, onEdit, onDelete}: Props) {
           ]}
         />
       )}
-    </Container>
+    </Flex>
   );
 }
-
-const Container = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
 
 export {NoteHeader};
