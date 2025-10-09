@@ -354,12 +354,7 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
 
         max_attribute_values = options.get("explore.trace-items.values.max")
 
-        if item_type == SupportedTraceItemType.SPANS.value:
-            definitions = SPAN_DEFINITIONS
-        elif item_type == SupportedTraceItemType.TRACEMETRICS.value:
-            definitions = TRACE_METRICS_DEFINITIONS
-        else:
-            definitions = OURLOG_DEFINITIONS
+        definitions = get_column_definitions(SupportedTraceItemType(item_type))
 
         def data_fn(offset: int, limit: int):
             executor = TraceItemAttributeValuesAutocompletionExecutor(
