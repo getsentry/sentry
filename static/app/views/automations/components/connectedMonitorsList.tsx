@@ -125,7 +125,7 @@ const Container = styled('div')`
 `;
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr 100px auto auto auto;
+  grid-template-columns: 1fr 100px minmax(0, 0.8fr) auto auto;
 
   /*
     The connected column can be added/removed depending on props, so in order to
