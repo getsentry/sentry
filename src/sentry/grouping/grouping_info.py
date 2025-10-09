@@ -43,7 +43,7 @@ def _check_for_mismatched_hashes(
     The result is stored with each variant and recorded as a metric.
     """
 
-    for variant_dict in grouping_info.values():
+    for variant_dict in grouping_info["variants"].values():
         hash_value = variant_dict["hash"]
 
         # Since the hashes are generated on the fly and might no
