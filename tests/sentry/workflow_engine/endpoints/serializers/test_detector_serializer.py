@@ -159,7 +159,7 @@ class TestDetectorSerializer(TestCase):
                         "type": "email",
                         "data": {},
                         "integrationId": None,
-                        "config": {"targetType": 1, "targetIdentifier": "123"},
+                        "config": {"targetType": "user", "targetIdentifier": "123"},
                         "status": "active",
                     }
                 ],

@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
+import {InvoicePreviewFixture} from 'getsentry-test/fixtures/invoicePreview';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -15,11 +16,17 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
+import {PAYG_BUSINESS_DEFAULT} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {InvoiceItemType, OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {
+  AddOnCategory,
+  InvoiceItemType,
+  OnDemandBudgetMode,
+  PlanTier,
+} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 import Cart from 'getsentry/views/amCheckout/cart';
-import {SelectableProduct, type CheckoutFormData} from 'getsentry/views/amCheckout/types';
+import {type CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
 // Jun 06 2022 - with milliseconds
 const MOCK_TODAY = 1654492173000;
@@ -117,6 +124,13 @@ describe('Cart', () => {
   });
 
   it('renders form data', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+      body: InvoicePreviewFixture({
+        billedAmount: 312_00,
+      }),
+    });
     const formData: CheckoutFormData = {
       plan: 'am3_team_auf',
       reserved: {
@@ -128,8 +142,8 @@ describe('Cart', () => {
         sharedMaxBudget: 50_00,
       },
       onDemandMaxSpend: 50_00,
-      selectedProducts: {
-        [SelectableProduct.SEER]: {
+      addOns: {
+        [AddOnCategory.SEER]: {
           enabled: true,
         },
       },
@@ -165,8 +179,8 @@ describe('Cart', () => {
 
     expect(screen.queryByTestId('cart-diff')).not.toBeInTheDocument(); // changes aren't shown for free plan
 
-    // immediate changes are shown for free plan
-    expect(screen.getByRole('button', {name: 'Confirm and pay'})).toBeInTheDocument();
+    // immediate changes are shown for free plan; wait for preview to be loaded
+    await screen.findByRole('button', {name: 'Confirm and pay'});
     expect(screen.queryByRole('button', {name: 'Confirm'})).not.toBeInTheDocument();
   });
 
@@ -247,8 +261,9 @@ describe('Cart', () => {
       />
     );
 
-    expect(await screen.findByRole('button', {name: 'Confirm and pay'})).toBeDisabled();
+    expect(await screen.findByRole('button', {name: 'Confirm'})).toBeDisabled(); // not Confirm and pay because we don't know the billed total without preview data
     expect(mockResponse).not.toHaveBeenCalled();
+    expect(screen.getByText('Plan renews monthly.')).toBeInTheDocument(); // no renewal date specified
   });
 
   it('renders preview data', async () => {
@@ -348,6 +363,43 @@ describe('Cart', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('renders $0 total', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+      body: InvoicePreviewFixture({billedAmount: 0}),
+    });
+
+    const formData: CheckoutFormData = {
+      ...defaultFormData,
+      onDemandBudget: {
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: 10_00,
+      },
+      onDemandMaxSpend: 10_00,
+    };
+
+    render(
+      <Cart
+        activePlan={businessPlan}
+        formData={formData}
+        formDataForPreview={getFormDataForPreview(formData)}
+        organization={organization}
+        subscription={subscription}
+        onSuccess={jest.fn()}
+      />
+    );
+
+    // wait for preview to be loaded
+    await waitFor(() =>
+      expect(screen.getByTestId('summary-item-due-today')).toHaveTextContent('$0 USD')
+    );
+    expect(screen.getByRole('button', {name: 'Confirm'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Confirm and pay'})
+    ).not.toBeInTheDocument();
+  });
+
   it('renders buttons and subtext for migrating partner customers', async () => {
     const partnerOrg = OrganizationFixture({features: ['partner-billing-migration']});
     const partnerSub = SubscriptionFixture({
@@ -389,6 +441,11 @@ describe('Cart', () => {
   });
 
   it('renders subtext for self-serve partner customers', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+      body: InvoicePreviewFixture({billedAmount: 89_00}),
+    });
     const partnerSub = SubscriptionFixture({
       organization,
       isSelfServePartner: true,
@@ -416,8 +473,8 @@ describe('Cart', () => {
     );
 
     // wait for preview to be loaded
-    await screen.findByText(/you will be billed by Partner/);
-    expect(screen.getByRole('button', {name: 'Confirm and pay'})).toBeInTheDocument();
+    await screen.findByRole('button', {name: 'Confirm and pay'});
+    screen.getByText(/you will be billed by Partner/);
   });
 
   it('renders changes for returning customers', async () => {
@@ -435,12 +492,13 @@ describe('Cart', () => {
         attachments: 25,
         spans: 20_000_000,
       },
+      onDemandMaxSpend: 1_00,
       onDemandBudget: {
         budgetMode: OnDemandBudgetMode.SHARED,
         sharedMaxBudget: 1_00,
       },
-      selectedProducts: {
-        [SelectableProduct.SEER]: {
+      addOns: {
+        [AddOnCategory.SEER]: {
           enabled: true,
         },
       },
@@ -467,6 +525,39 @@ describe('Cart', () => {
 
     const sharedSpendCapChanges = within(changes).getByTestId('shared-spend-limit-diff');
     expect(sharedSpendCapChanges).toHaveTextContent('PAYG spend limit');
+  });
+
+  it('does not show default PAYG tag for returning customers', async () => {
+    const paidSub = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      isFree: false,
+    });
+    SubscriptionStore.set(organization.slug, paidSub);
+
+    const formData: CheckoutFormData = {
+      ...defaultFormData,
+      onDemandBudget: {
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: PAYG_BUSINESS_DEFAULT,
+      },
+      onDemandMaxSpend: PAYG_BUSINESS_DEFAULT,
+    };
+
+    render(
+      <Cart
+        activePlan={teamPlanAnnual}
+        formData={formData}
+        formDataForPreview={getFormDataForPreview(formData)}
+        organization={organization}
+        subscription={paidSub}
+        onSuccess={jest.fn()}
+      />
+    );
+
+    const spendCapItem = await screen.findByTestId('summary-item-spend-limit');
+    expect(spendCapItem).toHaveTextContent('up to $300/mo');
+    expect(screen.queryByText('Default Amount')).not.toBeInTheDocument();
   });
 
   it('can toggle changes and plan summary', async () => {

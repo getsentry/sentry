@@ -36,11 +36,6 @@ register(
 register("system.databases", type=Dict, flags=FLAG_NOSTORE)
 # register('system.debug', default=False, flags=FLAG_NOSTORE)
 register(
-    "system.rate-limit",
-    default=0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "system.event-retention-days",
     default=0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
@@ -605,12 +600,16 @@ register(
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
 
+
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # signing-secret is preferred, but need to keep verification-token for apps that use it
 register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+# Debug values are used for the Notification Debug CLI
+register("slack.debug-workspace", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Issue Summary on Alerts (timeout in seconds)
 register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -741,6 +740,9 @@ register("discord.application-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_M
 register("discord.public-key", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("discord.bot-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("discord.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+# Debug values are used for the Notification Debug CLI
+register("discord.debug-server", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("discord.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -1892,6 +1894,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # 1MB
 register(
+    "performance.issues.large_http_payload.filtered_paths",
+    default="",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.issues.db_on_main_thread.total_spans_duration_threshold",
     default=16,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2429,33 +2436,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "delightful_metrics.minimetrics_sample_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# IDs of orgs that will stop ingesting custom metrics.
-register(
-    "custom-metrics-ingestion-disabled-orgs",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# IDs of projects that will stop ingesting custom metrics.
-register(
-    "custom-metrics-ingestion-disabled-projects",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# IDs of orgs that will be disabled from querying metrics via `/metrics/query` endpoint.
-register(
-    "custom-metrics-querying-disabled-orgs",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # SDK Crash Detection
 #
 # The project ID belongs to the sentry organization: https://sentry.sentry.io/projects/cocoa-sdk-crashes/?project=4505469596663808.
@@ -2549,6 +2529,26 @@ register(
 
 register(
     "issues.sdk_crash_detection.dart.sample_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.dotnet.project_id",
+    default=0,
+    type=Int,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.dotnet.organization_allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.dotnet.sample_rate",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -3105,12 +3105,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "delayed_workflow.use_workflow_engine_pool",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "delayed_workflow.rollout",
     type=Bool,
     default=False,
@@ -3119,12 +3113,14 @@ register(
 register(
     "workflow_engine.scheduler.use_conditional_delete",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
 register(
-    "celery_split_queue_task_rollout",
-    default={},
+    "workflow_engine.associate_error_detectors",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3143,26 +3139,16 @@ register(
 )
 
 register(
-    "workflow_engine.issue_alert.group.type_id.ga",
+    "workflow_engine.group.type_id.open_periods_type_denylist",
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
 register(
-    "workflow_engine.buffer.use_new_buffer",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Control whether delayed workflow engine evaluation is done
-# via the old process_pending_batch task with rules delayed processing, or
-# via the new schedule_delayed_workflows task.
-# NB: These tasks are allowed to run concurrently, so a naive switch here
-# may result in duplicate processing.
-register(
-    "workflow_engine.use_new_scheduling_task",
-    type=Bool,
-    default=True,
+    "workflow_engine.issue_alert.group.type_id.ga",
+    type=Sequence,
+    default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3197,7 +3183,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-
 register(
     "uptime.date_cutoff_epoch_seconds",
     type=Int,
@@ -3207,6 +3192,30 @@ register(
 
 register(
     "uptime.snuba_uptime_results.enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Controls whether uptime monitoring creates issues via the issue platform.
+register(
+    "uptime.create-issues",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Controls whether uptime monitoring automatically detects hostnames from error events.
+register(
+    "uptime.automatic-hostname-detection",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Controls whether uptime monitoring automatically creates subscriptions for detected URLs.
+register(
+    "uptime.automatic-subscription-creation",
     type=Bool,
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3237,12 +3246,6 @@ register(
     "releases.no_snuba_for_release_creation",
     type=Bool,
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "celery_split_queue_rollout",
-    default={"post_process_transactions": 1.0},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3452,15 +3455,6 @@ register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR
 # This is mutually exclusive with the above setting.
 register("objectstore.double_write.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-
-# Whether to use 60s granularity for the dynamic sampling query
-register(
-    "dynamic-sampling.query-granularity-60s",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # option used to enable/disable tracking
 # rate of potential functions metrics to
 # be written into EAP
@@ -3468,21 +3462,6 @@ register(
     "profiling.track_functions_metrics_write_rate.eap.enabled",
     default=False,
     type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Whether to use 60s granularity for the dynamic sampling query
-register(
-    "dynamic-sampling.query-granularity-60s.active-orgs",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "dynamic-sampling.query-granularity-60s.fetch-transaction-totals",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3525,5 +3504,25 @@ register(
     "database.encryption.method",
     type=String,
     default="plaintext",
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Lists all the consumers we want to dump the stacktrace upon shutdown.
+# We have seen some consumers hanging after restart. This should help
+# us to identify where they get stuck.
+# The consumer name is the ones defined in sentry.consumers.KAFKA_CONSUMERS.
+register(
+    "consumer.dump_stacktrace_on_shutdown",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch for treating demo user as unauthenticated
+# in our auth pipelines.
+register(
+    "demo-user.auth.pipelines.always.unauthenticated.enabled",
+    type=Bool,
+    default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

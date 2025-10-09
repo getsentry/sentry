@@ -54,8 +54,7 @@ function MembersFilter({roles, query, onChange}: Props) {
 
   return (
     <CompositeSelect
-      triggerProps={{icon: <IconSliders />, size: 'md'}}
-      triggerLabel={t('Filter')}
+      triggerProps={{icon: <IconSliders />, size: 'md', children: t('Filter')}}
       maxMenuHeight="22rem"
       size="sm"
     >

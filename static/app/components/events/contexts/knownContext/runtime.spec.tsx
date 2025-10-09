@@ -62,8 +62,8 @@ describe('RuntimeContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'runtime'}
-        alias={'runtime'}
+        type="runtime"
+        alias="runtime"
         value={{...MOCK_RUNTIME_CONTEXT, raw_description: ''}}
       />
     );

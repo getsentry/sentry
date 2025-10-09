@@ -1,10 +1,10 @@
 ---
-created: '2025-09-24T22:53:04.806697+00:00'
+created: '2025-10-06T21:57:34.886867+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -859,13 +859,14 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app exception stacktrace",
+    "contributes": true,
+    "description": "exception stacktrace — in-app frames",
     "hash": "4a3cf3893b6485428dd02da116c8370e",
     "hint": null,
-    "key": "app",
+    "key": "app_exception_stacktrace",
     "type": "component"
   },
-  "system": {
+  "system_exception_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -1720,10 +1721,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "exception stacktrace",
+    "contributes": true,
+    "description": "exception stacktrace — all frames",
     "hash": "d5456487ea8dccfe96c1968b19870978",
     "hint": null,
-    "key": "system",
+    "key": "system_exception_stacktrace",
     "type": "component"
   }
 }

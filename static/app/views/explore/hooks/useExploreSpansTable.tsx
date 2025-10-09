@@ -4,16 +4,16 @@ import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  useExploreDataset,
-  useExploreFields,
-  useExploreSortBys,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {
   useProgressiveQuery,
   type SpansRPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useQueryParamsExtrapolate} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsExtrapolate,
+  useQueryParamsFields,
+  useQueryParamsSortBys,
+} from 'sentry/views/explore/queryParams/context';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 interface UseExploreSpansTableOptions {
@@ -63,8 +63,8 @@ function useExploreSpansTableImp({
   const {selection} = usePageFilters();
 
   const dataset = useExploreDataset();
-  const fields = useExploreFields();
-  const sortBys = useExploreSortBys();
+  const fields = useQueryParamsFields();
+  const sortBys = useQueryParamsSortBys();
 
   const visibleFields = useMemo(
     () => (fields.includes('id') ? fields : ['id', ...fields]),

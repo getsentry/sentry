@@ -10,6 +10,7 @@ import GridEditable, {
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
+import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -22,7 +23,6 @@ import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {useTraceViewDrawer} from 'sentry/views/insights/agents/components/drawer';
 import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
-import {useColumnOrder} from 'sentry/views/insights/agents/hooks/useColumnOrder';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {ErrorCell, NumberPlaceholder} from 'sentry/views/insights/agents/utils/cells';
 import {
@@ -88,7 +88,10 @@ const AI_AGENT_SUB_OPS = [...AI_GENERATION_OPS, 'gen_ai.execute_tool'].map(
 export function TracesTable() {
   const navigate = useNavigate();
   const location = useLocation();
-  const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
+  const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
+    columns: defaultColumnOrder,
+  });
+
   const combinedQuery = useCombinedQuery(getAITracesFilter());
 
   const tracesRequest = useTraces({
@@ -124,7 +127,7 @@ export function TracesTable() {
   const traceErrorRequest = useSpans(
     {
       // Get all generations and tool calls with status unknown
-      search: `has:span.status !span.status:ok trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
+      search: `has:span.status span.status:*error trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
       fields: ['trace', ...AI_AGENT_SUB_OPS],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
@@ -244,7 +247,7 @@ export function TracesTable() {
           grid={{
             renderBodyCell,
             renderHeadCell,
-            onResizeColumn,
+            onResizeColumn: handleResizeColumn,
           }}
         />
         {tracesRequest.isPlaceholderData && <LoadingOverlay />}

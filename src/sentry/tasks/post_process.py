@@ -27,7 +27,6 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import ingest_errors_postprocess_tasks
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
@@ -506,13 +505,9 @@ def should_update_escalating_metrics(event: Event) -> bool:
 
 @instrumented_task(
     name="sentry.issues.tasks.post_process.post_process_group",
-    time_limit=120,
-    soft_time_limit=110,
+    namespace=ingest_errors_postprocess_tasks,
+    processing_deadline_duration=120,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=ingest_errors_postprocess_tasks,
-        processing_deadline_duration=120,
-    ),
 )
 def post_process_group(
     is_new,
@@ -1200,7 +1195,7 @@ def process_commits(job: PostProcessJob) -> None:
 
                     process_commit_context.delay(
                         event_id=event.event_id,
-                        event_platform=event.platform,
+                        event_platform=event.platform or "",
                         event_frames=event_frames,
                         group_id=event.group_id,
                         project_id=event.project_id,

@@ -98,8 +98,11 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
       options={categoryOptions}
       value={selectedCategory ?? undefined}
       onChange={onChange}
-      triggerLabel={selectedCategory ? selectedCategory : t('Filter')}
-      triggerProps={{icon: <IconFilter />, 'aria-label': t('Filter by category')}}
+      triggerProps={{
+        children: selectedCategory ? selectedCategory : t('Filter'),
+        icon: <IconFilter />,
+        'aria-label': t('Filter by category'),
+      }}
     />
   );
 }

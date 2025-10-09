@@ -1,10 +1,10 @@
 ---
-created: '2025-09-24T22:53:03.112395+00:00'
+created: '2025-10-07T22:42:54.765495+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_message": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -64,10 +64,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app exception",
+    "contributes": true,
+    "description": "exception message",
     "hash": "5eb63bbbe01eeed093cb22bb8f5acdc3",
     "hint": null,
-    "key": "app",
+    "key": "app_exception_message",
     "type": "component"
   }
 }

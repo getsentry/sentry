@@ -2,6 +2,7 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import type FormModel from 'sentry/components/forms/model';
 import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
@@ -46,22 +47,33 @@ export default function AutomationForm({model}: {model: FormModel}) {
         setConnectedIds={setConnectedIds}
       />
       <Card>
-        <Flex direction="column" gap="xs">
-          <Heading>{t('Choose Environment')}</Heading>
-          <Description>
+        <Flex direction="column" gap="sm">
+          <Heading as="h2" size="lg">
+            {t('Choose Environment')}
+          </Heading>
+          <Text size="sm" variant="muted">
             {t(
               'If you select environments different than your monitors then the automation will not fire.'
             )}
-          </Description>
+          </Text>
         </Flex>
         <EnvironmentSelector value={environment} onChange={updateEnvironment} />
       </Card>
       <Card>
-        <Heading>{t('Automation Builder')}</Heading>
+        <Heading as="h2" size="lg">
+          {t('Automation Builder')}
+        </Heading>
         <AutomationBuilder />
       </Card>
       <Card>
-        <Heading>{t('Action Interval')}</Heading>
+        <Flex direction="column" gap="sm">
+          <Heading as="h2" size="lg">
+            {t('Action Interval')}
+          </Heading>
+          <Text size="sm" variant="muted">
+            {t('Perform the actions above this often for an issue.')}
+          </Text>
+        </Flex>
         <EmbeddedSelectField
           required
           name="frequency"
@@ -73,18 +85,6 @@ export default function AutomationForm({model}: {model: FormModel}) {
     </Flex>
   );
 }
-
-const Heading = styled('h2')`
-  font-size: ${p => p.theme.fontSize.xl};
-  margin: 0;
-`;
-
-const Description = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
-  margin: 0;
-  padding: 0;
-`;
 
 const EmbeddedSelectField = styled(SelectField)`
   padding: 0;

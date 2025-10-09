@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {useCallback, useEffect, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useEffectEvent, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -82,17 +82,6 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
 // Since the ProductSelection component is rendered in the onboarding/project creation flow only, it is ok to have this list here
 // NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
-  android: [
-    ProductSolution.PERFORMANCE_MONITORING,
-    ProductSolution.PROFILING,
-    ProductSolution.SESSION_REPLAY,
-    ProductSolution.LOGS,
-  ],
-  'apple-ios': [
-    ProductSolution.PERFORMANCE_MONITORING,
-    ProductSolution.PROFILING,
-    ProductSolution.SESSION_REPLAY,
-  ],
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
@@ -106,12 +95,6 @@ export const platformProductAvailability = {
   'dotnet-winforms': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-wpf': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-xamarin': [ProductSolution.PERFORMANCE_MONITORING],
-  flutter: [
-    ProductSolution.PERFORMANCE_MONITORING,
-    ProductSolution.PROFILING,
-    ProductSolution.SESSION_REPLAY,
-    ProductSolution.LOGS,
-  ],
   dart: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
   go: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
@@ -340,11 +323,6 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
   ],
-  'react-native': [
-    ProductSolution.PERFORMANCE_MONITORING,
-    ProductSolution.PROFILING,
-    ProductSolution.SESSION_REPLAY,
-  ],
   ruby: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
@@ -472,7 +450,10 @@ export function ProductSelection({
   onLoad,
 }: ProductSelectionProps) {
   const [params, setParams] = useOnboardingQueryParams();
-  const urlProducts = useMemo(() => params.product ?? [], [params.product]);
+  const urlProducts = useMemo(
+    () => (params.product ?? []) as ProductSolution[],
+    [params.product]
+  );
 
   const products: ProductSolution[] | undefined = platform
     ? platformProductAvailability[platform]
@@ -483,16 +464,14 @@ export function ProductSelection({
     [organization, disabledProductsProp]
   );
 
-  const safeDependencies = useRef({onLoad, urlProducts});
-
-  useEffect(() => {
-    safeDependencies.current = {onLoad, urlProducts};
+  // Use useEffectEvent to pass urlProducts without adding it as a dependency
+  const initializeProducts = useEffectEvent(() => {
+    onLoad?.(urlProducts);
   });
 
+  // Call onLoad once on mount
   useEffect(() => {
-    safeDependencies.current.onLoad?.(
-      safeDependencies.current.urlProducts as ProductSolution[]
-    );
+    initializeProducts();
   }, []);
 
   const handleClickProduct = useCallback(
@@ -501,7 +480,7 @@ export function ProductSelection({
         urlProducts.includes(product)
           ? urlProducts.filter(p => p !== product)
           : [...urlProducts, product]
-      ) as Set<ProductSolution>;
+      );
 
       if (products?.includes(ProductSolution.PROFILING)) {
         // Ensure that if profiling is enabled, tracing is also enabled
@@ -521,7 +500,7 @@ export function ProductSelection({
       const selectedProducts = Array.from(newProduct);
 
       onChange?.({
-        previousProducts: urlProducts as ProductSolution[],
+        previousProducts: urlProducts,
         products: selectedProducts,
       });
       setParams({product: selectedProducts});

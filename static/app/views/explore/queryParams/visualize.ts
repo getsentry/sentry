@@ -85,7 +85,7 @@ export class VisualizeFunction extends Visualize {
     this.parsedFunction = parseFunction(yAxis);
   }
 
-  clone(): Visualize {
+  clone(): VisualizeFunction {
     return new VisualizeFunction(this.yAxis, {
       chartType: this.selectedChartType,
       visible: this.visible,
@@ -100,7 +100,7 @@ export class VisualizeFunction extends Visualize {
     chartType?: ChartType;
     visible?: boolean;
     yAxis?: string;
-  }): Visualize {
+  }): VisualizeFunction {
     return new VisualizeFunction(yAxis ?? this.yAxis, {
       chartType: chartType ?? this.selectedChartType,
       visible: visible ?? this.visible,
