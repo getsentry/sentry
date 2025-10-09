@@ -5,6 +5,7 @@ import pick from 'lodash/pick';
 
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
+import {OpenPeriodTimeline} from 'sentry/components/checkInTimeline/openPeriodTimeline';
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Container, Flex} from 'sentry/components/core/layout';
@@ -16,7 +17,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconClock, IconStats, IconTimer, IconUser} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -24,6 +24,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
+import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
 import {UptimePercent} from 'sentry/views/insights/uptime/components/percent';
 import {
@@ -57,6 +58,12 @@ export function OverviewRow({summary, uptimeDetector, timeWindowConfig, single}:
   const {data: uptimeStats, isPending} = useUptimeMonitorStats({
     detectorIds: [uptimeDetector.id],
     timeWindowConfig,
+  });
+
+  const {data: openPeriods} = useOpenPeriods({
+    start: timeWindowConfig.start.toISOString(),
+    end: timeWindowConfig.end.toISOString(),
+    detectorId: uptimeDetector.id,
   });
 
   const detailsPath = makeAlertsPathname({
@@ -138,6 +145,12 @@ export function OverviewRow({summary, uptimeDetector, timeWindowConfig, single}:
           />
         )}
       </TimelineContainer>
+      <OpenPeriodContainer>
+        <OpenPeriodTimeline
+          timeWindowConfig={timeWindowConfig}
+          openPeriods={openPeriods ?? []}
+        />
+      </OpenPeriodContainer>
     </TimelineRow>
   );
 }
@@ -218,7 +231,15 @@ const TimelineRow = styled('li')<TimelineRowProps>`
 const TimelineContainer = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(3)} 0;
+  padding: ${p => p.theme.space.xl} 0;
   grid-column: 2/-1;
   opacity: var(--disabled-opacity);
+`;
+
+const OpenPeriodContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  padding: ${p => p.theme.space.sm} 0;
+  grid-column: 2/-1;
 `;
