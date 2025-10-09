@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Container, Flex} from 'sentry/components/core/layout';
+import {CodeBlock} from 'sentry/components/core/code';
+import {Image} from 'sentry/components/core/image/image';
+import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {DebugNotificationsPreview} from 'sentry/debug/notifications/components/debugNotificationsPreview';
 import {
@@ -21,7 +22,7 @@ export function DiscordPreview({
   return (
     <DebugNotificationsPreview title="Discord">
       <Container border="primary" radius="md">
-        <DiscordMessageContainer>
+        <DiscordMessageContainer columns="auto 1fr" gap="xs md" padding="xl">
           <SentryDiscordAppIcon />
           <Flex gap="md" align="end">
             <Flex gap="xs" align="center">
@@ -44,16 +45,24 @@ export function DiscordPreview({
               {subject}
             </DiscordWhiteText>
             <DiscordWhiteText size="sm">{body}</DiscordWhiteText>
-            {chart && <DiscordChart src={chart.url} alt={chart.alt_text} />}
+            {chart && (
+              <DiscordChart
+                height="100px"
+                width="auto"
+                src={chart.url}
+                alt={chart.alt_text}
+                objectFit="contain"
+              />
+            )}
             {footer && <DiscordWhiteText size="xs">{footer}</DiscordWhiteText>}
           </DiscordEmbedContainer>
-          <DiscordActionRow>
+          <Flex gap="xs">
             {actions.map(action => (
               <DiscordLinkButton key={action.label} href={action.link}>
                 {action.label}
               </DiscordLinkButton>
             ))}
-          </DiscordActionRow>
+          </Flex>
         </DiscordMessageContainer>
         <Flex direction="column" gap="xl" padding="2xl">
           <Text>
@@ -61,9 +70,9 @@ export function DiscordPreview({
             preview tool, so we're mocking it here, so use this as an approximation of
             what it'll look like on Discord.
           </Text>
-          <CodeSnippet language="json">
+          <CodeBlock language="json">
             {payload ? JSON.stringify(payload, null, 2) : ''}
-          </CodeSnippet>
+          </CodeBlock>
         </Flex>
       </Container>
     </DebugNotificationsPreview>
@@ -81,14 +90,10 @@ function SentryDiscordAppIcon() {
   );
 }
 
-const DiscordMessageContainer = styled('div')`
+const DiscordMessageContainer = styled(Grid)`
   border: 1px solid #5865f2;
   border-radius: 4px 4px 0 0;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: ${p => `${p.theme.space.xs} ${p.theme.space.md}`};
   background: #1a1a1e;
-  padding: ${p => p.theme.space.xl};
   cursor: default;
 `;
 
@@ -118,15 +123,8 @@ const DiscordEmbedContainer = styled(Flex)`
   border-left-width: 3px;
 `;
 
-const DiscordChart = styled('img')`
-  height: 100px;
-  object-fit: contain;
+const DiscordChart = styled(Image)`
   border-radius: 4px;
-`;
-
-const DiscordActionRow = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.xs};
 `;
 
 const DiscordLinkButton = styled('a')`

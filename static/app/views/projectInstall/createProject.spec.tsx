@@ -167,17 +167,17 @@ describe('CreateProject', () => {
     });
 
     await userEvent.click(screen.getByTestId('platform-apple-ios'));
-    expect(screen.getByPlaceholderText('project-name')).toHaveValue('apple-ios');
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('apple-ios');
 
     await userEvent.click(screen.getByTestId('platform-ruby-rails'));
-    expect(screen.getByPlaceholderText('project-name')).toHaveValue('ruby-rails');
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('ruby-rails');
 
-    // but not replace it when project name is something else:
-    await userEvent.clear(screen.getByPlaceholderText('project-name'));
-    await userEvent.type(screen.getByPlaceholderText('project-name'), 'another');
+    // but not replace it when project slug is something else:
+    await userEvent.clear(screen.getByPlaceholderText('project-slug'));
+    await userEvent.type(screen.getByPlaceholderText('project-slug'), 'another');
 
     await userEvent.click(screen.getByTestId('platform-apple-ios'));
-    expect(screen.getByPlaceholderText('project-name')).toHaveValue('another');
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('another');
   });
 
   it('should display success message on proj creation', async () => {
@@ -376,6 +376,11 @@ describe('CreateProject', () => {
     });
 
     it('should enabled the submit button if and only if all the required information has been filled', async () => {
+      const {projectCreationMockRequest} = renderFrameworkModalMockRequests({
+        organization,
+        teamSlug: teamWithAccess.slug,
+      });
+
       render(<CreateProject />, {organization});
 
       // We need to query for the submit button every time we want to access it
@@ -384,7 +389,16 @@ describe('CreateProject', () => {
 
       expect(getSubmitButton()).toBeDisabled();
 
-      // Selecting the platform pre-fills the project name
+      // Fills the project slug
+      await userEvent.type(screen.getByPlaceholderText('project-slug'), 'my-project');
+
+      // Enforce users to select a platform
+      await userEvent.hover(getSubmitButton());
+      expect(await screen.findByText('Please select a platform')).toBeInTheDocument();
+
+      await userEvent.click(getSubmitButton());
+      expect(projectCreationMockRequest).not.toHaveBeenCalled();
+
       await userEvent.click(screen.getByTestId('platform-apple-ios'));
       expect(getSubmitButton()).toBeEnabled();
 
@@ -409,6 +423,9 @@ describe('CreateProject', () => {
 
       await userEvent.click(screen.getByText("I'll create my own alerts later"));
       expect(getSubmitButton()).toBeEnabled();
+
+      await userEvent.click(getSubmitButton());
+      expect(projectCreationMockRequest).toHaveBeenCalled();
     });
 
     it('should create an issue alert rule by default', async () => {

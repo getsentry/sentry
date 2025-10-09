@@ -19,6 +19,11 @@ import {
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {
+  DataConditionGroupLogicType,
+  DataConditionType,
+  DetectorPriorityLevel,
+} from 'sentry/types/workflowEngine/dataConditions';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {SnubaQueryType} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import DetectorEdit from 'sentry/views/detectors/edit';
@@ -290,7 +295,7 @@ describe('DetectorEdit', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
-      const snubaQuery = mockDetector.dataSources[0].queryObj!.snubaQuery;
+      const snubaQuery = mockDetector.dataSources[0].queryObj.snubaQuery;
       await waitFor(() => {
         expect(updateRequest).toHaveBeenCalledWith(
           `/organizations/${organization.slug}/detectors/1/`,
@@ -377,6 +382,56 @@ describe('DetectorEdit', () => {
       expect(screen.getByRole('option', {name: 'Last 24 hours'})).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'Last 3 days'})).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'Last 7 days'})).toBeInTheDocument();
+    });
+
+    it('sets resolution method to Default when OK equals critical threshold', async () => {
+      const detectorWithOkEqualsHigh = MetricDetectorFixture({
+        conditionGroup: {
+          id: 'cg2',
+          logicType: DataConditionGroupLogicType.ANY,
+          conditions: [
+            {
+              id: 'c-main',
+              type: DataConditionType.GREATER,
+              comparison: 5,
+              conditionResult: DetectorPriorityLevel.MEDIUM,
+            },
+            {
+              id: 'c-high',
+              type: DataConditionType.GREATER,
+              comparison: 10,
+              conditionResult: DetectorPriorityLevel.HIGH,
+            },
+            {
+              id: 'c-ok',
+              type: DataConditionType.LESS,
+              comparison: 10, // equals high threshold
+              conditionResult: DetectorPriorityLevel.OK,
+            },
+          ],
+        },
+        dataSources: [SnubaQueryDataSourceFixture()],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${detectorWithOkEqualsHigh.id}/`,
+        body: detectorWithOkEqualsHigh,
+      });
+
+      render(<DetectorEdit />, {organization, initialRouterConfig});
+
+      expect(
+        await screen.findByRole('link', {name: detectorWithOkEqualsHigh.name})
+      ).toBeInTheDocument();
+
+      expect(screen.getByText('Default').closest('label')).toHaveClass(
+        'css-1aktlwe-RadioLineItem'
+      );
+
+      // Switching to Custom should reveal prefilled resolution input with the current OK value
+      await userEvent.click(screen.getByText('Custom').closest('label')!);
+      const resolutionInput = await screen.findByLabelText('Resolution threshold');
+      expect(resolutionInput).toHaveValue(10);
     });
 
     it('includes comparisonDelta in events-stats request when using percent change detection', async () => {

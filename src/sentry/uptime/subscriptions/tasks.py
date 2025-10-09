@@ -12,12 +12,10 @@ from sentry.taskworker.retry import Retry
 from sentry.uptime.config_producer import produce_config, produce_config_removal
 from sentry.uptime.models import (
     UptimeRegionScheduleMode,
-    UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
-    get_detector,
 )
-from sentry.uptime.types import CheckConfig, UptimeMonitorMode
+from sentry.uptime.types import CheckConfig
 from sentry.utils import metrics
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -198,20 +196,25 @@ def broken_monitor_checker(**kwargs):
     This checks for auto created uptime monitors that have been broken for a long time and disables them.
     """
     from sentry.uptime.subscriptions.subscriptions import disable_uptime_detector
+    from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, UptimeMonitorMode
+    from sentry.workflow_engine.models.detector_state import DetectorState
+    from sentry.workflow_engine.types import DetectorPriorityLevel
 
     count = 0
-    for uptime_subscription in RangeQuerySetWrapper(
-        UptimeSubscription.objects.filter(
-            uptime_status=UptimeStatus.FAILED,
-            uptime_status_update_date__lt=timezone.now() - BROKEN_MONITOR_AGE_LIMIT,
-        )
-    ):
-        detector = get_detector(uptime_subscription)
-        if detector.config["mode"] == UptimeMonitorMode.AUTO_DETECTED_ACTIVE:
-            try:
-                disable_uptime_detector(detector)
-                count += 1
-            except Exception:
-                logger.exception("uptime.subscriptions.disable_broken_failed")
+    queryset = DetectorState.objects.filter(
+        state=DetectorPriorityLevel.HIGH,
+        date_updated__lt=timezone.now() - BROKEN_MONITOR_AGE_LIMIT,
+        detector__type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+        detector__config__mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
+        detector__enabled=True,
+    ).select_related("detector")
+
+    for detector_state in RangeQuerySetWrapper(queryset):
+        detector = detector_state.detector
+        try:
+            disable_uptime_detector(detector)
+            count += 1
+        except Exception:
+            logger.exception("uptime.subscriptions.disable_broken_failed")
 
     metrics.incr("uptime.subscriptions.disable_broken", amount=count, sample_rate=1.0)

@@ -3,9 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import Confirm from 'sentry/components/confirm';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
+import {CodeBlock} from 'sentry/components/core/code';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
@@ -258,7 +258,7 @@ function ReactNativeCallOut() {
           {strong: <strong />}
         )}
       </div>
-      <CodeSnippet
+      <CodeBlock
         dark
         language="bash"
         tabs={[
@@ -271,7 +271,7 @@ function ReactNativeCallOut() {
         {selectedTab === 'expo'
           ? '# First run this to create a build and upload source maps\n./gradlew assembleRelease\n# Then run this to test your build locally\nnpx expo run:android --variant release\n\n# iOS version (pending confirmation)\nnpx expo run:ios --configuration Release'
           : 'npx react-native run-android --mode release\nnpx react-native run-ios --mode Release'}
-      </CodeSnippet>
+      </CodeBlock>
     </div>
   );
 }

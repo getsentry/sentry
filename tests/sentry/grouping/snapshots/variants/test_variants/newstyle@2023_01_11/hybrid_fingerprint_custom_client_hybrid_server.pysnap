@@ -1,11 +1,12 @@
 ---
-created: '2025-09-24T20:27:07.624541+00:00'
+created: '2025-10-07T20:41:48.456372+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "19163f3ca34f5995c69d85351ce3d697"
   contributing component: exception
+  hint: None
   fingerprint_info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\""}}
   root_component:
     app*
@@ -173,6 +174,7 @@ app:
 system:
   hash: "847950eb44d280e6758d136c763d6ddc"
   contributing component: exception
+  hint: None
   fingerprint_info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\""}}
   root_component:
     system*

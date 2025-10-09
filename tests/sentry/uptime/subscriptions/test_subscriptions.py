@@ -15,7 +15,6 @@ from sentry.testutils.skips import requires_kafka
 from sentry.types.actor import Actor
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import (
-    UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
     get_uptime_subscription,
@@ -44,6 +43,7 @@ from sentry.uptime.types import (
 )
 from sentry.utils.outcomes import Outcome
 from sentry.workflow_engine.models.detector import Detector
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 pytestmark = [requires_kafka]
 
@@ -808,14 +808,24 @@ class DisableUptimeDetectorTest(UptimeTestCase):
             )
             uptime_subscription = get_uptime_subscription(detector)
 
-            # XXX(epurkhiser): This should actually be looking at the detector state
-            uptime_subscription.update(uptime_status=UptimeStatus.FAILED)
+            # Set detector state to HIGH to simulate a failed state
+            self.create_detector_state(
+                detector=detector,
+                detector_group_key=None,
+                state=DetectorPriorityLevel.HIGH,
+                is_triggered=True,
+            )
 
             disable_uptime_detector(detector)
             mock_resolve_uptime_issue.assert_called_with(detector)
 
+        detector.refresh_from_db()
         uptime_subscription.refresh_from_db()
-        assert uptime_subscription.uptime_status == UptimeStatus.OK
+        # After disabling, the detector state should be OK and not triggered (we reset it)
+        detector_state = detector.detectorstate_set.first()
+        assert detector_state is not None
+        assert not detector_state.is_triggered
+        assert detector_state.priority_level == DetectorPriorityLevel.OK
         assert uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
         mock_disable_seat.assert_called_with(DataCategory.UPTIME, detector)
 
