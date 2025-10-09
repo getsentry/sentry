@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useState} from 'react';
+import {useEffectEvent} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
 import isEmpty from 'lodash/isEmpty';
 import isEqualWith from 'lodash/isEqualWith';
@@ -23,7 +24,7 @@ import {decodeSorts} from 'sentry/utils/queryString';
 import {getTimeSeriesInterval} from 'sentry/utils/timeSeries/getTimeSeriesInterval';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
-import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -121,7 +122,8 @@ export const useSortedTimeSeries = <
     useIsSampled(0.1, key) &&
     organization.features.includes('explore-events-time-series-spot-check');
 
-  const timeSeriesResult = useFetchSpanTimeSeries(
+  const timeSeriesResult = useFetchEventsTimeSeries(
+    dataset ?? DiscoverDatasets.SPANS,
     {
       yAxis: yAxis as unknown as any,
       query: search,
@@ -185,14 +187,12 @@ export const useSortedTimeSeries = <
       : {};
   }, [timeSeriesResult.data]);
 
-  useEffect(() => {
-    if (
-      isTimeSeriesEndpointComparisonEnabled &&
-      !result.isFetching &&
-      !isEmpty(data) &&
-      !timeSeriesResult.isFetching &&
-      !isEmpty(otherData)
-    ) {
+  // We don't want to re-run the comparison every time the `data` changes, since
+  // `data` might be changed or mutated by the live reload functionality.
+  // Instead, extract that into an effect event so it doesn't have a dependency
+  // on `data`.
+  const compareResponses = useEffectEvent(() => {
+    if (!isEmpty(data) && !isEmpty(otherData)) {
       if (!isEqualWith(data, otherData, comparator)) {
         warn(`\`useDiscoverSeries\` found a data difference in responses`, {
           statsData: JSON.stringify(data),
@@ -200,11 +200,19 @@ export const useSortedTimeSeries = <
         });
       }
     }
+  });
+
+  useEffect(() => {
+    if (
+      isTimeSeriesEndpointComparisonEnabled &&
+      !result.isFetching &&
+      !timeSeriesResult.isFetching
+    ) {
+      compareResponses();
+    }
   }, [
     isTimeSeriesEndpointComparisonEnabled,
-    data,
     result.isFetching,
-    otherData,
     timeSeriesResult.isFetching,
   ]);
 
@@ -360,14 +368,34 @@ export function convertEventsStatsToTimeSeriesData(
   return [delayedTimeSeries.meta.order ?? 0, delayedTimeSeries];
 }
 
+const NUMERIC_KEYS: Array<symbol | string | number> = [
+  'value',
+  'sampleCount',
+  'sampleRate',
+];
+
 function comparator(
   valueA: unknown,
   valueB: unknown,
-  key: symbol | string | number | undefined
+  key: symbol | string | number | undefined,
+  objA: Record<PropertyKey, unknown>,
+  objB: Record<PropertyKey, unknown>
 ) {
   // Compare numbers by near equality, which makes the comparison less sensitive to small natural variations in value caused by request sequencing
-  if (key === 'value' && typeof valueA === 'number' && typeof valueB === 'number') {
+  if (
+    key &&
+    NUMERIC_KEYS.includes(key) &&
+    typeof valueA === 'number' &&
+    typeof valueB === 'number' &&
+    !objA?.incomplete &&
+    !objB?.incomplete
+  ) {
     return areNumbersAlmostEqual(valueA, valueB, 5);
+  }
+
+  // This can be removed when ENG-5677 is resolved. There's a known bug here.
+  if (key === 'dataScanned') {
+    return true;
   }
 
   // Otherwise use default deep comparison

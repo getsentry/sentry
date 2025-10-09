@@ -11,7 +11,7 @@ import {loadPrismLanguage} from 'sentry/utils/prism';
 // eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
 import {darkTheme} from 'sentry/utils/theme';
 
-interface CodeSnippetProps {
+interface CodeBlockProps {
   children: string;
   className?: string;
   dark?: boolean;
@@ -67,7 +67,7 @@ interface CodeSnippetProps {
   }>;
 }
 
-export function CodeSnippet({
+export function CodeBlock({
   children,
   className,
   dark,
@@ -85,7 +85,7 @@ export function CodeSnippet({
   onTabClick,
   selectedTab,
   tabs,
-}: CodeSnippetProps) {
+}: CodeBlockProps) {
   const ref = useRef<HTMLModElement | null>(null);
   const theme = useTheme();
 

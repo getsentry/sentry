@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
@@ -100,10 +100,11 @@ export function SpanDescription({
     return formatter.toString(dbQueryText ?? span.description ?? '');
   }, [span.description, resolvedModule, dbSystem, dbQueryText]);
 
-  const exploreAttributeName = shouldUseOTelFriendlyUI
+  const exploreUsingName = shouldUseOTelFriendlyUI && span.name !== span.op;
+  const exploreAttributeName = exploreUsingName
     ? SpanFields.NAME
     : SpanFields.SPAN_DESCRIPTION;
-  const exploreAttributeValue = shouldUseOTelFriendlyUI ? span.name : span.description;
+  const exploreAttributeValue = exploreUsingName ? span.name : span.description;
 
   const actions = exploreAttributeValue ? (
     <BodyContentWrapper
@@ -194,7 +195,7 @@ export function SpanDescription({
         node={node}
         attributes={attributes}
       />
-    ) : shouldUseOTelFriendlyUI && span.name ? (
+    ) : shouldUseOTelFriendlyUI && span.name && span.name !== span.op ? (
       <DescriptionWrapper>
         <FormattedDescription>{span.name}</FormattedDescription>
         <CopyToClipboardButton
@@ -382,7 +383,7 @@ const BodyContentWrapper = styled('div')<{padding: string}>`
   padding: ${p => p.padding};
 `;
 
-const StyledCodeSnippet = styled(CodeSnippet)`
+const StyledCodeSnippet = styled(CodeBlock)`
   code {
     text-wrap: wrap;
   }

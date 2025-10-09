@@ -356,6 +356,11 @@ class Fixtures:
     def create_file(self, **kwargs):
         return Factories.create_file(**kwargs)
 
+    def create_data_forwarder(self, organization=None, *args, **kwargs):
+        if organization is None:
+            organization = self.organization
+        return Factories.create_data_forwarder(organization, *args, **kwargs)
+
     def create_file_from_path(self, *args, **kwargs):
         return Factories.create_file_from_path(*args, **kwargs)
 

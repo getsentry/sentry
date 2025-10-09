@@ -20,7 +20,7 @@ def get_grouping_info(
 
     variants = event.get_grouping_variants(grouping_config, normalize_stacktraces=True)
 
-    grouping_info = get_grouping_info_from_variants(variants, use_legacy_format=False)
+    grouping_info = get_grouping_info_from_variants(variants)
 
     # One place we use this info is in the grouping info section of the event details page, and for
     # that we recalculate hashes/variants on the fly since we don't store the variants as part of
@@ -78,10 +78,12 @@ def _get_new_description(variant: BaseVariant) -> str:
         "chained_exception_message": "chained exception messages",
         "chained_exception_stacktrace": "chained exception stacktraces",
         "chained_exception_type": "chained exception types",
+        "chained_ns_error": "chained NSErrors",
         "checksum": "checksum",
         "csp_local_script_violation": "directive",
         "csp_url": "directive and URL",
         "custom_fingerprint": "custom fingerprint",
+        "exception": "exception",  # TODO: hotfix for case in which nothing in the exception contributes
         "exception_message": "exception message",
         "exception_stacktrace": "exception stacktrace",
         "exception_type": "exception type",
@@ -114,20 +116,21 @@ def _get_new_description(variant: BaseVariant) -> str:
     return " ".join(description_parts)
 
 
+# TODO: Switch Seer stacktrace string to use variants directly, and then this can go away
+def get_grouping_info_from_variants_legacy(
+    variants: dict[str, BaseVariant],
+) -> dict[str, dict[str, Any]]:
+    return {key: {"key": key, **variant.as_dict()} for key, variant in variants.items()}
+
+
 def get_grouping_info_from_variants(
     variants: dict[str, BaseVariant],
-    # Shim to keep the output (which we also use for getting the Seer stacktrace string) stable
-    # until we can switch `get_stacktrace_string` to use variants directly
-    use_legacy_format: bool = True,
 ) -> dict[str, dict[str, Any]]:
     """
     Given a dictionary of variant objects, create and return a copy of the dictionary in which each
     variant object value has been transformed into an equivalent dictionary value, which knows the
     key under which it lives.
     """
-
-    if use_legacy_format:
-        return {key: {"key": key, **variant.as_dict()} for key, variant in variants.items()}
 
     return {
         # Overwrite the description with a new, improved version
