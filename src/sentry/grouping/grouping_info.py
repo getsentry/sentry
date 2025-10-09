@@ -116,6 +116,13 @@ def _get_new_description(variant: BaseVariant) -> str:
     return " ".join(description_parts)
 
 
+# TODO: Switch Seer stacktrace string to use variants directly, and then this can go away
+def get_grouping_info_from_variants_legacy(
+    variants: dict[str, BaseVariant],
+) -> dict[str, dict[str, Any]]:
+    return {key: {"key": key, **variant.as_dict()} for key, variant in variants.items()}
+
+
 def get_grouping_info_from_variants(
     variants: dict[str, BaseVariant],
     # Shim to keep the output (which we also use for getting the Seer stacktrace string) stable
