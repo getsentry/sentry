@@ -108,10 +108,8 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                   title={t('Replay is outdated. Refresh for latest activity.')}
                   size="xs"
                   onClick={handleRefresh}
-                  borderless
                 >
-                  <RefreshIcon />
-                  {t('Refresh')}
+                  <IconRefresh />
                 </RefreshButton>
               ) : null}
             </TimeContainer>
@@ -213,15 +211,5 @@ const LiveIndicator = styled('div')`
 `;
 
 const RefreshButton = styled(Button)`
-  margin-left: 20px;
-  background-color: ${p => p.theme.yellow100};
-  color: ${p => p.theme.yellow400};
-
-  &:hover {
-    color: ${p => p.theme.yellow400};
-  }
-`;
-
-const RefreshIcon = styled(IconRefresh)`
-  margin-right: 5px;
+  margin-left: ${p => p.theme.space.md};
 `;
