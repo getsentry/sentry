@@ -126,8 +126,18 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
         assert resp.status_code == 200
         # Should return both orgs with their consent status
         expected_orgs = [
-            {"org_id": org_with_consent.id, "has_consent": True},
-            {"org_id": org_without_consent.id, "has_consent": False},
+            {
+                "org_id": org_with_consent.id,
+                "org_slug": org_with_consent.slug,
+                "org_name": org_with_consent.name,
+                "has_consent": True,
+            },
+            {
+                "org_id": org_without_consent.id,
+                "org_slug": org_without_consent.slug,
+                "org_name": org_without_consent.name,
+                "has_consent": False,
+            },
         ]
         # Sort both lists by org_id to ensure consistent comparison
         expected_orgs = sorted(expected_orgs, key=lambda x: x["org_id"])
