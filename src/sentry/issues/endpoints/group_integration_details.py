@@ -81,6 +81,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
     }
 
     def get(self, request: Request, group, integration_id) -> Response:
+        """
+        Retrieves the config needed to either link or create an external issue for a group.
+        """
         if not request.user.is_authenticated:
             return Response(status=400)
         elif not self._has_issue_feature(group.organization, request.user):
@@ -130,6 +133,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         )
 
     def post(self, request: Request, group, integration_id) -> Response:
+        """
+        Creates a new external issue and link it to a group.
+        """
         if not request.user.is_authenticated:
             return Response(status=400)
         elif not self._has_issue_feature(group.organization, request.user):
@@ -220,8 +226,10 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         }
         return Response(context, status=201)
 
-    # was thinking put for link an existing issue, post for create new issue?
     def put(self, request: Request, group, integration_id) -> Response:
+        """
+        Links an existing external issue to a group.
+        """
         if not request.user.is_authenticated:
             return Response(status=400)
         elif not self._has_issue_feature(group.organization, request.user):
@@ -322,6 +330,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         return Response(context, status=201)
 
     def delete(self, request: Request, group, integration_id) -> Response:
+        """
+        Delete a link between a group and an external issue.
+        """
         if not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
