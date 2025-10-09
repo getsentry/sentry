@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {logger} from '@sentry/react';
 
 import {type ApiResult} from 'sentry/api';
@@ -24,6 +24,7 @@ import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetail
 import {
   AlwaysPresentLogFields,
   MAX_LOG_INGEST_DELAY,
+  MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
   QUERY_PAGE_LIMIT,
   QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
 } from 'sentry/views/explore/logs/constants';
@@ -291,33 +292,29 @@ function getPageParam(
     }
 
     const isDescending = sortBy.kind === 'desc';
-    let querySortDirection: Sort | undefined = undefined;
-    const reverseSortDirection = isDescending ? 'asc' : 'desc';
-
-    if (isGetPreviousPage) {
-      // Previous pages have to have the sort order reversed in order to start at the limit from the initial page.
-      querySortDirection = {
-        field: OurLogKnownFieldKey.TIMESTAMP,
-        kind: reverseSortDirection,
-      };
-    }
+    // Previous pages have to have the sort order reversed in order to start at the limit from the initial page.
+    const querySortDirection: Sort | undefined = isGetPreviousPage
+      ? {
+          field: OurLogKnownFieldKey.TIMESTAMP,
+          kind: isDescending ? 'asc' : 'desc',
+        }
+      : undefined;
 
     if (highFidelity || isFlexTimePageParam(pageParam)) {
       const pageLinkHeader = response?.getResponseHeader('Link') ?? null;
       const links = parseLinkHeader(pageLinkHeader);
       const link = isGetPreviousPage ? links.previous : links.next;
+
       if (!link?.results) {
         return undefined;
       }
 
-      const pageParamResult: FlexTimePageParam = {
+      return {
         querySortDirection,
         sortByDirection: sortBy.kind,
         autoRefresh,
         cursor: link.cursor ?? undefined,
-      };
-
-      return pageParamResult;
+      } as FlexTimePageParam;
     }
 
     const firstRow = pageData.data?.[0];
@@ -587,35 +584,6 @@ export function useInfiniteLogsQuery({
     refetch,
   } = queryResult;
 
-  useEffect(() => {
-    // Remove empty pages from the query data. In the case of auto refresh it's possible that the most recent page in time is empty.
-    queryClient.setQueryData(
-      queryKeyWithInfinite,
-      (oldData: InfiniteData<ApiResult<EventsLogsResult>> | undefined) => {
-        if (!oldData) {
-          return oldData;
-        }
-        const pageIndexWithMostRecentTimestamp =
-          getTimeBasedSortBy(sortBys)?.kind === 'asc' ? 0 : oldData.pages.length - 1;
-
-        if (
-          (oldData.pages?.[pageIndexWithMostRecentTimestamp]?.[0]?.data?.length ?? 0) > 0
-        ) {
-          return oldData;
-        }
-
-        return {
-          pages: oldData.pages.filter(
-            (_, index) => index !== pageIndexWithMostRecentTimestamp
-          ),
-          pageParams: oldData.pageParams.filter(
-            (_, index) => index !== pageIndexWithMostRecentTimestamp
-          ),
-        };
-      }
-    );
-  }, [queryClient, queryKeyWithInfinite, sortBys]);
-
   const {virtualStreamedTimestamp} = useVirtualStreaming({data, highFidelity});
 
   const _data = useMemo(() => {
@@ -674,11 +642,41 @@ export function useInfiniteLogsQuery({
     [hasNextPage, fetchNextPage, isFetching, isError, nextPageHasData]
   );
 
+  const lastPageLength = data?.pages?.[data.pages.length - 1]?.[0]?.data?.length ?? 0;
+  const limit = autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT;
+  const shouldAutoFetchNextPage =
+    highFidelity &&
+    hasNextPage &&
+    nextPageHasData &&
+    (lastPageLength === 0 || _data.length < limit);
+  const [waitingToAutoFetch, setWaitingToAutoFetch] = useState(false);
+
+  useEffect(() => {
+    if (!shouldAutoFetchNextPage) {
+      return () => {};
+    }
+
+    setWaitingToAutoFetch(true);
+
+    const timeoutID = setTimeout(() => {
+      setWaitingToAutoFetch(false);
+      _fetchNextPage();
+    }, MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS);
+
+    return () => clearTimeout(timeoutID);
+  }, [shouldAutoFetchNextPage, _fetchNextPage]);
+
   return {
     error,
     isError,
     isFetching,
-    isPending: queryResult.isPending,
+    isPending:
+      // query is still pending
+      queryResult.isPending ||
+      // query finished but we're waiting to auto fetch the next page
+      (waitingToAutoFetch && _data.length === 0) ||
+      // started auto fetching the next page
+      (shouldAutoFetchNextPage && _data.length === 0 && isFetchingNextPage),
     data: _data,
     meta: _meta,
     isRefetching: queryResult.isRefetching,
@@ -686,16 +684,18 @@ export function useInfiniteLogsQuery({
       !queryResult.isPending &&
       !queryResult.isRefetching &&
       !isError &&
-      _data.length === 0,
+      _data.length === 0 &&
+      !shouldAutoFetchNextPage,
     fetchNextPage: _fetchNextPage,
     fetchPreviousPage: _fetchPreviousPage,
     refetch,
     hasNextPage,
     queryKey: queryKeyWithInfinite,
     hasPreviousPage,
-    isFetchingNextPage,
+    isFetchingNextPage:
+      !shouldAutoFetchNextPage && _data.length > 0 && isFetchingNextPage,
     isFetchingPreviousPage,
-    lastPageLength: data?.pages?.[data.pages.length - 1]?.[0]?.data?.length ?? 0,
+    lastPageLength,
   };
 }
 
