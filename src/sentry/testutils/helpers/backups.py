@@ -569,6 +569,11 @@ class ExhaustiveFixtures(Fixtures):
             created_by_id=owner_id,
             organization=org,
         )
+        linked_dashboard = Dashboard.objects.create(
+            title=f"Linked Dashboard 1 for {slug}",
+            created_by_id=owner_id,
+            organization=org,
+        )
         DashboardFavoriteUser.objects.create(
             dashboard=dashboard,
             user_id=owner_id,
@@ -600,7 +605,7 @@ class ExhaustiveFixtures(Fixtures):
         DashboardFieldLink.objects.create(
             dashboard_widget_query=widget_query,
             field="count()",
-            dashboard=dashboard,
+            dashboard=linked_dashboard,
         )
         DashboardTombstone.objects.create(organization=org, slug=f"test-tombstone-in-{slug}")
 
