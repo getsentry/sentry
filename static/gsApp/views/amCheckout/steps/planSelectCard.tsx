@@ -1,9 +1,7 @@
-import {cloneElement, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {OnDemandBudgetMode} from 'getsentry/types';
@@ -38,7 +36,6 @@ function PlanSelectCard({
   price,
   badge,
   shouldShowDefaultPayAsYouGo,
-  planIcon,
 }: PlanSelectCardProps) {
   const billingInterval = getShortInterval(plan.billingInterval);
   const {description} = planContent;
