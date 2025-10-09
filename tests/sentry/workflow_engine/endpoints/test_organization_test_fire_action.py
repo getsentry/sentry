@@ -5,6 +5,7 @@ import sentry_sdk
 from sentry.integrations.jira.integration import JiraIntegration
 from sentry.integrations.pagerduty.client import PagerDutyClient
 from sentry.integrations.pagerduty.utils import PagerDutyServiceDict, add_service
+from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.project import Project
 from sentry.notifications.notification_action.group_type_notification_registry import (
     IssueAlertRegistryHandler,
@@ -207,3 +208,34 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         assert response.data == {
             "detail": "No projects found for this organization that the user has access to"
         }
+
+    @mock.patch(
+        "sentry.notifications.notification_action.types.BaseIssueAlertHandler.send_test_notification"
+    )
+    @mock.patch("sentry.integrations.slack.actions.form.get_channel_id")
+    def test_updates_action_with_validated_data(
+        self, mock_get_channel_id, mock_send_test_notification
+    ):
+        self.integration, self.org_integration = self.create_provider_integration_for(
+            provider="slack",
+            organization=self.organization,
+            user=self.user,
+            name="slack",
+            metadata={"domain_name": "https://slack.com"},
+        )
+
+        action_data = [
+            {
+                "type": Action.Type.SLACK,
+                "config": {"targetDisplay": "cathy-sentry", "targetType": "specific"},
+                "data": {"tags": "asdf"},
+                "integrationId": self.integration.id,
+            }
+        ]
+
+        mock_get_channel_id.return_value = SlackChannelIdData(
+            prefix="#", channel_id="C1234567890", timed_out=False
+        )
+
+        self.get_success_response(self.organization.slug, actions=action_data)
+        assert mock_send_test_notification.call_count == 1

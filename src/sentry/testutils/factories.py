@@ -55,6 +55,7 @@ from sentry.incidents.models.incident import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.doc_integration import DocIntegration
 from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvatar
 from sentry.integrations.models.external_actor import ExternalActor
@@ -1195,6 +1196,13 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_forwarder(organization, provider, config, **kwargs):
+        return DataForwarder.objects.create(
+            organization=organization, provider=provider, config=config, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_file_from_path(path, name=None, **kwargs):
         if name is None:
             name = os.path.basename(path)
@@ -1696,9 +1704,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_incident_activity(incident, type, comment=None, user_id=None):
+    def create_incident_activity(incident, type, comment=None, user_id=None, **kwargs):
         return IncidentActivity.objects.create(
-            incident=incident, type=type, comment=comment, user_id=user_id
+            incident=incident, type=type, comment=comment, user_id=user_id, **kwargs
         )
 
     @staticmethod

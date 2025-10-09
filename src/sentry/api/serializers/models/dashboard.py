@@ -601,7 +601,7 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
         )
 
         for dashboard in item_list:
-            dashboard_widgets = [w for w in widgets if w["dashboardId"] == str(dashboard.id)]
+            dashboard_widgets = [w for w in widgets if w and w["dashboardId"] == str(dashboard.id)]
             result[dashboard] = {"widgets": dashboard_widgets}
 
         return result
