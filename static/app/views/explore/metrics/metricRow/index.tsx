@@ -12,6 +12,7 @@ import {
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {AggregateDropdown} from 'sentry/views/explore/metrics/metricRow/aggregateDropdown';
+import {GroupBySelector} from 'sentry/views/explore/metrics/metricRow/groupBySelector';
 import {
   useMetricVisualize,
   useSetMetricName,
@@ -115,7 +116,16 @@ function MetricToolbar({
         />
         <AggregateDropdown type={currentMetricType} />
         {t('by')}
-        <CompactSelect options={[]} value={groupBys[0] ?? ''} />
+        <GroupBySelector
+          metricName={traceMetric.name}
+          value={groupBys[0] ?? ''}
+          onChange={value => {
+            // TODO: Implement URL persistence
+            // For now, this prepares the component for future integration
+            // eslint-disable-next-line no-console
+            console.log('Selected group by:', value);
+          }}
+        />
         {t('where')}
         <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
       </Flex>
