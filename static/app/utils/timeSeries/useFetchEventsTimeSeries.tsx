@@ -3,7 +3,7 @@ import type {PageFilters} from 'sentry/types/core';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -49,6 +49,10 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   query?: MutableSearch | string;
   /**
+   * Options to pass to `useApiQuery`
+   */
+  queryOptions?: Partial<UseApiQueryOptions<EventsTimeSeriesResponse>>;
+  /**
    * Sampling mode. Only specify this if you're sure you require a specific sampling mode. In most cases, the backend will automatically decide this.
    */
   sampling?: SamplingMode;
@@ -78,26 +82,30 @@ export function useFetchSpanTimeSeries<
  */
 export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends string>(
   dataset: DiscoverDatasets,
-  {
+  options: UseFetchEventsTimeSeriesOptions<YAxis, Attribute>,
+  referrer: string
+) {
+  const {
     yAxis,
     excludeOther,
     enabled,
     groupBy,
-    interval,
     query,
     sampling,
     pageFilters,
     sort,
     topEvents,
-  }: UseFetchEventsTimeSeriesOptions<YAxis, Attribute>,
-  referrer: string
-) {
+  } = options;
+
   const organization = useOrganization();
 
   const {isReady: arePageFiltersReady, selection: defaultSelection} = usePageFilters();
 
   const hasCustomPageFilters = Boolean(pageFilters);
   const selection = pageFilters ?? defaultSelection;
+
+  const interval =
+    options.interval ?? getIntervalForTimeSeriesQuery(yAxis, selection.datetime);
 
   if (!referrer) {
     throw new Error(
@@ -118,7 +126,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           ...normalizeDateTimeParams(selection.datetime),
           project: selection.projects,
           environment: selection.environments,
-          interval: interval ?? getIntervalForTimeSeriesQuery(yAxis, selection.datetime),
+          interval,
           query: query
             ? typeof query === 'string'
               ? query
@@ -137,6 +145,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
       retryDelay: getRetryDelay,
       refetchOnWindowFocus: false,
       enabled: enabled && (hasCustomPageFilters ? true : arePageFiltersReady),
+      ...options.queryOptions,
     }
   );
 }
