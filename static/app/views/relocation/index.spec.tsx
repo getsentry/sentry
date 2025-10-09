@@ -39,6 +39,12 @@ describe('Relocation Onboarding Container', () => {
     ConfigStore.set('features', new Set(['relocation:enabled']));
     render(<RelocationOnboardingContainer {...routerProps} />, {
       organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/relocation/get-started/',
+        },
+        route: '/relocation/:step/',
+      },
     });
     expect(
       await screen.findByText(/Choose where to store your organization's data/)
@@ -57,6 +63,12 @@ describe('Relocation Onboarding Container', () => {
     ConfigStore.set('features', new Set([]));
     render(<RelocationOnboardingContainer {...routerProps} />, {
       organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/relocation/get-started/',
+        },
+        route: '/relocation/:step/',
+      },
     });
     expect(
       await screen.findByText("You don't have access to this feature")

@@ -43,6 +43,12 @@ describe('Onboarding', () => {
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/welcome/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 
@@ -66,6 +72,12 @@ describe('Onboarding', () => {
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/select-platform/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 
@@ -143,6 +155,12 @@ describe('Onboarding', () => {
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/setup-docs/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 
@@ -213,6 +231,12 @@ describe('Onboarding', () => {
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/setup-docs/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 
@@ -247,6 +271,12 @@ describe('Onboarding', () => {
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/select-platform/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 
@@ -323,6 +353,12 @@ describe('Onboarding', () => {
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/setup-docs/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 
@@ -376,6 +412,12 @@ describe('Onboarding', () => {
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/select-platform/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 
