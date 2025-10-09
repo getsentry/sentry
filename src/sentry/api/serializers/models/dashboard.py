@@ -57,6 +57,12 @@ class ThresholdType(TypedDict):
     unit: str
 
 
+class WidgetChangedReasonType(TypedDict):
+    orderby: list[dict[str, str]] | None
+    equations: list[dict[str, str | list[str]]] | None
+    selected_columns: list[str]
+
+
 class DashboardWidgetResponse(TypedDict):
     id: str
     title: str
@@ -72,6 +78,7 @@ class DashboardWidgetResponse(TypedDict):
     layout: dict[str, int] | None
     datasetSource: str | None
     exploreUrls: NotRequired[list[str] | None]
+    changedReason: list[WidgetChangedReasonType] | None
 
 
 class DashboardPermissionsResponse(TypedDict):
@@ -304,6 +311,7 @@ class DashboardWidgetSerializer(Serializer):
             "widgetType": widget_type,
             "layout": obj.detail.get("layout") if obj.detail else None,
             "datasetSource": DATASET_SOURCES[obj.dataset_source],
+            "changedReason": obj.changed_reason,
         }
 
         if explore_urls:
