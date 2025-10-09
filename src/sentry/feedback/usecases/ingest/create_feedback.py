@@ -17,7 +17,7 @@ from sentry.feedback.usecases.label_generation import (
     MAX_AI_LABELS_JSON_LENGTH,
     generate_labels,
 )
-from sentry.feedback.usecases.spam_detection import is_spam, is_spam_seer, spam_detection_enabled
+from sentry.feedback.usecases.spam_detection import is_spam_seer, spam_detection_enabled
 from sentry.feedback.usecases.title_generation import get_feedback_title, truncate_feedback_title
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -274,41 +274,16 @@ def create_feedback_issue(
     is_message_spam = None
     is_spam_enabled = spam_detection_enabled(project)
     if is_spam_enabled:
-        if features.has("organizations:user-feedback-seer-spam-detection", project.organization):
-            # Will be None if the request fails
-            is_message_spam = is_spam_seer(feedback_message, project.organization_id)
-            metrics.incr(
-                "feedback.create_feedback_issue.seer_spam_detection",
-                tags={
-                    "is_spam": is_message_spam,
-                    "referrer": source.value,
-                },
-            )
-            logger.info(
-                "Seer spam detection result",
-                extra={
-                    "feedback_message": feedback_message[:20],
-                    "is_spam": is_message_spam,
-                    "is_spam_type": type(is_message_spam),
-                },
-            )
-        else:
-            try:
-                is_message_spam = is_spam(feedback_message)
-            except Exception:
-                # until we have LLM error types ironed out, just catch all exceptions
-                logger.exception(
-                    "Error checking if message is spam", extra={"project_id": project.id}
-                )
+        # Will be None if the request fails
+        is_message_spam = is_spam_seer(feedback_message, project.organization_id)
 
-            # In DD we use is_spam = None to indicate spam failed.
-            metrics.incr(
-                "feedback.create_feedback_issue.spam_detection",
-                tags={
-                    "is_spam": is_message_spam,
-                    "referrer": source.value,
-                },
-            )
+        metrics.incr(
+            "feedback.create_feedback_issue.seer_spam_detection",
+            tags={
+                "is_spam": is_message_spam,
+                "referrer": source.value,
+            },
+        )
 
     should_query_seer = not is_message_spam and has_seer_access(project.organization)
 

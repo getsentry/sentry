@@ -1,14 +1,10 @@
 from __future__ import annotations
 
-import time
-from collections.abc import Callable, Generator
 from datetime import UTC, datetime
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
-from openai.types.chat.chat_completion import ChatCompletion, Choice
-from openai.types.chat.chat_completion_message import ChatCompletionMessage
 
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import (
@@ -41,52 +37,6 @@ def mock_has_seer_access():
         return_value=False,
     ) as mck:
         yield mck
-
-
-@pytest.fixture(autouse=True)
-def llm_settings(
-    set_sentry_option: Callable[[str, dict[str, dict[str, Any]]], Any],
-) -> Generator[None]:
-    with (
-        set_sentry_option(
-            "llm.provider.options",
-            {"openai": {"models": ["gpt-4-turbo-1.0"], "options": {"api_key": "fake_api_key"}}},
-        ),
-        set_sentry_option(
-            "llm.usecases.options",
-            {"spamdetection": {"provider": "openai", "options": {"model": "gpt-4-turbo-1.0"}}},
-        ),
-    ):
-        yield
-
-
-def create_dummy_openai_response(*args: object, **kwargs: Any) -> ChatCompletion:
-    message = kwargs["messages"][0]["content"]
-
-    if "error" in message:
-        raise Exception("Error checking if message is spam")
-
-    return ChatCompletion(
-        id="test",
-        choices=[
-            Choice(
-                index=0,
-                message=ChatCompletionMessage(
-                    content=(
-                        "spam"
-                        if "this is definitely spam"
-                        in message  # assume make_input_prompt lower-cases the msg
-                        else "not spam"
-                    ),
-                    role="assistant",
-                ),
-                finish_reason="stop",
-            )
-        ],
-        created=int(time.time()),
-        model="gpt3.5-turbo",
-        object="chat.completion",
-    )
 
 
 def test_fix_for_issue_platform() -> None:
@@ -516,7 +466,11 @@ def test_create_feedback_filters_no_contexts_or_message(
         ("error", False, None, None),
     ],
 )
+@patch("sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled")
+@patch("sentry.feedback.usecases.ingest.create_feedback.is_spam_seer")
 def test_create_feedback_spam_detection_kafka_and_evidence(
+    mock_is_spam_seer,
+    mock_spam_detection_enabled,
     default_project,
     mock_produce_occurrence_to_kafka,
     input_message,
@@ -524,147 +478,53 @@ def test_create_feedback_spam_detection_kafka_and_evidence(
     expected_result,
     expected_evidence_display,
 ):
-    with patch(
-        "sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled",
-        return_value=enabled,
-    ):
-        event = mock_feedback_event(default_project.id, message=input_message)
+    mock_is_spam_seer.return_value = expected_result
+    mock_spam_detection_enabled.return_value = enabled
 
-        mock_openai = Mock()
-        mock_openai().chat.completions.create = create_dummy_openai_response
+    event = mock_feedback_event(default_project.id, message=input_message)
 
-        with patch("sentry.llm.providers.openai.OpenAI", mock_openai):
-            create_feedback_issue(
-                event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-            )
+    create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
-        # Check status change kafka message.
-        if expected_result:
-            assert (
-                mock_produce_occurrence_to_kafka.call_args_list[1]
-                .kwargs["status_change"]
-                .new_status
-                == GroupStatus.IGNORED
-            )
-        else:
-            assert mock_produce_occurrence_to_kafka.call_count == 1
-
-        # Check is_spam evidence
-        occurrence = mock_produce_occurrence_to_kafka.call_args_list[0].kwargs["occurrence"]
-        assert occurrence.evidence_data["is_spam"] == expected_result
-        is_spam_displays = [e.value for e in occurrence.evidence_display if e.name == "is_spam"]
-        is_spam_display = is_spam_displays[0] if is_spam_displays else None
-        assert is_spam_display == expected_evidence_display
-
-        # Check spam_detection_enabled evidence (=enabled)
-        assert occurrence.evidence_data["spam_detection_enabled"] == enabled
-        enabled_displays = [
-            e.value for e in occurrence.evidence_display if e.name == "spam_detection_enabled"
-        ]
-        enabled_display = enabled_displays[0] if enabled_displays else None
-        assert enabled_display == str(enabled)
-
-
-@django_db_all
-def test_create_feedback_spam_detection_set_status_ignored(default_project) -> None:
-    with patch(
-        "sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled",
-        return_value=True,
-    ):
-        event = mock_feedback_event(default_project.id, message="This is definitely spam")
-
-        mock_openai = Mock()
-        mock_openai().chat.completions.create = create_dummy_openai_response
-
-        with patch("sentry.llm.providers.openai.OpenAI", mock_openai):
-            create_feedback_issue(
-                event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-            )
-
-        group = Group.objects.get()
-        assert group.status == GroupStatus.IGNORED
-        assert group.substatus == GroupSubStatus.FOREVER
-
-
-@django_db_all
-@pytest.mark.parametrize(
-    "is_spam_result, expected_evidence_data, expected_evidence_display",
-    [
-        pytest.param(True, True, "True", id="is_spam"),
-        pytest.param(False, False, "False", id="is_not_spam"),
-        pytest.param(None, None, "error", id="error"),
-    ],
-)
-@pytest.mark.parametrize("feature_flag_enabled", [True, False])
-@patch("sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled", return_value=True)
-@patch("sentry.feedback.usecases.ingest.create_feedback.is_spam_seer")
-@patch("sentry.feedback.usecases.ingest.create_feedback.is_spam")
-@patch("sentry.utils.metrics.incr")
-def test_create_feedback_spam_detection_with_seer(
-    mock_metrics_incr,
-    mock_is_spam,
-    mock_is_spam_seer,
-    mock_spam_detection_enabled,
-    default_project,
-    mock_produce_occurrence_to_kafka,
-    feature_flag_enabled,
-    is_spam_result,
-    expected_evidence_data,
-    expected_evidence_display,
-):
-    """Test spam detection with Seer feature flag enabled/disabled."""
-    mock_is_spam_seer.return_value = is_spam_result
-    mock_is_spam.return_value = is_spam_result
-
-    event = mock_feedback_event(default_project.id, message="Test feedback message")
-    with Feature({"organizations:user-feedback-seer-spam-detection": feature_flag_enabled}):
-        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
-
-    # Check that correct spam detection method was called
-    if feature_flag_enabled:
-        mock_is_spam_seer.assert_called_once_with(
-            "Test feedback message", default_project.organization_id
+    # Check status change kafka message.
+    if expected_result is True:
+        assert mock_produce_occurrence_to_kafka.call_count == 2
+        assert (
+            mock_produce_occurrence_to_kafka.call_args_list[1].kwargs["status_change"].new_status
+            == GroupStatus.IGNORED
         )
-        mock_is_spam.assert_not_called()
     else:
-        mock_is_spam.assert_called_once_with("Test feedback message")
-        mock_is_spam_seer.assert_not_called()
+        assert mock_produce_occurrence_to_kafka.call_count == 1
 
-    # Check evidence data
+    # Check is_spam evidence
     occurrence = mock_produce_occurrence_to_kafka.call_args_list[0].kwargs["occurrence"]
-    assert occurrence.evidence_data["is_spam"] == expected_evidence_data
-    assert occurrence.evidence_data["spam_detection_enabled"] is True
-
-    # Check evidence display
+    assert occurrence.evidence_data["is_spam"] == expected_result
     is_spam_displays = [e.value for e in occurrence.evidence_display if e.name == "is_spam"]
     is_spam_display = is_spam_displays[0] if is_spam_displays else None
     assert is_spam_display == expected_evidence_display
 
-    # Check DD metrics
-    if feature_flag_enabled:
-        mock_metrics_incr.assert_any_call(
-            "feedback.create_feedback_issue.seer_spam_detection",
-            tags={
-                "is_spam": is_spam_result,
-                "referrer": FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE.value,
-            },
-        )
-    else:
-        mock_metrics_incr.assert_any_call(
-            "feedback.create_feedback_issue.spam_detection",
-            tags={
-                "is_spam": is_spam_result,
-                "referrer": FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE.value,
-            },
-        )
+    # Check spam_detection_enabled evidence (=enabled)
+    assert occurrence.evidence_data["spam_detection_enabled"] == enabled
+    enabled_displays = [
+        e.value for e in occurrence.evidence_display if e.name == "spam_detection_enabled"
+    ]
+    enabled_display = enabled_displays[0] if enabled_displays else None
+    assert enabled_display == str(enabled)
 
-    # Check group status
-    if is_spam_result:
-        assert mock_produce_occurrence_to_kafka.call_count == 2
-        status_change = mock_produce_occurrence_to_kafka.call_args_list[1].kwargs["status_change"]
-        assert status_change.new_status == GroupStatus.IGNORED
-    else:
-        assert mock_produce_occurrence_to_kafka.call_count == 1
+
+@django_db_all
+@patch("sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled", return_value=True)
+@patch("sentry.feedback.usecases.ingest.create_feedback.is_spam_seer")
+def test_create_feedback_spam_detection_set_status_ignored(
+    mock_is_spam_seer, mock_spam_detection_enabled, default_project
+) -> None:
+    mock_is_spam_seer.return_value = True
+    event = mock_feedback_event(default_project.id, message="This is definitely spam")
+
+    create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    group = Group.objects.get()
+    assert group.status == GroupStatus.IGNORED
+    assert group.substatus == GroupSubStatus.FOREVER
 
 
 @django_db_all
@@ -828,28 +688,24 @@ def test_create_feedback_tags_skips_email_if_empty(
 
 @django_db_all
 @pytest.mark.parametrize("spam_enabled", (True, False))
+@patch("sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled")
+@patch("sentry.feedback.usecases.ingest.create_feedback.is_spam_seer")
 def test_create_feedback_filters_large_message(
-    default_project, mock_produce_occurrence_to_kafka, set_sentry_option, spam_enabled
+    mock_is_spam_seer,
+    mock_spam_detection_enabled,
+    default_project,
+    mock_produce_occurrence_to_kafka,
+    spam_enabled,
 ):
     """Large messages are filtered before spam detection and producing to kafka."""
-    features = (
-        {
-            "organizations:user-feedback-spam-ingest": True,
-        }
-        if spam_enabled
-        else {}
-    )
+    mock_is_spam_seer.return_value = False
+    mock_spam_detection_enabled.return_value = spam_enabled
 
-    with (
-        patch("sentry.llm.usecases.complete_prompt") as mock_complete_prompt,
-        Feature(features),
-        set_sentry_option("feedback.message.max-size", 4096),
-    ):
-        event = mock_feedback_event(default_project.id)
-        event["contexts"]["feedback"]["message"] = "a" * 7007
-        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+    event = mock_feedback_event(default_project.id)
+    event["contexts"]["feedback"]["message"] = "a" * 7007
+    create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
-    assert mock_complete_prompt.call_count == 0
+    assert mock_is_spam_seer.call_count == 0
     assert mock_produce_occurrence_to_kafka.call_count == 0
 
 
@@ -998,7 +854,7 @@ def test_create_feedback_issue_title_from_seer_skips_if_spam(
     """Test title generation endpoint is not called if marked as spam."""
     mock_has_seer_access.return_value = True
     with (
-        patch("sentry.feedback.usecases.ingest.create_feedback.is_spam", return_value=True),
+        patch("sentry.feedback.usecases.ingest.create_feedback.is_spam_seer", return_value=True),
         # XXX: this is not ideal to mock, we should refactor spam and AI processors to their own unit testable function.
         patch(
             "sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled",
