@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-from itertools import chain, islice
+from itertools import islice
 
 from sentry import options
 from sentry.utils import metrics
@@ -191,17 +191,3 @@ def mark_projects_processed(
                         "processed_project_ids": sorted(processed_project_ids),
                     },
                 )
-            except Exception:
-                logger.exception(
-                    "process_buffered_workflows.conditional_delete_from_sorted_sets_error"
-                )
-                # Fallback.
-                buffer_client.clear_project_ids(
-                    min=0,
-                    max=max_project_timestamp,
-                )
-        else:
-            buffer_client.clear_project_ids(
-                min=0,
-                max=max_project_timestamp,
-            )
