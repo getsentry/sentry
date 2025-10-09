@@ -70,7 +70,6 @@ export function DO_NOT_USE_getChonkButtonStyles(
     justifyContent: 'center',
 
     fontWeight: p.theme.fontWeight.bold,
-
     opacity: p.busy || p.disabled ? 0.6 : undefined,
 
     cursor: 'pointer',
