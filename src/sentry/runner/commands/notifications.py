@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-
-from __future__ import annotations
-
 from typing import Any
 
 import click
@@ -28,7 +25,7 @@ def send_cmd() -> None:
     help="Registered template source (see `sentry notifications list registry`)",
     default="error-alert-service",
 )
-@click.option("-t", "--target", help="Recipient email address", default="user@example.com")
+@click.option("-e", "--email", help="Recipient email address", default="user@example.com")
 def send_email(source: str, target: str) -> None:
     """
     Send an email notification.
@@ -78,7 +75,7 @@ def send_email(source: str, target: str) -> None:
 )
 @click.option("-o", "--organization_slug", help="Organization slug")
 @click.option("-i", "--integration_name", help="Slack integration name", default=None)
-@click.option("-t", "--channel_name", help="Slack channel name", default=None)
+@click.option("-c", "--channel_name", help="Slack channel name", default=None)
 def send_slack(
     source: str, organization_slug: str, integration_name: str | None, channel_name: str | None
 ) -> None:
@@ -109,11 +106,11 @@ def send_slack(
         click.echo(f"Organization '{organization_slug}' not found!")
         return
 
-    integration_name = integration_name or options.get("slack.default-workspace")
+    integration_name = integration_name or options.get("slack.debug-workspace")
     if integration_name is None or integration_name == "":
         click.echo(
             "\nThis command requires a slack integration name."
-            "\nProvide it with the `-i` flag or by setting `slack.default-workspace` in .sentry/config.yml."
+            "\nProvide it with the `-i` flag or by setting `slack.debug-workspace` in .sentry/config.yml."
             f"\nBrowse the local integrations with `sentry notifications list integrations -o {organization_slug}`."
         )
         return
@@ -128,11 +125,11 @@ def send_slack(
         click.echo(f"Slack integration '{integration_name}' not found!")
         return
 
-    channel_name = channel_name or options.get("slack.default-channel")
+    channel_name = channel_name or options.get("slack.debug-channel")
     if channel_name is None or channel_name == "":
         click.echo(
             "\nThis command requires a slack channel name."
-            "\nProvide it with the `-t` flag or by setting `slack.default-channel` in .sentry/config.yml."
+            "\nProvide it with the `-c` flag or by setting `slack.debug-channel` in .sentry/config.yml."
         )
         return
 
@@ -176,7 +173,7 @@ def send_msteams() -> None:
 )
 @click.option("-o", "--organization_slug", help="Organization slug", required=True)
 @click.option("-i", "--integration_name", help="Discord integration name", default=None)
-@click.option("-t", "--channel_id", help="Discord channel ID", default=None)
+@click.option("-c", "--channel_id", help="Discord channel ID", default=None)
 def send_discord(
     source: str,
     organization_slug: str,
@@ -229,7 +226,7 @@ def send_discord(
     if channel_id is None or channel_id == "":
         click.echo(
             "\nThis command requires a discord channel ID."
-            "\nProvide it with the `-t` flag or by setting `discord.debug-channel` in .sentry/config.yml."
+            "\nProvide it with the `-c` flag or by setting `discord.debug-channel` in .sentry/config.yml."
         )
         return
 
