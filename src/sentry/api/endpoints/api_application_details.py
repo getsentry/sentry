@@ -49,12 +49,29 @@ class CustomSchemeURLField(serializers.CharField):
         # Basic URL structure validation
         try:
             parsed = urlparse(data)
-            if not parsed.scheme or not parsed.netloc:
+            if not parsed.scheme:
                 self.fail("invalid")
 
             # Check if the scheme is in the allowlist
-            if parsed.scheme.lower() not in self.ALLOWED_SCHEMES:
+            scheme_lower = parsed.scheme.lower()
+            if scheme_lower not in self.ALLOWED_SCHEMES:
                 self.fail("disallowed_scheme")
+
+            # All URIs must use :// format (not just :/)
+            # This ensures proper URI structure: scheme://netloc or scheme://path
+            if "://" not in data:
+                self.fail("invalid")
+
+            # For http/https, netloc is required (must have a domain)
+            if scheme_lower in {"http", "https"}:
+                if not parsed.netloc:
+                    self.fail("invalid")
+            else:
+                # Custom schemes must have netloc (the part after ://)
+                # This ensures sentry-mobile-agent://callback is valid
+                # but sentry-mobile-agent:// is not
+                if not parsed.netloc:
+                    self.fail("invalid")
         except Exception:
             self.fail("invalid")
 
