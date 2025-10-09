@@ -3,7 +3,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Accordion from 'sentry/components/container/accordion';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, type FlexProps} from 'sentry/components/core/layout';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -15,7 +15,6 @@ import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelector
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
-  ContentContainer,
   HeaderContainer,
   HeaderTitleLegend,
   Subtitle,
@@ -111,7 +110,7 @@ function AccordionWidget({
           <StyledPlaceholder />
         </LoadingContainer>
       ) : isError || (!isLoading && filteredData.length === 0) ? (
-        <CenteredContentContainer>
+        <Flex flex="1 1 auto" direction="column" justify="center">
           <StyledEmptyStateWarning withIcon={false}>
             <EmptyHeader>
               <IconSearch size="sm" />
@@ -124,9 +123,9 @@ function AccordionWidget({
               )}
             </EmptySubtitle>
           </StyledEmptyStateWarning>
-        </CenteredContentContainer>
+        </Flex>
       ) : (
-        <LeftAlignedContentContainer>
+        <Flex flex="1 1 auto" direction="column" justify="start">
           <Accordion
             collapsible
             expandedIndex={selectedListIndex}
@@ -156,7 +155,7 @@ function AccordionWidget({
               };
             })}
           />
-        </LeftAlignedContentContainer>
+        </Flex>
       )}
     </StyledWidgetContainer>
   );
@@ -220,14 +219,6 @@ const StyledHeaderContainer = styled(HeaderContainer)`
   grid-template-columns: 30px auto;
 `;
 
-const LeftAlignedContentContainer = styled(ContentContainer)`
-  justify-content: flex-start;
-`;
-
-const CenteredContentContainer = styled(ContentContainer)`
-  justify-content: center;
-`;
-
 const StyledAccordionHeader = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
@@ -269,8 +260,9 @@ const EmptySubtitle = styled('div')`
   padding-right: ${space(1)};
 `;
 
-const LoadingContainer = styled(ContentContainer)`
-  gap: ${space(0.25)};
+const LoadingContainer = styled((props: FlexProps) => (
+  <Flex gap="2xs" flex="1 1 auto" direction="column" justify="start" {...props} />
+))`
   padding: ${space(1)} ${space(0.5)} 3px ${space(0.5)};
 `;
 
