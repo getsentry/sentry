@@ -155,6 +155,9 @@ export function VisuallyCompleteWithData({
 
   const isVCDSet = useRef(false);
 
+  const locationPath = useRef(location.pathname);
+  locationPath.current = location.pathname;
+
   if (isVCDSet && hasData && performance?.mark && !disabled) {
     performance.mark(`${id}-${VCD_START}`);
     isVCDSet.current = true;
@@ -206,6 +209,17 @@ export function VisuallyCompleteWithData({
           const endMark = endMarks.at(-1);
           if (!startMark || !endMark) {
             return;
+          }
+          try {
+            const vcdTime = endMark.startTime - startMark.startTime;
+            Sentry.metrics.count('visually_complete_with_data', vcdTime, {
+              attributes: {
+                url: locationPath.current,
+              },
+              unit: 'millisecond', // DOMHighResTimeStamp
+            });
+          } catch (_) {
+            // Defensive catch since this code is auxiliary.
           }
           performance.measure(
             `VCD [${id}] #${num.current}`,
@@ -485,6 +499,46 @@ export const addExtraMeasurements = (transaction: TransactionEvent) => {
     // Defensive catch since this code is auxiliary.
   }
 };
+
+function addCustomMetrics(transaction: TransactionEvent) {
+  const browserTimeOrigin = browserPerformanceTimeOrigin();
+  if (!browserTimeOrigin || !transaction.start_timestamp) {
+    return;
+  }
+
+  const measurements: Record<string, Measurement> = {...transaction.measurements};
+
+  const ttfb = Object.entries(measurements).find(([key]) =>
+    key.toLowerCase().includes('ttfb')
+  );
+
+  const ttfbValue = ttfb?.[1]?.value;
+
+  const context: MeasurementContext = {
+    transaction,
+    ttfb: ttfbValue,
+    browserTimeOrigin,
+    transactionStart: transaction.start_timestamp,
+    transactionOp: (transaction.contexts?.trace?.op as string) ?? 'pageload',
+  };
+
+  for (const [name, fn] of Object.entries(customMeasurements)) {
+    const measurement = fn(context);
+    if (measurement) {
+      if (
+        measurement.unit === 'millisecond' &&
+        measurement.value > MEASUREMENT_OUTLIER_VALUE
+      ) {
+        // exclude outlier measurements and don't add any of the custom measurements in case something is wrong.
+        if (transaction.tags) {
+          transaction.tags.outlier_vcd = name;
+        }
+        return;
+      }
+      Sentry.metrics.count(name, measurement.value);
+    }
+  }
+}
 
 /**
  * A util function to help create some broad buckets to group entity counts without exploding cardinality.
