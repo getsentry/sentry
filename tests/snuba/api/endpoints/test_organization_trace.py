@@ -583,7 +583,7 @@ class OrganizationEventsTraceEndpointTest(
         return span
 
     def test_with_uptime_results(self):
-        """Test that uptime results are included when include_uptime=1"""
+        """Test that uptime results are always included"""
         self.load_trace(is_eap=True)
 
         features = self.FEATURES + [
@@ -622,7 +622,7 @@ class OrganizationEventsTraceEndpointTest(
 
         with self.feature(features):
             response = self.client_get(
-                data={"timestamp": self.day_ago, "include_uptime": "1"},
+                data={"timestamp": self.day_ago},
             )
 
         assert response.status_code == 200, response.content
@@ -632,23 +632,9 @@ class OrganizationEventsTraceEndpointTest(
             data, [redirect_result, final_result], expected_children_ids=["root"]
         )
 
-    def test_without_uptime_results(self):
-        """Test that uptime results are not queried when include_uptime is not set"""
+    def test_trace_without_uptime_data(self):
+        """Test trace response when no uptime results exist for the trace"""
         self.load_trace(is_eap=True)
-        uptime_result = self._create_uptime_result_with_original_url(
-            organization=self.organization,
-            project=self.project,
-            trace_id=self.trace_id,
-            guid="check-456",
-            subscription_id="sub-789",
-            check_status="success",
-            http_status_code=200,
-            request_sequence=0,
-            request_url="https://test.com",
-            scheduled_check_time=self.day_ago,
-        )
-
-        self.store_uptime_results([uptime_result])
 
         with self.feature(self.FEATURES):
             response = self.client_get(
@@ -710,7 +696,7 @@ class OrganizationEventsTraceEndpointTest(
 
         with self.feature(features):
             response = self.client_get(
-                data={"timestamp": self.day_ago, "include_uptime": "1"},
+                data={"timestamp": self.day_ago},
             )
 
         assert response.status_code == 200, response.content
@@ -748,7 +734,7 @@ class OrganizationEventsTraceEndpointTest(
 
         with self.feature(features):
             response = self.client_get(
-                data={"timestamp": self.day_ago, "include_uptime": "1"},
+                data={"timestamp": self.day_ago},
             )
 
         assert response.status_code == 200, response.content
