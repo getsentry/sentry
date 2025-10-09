@@ -1,7 +1,9 @@
 from django.test import override_settings
 from rest_framework import status
 
+from sentry import audit_log
 from sentry.models.apitoken import ApiToken
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
@@ -28,12 +30,20 @@ class SentryInternalAppTokenCreationTest(APITestCase):
 
     def test_delete_token(self) -> None:
         self.login_as(user=self.user)
+        token_id = self.api_token.id
         self.get_success_response(
             self.internal_sentry_app.slug,
-            self.api_token.id,
+            token_id,
             status_code=status.HTTP_204_NO_CONTENT,
         )
-        assert not ApiToken.objects.filter(pk=self.api_token.id).exists()
+        assert not ApiToken.objects.filter(pk=token_id).exists()
+
+        assert_org_audit_log_exists(
+            organization=self.org,
+            event=audit_log.get_event_id("INTERNAL_INTEGRATION_REMOVE_TOKEN"),
+            target_object=token_id,
+            actor=self.user,
+        )
 
     def test_delete_invalid_token(self) -> None:
         self.login_as(user=self.user)
