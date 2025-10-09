@@ -440,7 +440,7 @@ def fetch_project_platforms(project_ids: Iterable[int]) -> list[tuple[int, str]]
 
 def fetch_packages_for_group(organization_id: int, project_id: int, group_id: int) -> list[str]:
     """Fetch a unique list of release packages associated with the group."""
-    release_ids = list(
+    release_ids = (
         GroupRelease.objects.filter(
             group_id=group_id,
             project_id=project_id,
