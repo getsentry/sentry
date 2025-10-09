@@ -122,15 +122,15 @@ class BaseAttachmentCache:
         self, key: str, attachments: list[CachedAttachment], timeout=None, set_metadata=True
     ) -> list[dict]:
         for id, attachment in enumerate(attachments):
-            if attachment.chunks is not None or attachment.stored_id is not None:
-                continue
-
             # TODO(markus): We need to get away from sequential IDs, they
             # are risking collision when using Relay.
             if attachment.id is None:
                 attachment.id = id
             if attachment.key is None:
                 attachment.key = key
+
+            if attachment.chunks is not None or attachment.stored_id is not None:
+                continue
 
             metrics_tags = {"type": attachment.type}
             self.set_unchunked_data(

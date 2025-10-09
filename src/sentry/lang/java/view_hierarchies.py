@@ -53,8 +53,9 @@ class ViewHierarchies:
             _deobfuscate_view_hierarchy(view_hierarchy, class_names)
             new_attachments.append(
                 CachedAttachment(
-                    type=attachment.type,
+                    key=attachment.key,
                     id=attachment.id,
+                    type=attachment.type,
                     name=attachment.name,
                     content_type=attachment.content_type,
                     data=orjson.dumps(view_hierarchy),

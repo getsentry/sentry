@@ -369,6 +369,8 @@ def do_process_event(
         has_changed = True
         data = new_data
 
+    attachments = data.pop("_attachments", None)
+
     # Second round of datascrubbing after stacktrace and language-specific
     # processing. First round happened as part of ingest.
     #
@@ -427,6 +429,8 @@ def do_process_event(
         # - store event timestamps that are older than our retention window
         #   (also happening with minidumps)
         data = normalize_event(data)
+        if attachments:
+            data["_attachments"] = attachments
         cache_key = processing.event_processing_store.store(data)
 
     return _continue_to_save_event()
@@ -520,7 +524,7 @@ def _do_save_event(
 
     set_current_event_project(project_id)
 
-    from sentry.event_manager import EventManager
+    from sentry.event_manager import EventManager, resolve_project
     from sentry.exceptions import HashDiscarded
 
     event_type = "none"
@@ -587,10 +591,11 @@ def _do_save_event(
                 all_attachments = []
                 attachments = []
 
+            project = resolve_project(project_id)
             manager = EventManager(data)
             # event.project.organization is populated after this statement.
             manager.save(
-                project_id,
+                project=project,
                 assume_normalized=True,
                 start_time=start_time,
                 cache_key=cache_key,
@@ -633,7 +638,7 @@ def _do_save_event(
 
             reprocessing2.mark_event_reprocessed(data)
             if all_attachments:
-                delete_ratelimited_attachments(data, all_attachments)
+                delete_ratelimited_attachments(project, data, all_attachments)
 
             if start_time:
                 metrics.timing(

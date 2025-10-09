@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __all__ = [
     "attachment_cache",
     "store_attachments_for_event",
@@ -8,16 +10,21 @@ __all__ = [
 ]
 
 from collections.abc import Generator
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
 from django.conf import settings
 
+from sentry.objectstore import Client as ObjectstoreClient
+from sentry.objectstore import attachments as objectstore_attachments
 from sentry.options.rollout import in_random_rollout
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.imports import import_string
 
 from .base import BaseAttachmentCache, CachedAttachment, MissingAttachmentChunks
+
+if TYPE_CHECKING:
+    from sentry.models.project import Project
 
 attachment_cache: BaseAttachmentCache = import_string(settings.SENTRY_ATTACHMENTS)(
     **settings.SENTRY_ATTACHMENTS_OPTIONS
@@ -38,7 +45,7 @@ def store_attachments_for_event(event: Any, attachments: list[CachedAttachment],
     cache_key = cache_key_for_event(event)
     attachments_metadata = attachment_cache.set(
         cache_key,
-        attachments=attachments,
+        attachments,
         timeout=timeout,
         set_metadata=not put_metadata_into_event,
     )
@@ -63,9 +70,21 @@ def get_attachments_for_event(event: Any) -> Generator[CachedAttachment]:
     return attachment_cache.get(cache_key)
 
 
-def delete_ratelimited_attachments(event: Any, attachments: list[CachedAttachment]):
-    # TODO: make sure to remove rate-limited already stored attachments.
-    # all other attachments which only exist in the cache, but are not stored will
+def delete_ratelimited_attachments(
+    project: Project, event: Any, attachments: list[CachedAttachment]
+):
+    """
+    This deletes all the attachments that are `rate_limited` from `objectstore` in case they are stored,
+    and it will also remove all the attachments from the attachments cache as well.
+    """
+    client: ObjectstoreClient | None = None
+    for attachment in attachments:
+        if attachment.rate_limited and attachment.stored_id:
+            if client is None:
+                client = objectstore_attachments.for_project(project.organization_id, project.id)
+            client.delete(attachment.stored_id)
+
+    # all other attachments which only exist in the cache but are not stored will
     # be cleaned up here:
     cache_key = cache_key_for_event(event)
     attachment_cache.delete(cache_key)

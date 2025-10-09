@@ -328,6 +328,14 @@ ProjectsMapping = Mapping[int, Project]
 Job = MutableMapping[str, Any]
 
 
+def resolve_project(project_id: int) -> Project:
+    project = Project.objects.get_from_cache(id=project_id)
+    project.set_cached_field_value(
+        "organization", Organization.objects.get_from_cache(id=project.organization_id)
+    )
+    return project
+
+
 class EventManager:
     """
     Handles normalization in both the store endpoint and the save task. The
@@ -415,10 +423,11 @@ class EventManager:
     def get_data(self) -> MutableMapping[str, Any]:
         return self._data
 
-    @sentry_sdk.tracing.trace
+    @sentry_sdk.trace
     def save(
         self,
-        project_id: int | None,
+        project_id: int | None = None,
+        project: Project | None = None,
         raw: bool = False,
         assume_normalized: bool = False,
         start_time: float | None = None,
@@ -444,18 +453,15 @@ class EventManager:
         (that do not hit cache first).
         """
 
+        if project is None:
+            project = resolve_project(project_id)
+        projects = {project.id: project}
+
         # Normalize if needed
         if not self._normalized:
             if not assume_normalized:
-                self.normalize(project_id=project_id)
+                self.normalize(project_id=project.id)
             self._normalized = True
-
-        project = Project.objects.get_from_cache(id=project_id)
-        project.set_cached_field_value(
-            "organization", Organization.objects.get_from_cache(id=project.organization_id)
-        )
-
-        projects = {project.id: project}
 
         job: dict[str, Any] = {
             "data": self._data,
