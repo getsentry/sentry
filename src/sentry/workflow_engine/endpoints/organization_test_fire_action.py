@@ -33,9 +33,15 @@ class TestActionsValidator(CamelSnakeSerializer):
     actions = serializers.ListField(required=True)
 
     def validate_actions(self, value):
+        validated_actions = []
         for action in value:
-            BaseActionValidator(data=action, context=self.context).is_valid(raise_exception=True)
-        return value
+            action_validator = BaseActionValidator(data=action, context=self.context)
+            action_validator.is_valid(raise_exception=True)
+
+            action.update(action_validator.validated_data)
+            validated_actions.append(action)
+
+        return validated_actions
 
 
 class TestFireActionErrorsResponse(TypedDict):
