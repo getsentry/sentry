@@ -30,6 +30,13 @@ export enum AutofixStatus {
   WAITING_FOR_USER_RESPONSE = 'WAITING_FOR_USER_RESPONSE',
 }
 
+export enum AutofixStoppingPoint {
+  ROOT_CAUSE = 'root_cause',
+  SOLUTION = 'solution',
+  CODE_CHANGES = 'code_changes',
+  OPEN_PR = 'open_pr',
+}
+
 type AutofixPullRequestDetails = {
   pr_number: number;
   pr_url: string;
