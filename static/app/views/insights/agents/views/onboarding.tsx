@@ -252,12 +252,14 @@ export function Onboarding() {
             {label: 'Anthropic SDK', value: 'anthropic'},
             {label: 'LangChain', value: 'langchain'},
             {label: 'LangGraph', value: 'langgraph'},
+            {label: 'LiteLLM', value: 'litellm'},
             {label: 'Manual', value: 'manual'},
           ]
         : [
-            {label: 'Vercel AI SDK', value: 'vercelai'},
+            {label: 'Vercel AI SDK', value: 'vercel_ai'},
             {label: 'OpenAI SDK', value: 'openai'},
             {label: 'Anthropic SDK', value: 'anthropic'},
+            {label: 'Google Gen AI SDK', value: 'google_genai'},
             {label: 'Manual', value: 'manual'},
           ],
     },

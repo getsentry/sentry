@@ -28,6 +28,9 @@ import {
 } from 'getsentry/types';
 import {
   formatReservedWithUnits,
+  getCreditApplied,
+  getCredits,
+  getFees,
   getPlanIcon,
   getProductIcon,
 } from 'getsentry/utils/billing';
@@ -483,12 +486,12 @@ function CheckoutSuccess({
   const products = invoiceItems.filter(
     item => item.type === InvoiceItemType.RESERVED_SEER_BUDGET
   );
-  const fees = utils.getFees({invoiceItems});
-  const credits = utils.getCredits({invoiceItems});
+  const fees = getFees({invoiceItems});
+  const credits = getCredits({invoiceItems});
   // TODO(isabella): PreviewData never has the InvoiceItemType.BALANCE_CHANGE type
   // and instead populates creditApplied with the value of the InvoiceItemType.CREDIT_APPLIED type
   // this is a temporary fix to ensure we only display CreditApplied if it's not already in the credits array
-  const creditApplied = utils.getCreditApplied({
+  const creditApplied = getCreditApplied({
     creditApplied: data?.creditApplied ?? 0,
     invoiceItems,
   });

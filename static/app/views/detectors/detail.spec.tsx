@@ -29,9 +29,9 @@ describe('DetectorDetails', () => {
   const ownerTeam = TeamFixture();
   const dataSource = SnubaQueryDataSourceFixture({
     queryObj: {
-      ...defaultDataSource.queryObj!,
+      ...defaultDataSource.queryObj,
       snubaQuery: {
-        ...defaultDataSource.queryObj!.snubaQuery,
+        ...defaultDataSource.queryObj.snubaQuery,
         query: 'test',
         environment: 'test-environment',
       },
@@ -118,13 +118,16 @@ describe('DetectorDetails', () => {
         await screen.findByRole('heading', {name: snubaQueryDetector.name})
       ).toBeInTheDocument();
       // Displays the snuba query
-      expect(screen.getByText('event.type:error test')).toBeInTheDocument();
+      expect(screen.getByLabelText('event.type:error test')).toBeInTheDocument();
       // Displays the environment
       expect(
-        screen.getByText(dataSource.queryObj!.snubaQuery.environment!)
+        screen.getByText(dataSource.queryObj.snubaQuery.environment!)
       ).toBeInTheDocument();
       // Displays the owner team
-      expect(screen.getByText(`Assign to #${ownerTeam.slug}`)).toBeInTheDocument();
+      expect(screen.getByText('Assign to')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('link', {name: `#${ownerTeam.slug}`})
+      ).toBeInTheDocument();
     });
 
     it('can edit the detector when the user has alerts:write access', async () => {
@@ -269,10 +272,8 @@ describe('DetectorDetails', () => {
         await screen.findByRole('heading', {name: uptimeDetector.name})
       ).toBeInTheDocument();
 
-      expect(screen.getByText('Three consecutive failed checks.')).toBeInTheDocument();
-      expect(
-        screen.getByText('Three consecutive successful checks.')
-      ).toBeInTheDocument();
+      expect(screen.getByText('3 consecutive failed checks.')).toBeInTheDocument();
+      expect(screen.getByText('1 consecutive successful check.')).toBeInTheDocument();
 
       // Interval
       expect(screen.getByText('Every 1 minute')).toBeInTheDocument();

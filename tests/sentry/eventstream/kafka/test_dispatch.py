@@ -128,4 +128,5 @@ def test_dispatch_task_with_occurrence(mock_post_process_group: Mock) -> None:
             "project_id": 2,
         },
         "queue": "post_process_issue_platform",
+        "headers": {"sentry-propagate-traces": False},
     }

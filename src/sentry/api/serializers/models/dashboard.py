@@ -79,20 +79,6 @@ class DashboardPermissionsResponse(TypedDict):
     teamsWithEditAccess: list[int]
 
 
-class ExploreQuery(TypedDict, total=False):
-    mode: str
-    aggregateField: list[dict[str, str | list[str]]]
-    field: list[str]
-    query: str
-    orderby: str
-    interval: str
-    projects: list[int]
-    environment: list[str]
-    start: str
-    end: str
-    statsPeriod: str
-
-
 @register(DashboardWidget)
 class DashboardWidgetSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
@@ -125,6 +111,8 @@ class DashboardWidgetSerializer(Serializer):
                 q_index,
                 transaction_query["name"],
                 transaction_query["fields"],
+                transaction_query["columns"],
+                transaction_query["aggregates"],
                 transaction_query["orderby"],
                 transaction_query["conditions"],
                 transaction_query["fieldAliases"],
@@ -166,19 +154,9 @@ class DashboardWidgetSerializer(Serializer):
                     explore_mode = "samples"
 
             filters = obj.dashboard.filters
-            environment = []
             release = []
-            end = None
-            start = None
-            period = None
-            utc = None
             if filters:
-                environment = filters.get("environment", [])
                 release = filters.get("release", [])
-                end = filters.get("end")
-                start = filters.get("start")
-                period = filters.get("period")
-                utc = filters.get("utc")
 
             non_aggregate_group_by_fields = [
                 field
@@ -230,7 +208,6 @@ class DashboardWidgetSerializer(Serializer):
                 sort = spans_query.orderby
 
             # making the visualize as json strings because urlencode does not format this properly
-            # also JSON.stringify doesn't have spaces so we need to remove them
             if len(y_axes) > 0:
                 visualize = [
                     json.dumps(
@@ -259,15 +236,7 @@ class DashboardWidgetSerializer(Serializer):
                     for y_axis in y_axes
                 ]
 
-            projects = list(obj.dashboard.projects.all().values_list("id", flat=True))
-
             all_query_params = {
-                "project": projects,
-                "environment": environment,
-                "statsPeriod": period,
-                "start": start,
-                "end": end,
-                "utc": utc,
                 "mode": explore_mode,
                 # using aggregateField instead of visualize + groupBy because that format will be deprecated
                 "aggregateField": visualize,
@@ -306,7 +275,13 @@ class DashboardWidgetSerializer(Serializer):
             widget_type = DashboardWidgetTypes.get_type_name(obj.discover_widget_split)
 
         explore_urls = None
-        if obj.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE and features.has(
+        if (
+            obj.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE
+            or (
+                obj.widget_type == DashboardWidgetTypes.DISCOVER
+                and obj.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
+            )
+        ) and features.has(
             "organizations:transaction-widget-deprecation-explore-view",
             organization=obj.dashboard.organization,
             actor=user,

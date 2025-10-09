@@ -97,6 +97,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.types.actor import Actor
+from sentry.utils import json
 from sentry.workflow_engine.models.detector import Detector
 
 pytestmark = [pytest.mark.sentry_metrics]
@@ -663,6 +664,12 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
 
         assert mock_seer_request.call_count == 1
+        call_args_str = mock_seer_request.call_args_list[0].kwargs["body"].decode("utf-8")
+        assert json.loads(call_args_str)["alert"] == {
+            "id": alert_rule.id,
+            "source_id": alert_rule.snuba_query.subscriptions.get().id,
+            "source_type": 1,
+        }
         assert alert_rule.name == self.dynamic_metric_alert_settings["name"]
         assert alert_rule.user_id is None
         assert alert_rule.team_id is None
