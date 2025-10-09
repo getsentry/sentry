@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 
@@ -18,13 +19,13 @@ class CredentialLeasable(ABC):
     @abstractmethod
     def refresh_access_token_with_minimum_validity_time(
         self, token_minimum_validity_time: timedelta
-    ) -> str: ...
+    ) -> CredentialLease: ...
 
     @abstractmethod
-    def force_refresh_access_token(self) -> str: ...
+    def force_refresh_access_token(self) -> CredentialLease: ...
 
     @abstractmethod
-    def get_active_access_token(self) -> str: ...
+    def get_active_access_token(self) -> CredentialLease: ...
 
     @abstractmethod
     def get_current_access_token_expiration(self) -> datetime | None: ...
@@ -39,6 +40,13 @@ class CredentialLeasable(ABC):
 
         minimum_expiry_time = datetime.now(UTC) + token_minimum_validity_time
         return expires_at < minimum_expiry_time
+
+
+@dataclass
+class CredentialLease:
+    access_token: str
+    permissions: dict[str, str] | None
+    expires_at: datetime
 
 
 class InvalidCredentialLeaseTarget(Exception):

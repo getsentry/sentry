@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from typing import Any, TypedDict
 from urllib.parse import parse_qsl
@@ -28,7 +28,7 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.credentials_service.types import CredentialLeasable
+from sentry.integrations.credentials_service.types import CredentialLeasable, CredentialLease
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.codecov_account_link import codecov_account_link
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
@@ -256,27 +256,44 @@ class GitHubIntegration(
 
     def refresh_access_token_with_minimum_validity_time(
         self, token_minimum_validity_time: timedelta
-    ) -> str:
+    ) -> CredentialLease:
         access_token_data = self.get_client().get_access_token(
             token_minimum_validity_time=token_minimum_validity_time
         )
 
         assert access_token_data is not None, "Expected Integration to have an access token"
-        return access_token_data["access_token"]
 
-    def force_refresh_access_token(self) -> str:
+        return self._credential_lease_from_model()
+
+    def force_refresh_access_token(self) -> CredentialLease:
         raise NotImplementedError("Force refresh access token is not supported for GitHub")
 
-    def get_active_access_token(self) -> str:
+    def get_active_access_token(self) -> CredentialLease:
         access_token_data = self.get_client().get_access_token()
         assert access_token_data is not None, "Expected Integration to have an access token"
-        return access_token_data["access_token"]
+        return self._credential_lease_from_model()
 
     def get_current_access_token_expiration(self) -> datetime | None:
         expiration = self.model.metadata.get("expires_at")
         if not expiration:
             return None
-        return datetime.fromisoformat(expiration)
+        return datetime.fromisoformat(expiration).astimezone(UTC)
+
+    def _credential_lease_from_model(self) -> CredentialLease:
+        expiration_time = None
+        # Annoying quirk that the underlying client may update the integration
+        # model, but the model reference on this class isn't updated.
+        self.model.refresh_from_db()
+        if self.model.metadata.get("expires_at"):
+            expiration_time = datetime.fromisoformat(
+                self.model.metadata.get("expires_at")
+            ).astimezone(UTC)
+
+        return CredentialLease(
+            access_token=self.model.metadata.get("access_token"),
+            permissions=self.model.metadata.get("permissions"),
+            expires_at=expiration_time,
+        )
 
     # IntegrationInstallation methods
 
