@@ -12,6 +12,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Automation, AutomationStats} from 'sentry/types/workflowEngine/automations';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -37,9 +38,9 @@ export function AutomationStatsChart({
       {
         query: {
           ...(period && {statsPeriod: period}),
-          start,
-          end,
-          utc,
+          start: start ? getUtcDateString(start) : undefined,
+          end: end ? getUtcDateString(end) : undefined,
+          utc: utc ? 'true' : undefined,
         },
       },
     ],
