@@ -11,7 +11,11 @@ from sentry.taskworker.retry import Retry
 @instrumented_task(
     name="sentry.tasks.auto_source_code_config",
     namespace=issues_tasks,
-    processing_deadline_duration=5 * 60,
+    # The auto source code configuration process can take longer for large projects
+    # or when interacting with external services. Increase the processing deadline
+    # from 5 minutes to 10 minutes to reduce the likelihood of premature task
+    # termination in these scenarios.
+    processing_deadline_duration=10 * 60,
     retry=Retry(times=3, delay=60 * 10),
 )
 def auto_source_code_config(project_id: int, event_id: str, group_id: int, **kwargs: Any) -> None:
