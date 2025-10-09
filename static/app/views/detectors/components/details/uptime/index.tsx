@@ -60,14 +60,14 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
         <DetailLayout.Sidebar>
           <Section title={t('Detect')}>
             {tn(
-              '%s consecutive failed check.',
+              '%s failed check.',
               '%s consecutive failed checks.',
               detector.config.downtimeThreshold
             )}
           </Section>
           <Section title={t('Resolve')}>
             {tn(
-              '%s consecutive successful check.',
+              '%s successful check.',
               '%s consecutive successful checks.',
               detector.config.recoveryThreshold
             )}
