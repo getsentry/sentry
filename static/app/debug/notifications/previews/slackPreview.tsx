@@ -3,6 +3,7 @@ import moment from 'moment-timezone';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CodeBlock} from 'sentry/components/core/code';
+import {Image} from 'sentry/components/core/image/image';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {DebugNotificationsPreview} from 'sentry/debug/notifications/components/debugNotificationsPreview';
@@ -67,7 +68,13 @@ export function SlackPreview({
                   </Text>
                   <SlackEmbedArrow>▾</SlackEmbedArrow>
                 </Flex>
-                <SlackChart src={chart.url} alt={chart.alt_text} />
+                <SlackChart
+                  height="100px"
+                  width="auto"
+                  src={chart.url}
+                  alt={chart.alt_text}
+                  objectFit="contain"
+                />
               </Flex>
             )}
             {footer && (
@@ -139,9 +146,7 @@ const SlackBodyText = styled(SlackBlackText)`
   max-width: 540px;
 `;
 
-const SlackChart = styled('img')`
-  height: 100px;
-  object-fit: contain;
+const SlackChart = styled(Image)`
   border-radius: 4px;
 `;
 
