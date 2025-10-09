@@ -655,6 +655,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         action_text = ""
 
+        # TODO: Fix unfurl issue - interactive blocks are not supported in Slack's chat.unfurl API
+        # The condition below should also check `and not self.is_unfurl` to prevent adding
+        # action buttons (Resolve, Archive, Assign) to unfurl payloads, which causes
+        # 'invalid_blocks' errors from Slack.
         if not self.issue_details or (self.recipient and self.recipient.is_team):
             payload_actions, action_text, has_action = build_actions(
                 self.group, project, text, self.actions, self.identity
