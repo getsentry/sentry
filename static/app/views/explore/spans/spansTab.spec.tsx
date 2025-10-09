@@ -281,7 +281,7 @@ describe('SpansTabContent', () => {
       await userEvent.click(caseSensitivityToggle);
 
       expect(caseSensitivityToggle).toHaveAttribute('aria-pressed', 'true');
-      expect(router.location.query.caseInsensitive).toBe('true');
+      expect(router.location.query.caseInsensitive).toBe('1');
     });
 
     it('appends case sensitive to the query', async () => {
@@ -313,7 +313,7 @@ describe('SpansTabContent', () => {
         expect(eventsMock).toHaveBeenCalledWith(
           `/organizations/${organization.slug}/events/`,
           expect.objectContaining({
-            query: expect.objectContaining({caseInsensitive: 'true'}),
+            query: expect.objectContaining({caseInsensitive: '1'}),
           })
         )
       );
@@ -322,7 +322,7 @@ describe('SpansTabContent', () => {
         expect(eventsStatsMock).toHaveBeenCalledWith(
           `/organizations/${organization.slug}/events-stats/`,
           expect.objectContaining({
-            query: expect.objectContaining({caseInsensitive: true}),
+            query: expect.objectContaining({caseInsensitive: 1}),
           })
         )
       );

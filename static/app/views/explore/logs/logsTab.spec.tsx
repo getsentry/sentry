@@ -273,7 +273,7 @@ describe('LogsTabContent', () => {
           field: [...AlwaysPresentLogFields, 'message', 'sentry.message.parameters.0'],
           sort: 'sentry.message.parameters.0',
           query: 'severity:error',
-          caseInsensitive: true,
+          caseInsensitive: 1,
         }),
       })
     );
@@ -288,7 +288,7 @@ describe('LogsTabContent', () => {
           yAxis: 'count(message)',
           interval: '1h',
           query: 'severity:error timestamp_precise:<=1508208040000000000',
-          caseInsensitive: true,
+          caseInsensitive: 1,
         }),
       })
     );

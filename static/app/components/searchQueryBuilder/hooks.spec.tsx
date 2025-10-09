@@ -7,23 +7,23 @@ describe('useCaseSensitivity', () => {
     const {result: noCaseSensitivity} = renderHookWithProviders(() =>
       useCaseInsensitivity()
     );
-    expect(noCaseSensitivity.current[0]).toBeUndefined();
+    expect(noCaseSensitivity.current[0]).toBeNull();
 
     const {result: caseSensitivityFalse} = renderHookWithProviders(
       () => useCaseInsensitivity(),
       {
         initialRouterConfig: {
-          location: {pathname: '/', query: {caseInsensitive: 'false'}},
+          location: {pathname: '/', query: {}},
         },
       }
     );
-    expect(caseSensitivityFalse.current[0]).toBe(false);
+    expect(caseSensitivityFalse.current[0]).toBeNull();
 
     const {result: caseSensitivityTrue} = renderHookWithProviders(
       () => useCaseInsensitivity(),
-      {initialRouterConfig: {location: {pathname: '/', query: {caseInsensitive: 'true'}}}}
+      {initialRouterConfig: {location: {pathname: '/', query: {caseInsensitive: '1'}}}}
     );
-    expect(caseSensitivityTrue.current[0]).toBe(true);
+    expect(caseSensitivityTrue.current[0]).toBe(1);
   });
 
   it('should set the case sensitivity', async () => {
@@ -33,10 +33,10 @@ describe('useCaseSensitivity', () => {
 
     const [, setCaseSensitivity] = result.current;
 
-    await act(() => setCaseSensitivity(true));
-    await waitFor(() => expect(router.location.query.caseInsensitive).toBe('true'));
+    await act(() => setCaseSensitivity(1));
+    await waitFor(() => expect(router.location.query.caseInsensitive).toBe('1'));
 
-    await act(() => setCaseSensitivity(false));
-    await waitFor(() => expect(router.location.query.caseInsensitive).toBe('false'));
+    await act(() => setCaseSensitivity(null));
+    await waitFor(() => expect(router.location.query.caseInsensitive).toBeUndefined());
   });
 });
