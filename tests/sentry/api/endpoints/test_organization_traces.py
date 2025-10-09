@@ -657,7 +657,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             "field": ["id", "parent_span", "span.duration"],
             "query": "",
             "maxSpansPerTrace": 3,
-            "caseInsensitive": True,
+            "caseInsensitive": 1,
         }
 
         response = self.do_request(query)

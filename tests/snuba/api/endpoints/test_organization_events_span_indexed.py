@@ -1241,7 +1241,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "project": self.project.id,
                 "dataset": "spans",
                 "statsPeriod": "1h",
-                "caseInsensitive": True,
+                "caseInsensitive": 1,
             }
         )
         assert response.status_code == 200, response.content
@@ -1308,7 +1308,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "project": self.project.id,
                 "dataset": "spans",
                 "statsPeriod": "1h",
-                "caseInsensitive": True,
+                "caseInsensitive": 1,
             }
         )
         assert response.status_code == 200, response.content
