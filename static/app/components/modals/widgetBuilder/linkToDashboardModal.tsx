@@ -11,16 +11,11 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import useApi from 'sentry/utils/useApi';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {
-  DashboardCreateLimitWrapper,
-  type DashboardCreateLimitWrapperResult,
-} from 'sentry/views/dashboards/createLimitWrapper';
+import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
 import {MAX_WIDGETS} from 'sentry/views/dashboards/types';
-import {getSavedPageFilters} from 'sentry/views/dashboards/utils';
 import {NEW_DASHBOARD_ID} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 export type LinkToDashboardModalProps = {
@@ -33,12 +28,9 @@ const SELECT_DASHBOARD_MESSAGE = t('Select a dashboard');
 
 export function LinkToDashboardModal({Header, Body, Footer, closeModal}: Props) {
   const api = useApi();
-  const navigate = useNavigate();
   const organization = useOrganization();
   const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
-  const [selectedDashboard, setSelectedDashboard] = useState<DashboardDetails | null>(
-    null
-  );
+  const [_, setSelectedDashboard] = useState<DashboardDetails | null>(null);
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
 
   const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
@@ -124,20 +116,9 @@ export function LinkToDashboardModal({Header, Body, Footer, closeModal}: Props) 
     [currentDashboardId, dashboards]
   );
 
-  function goToDashboard() {
-    const dashboardsPath =
-      selectedDashboardId === NEW_DASHBOARD_ID
-        ? `/organizations/${organization.slug}/dashboards/new/`
-        : `/organizations/${organization.slug}/dashboard/${selectedDashboardId}/`;
-
-    const pathname = dashboardsPath;
-
-    navigate({
-      pathname,
-      query: {
-        ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
-      },
-    });
+  function linkToDashboard() {
+    // TODO: Update the local state of the widget to include the links
+    // When the user clicks `save widget` we should update the dashboard widget link on the backend
     closeModal();
   }
 
@@ -170,7 +151,7 @@ export function LinkToDashboardModal({Header, Body, Footer, closeModal}: Props) 
           <Button
             disabled={!canSubmit}
             title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
-            onClick={() => goToDashboard()}
+            onClick={() => linkToDashboard()}
             aria-label={t('Link to dashboard')}
           >
             {t('Link to dashboard')}
