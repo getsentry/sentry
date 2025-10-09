@@ -59,6 +59,7 @@ export function GroupBySelector({metricName}: GroupBySelectorProps) {
   return (
     <CompactSelect<string>
       multiple
+      searchable
       options={enabledOptions}
       value={[...groupBys]}
       disabled={isLoading || enabledOptions.length === 0}
