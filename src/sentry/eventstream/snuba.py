@@ -1,20 +1,18 @@
 from __future__ import annotations
 
 import logging
-import random
 from collections.abc import Collection, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 import urllib3
-from google.protobuf.timestamp_pb2 import Timestamp
-from sentry_protos.snuba.v1.request_common_pb2 import TRACE_ITEM_TYPE_OCCURRENCE
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry import options, quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.eventstream.base import EventStream, GroupStates
+from sentry.eventstream.item_helpers import serialize_event_data_as_item
 from sentry.eventstream.types import EventStreamEventType
 from sentry.models.project import Project
 from sentry.services.eventstore.models import GroupEvent
@@ -214,27 +212,10 @@ class SnubaProtocolEventStream(EventStream):
         )
 
         if options.get("eventstream.eap_forwarding"):
-            self._forward_event_to_items(event_data, event_type, project)
-
-    def _serialize_event_data_as_item(
-        self, event_data: Mapping[str, Any], project: Project
-    ) -> TraceItem:
-        return TraceItem(
-            item_id=event_data["event_id"].encode("utf-8"),
-            item_type=TRACE_ITEM_TYPE_OCCURRENCE,
-            trace_id=event_data["contexts"]["trace"]["trace_id"],
-            timestamp=Timestamp(seconds=int(event_data["timestamp"])),
-            organization_id=project.organization_id,
-            project_id=project.id,
-            received=(
-                Timestamp(seconds=int(event_data["received"])) if "received" in event_data else None
-            ),
-            retention_days=event_data.get("retention_days", 90),
-            attributes={"hardcoded_attribute_1": AnyValue(int_value=random.randint(0, 100))},
-        )
+            self._forward_event_to_items(event, event_data, event_type, project)
 
     def _missing_required_item_fields(self, event_data: Mapping[str, Any]) -> list[str]:
-        root_level_fields = ["event_id", "timestamp", "tags"]
+        root_level_fields = ["event_id", "timestamp"]
         missing_fields = [field for field in root_level_fields if field not in event_data]
         trace_id = event_data.get("contexts", {}).get("trace", {}).get("trace_id", None)
         if trace_id is None:
@@ -243,7 +224,11 @@ class SnubaProtocolEventStream(EventStream):
         return missing_fields
 
     def _forward_event_to_items(
-        self, event_data: Mapping[str, Any], event_type: EventStreamEventType, project: Project
+        self,
+        event: Event | GroupEvent,
+        event_data: Mapping[str, Any],
+        event_type: EventStreamEventType,
+        project: Project,
     ) -> None:
         if not (
             event_type == EventStreamEventType.Error or event_type == EventStreamEventType.Generic
@@ -257,7 +242,7 @@ class SnubaProtocolEventStream(EventStream):
             )
             return
 
-        self._send_item(self._serialize_event_data_as_item(event_data, project))
+        self._send_item(serialize_event_data_as_item(event, event_data, project))
 
     def start_delete_groups(self, project_id: int, group_ids: Sequence[int]) -> Mapping[str, Any]:
         if not group_ids:
