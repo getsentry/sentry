@@ -74,17 +74,44 @@ class PathMappingSerializer(CamelSnakeSerializer[dict[str, str]]):
 
         self.integration = matching_integrations[0]
 
-        # now find the matching repo
+        self.repo = self._get_or_create_repo(source_url, repo_match)
+        return source_url
+
+    def _get_or_create_repo(
+        self, source_url: str, repo_match: callable[[Repository], bool]
+    ) -> Repository:
+        """Return an existing matching repository or create one automatically.
+
+        The creation step is useful for first-time users saving a code mapping
+        for a repository that Sentry hasn't seen yet.
+        """
+
+        # Search existing repositories for a match.
         repos = Repository.objects.filter(
             organization_id=self.org_id, integration_id=self.integration.id, url__isnull=False
         )
         matching_repos = list(filter(repo_match, repos))
-        if not matching_repos:
-            raise serializers.ValidationError("Could not find repo")
 
-        # store the repo we found
-        self.repo = matching_repos[0]
-        return source_url
+        if matching_repos:
+            return matching_repos[0]
+
+        # Build repository details from the source URL.
+        repo_url_base = source_url.split("/blob/")[0]
+        parsed_url = urlparse(repo_url_base)
+        repo_name = parsed_url.path.lstrip("/")
+        provider_key = f"integrations:{self.integration.provider}"
+
+        # Create the repository if it doesn't exist.
+        repo, _created = Repository.objects.get_or_create(
+            organization_id=self.org_id,
+            name=repo_name,
+            defaults={
+                "url": repo_url_base,
+                "provider": provider_key,
+                "integration_id": self.integration.id,
+            },
+        )
+        return repo
 
 
 class ProjectRepoPathParsingEndpointLoosePermission(ProjectPermission):
