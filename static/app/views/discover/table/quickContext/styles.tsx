@@ -6,7 +6,8 @@ import {space} from 'sentry/styles/space';
 
 export const ContextContainer = Stack;
 
-export const ContextHeader = styled(Flex).attrs({align: 'center'})`
+export const ContextHeader = styled(Flex)`
+  align-items: center;
   margin-bottom: ${space(0.75)};
 `;
 
@@ -43,4 +44,6 @@ export const NoContextWrapper = styled('div')`
   min-width: 320px;
 `;
 
-export const ContextRow = styled(Flex).attrs({justify: 'between'})``;
+export const ContextRow = styled(Flex)`
+  justify-content: space-between;
+`;
