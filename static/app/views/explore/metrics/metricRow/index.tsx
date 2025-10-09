@@ -116,16 +116,7 @@ function MetricToolbar({
         />
         <AggregateDropdown type={currentMetricType} />
         {t('by')}
-        <GroupBySelector
-          metricName={traceMetric.name}
-          value={groupBys[0] ?? ''}
-          onChange={value => {
-            // TODO: Implement URL persistence
-            // For now, this prepares the component for future integration
-            // eslint-disable-next-line no-console
-            console.log('Selected group by:', value);
-          }}
-        />
+        <GroupBySelector metricName={traceMetric.name} />
         {t('where')}
         <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
       </Flex>
