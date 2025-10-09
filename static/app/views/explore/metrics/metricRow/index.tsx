@@ -13,12 +13,8 @@ import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {AggregateDropdown} from 'sentry/views/explore/metrics/metricRow/aggregateDropdown';
 import {GroupBySelector} from 'sentry/views/explore/metrics/metricRow/groupBySelector';
+import {useSetMetricName} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {
-  useMetricVisualize,
-  useSetMetricName,
-} from 'sentry/views/explore/metrics/metricsQueryParams';
-import {
-  useQueryParamsGroupBys,
   useQueryParamsQuery,
   useSetQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
@@ -68,9 +64,6 @@ function MetricToolbar({
   tracesItemSearchQueryBuilderProps,
   traceMetric,
 }: MetricToolbarProps) {
-  const visualize = useMetricVisualize();
-  const groupBys = useQueryParamsGroupBys();
-  const query = useQueryParamsQuery();
   const {data: metricOptionsData} = useMetricOptions();
   const setMetricName = useSetMetricName();
 
