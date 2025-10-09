@@ -100,7 +100,7 @@ function AddGiftBudgetModal({
         ) : (
           <div />
         )}
-        <Form onSubmit={onSubmit} submitLabel={'Confirm'} onCancel={closeModal}>
+        <Form onSubmit={onSubmit} submitLabel="Confirm" onCancel={closeModal}>
           {reservedBudgetOptions.map(budget => (
             <BudgetCard
               key={budget.id}

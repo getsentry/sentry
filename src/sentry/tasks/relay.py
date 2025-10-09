@@ -8,7 +8,6 @@ from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import relay_tasks
 from sentry.utils import metrics
 from sentry.utils.sdk import set_current_event_project
@@ -20,15 +19,9 @@ logger = logging.getLogger(__name__)
 # service.
 @instrumented_task(
     name="sentry.tasks.relay.build_project_config",
-    queue="relay_config",
-    soft_time_limit=25,
-    time_limit=30,  # Extra 5 seconds to remove the debounce key.
-    expires=30,  # Relay query timeout (https://github.com/getsentry/relay/blob/eba85e3130adb43208ce4547807c0aeb92e1cde2/relay-config/src/config.rs#L599)
-    taskworker_config=TaskworkerConfig(
-        namespace=relay_tasks,
-        expires=30,
-        processing_deadline_duration=30,
-    ),
+    namespace=relay_tasks,
+    expires=30,
+    processing_deadline_duration=30,
 )
 def build_project_config(public_key=None, **kwargs):
     """Build a project config and put it in the Redis cache.
@@ -201,14 +194,9 @@ def compute_projectkey_config(key):
 
 @instrumented_task(
     name="sentry.tasks.relay.invalidate_project_config",
-    queue="relay_config_bulk",
-    soft_time_limit=25 * 60,  # 25mins
-    time_limit=25 * 60 + 5,
+    namespace=relay_tasks,
+    processing_deadline_duration=25 * 60 + 5,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=relay_tasks,
-        processing_deadline_duration=25 * 60 + 5,
-    ),
 )
 def invalidate_project_config(
     organization_id=None,

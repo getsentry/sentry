@@ -7,14 +7,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   getIsAiNode,
   getTraceNodeAttribute,
 } from 'sentry/views/insights/agents/utils/aiTraceNodes';
-import {hasAgentInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
@@ -124,6 +122,19 @@ function transformPrompt(prompt: string) {
   }
 }
 
+export function hasAIInputAttribute(
+  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>,
+  attributes?: TraceItemResponseAttribute[],
+  event?: EventTransaction
+) {
+  return (
+    getTraceNodeAttribute('gen_ai.request.messages', node, event, attributes) ||
+    getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes) ||
+    getTraceNodeAttribute('ai.input_messages', node, event, attributes) ||
+    getTraceNodeAttribute('ai.prompt', node, event, attributes)
+  );
+}
+
 export function AIInputSection({
   node,
   attributes,
@@ -133,8 +144,7 @@ export function AIInputSection({
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {
-  const organization = useOrganization();
-  if (!hasAgentInsightsFeature(organization) && getIsAiNode(node)) {
+  if (!getIsAiNode(node) || !hasAIInputAttribute(node, attributes, event)) {
     return null;
   }
 

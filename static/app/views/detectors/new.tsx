@@ -12,6 +12,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {DetectorTypeForm} from 'sentry/views/detectors/components/detectorTypeForm';
+import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 interface NewDetectorFormData {
@@ -54,7 +55,7 @@ export default function DetectorNew() {
       navigate({
         pathname: `${makeMonitorBasePathname(organization.slug)}new/settings/`,
         query: {
-          detectorType: data.detectorType,
+          detectorType: location.query.detectorType as DetectorType,
           project: data.project,
         },
       });
@@ -74,6 +75,7 @@ export default function DetectorNew() {
           <NewDetectorBreadcrumbs />
           <EditLayout.Title title={newMonitorName} />
         </EditLayout.HeaderContent>
+        <MonitorFeedbackButton />
       </EditLayout.Header>
 
       <EditLayout.Body>

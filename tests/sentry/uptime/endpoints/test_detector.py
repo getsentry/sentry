@@ -3,7 +3,7 @@ from rest_framework import status
 
 from sentry.testutils.cases import APITestCase
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_uptime_subscription
+from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.workflow_engine.models import Detector
 
@@ -54,7 +54,6 @@ class UptimeDetectorBaseTest(APITestCase):
             headers=[],
             body=None,
             trace_sampling=False,
-            uptime_status=UptimeStatus.OK,
         )
 
         self.detector = self.create_uptime_detector(
@@ -225,3 +224,23 @@ class OrganizationDetectorIndexPostTest(APITestCase):
         assert created_sub.headers == [["key", "value"]]
         assert created_sub.body == "<html/>"
         assert created_sub.trace_sampling is True
+
+    def test_create_detector_missing_config_property(self):
+        invalid_data = _get_valid_data(
+            self.project.id,
+            self.environment.name,
+            config={
+                "environment": self.environment.name,
+                "mode": UptimeMonitorMode.MANUAL.value,
+                "recovery_threshold": 1,
+            },
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            **invalid_data,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        assert "config" in response.data
+        assert "downtime_threshold" in str(response.data["config"])

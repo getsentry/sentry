@@ -475,7 +475,6 @@ class Referrer(StrEnum):
     API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
     API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
     API_PROFILING_LANDING_FUNCTIONS_CARD = "api.profiling.landing-functions-card"
-    API_PROFILING_PERFORMANCE_CHANGE_EXPLORER = "api.profiling.performance-change-explorer"
     API_PROFILING_PROFILE_HAS_CHUNKS = "api.profiling.profile-has-chunks"
     API_PROFILING_PROFILE_SUMMARY_CHART = "api.profiling.profile-summary-chart"
     API_PROFILING_PROFILE_SUMMARY_TOTALS = "api.profiling.profile-summary-totals"
@@ -549,6 +548,8 @@ class Referrer(StrEnum):
     API_SPANS_FREQUENCY_STATS_RPC = "api.spans.fields-stats.rpc"
     API_SPANS_TAG_VALUES_RPC = "api.spans.tags-values.rpc"
     API_SPANS_TRACE_VIEW = "api.spans.trace-view"
+    API_TRACE_METRICS_TAG_KEYS_RPC = "api.tracemetrics.tags-keys.rpc"
+    API_TRACE_METRICS_TAG_VALUES_RPC = "api.tracemetrics.tags-values.rpc"
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
@@ -644,6 +645,8 @@ class Referrer(StrEnum):
     GETSENTRY_PROMOTION_MOBILE_PERFORMANCE_ADOPTION_CHECK_ELIGIBLE = (
         "getsentry.promotion.mobile_performance_adoption.check_eligible"
     )
+    GETSENTRY_EXPORT_SPANS_GET_TRACES = "getsentry.export.spans.get_traces"
+    GETSENTRY_EXPORT_SPANS_GET_ITEM_DETAILS = "getsentry.export.spans.get_item_details"
     GITHUB_PR_COMMENT_BOT = "tasks.github_comment"
     GITLAB_PR_COMMENT_BOT = "tasks.gitlab_comment"
     GROUP_FILTER_BY_EVENT_ID = "group.filter_by_event_id"
@@ -750,6 +753,7 @@ class Referrer(StrEnum):
     REPLAYS_FILE_REFERRER = "replays.query.download_replay_segments"
     REPLAYS_SCRIPTS_DELETE_REPLAYS = "replays.scripts.delete_replays"
     FEEDBACKS_LABEL_QUERY = "feedbacks.label_query"
+    EU_DATA_EXPORT = "sentry.internal.eu-compliance-data-export"
     REPORTS_KEY_ERRORS = "reports.key_errors"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
     REPORTS_KEY_TRANSACTIONS_P95 = "reports.key_transactions.p95"

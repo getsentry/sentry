@@ -2,7 +2,7 @@ import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -81,22 +81,22 @@ export function FullSpanDescription({
 
       return (
         <QueryClippedBox group={group}>
-          <CodeSnippet language="json">{stringifiedQuery}</CodeSnippet>
+          <CodeBlock language="json">{stringifiedQuery}</CodeBlock>
         </QueryClippedBox>
       );
     }
 
     return (
       <QueryClippedBox group={group}>
-        <CodeSnippet language="sql">
+        <CodeBlock language="sql">
           {formatter.toString(description, {maxLineLength: LINE_LENGTH})}
-        </CodeSnippet>
+        </CodeBlock>
       </QueryClippedBox>
     );
   }
 
   if (moduleName === ModuleName.RESOURCE) {
-    return <CodeSnippet language="http">{description}</CodeSnippet>;
+    return <CodeBlock language="http">{description}</CodeBlock>;
   }
 
   return <Fragment>{description}</Fragment>;

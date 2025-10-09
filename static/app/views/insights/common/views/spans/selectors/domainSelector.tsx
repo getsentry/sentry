@@ -167,7 +167,7 @@ export function DomainSelector({
       loading={isPending}
       searchable
       menuTitle={domainAlias}
-      maxMenuWidth={'500px'}
+      maxMenuWidth="500px"
       data-test-id="domain-selector"
       onSearch={newValue => {
         if (!wasSearchSpaceExhausted) {

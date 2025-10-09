@@ -25,6 +25,7 @@ import {
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import AutomationForm from 'sentry/views/automations/components/automationForm';
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
 import {
@@ -61,6 +62,7 @@ function AutomationBreadcrumbs() {
 }
 
 const initialData = {
+  name: 'New Automation',
   environment: null,
   frequency: 1440,
   enabled: true,
@@ -131,6 +133,7 @@ export default function AutomationNewSettings() {
               <EditableAutomationName />
             </Layout.Title>
           </Layout.HeaderContent>
+          <AutomationFeedbackButton />
         </StyledLayoutHeader>
         <Layout.Body>
           <Layout.Main fullWidth>

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import logging
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from django.db.models.query import QuerySet
 
+from sentry import features
 from sentry.integrations.mixins.issues import where_should_sync
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.project_management.metrics import (
     ProjectManagementActionType,
@@ -14,17 +17,34 @@ from sentry.integrations.project_management.metrics import (
 )
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.tasks.sync_assignee_outbound import sync_assignee_outbound
+from sentry.integrations.types import EXTERNAL_PROVIDERS_REVERSE, ExternalProviderEnum
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.silo.base import region_silo_function
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
     from sentry.integrations.services.integration import RpcIntegration
 
 
-def get_user_id(projects_by_user: dict[int, set[int]], group: Group) -> int | None:
+class AssigneeInboundSyncMethod(StrEnum):
+    EMAIL = "email"
+    EXTERNAL_ACTOR = "external_actor"
+
+
+def should_sync_assignee_inbound(
+    organization: Organization | RpcOrganization, provider: str
+) -> bool:
+    if provider == "github":
+        return features.has("organizations:integrations-github-inbound-assignee-sync", organization)
+    return True
+
+
+def _get_user_id(projects_by_user: dict[int, set[int]], group: Group) -> int | None:
     user_ids = [
         user_id
         for user_id, project_ids in projects_by_user.items()
@@ -34,6 +54,109 @@ def get_user_id(projects_by_user: dict[int, set[int]], group: Group) -> int | No
     if not user_ids:
         return None
     return user_ids[0]
+
+
+def _get_affected_groups(
+    integration: RpcIntegration | Integration, external_issue_key: str | None
+) -> QuerySet[Group]:
+    orgs_with_sync_enabled = where_should_sync(integration, "inbound_assignee")
+    return Group.objects.get_groups_by_external_issue(
+        integration,
+        orgs_with_sync_enabled,
+        external_issue_key,
+    )
+
+
+def _handle_deassign(
+    groups: QuerySet[Group], integration: RpcIntegration | Integration
+) -> QuerySet[Group]:
+    for group in groups:
+        if not should_sync_assignee_inbound(group.organization, integration.provider):
+            continue
+
+        GroupAssignee.objects.deassign(
+            group,
+            assignment_source=AssignmentSource.from_integration(integration),
+        )
+    return groups
+
+
+def _handle_assign(
+    affected_groups: QuerySet[Group],
+    integration: RpcIntegration | Integration,
+    users: list[RpcUser],
+) -> list[Group]:
+
+    groups_assigned: list[Group] = []
+
+    users_by_id = {user.id: user for user in users}
+    projects_by_user = Project.objects.get_by_users(users)
+
+    for group in affected_groups:
+        if not should_sync_assignee_inbound(group.organization, integration.provider):
+            continue
+
+        user_id = _get_user_id(projects_by_user, group)
+        user = users_by_id.get(user_id) if user_id is not None else None
+        if user:
+            GroupAssignee.objects.assign(
+                group,
+                user,
+                assignment_source=AssignmentSource.from_integration(integration),
+            )
+            groups_assigned.append(group)
+
+    return groups_assigned
+
+
+@region_silo_function
+def sync_group_assignee_inbound_by_external_actor(
+    integration: RpcIntegration | Integration,
+    external_user_name: str,
+    external_issue_key: str | None,
+    assign: bool = True,
+) -> QuerySet[Group] | list[Group]:
+
+    logger = logging.getLogger(f"sentry.integrations.{integration.provider}")
+
+    with ProjectManagementEvent(
+        action_type=ProjectManagementActionType.INBOUND_ASSIGNMENT_SYNC, integration=integration
+    ).capture() as lifecycle:
+        affected_groups = _get_affected_groups(integration, external_issue_key)
+        log_context = {
+            "integration_id": integration.id,
+            "external_user_name": external_user_name,
+            "issue_key": external_issue_key,
+            "method": AssigneeInboundSyncMethod.EXTERNAL_ACTOR.value,
+        }
+
+        if not affected_groups:
+            logger.info("no-affected-groups", extra=log_context)
+            return []
+
+        if not assign:
+            return _handle_deassign(affected_groups, integration)
+
+        external_actors = ExternalActor.objects.filter(
+            provider=EXTERNAL_PROVIDERS_REVERSE[ExternalProviderEnum(integration.provider)].value,
+            external_name=external_user_name,
+            integration_id=integration.id,
+            user_id__isnull=False,
+        ).values_list("user_id", flat=True)
+
+        user_ids = [
+            external_actor for external_actor in external_actors if external_actor is not None
+        ]
+        users = user_service.get_many_by_id(ids=user_ids)
+
+        groups_assigned = _handle_assign(affected_groups, integration, users)
+
+        if len(groups_assigned) != len(affected_groups):
+            lifecycle.record_halt(
+                ProjectManagementHaltReason.SYNC_INBOUND_ASSIGNEE_NOT_FOUND, extra=log_context
+            )
+
+        return groups_assigned
 
 
 @region_silo_function
@@ -54,53 +177,25 @@ def sync_group_assignee_inbound(
     with ProjectManagementEvent(
         action_type=ProjectManagementActionType.INBOUND_ASSIGNMENT_SYNC, integration=integration
     ).capture() as lifecycle:
-        orgs_with_sync_enabled = where_should_sync(integration, "inbound_assignee")
-        affected_groups = Group.objects.get_groups_by_external_issue(
-            integration,
-            orgs_with_sync_enabled,
-            external_issue_key,
-        )
+        affected_groups = _get_affected_groups(integration, external_issue_key)
         log_context = {
             "integration_id": integration.id,
             "email": email,
             "issue_key": external_issue_key,
+            "method": AssigneeInboundSyncMethod.EMAIL.value,
         }
         if not affected_groups:
             logger.info("no-affected-groups", extra=log_context)
             return []
 
         if not assign:
-            for group in affected_groups:
-                # XXX: Pass an acting user and make the acting_user mandatory
-                GroupAssignee.objects.deassign(
-                    group,
-                    assignment_source=AssignmentSource.from_integration(integration),
-                )
-
-            return affected_groups
+            return _handle_deassign(affected_groups, integration)
 
         users = user_service.get_many_by_email(emails=[email], is_verified=True)
-        users_by_id = {user.id: user for user in users}
-        projects_by_user = Project.objects.get_by_users(users)
 
-        groups_assigned = []
+        groups_assigned = _handle_assign(affected_groups, integration, users)
 
-        assignee_not_found = False
-
-        for group in affected_groups:
-            user_id = get_user_id(projects_by_user, group)
-            user = users_by_id.get(user_id) if user_id is not None else None
-            if user:
-                GroupAssignee.objects.assign(
-                    group,
-                    user,
-                    assignment_source=AssignmentSource.from_integration(integration),
-                )
-                groups_assigned.append(group)
-            else:
-                assignee_not_found = True
-
-        if assignee_not_found:
+        if len(groups_assigned) != len(affected_groups):
             lifecycle.record_halt(
                 ProjectManagementHaltReason.SYNC_INBOUND_ASSIGNEE_NOT_FOUND, extra=log_context
             )

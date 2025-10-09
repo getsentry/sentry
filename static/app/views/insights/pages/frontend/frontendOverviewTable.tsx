@@ -8,6 +8,7 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEd
 import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -159,7 +160,6 @@ export function FrontendOverviewTable({displayPerfScore, response, sort}: Props)
   };
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: [...COLUMN_ORDER],
-    location,
   });
 
   let filteredColumns = [...columns];
@@ -175,33 +175,42 @@ export function FrontendOverviewTable({displayPerfScore, response, sort}: Props)
       hasData={data.length > 0}
       isLoading={isLoading}
     >
-      <GridEditable
-        aria-label={t('Domains')}
-        isLoading={isLoading}
-        error={response.error}
-        data={data}
-        columnOrder={filteredColumns}
-        columnSortBy={[
-          {
-            key: sort.field,
-            order: sort.kind,
-          },
-        ]}
-        grid={{
-          prependColumnWidths: ['max-content'],
-          renderPrependColumns,
-          renderHeadCell: column =>
-            renderHeadCell({
-              column,
-              sort,
-              location,
-            }),
-          renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization, theme),
-          onResizeColumn: handleResizeColumn,
-        }}
-      />
-      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      <DemoTourElement
+        id={DemoTourStep.PERFORMANCE_TABLE}
+        title={t('See slow transactions')}
+        description={t(
+          `Trace slow-loading pages back to their API calls, as well as, related errors and users impacted across projects.
+      Select a transaction to see more details.`
+        )}
+      >
+        <GridEditable
+          aria-label={t('Domains')}
+          isLoading={isLoading}
+          error={response.error}
+          data={data}
+          columnOrder={filteredColumns}
+          columnSortBy={[
+            {
+              key: sort.field,
+              order: sort.kind,
+            },
+          ]}
+          grid={{
+            prependColumnWidths: ['max-content'],
+            renderPrependColumns,
+            renderHeadCell: column =>
+              renderHeadCell({
+                column,
+                sort,
+                location,
+              }),
+            renderBodyCell: (column, row) =>
+              renderBodyCell(column, row, meta, location, organization, theme),
+            onResizeColumn: handleResizeColumn,
+          }}
+        />
+        <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      </DemoTourElement>
     </VisuallyCompleteWithData>
   );
 }

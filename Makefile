@@ -173,7 +173,7 @@ test-tools:
 	@echo ""
 
 # JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.
-# Running Locally: Run `sentry devservices up kafka` before starting these tests
+# Running Locally: Run `devservices up` before starting these tests
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
 	python3 -b -m pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml" --junit-xml=.artifacts/symbolicator.junit.xml -o junit_suite_name=symbolicator

@@ -1,6 +1,8 @@
 import {Fragment, useState} from 'react';
 
+import {Alert} from 'sentry/components/core/alert';
 import {Flex} from 'sentry/components/core/layout';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -21,11 +23,16 @@ function AddBillingInformation({
 }: CheckoutV3StepProps) {
   const [isOpen, setIsOpen] = useState(true);
   const location = useLocation();
-  const {data: billingDetails} = useBillingDetails();
+  const {
+    data: billingDetails,
+    isLoading: billingDetailsLoading,
+    error: billingDetailsError,
+  } = useBillingDetails();
   const showEditBillingInfo = hasBillingInfo(billingDetails, subscription, false);
 
   return (
     <Flex direction="column" gap="xl">
+      {billingDetailsError && <Alert type="error">{billingDetailsError.message}</Alert>}
       <StepHeader
         isActive
         isCompleted={false}
@@ -40,25 +47,30 @@ function AddBillingInformation({
         }
         isNewCheckout
       />
-      {isOpen && (
-        <Fragment>
-          <BillingDetailsPanel
-            organization={organization}
-            subscription={subscription}
-            isNewBillingUI
-            analyticsEvent="checkout.updated_billing_details"
-          />
-          <CreditCardPanel
-            organization={organization}
-            subscription={subscription}
-            isNewBillingUI
-            location={location}
-            ftcLocation={FTCConsentLocation.CHECKOUT}
-            budgetTerm={activePlan.budgetTerm}
-            analyticsEvent="checkout.updated_cc"
-          />
-        </Fragment>
-      )}
+      {isOpen &&
+        (billingDetailsLoading ? (
+          <LoadingIndicator />
+        ) : (
+          <Fragment>
+            <BillingDetailsPanel
+              organization={organization}
+              subscription={subscription}
+              isNewBillingUI
+              analyticsEvent="checkout.updated_billing_details"
+              shouldExpandInitially
+            />
+            <CreditCardPanel
+              organization={organization}
+              subscription={subscription}
+              isNewBillingUI
+              location={location}
+              ftcLocation={FTCConsentLocation.CHECKOUT}
+              budgetTerm={activePlan.budgetTerm}
+              analyticsEvent="checkout.updated_cc"
+              shouldExpandInitially
+            />
+          </Fragment>
+        ))}
     </Flex>
   );
 }

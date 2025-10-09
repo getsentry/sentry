@@ -6,14 +6,12 @@ import {Link} from 'sentry/components/core/link';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import useMailboxCounts from 'sentry/components/feedback/list/useMailboxCounts';
+import type {Mailbox} from 'sentry/components/feedback/useMailbox';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import useOrganization from 'sentry/utils/useOrganization';
-
-type Mailbox = ReturnType<typeof decodeMailbox>;
 
 interface Props {
   onChange: (next: Mailbox) => void;

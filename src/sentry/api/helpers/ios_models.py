@@ -60,8 +60,11 @@ APPLEWATCHSERIES7 = "Apple Watch Series 7"
 APPLEWATCHSERIES8 = "Apple Watch Series 8"
 APPLEWATCHSERIES9 = "Apple Watch Series 9"
 APPLEWATCHSERIES10 = "Apple Watch Series 10"
+APPLEWATCHSERIES11 = "Apple Watch Series 11"
+
 APPLEWATCHSE1 = "Apple Watch SE (1st gen)"
 APPLEWATCHSE2 = "Apple Watch SE (2nd gen)"
+APPLEWATCHSE3 = "Apple Watch SE (3rd gen)"
 
 APPLETVGEN1 = "Apple TV (1st gen)"
 APPLETVGEN2 = "Apple TV (2nd gen)"
@@ -128,6 +131,10 @@ IOS_MODELS: dict[str, str] = {
     "iPhone17,3": "iPhone 16",
     "iPhone17,4": "iPhone 16 Plus",
     "iPhone17,5": "iPhone 16e",
+    "iPhone18,1": "iPhone 17 Pro",
+    "iPhone18,2": "iPhone 17 Pro Max",
+    "iPhone18,3": "iPhone 17",
+    "iPhone18,4": "iPhone Air",
     # iPod Touch
     "iPod1,1": "iPod touch (1st gen)",
     "iPod2,1": "iPod touch (2nd gen)",
@@ -266,6 +273,10 @@ IOS_MODELS: dict[str, str] = {
     "Watch7,9": APPLEWATCHSERIES10,
     "Watch7,10": APPLEWATCHSERIES10,
     "Watch7,11": APPLEWATCHSERIES10,
+    "Watch7,17": APPLEWATCHSERIES11,
+    "Watch7,18": APPLEWATCHSERIES11,
+    "Watch7,19": APPLEWATCHSERIES11,
+    "Watch7,20": APPLEWATCHSERIES11,
     # Apple Watch SE
     "Watch5,9": APPLEWATCHSE1,
     "Watch5,10": APPLEWATCHSE1,
@@ -275,9 +286,14 @@ IOS_MODELS: dict[str, str] = {
     "Watch6,11": APPLEWATCHSE2,
     "Watch6,12": APPLEWATCHSE2,
     "Watch6,13": APPLEWATCHSE2,
+    "Watch7,13": APPLEWATCHSE3,
+    "Watch7,14": APPLEWATCHSE3,
+    "Watch7,15": APPLEWATCHSE3,
+    "Watch7,16": APPLEWATCHSE3,
     # Apple Watch Ultra
     "Watch6,18": "Apple Watch Ultra (1st gen)",
     "Watch7,5": "Apple Watch Ultra (2nd gen)",
+    "Watch7,12": "Apple Watch Ultra (3rd gen)",
     # Apple TV
     "AppleTV1,1": "Apple TV (1st gen)",
     "AppleTV2,1": "Apple TV (2nd gen)",
