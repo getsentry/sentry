@@ -224,7 +224,7 @@ function ReleaseCard({
         {/* projects is the table */}
         <ReleaseProjectsHeader lightText>
           <ReleaseProjectsLayout showReleaseAdoptionStages={showReleaseAdoptionStages}>
-            <ReleaseProjectColumn>{t('Project Name')}</ReleaseProjectColumn>
+            <ReleaseProjectColumn>{t('Project Slug')}</ReleaseProjectColumn>
             {showReleaseAdoptionStages && (
               <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
             )}
