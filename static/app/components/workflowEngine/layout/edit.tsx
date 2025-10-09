@@ -1,14 +1,12 @@
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text/text';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {HeaderActions} from 'sentry/components/layouts/thirds';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
-import {
-  StickyFooter,
-  StickyFooterLabel,
-} from 'sentry/components/workflowEngine/ui/footer';
+import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {space} from 'sentry/styles/space';
 import type {AvatarProject} from 'sentry/types/project';
 
@@ -34,6 +32,7 @@ function EditLayout({children, formProps}: WorkflowEngineEditLayoutProps) {
 
 const StyledPage = styled(Layout.Page)`
   background: ${p => p.theme.background};
+  flex: unset;
 `;
 
 const StyledLayoutHeader = styled(Layout.Header)`
@@ -105,7 +104,7 @@ interface FooterProps extends RequiredChildren {
 function Footer({children, label}: FooterProps) {
   return (
     <StickyFooter>
-      {label && <StickyFooterLabel>{label}</StickyFooterLabel>}
+      {label && <Text size="md">{label}</Text>}
       <Flex gap="md" flex={label ? undefined : 1} justify="end">
         {children}
       </Flex>

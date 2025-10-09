@@ -4,12 +4,10 @@ import styled from '@emotion/styled';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text/text';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {
-  StickyFooter,
-  StickyFooterLabel,
-} from 'sentry/components/workflowEngine/ui/footer';
+import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -81,7 +79,7 @@ export default function AutomationNew() {
         </Layout.Body>
       </Layout.Page>
       <StickyFooter>
-        <StickyFooterLabel>{t('Step 1 of 2')}</StickyFooterLabel>
+        <Text size="md">{t('Step 1 of 2')}</Text>
         <Flex gap="md">
           <LinkButton
             priority="default"

@@ -1,27 +1,34 @@
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
+import {useIsStuck} from 'sentry/utils/useIsStuck';
 
-export const StickyFooter = styled('div')`
+const StickyFooterBase = styled('div')`
   position: sticky;
   margin-top: auto;
-  margin-bottom: -56px;
   bottom: 0;
   right: 0;
   width: 100%;
-  padding: ${space(2)} ${space(4)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
   background: ${p => p.theme.background};
   border-top: 1px solid ${p => p.theme.translucentGray200};
-  box-shadow: ${p => p.theme.dropShadowHeavyTop};
+  box-shadow: none;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
+  gap: ${p => p.theme.space.lg};
   z-index: ${p => p.theme.zIndex.initial};
+
+  &[data-stuck] {
+    box-shadow: ${p => p.theme.dropShadowHeavyTop};
+  }
 `;
 
-export const StickyFooterLabel = styled('p')`
-  margin: 0;
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.textColor};
-`;
+export function StickyFooter(props: React.ComponentProps<'div'>) {
+  const ref = useRef<HTMLDivElement>(null);
+  // Use a bottom-focused rootMargin so the hook reports stuck when pinned at bottom.
+  const isStuck = useIsStuck(ref.current, {position: 'bottom'});
+  return (
+    <StickyFooterBase ref={ref} data-stuck={isStuck ? 'true' : undefined} {...props} />
+  );
+}
