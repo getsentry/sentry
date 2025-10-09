@@ -209,22 +209,19 @@ class RepoTreesIntegration(ABC):
                 repo_files = [x["path"] for x in tree if x["type"] == "blob"]
                 if only_source_code_files:
                     repo_files = filter_source_code_files(files=repo_files)
-                # The backend's caching will skip silently if the object size is greater than 5 MB.
-                # The trees API does not return structures larger than 7 MB. As an example, all file
-                # paths in Sentry total about 1.3 MB. For larger customers this may be bigger, but
-                # the penalty for skipping the cache is just a single API request, which is acceptable.
+                # The backend's caching will skip silently if the object size greater than 5MB
+                # The trees API does not return structures larger than 7MB
+                # As an example, all file paths in Sentry is about 1.3MB
+                # Larger customers may have larger repositories, however,
+                # the cost of not having cached the files cached for those
+                # repositories is a single API network request, thus,
+                # being acceptable to sometimes not having everything cached
                 cache.set(key, repo_files, self.CACHE_SECONDS + shifted_seconds)
+                metrics.incr("integrations.source_code_management.get_repo_files.cache_set")
 
-        # Emit Datadog metric once per invocation to capture source of truth.
-        # Examples:
-        #   integrations.source_code_management.get_tree_source{source:"cache"} 1
-        #   integrations.source_code_management.get_tree_source{source:"api"} 1
         metrics.incr(
-            "integrations.source_code_management.get_tree_source",
-            tags={
-                "source": source,
-                "integration": self.integration_name,
-            },
+            "integrations.source_code_management.get_repo_files",
+            tags={"source": source},
         )
 
         return repo_files
