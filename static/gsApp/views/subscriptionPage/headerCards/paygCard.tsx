@@ -18,10 +18,11 @@ import useApi from 'sentry/utils/useApi';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {OnDemandBudgetMode, type Subscription} from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 import {
   getTotalBudget,
+  getTotalSpend,
   parseOnDemandBudgetsFromSubscription,
 } from 'getsentry/views/onDemandBudgets/utils';
 import {openSpendLimitsPricingModal} from 'getsentry/views/spendLimits/modal';
@@ -38,6 +39,9 @@ function PaygCard({
   const theme = useTheme();
   const paygBudget = parseOnDemandBudgetsFromSubscription(subscription);
   const totalBudget = getTotalBudget(paygBudget);
+  const totalSpend = subscription.onDemandBudgets
+    ? getTotalSpend(subscription.onDemandBudgets)
+    : 0;
 
   const [isEditing, setIsEditing] = useState(false);
   const [newBudgetDollars, setNewBudgetDollars] = useState<number>(
@@ -64,9 +68,8 @@ function PaygCard({
     },
   });
 
-  const formattedTotalBudget = displayPriceWithCents({cents: totalBudget});
-  const totalSpent = subscription.onDemandSpendUsed;
-  const formattedTotalSpent = displayPriceWithCents({cents: totalSpent});
+  const formattedTotalBudget = displayPrice({cents: totalBudget});
+  const formattedTotalSpend = displayPrice({cents: totalSpend});
   const daysLeft =
     -1 *
     getDaysSinceDate(
@@ -94,6 +97,10 @@ function PaygCard({
                 )}
                 <Currency>
                   <StyledInput
+                    aria-label={t(
+                      'Edit %s limit',
+                      displayBudgetName(subscription.planDetails)
+                    )}
                     size="sm"
                     type="number"
                     value={newBudgetDollars}
@@ -151,13 +158,13 @@ function PaygCard({
               </Flex>,
               <Container key="payg-budget">
                 <Text size="xl" bold>
-                  {formattedTotalSpent}
+                  {formattedTotalSpend}
                 </Text>
               </Container>,
               <UsageBar
                 key="usage-bar"
                 totalBudget={totalBudget}
-                totalSpent={totalSpent}
+                totalSpend={totalSpend}
               />,
               <Flex key="subtext" justify="between" align="center" width="100%">
                 <Text size="sm" variant="muted">
@@ -179,8 +186,8 @@ function PaygCard({
   );
 }
 
-function UsageBar({totalBudget, totalSpent}: {totalBudget: number; totalSpent: number}) {
-  const percentUsed = Math.round((totalSpent / totalBudget) * 100);
+function UsageBar({totalBudget, totalSpend}: {totalBudget: number; totalSpend: number}) {
+  const percentUsed = Math.round((totalSpend / totalBudget) * 100);
 
   return <ProgressBar value={percentUsed} variant="small" />;
 }
