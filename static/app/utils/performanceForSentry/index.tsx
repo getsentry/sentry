@@ -500,46 +500,6 @@ export const addExtraMeasurements = (transaction: TransactionEvent) => {
   }
 };
 
-function addCustomMetrics(transaction: TransactionEvent) {
-  const browserTimeOrigin = browserPerformanceTimeOrigin();
-  if (!browserTimeOrigin || !transaction.start_timestamp) {
-    return;
-  }
-
-  const measurements: Record<string, Measurement> = {...transaction.measurements};
-
-  const ttfb = Object.entries(measurements).find(([key]) =>
-    key.toLowerCase().includes('ttfb')
-  );
-
-  const ttfbValue = ttfb?.[1]?.value;
-
-  const context: MeasurementContext = {
-    transaction,
-    ttfb: ttfbValue,
-    browserTimeOrigin,
-    transactionStart: transaction.start_timestamp,
-    transactionOp: (transaction.contexts?.trace?.op as string) ?? 'pageload',
-  };
-
-  for (const [name, fn] of Object.entries(customMeasurements)) {
-    const measurement = fn(context);
-    if (measurement) {
-      if (
-        measurement.unit === 'millisecond' &&
-        measurement.value > MEASUREMENT_OUTLIER_VALUE
-      ) {
-        // exclude outlier measurements and don't add any of the custom measurements in case something is wrong.
-        if (transaction.tags) {
-          transaction.tags.outlier_vcd = name;
-        }
-        return;
-      }
-      Sentry.metrics.count(name, measurement.value);
-    }
-  }
-}
-
 /**
  * A util function to help create some broad buckets to group entity counts without exploding cardinality.
  *
