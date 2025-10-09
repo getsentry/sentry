@@ -644,7 +644,9 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
             changed_reason=[
                 {
-                    "orderby": ["total.count"],
+                    "orderby": [
+                        {"orderby": "total.count", "reason": "fields were dropped: total.count"}
+                    ],
                     "equations": [],
                     "columns": ["total.count"],
                 }
@@ -667,7 +669,9 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert widget["changedReason"] is not None
         assert isinstance(widget["changedReason"], list)
         assert len(widget["changedReason"]) == 1
-        assert widget["changedReason"][0]["orderby"] == ["total.count"]
+        assert widget["changedReason"][0]["orderby"] == [
+            {"orderby": "total.count", "reason": "fields were dropped: total.count"}
+        ]
         assert widget["changedReason"][0]["equations"] == []
         assert widget["changedReason"][0]["columns"] == ["total.count"]
 

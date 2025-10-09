@@ -102,7 +102,9 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             name="Test query",
             query={"fields": ["span.op"], "mode": "samples"},
             changed_reason={
-                "orderby": ["total.count"],
+                "orderby": [
+                    {"orderby": "total.count", "reason": "fields were dropped: total.count"}
+                ],
                 "equations": [],
                 "columns": ["total.count"],
             },
@@ -121,7 +123,9 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response_1.status_code == 200, response_1.content
         assert response_1.data["changedReason"] is not None
-        assert response_1.data["changedReason"]["orderby"] == ["total.count"]
+        assert response_1.data["changedReason"]["orderby"] == [
+            {"orderby": "total.count", "reason": "fields were dropped: total.count"}
+        ]
         assert response_1.data["changedReason"]["equations"] == []
         assert response_1.data["changedReason"]["columns"] == ["total.count"]
 
