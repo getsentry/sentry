@@ -13,7 +13,7 @@ type UnsupportedSDKName = (typeof UNSUPPORTED_REPLAY_LOGS_SDK_NAMES)[number];
 
 export function isLogsUnsupportedBySDK(sdkName: string | null | undefined): boolean {
   if (!sdkName) {
-    return false;
+    return true;
   }
   return UNSUPPORTED_REPLAY_LOGS_SDK_NAMES.includes(sdkName as UnsupportedSDKName);
 }
