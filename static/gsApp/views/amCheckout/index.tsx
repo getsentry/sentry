@@ -988,7 +988,7 @@ class AMCheckout extends Component<Props, State> {
 
     return this.renderParentComponent({
       children: (
-        <Flex width="100%" background="secondary" justify="center">
+        <Flex width="100%" justify="center" background="secondary">
           <SentryDocumentTitle
             title={t('Change Subscription')}
             orgSlug={organization.slug}
@@ -1011,11 +1011,12 @@ class AMCheckout extends Component<Props, State> {
           )}
           {isNewCheckout ? (
             <Flex
-              direction={{xs: 'column', lg: 'row'}}
+              direction={{xs: 'column', md: 'row'}}
               gap="xl"
               justify="center"
               width="100%"
               maxWidth="1000px"
+              align="start"
             >
               {renderCheckoutContent()}
             </Flex>
@@ -1064,16 +1065,27 @@ const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
     css`
       width: 100%;
       border-top: 1px solid ${p.theme.border};
-      background-color: ${p.theme.background};
       display: flex;
       flex-direction: column;
+      position: relative;
 
-      @media (min-width: ${p.theme.breakpoints.lg}) {
+      &:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100%;
+        background-color: ${p.theme.background};
+        z-index: 0;
+      }
+
+      @media (min-width: ${p.theme.breakpoints.md}) {
         position: sticky;
         right: 0;
         top: 0;
-        bottom: 0;
         min-height: 100vh;
+        min-width: 430px;
         max-width: 520px;
         border-top: none;
         border-left: 1px solid ${p.theme.border};
@@ -1112,6 +1124,7 @@ const OverviewContainer = styled('div')<{isNewCheckout: boolean}>`
       flex: 1;
       display: flex;
       flex-direction: column;
+      position: relative;
     `}
 `;
 

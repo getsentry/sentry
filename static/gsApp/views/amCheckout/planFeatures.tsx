@@ -293,19 +293,7 @@ function PlanFeatures({
   });
 
   return (
-    <Flex
-      background="primary"
-      padding="2xl"
-      radius="lg"
-      border="primary"
-      gap="xl"
-      direction="column"
-    >
-      <Heading as="h2">
-        {tct('What you get on the [planName] plan:', {
-          planName: <Text>{activePlan.name}</Text>,
-        })}
-      </Heading>
+    <Flex paddingTop="xl" gap="lg" direction="column">
       <Grid columns={{xs: '1fr', sm: `repeat(${planOptions.length}, 1fr)`}} gap="md xl">
         {planToFeatures.map(({plan, features, perUnitPriceDiffs}, planIndex) => {
           const planName = plan.name;
@@ -318,6 +306,7 @@ function PlanFeatures({
               key={lowerCasePlanName}
               direction="column"
               gap="md"
+              padding="0 xl"
             >
               {features.map((feature, featureIndex) => (
                 <FeatureItem
@@ -391,14 +380,4 @@ const EventPriceWarning = styled(Flex)<{isIncluded: boolean}>`
 const FeatureItemContainer = styled(Flex)<{isIncluded: boolean}>`
   color: ${p => p.theme.textColor};
   opacity: ${p => (p.isIncluded ? 1 : 0.5)};
-
-  &:after {
-    content: '';
-    display: inline;
-    min-width: ${p => p.theme.space['2xl']};
-    flex: 1;
-    height: 1px;
-    border-top: 1px dashed ${p => p.theme.border};
-    transform: translateY(${p => p.theme.space.md});
-  }
 `;
