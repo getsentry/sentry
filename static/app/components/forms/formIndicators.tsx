@@ -5,7 +5,6 @@ import {
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import type {FlexProps} from 'sentry/components/core/layout';
 import {Flex} from 'sentry/components/core/layout';
 import type FormModel from 'sentry/components/forms/model';
 import type {FieldValue} from 'sentry/components/forms/model';
@@ -158,7 +157,3 @@ const FieldName = styled('span')`
   font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0 ${space(0.5)};
 `;
-
-function MessageContainer(props: FlexProps) {
-  return;
-}

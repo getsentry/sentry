@@ -8,7 +8,6 @@ import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {FlexProps} from 'sentry/components/core/layout';
 import {Flex, Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
