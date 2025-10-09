@@ -3483,6 +3483,7 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
         project: Project | None = None,
         timestamp: datetime | None = None,
         trace_id: str | None = None,
+        attributes: dict[str, Any] | None = None,
     ) -> TraceItem:
         if organization is None:
             organization = self.organization
@@ -3505,6 +3506,10 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
             "sentry.metric_name": AnyValue(string_value=metric_name),
             "sentry.value": AnyValue(double_value=metric_value),
         }
+
+        if attributes:
+            for k, v in attributes.items():
+                attributes_proto[k] = scalar_to_any_value(v)
 
         return TraceItem(
             organization_id=organization.id,
