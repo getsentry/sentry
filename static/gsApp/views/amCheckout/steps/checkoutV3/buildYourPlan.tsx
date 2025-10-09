@@ -236,7 +236,7 @@ const SubstepTitle = styled('h2')`
 const OptionGrid = styled('div')<{columns: number}>`
   display: grid;
   grid-template-columns: 1fr;
-  column-gap: ${p => p.theme.space.xl};
+  gap: ${p => p.theme.space.lg};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: repeat(${p => p.columns}, 1fr);
