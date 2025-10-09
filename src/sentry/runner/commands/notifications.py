@@ -188,6 +188,7 @@ def send_discord(
 
     configure()
 
+    from sentry.constants import ObjectStatus
     from sentry.integrations.models.integration import Integration
     from sentry.integrations.types import IntegrationProviderSlug
     from sentry.models.organizationmapping import OrganizationMapping
@@ -216,7 +217,9 @@ def send_discord(
 
     try:
         integration = Integration.objects.get(
-            provider=IntegrationProviderSlug.DISCORD.value, name=integration_name
+            provider=IntegrationProviderSlug.DISCORD.value,
+            name=integration_name,
+            status=ObjectStatus.ACTIVE,
         )
     except Integration.DoesNotExist:
         click.echo(f"Discord integration '{integration_name}' not found!")
