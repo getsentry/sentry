@@ -20,6 +20,7 @@ import {
   OnDemandBudgetMode,
   type OnDemandBudgets,
   type Plan,
+  type Subscription,
 } from 'getsentry/types';
 import {
   displayBudgetName,
@@ -54,6 +55,7 @@ export interface SpendLimitSettingsProps {
   onDemandBudgets: OnDemandBudgets;
   onUpdate: ({onDemandBudgets}: {onDemandBudgets: OnDemandBudgets}) => void;
   organization: Organization;
+  subscription: Subscription;
   footer?: React.ReactNode;
   isOpen?: boolean;
 }
@@ -61,10 +63,11 @@ export interface SpendLimitSettingsProps {
 interface BudgetModeSettingsProps
   extends Omit<
     SpendLimitSettingsProps,
-    'header' | 'currentReserved' | 'organization' | 'addOns'
+    'header' | 'currentReserved' | 'organization' | 'addOns' | 'subscription'
   > {}
 
-interface InnerSpendLimitSettingsProps extends Omit<SpendLimitSettingsProps, 'header'> {}
+interface InnerSpendLimitSettingsProps
+  extends Omit<SpendLimitSettingsProps, 'header' | 'subscription'> {}
 
 interface SharedSpendLimitPriceTableProps
   extends Pick<
@@ -645,6 +648,7 @@ function SpendLimitSettings({
   addOns,
   footer,
   organization,
+  subscription,
 }: SpendLimitSettingsProps) {
   return (
     <Flex direction="column" gap="sm">
@@ -653,12 +657,17 @@ function SpendLimitSettings({
         <Grid gap="2xl">
           <Text variant="muted">
             {tct(
-              "[budgetTerm] lets you go beyond what's included in your plan. It applies across all products on a first-come, first-served basis, and you're only charged for what you use -- if your monthly usage stays within your plan, you won't pay extra.",
+              "[budgetTerm] lets you go beyond what's included in your plan. It applies across all products on a first-come, first-served basis, and you're only charged for what you use -- if your monthly usage stays within your plan, you won't pay extra.[partnerMessage]",
               {
                 budgetTerm:
                   activePlan.budgetTerm === 'pay-as-you-go'
                     ? `${displayBudgetName(activePlan, {title: true})} (PAYG)`
                     : displayBudgetName(activePlan, {title: true}),
+                partnerMessage: subscription.isSelfServePartner
+                  ? tct(' This will be part of your [partnerName] bill.', {
+                      partnerName: subscription.partner?.partnership.displayName,
+                    })
+                  : '',
               }
             )}
           </Text>

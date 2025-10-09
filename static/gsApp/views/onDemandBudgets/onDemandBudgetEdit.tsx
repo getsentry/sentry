@@ -356,6 +356,7 @@ class OnDemandBudgetEdit extends Component<Props> {
       <Container padding="2xl">
         <EmbeddedSpendLimitSettings
           organization={organization}
+          subscription={subscription}
           header={
             <Heading as="h2" size="xl">
               {tct('Set your [budgetTerm] limit', {
