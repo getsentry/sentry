@@ -79,11 +79,36 @@ class PathMappingSerializer(CamelSnakeSerializer[dict[str, str]]):
             organization_id=self.org_id, integration_id=self.integration.id, url__isnull=False
         )
         matching_repos = list(filter(repo_match, repos))
-        if not matching_repos:
-            raise serializers.ValidationError("Could not find repo")
 
-        # store the repo we found
-        self.repo = matching_repos[0]
+        # If no existing repository matches, automatically create one based on the
+        # integration and the provided source URL so that users do not have to
+        # create a repository manually before configuring code mappings.
+        if not matching_repos:
+            repo_url_base = source_url.split("/blob/")[0]
+
+            # Extract the "owner/repo" segment from the URL path, e.g.
+            # "https://github.com/getsentry/sentry" -> "getsentry/sentry".
+            parsed_url = urlparse(repo_url_base)
+            repo_name = parsed_url.path.lstrip("/")
+
+            # The provider string for integration-backed repositories follows the
+            # pattern "integrations:<provider_key>".
+            provider_key = f"integrations:{self.integration.provider}"
+
+            # Create (or fetch, if it was concurrently created) the repository
+            # record. Using `get_or_create` avoids race conditions.
+            self.repo, _ = Repository.objects.get_or_create(
+                organization_id=self.org_id,
+                name=repo_name,
+                defaults={
+                    "url": repo_url_base,
+                    "provider": provider_key,
+                    "integration_id": self.integration.id,
+                },
+            )
+        else:
+            # store the repo we found
+            self.repo = matching_repos[0]
         return source_url
 
 
