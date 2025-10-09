@@ -26,7 +26,7 @@ def send_cmd() -> None:
     default="error-alert-service",
 )
 @click.option("-e", "--email", help="Recipient email address", default="user@example.com")
-def send_email(source: str, target: str) -> None:
+def send_email(source: str, email: str) -> None:
     """
     Send an email notification.
     Note: Requires configuring SMTP settings in .sentry/config.yml.
@@ -59,11 +59,11 @@ def send_email(source: str, target: str) -> None:
     email_target = GenericNotificationTarget(
         provider_key=NotificationProviderKey.EMAIL,
         resource_type=NotificationTargetResourceType.EMAIL,
-        resource_id=target,
+        resource_id=email,
     )
     template_cls = template_registry.get(source)
     NotificationService(data=template_cls.example_data).notify(targets=[email_target])
-    click.echo(f"Example '{source}' email sent to {target}.")
+    click.echo(f"Example '{source}' email sent to {email}.")
 
 
 @send_cmd.command("slack")
