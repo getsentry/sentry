@@ -361,9 +361,8 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert validator.is_valid(), validator.errors
 
         detector = None
-        with self.tasks():
-            with pytest.raises(ValidationError):
-                detector = validator.save()
+        with self.tasks(), pytest.raises(ValidationError):
+            detector = validator.save()
 
         assert not detector
         assert not DataCondition.objects.filter(type=Condition.ANOMALY_DETECTION).exists()
@@ -378,9 +377,8 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         )
         assert validator.is_valid(), validator.errors
 
-        with self.tasks():
-            with pytest.raises(ValidationError):
-                detector = validator.save()
+        with self.tasks(), pytest.raises(ValidationError):
+            detector = validator.save()
 
         assert not detector
         assert not DataCondition.objects.filter(type=Condition.ANOMALY_DETECTION).exists()
