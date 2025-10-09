@@ -2,8 +2,8 @@ from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.message_builder.base.component.action_row import DiscordActionRow
 from sentry.integrations.discord.message_builder.base.component.button import (
-    DiscordButton,
     DiscordButtonStyle,
+    DiscordInteractiveButton,
 )
 from sentry.integrations.discord.message_builder.base.component.select_menu import (
     DiscordSelectMenu,
@@ -54,12 +54,12 @@ class TestDiscordMessageBuilder(TestCase):
             description="other description",
             color=LEVEL_TO_COLOR["info"],
         )
-        button = DiscordButton(
+        button = DiscordInteractiveButton(
             style=DiscordButtonStyle.PRIMARY,
             custom_id="test_button",
             label="button label",
         )
-        other_button = DiscordButton(
+        other_button = DiscordInteractiveButton(
             style=DiscordButtonStyle.DANGER,
             custom_id="danger_button",
             label="delete",

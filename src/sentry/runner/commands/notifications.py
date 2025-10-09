@@ -158,11 +158,68 @@ def send_msteams() -> None:
 
 
 @send_cmd.command("discord")
-def send_discord() -> None:
+@click.option(
+    "-s",
+    "--source",
+    help="Registered template source (see `sentry notifications list`)",
+    default="error-alert-service",
+)
+@click.option("-o", "--organization_slug", help="Organization slug", default="default")
+def send_discord(source: str, organization_slug: str) -> None:
     """
-    Send a Discord notification.
+    Send a Discord notification
+    - Requires configuring Discord default-server-id and default-channel-id in .sentry/config.yml
+    - To get a Discord channel id - follow step 6 of the metric alert instructions
+        - https://docs.sentry.io/organization/integrations/notification-incidents/discord/#metric-alerts
     """
-    click.echo("Not implemented yet!")
+    from sentry import options
+    from sentry.runner import configure
+
+    configure()
+
+    channel = options.get("discord.default-channel-id")
+    integration_name = options.get("discord.default-server-name")
+
+    from sentry.constants import ObjectStatus
+    from sentry.integrations.models.integration import Integration
+    from sentry.integrations.types import IntegrationProviderSlug
+    from sentry.models.organizationmapping import OrganizationMapping
+    from sentry.notifications.platform.registry import template_registry
+    from sentry.notifications.platform.service import NotificationService
+    from sentry.notifications.platform.target import IntegrationNotificationTarget
+    from sentry.notifications.platform.types import (
+        NotificationProviderKey,
+        NotificationTargetResourceType,
+    )
+
+    try:
+        organization_mapping = OrganizationMapping.objects.get(slug=organization_slug)
+    except OrganizationMapping.DoesNotExist:
+        click.echo(f"Organization {organization_slug} not found!")
+        return
+
+    try:
+        integration = Integration.objects.get(
+            name=integration_name,
+            provider=IntegrationProviderSlug.DISCORD,
+            status=ObjectStatus.ACTIVE,
+        )
+    except Integration.DoesNotExist:
+        click.echo(f"Integration {integration_name} not found!")
+        return
+
+    discord_target = IntegrationNotificationTarget(
+        provider_key=NotificationProviderKey.DISCORD,
+        resource_type=NotificationTargetResourceType.CHANNEL,
+        integration_id=integration.id,
+        resource_id=channel,
+        organization_id=organization_mapping.organization_id,
+    )
+
+    template_cls = template_registry.get(source)
+    NotificationService(data=template_cls.example_data).notify(targets=[discord_target])
+
+    click.echo(f"Example '{source}' discord message sent to {integration.name}.")
 
 
 @notifications.command("list")

@@ -6,8 +6,8 @@ from sentry.integrations.discord.message_builder.base.component.action_row impor
 )
 from sentry.integrations.discord.message_builder.base.component.base import DiscordMessageComponent
 from sentry.integrations.discord.message_builder.base.component.button import (
-    DiscordButton,
     DiscordButtonStyle,
+    DiscordInteractiveButton,
     DiscordLinkButton,
 )
 from sentry.testutils.cases import TestCase
@@ -23,7 +23,7 @@ class TestDiscordActionRow(TestCase):
         }
 
     def test_non_empty(self) -> None:
-        custom_button = DiscordButton(
+        custom_button = DiscordInteractiveButton(
             style=DiscordButtonStyle.PRIMARY,
             custom_id="test_button",
             label="a custom button",
