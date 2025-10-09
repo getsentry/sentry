@@ -14,6 +14,7 @@ import type {
 
 interface UseGetTraceItemAttributeKeysProps extends UseTraceItemAttributeBaseProps {
   projectIds?: Array<string | number>;
+  query?: string;
 }
 
 type TraceItemAttributeKeyOptions = Pick<
@@ -23,6 +24,7 @@ type TraceItemAttributeKeyOptions = Pick<
   attributeType: 'string' | 'number';
   itemType: TraceItemDataset;
   project?: string[];
+  query?: string;
   substringMatch?: string;
 };
 
@@ -32,17 +34,20 @@ export function makeTraceItemAttributeKeysQueryOptions({
   datetime,
   projectIds,
   search,
+  query,
 }: {
   datetime: PageFilters['datetime'];
   traceItemType: TraceItemDataset;
   type: 'string' | 'number';
   projectIds?: Array<string | number>;
+  query?: string;
   search?: string;
 }): TraceItemAttributeKeyOptions {
   const options: TraceItemAttributeKeyOptions = {
     itemType: traceItemType,
     attributeType: type,
     project: projectIds?.map(String),
+    query,
     substringMatch: search,
     ...normalizeDateTimeParams(datetime),
   };
@@ -56,6 +61,7 @@ export function useGetTraceItemAttributeKeys({
   traceItemType,
   projectIds,
   type,
+  query,
 }: UseGetTraceItemAttributeKeysProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -69,6 +75,7 @@ export function useGetTraceItemAttributeKeys({
         datetime: selection.datetime,
         projectIds: projectIds ?? selection.projects,
         search: queryString,
+        query,
       });
 
       let result: Tag[];
@@ -87,7 +94,7 @@ export function useGetTraceItemAttributeKeys({
 
       return getTraceItemTagCollection(result, type);
     },
-    [api, organization, selection, traceItemType, projectIds, type]
+    [api, organization, selection, traceItemType, projectIds, type, query]
   );
 
   return getTraceItemAttributeKeys;
