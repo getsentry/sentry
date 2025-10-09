@@ -24,6 +24,7 @@ import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetail
 import {
   AlwaysPresentLogFields,
   MAX_LOG_INGEST_DELAY,
+  MAX_LOGS_INFINITE_QUERY_PAGES,
   MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
   QUERY_PAGE_LIMIT,
   QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
@@ -566,7 +567,7 @@ export function useInfiniteLogsQuery({
     initialPageParam,
     enabled: !disabled,
     staleTime: autoRefresh ? Infinity : getStaleTimeForEventView(other.eventView),
-    maxPages: 30, // This number * the refresh interval must be more seconds than 2 * the smallest time interval in the chart for streaming to work.
+    maxPages: MAX_LOGS_INFINITE_QUERY_PAGES,
     refetchIntervalInBackground: true, // Don't refetch when tab is not visible
   });
 
@@ -589,15 +590,34 @@ export function useInfiniteLogsQuery({
     queryClient.setQueryData(
       queryKeyWithInfinite,
       (oldData: InfiniteData<ApiResult<EventsLogsResult>> | undefined) => {
-        if (highFidelity) {
-          // TODO: properly remove empty pages in high fidelity mode
-          // to avoid reaching max pages
-          return oldData;
-        }
-
         if (!oldData) {
           return oldData;
         }
+
+        if (highFidelity) {
+          // When high fidelity is enabled, the strategy for cleaning out the cached data is a little different.
+          // Each page contains the cursor to the next page so we can't just remove empty pages. Instead, we
+          // remove all empty pages excluding the first and last page. Those are always kept around.
+          // And allow react-query to pop off pages from the ends as needed once we reach max pages.
+          const keepPages = oldData.pages.map((page, index) => {
+            // always keep the first and last page
+            if (index === 0 || index === oldData.pages.length - 1) {
+              return true;
+            }
+            const [pageData] = page;
+            const pageLength = pageData.data?.length ?? 0;
+            return pageLength !== 0;
+          });
+
+          const pages = oldData.pages.filter((_, index) => keepPages[index]);
+          const pageParams = oldData.pageParams.filter((_, index) => keepPages[index]);
+
+          return {
+            pages,
+            pageParams,
+          };
+        }
+
         const pageIndexWithMostRecentTimestamp =
           getTimeBasedSortBy(sortBys)?.kind === 'asc' ? 0 : oldData.pages.length - 1;
 
@@ -727,8 +747,7 @@ export function useInfiniteLogsQuery({
     hasNextPage,
     queryKey: queryKeyWithInfinite,
     hasPreviousPage,
-    isFetchingNextPage:
-      !shouldAutoFetchNextPage && _data.length > 0 && isFetchingNextPage,
+    isFetchingNextPage: _data.length > 0 && isFetchingNextPage,
     isFetchingPreviousPage,
     lastPageLength,
   };
