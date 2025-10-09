@@ -129,19 +129,9 @@ function ReleaseCard({
               query: {project: getReleaseProjectId(release, selection)},
             }}
           >
-            <DemoTourElement
-              id={DemoTourStep.RELEASES_DETAILS}
-              disabled={!isTopRelease || projectsToShow.length > 1}
-              title={t('Release-specific trends')}
-              description={t(
-                'Select the latest release to review new and regressed issues, and business critical metrics like crash rate, and user adoption.'
-              )}
-              position="bottom-start"
-            >
-              <VersionWrapper>
-                <StyledVersion version={version} tooltipRawVersion anchor={false} />
-              </VersionWrapper>
-            </DemoTourElement>
+            <VersionWrapper>
+              <StyledVersion version={version} tooltipRawVersion anchor={false} />
+            </VersionWrapper>
           </GlobalSelectionLink>
           {commitCount > 0 && (
             <ReleaseCardCommits release={release} withHeading={false} />
