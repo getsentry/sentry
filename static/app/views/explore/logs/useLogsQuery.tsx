@@ -25,7 +25,6 @@ import {
   AlwaysPresentLogFields,
   MAX_LOG_INGEST_DELAY,
   MAX_LOGS_INFINITE_QUERY_PAGES,
-  MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
   QUERY_PAGE_LIMIT,
   QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
 } from 'sentry/views/explore/logs/constants';
@@ -716,7 +715,7 @@ export function useInfiniteLogsQuery({
     const timeoutID = setTimeout(() => {
       setWaitingToAutoFetch(false);
       _fetchNextPage();
-    }, MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS);
+    }, 0);
 
     return () => clearTimeout(timeoutID);
   }, [shouldAutoFetchNextPage, _fetchNextPage]);
@@ -740,6 +739,7 @@ export function useInfiniteLogsQuery({
       !queryResult.isRefetching &&
       !isError &&
       _data.length === 0 &&
+      !waitingToAutoFetch &&
       !shouldAutoFetchNextPage,
     fetchNextPage: _fetchNextPage,
     fetchPreviousPage: _fetchPreviousPage,
@@ -747,7 +747,7 @@ export function useInfiniteLogsQuery({
     hasNextPage,
     queryKey: queryKeyWithInfinite,
     hasPreviousPage,
-    isFetchingNextPage: _data.length > 0 && isFetchingNextPage,
+    isFetchingNextPage: _data.length > 0 && (waitingToAutoFetch || isFetchingNextPage),
     isFetchingPreviousPage,
     lastPageLength,
   };
