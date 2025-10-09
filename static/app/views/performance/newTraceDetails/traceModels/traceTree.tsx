@@ -4,7 +4,7 @@ import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import type {EventTransaction, Level, Measurement} from 'sentry/types/event';
+import type {Level, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {
   TraceError as TraceErrorType,
@@ -15,7 +15,6 @@ import type {
 import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
-  isBrowserRequestNode,
   isEAPError,
   isEAPSpan,
   isJavascriptSDKEvent,
@@ -23,10 +22,8 @@ import {
   isParentAutogroupedNode,
   isRootEvent,
   isSiblingAutogroupedNode,
-  isSpanNode,
   isTraceError,
   isTraceSplitResult,
-  isTransactionNode,
   isUptimeCheck,
   shouldAddMissingInstrumentationSpan,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
@@ -45,7 +42,6 @@ import {NoInstrumentationNode} from './traceTreeNode/noInstrumentationNode';
 import {ParentAutogroupNode} from './traceTreeNode/parentAutogroupNode';
 import {RootNode} from './traceTreeNode/rootNode';
 import {SiblingAutogroupNode} from './traceTreeNode/siblingAutogroupNode';
-import {SpanNode} from './traceTreeNode/spanNode';
 import {TraceNode} from './traceTreeNode/traceNode';
 import {TransactionNode} from './traceTreeNode/transactionNode';
 import {UptimeCheckNode} from './traceTreeNode/uptimeCheckNode';
@@ -474,18 +470,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
           replayTraceSlug: options.replayTraceSlug,
         });
       } else {
-        node = new TransactionNode(
-          parent,
-          value,
-          {
-            organization: options.organization,
-            replayTraceSlug: options.replayTraceSlug,
-            meta: options.meta,
-            // Won't need this cast once BaseNode replaces TraceTreeNode
-          },
-          TraceTree.FromSpans,
-          TraceTree.ApplyPreferences
-        );
+        node = new TransactionNode(parent, value, {
+          organization: options.organization,
+          replayTraceSlug: options.replayTraceSlug,
+          meta: options.meta,
+        });
       }
 
       if (node.canFetchChildren || !node.expanded) {
@@ -595,129 +584,48 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return tree;
   }
 
-  static FromSpans(
+  async fetchNodeSubTree(
+    expanding: boolean,
     node: BaseNode,
-    spans: TraceTree.Span[],
-    event: EventTransaction | null
-  ): [BaseNode, [number, number]] {
-    // collect transactions
-    const transactions = node.findAllChildren(n =>
-      isTransactionNode(n)
-    ) as TransactionNode[];
-
-    // Create span nodes
-    const spanNodes: SpanNode[] = [];
-    const spanIdToNode = new Map<string, BaseNode>();
-
-    // Transactions have a span_id that needs to be used as the edge to child child span
-    if (node.value && 'span_id' in node.value) {
-      spanIdToNode.set(node.value.span_id, node);
+    options: {
+      api: Client;
+      organization: Organization;
+      preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
     }
-
-    for (const span of spans) {
-      const spanNode: SpanNode = new SpanNode(null, span, null);
-      spanNode.event = event;
-
-      if (spanIdToNode.has(span.span_id)) {
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['trace-span-id-hash-collision']);
-          scope.captureMessage('Span ID hash collision detected');
-          info(fmt`Span ID hash collision detected: ${span.span_id}`);
-        });
-      }
-
-      spanIdToNode.set(span.span_id, spanNode);
-      spanNodes.push(spanNode);
-    }
-
-    // Clear children of root node as we are recreating the sub tree
-    node.children = [];
-
-    // Construct the span tree
-    for (const span of spanNodes) {
-      // If the span has no parent span id, nest it under the root
-      const parent = span.value.parent_span_id
-        ? (spanIdToNode.get(span.value.parent_span_id) ?? node)
-        : node;
-
-      span.parent = parent;
-      parent.children.push(span);
-    }
-
-    // Reparent transactions under children spans
-    for (const transaction of transactions) {
-      const parent = spanIdToNode.get(transaction.value.parent_span_id!);
-      // If the parent span does not exist in the span tree, the transaction will remain under the current node
-      if (!parent) {
-        if (transaction.parent?.children.indexOf(transaction) === -1) {
-          transaction.parent.children.push(transaction);
-        }
-        continue;
-      }
-
-      if (transaction === node) {
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['trace-tree-span-parent-cycle']);
-          scope.captureMessage(
-            'Span is a parent of its own transaction, this should not be possible'
-          );
-          info(fmt`Span is a parent of its own transaction, this should not be possible`);
-        });
-        continue;
-      }
-
-      parent.children.push(transaction);
-      transaction.parent = parent;
-    }
-
-    const subTreeSpaceBounds: [number, number] = [node.space[0], node.space[1]];
-
-    node.forEachChild(c => {
-      c.invalidate();
-      // When reparenting transactions under spans, the children are not guaranteed to be in order
-      // so we need to sort them chronologically after the reparenting is complete
-      // Track the min and max space of the sub tree as spans have ms precision
-      subTreeSpaceBounds[0] = Math.min(subTreeSpaceBounds[0], c.space[0]);
-      subTreeSpaceBounds[1] = Math.max(subTreeSpaceBounds[1], c.space[1]);
-
-      if (isSpanNode(c)) {
-        for (const performanceIssue of getRelatedPerformanceIssuesFromTransaction(
-          c.value,
-          node
-        )) {
-          c.occurrences.add(performanceIssue);
-        }
-        for (const error of getRelatedSpanErrorsFromTransaction(c.value, node)) {
-          c.errors.add(error);
-        }
-
-        if (isBrowserRequestNode(c)) {
-          const serverRequestHandler = c.parent?.children.find(
-            n => n.op === 'http.server'
-          );
-
-          if (serverRequestHandler?.reparent_reason === 'pageload server handler') {
-            serverRequestHandler.parent!.children =
-              serverRequestHandler.parent!.children.filter(
-                n => n !== serverRequestHandler
-              );
-            c.children.push(serverRequestHandler);
-            serverRequestHandler.parent = c;
-          }
-        }
-      }
-
-      c.children.sort(traceChronologicalSort);
+  ) {
+    const newBounds = await node.fetchChildren(expanding, this, {
+      api: options.api,
     });
 
-    if (!Number.isFinite(subTreeSpaceBounds[0])) {
-      subTreeSpaceBounds[0] = 0;
-    }
-    if (!Number.isFinite(subTreeSpaceBounds[1])) {
-      subTreeSpaceBounds[1] = 0;
-    }
+    // If the newly fetched children extend beyond the current bounds of the tree,
+    // we need to extend the current bounds of the tree.
+    if (newBounds) {
+      const previousStart = this.root.space[0];
+      const previousDuration = this.root.space[1];
 
-    return [node, subTreeSpaceBounds];
+      const newStart = newBounds[0];
+      const newEnd = newBounds[0] + newBounds[1];
+
+      // Extend the start of the trace to include the new min start
+      if (newStart <= this.root.space[0]) {
+        this.root.space[0] = newStart;
+      }
+      // Extend the end of the trace to include the new max end
+      if (newEnd > this.root.space[0] + this.root.space[1]) {
+        this.root.space[1] = newEnd - this.root.space[0];
+      }
+
+      if (
+        previousStart !== this.root.space[0] ||
+        previousDuration !== this.root.space[1]
+      ) {
+        this.dispatch('trace timeline change', this.root.space);
+      }
+
+      if (options.preferences) {
+        TraceTree.ApplyPreferences(node, options);
+      }
+    }
   }
 
   appendTree(tree: TraceTree) {
@@ -1210,7 +1118,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
     ) as TransactionNode[];
 
     const promises = transactionNodes.map(node =>
-      node.fetchChildren(true, tree, {api: options.api, preferences: options.preferences})
+      tree.fetchNodeSubTree(true, node, {
+        api: options.api,
+        organization: options.organization,
+        preferences: options.preferences,
+      })
     );
 
     return Promise.all(promises)
@@ -1557,44 +1469,4 @@ function traceQueueIterator(
       oIdx++;
     }
   }
-}
-
-function getRelatedSpanErrorsFromTransaction(
-  span: TraceTree.Span,
-  node: BaseNode
-): TraceTree.TraceError[] {
-  if (!isTransactionNode(node)) {
-    return [];
-  }
-
-  const errors: TraceTree.TraceError[] = [];
-  for (const error of node.value.errors) {
-    if (error.span === span.span_id) {
-      errors.push(error);
-    }
-  }
-
-  return errors;
-}
-
-// Returns a list of performance errors related to the txn with ids matching the span id
-function getRelatedPerformanceIssuesFromTransaction(
-  span: TraceTree.Span,
-  node: BaseNode
-): TraceTree.TraceOccurrence[] {
-  if (!isTransactionNode(node) || !node.value?.performance_issues?.length) {
-    return [];
-  }
-
-  const occurrences: TraceTree.TraceOccurrence[] = [];
-
-  for (const perfIssue of node.value.performance_issues) {
-    for (const suspect of perfIssue.suspect_spans) {
-      if (suspect === span.span_id) {
-        occurrences.push(perfIssue);
-      }
-    }
-  }
-
-  return occurrences;
 }

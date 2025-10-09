@@ -8,7 +8,6 @@ import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceD
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
-import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
 export interface TraceTreeNodeExtra {
   organization: Organization;
@@ -440,14 +439,19 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return pickBarColor('default', theme);
   }
 
+  /**
+   * Fetches and adds children to this node.
+   * Returns the bounds of the added subtree as [start, end] timestamps.
+   * This can be used by the tree to update its overall bounds if the new children
+   * extend beyond the tree's current bounds.
+   */
   fetchChildren(
     _fetching: boolean,
     _tree: TraceTree,
     _options: {
       api: Client;
-      preferences: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
     }
-  ): Promise<any> {
+  ): Promise<[number, number] | null> {
     return Promise.resolve(null);
   }
 
