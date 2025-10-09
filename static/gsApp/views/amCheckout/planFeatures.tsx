@@ -288,7 +288,11 @@ function PlanFeatures({
 
   return (
     <Flex paddingTop="xl" gap="lg" direction="column">
-      <Grid columns={{xs: '1fr', sm: `repeat(${planOptions.length}, 1fr)`}} gap="md xl">
+      <Grid
+        columns={{xs: '1fr', sm: `repeat(${planOptions.length}, 1fr)`}}
+        gap="md xl"
+        padding="0 xl"
+      >
         {planToFeatures.map(({plan, features, perUnitPriceDiffs}, planIndex) => {
           const planName = plan.name;
           const lowerCasePlanName = planName.toLowerCase();
@@ -300,7 +304,6 @@ function PlanFeatures({
               key={lowerCasePlanName}
               direction="column"
               gap="md"
-              padding="0 xl"
             >
               {features.map((feature, featureIndex) => (
                 <FeatureItem
