@@ -4,6 +4,7 @@ import sentry_sdk
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from parsimonious.exceptions import ParseError
+from rest_framework import serializers
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.api.bases.organization_events import get_query_columns
@@ -29,7 +30,7 @@ from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
-from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
+from sentry.workflow_engine.models import DataCondition, DataSource, DataSourceDetector, Detector
 from sentry.workflow_engine.types import SnubaQueryDataSourceType
 
 logger = logging.getLogger(__name__)
@@ -40,25 +41,35 @@ seer_anomaly_detection_connection_pool = connection_from_url(
 )
 
 
-def send_new_detector_data(detector: Detector, project: Project, snuba_query: SnubaQuery) -> None:
+def send_new_detector_data(detector: Detector) -> None:
     try:
         data_source = DataSourceDetector.objects.get(detector_id=detector.id).data_source
     except DataSourceDetector.DoesNotExist:
-        raise Exception("Could not update detector, data source detector not found.")
+        raise Exception("Could not create detector, data source detector not found.")
     try:
         query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
     except QuerySubscription.DoesNotExist:
-        raise Exception("Could not update detector, query subscription not found.")
+        raise Exception("Could not create detector, query subscription not found.")
     try:
         snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
     except SnubaQuery.DoesNotExist:
-        raise Exception("Could not update detector, snuba query not found.")
+        raise Exception("Could not create detector, snuba query not found.")
+    try:
+        data_condition = DataCondition.objects.get(
+            condition_group=detector.workflow_condition_group
+        )
+    except DataCondition.DoesNotExist:
+        raise Exception("Could not create detector, data condition not found.")
 
     try:
-        handle_send_historical_data_to_seer(detector, snuba_query, project, SeerMethod.CREATE)
+        handle_send_historical_data_to_seer(
+            detector, data_source, data_condition, snuba_query, detector.project, SeerMethod.CREATE
+        )
     except (TimeoutError, MaxRetryError, ParseError, ValidationError):
-        detector.delete()
-        raise
+        # detector.delete()
+        # TODO gotta delete the data condition and dcg too
+        # if I raise a validation error will it block everything?
+        raise serializers.ValidationError("Couldn't send data to Seer, unable to create detector")
     else:
         metrics.incr("anomaly_detection_monitor.created")
 
@@ -109,6 +120,7 @@ def update_detector_data(detector: Detector, data_source: SnubaQueryDataSourceTy
 def handle_send_historical_data_to_seer(
     detector: Detector,
     data_source: DataSource,
+    data_condition: DataCondition,
     snuba_query: SnubaQuery,
     project: Project,
     method: str,
@@ -119,6 +131,7 @@ def handle_send_historical_data_to_seer(
         send_historical_data_to_seer(
             detector=detector,
             data_source=data_source,
+            data_condition=data_condition,
             project=project,
             snuba_query=snuba_query,
             event_types=event_types_param,
@@ -137,6 +150,7 @@ def handle_send_historical_data_to_seer(
 def send_historical_data_to_seer(
     detector: Detector,
     data_source: DataSource,
+    data_condition: DataCondition,
     project: Project,
     snuba_query: SnubaQuery,
     event_types: list[SnubaQueryEventType.EventType] | None = None,
@@ -171,9 +185,9 @@ def send_historical_data_to_seer(
 
     anomaly_detection_config = AnomalyDetectionConfig(
         time_period=window_min,
-        sensitivity=detector.sensitivity,
-        direction=translate_direction(detector.threshold_type),
-        expected_seasonality=detector.seasonality,
+        sensitivity=data_condition.comparison.get("sensitivity"),
+        direction=translate_direction(data_condition.comparison.get("threshold_type")),
+        expected_seasonality=data_condition.comparison.get("seasonality"),
     )
     alert = AlertInSeer(
         source_id=data_source.id, source_type=DataSourceType.SNUBA_QUERY_SUBSCRIPTION

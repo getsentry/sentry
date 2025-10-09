@@ -1,6 +1,8 @@
 from unittest import mock
 
+import orjson
 from rest_framework.exceptions import ErrorDetail, ValidationError
+from urllib3.response import HTTPResponse
 
 from sentry import audit_log
 from sentry.constants import ObjectStatus
@@ -16,6 +18,7 @@ from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
     AnomalyDetectionSensitivity,
     AnomalyDetectionThresholdType,
+    StoreDataResponse,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import (
@@ -225,8 +228,16 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         )
         mock_schedule_update_project_config.assert_called_once_with(detector)
 
+    @mock.patch(
+        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
+    )
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_anomaly_detection(self, mock_audit: mock.MagicMock) -> None:
+    def test_anomaly_detection(
+        self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
+    ) -> None:
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
         data = {
             **self.valid_data,
             "conditionGroup": {
@@ -262,6 +273,8 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
 
         # Verify detector in DB
         self.assert_validated(detector)
+
+        assert mock_seer_request.call_count == 1
 
         # Verify condition group in DB
         condition_group = DataConditionGroup.objects.get(id=detector.workflow_condition_group_id)
@@ -320,6 +333,12 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             context=self.context,
         )
         assert not validator.is_valid()
+
+    def test_anomaly_detection__send_historical_data_fails(self) -> None:
+        """
+        Test that if the call to Seer fails that we do not create the detector, dcg, and data condition
+        """
+        pass
 
     def test_invalid_detector_type(self) -> None:
         data = {**self.valid_data, "type": "invalid_type"}
