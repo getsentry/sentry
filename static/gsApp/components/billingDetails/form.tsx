@@ -214,6 +214,10 @@ function BillingDetailsForm({
     } else {
       form.setFieldDescriptor('region', {required: false});
     }
+
+    return () => {
+      form.removeField('region');
+    };
   }, [state.countryCode, form]);
 
   if (!organization.access.includes('org:billing')) {
