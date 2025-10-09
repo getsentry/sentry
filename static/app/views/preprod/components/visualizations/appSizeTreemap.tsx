@@ -1,7 +1,7 @@
-import {useContext, useState} from 'react';
+import {useContext, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
+import type {ECharts, TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
@@ -9,8 +9,9 @@ import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
-import {IconClose, IconExpand, IconSearch} from 'sentry/icons';
+import {IconClose, IconContract, IconExpand, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {ChartRenderingContext} from 'sentry/views/insights/common/components/chart';
 import {getAppSizeCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTheme';
@@ -42,35 +43,33 @@ function FullscreenModalContent({
   };
 
   return (
-    <Container height="100%" width="100%">
-      <Flex direction="column" gap="md" height="100%">
-        <InputGroup>
-          <InputGroup.LeadingItems>
-            <IconSearch />
-          </InputGroup.LeadingItems>
-          <InputGroup.Input
-            placeholder="Search files"
-            value={localSearch}
-            onChange={e => handleSearchChange(e.target.value)}
-          />
-          {localSearch && (
-            <InputGroup.TrailingItems>
-              <Button
-                onClick={() => handleSearchChange('')}
-                aria-label="Clear search"
-                borderless
-                size="zero"
-              >
-                <IconClose size="sm" />
-              </Button>
-            </InputGroup.TrailingItems>
-          )}
-        </InputGroup>
-        <Container height="100%" width="100%">
-          <AppSizeTreemap root={filteredRoot} searchQuery={localSearch} />
-        </Container>
-      </Flex>
-    </Container>
+    <Flex direction="column" gap="md" height="100%" width="100%">
+      <InputGroup>
+        <InputGroup.LeadingItems>
+          <IconSearch />
+        </InputGroup.LeadingItems>
+        <InputGroup.Input
+          placeholder="Search files"
+          value={localSearch}
+          onChange={e => handleSearchChange(e.target.value)}
+        />
+        {localSearch && (
+          <InputGroup.TrailingItems>
+            <Button
+              onClick={() => handleSearchChange('')}
+              aria-label="Clear search"
+              borderless
+              size="zero"
+            >
+              <IconClose size="sm" />
+            </Button>
+          </InputGroup.TrailingItems>
+        )}
+      </InputGroup>
+      <Container height="100%" width="100%" style={{flex: 1, minHeight: 0}}>
+        <AppSizeTreemap root={filteredRoot} searchQuery={localSearch} />
+      </Container>
+    </Flex>
   );
 }
 
@@ -81,6 +80,30 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
   const renderingContext = useContext(ChartRenderingContext);
   const isFullscreen = renderingContext?.isFullscreen ?? false;
   const contextHeight = renderingContext?.height;
+  const chartRef = useRef<ECharts | null>(null);
+  const recenterButtonRef = useRef<HTMLButtonElement>(null);
+
+  const handleChartReady = (chart: ECharts) => {
+    chartRef.current = chart;
+  };
+
+  const handleContainerMouseDown = () => {
+    if (recenterButtonRef.current) {
+      recenterButtonRef.current.style.display = 'flex';
+    }
+  };
+
+  const handleRecenter = () => {
+    if (chartRef.current) {
+      chartRef.current.dispatchAction({
+        type: 'treemapRootToNode',
+        seriesIndex: 0,
+      });
+      if (recenterButtonRef.current) {
+        recenterButtonRef.current.style.display = 'none';
+      }
+    }
+  };
 
   function convertToEChartsData(element: TreemapElement): any {
     const categoryInfo =
@@ -173,7 +196,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       type: 'treemap',
       animationEasing: 'quarticOut',
       animationDuration: 300,
-      height: isFullscreen ? '100%' : `calc(100% - 22px)`,
+      height: `calc(100% - 22px)`,
       width: '100%',
       top: '22px',
       breadcrumb: {
@@ -288,9 +311,14 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
   };
 
   return (
-    <Container height="100%" width="100%" position="relative">
+    <Container
+      height="100%"
+      width="100%"
+      position="relative"
+      onMouseDown={handleContainerMouseDown}
+    >
       <BaseChart
-        autoHeightResize={!isFullscreen}
+        autoHeightResize
         height={contextHeight}
         renderer="canvas"
         xAxis={null}
@@ -298,9 +326,23 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         series={series}
         visualMap={visualMap}
         tooltip={tooltip}
+        onChartReady={handleChartReady}
       />
       {!isFullscreen && (
-        <ButtonContainer direction="column" gap="sm" padding="sm" position="absolute">
+        <ButtonContainer
+          direction="row"
+          position="absolute"
+          onMouseDown={e => e.stopPropagation()}
+        >
+          <Button
+            ref={recenterButtonRef}
+            size="xs"
+            aria-label={t('Recenter View')}
+            borderless
+            icon={<IconContract />}
+            onClick={handleRecenter}
+            style={{display: 'none'}}
+          />
           <Button
             size="xs"
             aria-label={t('Open Full-Screen View')}
@@ -309,7 +351,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
             onClick={() => {
               openInsightChartModal({
                 title: t('Size Analysis'),
-                height: 500,
+                fullscreen: true,
                 children: unfilteredRoot ? (
                   <FullscreenModalContent
                     unfilteredRoot={unfilteredRoot}
@@ -331,7 +373,29 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
 }
 
 const ButtonContainer = styled(Flex)`
-  top: -10px;
+  top: 0px;
   right: 0;
+  height: 20px;
+  align-items: center;
+  gap: ${space(0.5)};
   z-index: 10;
+
+  button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${p => p.theme.white};
+    height: 22px;
+    min-height: 20px;
+    max-height: 20px;
+    padding: 0 ${space(0.5)};
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: ${p => p.theme.borderRadius};
+    box-shadow: ${p => p.theme.dropShadowMedium};
+
+    &:hover {
+      color: ${p => p.theme.white};
+      background: rgba(0, 0, 0, 0.9);
+    }
+  }
 `;

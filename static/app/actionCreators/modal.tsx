@@ -417,11 +417,15 @@ export async function openBulkEditMonitorsModal({onClose, ...options}: ModalOpti
 }
 
 export async function openInsightChartModal(options: InsightChartModalOptions) {
-  const {default: Modal, modalCss} = await import(
-    'sentry/components/modals/insightChartModal'
-  );
+  const {
+    default: Modal,
+    modalCss,
+    fullscreenModalCss,
+  } = await import('sentry/components/modals/insightChartModal');
 
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {
+    modalCss: options.fullscreen ? fullscreenModalCss : modalCss,
+  });
 }
 
 export async function openAddTempestCredentialsModal(options: {
