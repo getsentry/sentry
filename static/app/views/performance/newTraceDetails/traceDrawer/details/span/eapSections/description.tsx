@@ -166,6 +166,11 @@ export function SpanDescription({
   const codeLineNumber = findSpanAttributeValue(attributes, 'code.lineno');
   const codeFunction = findSpanAttributeValue(attributes, 'code.function');
 
+  // `"url.full"` is semantic, but `"url"` is common
+  const spanURL =
+    findSpanAttributeValue(attributes, 'url.full') ??
+    findSpanAttributeValue(attributes, 'url');
+
   const value =
     resolvedModule === ModuleName.DB ? (
       <CodeSnippetWrapper>
@@ -189,6 +194,34 @@ export function SpanDescription({
           <MissingFrame />
         )}
       </CodeSnippetWrapper>
+    ) : resolvedModule === ModuleName.HTTP && span.op === 'http.client' && spanURL ? (
+      <HTTPRequestWrapper>
+        <DescriptionWrapper>
+          <HTTPRequestURL>
+            <span>{findSpanAttributeValue(attributes, 'http.request.method')}</span>
+            <span>{spanURL}</span>
+            <LinkHint value={spanURL} />
+          </HTTPRequestURL>
+          <CopyToClipboardButton
+            borderless
+            size="zero"
+            text={formattedDescription}
+            tooltipProps={{disabled: true}}
+          />
+        </DescriptionWrapper>
+
+        {codeFilepath && (
+          <StackTraceMiniFrame
+            projectId={node.event?.projectID}
+            event={event}
+            frame={{
+              filename: codeFilepath,
+              lineNo: codeLineNumber ? Number(codeLineNumber) : null,
+              function: codeFunction,
+            }}
+          />
+        )}
+      </HTTPRequestWrapper>
     ) : resolvedModule === ModuleName.RESOURCE && span.op === 'resource.img' ? (
       <ResourceImageDescription
         formattedDescription={formattedDescription}
@@ -371,6 +404,12 @@ const CodeSnippetWrapper = styled('div')`
   flex: 1;
 `;
 
+const HTTPRequestWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+`;
+
 const StyledLink = styled(Link)`
   display: flex;
   align-items: center;
@@ -393,6 +432,14 @@ const FormattedDescription = styled('div')`
   min-height: 24px;
   display: flex;
   align-items: center;
+`;
+
+const HTTPRequestURL = styled('div')`
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.md};
 `;
 
 const DescriptionWrapper = styled('div')`
