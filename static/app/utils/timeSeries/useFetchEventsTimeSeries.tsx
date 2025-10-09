@@ -25,10 +25,6 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   yAxis: YAxis | YAxis[];
   /**
-   * Whether the request should disable aggregate extrapolation. Extrapolation is on by default.
-   */
-  disableAggregateExtrapolation?: boolean;
-  /**
    * Boolean. If missing, the query is enabled. If supplied, the query will obey the prop as specified.
    */
   enabled?: boolean;
@@ -36,6 +32,10 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    * If true, the query will exclude the "other" group.
    */
   excludeOther?: boolean;
+  /**
+   * Whether the request should disable aggregate extrapolation. Extrapolation is on by default.
+   */
+  extrapolate?: boolean;
   /**
    * An array of tags by which to group the results. e.g., passing `["transaction"]` will group the results by the `"transaction"` tag. `["env", "transaction"]` will group by both the `"env"` and `"transaction"` tags.
    */
@@ -87,7 +87,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     excludeOther,
     enabled,
     groupBy,
-    disableAggregateExtrapolation,
+    extrapolate = true,
     interval,
     query,
     sampling,
@@ -133,7 +133,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           topEvents,
           groupBy,
           sort: sort ? encodeSort(sort) : undefined,
-          disableAggregateExtrapolation,
+          disableAggregateExtrapolation: extrapolate ? '0' : '1',
         },
       },
     ],
