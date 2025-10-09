@@ -5,6 +5,7 @@ import type {Location} from 'history';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout/flex';
+import {Stack} from 'sentry/components/core/layout/stack';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import {
@@ -109,7 +110,7 @@ export default function GroupReplays({group}: Props) {
     // Shown on load and no replay data available
     return (
       <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
-        <ReplayHeader>
+        <Stack>
           {hasStreamlinedUI ? <ReplayFilterMessage /> : null}
           <Flex align="center" gap="md">
             <IconUser size="sm" />
@@ -119,7 +120,7 @@ export default function GroupReplays({group}: Props) {
               t('No replay data available.')
             )}
           </Flex>
-        </ReplayHeader>
+        </Stack>
         <ReplayTable
           columns={isMobilePlatform ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS}
           error={fetchError}
@@ -136,7 +137,7 @@ export default function GroupReplays({group}: Props) {
   return (
     <SelectedReplayIndexProvider>
       <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
-        <ReplayHeader>
+        <Stack>
           {hasStreamlinedUI ? <ReplayFilterMessage /> : null}
           <Flex align="center" gap="md">
             <IconUser size="sm" />
@@ -152,7 +153,7 @@ export default function GroupReplays({group}: Props) {
                   tn('%s event', '%s events', group.count)
                 )}
           </Flex>
-        </ReplayHeader>
+        </Stack>
 
         <GroupReplaysTable
           eventView={eventView}
@@ -319,11 +320,6 @@ const StyledLayoutPage = styled(Layout.Page)<{hasStreamlinedUI?: boolean}>`
       border-radius: ${p.theme.borderRadius};
       padding: ${space(1.5)};
     `}
-`;
-
-const ReplayHeader = styled('div')`
-  display: flex;
-  flex-direction: column;
 `;
 
 const StyledBreak = styled('hr')`
