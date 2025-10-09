@@ -87,7 +87,7 @@ describe('projectGeneralSettings', () => {
       }
     );
 
-    expect(await screen.findByRole('textbox', {name: 'Name'})).toHaveValue(
+    expect(await screen.findByRole('textbox', {name: 'Slug'})).toHaveValue(
       'Project Name'
     );
     expect(screen.getByRole('textbox', {name: 'Subject Prefix'})).toHaveValue('[my-org]');
@@ -305,7 +305,7 @@ describe('projectGeneralSettings', () => {
     );
 
     await userEvent.type(
-      await screen.findByRole('textbox', {name: 'Name'}),
+      await screen.findByRole('textbox', {name: 'Slug'}),
       'New Project'
     );
 

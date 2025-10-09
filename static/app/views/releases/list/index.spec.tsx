@@ -112,7 +112,7 @@ describe('ReleasesList', () => {
 
     expect(await within(items.at(1)!).findByText('0%')).toBeInTheDocument();
     expect(within(items.at(2)!).getByText('af4f231ec9a8')).toBeInTheDocument();
-    expect(within(items.at(2)!).getByText('Project Name')).toBeInTheDocument();
+    expect(within(items.at(2)!).getByText('Project Slug')).toBeInTheDocument();
   });
 
   it('displays quickstart when appropriate', async () => {

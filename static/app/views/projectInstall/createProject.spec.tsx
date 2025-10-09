@@ -167,17 +167,17 @@ describe('CreateProject', () => {
     });
 
     await userEvent.click(screen.getByTestId('platform-apple-ios'));
-    expect(screen.getByPlaceholderText('project-name')).toHaveValue('apple-ios');
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('apple-ios');
 
     await userEvent.click(screen.getByTestId('platform-ruby-rails'));
-    expect(screen.getByPlaceholderText('project-name')).toHaveValue('ruby-rails');
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('ruby-rails');
 
-    // but not replace it when project name is something else:
-    await userEvent.clear(screen.getByPlaceholderText('project-name'));
-    await userEvent.type(screen.getByPlaceholderText('project-name'), 'another');
+    // but not replace it when project slug is something else:
+    await userEvent.clear(screen.getByPlaceholderText('project-slug'));
+    await userEvent.type(screen.getByPlaceholderText('project-slug'), 'another');
 
     await userEvent.click(screen.getByTestId('platform-apple-ios'));
-    expect(screen.getByPlaceholderText('project-name')).toHaveValue('another');
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('another');
   });
 
   it('should display success message on proj creation', async () => {
@@ -389,8 +389,8 @@ describe('CreateProject', () => {
 
       expect(getSubmitButton()).toBeDisabled();
 
-      // Fills the project name
-      await userEvent.type(screen.getByPlaceholderText('project-name'), 'my-project');
+      // Fills the project slug
+      await userEvent.type(screen.getByPlaceholderText('project-slug'), 'my-project');
 
       // Enforce users to select a platform
       await userEvent.hover(getSubmitButton());
