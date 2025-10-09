@@ -1,5 +1,5 @@
 import re
-from collections.abc import MutableMapping
+from collections.abc import Mapping, MutableMapping
 from typing import Any, TypedDict
 
 from rest_framework import serializers
@@ -9,6 +9,7 @@ from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
+from sentry.models.project import Project
 from sentry_plugins.amazon_sqs.plugin import get_regions
 
 
@@ -124,7 +125,7 @@ class DataForwarderSerializer(Serializer):
             if not re.match(splunk_token_pattern, token):
                 errors.append("token must be a valid Splunk HEC token format")
 
-    def validate(self, attrs: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
+    def validate(self, attrs: Mapping[str, Any]) -> Mapping[str, Any]:
         organization_id = attrs.get("organization_id")
         provider = attrs.get("provider")
 
@@ -178,6 +179,27 @@ class DataForwarderSerializer(Serializer):
 
         return config
 
+    def create(self, validated_data: Mapping[str, Any]) -> DataForwarder:
+        data_forwarder = DataForwarder.objects.create(**validated_data)
+
+        # Auto-enroll all existing projects in the organization
+        project_ids = Project.objects.filter(
+            organization_id=validated_data["organization_id"]
+        ).values_list("id", flat=True)
+
+        if project_ids:
+            project_configs = [
+                DataForwarderProject(
+                    data_forwarder=data_forwarder,
+                    project_id=project_id,
+                    is_enabled=True,
+                )
+                for project_id in project_ids
+            ]
+            DataForwarderProject.objects.bulk_create(project_configs, ignore_conflicts=True)
+
+        return data_forwarder
+
 
 class DataForwarderProjectSerializer(Serializer):
     data_forwarder_id = serializers.IntegerField()
@@ -226,3 +248,8 @@ class DataForwarderProjectSerializer(Serializer):
             )
 
         return attrs
+
+    def create(self, validated_data: MutableMapping[str, Any]) -> DataForwarderProject:
+        project = validated_data.pop("project")
+        validated_data["project_id"] = project.id
+        return DataForwarderProject.objects.create(**validated_data)
