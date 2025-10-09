@@ -3398,13 +3398,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Whether the new objectstore implementation is being used for attachments
-register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Whether the new objectstore implementation is being used for attachments in a double-write
 # configuration where it writes to the new objectstore alongside the existing filestore.
 # This is mutually exclusive with the above setting.
 register("objectstore.double_write.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
+# Whether the new objectstore implementation is being used for attachments on store.
+register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Whether to use the processing store (the transient event payload) for attachment metadata.
+register("objectstore.processing_store.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Whether to use 60s granularity for the dynamic sampling query
 register(

@@ -13,6 +13,7 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 
+from sentry.options.rollout import in_random_rollout
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.imports import import_string
 
@@ -33,7 +34,7 @@ def store_attachments_for_event(event: Any, attachments: list[CachedAttachment],
     - the attachment metadata is stored in `attachment_cache` or the `event` (mutating the parameter)
     """
 
-    put_metadata_into_event = False  # TODO
+    put_metadata_into_event = in_random_rollout("objectstore.processing_store.attachments")
     cache_key = cache_key_for_event(event)
     attachments_metadata = attachment_cache.set(
         cache_key,
