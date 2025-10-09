@@ -144,6 +144,7 @@ def get_rollup_from_request(
     error: Exception,
     top_events: int = 0,
     allow_interval_over_range: bool = True,
+    max_rollup_override: None | float = None,
 ) -> int:
     if default_interval is None:
         default_interval = get_interval_from_range(date_range, False)
@@ -151,7 +152,9 @@ def get_rollup_from_request(
     interval = parse_stats_period(request.GET.get("interval", default_interval))
     if interval is None:
         interval = timedelta(hours=1)
-    validate_interval(interval, error, date_range, top_events, allow_interval_over_range)
+    validate_interval(
+        interval, error, date_range, top_events, allow_interval_over_range, max_rollup_override
+    )
 
     return int(interval.total_seconds())
 
@@ -162,12 +165,16 @@ def validate_interval(
     date_range: timedelta,
     top_events: int,
     allow_interval_over_range: bool = True,
+    max_rollup_override: None | float = None,
 ) -> None:
     if interval.total_seconds() <= 0:
         raise error.__class__("Interval cannot result in a zero duration.")
 
-    # When top events are present, there can be up to 5x as many points
-    max_rollup_points = MAX_ROLLUP_POINTS if top_events == 0 else MAX_ROLLUP_POINTS / top_events
+    if max_rollup_override is not None:
+        max_rollup_points = max_rollup_override
+    else:
+        # When top events are present, there can be up to 5x as many points
+        max_rollup_points = MAX_ROLLUP_POINTS if top_events == 0 else MAX_ROLLUP_POINTS / top_events
 
     if not allow_interval_over_range and interval.total_seconds() > date_range.total_seconds():
         raise error.__class__("Interval cannot be larger than the date range.")

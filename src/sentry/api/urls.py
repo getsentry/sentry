@@ -340,6 +340,9 @@ from sentry.issues.endpoints.organization_group_suspect_tags import (
     OrganizationGroupSuspectTagsEndpoint,
 )
 from sentry.issues.endpoints.organization_issue_metrics import OrganizationIssueMetricsEndpoint
+from sentry.issues.endpoints.organization_issue_timeseries import (
+    OrganizationIssueTimeSeriesEndpoint,
+)
 from sentry.issues.endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
@@ -1865,6 +1868,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/issues-metrics/$",
         OrganizationIssueMetricsEndpoint.as_view(),
         name="sentry-api-0-organization-issue-metrics",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/issues-timeseries/$",
+        OrganizationIssueTimeSeriesEndpoint.as_view(),
+        name="sentry-api-0-organization-issue-timeseries",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/$",
