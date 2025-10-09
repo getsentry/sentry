@@ -533,7 +533,7 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             assert params["field"].sort() == ["id", "transaction"].sort()
             assert "aggregateField" not in params
 
-    def test_explore_url_for_widget_with_env_params(self) -> None:
+    def test_explore_url_for_widget_with_discover_split_param(self) -> None:
         with self.feature("organizations:transaction-widget-deprecation-explore-view"):
             dashboard_deprecation = Dashboard.objects.create(
                 title="Dashboard With Transaction Widget",
@@ -547,7 +547,8 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
                 dashboard=dashboard_deprecation,
                 title="transaction widget",
                 display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-                widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+                widget_type=DashboardWidgetTypes.DISCOVER,
+                discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,
                 interval="1d",
                 detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
             )
