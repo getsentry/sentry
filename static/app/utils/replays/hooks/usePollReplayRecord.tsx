@@ -1,7 +1,4 @@
-import {useRef} from 'react';
-
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {

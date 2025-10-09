@@ -2,7 +2,7 @@ import {useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, Button} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
@@ -12,13 +12,12 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar, IconCalendar, IconRefresh, IconRefresh} from 'sentry/icons';
+import {IconCalendar, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useIsLive from 'sentry/utils/replays/hooks/useIsLive';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import usePollReplayRecord from 'sentry/utils/replays/hooks/usePollReplayRecord';
 import usePollReplayRecord from 'sentry/utils/replays/hooks/usePollReplayRecord';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
@@ -30,7 +29,6 @@ interface Props {
 export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const organization = useOrganization();
   const replayRecord = readerResult.replayRecord;
-  const replayReader = readerResult.replay;
   const replayReader = readerResult.replay;
 
   const {slug: orgSlug} = organization;
@@ -45,7 +43,6 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
     enabled: isLive && !showRefreshButton,
     replayId,
     orgSlug,
-    replayReader,
   });
 
   if (
@@ -232,10 +229,6 @@ const LiveIndicator = styled('div')`
     top: -6px;
     left: -6px;
   }
-`;
-
-const RefreshButton = styled(Button)`
-  margin-left: ${p => p.theme.space.md};
 `;
 
 const RefreshButton = styled(Button)`
