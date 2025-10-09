@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -26,7 +26,7 @@ import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useI
 import FilterSelector from './globalFilter/filterSelector';
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import ReleasesSelectControl from './releasesSelectControl';
-import type {DashboardFilters, DashboardPermissions} from './types';
+import type {DashboardFilters, DashboardPermissions, GlobalFilter} from './types';
 import {DashboardFilterKeys} from './types';
 
 type FiltersBarProps = {
@@ -74,6 +74,21 @@ export default function FiltersBar({
     (defined(location.query?.[DashboardFilterKeys.RELEASE])
       ? decodeList(location.query[DashboardFilterKeys.RELEASE])
       : filters?.[DashboardFilterKeys.RELEASE]) ?? [];
+
+  const globalFilters: GlobalFilter[] = useMemo(() => {
+    return (
+      (defined(location.query?.[DashboardFilterKeys.GLOBAL_FILTER])
+        ? decodeList(location.query[DashboardFilterKeys.GLOBAL_FILTER]).map(filter =>
+            JSON.parse(filter)
+          )
+        : filters?.[DashboardFilterKeys.GLOBAL_FILTER]) ?? []
+    );
+    // Ignore location.query dependency to avoid reading query params when possible (and instead use local state)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
+
+  const [activeGlobalFilters, setActiveGlobalFilters] =
+    useState<GlobalFilter[]>(globalFilters);
 
   return (
     <Wrapper>
@@ -124,15 +139,41 @@ export default function FiltersBar({
 
           {organization.features.includes('dashboards-global-filters') && (
             <Fragment>
-              {filters[DashboardFilterKeys.GLOBAL_FILTER]?.map(globalFilter => (
+              <AddFilter
+                onAddFilter={filter => {
+                  setActiveGlobalFilters([...activeGlobalFilters, filter]);
+                  onDashboardFilterChange({
+                    ...filters,
+                    globalFilter: [...activeGlobalFilters, filter],
+                  });
+                }}
+              />
+              {activeGlobalFilters.map(filter => (
                 <FilterSelector
-                  key={globalFilter.tag.key}
-                  globalFilter={globalFilter}
-                  onUpdateFilter={() => {}}
-                  onRemoveFilter={() => {}}
+                  key={filter.tag.key}
+                  globalFilter={filter}
+                  onUpdateFilter={newFilter => {
+                    const newFilters = activeGlobalFilters.map(f =>
+                      f.tag.key === newFilter.tag.key ? newFilter : f
+                    );
+                    setActiveGlobalFilters(newFilters);
+                    onDashboardFilterChange({
+                      ...filters,
+                      globalFilter: newFilters,
+                    });
+                  }}
+                  onRemoveFilter={currentFilter => {
+                    const newFilters = activeGlobalFilters.filter(
+                      f => f.tag.key !== currentFilter.tag.key
+                    );
+                    setActiveGlobalFilters(newFilters);
+                    onDashboardFilterChange({
+                      ...filters,
+                      globalFilter: newFilters,
+                    });
+                  }}
                 />
               ))}
-              <AddFilter onAddFilter={() => {}} />
             </Fragment>
           )}
         </FilterButtons>
@@ -152,7 +193,14 @@ export default function FiltersBar({
             >
               {t('Save')}
             </Button>
-            <Button data-test-id="filter-bar-cancel" onClick={onCancel}>
+            <Button
+              data-test-id="filter-bar-cancel"
+              onClick={() => {
+                onCancel?.();
+                setActiveGlobalFilters(filters.globalFilter ?? []);
+                onDashboardFilterChange(filters);
+              }}
+            >
               {t('Cancel')}
             </Button>
           </FilterButtons>
