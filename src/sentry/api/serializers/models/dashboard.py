@@ -610,7 +610,7 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardDetailsResponse:
         page_filters, tag_filters = self.get_filters(obj)
 
-        if not features.has(
+        if "globalFilter" in tag_filters and not features.has(
             "organizations:dashboards-global-filters",
             organization=obj.organization,
             actor=user,
