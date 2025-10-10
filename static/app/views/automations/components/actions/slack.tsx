@@ -96,7 +96,7 @@ function NotesField() {
       name={`${actionId}.data.notes`}
       aria-label={t('Notes')}
       placeholder={t('example notes')}
-      value={action.data.notes}
+      value={action.data.notes ?? ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({
           data: {...action.data, notes: e.target.value},
