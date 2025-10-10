@@ -28,7 +28,6 @@ import {
   isModuleInBeta,
   isModuleVisible,
 } from 'sentry/views/insights/pages/utils';
-import FeedbackButtonTour from 'sentry/views/insights/sessions/components/tour/feedbackButtonTour';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
@@ -129,11 +128,7 @@ export function DomainViewHeader({
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar>
-            {selectedModule === ModuleName.SESSIONS ? (
-              <FeedbackButtonTour />
-            ) : (
-              <FeedbackWidgetButton optionOverrides={feedbackOptions} />
-            )}
+            <FeedbackWidgetButton optionOverrides={feedbackOptions} />
             {additonalHeaderActions}
           </ButtonBar>
         </Layout.HeaderActions>
