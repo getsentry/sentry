@@ -45,7 +45,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         return event
 
     @mock.patch("sentry.api.helpers.group_index.update.update_group_open_period")
-    def test_resolve_basic(self) -> None:
+    def test_resolve_basic(self, mock_update_open_period: mock.MagicMock) -> None:
         event = self.create_sample_event(platform="python")
         assert event.group is not None
         self.page.visit_issue(self.org.slug, event.group.id)
