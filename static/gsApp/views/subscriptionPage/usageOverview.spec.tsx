@@ -227,6 +227,15 @@ describe('UsageOverview', () => {
       screen.getByRole('complementary', {name: 'Usage for Errors'})
     ).toBeInTheDocument();
 
+    // cannot open drawer for seat-based categories
+    expect(
+      screen.queryByRole('row', {name: 'View Cron Monitors usage'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('row', {name: 'View Uptime monitors usage'})
+    ).not.toBeInTheDocument();
+
+    // cannot open drawer for add-ons, but can open for an add-on's data categories
     expect(screen.queryByRole('row', {name: 'View Seer usage'})).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('row', {name: 'View Issue Fixes usage'}));
     expect(

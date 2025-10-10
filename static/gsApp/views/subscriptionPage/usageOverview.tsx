@@ -48,7 +48,11 @@ import {
   getPotentialProductTrial,
   getReservedBudgetCategoryForAddOn,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
+import {
+  getCategoryInfoFromPlural,
+  getPlanCategoryName,
+  sortCategories,
+} from 'getsentry/utils/dataCategory';
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
 import CategoryUsageDrawer from 'getsentry/views/subscriptionPage/components/categoryUsageDrawer';
 import {EMPTY_STAT_TOTAL} from 'getsentry/views/subscriptionPage/usageTotals';
@@ -195,9 +199,20 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
     ].filter(
       column =>
         (hasBillingPerms || !column.key.endsWith('Spend')) &&
+        (subscription.canSelfServe ||
+          !column.key.endsWith('Spend') ||
+          ((subscription.onDemandInvoiced || subscription.onDemandInvoicedManual) &&
+            column.key === 'budgetSpend')) &&
         (hasAnyPotentialProductTrial || column.key !== 'cta')
     );
-  }, [hasBillingPerms, subscription.planDetails, subscription.productTrials]);
+  }, [
+    hasBillingPerms,
+    subscription.planDetails,
+    subscription.productTrials,
+    subscription.canSelfServe,
+    subscription.onDemandInvoiced,
+    subscription.onDemandInvoicedManual,
+  ]);
 
   // TODO(isabella): refactor this to have better types
   const productData: Array<{
@@ -628,18 +643,27 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
           }
         },
       }}
-      isRowClickable={row => !!row.dataCategory}
+      isRowClickable={row =>
+        !!row.dataCategory &&
+        getCategoryInfoFromPlural(row.dataCategory)?.tallyType === 'usage'
+      }
       onRowClick={row => {
         if (row.dataCategory) {
-          navigate({
-            pathname: location.pathname,
-            query: {...location.query, drawer: row.dataCategory},
-          });
+          const categoryInfo = getCategoryInfoFromPlural(row.dataCategory);
+          if (categoryInfo?.tallyType === 'usage') {
+            navigate({
+              pathname: location.pathname,
+              query: {...location.query, drawer: row.dataCategory},
+            });
+          }
         }
       }}
       getRowAriaLabel={row => {
         if (row.dataCategory) {
-          return t('View %s usage', row.product);
+          const categoryInfo = getCategoryInfoFromPlural(row.dataCategory);
+          if (categoryInfo?.tallyType === 'usage') {
+            return t('View %s usage', row.product);
+          }
         }
         return undefined;
       }}
