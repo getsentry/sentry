@@ -198,19 +198,21 @@ function ActionButtons({
     return null;
   }
 
+  const isCaseInsensitive = caseInsensitive === 1;
+
   return (
     <ButtonsWrapper ref={ref}>
       {trailingItems}
       {defined(onCaseInsensitiveClick) && hasCaseSensitiveSearch ? (
         <ActionButton
           aria-label={t('Toggle case sensitivity')}
-          aria-pressed={caseInsensitive === 1}
+          aria-pressed={isCaseInsensitive}
           size="zero"
-          icon={<IconCase color={caseInsensitive ? 'active' : 'subText'} />}
+          icon={<IconCase color={isCaseInsensitive ? 'subText' : 'active'} />}
           borderless
-          active={caseInsensitive === 1}
+          active={!isCaseInsensitive}
           onClick={() => {
-            onCaseInsensitiveClick?.(caseInsensitive === 1 ? null : 1);
+            onCaseInsensitiveClick?.(isCaseInsensitive ? null : 1);
           }}
         />
       ) : null}
