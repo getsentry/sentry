@@ -96,7 +96,7 @@ def create_metric_alert(
         "dataset"
     ) in ["generic_metrics", "transactions"]:
         raise ValidationError(
-            "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, use span-based alerts with the is_transaction:true filter instead."
+            "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (`dataset=events_analytics_platform`) with the is_transaction:true filter instead."
         )
 
     if project:

@@ -196,7 +196,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
                 params,
                 {
                     "dataset": [
-                        "The transactions dataset is being deprecated. Please use the 'events_analytics_platform' dataset with the `is_transaction:true` filter instead."
+                        "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, use span-based alerts with the is_transaction:true filter instead."
                     ]
                 },
             )
@@ -213,7 +213,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
                 params,
                 {
                     "dataset": [
-                        "The generic_metrics dataset is being deprecated. Please use the 'events_analytics_platform' dataset with the `is_transaction:true` filter instead."
+                        "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, use span-based alerts with the is_transaction:true filter instead."
                     ]
                 },
             )
