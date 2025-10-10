@@ -189,7 +189,6 @@ const LiveIndicator = styled('div')`
   width: 8px;
   position: relative;
   border-radius: 50%;
-  margin-left: ${p => p.theme.space.sm};
   margin-right: ${p => p.theme.space.sm};
 
   @media (prefers-reduced-motion: reduce) {
