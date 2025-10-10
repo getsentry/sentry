@@ -1,3 +1,4 @@
+import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
@@ -37,7 +38,7 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
   }
 
   const metric = json.metric;
-  if (typeof metric !== 'object') {
+  if (defined(metric) && typeof metric !== 'object') {
     return null;
   }
 
