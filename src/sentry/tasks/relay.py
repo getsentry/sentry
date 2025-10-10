@@ -312,18 +312,17 @@ def schedule_invalidate_project_config(
         # XXX(iker): updating a lot of organizations or projects in a single
         # database transaction causes the `on_commit` list to grow considerably
         # and may cause memory leaks.
-        with quiet_redis_noise():
-            transaction.on_commit(
-                lambda: _schedule_invalidate_project_config(
-                    trigger=trigger,
-                    trigger_details=trigger_details,
-                    organization_id=organization_id,
-                    project_id=project_id,
-                    public_key=public_key,
-                    countdown=countdown,
-                ),
-                using=transaction_db,
-            )
+        transaction.on_commit(
+            lambda: _schedule_invalidate_project_config(
+                trigger=trigger,
+                trigger_details=trigger_details,
+                organization_id=organization_id,
+                project_id=project_id,
+                public_key=public_key,
+                countdown=countdown,
+            ),
+            using=transaction_db,
+        )
 
 
 def _schedule_invalidate_project_config(
@@ -368,35 +367,36 @@ def _schedule_invalidate_project_config(
         else:
             check_debounce_keys["organization_id"] = org_id
 
-    if projectconfig_debounce_cache.invalidation.is_debounced(**check_debounce_keys):
-        # If this task is already in the queue, do not schedule another task.
+    with quiet_redis_noise():
+        if projectconfig_debounce_cache.invalidation.is_debounced(**check_debounce_keys):
+            # If this task is already in the queue, do not schedule another task.
+            metrics.incr(
+                "relay.projectconfig_cache.skipped",
+                tags={"reason": "debounce", "update_reason": trigger, "task": "invalidation"},
+            )
+            return
+
         metrics.incr(
-            "relay.projectconfig_cache.skipped",
-            tags={"reason": "debounce", "update_reason": trigger, "task": "invalidation"},
+            "relay.projectconfig_cache.scheduled",
+            tags={
+                "update_reason": trigger,
+                "update_reason_details": trigger_details,
+                "task": "invalidation",
+            },
         )
-        return
 
-    metrics.incr(
-        "relay.projectconfig_cache.scheduled",
-        tags={
-            "update_reason": trigger,
-            "update_reason_details": trigger_details,
-            "task": "invalidation",
-        },
-    )
+        invalidate_project_config.apply_async(
+            countdown=countdown,
+            kwargs={
+                "project_id": project_id,
+                "organization_id": organization_id,
+                "public_key": public_key,
+                "trigger": trigger,
+                "trigger_details": trigger_details,
+            },
+        )
 
-    invalidate_project_config.apply_async(
-        countdown=countdown,
-        kwargs={
-            "project_id": project_id,
-            "organization_id": organization_id,
-            "public_key": public_key,
-            "trigger": trigger,
-            "trigger_details": trigger_details,
-        },
-    )
-
-    # Use the original arguments to this function to set the debounce key.
-    projectconfig_debounce_cache.invalidation.debounce(
-        organization_id=organization_id, project_id=project_id, public_key=public_key
-    )
+        # Use the original arguments to this function to set the debounce key.
+        projectconfig_debounce_cache.invalidation.debounce(
+            organization_id=organization_id, project_id=project_id, public_key=public_key
+        )
