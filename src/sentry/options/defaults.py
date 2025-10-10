@@ -3432,6 +3432,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# option used to enable/disable ingestion
+# of profile functions metrics into EAP
+register(
+    "profiling.functions_metrics.eap_ingestion.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "commit.dual-write-start-date",
     type=String,

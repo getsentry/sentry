@@ -4,6 +4,7 @@ import io
 import logging
 import zlib
 from base64 import b64decode, b64encode
+from collections.abc import Generator
 from copy import deepcopy
 from datetime import datetime, timezone
 from operator import itemgetter
@@ -17,8 +18,11 @@ import vroomrs
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from django.conf import settings
+from google.protobuf.timestamp_pb2 import Timestamp
 from packaging.version import InvalidVersion
 from packaging.version import parse as parse_version
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
 from sentry import features, options, quotas
 from sentry.conf.types.kafka_definition import Topic
@@ -73,6 +77,9 @@ UI_PROFILE_PLATFORMS = {"cocoa", "android", "javascript"}
 
 UNSAMPLED_PROFILE_ID = "00000000000000000000000000000000"
 
+CLIENT_SAMPLE_RATE = 1.0
+SERVER_SAMPLE_RATE = 1.0
+
 
 def _get_profiles_producer_from_topic(topic: Topic) -> KafkaProducer:
     return get_arroyo_producer(
@@ -100,6 +107,11 @@ profile_chunks_producer = SingletonProducer(
 profile_occurrences_producer = SingletonProducer(
     lambda: _get_profiles_producer_from_topic(Topic.INGEST_OCCURRENCES),
     max_futures=settings.SENTRY_PROFILE_OCCURRENCES_FUTURES_MAX_LIMIT,
+)
+
+eap_producer = SingletonProducer(
+    lambda: _get_profiles_producer_from_topic(Topic.SNUBA_ITEMS),
+    max_futures=settings.SENTRY_PROFILE_EAP_FUTURES_MAX_LIMIT,
 )
 
 logger = logging.getLogger(__name__)
@@ -1415,22 +1427,6 @@ def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
                         get_topic_definition(Topic.PROCESSED_PROFILES)["real_topic_name"]
                     )
                     processed_profiles_producer.produce(topic, payload)
-            # temporary: collect metrics about rate of functions metrics to be written into EAP
-            # should we loosen the constraints on the number and type of functions to be extracted.
-            if options.get("profiling.track_functions_metrics_write_rate.eap.enabled"):
-                eap_functions = prof.extract_functions_metrics(
-                    min_depth=1, filter_system_frames=False, filter_non_leaf_functions=False
-                )
-                if eap_functions is not None and len(eap_functions) > 0:
-                    tot = 0
-                    for f in eap_functions:
-                        tot += len(f.get_self_times_ns())
-                    metrics.incr(
-                        "process_profile.eap_functions_metrics.all_frames.count",
-                        tot,
-                        tags={"type": "profile", "platform": profile["platform"]},
-                        sample_rate=1.0,
-                    )
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -1481,20 +1477,18 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
                     profile_functions_producer.produce(topic, payload)
             # temporary: collect metrics about rate of functions metrics to be written into EAP
             # should we loosen the constraints on the number and type of functions to be extracted.
-            if options.get("profiling.track_functions_metrics_write_rate.eap.enabled"):
+            if options.get("profiling.functions_metrics.eap_ingestion.enabled"):
                 eap_functions = chunk.extract_functions_metrics(
-                    min_depth=1, filter_system_frames=False, filter_non_leaf_functions=False
+                    min_depth=1,
+                    filter_system_frames=True,
+                    max_unique_functions=100,
+                    generate_stack_fingerprints=True,
                 )
                 if eap_functions is not None and len(eap_functions) > 0:
-                    tot = 0
-                    for f in eap_functions:
-                        tot += len(f.get_self_times_ns())
-                    metrics.incr(
-                        "process_profile.eap_functions_metrics.all_frames.count",
-                        tot,
-                        tags={"type": "chunk", "platform": profile["platform"]},
-                        sample_rate=1.0,
-                    )
+                    topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"])
+                    for payload in build_chunk_functions_eap_trace_items(chunk, eap_functions):
+                        eap_producer.produce(topic, payload)
+
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -1623,3 +1617,88 @@ def build_profile_kafka_message(profile: vroomrs.Profile) -> KafkaPayload:
     if (sdk_version := m.sdk_version) is not None:
         data["sdk_version"] = sdk_version
     return KafkaPayload(None, json.dumps(data).encode("utf-8"), [])
+
+
+def _timestamp(value: float) -> Timestamp:
+    return Timestamp(
+        seconds=int(value),
+        nanos=round((value % 1) * 1_000_000) * 1000,
+    )
+
+
+def build_chunk_functions_eap_trace_items(
+    chunk: vroomrs.ProfileChunk, functions: list[vroomrs.CallTreeFunction]
+) -> Generator[KafkaPayload]:
+    for f in functions:
+        timestamp = AnyValue(int_value=int(chunk.start_timestamp()))
+        fingerprint = AnyValue(int_value=f.get_fingerprint())
+        name = AnyValue(string_value=f.get_function())
+        package = AnyValue(string_value=f.get_package())
+        is_application = AnyValue(bool_value=f.get_in_app())
+        platform = AnyValue(string_value=chunk.get_platform())
+        profile_id = AnyValue(string_value=chunk.get_profiler_id())
+        start_timestamp = AnyValue(double_value=chunk.start_timestamp())
+        end_timestamp = AnyValue(double_value=chunk.end_timestamp())
+        thread_id = AnyValue(string_value=f.get_thread_id())
+        profiling_type = AnyValue(string_value="continuous")
+
+        depth: int | None = f.get_depth()
+        stack_fingerptint: int | None = f.get_stack_fingerprint()
+        parent_fingerptint: int | None = f.get_parent_fingerprint()
+        environment: str | None = chunk.get_environment()
+        release: str | None = chunk.get_release()
+
+        for i in range(len(f.get_total_times_ns())):
+            attributes: dict[str, AnyValue] = {
+                "timestamp": timestamp,
+                "fingerprint": fingerprint,
+                "name": name,
+                "package": package,
+                "is_application": is_application,
+                "platform": platform,
+                "profile_id": profile_id,
+                "start_timestamp": start_timestamp,
+                "end_timestamp": end_timestamp,
+                "thread_id": thread_id,
+                "profiling_type": profiling_type,
+            }
+            if depth is not None:
+                attributes["depth"] = AnyValue(int_value=depth)
+
+            if stack_fingerptint is not None:
+                attributes["stack_fingerptint"] = AnyValue(int_value=stack_fingerptint)
+
+            if parent_fingerptint is not None:
+                attributes["parent_fingerptint"] = AnyValue(int_value=parent_fingerptint)
+
+            if environment is not None:
+                attributes["environment"] = AnyValue(string_value=environment)
+
+            if release is not None:
+                attributes["release"] = AnyValue(string_value=release)
+
+            attributes["self_times_ns"] = AnyValue(int_value=f.get_self_times_ns()[i])
+            attributes["total_times_ns"] = AnyValue(int_value=f.get_total_times_ns()[i])
+
+            item = TraceItem(
+                organization_id=chunk.get_organization_id(),
+                project_id=chunk.get_project_id(),
+                trace_id=chunk.get_profiler_id(),  # until we actually get a trace_id from the SDKs
+                item_id=int(chunk.get_profiler_id(), 16).to_bytes(16, "little"),
+                item_type=TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
+                timestamp=_timestamp(chunk.start_timestamp()),
+                attributes=attributes,
+                client_sample_rate=CLIENT_SAMPLE_RATE,
+                server_sample_rate=SERVER_SAMPLE_RATE,
+                retention_days=chunk.get_retention_days(),
+                downsampled_retention_days=0,
+                received=_timestamp(chunk.get_received()),
+            )
+            yield KafkaPayload(
+                key=None,
+                value=item.SerializeToString(),
+                headers=[
+                    ("item_type", str(item.item_type).encode("ascii")),
+                    ("project_id", str(chunk.get_project_id()).encode("ascii")),
+                ],
+            )
