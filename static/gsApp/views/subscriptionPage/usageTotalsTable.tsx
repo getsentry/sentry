@@ -186,22 +186,26 @@ function IngestionBar({
 
   return (
     <Flex width="100%" justify="end">
-      {displayTotals.map(([outcome, total], index) => {
-        const fillPercentage = getPercentage(total, totalIngested);
-        const isFirstBar = index === 0;
-        const isLastBar = index === Object.entries(displayTotals).length - 1;
-        const barColor = outcomeToBarColor[outcome];
+      {totalIngested > 0 ? (
+        displayTotals.map(([outcome, total], index) => {
+          const fillPercentage = getPercentage(total, totalIngested);
+          const isFirstBar = index === 0;
+          const isLastBar = index === Object.entries(displayTotals).length - 1;
+          const barColor = outcomeToBarColor[outcome];
 
-        return (
-          <Bar
-            fillPercentage={fillPercentage}
-            hasLeftBorderRadius={isFirstBar}
-            hasRightBorderRadius={isLastBar}
-            barColor={barColor}
-            key={outcome}
-          />
-        );
-      })}
+          return (
+            <Bar
+              fillPercentage={fillPercentage}
+              hasLeftBorderRadius={isFirstBar}
+              hasRightBorderRadius={isLastBar}
+              barColor={barColor}
+              key={outcome}
+            />
+          );
+        })
+      ) : (
+        <Bar fillPercentage={100} hasLeftBorderRadius hasRightBorderRadius />
+      )}
     </Flex>
   );
 }
@@ -229,13 +233,12 @@ function IngestionSummary({
             isAbbreviated: true,
           })}
         </Text>
-        {totalIngested > 0 && (
-          <IngestionBar
-            totals={totals}
-            totalIngested={totalIngested}
-            outcomeToBarColor={outcomeToBarColor}
-          />
-        )}
+
+        <IngestionBar
+          totals={totals}
+          totalIngested={totalIngested}
+          outcomeToBarColor={outcomeToBarColor}
+        />
       </Flex>
     </Flex>
   );
@@ -280,7 +283,7 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
         <thead>
           <tr>
             <th>
-              {!isNewBillingUI && (
+              {(!isNewBillingUI || isEventBreakdown) && (
                 <TextOverflow>
                   {isEventBreakdown
                     ? tct('[singularName] Events', {

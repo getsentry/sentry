@@ -52,16 +52,16 @@ function CategoryUsageDrawer({
   const navigate = useNavigate();
   const location = useLocation();
   const transform = selectedTransform(location);
-  const {category} = categoryInfo;
+  const {category, usage: billedUsage} = categoryInfo;
 
   const displayName = getPlanCategoryName({
     plan: subscription.planDetails,
-    category: categoryInfo.category,
+    category,
     title: true,
   });
 
   const usageStats = {
-    [categoryInfo.category]: stats,
+    [category]: stats,
   };
 
   const adjustedTotals = isContinuousProfiling(category)
@@ -72,9 +72,9 @@ function CategoryUsageDrawer({
             ? (eventTotals[DataCategory.PROFILES] ?? EMPTY_STAT_TOTAL)
             : EMPTY_STAT_TOTAL,
         ]),
-        accepted: categoryInfo.usage,
+        accepted: billedUsage,
       }
-    : {...totals, accepted: categoryInfo.usage};
+    : {...totals, accepted: billedUsage};
 
   const renderFooter = () => {
     return (
@@ -99,7 +99,7 @@ function CategoryUsageDrawer({
   const showEventBreakdown =
     organization.features.includes('profiling-billing') &&
     subscription.planTier === PlanTier.AM2 &&
-    categoryInfo.category === DataCategory.TRANSACTIONS;
+    category === DataCategory.TRANSACTIONS;
 
   return (
     <Container>
@@ -114,18 +114,32 @@ function CategoryUsageDrawer({
           reservedBudgetCategoryInfo={{}}
           displayMode="usage"
           subscription={subscription}
-          category={categoryInfo.category}
+          category={category}
           transform={transform}
           usagePeriodStart={periodStart}
           usagePeriodEnd={periodEnd}
           footer={renderFooter()}
         />
-        <UsageTotalsTable
-          category={categoryInfo.category}
-          isEventBreakdown={showEventBreakdown}
-          totals={adjustedTotals}
-          subscription={subscription}
-        />
+        <Flex direction="column" gap="xl">
+          <UsageTotalsTable
+            category={category}
+            totals={adjustedTotals}
+            subscription={subscription}
+          />
+          {showEventBreakdown &&
+            Object.entries(eventTotals).map(([key, eventTotal]) => {
+              return (
+                <UsageTotalsTable
+                  isEventBreakdown
+                  key={key}
+                  category={key as DataCategory}
+                  totals={eventTotal}
+                  subscription={subscription}
+                  data-test-id={`event-breakdown-${key}`}
+                />
+              );
+            })}
+        </Flex>
       </DrawerBody>
     </Container>
   );
