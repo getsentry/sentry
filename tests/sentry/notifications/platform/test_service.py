@@ -2,12 +2,15 @@ from unittest import mock
 
 import pytest
 
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.notifications.platform.service import NotificationService, NotificationServiceError
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.testutils.asserts import assert_count_of_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import (
     MockNotification,
@@ -49,3 +52,27 @@ class NotificationServiceTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "Strategy '%s' did not yield targets", strategy.__class__.__name__
         )
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_basic_notify_target_async(self, mock_record: mock.MagicMock) -> None:
+        service = NotificationService(data=MockNotification(message="this is a test notification"))
+        with self.tasks():
+            service.notify_target_async(target=self.target)
+
+        # slo asserts
+        assert_count_of_metric(mock_record, EventLifecycleOutcome.STARTED, 1)
+        assert_count_of_metric(mock_record, EventLifecycleOutcome.SUCCESS, 1)
+
+    @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_notify_target_async_with_api_error(
+        self, mock_record: mock.MagicMock, mock_send: mock.MagicMock
+    ) -> None:
+        mock_send.side_effect = ApiError("API request failed", 400)
+        service = NotificationService(data=MockNotification(message="this is a test notification"))
+        with self.tasks():
+            service.notify_target_async(target=self.target)
+
+        # slo asserts
+        assert_count_of_metric(mock_record, EventLifecycleOutcome.STARTED, 1)
+        assert_count_of_metric(mock_record, EventLifecycleOutcome.FAILURE, 1)

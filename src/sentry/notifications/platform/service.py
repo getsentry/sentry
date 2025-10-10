@@ -17,6 +17,9 @@ from sentry.notifications.platform.types import (
     NotificationTemplate,
 )
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo.base import SiloMode
+from sentry.tasks.base import instrumented_task
+from sentry.taskworker.namespaces import notifications_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -79,13 +82,41 @@ class NotificationService[T: NotificationData]:
                 raise
             return None
 
+    @instrumented_task(
+        name="src.sentry.notifications.platform.service.notify_target_async",
+        namespace=notifications_tasks,
+        processing_deadline_duration=30,
+        silo_mode=SiloMode.REGION,
+    )
     def notify_target_async(self, *, target: NotificationTarget) -> None:
         """
         Send a notification directly to a target asynchronously.
         NOTE: This method ignores notification settings. When possible, consider using a strategy instead of
               using this method directly to prevent unwanted noise associated with your notifications.
         """
-        raise NotImplementedError
+        if not self.data:
+            raise NotificationServiceError(
+                "Notification service must be initialized with data before sending!"
+            )
+
+        with NotificationEventLifecycleMetric(
+            interaction_type=NotificationInteractionType.NOTIFY_TARGET_ASYNC,
+            notification_source=self.data.source,
+            notification_provider=target.provider_key,
+        ).capture() as lifecycle:
+            # Step 1: Get the provider, and validate the target against it
+            provider = self._get_and_validate_provider(target=target)
+
+            # Step 2: Render the template
+            template_cls = template_registry.get(self.data.source)
+            template = template_cls()
+            renderable = self._render_template(template=template, provider=provider)
+
+            # Step 3: Send the notification
+            try:
+                provider.send(target=target, renderable=renderable)
+            except ApiError as e:
+                lifecycle.record_failure(failure_reason=e, create_issue=False)
 
     def notify(
         self,
@@ -119,5 +150,5 @@ class NotificationService[T: NotificationData]:
 
         else:
             for target in targets:
-                self.notify_target_async(target=target)
+                self.notify_target_async.delay(target=target)
         return None
