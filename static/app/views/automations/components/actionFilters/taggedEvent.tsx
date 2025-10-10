@@ -56,7 +56,7 @@ function MatchField() {
       value={condition.comparison.match}
       options={MATCH_CHOICES}
       onChange={(value: SelectValue<MatchType>) => {
-        onUpdate({comparison: {...condition.comparison, match: value}});
+        onUpdate({comparison: {...condition.comparison, match: value.value}});
       }}
     />
   );
