@@ -133,17 +133,8 @@ class SubscriptionProcessor:
         self.orig_trigger_alert_counts = deepcopy(self.trigger_alert_counts)
         self.orig_trigger_resolve_counts = deepcopy(self.trigger_resolve_counts)
 
-        self._has_workflow_engine_processing_only = features.has(
-            "organizations:workflow-engine-single-process-metric-issues",
-            self.subscription.project.organization,
-        )
-        self._has_workflow_engine_processing = (
-            features.has(
-                "organizations:workflow-engine-metric-alert-processing",
-                self.subscription.project.organization,
-            )
-            or self._has_workflow_engine_processing_only
-        )
+        self._has_workflow_engine_processing_only = True
+        self._has_workflow_engine_processing = True
 
     @property
     def alert_rule(self) -> AlertRule:
