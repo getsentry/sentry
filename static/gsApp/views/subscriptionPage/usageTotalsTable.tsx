@@ -64,10 +64,6 @@ type RowProps = {
    */
   indent?: boolean;
   /**
-   * Whether the new billing UI is enabled
-   */
-  isNewBillingUI?: boolean;
-  /**
    * Adds an info tooltip to `name`
    */
   tooltipTitle?: TooltipProps['title'];

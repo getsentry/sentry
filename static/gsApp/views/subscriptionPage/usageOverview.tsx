@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -99,18 +99,21 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
     Partial<Record<DataCategory, boolean>>
   >({});
 
-  const handleCloseDrawer = (replace: boolean) => {
-    navigate(
-      {
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          drawer: undefined,
+  const handleCloseDrawer = useCallback(
+    (replace: boolean) => {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            drawer: undefined,
+          },
         },
-      },
-      {replace}
-    );
-  };
+        {replace}
+      );
+    },
+    [navigate, location.query, location.pathname]
+  );
 
   useEffect(() => {
     Object.entries(subscription.addOns ?? {})
@@ -157,7 +160,14 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
         }
       );
     }
-  });
+  }, [
+    isDrawerOpen,
+    location.query.drawer,
+    usageData,
+    subscription,
+    openDrawer,
+    handleCloseDrawer,
+  ]);
 
   const allAddOnDataCategories = Object.values(
     subscription.planDetails.addOnCategories
@@ -431,7 +441,8 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
                 <Text as="div" textWrap="balance">
                   <Text bold>
                     {!hasAccess && <IconLock locked size="xs" />} {product}
-                    {softCapType && ` (${softCapType.replace(/_/g, '-')})`}{' '}
+                    {softCapType &&
+                      ` (${toTitleCase(softCapType.replace(/_/g, ' ').toLocaleLowerCase())})`}{' '}
                   </Text>{' '}
                   {productTrial && <ProductTrialTag trial={productTrial} />}{' '}
                 </Text>

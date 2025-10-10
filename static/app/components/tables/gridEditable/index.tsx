@@ -106,12 +106,12 @@ type GridEditableProps<
    * in these buttons and updating props to the GridEditable instance.
    */
   headerButtons?: () => React.ReactNode;
-
   height?: CSSProperties['height'];
 
   highlightedRowKey?: number;
 
   isLoading?: boolean;
+
   isRowClickable?: (row: DataRow) => boolean;
   minimumColWidth?: number;
   onRowClick?: (row: DataRow, key: number, event: React.MouseEvent) => void;
