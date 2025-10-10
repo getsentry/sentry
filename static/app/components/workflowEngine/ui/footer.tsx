@@ -28,7 +28,6 @@ export function StickyFooter(props: React.ComponentProps<'div'>) {
   const ref = useRef<HTMLDivElement>(null);
   // Use a bottom-focused rootMargin so the hook reports stuck when pinned at bottom.
   const isStuck = useIsStuck(ref.current, {position: 'bottom'});
-  return (
-    <StickyFooterBase ref={ref} data-stuck={isStuck ? 'true' : undefined} {...props} />
-  );
+  const stuckProps = isStuck ? {'data-stuck': ''} : {};
+  return <StickyFooterBase ref={ref} {...stuckProps} {...props} />;
 }

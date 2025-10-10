@@ -104,7 +104,11 @@ interface FooterProps extends RequiredChildren {
 function Footer({children, label}: FooterProps) {
   return (
     <StickyFooter>
-      {label && <Text size="md">{label}</Text>}
+      {label && (
+        <Text variant="muted" size="md">
+          {label}
+        </Text>
+      )}
       <Flex gap="md" flex={label ? undefined : 1} justify="end">
         {children}
       </Flex>

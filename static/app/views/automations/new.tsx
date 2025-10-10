@@ -79,7 +79,9 @@ export default function AutomationNew() {
         </Layout.Body>
       </Layout.Page>
       <StickyFooter>
-        <Text size="md">{t('Step 1 of 2')}</Text>
+        <Text variant="muted" size="md">
+          {t('Step 1 of 2')}
+        </Text>
         <Flex gap="md">
           <LinkButton
             priority="default"
