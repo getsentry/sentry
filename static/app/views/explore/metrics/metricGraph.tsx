@@ -122,7 +122,6 @@ function Graph({onChartTypeChange, timeseriesResult, visualize}: GraphProps) {
       Title={Title}
       Actions={Actions}
       Visualization={visualize.visible && <ChartVisualization chartInfo={chartInfo} />}
-      height={visualize.visible ? 200 : 50}
       revealActions="always"
       borderless
     />

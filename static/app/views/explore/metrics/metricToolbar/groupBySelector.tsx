@@ -1,6 +1,5 @@
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {SelectOption} from 'sentry/components/core/compactSelect/types';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
@@ -54,7 +53,6 @@ export function GroupBySelector({metricName}: GroupBySelectorProps) {
   });
 
   const isLoading = numberTagsLoading || stringTagsLoading;
-  const triggerLabel = isLoading ? <LoadingIndicator size={16} /> : undefined;
 
   return (
     <CompactSelect<string>
@@ -62,8 +60,8 @@ export function GroupBySelector({metricName}: GroupBySelectorProps) {
       searchable
       options={enabledOptions}
       value={[...groupBys]}
-      disabled={isLoading || enabledOptions.length === 0}
-      triggerProps={triggerLabel ? {children: triggerLabel} : undefined}
+      loading={isLoading}
+      disabled={enabledOptions.length === 0}
       onChange={selectedOptions => {
         setGroupBys(selectedOptions.map(option => option.value));
       }}
