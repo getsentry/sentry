@@ -136,6 +136,7 @@ export const useSortedTimeSeries = <
       sort: decodeSorts(orderby)[0],
       interval,
       sampling: samplingMode,
+      extrapolate: !disableAggregateExtrapolation,
       enabled: isTimeSeriesEndpointComparisonEnabled,
     },
     `${referrer}-time-series`
