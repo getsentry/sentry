@@ -68,6 +68,7 @@ from sentry.models.dashboard import (
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
+    DashboardFieldLink,
     DashboardWidget,
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
@@ -568,6 +569,11 @@ class ExhaustiveFixtures(Fixtures):
             created_by_id=owner_id,
             organization=org,
         )
+        linked_dashboard = Dashboard.objects.create(
+            title=f"Linked Dashboard 1 for {slug}",
+            created_by_id=owner_id,
+            organization=org,
+        )
         DashboardFavoriteUser.objects.create(
             dashboard=dashboard,
             user_id=owner_id,
@@ -595,6 +601,11 @@ class ExhaustiveFixtures(Fixtures):
             dashboard_widget_query=widget_query,
             extraction_state=DashboardWidgetQueryOnDemand.OnDemandExtractionState.DISABLED_NOT_APPLICABLE,
             spec_hashes=[],
+        )
+        DashboardFieldLink.objects.create(
+            dashboard_widget_query=widget_query,
+            field="count()",
+            dashboard=linked_dashboard,
         )
         DashboardTombstone.objects.create(organization=org, slug=f"test-tombstone-in-{slug}")
 
