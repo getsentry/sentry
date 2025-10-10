@@ -17,7 +17,6 @@ import type {
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
-import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
 interface MetricDetectorDetectProps {
   detector: MetricDetector;
