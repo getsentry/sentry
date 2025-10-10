@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   FilterWrapper,
@@ -17,6 +17,7 @@ import type {
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
+import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
 interface MetricDetectorDetectProps {
   detector: MetricDetector;
@@ -37,8 +38,12 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
 
   return (
     <Container>
+      <Flex gap="xs" align="center">
+        <Heading as="h4">{t('Dataset:')}</Heading>
+        <Value>{datasetConfig.name}</Value>
+      </Flex>
       <Flex direction="column" gap="xs">
-        <Heading>{t('Query:')}</Heading>
+        <Heading as="h4">{t('Query:')}</Heading>
         <Query>
           <Label>
             <Text variant="muted">{t('Visualize')}</Text>
@@ -67,10 +72,10 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
             </Fragment>
           )}
         </Query>
-      </Flex>
-      <Flex gap="xs" align="center">
-        <Heading>{t('Interval:')}</Heading>
-        <Value>{getExactDuration(dataSource.queryObj.snubaQuery.timeWindow)}</Value>
+        <Flex gap="xs" align="center">
+          <Heading as="h4">{t('Interval:')}</Heading>
+          <Value>{getExactDuration(dataSource.queryObj.snubaQuery.timeWindow)}</Value>
+        </Flex>
       </Flex>
     </Container>
   );
@@ -80,11 +85,6 @@ export function MetricDetectorDetailsDetect({detector}: MetricDetectorDetectProp
   const dataSource = detector.dataSources?.[0];
   return <SnubaQueryDetails dataSource={dataSource} />;
 }
-
-const Heading = styled('h4')`
-  font-size: ${p => p.theme.fontSize.md};
-  margin: 0;
-`;
 
 const Query = styled('dl')`
   display: grid;
