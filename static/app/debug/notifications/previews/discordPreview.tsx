@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Disclosure} from '@sentry/scraps/disclosure';
+
 import {CodeBlock} from 'sentry/components/core/code';
 import {Image} from 'sentry/components/core/image/image';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
@@ -64,16 +66,21 @@ export function DiscordPreview({
             ))}
           </Flex>
         </DiscordMessageContainer>
-        <Flex direction="column" gap="xl" padding="2xl">
-          <Text>
-            Below is the JSON payload that will be sent to Discord. There is no online
-            preview tool, so we're mocking it here, so use this as an approximation of
-            what it'll look like on Discord.
-          </Text>
-          <CodeBlock language="json">
-            {payload ? JSON.stringify(payload, null, 2) : ''}
-          </CodeBlock>
-        </Flex>
+        <Disclosure>
+          <Disclosure.Title>Discord JSON Payload</Disclosure.Title>
+          <Disclosure.Content>
+            <Flex direction="column" gap="xl">
+              <Text>
+                Below is the JSON payload that will be sent to Discord. There is no online
+                preview tool, so we're mocking it here, so use this as an approximation of
+                what it'll look like on Discord.
+              </Text>
+              <CodeBlock language="json">
+                {payload ? JSON.stringify(payload, null, 2) : ''}
+              </CodeBlock>
+            </Flex>
+          </Disclosure.Content>
+        </Disclosure>
       </Container>
     </DebugNotificationsPreview>
   );
