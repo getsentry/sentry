@@ -51,4 +51,7 @@ export default UnmaskAlert;
 const UnmaskAlertContainer = styled('div')`
   position: absolute;
   bottom: ${space(1)};
+  & > div {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
 `;
