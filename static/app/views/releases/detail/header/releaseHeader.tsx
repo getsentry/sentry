@@ -66,6 +66,7 @@ function ReleaseHeader({
           </NavTabsBadge>
         ),
       }),
+      textValue: t('Commits %s', formatAbbreviatedNumber(commitCount)),
       to: `commits/`,
     },
     {
@@ -76,6 +77,7 @@ function ReleaseHeader({
           </NavTabsBadge>
         ),
       }),
+      textValue: t('Files Changed %s', formatAbbreviatedNumber(commitFilesChanged)),
       to: `files-changed/`,
     },
   ];
@@ -95,6 +97,7 @@ function ReleaseHeader({
           </NavTabsBadge>
         ),
     }),
+    textValue: t('Builds %s', numberOfMobileBuilds),
     to: `builds/`,
   };
 
@@ -176,7 +179,7 @@ function ReleaseHeader({
       <Layout.HeaderTabs value={getActiveTabTo()}>
         <TabList hideBorder>
           {tabs.map(tab => (
-            <TabList.Item key={tab.to} to={getTabUrl(tab.to)}>
+            <TabList.Item key={tab.to} to={getTabUrl(tab.to)} textValue={tab.textValue}>
               {tab.title}
             </TabList.Item>
           ))}
