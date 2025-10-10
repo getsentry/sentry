@@ -7,6 +7,7 @@ import SplitPanel from 'sentry/components/splitPanel';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
@@ -15,6 +16,7 @@ import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {
+  useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
   useQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
@@ -35,6 +37,7 @@ export function MetricPanel({traceMetric}: MetricPanelProps) {
   const [interval] = useChartInterval();
   const topEvents = useTopEvents();
   const searchQuery = useQueryParamsSearch();
+  const sortBys = useQueryParamsAggregateSortBys();
 
   const search = useMemo(() => {
     const currentSearch = new MutableSearch(`metric.name:${traceMetric.name}`);
@@ -52,6 +55,7 @@ export function MetricPanel({traceMetric}: MetricPanelProps) {
       fields: [...groupBys],
       enabled: Boolean(traceMetric.name),
       topEvents,
+      orderby: sortBys.map(formatSort),
     },
     'api.explore.metrics-stats',
     DiscoverDatasets.TRACEMETRICS
@@ -75,7 +79,7 @@ export function MetricPanel({traceMetric}: MetricPanelProps) {
                 min: MIN_LEFT_WIDTH,
                 max: width - MIN_RIGHT_WIDTH,
               }}
-              right={<MetricInfoTabs />}
+              right={<MetricInfoTabs traceMetric={traceMetric} />}
             />
           ) : null}
         </div>

@@ -49,6 +49,7 @@ export function MetricsQueryParamsProvider({
       const newQueryParams = updateQueryParams(queryParams, {
         query: getUpdatedValue(writableQueryParams.query, defaultQuery),
         aggregateFields: writableQueryParams.aggregateFields,
+        aggregateSortBys: writableQueryParams.aggregateSortBys,
       });
 
       setQueryParams(newQueryParams);
