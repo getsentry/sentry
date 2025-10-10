@@ -37,7 +37,7 @@ function KeyField() {
     <AutomationBuilderInput
       name={`${condition_id}.comparison.key`}
       placeholder={t('tag')}
-      value={condition.comparison.key}
+      value={condition.comparison.key ?? ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({comparison: {...condition.comparison, key: e.target.value}});
         removeError(condition.id);
@@ -53,7 +53,7 @@ function MatchField() {
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.match`}
       aria-label={t('Match type')}
-      value={condition.comparison.match}
+      value={condition.comparison.match ?? ''}
       options={MATCH_CHOICES}
       onChange={(value: SelectValue<MatchType>) => {
         onUpdate({comparison: {...condition.comparison, match: value.value}});
@@ -71,7 +71,7 @@ function ValueField() {
       name={`${condition_id}.comparison.value`}
       aria-label={t('Value')}
       placeholder={t('value')}
-      value={condition.comparison.value}
+      value={condition.comparison.value ?? ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({comparison: {...condition.comparison, value: e.target.value}});
         removeError(condition.id);
