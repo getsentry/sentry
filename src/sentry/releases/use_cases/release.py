@@ -10,7 +10,7 @@ from django.db.models import Sum
 from sentry import tagstore
 from sentry.api.serializers import serialize as model_serializer
 from sentry.api.serializers.models.release import get_users_for_authors
-from sentry.api.serializers.release_details_types import Author, LastDeploy
+from sentry.api.serializers.release_details_types import Author, BaseProject, LastDeploy
 from sentry.api.serializers.release_details_types import Project as SerializedProject
 from sentry.api.serializers.types import ReleaseSerializerResponse
 from sentry.models.commit import Commit
@@ -115,7 +115,7 @@ def serialize(
 
 
 def get_release_projects(
-    new_groups_map: defaultdict[int, dict[int, int]], project_map: dict[int, SerializedProject]
+    new_groups_map: defaultdict[int, dict[int, int]], project_map: dict[int, BaseProject]
 ) -> defaultdict[int, list[SerializedProject]]:
     release_projects_map: defaultdict[int, list[SerializedProject]] = defaultdict(list)
     for release_id, mapping in new_groups_map.items():
@@ -128,7 +128,7 @@ def get_release_projects(
 def get_projects(
     projects: Iterable[Project],
     fetch_platforms: Callable[[Iterable[int]], list[tuple[int, str]]],
-) -> dict[int, SerializedProject]:
+) -> dict[int, BaseProject]:
     platforms = defaultdict(list)
     for project_id, platform in fetch_platforms([p.id for p in projects]):
         platforms[project_id].append(platform)
@@ -139,7 +139,6 @@ def get_projects(
             "slug": project.slug,
             "name": project.name,
             "platform": project.platform,
-            "newGroups": -1,  # Default value, will be overridden per release
             "platforms": platforms[project.id],
             "hasHealthData": False,
         }
