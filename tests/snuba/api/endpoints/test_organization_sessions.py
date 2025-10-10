@@ -1880,6 +1880,163 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         assert group["totals"]["unhealthy_rate(session)"] == pytest.approx(5 / 11)
 
     @freeze_time(MOCK_DATETIME)
+    def test_unhandled_rate(self) -> None:
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "field": ["unhandled_rate(session)"],
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        response = req(
+            query="session.status:[abnormal,crashed]",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": "Cannot filter field unhandled_rate(session) by session.status"
+        }
+
+        response = req(
+            groupBy="session.status",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": "Cannot group field unhandled_rate(session) by session.status"
+        }
+
+        response = req(
+            field=[
+                "unhandled_rate(session)",
+                "sum(session)",
+            ],
+            groupBy=["release", "environment"],
+            query="release:foo@1.0.0",
+        )
+        assert response.status_code == 200, response.content
+        group = response.data["groups"][0]
+        assert group["totals"]["sum(session)"] == 8
+        assert group["totals"]["unhandled_rate(session)"] == pytest.approx(0.25)
+
+        response = req(
+            field=[
+                "unhandled_rate(session)",
+                "sum(session)",
+            ],
+        )
+        assert response.status_code == 200, response.content
+        group = response.data["groups"][0]
+        assert group["totals"]["sum(session)"] == 11
+        assert group["totals"]["unhandled_rate(session)"] == pytest.approx(2 / 11)
+
+    @freeze_time(MOCK_DATETIME)
+    def test_errored_rate(self):
+        """
+        Test errored_rate(session) metric
+        """
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "field": [
+                "errored_rate(session)",
+                "sum(session)",
+            ],
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        response = req(
+            query="session.status:[abnormal,crashed]",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": "Cannot filter field errored_rate(session) by session.status"
+        }
+
+        response = req(
+            groupBy="session.status",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": "Cannot group field errored_rate(session) by session.status"
+        }
+
+        response = req(
+            groupBy=["release", "environment"],
+            query="release:foo@1.0.0",
+        )
+        assert response.status_code == 200, response.content
+        group = response.data["groups"][0]
+        assert group["totals"]["sum(session)"] == 8
+        assert group["totals"]["errored_rate(session)"] == pytest.approx(3 / 8)
+
+        response = req()
+        assert response.status_code == 200, response.content
+        group = response.data["groups"][0]
+        assert group["totals"]["sum(session)"] == 11
+        assert group["totals"]["errored_rate(session)"] == pytest.approx(4 / 11)
+
+    @freeze_time(MOCK_DATETIME)
+    def test_abnormal_rate(self):
+        """
+        Test abnormal_rate(session) metric
+        """
+        self.bulk_store_sessions(
+            [
+                make_session(self.project, status="abnormal", release="foo@1.1.0"),
+                make_session(self.project, status="abnormal"),
+            ]
+        )
+
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "field": [
+                "abnormal_rate(session)",
+                "sum(session)",
+            ],
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        response = req(
+            query="session.status:[abnormal,crashed]",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": "Cannot filter field abnormal_rate(session) by session.status"
+        }
+
+        response = req(
+            groupBy="session.status",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": "Cannot group field abnormal_rate(session) by session.status"
+        }
+
+        response = req(
+            groupBy=["release", "environment"],
+            query="release:foo@1.0.0",
+        )
+        assert response.status_code == 200, response.content
+        group = response.data["groups"][0]
+        assert group["totals"]["sum(session)"] == 9
+        assert group["totals"]["abnormal_rate(session)"] == pytest.approx(1 / 9)
+
+        response = req()
+        assert response.status_code == 200, response.content
+        group = response.data["groups"][0]
+        assert group["totals"]["sum(session)"] == 13
+        assert group["totals"]["abnormal_rate(session)"] == pytest.approx(2 / 13)
+
+    @freeze_time(MOCK_DATETIME)
     def test_pagination(self) -> None:
         def do_request(cursor):
             return self.do_request(

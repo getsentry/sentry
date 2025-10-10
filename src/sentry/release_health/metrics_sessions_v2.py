@@ -347,6 +347,10 @@ class SimpleForwardingField(Field):
         "foreground_anr_rate()": SessionMRI.FOREGROUND_ANR_RATE,
         "unhandled_rate(session)": SessionMRI.UNHANDLED_RATE,
         "unhandled_rate(user)": SessionMRI.UNHANDLED_USER_RATE,
+        "errored_rate(session)": SessionMRI.ERRORED_RATE,
+        "errored_rate(user)": SessionMRI.ERRORED_USER_RATE,
+        "abnormal_rate(session)": SessionMRI.ABNORMAL_RATE,
+        "abnormal_rate(user)": SessionMRI.ABNORMAL_USER_RATE,
         "unhealthy_rate(session)": SessionMRI.UNHEALTHY_RATE,
     }
 
@@ -388,6 +392,10 @@ FIELD_MAP: Mapping[SessionsQueryFunction, type[Field]] = {
     "foreground_anr_rate()": SimpleForwardingField,
     "unhandled_rate(session)": SimpleForwardingField,
     "unhandled_rate(user)": SimpleForwardingField,
+    "errored_rate(session)": SimpleForwardingField,
+    "errored_rate(user)": SimpleForwardingField,
+    "abnormal_rate(session)": SimpleForwardingField,
+    "abnormal_rate(user)": SimpleForwardingField,
     "unhealthy_rate(session)": SimpleForwardingField,
 }
 PREFLIGHT_QUERY_COLUMNS = {"release.timestamp"}
