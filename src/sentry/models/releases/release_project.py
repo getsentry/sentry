@@ -48,7 +48,7 @@ class ReleaseProject(Model):
     project = FlexibleForeignKey("sentry.Project")
     release = FlexibleForeignKey("sentry.Release")
     new_groups = BoundedPositiveIntegerField(null=True, default=0)
-    date_added = models.DateTimeField(default=timezone.now, null=True)
+    created_at = models.DateTimeField(default=timezone.now, null=True)
 
     adopted = models.DateTimeField(null=True, blank=True)
     unadopted = models.DateTimeField(null=True, blank=True)

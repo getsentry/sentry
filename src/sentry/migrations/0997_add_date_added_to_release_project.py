@@ -30,14 +30,14 @@ class Migration(CheckedMigration):
             state_operations=[
                 migrations.AddField(
                     model_name="releaseproject",
-                    name="date_added",
+                    name="created_at",
                     field=models.DateTimeField(default=django.utils.timezone.now, null=True),
                 )
             ],
             database_operations=[
                 migrations.AddField(
                     model_name="releaseproject",
-                    name="date_added",
+                    name="created_at",
                     field=models.DateTimeField(null=True),
                 )
             ],
