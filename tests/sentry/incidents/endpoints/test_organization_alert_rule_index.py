@@ -1716,7 +1716,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp = self.get_error_response(self.organization.slug, status_code=400, **data)
         assert (
             resp.data[0]
-            == "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (`dataset=events_analytics_platform`) with the is_transaction:true filter instead."
+            == "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
         )
 
     def test_generic_metrics_dataset_deprecation_validation(self) -> None:
@@ -1735,7 +1735,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp = self.get_error_response(self.organization.slug, status_code=400, **data)
         assert (
             resp.data[0]
-            == "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (`dataset=events_analytics_platform`) with the is_transaction:true filter instead."
+            == "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
         )
 
 
