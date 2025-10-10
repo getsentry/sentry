@@ -94,7 +94,7 @@ export type WidgetQuery = {
   selectedAggregate?: number;
 };
 
-export type WidgetChangedReason = {
+type WidgetChangedReason = {
   equations: Array<{
     equation: string;
     reason: string | string[];

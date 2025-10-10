@@ -90,7 +90,6 @@ export type SortOption =
 
 // Comes from ExploreSavedQueryModelSerializer
 type ReadableSavedQuery = {
-  changedReason: ExploreQueryChangedReason | null;
   dataset: 'logs' | 'spans' | 'segment_spans'; // ExploreSavedQueryDataset
   dateAdded: string;
   dateUpdated: string;
@@ -102,6 +101,7 @@ type ReadableSavedQuery = {
   projects: number[];
   query: [ReadableQuery, ...ReadableQuery[]];
   starred: boolean;
+  changedReason?: ExploreQueryChangedReason | null;
   createdBy?: User;
   end?: string;
   environment?: string[];
@@ -111,7 +111,6 @@ type ReadableSavedQuery = {
 };
 
 export class SavedQuery {
-  changedReason: ExploreQueryChangedReason | null;
   dateAdded: string;
   dateUpdated: string;
   id: number;
@@ -123,6 +122,7 @@ export class SavedQuery {
   query: [SavedQueryQuery, ...SavedQueryQuery[]];
   dataset: ReadableSavedQuery['dataset'];
   starred: boolean;
+  changedReason?: ExploreQueryChangedReason | null;
   createdBy?: User;
   end?: string | DateString;
   environment?: string[];
