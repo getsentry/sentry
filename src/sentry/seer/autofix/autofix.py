@@ -17,6 +17,8 @@ from sentry import eventstore, features, quotas, tagstore
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.constants import DataCategory, ObjectStatus
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -440,6 +442,39 @@ def _respond_with_error(reason: str, status: int):
     )
 
 
+def _get_github_username_for_user(user: User | RpcUser, organization_id: int) -> str | None:
+    """Get GitHub username for a user by checking ExternalActor mappings."""
+    try:
+        external_actor: ExternalActor | None = (
+            ExternalActor.objects.filter(
+                user_id=user.id,
+                organization_id=organization_id,
+                provider__in=[
+                    ExternalProviders.GITHUB.value,
+                    ExternalProviders.GITHUB_ENTERPRISE.value,
+                ],
+            )
+            .order_by("-date_added")
+            .first()
+        )
+
+        if external_actor and external_actor.external_name:
+            username = external_actor.external_name
+            return username.lstrip("@") if username.startswith("@") else username
+
+    except Exception:
+        logger.exception(
+            "Failed to get GitHub username for user",
+            extra={
+                "user_id": user.id,
+                "user_email": user.email,
+                "org_id": organization_id,
+            },
+        )
+
+    return None
+
+
 def _call_autofix(
     *,
     user: User | AnonymousUser | RpcUser,
@@ -455,6 +490,7 @@ def _call_autofix(
     pr_to_comment_on_url: str | None = None,
     auto_run_source: str | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
+    github_username: str | None = None,
 ):
     path = "/v1/automation/autofix/start"
     body = orjson.dumps(
@@ -480,6 +516,7 @@ def _call_autofix(
                 {
                     "id": user.id,
                     "display_name": user.get_display_name(),
+                    "github_username": github_username,
                 }
                 if not isinstance(user, AnonymousUser)
                 else None
@@ -590,6 +627,11 @@ def trigger_autofix(
         logger.exception("Failed to get tags overview")
         tags_overview = None
 
+    # get github username for user
+    github_username = None
+    if not isinstance(user, AnonymousUser):
+        github_username = _get_github_username_for_user(user, group.organization.id)
+
     try:
         run_id = _call_autofix(
             user=user,
@@ -605,6 +647,7 @@ def trigger_autofix(
             pr_to_comment_on_url=pr_to_comment_on_url,
             auto_run_source=auto_run_source,
             stopping_point=stopping_point,
+            github_username=github_username,
         )
     except Exception:
         logger.exception("Failed to send autofix to seer")
