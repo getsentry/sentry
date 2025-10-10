@@ -259,7 +259,7 @@ describe('LogsTabContent', () => {
     expect(eventTableMock).toHaveBeenCalled();
 
     const caseInsensitiveBtn = await screen.findByRole('button', {
-      name: 'Toggle case sensitivity',
+      name: 'Ignore case',
     });
     await userEvent.click(caseInsensitiveBtn);
 
