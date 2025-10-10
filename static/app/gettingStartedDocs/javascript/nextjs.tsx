@@ -345,7 +345,7 @@ const feedbackOnboarding: OnboardingConfig = {
         },
       ],
       additionalInfo: (
-        <Stack gap="xl">
+        <Stack gap="lg">
           <div>
             {tct(
               'Note: The User Feedback integration only needs to be added to your [code:sentry.client.config.js] file. Adding it to any server-side configuration files (like [code:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
