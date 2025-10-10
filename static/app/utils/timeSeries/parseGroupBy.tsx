@@ -10,7 +10,7 @@ export function parseGroupBy(
     return null;
   }
 
-  if (fields.length < 1) {
+  if (fields.length === 0) {
     return null;
   }
 
