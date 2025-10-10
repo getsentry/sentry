@@ -95,6 +95,43 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["starred"] is True
         assert response.data["position"] == 1
 
+    def test_get_changed_reason(self) -> None:
+        migrated_query = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Test query",
+            query={"fields": ["span.op"], "mode": "samples"},
+            changed_reason={
+                "orderby": [
+                    {"orderby": "total.count", "reason": "fields were dropped: total.count"}
+                ],
+                "equations": [],
+                "columns": ["total.count"],
+            },
+        )
+
+        migrated_query.set_projects(self.project_ids)
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, migrated_query.id]
+            )
+            url_2 = reverse(
+                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.model.id]
+            )
+            response_1 = self.client.get(url)
+            response_2 = self.client.get(url_2)
+
+        assert response_1.status_code == 200, response_1.content
+        assert response_1.data["changedReason"] is not None
+        assert response_1.data["changedReason"]["orderby"] == [
+            {"orderby": "total.count", "reason": "fields were dropped: total.count"}
+        ]
+        assert response_1.data["changedReason"]["equations"] == []
+        assert response_1.data["changedReason"]["columns"] == ["total.count"]
+
+        assert response_2.status_code == 200, response_2.content
+        assert response_2.data["changedReason"] is None
+
     def test_put(self) -> None:
         with self.feature(self.feature_name):
             url = reverse(

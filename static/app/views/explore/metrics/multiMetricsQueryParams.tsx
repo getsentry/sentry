@@ -82,12 +82,33 @@ export function MultiMetricsQueryParamsProvider({
       };
     }
 
+    function removeMetricQueryForIndex(i: number) {
+      return function () {
+        // Don't allow removing the last metric query
+        if (metricQueries.length <= 1) {
+          return;
+        }
+
+        const target = {...location, query: {...location.query}};
+
+        const newMetricQueries: string[] = metricQueries
+          .filter((_, j) => i !== j)
+          .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
+          .filter(defined)
+          .filter(Boolean);
+        target.query.metric = newMetricQueries;
+
+        navigate(target);
+      };
+    }
+
     return {
       metricQueries: metricQueries.map((metric: BaseMetricQuery, index: number) => {
         return {
           ...metric,
           setQueryParams: setQueryParamsForIndex(index),
           setTraceMetric: setTraceMetricForIndex(index),
+          removeMetric: removeMetricQueryForIndex(index),
         };
       }),
     };

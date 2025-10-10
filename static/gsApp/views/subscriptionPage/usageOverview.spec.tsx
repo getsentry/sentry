@@ -21,7 +21,7 @@ describe('UsageOverview', () => {
     organization.access = ['org:billing'];
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/history/`,
+      url: `/customers/${organization.slug}/history/current/`,
       method: 'GET',
       body: BillingHistoryFixture(),
     });
