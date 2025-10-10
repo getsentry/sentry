@@ -12,6 +12,7 @@ import {
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {AggregateDropdown} from 'sentry/views/explore/metrics/metricRow/aggregateDropdown';
+import {DeleteMetricButton} from 'sentry/views/explore/metrics/metricRow/deleteMetricButton';
 import {GroupBySelector} from 'sentry/views/explore/metrics/metricRow/groupBySelector';
 import {MetricSelector} from 'sentry/views/explore/metrics/metricRow/metricSelector';
 import {
@@ -91,6 +92,7 @@ function MetricToolbar({
         <GroupBySelector metricName={traceMetric.name} />
         {t('where')}
         <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
+        <DeleteMetricButton />
       </Flex>
     </div>
   );

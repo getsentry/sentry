@@ -23,6 +23,7 @@ export interface BaseMetricQuery {
 }
 
 export interface MetricQuery extends BaseMetricQuery {
+  removeMetric: () => void;
   setQueryParams: (queryParams: ReadableQueryParams) => void;
   setTraceMetric: (traceMetric: TraceMetric) => void;
 }
