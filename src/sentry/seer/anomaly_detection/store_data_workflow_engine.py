@@ -41,9 +41,7 @@ seer_anomaly_detection_connection_pool = connection_from_url(
 
 def send_new_detector_data(detector: Detector) -> None:
     # XXX: it is technically possible (though not used today) that a detector could have multiple data sources
-    data_source_detector = (
-        DataSourceDetector.objects.filter(detector_id=detector.id).first().data_source
-    )
+    data_source_detector = DataSourceDetector.objects.filter(detector_id=detector.id).first()
     if not data_source_detector:
         raise Exception("Could not create detector, data source not found.")
     data_source = data_source_detector.data_source
