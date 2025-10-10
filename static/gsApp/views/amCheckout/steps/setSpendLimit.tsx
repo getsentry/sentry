@@ -1,13 +1,14 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useState} from 'react';
 
 import {Flex} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
 
 import type {OnDemandBudgets} from 'getsentry/types';
+import {displayBudgetName} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import ReserveAdditionalVolume from 'getsentry/views/amCheckout/reserveAdditionalVolume';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
-import type {SelectableProduct, StepProps} from 'getsentry/views/amCheckout/types';
+import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {
   getTotalBudget,
   parseOnDemandBudgetsFromSubscription,
@@ -25,24 +26,6 @@ function SetSpendCap({
   checkoutTier,
 }: StepProps) {
   const [isOpen, setIsOpen] = useState(true);
-  const additionalProducts = useMemo(() => {
-    return Object.entries(formData.selectedProducts ?? {})
-      .filter(([_, product]) => product.enabled)
-      .reduce(
-        (acc, [product, value]) => {
-          acc[product as SelectableProduct] = {
-            // TODO(checkout v3): This will need to be updated for non-budget products
-            reserved: value.budget ?? 0,
-            reservedType: 'budget',
-          };
-          return acc;
-        },
-        {} as Record<
-          SelectableProduct,
-          {reserved: number; reservedType: 'budget' | 'volume'}
-        >
-      );
-  }, [formData.selectedProducts]);
 
   const handleBudgetChange = useCallback(
     ({onDemandBudgets}: {onDemandBudgets: OnDemandBudgets}) => {
@@ -71,9 +54,10 @@ function SetSpendCap({
     <Flex direction="column" gap="2xl">
       <SpendLimitSettings
         organization={organization}
+        subscription={subscription}
         header={
           <StepHeader
-            title={t('Set your %s limit', activePlan.budgetTerm)}
+            title={t('Set your %s limit', displayBudgetName(activePlan))}
             isActive
             stepNumber={stepNumber}
             isCompleted={false}
@@ -89,7 +73,7 @@ function SetSpendCap({
         }
         onUpdate={({onDemandBudgets}) => handleBudgetChange({onDemandBudgets})}
         currentReserved={formData.reserved}
-        additionalProducts={additionalProducts}
+        addOns={formData.addOns ?? {}}
         isOpen={isOpen}
         footer={
           <ReserveAdditionalVolume

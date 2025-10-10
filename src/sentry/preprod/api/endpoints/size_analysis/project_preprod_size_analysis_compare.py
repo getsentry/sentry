@@ -12,7 +12,10 @@ from sentry.preprod.analytics import (
     PreprodArtifactApiSizeAnalysisCompareGetEvent,
     PreprodArtifactApiSizeAnalysisComparePostEvent,
 )
-from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
+from sentry.preprod.api.bases.preprod_artifact_endpoint import (
+    PreprodArtifactEndpoint,
+    ProjectPreprodArtifactPermission,
+)
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     transform_preprod_artifact_to_build_details,
 )
@@ -35,6 +38,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
+    permission_classes = (ProjectPreprodArtifactPermission,)
 
     def get(
         self,
@@ -152,18 +156,6 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                 logger.info(
                     "preprod.size_analysis.compare.api.get.no_comparison_obj",
                     extra={"head_metric_id": head_metric.id, "base_metric_id": base_metric.id},
-                )
-                comparisons.append(
-                    SizeAnalysisComparison(
-                        head_size_metric_id=head_metric.id,
-                        base_size_metric_id=base_metric.id,
-                        metrics_artifact_type=head_metric.metrics_artifact_type,
-                        identifier=head_metric.identifier,
-                        state=PreprodArtifactSizeComparison.State.PENDING,
-                        comparison_id=None,
-                        error_code=None,
-                        error_message=None,
-                    )
                 )
                 continue
 

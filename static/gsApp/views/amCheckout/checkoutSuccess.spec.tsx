@@ -1,3 +1,5 @@
+import moment from 'moment-timezone';
+
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -39,7 +41,9 @@ describe('CheckoutSuccess', () => {
       <CheckoutSuccess
         basePlan={bizPlan}
         nextQueryParams={[]}
-        previewData={PreviewDataFixture({})}
+        previewData={PreviewDataFixture({
+          effectiveAt: moment(mockDate).add(1, 'day').toISOString(),
+        })}
       />
     );
 
@@ -54,7 +58,7 @@ describe('CheckoutSuccess', () => {
         basePlan={bizPlan}
         nextQueryParams={[]}
         previewData={PreviewDataFixture({
-          effectiveAt: mockDate.toISOString(),
+          effectiveAt: moment(mockDate).subtract(1, 'day').toISOString(),
         })}
       />
     );

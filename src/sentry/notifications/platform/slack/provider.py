@@ -4,6 +4,7 @@ from slack_sdk.models.blocks import (
     ActionsBlock,
     Block,
     ButtonElement,
+    ContextBlock,
     HeaderBlock,
     ImageBlock,
     MarkdownTextObject,
@@ -11,10 +12,13 @@ from slack_sdk.models.blocks import (
     SectionBlock,
 )
 
-from sentry.notifications.platform.provider import NotificationProvider
+from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
-from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.target import (
+    IntegrationNotificationTarget,
+    PreparedIntegrationNotificationTarget,
+)
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -27,6 +31,7 @@ from sentry.organizations.services.organization.model import RpcOrganizationSumm
 
 class SlackRenderable(TypedDict):
     blocks: list[Block]
+    text: str
 
 
 class SlackRenderer(NotificationRenderer[SlackRenderable]):
@@ -47,16 +52,16 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
                 actions_block.elements.append(ButtonElement(text=action.label, url=action.link))
             blocks.append(actions_block)
 
-        if rendered_template.footer:
-            footer = SectionBlock(text=MarkdownTextObject(text=rendered_template.footer))
-            blocks.append(footer)
         if rendered_template.chart:
             chart = ImageBlock(
                 image_url=rendered_template.chart.url, alt_text=rendered_template.chart.alt_text
             )
             blocks.append(chart)
+        if rendered_template.footer:
+            footer = ContextBlock(elements=[MarkdownTextObject(text=rendered_template.footer)])
+            blocks.append(footer)
 
-        return SlackRenderable(blocks=blocks)
+        return SlackRenderable(blocks=blocks, text=rendered_template.subject)
 
 
 @provider_registry.register(NotificationProviderKey.SLACK)
@@ -72,8 +77,19 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
     @classmethod
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         # TODO(ecosystem): Check for the integration, maybe a feature as well
+        # I currently view this as akin to a rollout or feature flag for the registry
         return False
 
     @classmethod
     def send(cls, *, target: NotificationTarget, renderable: SlackRenderable) -> None:
-        pass
+        from sentry.integrations.slack.integration import SlackIntegration
+
+        if not isinstance(target, cls.target_class):
+            raise NotificationProviderError(
+                f"Target '{target.__class__.__name__}' is not a valid dataclass for {cls.__name__}"
+            )
+
+        slack_target = PreparedIntegrationNotificationTarget[SlackIntegration](
+            target=target, installation_cls=SlackIntegration
+        )
+        slack_target.integration_installation.send_notification(target=target, payload=renderable)

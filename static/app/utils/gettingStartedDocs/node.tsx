@@ -328,9 +328,7 @@ Sentry.profiler.stopProfiler();
                   'If you need more fine grained control over which spans are profiled, you can do so by [link:enabling manual lifecycle profiling].',
                   {
                     link: (
-                      <ExternalLink
-                        href={`https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/#enabling-manual-lifecycle-profiling`}
-                      />
+                      <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/#enabling-manual-lifecycle-profiling" />
                     ),
                   }
                 )
@@ -341,9 +339,7 @@ Sentry.profiler.stopProfiler();
             'For more detailed information on profiling, see the [link:profiling documentation].',
             {
               link: (
-                <ExternalLink
-                  href={`https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/`}
-                />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/" />
               ),
             }
           ),
@@ -372,7 +368,7 @@ export const getNodeAgentMonitoringOnboarding = ({
     {
       type: StepType.INSTALL,
       description: tct(
-        'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:10.6.0].',
+        'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:10.14.0].',
         {
           code: <code />,
         }
@@ -489,6 +485,40 @@ Sentry.init({
       },
     ];
 
+    const googleGenAIContent: ContentBlock[] = [
+      {
+        type: 'text',
+        text: tct(
+          'Add the [code:googleGenAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the Google Gen AI SDK to capture spans for AI operations.',
+          {code: <code />}
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [
+    // Add the Google Gen AI integration
+    Sentry.googleGenAIIntegration({
+      recordInputs: true,
+      recordOutputs: true,
+    }),
+  ],
+  // Tracing must be enabled for agent monitoring to work
+  tracesSampleRate: 1.0,
+  sendDefaultPii: true,
+});`,
+          },
+        ],
+      },
+    ];
+
     const openaiContent: ContentBlock[] = [
       {
         type: 'text',
@@ -563,9 +593,9 @@ await Sentry.startSpan({
       },
     ];
 
-    const selected = (params.platformOptions as any)?.integration ?? 'vercelai';
+    const selected = (params.platformOptions as any)?.integration ?? 'vercel_ai';
     let content: ContentBlock[] = manualContent;
-    if (selected === 'vercelai') {
+    if (selected === 'vercel_ai') {
       content = vercelContent;
     }
     if (selected === 'anthropic') {
@@ -573,6 +603,9 @@ await Sentry.startSpan({
     }
     if (selected === 'openai') {
       content = openaiContent;
+    }
+    if (selected === 'google_genai') {
+      content = googleGenAIContent;
     }
     return [
       {
@@ -582,7 +615,7 @@ await Sentry.startSpan({
     ];
   },
   verify: params => {
-    const selected = (params.platformOptions as any)?.integration ?? 'vercelai';
+    const selected = (params.platformOptions as any)?.integration ?? 'vercel_ai';
     const content: ContentBlock[] = [
       {
         type: 'text',
@@ -623,6 +656,27 @@ const client = new OpenAI();
 const response = await client.responses.create({
 model: "gpt-4o-mini",
 input: "Tell me a joke",
+});`,
+          },
+        ],
+      });
+    }
+    if (selected === 'google_genai') {
+      content.push({
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `
+const GoogleGenAI = require("@google/genai").GoogleGenAI;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+const ai = new GoogleGenAI({apiKey: GEMINI_API_KEY});
+
+const response = await ai.models.generateContent({
+  model: 'gemini-2.0-flash-001',
+  contents: 'Why is the sky blue?',
 });`,
           },
         ],

@@ -107,6 +107,7 @@ export function HybridFilter<Value extends SelectKey>({
   const [stagedValue, setStagedValue] = useState<Value[]>([]);
 
   // Update `stagedValue` whenever the external `value` changes
+  // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
   useEffect(() => setStagedValue(value), [value]);
 
   useEffect(() => {

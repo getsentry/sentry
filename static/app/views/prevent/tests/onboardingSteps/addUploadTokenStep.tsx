@@ -5,10 +5,11 @@ import styled from '@emotion/styled';
 import testAnalyticsRepoSecretDark from 'sentry-images/features/test-analytics-repo-secret-dark.png';
 import testAnalyticsRepoSecretLight from 'sentry-images/features/test-analytics-repo-secret-light.png';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {integratedOrgIdToDomainName} from 'sentry/components/prevent/utils';
 import {t, tct} from 'sentry/locale';
@@ -51,14 +52,14 @@ export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
       <OnboardingStep.Body>
         <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
         <OnboardingStep.Content>
-          <p>
+          <Text>
             {tct(
               'Sentry requires a token to authenticate uploading your coverage reports. GitHub [repoAdmin] is required to access organization settings > secrets and variables > actions',
               {
                 repoAdmin: <b>{t('Repository admin')}</b>,
               }
             )}
-          </p>
+          </Text>
           {repoData?.uploadToken ? (
             <Fragment>
               <Flex justify="between" gap="md">
@@ -70,9 +71,8 @@ export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
                     {repoData.uploadToken}
                   </RightPaddedCodeSnippet>
                 </Flex>
-                {integratedOrgId && repository ? (
+                {integratedOrgId && repository && (
                   <Button
-                    priority="default"
                     onClick={() => {
                       regenerateToken({
                         orgSlug: organization.slug,
@@ -83,7 +83,7 @@ export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
                   >
                     {t('Regenerate')}
                   </Button>
-                ) : null}
+                )}
               </Flex>
             </Fragment>
           ) : integratedOrgId && repository ? (
@@ -103,9 +103,7 @@ export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
         </OnboardingStep.Content>
       </OnboardingStep.Body>
       <OnboardingStep.ExpandableDropdown
-        triggerContent={
-          <div>{t('Your repository secret in GitHub should look like this:')}</div>
-        }
+        triggerContent={t('Your repository secret in GitHub should look like this:')}
       >
         <img
           src={isDarkMode ? testAnalyticsRepoSecretDark : testAnalyticsRepoSecretLight}
@@ -115,6 +113,6 @@ export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
   );
 }
 
-const RightPaddedCodeSnippet = styled(CodeSnippet)`
+const RightPaddedCodeSnippet = styled(CodeBlock)`
   padding-right: ${p => p.theme.space['2xl']};
 `;

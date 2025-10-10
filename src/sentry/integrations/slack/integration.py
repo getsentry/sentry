@@ -24,6 +24,9 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.notifications.platform.provider import IntegrationNotificationClient
+from sentry.notifications.platform.slack.provider import SlackRenderable
+from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
@@ -74,7 +77,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class SlackIntegration(NotifyBasicMixin, IntegrationInstallation):
+class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNotificationClient):
     def get_client(self) -> SlackSdkClient:
         return SlackSdkClient(integration_id=self.model.id)
 
@@ -91,6 +94,18 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation):
 
         try:
             client.chat_postMessage(channel=channel_id, text=message)
+        except SlackApiError:
+            pass
+
+    def send_notification(
+        self, target: IntegrationNotificationTarget, payload: SlackRenderable
+    ) -> None:
+        client = self.get_client()
+
+        try:
+            client.chat_postMessage(
+                channel=target.resource_id, blocks=payload["blocks"], text=payload["text"]
+            )
         except SlackApiError:
             pass
 

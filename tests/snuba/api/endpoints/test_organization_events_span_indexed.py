@@ -1241,7 +1241,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "project": self.project.id,
                 "dataset": "spans",
                 "statsPeriod": "1h",
-                "caseInsensitive": True,
+                "caseInsensitive": 1,
             }
         )
         assert response.status_code == 200, response.content
@@ -1308,7 +1308,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "project": self.project.id,
                 "dataset": "spans",
                 "statsPeriod": "1h",
-                "caseInsensitive": True,
+                "caseInsensitive": 1,
             }
         )
         assert response.status_code == 200, response.content
@@ -2040,6 +2040,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                     "count_unique(bar)",
                     "count_unique(tags[bar])",
                     "count_unique(tags[bar,string])",
+                    "count_unique(tags[foo,number])",
                     "count()",
                     "count(span.duration)",
                     "count(tags[foo,     number])",
@@ -2068,6 +2069,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             "count_unique(bar)": 2,
             "count_unique(tags[bar])": 2,
             "count_unique(tags[bar,string])": 2,
+            "count_unique(tags[foo,number])": 1,
             "count()": 2,
             "count(span.duration)": 2,
             "count(tags[foo,     number])": 1,

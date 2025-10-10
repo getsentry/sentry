@@ -1,10 +1,10 @@
 ---
-created: '2025-09-11T21:20:22.102275+00:00'
+created: '2025-10-06T21:57:33.990298+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_stacktrace": {
     "component": {
       "contributes": false,
       "hint": null,
@@ -15,7 +15,7 @@ source: tests/sentry/grouping/test_grouping_info.py
           "contributes": false,
           "hint": "ignored because it contains no in-app frames",
           "id": "stacktrace",
-          "name": "stack-trace",
+          "name": "stacktrace",
           "values": [
             {
               "contributes": false,
@@ -272,18 +272,22 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app",
+    "contributes": false,
+    "description": "event-level stacktrace — in-app frames",
     "hash": null,
-    "key": "app",
+    "hint": null,
+    "key": "app_stacktrace",
     "type": "component"
   },
   "fallback": {
-    "description": "fallback",
+    "contributes": true,
+    "description": "fallback grouping",
     "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "hint": null,
     "key": "fallback",
     "type": "fallback"
   },
-  "system": {
+  "system_stacktrace": {
     "component": {
       "contributes": false,
       "hint": null,
@@ -294,7 +298,7 @@ source: tests/sentry/grouping/test_grouping_info.py
           "contributes": false,
           "hint": "ignored because it contains no contributing frames",
           "id": "stacktrace",
-          "name": "stack-trace",
+          "name": "stacktrace",
           "values": [
             {
               "contributes": false,
@@ -551,9 +555,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "system",
+    "contributes": false,
+    "description": "event-level stacktrace — all frames",
     "hash": null,
-    "key": "system",
+    "hint": null,
+    "key": "system_stacktrace",
     "type": "component"
   }
 }

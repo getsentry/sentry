@@ -1,11 +1,11 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
+import {Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
 interface OutputCoverageFileStepProps {
@@ -39,18 +39,18 @@ export function OutputCoverageFileStep({step}: OutputCoverageFileStepProps) {
       <OnboardingStep.Body>
         <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
         <OnboardingStep.Content>
-          <p>
+          <Text>
             {tct(
-              "Select your language below to generate your testing reports. If your language isn't listed, view [doc:this doc] to learn more about how to generate a file with the JUnit XML file format.",
+              "Select your language below to generate your testing reports. If your language isn't listed, see [doc:the Test Analytics documentation] to learn more about how to generate a file with the JUnit XML file format.",
               {
                 doc: (
                   <ExternalLink href="https://docs.sentry.io/product/test-analytics/" />
                 ),
               }
             )}
-          </p>
+          </Text>
           <StyledSelectControl
-            size="md"
+            size="sm"
             options={[
               {label: 'Jest', value: 'jest'},
               {label: 'Vitest', value: 'vitest'},
@@ -60,22 +60,20 @@ export function OutputCoverageFileStep({step}: OutputCoverageFileStepProps) {
             value={selectedFramework}
             onChange={(option: {value: Frameworks}) => setSelectedFramework(option.value)}
           />
-          <StyledInstruction>
-            {t('Install requirements in your terminal:')}
-          </StyledInstruction>
-          <CodeSnippet dark language="bash">
+          <Text>{t('Install requirements in your terminal:')}</Text>
+          <CodeBlock dark language="bash">
             {INSTALL_REQUIREMENTS_SNIPPETS[selectedFramework]}
-          </CodeSnippet>
+          </CodeBlock>
           {GENERATE_FILE_SNIPPETS[selectedFramework] ? (
             <Fragment>
-              <StyledInstruction>
+              <Text>
                 {t(
                   'Generate a JUnit XML file that contains the results of your test run.'
                 )}
-              </StyledInstruction>
-              <CodeSnippet dark language="bash">
+              </Text>
+              <CodeBlock dark language="bash">
                 {GENERATE_FILE_SNIPPETS[selectedFramework]}
-              </CodeSnippet>
+              </CodeBlock>
             </Fragment>
           ) : null}
         </OnboardingStep.Content>
@@ -86,9 +84,4 @@ export function OutputCoverageFileStep({step}: OutputCoverageFileStepProps) {
 
 const StyledSelectControl = styled(Select)`
   width: 110px;
-  margin-bottom: ${space(1.5)};
-`;
-
-const StyledInstruction = styled('p')`
-  margin: ${space(1.5)} 0;
 `;

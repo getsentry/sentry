@@ -1,10 +1,10 @@
 ---
-created: '2025-09-19T05:53:38.765781+00:00'
+created: '2025-10-06T21:57:33.086075+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_stacktrace": {
     "component": {
       "contributes": false,
       "hint": "ignored because custom server fingerprint takes precedence",
@@ -21,7 +21,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": true,
@@ -815,14 +815,18 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app exception stack-trace",
+    "contributes": false,
+    "description": "exception stacktrace — in-app frames",
     "hash": null,
-    "key": "app",
+    "hint": "ignored because custom server fingerprint takes precedence",
+    "key": "app_exception_stacktrace",
     "type": "component"
   },
   "custom_fingerprint": {
+    "contributes": true,
     "description": "custom fingerprint",
     "hash": "554e214208f0372603dc9fa6c1c0965f",
+    "hint": null,
     "key": "custom_fingerprint",
     "matched_rule": "type:\"SoftTimeLimitExceeded\" -> \"soft-timelimit-exceeded\"",
     "type": "custom_fingerprint",
@@ -830,7 +834,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       "soft-timelimit-exceeded"
     ]
   },
-  "system": {
+  "system_exception_stacktrace": {
     "component": {
       "contributes": false,
       "hint": "ignored because custom server fingerprint takes precedence",
@@ -847,7 +851,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": true,
@@ -1641,9 +1645,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "exception stack-trace",
+    "contributes": false,
+    "description": "exception stacktrace — all frames",
     "hash": null,
-    "key": "system",
+    "hint": "ignored because custom server fingerprint takes precedence",
+    "key": "system_exception_stacktrace",
     "type": "component"
   }
 }

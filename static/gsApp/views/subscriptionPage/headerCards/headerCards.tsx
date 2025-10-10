@@ -1,13 +1,13 @@
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
-
+import {Grid} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Panel from 'sentry/components/panels/panel';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import type {Subscription} from 'getsentry/types';
 import {hasNewBillingUI} from 'getsentry/utils/billing';
+import BillingInfoCard from 'getsentry/views/subscriptionPage/headerCards/billingInfoCard';
+import LinksCard from 'getsentry/views/subscriptionPage/headerCards/linksCard';
+import NextBillCard from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
+import PaygCard from 'getsentry/views/subscriptionPage/headerCards/paygCard';
 import SeerAutomationAlert from 'getsentry/views/subscriptionPage/seerAutomationAlert';
 
 import {SubscriptionCard} from './subscriptionCard';
@@ -18,29 +18,77 @@ interface HeaderCardsProps {
   subscription: Subscription;
 }
 
-export function HeaderCards({organization, subscription}: HeaderCardsProps) {
+function getCards(organization: Organization, subscription: Subscription) {
+  const hasBillingPerms = organization.access?.includes('org:billing');
+  const cards: React.ReactNode[] = [];
+
+  if (subscription.canSelfServe && hasBillingPerms) {
+    cards.push(
+      <NextBillCard
+        key="next-bill"
+        subscription={subscription}
+        organization={organization}
+      />
+    );
+  }
+
+  if (subscription.supportsOnDemand && hasBillingPerms) {
+    cards.push(
+      <PaygCard key="payg" subscription={subscription} organization={organization} />
+    );
+  }
+
+  if (
+    hasBillingPerms &&
+    (subscription.canSelfServe || subscription.onDemandInvoiced) &&
+    !subscription.isSelfServePartner
+  ) {
+    cards.push(
+      <BillingInfoCard
+        key="billing-info"
+        subscription={subscription}
+        organization={organization}
+      />
+    );
+  }
+
+  cards.push(<LinksCard key="links" organization={organization} />);
+
+  return cards;
+}
+
+function HeaderCards({organization, subscription}: HeaderCardsProps) {
+  const isNewBillingUI = hasNewBillingUI(organization);
+
+  const cards = getCards(organization, subscription);
+
   return (
     <ErrorBoundary mini>
       <SeerAutomationAlert organization={organization} />
-      <HeaderCardWrapper hasNewCheckout={hasNewBillingUI(organization)}>
-        <SubscriptionCard organization={organization} subscription={subscription} />
-        <UsageCard organization={organization} subscription={subscription} />
-      </HeaderCardWrapper>
+      {isNewBillingUI ? (
+        <Grid
+          columns={{
+            xs: '1fr',
+            md: `repeat(${cards.length}, minmax(0, 1fr))`,
+          }}
+          gap="xl"
+        >
+          {cards}
+        </Grid>
+      ) : (
+        <Grid
+          background="primary"
+          border="primary"
+          radius="md"
+          columns={{lg: 'auto minmax(0, 600px)'}}
+          gap={{lg: 'xl'}}
+        >
+          <SubscriptionCard organization={organization} subscription={subscription} />
+          <UsageCard organization={organization} subscription={subscription} />
+        </Grid>
+      )}
     </ErrorBoundary>
   );
 }
 
-// TODO(checkout v3): update this with the real layout
-const HeaderCardWrapper = styled(Panel)<{hasNewCheckout: boolean}>`
-  display: grid;
-  margin-bottom: ${space(2)};
-
-  ${p =>
-    !p.hasNewCheckout &&
-    css`
-      @media (min-width: ${p.theme.breakpoints.lg}) {
-        grid-template-columns: auto minmax(0, 600px);
-        gap: ${space(2)};
-      }
-    `}
-`;
+export default HeaderCards;

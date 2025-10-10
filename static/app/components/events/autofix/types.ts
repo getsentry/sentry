@@ -30,6 +30,13 @@ export enum AutofixStatus {
   WAITING_FOR_USER_RESPONSE = 'WAITING_FOR_USER_RESPONSE',
 }
 
+export enum AutofixStoppingPoint {
+  ROOT_CAUSE = 'root_cause',
+  SOLUTION = 'solution',
+  CODE_CHANGES = 'code_changes',
+  OPEN_PR = 'open_pr',
+}
+
 type AutofixPullRequestDetails = {
   pr_number: number;
   pr_url: string;
@@ -156,6 +163,7 @@ export type InsightSources = {
   thoughts: string;
   trace_event_ids_used: string[];
   event_trace_id?: string;
+  event_trace_timestamp?: number;
 };
 
 export interface AutofixDefaultStep extends BaseStep {

@@ -1,10 +1,10 @@
 ---
-created: '2025-09-11T21:20:22.872529+00:00'
+created: '2025-10-03T22:58:46.916519+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "default": {
+  "hpkp": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -59,9 +59,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
+    "contributes": true,
     "description": "hostname",
     "hash": "1e37a374cb33572622d02ff7a6237c44",
-    "key": "default",
+    "hint": null,
+    "key": "hpkp",
     "type": "component"
   }
 }

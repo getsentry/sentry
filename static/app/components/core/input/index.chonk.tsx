@@ -10,7 +10,7 @@ export const chonkInputStyles = ({
   readOnly,
   size = 'md',
 }: InputStylesProps & {theme: DO_NOT_USE_ChonkTheme}): StrictCSSObject => {
-  const boxShadow = `0px 2px 0px 0px ${theme.tokens.border.primary} inset`;
+  const boxShadow = `0px 1px 0px 0px ${theme.tokens.border.primary} inset`;
 
   return {
     display: 'block',

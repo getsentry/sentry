@@ -1,10 +1,10 @@
 ---
-created: '2025-09-19T05:53:40.127693+00:00'
+created: '2025-10-06T21:57:34.521625+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_stacktrace_hybrid_fingerprint": {
     "client_values": [
       "celery",
       "SoftTimeLimitExceeded",
@@ -26,7 +26,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": true,
@@ -820,9 +820,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "modified in-app exception stack-trace",
+    "contributes": true,
+    "description": "exception stacktrace — in-app frames and custom fingerprint",
     "hash": "19163f3ca34f5995c69d85351ce3d697",
-    "key": "app",
+    "hint": null,
+    "key": "app_exception_stacktrace_hybrid_fingerprint",
     "matched_rule": "type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\"",
     "type": "salted_component",
     "values": [
@@ -830,7 +832,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       "soft-timelimit-exceeded"
     ]
   },
-  "system": {
+  "system_exception_stacktrace_hybrid_fingerprint": {
     "client_values": [
       "celery",
       "SoftTimeLimitExceeded",
@@ -852,7 +854,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": true,
@@ -1646,9 +1648,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "modified exception stack-trace",
+    "contributes": true,
+    "description": "exception stacktrace — all frames and custom fingerprint",
     "hash": "847950eb44d280e6758d136c763d6ddc",
-    "key": "system",
+    "hint": null,
+    "key": "system_exception_stacktrace_hybrid_fingerprint",
     "matched_rule": "type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\"",
     "type": "salted_component",
     "values": [

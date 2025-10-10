@@ -6,8 +6,6 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as useMedia from 'sentry/utils/useMedia';
-
 import {IssueDetailsEventNavigation} from './issueDetailsEventNavigation';
 
 describe('IssueDetailsEventNavigation', () => {
@@ -41,9 +39,7 @@ describe('IssueDetailsEventNavigation', () => {
 
   describe('recommended event tabs', () => {
     it('can navigate to the oldest event', async () => {
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
-
-      render(<IssueDetailsEventNavigation {...defaultProps} />, {
+      render(<IssueDetailsEventNavigation {...defaultProps} isSmallNav />, {
         router,
         deprecatedRouterMocks: true,
       });
@@ -57,9 +53,7 @@ describe('IssueDetailsEventNavigation', () => {
     });
 
     it('can navigate to the latest event', async () => {
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
-
-      render(<IssueDetailsEventNavigation {...defaultProps} />, {
+      render(<IssueDetailsEventNavigation {...defaultProps} isSmallNav />, {
         router,
         deprecatedRouterMocks: true,
       });
@@ -73,8 +67,6 @@ describe('IssueDetailsEventNavigation', () => {
     });
 
     it('can navigate to the recommended event', async () => {
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
-
       const recommendedEventRouter = RouterFixture({
         params: {eventId: 'latest'},
         location: LocationFixture({
@@ -82,7 +74,7 @@ describe('IssueDetailsEventNavigation', () => {
         }),
       });
 
-      render(<IssueDetailsEventNavigation {...defaultProps} />, {
+      render(<IssueDetailsEventNavigation {...defaultProps} isSmallNav />, {
         router: recommendedEventRouter,
         deprecatedRouterMocks: true,
       });

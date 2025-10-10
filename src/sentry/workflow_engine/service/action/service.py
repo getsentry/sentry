@@ -5,7 +5,7 @@
 
 import abc
 
-from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
+from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByRegionName
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.silo.base import SiloMode
 
@@ -31,6 +31,39 @@ class ActionService(RpcService):
     @abc.abstractmethod
     def update_action_status_for_organization_integration(
         self, *, organization_id: int, integration_id: int, status: int
+    ) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abc.abstractmethod
+    def update_action_status_for_sentry_app_via_uuid(
+        self,
+        *,
+        organization_id: int,
+        status: int,
+        sentry_app_install_uuid: str,
+    ) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByRegionName())
+    @abc.abstractmethod
+    def update_action_status_for_sentry_app_via_uuid__region(
+        self,
+        *,
+        region_name: str,
+        status: int,
+        sentry_app_install_uuid: str,
+    ) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByRegionName())
+    @abc.abstractmethod
+    def update_action_status_for_sentry_app_via_sentry_app_id(
+        self,
+        *,
+        region_name: str,
+        status: int,
+        sentry_app_id: int,
     ) -> None:
         pass
 

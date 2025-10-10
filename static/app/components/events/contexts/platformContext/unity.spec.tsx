@@ -62,8 +62,8 @@ describe('UnityContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'unity'}
-        alias={'unity'}
+        type="unity"
+        alias="unity"
         value={{...MOCK_UNITY_CONTEXT, install_mode: ''}}
       />
     );

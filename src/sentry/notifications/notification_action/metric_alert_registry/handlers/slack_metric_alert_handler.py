@@ -52,6 +52,8 @@ class SlackMetricAlertHandler(BaseMetricAlertHandler):
             "notification_action.execute_via_metric_alert_handler.slack",
             extra={
                 "action_id": alert_context.action_identifier_id,
+                "serialized_incident": incident_serialized_response,
+                "serialized_alert_rule": alert_rule_serialized_response,
             },
         )
 

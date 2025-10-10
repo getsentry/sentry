@@ -74,7 +74,7 @@ export default function ReplayView({toggleFullscreen, isLoading}: Props) {
                         ),
                       }
                     )}
-                    size={'sm'}
+                    size="sm"
                   />
                 ) : null}
                 <ScreenNameInputContainer>

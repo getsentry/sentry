@@ -34,6 +34,7 @@ import {
   formatReservedWithUnits,
   formatUsageWithUnits,
   getActiveProductTrial,
+  getPercentage,
   getPotentialProductTrial,
   isAm2Plan,
   isUnlimitedReserved,
@@ -70,18 +71,6 @@ const EMPTY_STAT_TOTAL = {
   filtered: 0,
   projected: 0,
 };
-
-function getPercentage(quantity: number, total: number | null) {
-  if (typeof total === 'number' && total > 0) {
-    return (Math.min(quantity, total) / total) * 100;
-  }
-  return 0;
-}
-
-export function displayPercentage(quantity: number, total: number | null) {
-  const percentage = getPercentage(quantity, total);
-  return percentage.toFixed(0) + '%';
-}
 
 type UsageProps = {
   /**
@@ -802,10 +791,6 @@ export function CombinedUsageTotals({
 }: CombinedUsageProps) {
   const [state, setState] = useState<State>({expanded: false, trialButtonBusy: false});
   const theme = useTheme();
-
-  if (subscription.isSponsored) {
-    return null; // this is just a safety check but sponsored plans shouldn't have access to selectable products for now anyway
-  }
 
   const colors = theme.chart.getColorPalette(5);
   const categoryToColors: Partial<

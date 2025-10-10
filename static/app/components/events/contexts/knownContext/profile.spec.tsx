@@ -91,8 +91,8 @@ describe('ProfileContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'default'}
-        alias={'profile'}
+        type="default"
+        alias="profile"
         project={project}
         value={{...MOCK_PROFILE_CONTEXT, extra_data: ''}}
       />,
