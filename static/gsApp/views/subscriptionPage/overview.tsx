@@ -337,7 +337,11 @@ function Overview({location, subscription, promotionData}: Props) {
         <OnDemandDisabled subscription={subscription} />
         <UsageAlert subscription={subscription} usage={usageData} />
         {isNewBillingUI ? (
-          <UsageOverview subscription={subscription} organization={organization} />
+          <UsageOverview
+            subscription={subscription}
+            organization={organization}
+            usageData={usageData}
+          />
         ) : (
           <Fragment>
             <DisplayModeToggle
@@ -361,7 +365,11 @@ function Overview({location, subscription, promotionData}: Props) {
         <OnDemandDisabled subscription={subscription} />
         <UsageAlert subscription={subscription} usage={usageData} />
         {isNewBillingUI ? (
-          <UsageOverview subscription={subscription} organization={organization} />
+          <UsageOverview
+            subscription={subscription}
+            organization={organization}
+            usageData={usageData}
+          />
         ) : (
           <Fragment>
             {renderUsageChart(usageData)}
@@ -382,6 +390,8 @@ function Overview({location, subscription, promotionData}: Props) {
           <SubscriptionHeader organization={organization} subscription={subscription} />
         ) : undefined
       }
+      useBorderTopLogic={false}
+      paddingOverride="0 2xl 3xl"
     >
       {!isNewBillingUI && (
         <SubscriptionHeader organization={organization} subscription={subscription} />

@@ -62,7 +62,7 @@ import {
   calculateTotalSpend,
 } from 'getsentry/views/subscriptionPage/utils';
 
-const EMPTY_STAT_TOTAL = {
+export const EMPTY_STAT_TOTAL = {
   accepted: 0,
   dropped: 0,
   droppedOther: 0,

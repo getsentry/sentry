@@ -718,6 +718,7 @@ export type BillingMetricHistory = {
   prepaid: number;
   reserved: number | null;
   sentUsageWarning: boolean;
+  // TODO(isabella): Make SoftCapType an enum
   softCapType: 'ON_DEMAND' | 'TRUE_FORWARD' | null;
   trueForward: boolean;
   usage: number;
