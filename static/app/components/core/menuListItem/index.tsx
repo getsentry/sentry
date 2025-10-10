@@ -1,1 +1,6 @@
-export {MenuListItem, LeadingItems, type MenuListItemProps} from './menuListItem';
+export {
+  MenuListItem,
+  LeadingItems,
+  InnerWrap,
+  type MenuListItemProps,
+} from './menuListItem';
