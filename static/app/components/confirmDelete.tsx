@@ -1,7 +1,8 @@
 import {Fragment, useId} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
 import {InlineCode} from 'sentry/components/core/code';
 import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';

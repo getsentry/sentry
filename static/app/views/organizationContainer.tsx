@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import {useProfiler} from '@sentry/react';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import LoadingError from 'sentry/components/loadingError';
 import LoadingTriangle from 'sentry/components/loadingTriangle';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';

@@ -6,11 +6,12 @@ import omit from 'lodash/omit';
 import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
 import {removeProject} from 'sentry/actionCreators/projects';
 import Access from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {ExternalLink} from 'sentry/components/core/link';

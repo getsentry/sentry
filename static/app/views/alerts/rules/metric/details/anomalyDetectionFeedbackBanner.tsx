@@ -1,7 +1,8 @@
 import {Fragment, useCallback} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {useDismissable} from 'sentry/components/banner';
-import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {feedbackClient} from 'sentry/components/featureFeedback/feedbackModal';
 import {t} from 'sentry/locale';

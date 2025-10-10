@@ -1,7 +1,8 @@
 import {useState, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';

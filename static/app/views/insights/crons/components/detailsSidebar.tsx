@@ -2,8 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Alert} from 'sentry/components/core/alert';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {Button} from 'sentry/components/core/button';
 import {Text} from 'sentry/components/core/text';

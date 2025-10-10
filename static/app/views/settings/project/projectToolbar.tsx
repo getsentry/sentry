@@ -1,7 +1,8 @@
+import {Alert} from '@sentry/scraps/alert';
+
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Text} from 'sentry/components/core/text';
 import Form from 'sentry/components/forms/form';

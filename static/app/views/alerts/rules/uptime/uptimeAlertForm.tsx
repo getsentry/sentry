@@ -4,8 +4,9 @@ import type {IReactionDisposer} from 'mobx';
 import {autorun} from 'mobx';
 import {Observer} from 'mobx-react-lite';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';

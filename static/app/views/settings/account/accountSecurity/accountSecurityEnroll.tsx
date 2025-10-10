@@ -2,6 +2,8 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {QRCodeCanvas} from 'qrcode.react';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -12,7 +14,6 @@ import {
   fetchOrganizationByMember,
   fetchOrganizations,
 } from 'sentry/actionCreators/organizations';
-import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';

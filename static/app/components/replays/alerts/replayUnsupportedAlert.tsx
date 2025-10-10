@@ -1,4 +1,5 @@
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {ExternalLink} from 'sentry/components/core/link';
 import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';

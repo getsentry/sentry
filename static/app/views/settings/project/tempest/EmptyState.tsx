@@ -2,7 +2,8 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';

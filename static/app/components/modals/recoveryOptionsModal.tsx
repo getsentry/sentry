@@ -1,8 +1,9 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import LoadingError from 'sentry/components/loadingError';

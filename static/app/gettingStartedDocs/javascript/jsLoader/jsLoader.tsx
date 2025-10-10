@@ -1,6 +1,7 @@
 import beautify from 'js-beautify';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {ExternalLink} from 'sentry/components/core/link';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {

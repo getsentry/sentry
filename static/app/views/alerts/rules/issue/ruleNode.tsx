@@ -2,8 +2,9 @@ import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 import merge from 'lodash/merge';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {NumberInput} from 'sentry/components/core/input/numberInput';

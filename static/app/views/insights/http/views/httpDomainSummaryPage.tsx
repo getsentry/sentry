@@ -1,6 +1,7 @@
 import React, {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {ExternalLink} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';

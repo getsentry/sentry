@@ -1,8 +1,9 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import LoadingError from 'sentry/components/loadingError';

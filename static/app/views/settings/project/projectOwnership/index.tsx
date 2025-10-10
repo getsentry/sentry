@@ -1,8 +1,9 @@
 import {useTheme} from '@emotion/react';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {closeModal, openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import Access, {hasEveryAccess} from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {ExternalLink} from 'sentry/components/core/link';

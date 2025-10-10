@@ -1,6 +1,7 @@
 import {Component} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

@@ -2,7 +2,8 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

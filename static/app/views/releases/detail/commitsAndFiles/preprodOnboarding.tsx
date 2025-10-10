@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 
 import emptyBuildImg from 'sentry-images/spot/releases-tour-commits.svg';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';

@@ -4,6 +4,8 @@ import omit from 'lodash/omit';
 import {Observer} from 'mobx-react-lite';
 import scrollToElement from 'scroll-to-element';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {
@@ -12,7 +14,6 @@ import {
 } from 'sentry/actionCreators/sentryAppTokens';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';

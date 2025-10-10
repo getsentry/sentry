@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Switch} from 'sentry/components/core/switch';

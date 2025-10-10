@@ -9,7 +9,8 @@ import {
 } from 'react';
 import {Observer} from 'mobx-react-lite';
 
-import type {AlertProps} from 'sentry/components/core/alert';
+import type {AlertProps} from '@sentry/scraps/alert';
+
 import {Button} from 'sentry/components/core/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';

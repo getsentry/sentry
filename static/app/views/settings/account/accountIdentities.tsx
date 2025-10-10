@@ -2,9 +2,10 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {disconnectIdentity} from 'sentry/actionCreators/account';
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';

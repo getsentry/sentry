@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {Button} from 'sentry/components/core/button';
 import {CodeBlock} from 'sentry/components/core/code';
 import {

@@ -2,7 +2,8 @@ import {Component, Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Input} from 'sentry/components/core/input';
 import {Container} from 'sentry/components/core/layout';

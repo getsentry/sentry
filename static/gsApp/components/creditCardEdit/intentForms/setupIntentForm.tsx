@@ -6,8 +6,9 @@ import type {
   StripeElements,
 } from '@stripe/stripe-js';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
 import {Flex} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';

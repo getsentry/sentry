@@ -3,12 +3,13 @@ import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {
   deleteMonitorProcessingErrorByType,
   updateMonitor,
 } from 'sentry/actionCreators/monitors';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

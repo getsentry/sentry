@@ -2,7 +2,8 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {Button} from 'sentry/components/core/button';
 import FormContext from 'sentry/components/deprecatedforms/formContext';
 import FormState from 'sentry/components/forms/state';

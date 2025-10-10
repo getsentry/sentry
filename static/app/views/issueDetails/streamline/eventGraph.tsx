@@ -12,11 +12,12 @@ import styled from '@emotion/styled';
 import {mergeRefs, useResizeObserver} from '@react-aria/utils';
 import Color from 'color';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import {Alert} from 'sentry/components/core/alert';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries';

@@ -4,9 +4,10 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
 import {DateTime} from 'sentry/components/dateTime';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';

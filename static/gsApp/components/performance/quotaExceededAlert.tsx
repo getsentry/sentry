@@ -1,7 +1,8 @@
 import {useEffect} from 'react';
 import moment from 'moment-timezone';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {Link} from 'sentry/components/core/link';
 import {tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';

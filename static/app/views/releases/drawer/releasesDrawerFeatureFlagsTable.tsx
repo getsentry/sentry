@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import type {ColumnKey} from 'sentry/components/featureFlags/featureFlagsLogTable';
 import {FeatureFlagsLogTable} from 'sentry/components/featureFlags/featureFlagsLogTable';
 import {useFlagsInEventPaginated} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';

@@ -1,7 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {Button} from 'sentry/components/core/button';
 import {Heading, Text} from 'sentry/components/core/text';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';

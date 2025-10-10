@@ -1,7 +1,8 @@
 import type {RefObject} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {ReplayTableColumn} from 'sentry/components/replays/table/replayTableColumns';

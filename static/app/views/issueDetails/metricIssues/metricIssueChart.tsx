@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import {Alert} from 'sentry/components/core/alert';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';

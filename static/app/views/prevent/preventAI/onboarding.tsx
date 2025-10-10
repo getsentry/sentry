@@ -5,7 +5,8 @@ import preventHero from 'sentry-images/features/prevent-hero.svg';
 import preventPrCommentsDark from 'sentry-images/features/prevent-pr-comments-dark.svg';
 import preventPrCommentsLight from 'sentry-images/features/prevent-pr-comments-light.svg';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {Container, Flex} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';

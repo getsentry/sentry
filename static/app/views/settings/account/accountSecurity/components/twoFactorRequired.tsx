@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {ExternalLink} from 'sentry/components/core/link';
 import {tct} from 'sentry/locale';
 import getPendingInvite from 'sentry/utils/getPendingInvite';

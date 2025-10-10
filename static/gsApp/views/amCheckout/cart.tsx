@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import moment from 'moment-timezone';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Container, Flex} from 'sentry/components/core/layout';

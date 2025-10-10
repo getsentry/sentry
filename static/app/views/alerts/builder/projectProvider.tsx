@@ -1,8 +1,9 @@
 import {cloneElement, Fragment, isValidElement, useEffect, useState} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';

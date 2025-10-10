@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import compassImage from 'sentry-images/spot/onboarding-compass.svg';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {CodeBlock} from 'sentry/components/core/code';
 import {Input} from 'sentry/components/core/input';

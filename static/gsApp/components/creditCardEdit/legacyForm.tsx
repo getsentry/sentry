@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 import {CardElement, useElements, useStripe} from '@stripe/react-stripe-js';
 import {type Stripe, type StripeCardElement} from '@stripe/stripe-js';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';

@@ -1,6 +1,7 @@
 import {useState} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {Button} from 'sentry/components/core/button';
 import {IconClose} from 'sentry/icons';
 

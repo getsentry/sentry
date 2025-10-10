@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
 import {DateTimeField} from 'sentry/components/deprecatedforms/dateTimeField';
 import Form from 'sentry/components/deprecatedforms/form';
 import withFormContext from 'sentry/components/deprecatedforms/withFormContext';

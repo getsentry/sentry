@@ -11,9 +11,10 @@ import {
 } from '@sentry/react';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {ExternalLink} from 'sentry/components/core/link';

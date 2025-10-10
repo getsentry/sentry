@@ -1,7 +1,8 @@
 import {Fragment, useCallback, useState} from 'react';
 import sortBy from 'lodash/sortBy';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';

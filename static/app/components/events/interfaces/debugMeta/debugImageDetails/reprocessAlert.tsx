@@ -1,7 +1,8 @@
 import {useCallback, useEffect, useState} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';

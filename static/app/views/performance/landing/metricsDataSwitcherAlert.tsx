@@ -1,8 +1,9 @@
 import {useCallback, useMemo} from 'react';
 import type {Location} from 'history';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
-import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import OnboardingDrawerStore, {

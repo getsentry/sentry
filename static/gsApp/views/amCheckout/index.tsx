@@ -8,8 +8,9 @@ import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
 import * as qs from 'query-string';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex, Grid, Stack} from 'sentry/components/core/layout';

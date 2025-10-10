@@ -1,7 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {ExternalLink} from 'sentry/components/core/link';
 import RadioBooleanField from 'sentry/components/forms/fields/radioField';
 import SecretField from 'sentry/components/forms/fields/secretField';

@@ -1,5 +1,6 @@
+import {Alert} from '@sentry/scraps/alert';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {IconClose} from 'sentry/icons';
