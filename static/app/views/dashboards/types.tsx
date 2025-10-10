@@ -171,8 +171,11 @@ export type DashboardFilters = {
 };
 
 export type GlobalFilter = {
+  // Dataset the global filter will be applied to
   dataset: WidgetType;
+  // The tag being filtered
   tag: Tag;
+  // The raw filter condition string (e.g. 'tagKey:[values,...]')
   value: string;
 };
 

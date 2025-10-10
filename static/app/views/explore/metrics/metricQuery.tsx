@@ -1,3 +1,4 @@
+import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
@@ -14,6 +15,7 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export interface TraceMetric {
   name: string;
+  type: string;
 }
 
 export interface BaseMetricQuery {
@@ -22,8 +24,9 @@ export interface BaseMetricQuery {
 }
 
 export interface MetricQuery extends BaseMetricQuery {
-  setMetricName: (metricName: string) => void;
+  removeMetric: () => void;
   setQueryParams: (queryParams: ReadableQueryParams) => void;
+  setTraceMetric: (traceMetric: TraceMetric) => void;
 }
 
 export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null {
@@ -35,7 +38,7 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
   }
 
   const metric = json.metric;
-  if (typeof metric !== 'string') {
+  if (defined(metric) && typeof metric !== 'object') {
     return null;
   }
 
@@ -62,7 +65,7 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
   const aggregateFields = [...visualizes, ...groupBys];
 
   return {
-    metric: {name: metric},
+    metric,
     queryParams: new ReadableQueryParams({
       extrapolate: true,
       mode: Mode.AGGREGATE,
@@ -81,7 +84,7 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
 
 export function encodeMetricQueryParams(metricQuery: BaseMetricQuery): string {
   return JSON.stringify({
-    metric: metricQuery.metric.name,
+    metric: metricQuery.metric,
     query: metricQuery.queryParams.query,
     aggregateFields: metricQuery.queryParams.aggregateFields.map(field => {
       if (isVisualize(field)) {
@@ -96,7 +99,7 @@ export function encodeMetricQueryParams(metricQuery: BaseMetricQuery): string {
 
 export function defaultMetricQuery(): BaseMetricQuery {
   return {
-    metric: {name: ''},
+    metric: {name: '', type: ''},
     queryParams: new ReadableQueryParams({
       extrapolate: true,
       mode: Mode.AGGREGATE,
