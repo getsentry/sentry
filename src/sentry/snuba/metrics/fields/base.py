@@ -1636,6 +1636,15 @@ DERIVED_METRICS = {
             unit="sessions",
             post_query_func=lambda init, errored: max(0, init - errored),
         ),
+        CompositeEntityDerivedMetric(
+            metric_mri=SessionMRI.UNHEALTHY_RATE.value,
+            metrics=[
+                SessionMRI.ALL.value,
+                SessionMRI.ERRORED_ALL.value,
+            ],
+            unit="percentage",
+            post_query_func=lambda all, errored_all: (max(0, errored_all / all) if all else 0),
+        ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.HEALTHY_USER.value,
             metrics=[

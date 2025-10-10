@@ -351,6 +351,7 @@ class SimpleForwardingField(Field):
         "errored_rate(user)": SessionMRI.ERRORED_USER_RATE,
         "abnormal_rate(session)": SessionMRI.ABNORMAL_RATE,
         "abnormal_rate(user)": SessionMRI.ABNORMAL_USER_RATE,
+        "unhealthy_rate(session)": SessionMRI.UNHEALTHY_RATE,
     }
 
     def __init__(self, name: str, raw_groupby: Sequence[str], status_filter: StatusFilter):
@@ -395,6 +396,7 @@ FIELD_MAP: Mapping[SessionsQueryFunction, type[Field]] = {
     "errored_rate(user)": SimpleForwardingField,
     "abnormal_rate(session)": SimpleForwardingField,
     "abnormal_rate(user)": SimpleForwardingField,
+    "unhealthy_rate(session)": SimpleForwardingField,
 }
 PREFLIGHT_QUERY_COLUMNS = {"release.timestamp"}
 VirtualOrderByName = Literal["release.timestamp"]

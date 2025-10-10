@@ -84,6 +84,7 @@ class SessionMRI(Enum):
     CRASH_FREE_RATE = "e:sessions/crash_free_rate@ratio"  # includes handled and unhandled
     ERRORED_RATE = "e:sessions/errored_rate@ratio"
     ABNORMAL_RATE = "e:sessions/abnormal_rate@ratio"
+    UNHEALTHY_RATE = "e:sessions/unhealthy_rate@ratio"
     ALL_USER = "e:sessions/user.all@none"
     HEALTHY_USER = "e:sessions/user.healthy@none"
     ERRORED_USER = "e:sessions/user.errored@none"

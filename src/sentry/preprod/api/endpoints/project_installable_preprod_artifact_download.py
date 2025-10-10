@@ -104,9 +104,13 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
                 download_count=F("download_count") + 1
             )
             fp = file_obj.getfile()
+            filename = preprod_artifact.app_id or "app"
+            if preprod_artifact.build_version:
+                filename += f"@{preprod_artifact.build_version}"
+            if preprod_artifact.build_number:
+                filename += f"+{preprod_artifact.build_number}"
             ext = format_type if format_type else "bin"
-            # TODO(EME-241): Better file name rather than installable.
-            filename = f"installable.{ext}"
+            filename += f".{ext}"
             response = FileResponse(
                 fp,
                 content_type="application/octet-stream",

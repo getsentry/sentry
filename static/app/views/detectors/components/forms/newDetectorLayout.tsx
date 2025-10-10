@@ -12,6 +12,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {NewDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
 import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
+import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useCreateDetectorFormSubmit} from 'sentry/views/detectors/hooks/useCreateDetectorFormSubmit';
 
 type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
@@ -69,10 +70,12 @@ export function NewDetectorLayout<
 
   return (
     <EditLayout formProps={formProps}>
-      <EditLayout.Header noActionWrap>
+      <EditLayout.Header>
         <EditLayout.HeaderContent>
           <NewDetectorBreadcrumbs detectorType={detectorType} />
         </EditLayout.HeaderContent>
+
+        <MonitorFeedbackButton />
 
         <EditLayout.HeaderFields>
           <DetectorBaseFields />

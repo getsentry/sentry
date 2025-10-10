@@ -42,6 +42,7 @@ SessionsQueryFunction = Literal[
     "errored_rate(user)",
     "abnormal_rate(session)",
     "abnormal_rate(user)",
+    "unhealthy_rate(session)",
 ]
 
 GroupByFieldName = Literal[

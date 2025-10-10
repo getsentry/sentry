@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {cloneElement, Fragment, isValidElement} from 'react';
 import {useLocation} from 'react-router-dom';
 import styled from '@emotion/styled';
 
@@ -6,9 +6,11 @@ import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {Heading, Text} from 'sentry/components/core/text';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconCodecov} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -18,7 +20,9 @@ import {openCodecovModal} from 'getsentry/actionCreators/modal';
 import PartnerPlanEndingBanner from 'getsentry/components/partnerPlanEndingBanner';
 import type {Subscription} from 'getsentry/types';
 import {
+  getPlanIcon,
   hasAccessToSubscriptionOverview,
+  hasNewBillingUI,
   hasPartnerMigrationFeature,
   hasPerformance,
   isBizPlanFamily,
@@ -96,51 +100,118 @@ function SubscriptionHeader(props: Props) {
   const hasBillingPerms = hasPermissions(organization, 'org:billing');
   const isDisabled = isDisabledByPartner(subscription);
   const location = useLocation();
+  const isNewBillingUI = hasNewBillingUI(organization);
 
   const tab = location.pathname.split('/').at(-2);
   const activeTab = tabConfig.find(({key}) => key === tab) ?? tabConfig[0];
 
+  const planIcon = getPlanIcon(subscription.planDetails);
+
+  if (!isNewBillingUI) {
+    return (
+      <Fragment>
+        <SentryDocumentTitle title={t('Subscription')} orgSlug={organization.slug} />
+        <SubscriptionUpsellBanner
+          organization={organization}
+          subscription={subscription}
+        />
+        <SettingsPageHeader
+          data-test-id="subscription-page"
+          title={t('Subscription')}
+          tabs={
+            <TabsContainer>
+              <Tabs value={activeTab.key}>
+                <TabList>
+                  {tabConfig
+                    .map(({key, name, show}) => {
+                      if (show(organization, isDisabled, subscription)) {
+                        return (
+                          <TabList.Item
+                            key={key}
+                            to={normalizeUrl(
+                              `/settings/${organization.slug}/billing/${key}/`
+                            )}
+                          >
+                            {name}
+                          </TabList.Item>
+                        );
+                      }
+                      return null;
+                    })
+                    .filter(n => !!n)}
+                </TabList>
+              </Tabs>
+            </TabsContainer>
+          }
+          action={
+            <ActionContainer>
+              {subscription.canSelfServe && hasBillingPerms && (
+                <LinkButton
+                  size="md"
+                  to={`/settings/${organization.slug}/billing/checkout/?referrer=manage_subscription`}
+                  aria-label="Manage subscription"
+                >
+                  {t('Manage Subscription')}
+                </LinkButton>
+              )}
+              {hasAccessToSubscriptionOverview(subscription, organization) ? (
+                <Button
+                  size="md"
+                  icon={<IconCodecov />}
+                  onClick={() => openCodecovModal({organization})}
+                >
+                  {t('Try Codecov')}
+                </Button>
+              ) : null}
+            </ActionContainer>
+          }
+          body={
+            // Some billing visibility is disabled by partners like billing modification or contract details
+            isDisabled ? (
+              <PartnershipNote subscription={subscription} />
+            ) : hasBillingPerms ? (
+              <BodyWithBillingPerms {...props} />
+            ) : (
+              <BodyWithoutBillingPerms {...props} />
+            )
+          }
+        />
+      </Fragment>
+    );
+  }
+
   return (
-    <Fragment>
+    <Flex direction="column" gap="xl">
       <SentryDocumentTitle title={t('Subscription')} orgSlug={organization.slug} />
-      <SubscriptionUpsellBanner organization={organization} subscription={subscription} />
-      <SettingsPageHeader
-        data-test-id="subscription-page"
-        title={t('Subscription')}
-        tabs={
-          <TabsContainer>
-            <Tabs value={activeTab.key}>
-              <TabList>
-                {tabConfig
-                  .map(({key, name, show}) => {
-                    if (show(organization, isDisabled, subscription)) {
-                      return (
-                        <TabList.Item
-                          key={key}
-                          to={normalizeUrl(
-                            `/settings/${organization.slug}/billing/${key}/`
-                          )}
-                        >
-                          {name}
-                        </TabList.Item>
-                      );
-                    }
-                    return null;
-                  })
-                  .filter(n => !!n)}
-              </TabList>
-            </Tabs>
-          </TabsContainer>
-        }
-        action={
-          <ActionContainer>
+
+      <Flex
+        direction="column"
+        gap="md"
+        background="primary"
+        borderBottom="primary"
+        padding="md 3xl 2xl"
+      >
+        <Heading as="h1" size="md">
+          {t('Subscription')}
+        </Heading>
+        <Flex justify="between" align="center">
+          <Flex align="center" gap="sm">
+            {isValidElement(planIcon)
+              ? cloneElement(planIcon, {size: 'md'} as SVGIconProps)
+              : null}
+            <Text size="2xl" bold>
+              {tct('[planName] plan', {planName: subscription.planDetails.name})}
+            </Text>
+          </Flex>
+          <Flex gap="md">
             {subscription.canSelfServe && hasBillingPerms && (
               <LinkButton
                 size="md"
                 to={`/settings/${organization.slug}/billing/checkout/?referrer=manage_subscription`}
-                aria-label="Manage subscription"
+                aria-label="Manage plan"
+                priority="primary"
               >
-                {t('Manage Subscription')}
+                {t('Manage plan')}
               </LinkButton>
             )}
             {hasAccessToSubscriptionOverview(subscription, organization) ? (
@@ -152,20 +223,23 @@ function SubscriptionHeader(props: Props) {
                 {t('Try Codecov')}
               </Button>
             ) : null}
-          </ActionContainer>
-        }
-        body={
-          // Some billing visibility is disabled by partners like billing modification or contract details
-          isDisabled ? (
-            <PartnershipNote subscription={subscription} />
-          ) : hasBillingPerms ? (
-            <BodyWithBillingPerms {...props} />
-          ) : (
-            <BodyWithoutBillingPerms {...props} />
-          )
-        }
-      />
-    </Fragment>
+          </Flex>
+        </Flex>
+      </Flex>
+      <Flex direction="column" padding="0 2xl xl" gap="xl">
+        <SubscriptionUpsellBanner
+          organization={organization}
+          subscription={subscription}
+        />
+        {isDisabled ? (
+          <PartnershipNote subscription={subscription} />
+        ) : hasBillingPerms ? (
+          <BodyWithBillingPerms {...props} />
+        ) : (
+          <BodyWithoutBillingPerms {...props} />
+        )}
+      </Flex>
+    </Flex>
   );
 }
 
@@ -178,7 +252,13 @@ const TabsContainer = styled('div')`
  * owners and billing admins have the billing scope, everyone else including managers, admins, and members lack that
  * scope.
  */
-function BodyWithBillingPerms({organization, subscription}: any) {
+function BodyWithBillingPerms({
+  organization,
+  subscription,
+}: {
+  organization: Organization;
+  subscription: Subscription;
+}) {
   return (
     <Flex direction="column" gap="xl">
       {subscription.pendingChanges ? (
@@ -197,7 +277,15 @@ function BodyWithBillingPerms({organization, subscription}: any) {
   );
 }
 
-function BodyWithoutBillingPerms({organization, subscription}: any) {
+function BodyWithoutBillingPerms({
+  organization,
+  subscription,
+}: {
+  organization: Organization;
+  subscription: Subscription;
+}) {
+  const isNewBillingUI = hasNewBillingUI(organization);
+
   // if a current tier self serve business plan, we have nothing to render in this section
   if (
     isBizPlanFamily(subscription?.planDetails) &&
@@ -210,6 +298,9 @@ function BodyWithoutBillingPerms({organization, subscription}: any) {
     <Fragment>
       <TrialAlert subscription={subscription} organization={organization} />
       <ManagedNote subscription={subscription} />
+      {isNewBillingUI && (
+        <HeaderCards organization={organization} subscription={subscription} />
+      )}
     </Fragment>
   );
 }

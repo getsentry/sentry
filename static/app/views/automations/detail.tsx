@@ -24,6 +24,7 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {getUtcDateString} from 'sentry/utils/dates';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -31,6 +32,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useUserFromId from 'sentry/utils/useUserFromId';
+import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import AutomationHistoryList from 'sentry/views/automations/components/automationHistoryList';
 import {AutomationStatsChart} from 'sentry/views/automations/components/automationStatsChart';
 import ConditionsPanel from 'sentry/views/automations/components/conditionsPanel';
@@ -72,7 +74,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
   const warning = getAutomationActionsWarning(automation);
 
   return (
-    <SentryDocumentTitle title={automation.name} noSuffix>
+    <SentryDocumentTitle title={automation.name}>
       <DetailLayout>
         <DetailLayout.Header>
           <DetailLayout.HeaderContent>
@@ -115,9 +117,9 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                     automationId={automation.id}
                     query={{
                       ...(period && {statsPeriod: period}),
-                      start,
-                      end,
-                      utc,
+                      start: start ? getUtcDateString(start) : undefined,
+                      end: end ? getUtcDateString(end) : undefined,
+                      utc: utc ? 'true' : undefined,
                     }}
                   />
                 </ErrorBoundary>
@@ -247,6 +249,7 @@ function Actions({automation}: {automation: Automation}) {
 
   return (
     <Fragment>
+      <AutomationFeedbackButton />
       <Button priority="default" size="sm" onClick={toggleDisabled} busy={isUpdating}>
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>

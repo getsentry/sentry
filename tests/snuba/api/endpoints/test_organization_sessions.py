@@ -1824,6 +1824,62 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
+    def test_unhealthy_rate(self) -> None:
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "field": ["unhealthy_rate(session)"],
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        # 1 - filter session.status
+        response = req(
+            query="session.status:[abnormal,crashed]",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": "Cannot filter field unhealthy_rate(session) by session.status"
+        }
+
+        # 2 - group by session.status
+        response = req(
+            groupBy="session.status",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": "Cannot group field unhealthy_rate(session) by session.status"
+        }
+
+        # 3 - fetch foo@1.0.0 release
+        response = req(
+            field=[
+                "unhealthy_rate(session)",
+                "sum(session)",
+            ],
+            groupBy=["release", "environment"],
+            query="release:foo@1.0.0",
+        )
+        assert response.status_code == 200, response.content
+        group = response.data["groups"][0]
+        assert group["totals"]["sum(session)"] == 8
+        assert group["totals"]["unhealthy_rate(session)"] == pytest.approx(0.5)
+
+        # 4 - fetch all
+        response = req(
+            field=[
+                "unhealthy_rate(session)",
+                "sum(session)",
+            ],
+        )
+        assert response.status_code == 200, response.content
+        group = response.data["groups"][0]
+        assert group["totals"]["sum(session)"] == 11
+        assert group["totals"]["unhealthy_rate(session)"] == pytest.approx(5 / 11)
+
+    @freeze_time(MOCK_DATETIME)
     def test_unhandled_rate(self) -> None:
         default_request = {
             "project": [-1],
