@@ -81,10 +81,6 @@ const GENERATION_COUNTS = AI_GENERATION_OPS.map(
   op => `count_if(span.op,equals,${op})` as const
 );
 
-const AI_AGENT_SUB_OPS = [...AI_GENERATION_OPS, 'gen_ai.execute_tool'].map(
-  op => `count_if(span.op,equals,${op})` as const
-);
-
 export function TracesTable() {
   const navigate = useNavigate();
   const location = useLocation();
