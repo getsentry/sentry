@@ -442,23 +442,32 @@ export function SearchQueryBuilderCombobox<
       },
       onKeyDown: e => {
         onKeyDown?.(e, {state});
-        switch (e.key) {
-          case 'Escape':
-            state.close();
-            onExit?.();
-            return;
-          case 'Enter':
-            if (isOpen && state.selectionManager.focusedKey) {
-              return;
-            }
-            state.close();
-            onCustomValueCommitted(inputValue);
-            return;
-          default: {
-            if (isCtrlKeyPressed(e)) return;
-            state.open();
+
+        if (e.key === 'Escape') {
+          state.close();
+          onExit?.();
+          return;
+        }
+
+        if (e.key === 'Enter') {
+          if (isOpen && state.selectionManager.focusedKey) {
             return;
           }
+          state.close();
+          onCustomValueCommitted(inputValue);
+          return;
+        }
+
+        // we need to force this open for aggregate filters e.g. count_if()
+        if (e.key === ',') {
+          state.open();
+          return;
+        }
+
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || /^[a-z0-9]$/i.test(e.key)) {
+          if (isOpen || isCtrlKeyPressed(e)) return;
+          state.open();
+          return;
         }
       },
       onKeyUp,
