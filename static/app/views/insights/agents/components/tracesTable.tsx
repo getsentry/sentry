@@ -142,7 +142,7 @@ export function TracesTable() {
     // sum up the error spans for a trace
     const errors = traceErrorRequest.data?.reduce(
       (acc, span) => {
-        acc[span.trace] = span['count(span.duration)'];
+        acc[span.trace] = Number(span['count(span.duration)'] ?? 0);
         return acc;
       },
       {} as Record<string, number>
@@ -292,7 +292,7 @@ const BodyCell = memo(function BodyCell({
         <ErrorCell
           value={dataRow.errors}
           target={getExploreUrl({
-            query: `span.status:*error trace:[${dataRow.traceId}]`,
+            query: `${query} span.status:*error trace:[${dataRow.traceId}]`,
             organization,
             selection,
             referrer: Referrer.TRACES_TABLE,
