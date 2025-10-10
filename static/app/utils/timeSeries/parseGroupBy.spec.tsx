@@ -20,12 +20,30 @@ describe('parseGroupBy', () => {
     ]);
   });
 
-  it('handles more values than fields by using empty strings for extra values', () => {
-    const result = parseGroupBy('value1,value2', ['field1']);
+  it('handles empty fields with some values', () => {
+    const result = parseGroupBy('value1,value2,value3', []);
+    expect(result).toBeNull();
+  });
+
+  it('handles some fields but empty value', () => {
+    const result = parseGroupBy('', ['field1', 'field2']);
     expect(result).toEqual([
-      {key: 'field1', value: 'value1'},
-      {key: '', value: 'value2'},
+      {key: 'field1', value: ''},
+      {key: 'field2', value: ''},
     ]);
+  });
+
+  it('handles one more value than field by concatenating', () => {
+    const result = parseGroupBy('value1,value2,value3', ['field1', 'field2']);
+    expect(result).toEqual([
+      {key: 'field1', value: 'value1,value2'},
+      {key: 'field2', value: 'value3'},
+    ]);
+  });
+
+  it('handles many more values than fields by concatenating', () => {
+    const result = parseGroupBy('value1,value2,value3', ['field1']);
+    expect(result).toEqual([{key: 'field1', value: 'value1,value2,value3'}]);
   });
 
   it('handles more fields than values by using empty strings for missing values', () => {
