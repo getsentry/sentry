@@ -1,9 +1,5 @@
-export {
-  Tabs,
-  TabList,
-  TabPanels,
-  TabStateProvider,
-  type TabsProps,
-  type TabListItemProps,
-  type TabListProps,
-} from './tabs';
+export {Tabs, TabStateProvider} from './tabs';
+
+export {TabList} from './tabList';
+export {type TabListItemProps} from './item';
+export {TabPanels} from './tabPanels';
