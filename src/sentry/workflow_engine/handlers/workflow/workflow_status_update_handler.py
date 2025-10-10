@@ -1,6 +1,5 @@
 import logging
 
-from sentry import features
 from sentry.issues.status_change_consumer import group_status_update_registry
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
@@ -43,26 +42,8 @@ def workflow_status_update_handler(
         metrics.incr("workflow_engine.tasks.error.no_detector_id")
         return
 
-    # We should only fire actions for activity updates if we should be firing actions
-    # if dual proccessing or single proccessing is enabled
-    if features.has(  # Metric issue single processing
-        "organizations:workflow-engine-single-process-metric-issues",
-        group.organization,
-    ) or features.has(  # Metric dual processing
-        "organizations:workflow-engine-metric-alert-processing",
-        group.organization,
-    ):
-        process_workflow_activity.delay(
-            activity_id=activity.id,
-            group_id=group.id,
-            detector_id=detector_id,
-        )
-    else:
-        logger.info(
-            "workflow_engine.tasks.process_workflows.activity_update.skipped",
-            extra={
-                "activity_id": activity.id,
-                "group_id": group.id,
-                "detector_id": detector_id,
-            },
-        )
+    process_workflow_activity.delay(
+        activity_id=activity.id,
+        group_id=group.id,
+        detector_id=detector_id,
+    )

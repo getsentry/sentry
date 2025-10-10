@@ -129,7 +129,6 @@ class BuildMetricAlertChartTest(TestCase):
 class FetchOpenPeriodsTest(TestCase):
     @freeze_time(frozen_time)
     @with_feature("organizations:incidents")
-    @with_feature("organizations:workflow-engine-single-process-metric-issues")
     def test_get_incidents_from_detector(self) -> None:
         self.create_detector()  # dummy so detector ID != alert rule ID
         detector = self.create_detector(project=self.project)

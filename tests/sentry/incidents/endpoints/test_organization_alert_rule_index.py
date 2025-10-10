@@ -384,7 +384,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 [
                     "organizations:incidents",
                     "organizations:performance-view",
-                    "organizations:workflow-engine-metric-alert-dual-write",
                     "organizations:workflow-engine-rule-serializers",
                 ]
             ),
@@ -398,7 +397,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         detector = Detector.objects.get(alertruledetector__alert_rule_id=int(resp.data.get("id")))
         assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
 
-    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_create_alert_rule_aci(self) -> None:
         with (
             outbox_runner(),
