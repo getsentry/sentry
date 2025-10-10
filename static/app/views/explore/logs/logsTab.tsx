@@ -10,6 +10,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {IconChevron, IconRefresh, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -116,6 +117,7 @@ export function LogsTabContent({
     getMaxIngestDelayTimestamp()
   );
   const [_, setPersistentParams] = usePersistedLogsPageParams();
+  const [caseInsensitive] = useCaseInsensitivity();
   usePersistentLogsPageParameters(); // persist the columns you chose last time
 
   const columnEditorButtonRef = useRef<HTMLButtonElement>(null);
@@ -164,6 +166,7 @@ export function LogsTabContent({
       fields: [...groupBys.filter(Boolean), ...yAxes],
       topEvents: topEventsLimit,
       orderby,
+      caseInsensitive,
     },
     'explore.ourlogs.main-chart',
     DiscoverDatasets.OURLOGS

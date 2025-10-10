@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import {logger} from '@sentry/react';
 
 import {type ApiResult} from 'sentry/api';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {defined} from 'sentry/utils';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -93,6 +94,7 @@ function useLogsAggregatesQueryKey({
   const visualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const aggregateCursor = useQueryParamsAggregateCursor();
+  const [caseInsensitive] = useCaseInsensitivity();
   const fields: string[] = [];
   fields.push(...groupBys.filter(Boolean));
   fields.push(...visualizes.map(visualize => visualize.yAxis));
@@ -118,6 +120,7 @@ function useLogsAggregatesQueryKey({
       per_page: limit ? limit : undefined,
       cursor: aggregateCursor,
       referrer,
+      caseInsensitive,
     },
     pageFiltersReady,
     eventView,
@@ -184,6 +187,7 @@ function useLogsQueryKey({
   const location = useLocation();
   const projectIds = useLogsFrozenProjectIds();
   const groupBys = useQueryParamsGroupBys();
+  const [caseInsensitive] = useCaseInsensitivity();
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
@@ -225,6 +229,7 @@ function useLogsQueryKey({
       per_page: limit ? limit : undefined,
       referrer,
       sampling: highFidelity ? 'HIGHEST_ACCURACY_FLEX_TIME' : undefined,
+      caseInsensitive,
     },
     pageFiltersReady,
     eventView,

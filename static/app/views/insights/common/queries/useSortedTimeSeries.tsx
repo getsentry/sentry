@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import isEmpty from 'lodash/isEmpty';
 import isEqualWith from 'lodash/isEqualWith';
 
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {NODE_ENV} from 'sentry/constants';
 import type {
   EventsStats,
@@ -52,6 +53,7 @@ const {warn} = Sentry.logger;
 type SeriesMap = Record<string, TimeSeries[]>;
 
 interface Options<Fields> {
+  caseInsensitive?: CaseInsensitive;
   disableAggregateExtrapolation?: string;
   enabled?: boolean;
   fields?: string[];
@@ -85,6 +87,7 @@ export const useSortedTimeSeries = <
     enabled,
     samplingMode,
     disableAggregateExtrapolation,
+    caseInsensitive,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -159,6 +162,7 @@ export const useSortedTimeSeries = <
       // Timeseries requests do not support cursors, overwrite it to undefined so
       // pagination does not cause extra requests
       cursor: undefined,
+      caseInsensitive,
     }),
     options: {
       enabled: enabled && pageFilters.isReady,

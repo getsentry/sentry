@@ -33,6 +33,7 @@ export function useExploreAggregatesTable({
   enabled,
   limit,
   query,
+  queryExtras,
 }: UseExploreAggregatesTableOptions) {
   const extrapolate = useQueryParamsExtrapolate();
 
@@ -46,7 +47,7 @@ export function useExploreAggregatesTable({
   );
   return useProgressiveQuery<typeof useExploreAggregatesTableImp>({
     queryHookImplementation: useExploreAggregatesTableImp,
-    queryHookArgs: {enabled, limit, query},
+    queryHookArgs: {enabled, limit, query, queryExtras},
     queryOptions: {
       canTriggerHighAccuracy,
       disableExtrapolation: !extrapolate,

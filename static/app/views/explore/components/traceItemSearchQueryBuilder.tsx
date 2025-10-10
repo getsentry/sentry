@@ -2,6 +2,10 @@ import {useMemo} from 'react';
 
 import type {EAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {
+  CaseInsensitive,
+  SetCaseInsensitive,
+} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
@@ -19,7 +23,9 @@ export type TraceItemSearchQueryBuilderProps = {
   numberSecondaryAliases: TagCollection;
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
+  caseInsensitive?: CaseInsensitive;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
+  onCaseInsensitiveClick?: SetCaseInsensitive;
   replaceRawSearchKeys?: string[];
 } & Omit<EAPSpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
@@ -71,6 +77,8 @@ export function useSearchQueryBuilderProps({
   supportedAggregates = [],
   replaceRawSearchKeys,
   matchKeySuggestions,
+  caseInsensitive,
+  onCaseInsensitiveClick,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
   const functionTags = useFunctionTags(itemType, supportedAggregates);
@@ -108,6 +116,8 @@ export function useSearchQueryBuilderProps({
     replaceRawSearchKeys,
     matchKeySuggestions,
     filterKeyAliases: {...numberSecondaryAliases, ...stringSecondaryAliases},
+    caseInsensitive,
+    onCaseInsensitiveClick,
   };
 }
 
