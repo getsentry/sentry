@@ -904,6 +904,13 @@ register(
 )
 
 register(
+    "auto_source_code_config.multi_module_projects_allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "issues.severity.first-event-severity-calculation-projects-allowlist",
     type=Sequence,
     default=[],

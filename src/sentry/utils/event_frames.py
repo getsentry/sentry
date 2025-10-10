@@ -45,6 +45,7 @@ class SdkFrameMunger:
 def java_frame_munger(frame: EventFrame) -> str | None:
     stacktrace_path = None
     if not frame.module or not frame.abs_path:
+        logger.warning("Module or absPath is missing", extra={"frame": frame})
         return None
 
     from sentry.issues.auto_source_code_config.errors import (

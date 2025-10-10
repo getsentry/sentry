@@ -176,11 +176,11 @@ class BaseDeriveCodeMappings(TestCase):
                         expected_new_code_mappings
                     )
                     for expected_cm in expected_new_code_mappings:
-                        code_mapping = current_code_mappings.filter(
-                            stack_root=expected_cm["stack_root"],
-                            source_root=expected_cm["source_root"],
-                        ).first()
+                        code_mapping = current_code_mappings.get(
+                            project_id=self.project.id, stack_root=expected_cm["stack_root"]
+                        )
                         assert code_mapping is not None
+                        assert code_mapping.source_root == expected_cm["source_root"]
                         assert code_mapping.repository.name == expected_cm["repo_name"]
                 else:
                     assert current_code_mappings.count() == starting_code_mappings_count
@@ -1002,4 +1002,65 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                 platform=self.platform,
                 expected_new_code_mappings=[self.code_mapping("android/app/", "src/android/app/")],
                 expected_new_in_app_stack_trace_rules=["stack.module:android.app.** +app"],
+            )
+
+    def test_multi_module_with_old_granularity(self) -> None:
+        java_module_prefix = "com.example.multi"
+        module_prefix = java_module_prefix.replace(".", "/") + "/"
+        repo_trees = {
+            REPO1: [
+                f"modules/modX/{module_prefix}foo/Bar.kt",
+                f"modules/modY/{module_prefix}bar/Baz.kt",
+            ]
+        }
+        frames = [
+            self.frame_from_module(f"{java_module_prefix}.foo.Bar", "Bar.kt"),
+            self.frame_from_module(f"{java_module_prefix}.bar.Baz", "Baz.kt"),
+        ]
+        self._process_and_assert_configuration_changes(
+            repo_trees=repo_trees,
+            frames=frames,
+            platform=self.platform,
+            expected_new_code_mappings=[
+                # It's missing the extra granularity
+                # It's going to pick modY since it is the first frame processed, thus,
+                # the other frame will not have a working code mapping
+                self.code_mapping("com/example/multi/", "modules/modY/com/example/multi/")
+            ],
+            expected_new_in_app_stack_trace_rules=["stack.module:com.example.** +app"],
+        )
+
+    def test_multi_module(self) -> None:
+        # Some Java projects have all modules under the same com/foo/bar directory
+        # however, some projects have different modules under different directories
+        # Case 1:
+        # com.example.multi.foo -> modules/com/example/multi/foo/Bar.kt
+        # com.example.multi.bar -> modules/com/example/multi/bar/Baz.kt
+        # Case 2:
+        # com.example.multi.foo -> modules/modX/com/example/multi/foo/Bar.kt (Notice modX infix)
+        # com.example.multi.bar -> modules/modY/com/example/multi/bar/Baz.kt (Notice modY infix)
+        java_module_prefix = "com.example.multi"
+        module_prefix = java_module_prefix.replace(".", "/") + "/"
+        repo_trees = {
+            REPO1: [
+                f"modules/modX/{module_prefix}foo/Bar.kt",
+                f"modules/modY/{module_prefix}bar/Baz.kt",
+            ]
+        }
+        frames = [
+            self.frame_from_module(f"{java_module_prefix}.foo.Bar", "Bar.kt"),
+            self.frame_from_module(f"{java_module_prefix}.bar.Baz", "Baz.kt"),
+        ]
+        with self.options({"auto_source_code_config.multi_module_projects_allowlist": True}):
+            self._process_and_assert_configuration_changes(
+                repo_trees=repo_trees,
+                frames=frames,
+                platform=self.platform,
+                expected_new_code_mappings=[
+                    self.code_mapping(f"{module_prefix}foo/", f"modules/modX/{module_prefix}foo/"),
+                    self.code_mapping(f"{module_prefix}bar/", f"modules/modY/{module_prefix}bar/"),
+                ],
+                expected_new_in_app_stack_trace_rules=[
+                    f"stack.module:{java_module_prefix}.** +app"
+                ],
             )

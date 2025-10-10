@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
+from sentry import options
 from sentry.integrations.source_code_management.repo_trees import get_extension
 
 from .constants import SECOND_LEVEL_TLDS, STACK_ROOT_MAX_LEVEL
@@ -42,7 +43,7 @@ class FrameInfo(ABC):
         self.process_frame(frame)
 
     def __repr__(self) -> str:
-        return f"FrameInfo: {self.raw_path}"
+        return f"FrameInfo: {self.raw_path} stack_root: {self.stack_root}"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, FrameInfo):
@@ -148,6 +149,14 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
     # Gets rid of the class name
     parts = module.rsplit(".", 1)[0].split(".")
     dirpath = "/".join(parts)
+    granularity = get_granularity(parts)
+
+    stack_root = "/".join(parts[:granularity]) + "/"
+    file_path = f"{dirpath}/{abs_path}"
+    return stack_root, file_path
+
+
+def get_granularity(parts: Sequence[str]) -> int:
     # a.Bar, Bar.kt -> stack_root: a/, file_path:  a/Bar.kt
     granularity = 1
 
@@ -163,6 +172,10 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
             #    file_path:  uk/co/example/foo/bar/Baz.kt
             granularity = STACK_ROOT_MAX_LEVEL
 
-    stack_root = "/".join(parts[:granularity]) + "/"
-    file_path = f"{dirpath}/{abs_path}"
-    return stack_root, file_path
+        elif options.get("auto_source_code_config.multi_module_projects_allowlist"):
+            # com.example.multi.foo.bar.Baz$InnerClass, Baz.kt ->
+            #    stack_root: com/example/multi/foo/
+            #    file_path:  com/example/multi/foo/bar/Baz.kt
+            granularity = STACK_ROOT_MAX_LEVEL
+
+    return granularity
