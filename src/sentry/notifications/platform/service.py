@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict
+from collections.abc import Mapping
 from typing import Final
 
 from sentry.notifications.platform.metrics import (
@@ -74,7 +75,7 @@ class NotificationService[T: NotificationData]:
             try:
                 provider.send(target=target, renderable=renderable)
             except ApiError as e:
-                lifecycle.record_failure(failure_reason=e, capture_event=False)
+                lifecycle.record_failure(failure_reason=e, create_issue=False)
                 raise
             return None
 
@@ -92,7 +93,7 @@ class NotificationService[T: NotificationData]:
         strategy: NotificationStrategy | None = None,
         targets: list[NotificationTarget] | None = None,
         sync_send: bool = False,
-    ) -> None | dict[NotificationProviderKey, list[str]]:
+    ) -> None | Mapping[NotificationProviderKey, list[ApiError]]:
         if not strategy and not targets:
             raise NotificationServiceError(
                 "Must provide either a strategy or targets. Strategy is preferred."
