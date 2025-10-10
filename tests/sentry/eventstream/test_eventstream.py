@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.utils import timezone
+from sentry_protos.snuba.v1.request_common_pb2 import TRACE_ITEM_TYPE_OCCURRENCE
 from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
 from sentry import nodestore
@@ -455,3 +456,13 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                     received_timestamp=event_data["timestamp"],
                 )
                 send.assert_called_once()
+
+                trace_item = send.call_args[0][0]
+
+                assert trace_item.item_id == event.event_id.encode("utf-8")
+                assert trace_item.item_type == TRACE_ITEM_TYPE_OCCURRENCE
+                assert trace_item.trace_id == event_data["contexts"]["trace"]["trace_id"]
+                assert trace_item.project_id == event.project_id
+                assert trace_item.organization_id == event.project.organization_id
+                assert trace_item.retention_days == 90
+                assert trace_item.attributes["group_id"].int_value == group_info.group.id
