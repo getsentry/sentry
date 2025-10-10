@@ -596,4 +596,46 @@ describe('Cart', () => {
     await userEvent.click(planSummaryButton);
     expect(within(planSummary).queryByText('Business Plan')).not.toBeInTheDocument();
   });
+
+  it('renders ondemand usage as a single summed line item', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+      body: {
+        effectiveAt: new Date(MOCK_TODAY).toISOString(),
+        billedAmount: 150_00,
+        proratedAmount: 150_00,
+        creditApplied: 0,
+        invoiceItems: [
+          {
+            amount: 25_00,
+            description: '500 pay-as-you-go replays',
+            data: {quantity: 500},
+            type: InvoiceItemType.ONDEMAND_REPLAYS,
+          },
+          {
+            amount: 25_00,
+            description: '50 GB pay-as-you-go attachments',
+            data: {quantity: 53687091200},
+            type: InvoiceItemType.ONDEMAND_ATTACHMENTS,
+          },
+        ],
+      },
+    });
+
+    render(
+      <Cart
+        activePlan={businessPlan}
+        formData={defaultFormData}
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
+        organization={organization}
+        subscription={subscription}
+        onSuccess={jest.fn()}
+      />
+    );
+
+    const ondemandItem = await screen.findByTestId('summary-item-ondemand-total');
+    expect(ondemandItem).toHaveTextContent('Pay-as-you-go usage');
+    expect(ondemandItem).toHaveTextContent('$50');
+  });
 });

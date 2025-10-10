@@ -27,10 +27,13 @@ import {
   type PreviewInvoiceItem,
 } from 'getsentry/types';
 import {
+  displayBudgetName,
+  formatOnDemandDescription,
   formatReservedWithUnits,
   getCreditApplied,
   getCredits,
   getFees,
+  getOnDemandItems,
   getPlanIcon,
   getProductIcon,
 } from 'getsentry/utils/billing';
@@ -66,6 +69,7 @@ interface ScheduledChangesProps extends ChangesProps {
 interface ReceiptProps extends ChangesProps {
   charges: Charge[];
   dateCreated: string;
+  onDemandItems: Array<InvoiceItem | PreviewInvoiceItem>;
   planItem: InvoiceItem;
 }
 
@@ -299,6 +303,7 @@ function Receipt({
   creditApplied,
   credits,
   fees,
+  onDemandItems,
   products,
   reservedVolume,
   total,
@@ -403,6 +408,35 @@ function Receipt({
                   })}
                 </ReceiptSection>
               )}
+              {onDemandItems.length > 0 && (
+                <ReceiptSection>
+                  <ReceiptItem
+                    rowItems={[
+                      tct('[budgetTerm] usage', {
+                        budgetTerm: displayBudgetName(plan, {title: true}),
+                      }),
+                      null,
+                    ]}
+                  />
+                  {onDemandItems.map(item => {
+                    const cleanDescription = formatOnDemandDescription(
+                      item.description,
+                      plan
+                    );
+
+                    return (
+                      <ReceiptItem
+                        key={item.type}
+                        isSubItem={false}
+                        rowItems={[
+                          cleanDescription,
+                          utils.displayPrice({cents: item.amount}),
+                        ]}
+                      />
+                    );
+                  })}
+                </ReceiptSection>
+              )}
               {(creditApplied > 0 || credits.length + fees.length > 0) && (
                 <ReceiptSection>
                   {fees.map(item => {
@@ -486,6 +520,7 @@ function CheckoutSuccess({
   const products = invoiceItems.filter(
     item => item.type === InvoiceItemType.RESERVED_SEER_BUDGET
   );
+  const onDemandItems = getOnDemandItems({invoiceItems});
   const fees = getFees({invoiceItems});
   const credits = getCredits({invoiceItems});
   // TODO(isabella): PreviewData never has the InvoiceItemType.BALANCE_CHANGE type
@@ -602,6 +637,7 @@ function CheckoutSuccess({
           {...commonChangesProps}
           charges={invoice.charges}
           planItem={planItem as InvoiceItem}
+          onDemandItems={onDemandItems}
           dateCreated={invoice.dateCreated}
         />
       ) : effectiveToday ? null : (
