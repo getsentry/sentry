@@ -5,18 +5,32 @@ import logging
 import re
 from typing import TypedDict
 
-from django.db import IntegrityError, router
+from django.db import IntegrityError, models, router
 
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInbox, GroupInboxRemoveAction, remove_group_from_inbox
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.pullrequest import PullRequest
 from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releases.exceptions import ReleaseCommitError
+from sentry.models.repository import Repository
+from sentry.plugins.providers.repository import RepositoryProvider
+from sentry.releases.commits import (
+    bulk_create_commit_file_changes,
+    get_or_create_commit,
+    update_commit,
+)
 from sentry.signals import issue_resolved
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
@@ -25,20 +39,6 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger(__name__)
-from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
-from sentry.models.group import Group, GroupStatus
-from sentry.models.grouplink import GroupLink
-from sentry.models.groupresolution import GroupResolution
-from sentry.models.pullrequest import PullRequest
-from sentry.models.releasecommit import ReleaseCommit
-from sentry.models.releaseheadcommit import ReleaseHeadCommit
-from sentry.models.repository import Repository
-from sentry.plugins.providers.repository import RepositoryProvider
-from sentry.releases.commits import (
-    bulk_create_commit_file_changes,
-    get_or_create_commit,
-    update_commit,
-)
 
 
 class _CommitDataKwargs(TypedDict, total=False):
@@ -84,22 +84,40 @@ def set_commits(release, commit_list):
 def set_commits_on_release(release, commit_list):
     # TODO(dcramer): would be good to optimize the logic to avoid these
     # deletes but not overly important
-    ReleaseCommit.objects.filter(release=release).delete()
+
+    # Only delete commits from repositories that are being updated
+    # This preserves commits from other repositories when multiple projects
+    # are associated with the same release
+    if commit_list:
+        repo_ids_being_updated = {data["repo_model"].id for data in commit_list}
+        ReleaseCommit.objects.filter(
+            release=release, commit__repository_id__in=repo_ids_being_updated
+        ).delete()
+    else:
+        ReleaseCommit.objects.filter(release=release).delete()
 
     commit_author_by_commit = {}
     head_commit_by_repo: dict[int, int] = {}
 
+    # Get the current maximum order for existing commits to avoid conflicts
+    max_existing_order = (
+        ReleaseCommit.objects.filter(release=release).aggregate(max_order=models.Max("order"))[
+            "max_order"
+        ]
+        or -1
+    )
+
     latest_commit = None
-    for idx, data in enumerate(commit_list):
-        commit = set_commit(idx, data, release)
-        if idx == 0:
+    for order, data in enumerate(commit_list, start=max_existing_order + 1):
+        commit = set_commit(order, data, release)
+        if latest_commit is None:  # First commit
             latest_commit = commit
 
         commit_author_by_commit[commit.id] = commit.author
         head_commit_by_repo.setdefault(data["repo_model"].id, commit.id)
 
     release.update(
-        commit_count=len(commit_list),
+        commit_count=ReleaseCommit.objects.filter(release=release).count(),
         authors=[
             str(a_id)
             for a_id in ReleaseCommit.objects.filter(
@@ -113,7 +131,7 @@ def set_commits_on_release(release, commit_list):
     return head_commit_by_repo, commit_author_by_commit
 
 
-def set_commit(idx, data, release):
+def set_commit(order, data, release):
     repo = data["repo_model"]
     author = data["author_model"]
 
@@ -163,7 +181,7 @@ def set_commit(idx, data, release):
                 organization_id=release.organization_id,
                 release=release,
                 commit=commit,
-                order=idx,
+                order=order,
             )
     except IntegrityError:
         pass
