@@ -3481,7 +3481,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
 
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         processor = SubscriptionProcessor(self.sub)
-        processor.alert_rule = self.dynamic_rule
+        processor._alert_rule = self.dynamic_rule
         result = get_anomaly_data_from_seer_legacy(
             alert_rule=processor.alert_rule,
             subscription=processor.subscription,

@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -25,12 +26,12 @@ function SharedGroupHeader({group}: Props) {
       <Details>
         <TitleWrap>
           <Title>{group.title}</Title>
-          <ShortIdWrapper>
+          <Flex>
             <ShortId
               shortId={group.shortId}
               avatar={<ProjectBadge project={group.project} avatarSize={20} hideName />}
             />
-          </ShortIdWrapper>
+          </Flex>
           {event && (event.dateCreated ?? event.dateReceived) && (
             <TimeStamp data-test-id="sgh-timestamp">
               {t('Last seen ')}
@@ -70,10 +71,6 @@ const Wrapper = styled('div')`
 const Details = styled('div')`
   max-width: 960px;
   margin: 0 auto;
-`;
-
-const ShortIdWrapper = styled('div')`
-  display: flex;
 `;
 
 const TitleWrap = styled('div')`
