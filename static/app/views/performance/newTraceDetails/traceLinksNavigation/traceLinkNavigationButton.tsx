@@ -86,17 +86,14 @@ export function TraceLinkNavigationButton({
   ) {
     return (
       <StyledTooltip
-        position="right"
+        position="top"
         delay={400}
         isHoverable
-        title={tct(
-          `This links to the previous trace within the same session. To learn more, [link:read the docs].`,
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
-            ),
-          }
-        )}
+        title={tct(`Go to the previous trace of the same session. [link:Learn More]`, {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
+          ),
+        })}
       >
         <TraceLink
           color="gray500"
@@ -111,7 +108,7 @@ export function TraceLinkNavigationButton({
           })}
         >
           <IconChevron direction="left" />
-          <TraceLinkText>{t('Go to Previous Trace')}</TraceLinkText>
+          <TraceLinkText>{t('Previous Trace')}</TraceLinkText>
         </TraceLink>
       </StyledTooltip>
     );
@@ -120,17 +117,14 @@ export function TraceLinkNavigationButton({
   if (direction === 'next' && !isNextTraceLoading && nextTraceId && nextTraceSpanId) {
     return (
       <StyledTooltip
-        position="left"
+        position="top"
         delay={400}
         isHoverable
-        title={tct(
-          `This links to the next trace within the same session. To learn more, [link:read the docs].`,
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
-            ),
-          }
-        )}
+        title={tct(`Go to the next trace of the same session. [link:Learn More]`, {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
+          ),
+        })}
       >
         <TraceLink
           color="gray500"
@@ -144,30 +138,17 @@ export function TraceLinkNavigationButton({
             organization,
           })}
         >
-          <TraceLinkText>{t('Go to Next Trace')}</TraceLinkText>
+          <TraceLinkText>{t('Next Trace')}</TraceLinkText>
           <IconChevron direction="right" />
         </TraceLink>
       </StyledTooltip>
     );
   }
 
-  // If there's no linked trace, let's render a placeholder for now to avoid layout shifts
-  // We should reconsider the place where we render these buttons, to avoid reducing the
-  // waterfall height permanently
-  return <TraceLinkNavigationButtonPlaceHolder />;
+  return null;
 }
-
-export function TraceLinkNavigationButtonPlaceHolder() {
-  return <PlaceHolderText>&nbsp;</PlaceHolderText>;
-}
-
-const PlaceHolderText = styled('span')`
-  padding: ${space(0.5)} ${space(0.5)};
-  visibility: hidden;
-`;
 
 const StyledTooltip = styled(Tooltip)`
-  padding: ${space(0.5)} ${space(0.5)};
   text-decoration: underline dotted
     ${p => (p.disabled ? p.theme.gray300 : p.theme.gray300)};
 `;
