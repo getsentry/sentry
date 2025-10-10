@@ -40,12 +40,10 @@ seer_anomaly_detection_connection_pool = connection_from_url(
 
 
 def send_new_detector_data(detector: Detector) -> None:
+    # XXX: it is technically possible (though not used today) that a detector could have multiple data sources
+    data_source = DataSourceDetector.objects.filter(detector_id=detector.id).first().data_source
     try:
-        data_source = DataSourceDetector.objects.get(detector_id=detector.id).data_source
-    except DataSourceDetector.DoesNotExist:
-        raise Exception("Could not create detector, data source detector not found.")
-    try:
-        query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
+        query_subscription = QuerySubscription.objects.get(id=int(data_source.source_id))
     except QuerySubscription.DoesNotExist:
         raise Exception("Could not create detector, query subscription not found.")
     try:
@@ -184,7 +182,12 @@ def send_historical_data_to_seer(
     if response.status > 400:
         logger.error(
             "Error when hitting Seer store data endpoint",
-            extra={"response_code": response.status},
+            extra={
+                "ad_config": anomaly_detection_config,
+                "detector": detector.id,
+                "response_data": response.data,
+                "response_code": response.status,
+            },
         )
         raise Exception("Error when hitting Seer store data endpoint")
 
