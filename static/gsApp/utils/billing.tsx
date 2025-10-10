@@ -375,6 +375,7 @@ export function hasJustStartedPlanTrial(subscription: Subscription) {
 export const displayBudgetName = (
   plan?: Plan | null,
   options: {
+    abbreviated?: boolean;
     pluralOndemand?: boolean;
     title?: boolean;
     withBudget?: boolean;
@@ -382,6 +383,12 @@ export const displayBudgetName = (
 ) => {
   const budgetTerm = plan?.budgetTerm ?? 'pay-as-you-go';
   const text = `${budgetTerm}${options.withBudget ? ' budget' : ''}`;
+  if (options.abbreviated) {
+    if (budgetTerm === 'pay-as-you-go') {
+      return 'PAYG';
+    }
+    return 'OD';
+  }
   if (options.title) {
     if (budgetTerm === 'on-demand') {
       if (options.withBudget) {
