@@ -126,7 +126,7 @@ export function TracesTable() {
 
   const traceErrorRequest = useSpans(
     {
-      // Get all generations and tool calls with error status
+      // Get all spans with error status
       search: `has:span.status span.status:*error trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
       fields: ['trace', 'count(span.duration)'],
       limit: tracesRequest.data?.data.length ?? 0,
