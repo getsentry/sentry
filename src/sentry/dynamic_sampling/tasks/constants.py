@@ -6,8 +6,8 @@ DEFAULT_REDIS_CACHE_KEY_TTL = 24 * 60 * 60 * 1000  # 24 hours
 ADJUSTED_FACTOR_REDIS_CACHE_KEY_TTL = 10 * 60 * 1000  # 10 minutes
 
 # Parameters to bound the queries run in Snuba.
-MAX_ORGS_PER_QUERY = 100
-MAX_PROJECTS_PER_QUERY = 5000
+MAX_ORGS_PER_QUERY = 80
+MAX_PROJECTS_PER_QUERY = 4000
 MAX_TRANSACTIONS_PER_PROJECT = 20
 
 # MIN and MAX rebalance factor in order to make sure we don't go crazy when rebalancing orgs.
