@@ -26,6 +26,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useNavContext} from 'sentry/views/nav/context';
+import {NavLayout} from 'sentry/views/nav/types';
 
 import ProductTrialTag from 'getsentry/components/productTrial/productTrialTag';
 import StartTrialButton from 'getsentry/components/startTrialButton';
@@ -152,6 +153,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
           drawerKey: 'usage-overview-drawer',
           resizable: false,
           onClose: () => handleCloseDrawer(false),
+          drawerWidth: '650px',
         }
       );
     }
@@ -626,20 +628,22 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
 
 function UsageOverview({subscription, organization, usageData}: UsageOverviewProps) {
   const hasBillingPerms = organization.access.includes('org:billing');
-  const {isCollapsed: navIsCollapsed} = useNavContext();
+  const {isCollapsed: navIsCollapsed, layout} = useNavContext();
   const {currentHistory, isPending, isError} = useCurrentBillingHistory();
   return (
     <Container
-      // TODO(isabella): move spacing to parent component
-      margin="xl 0"
       radius="md"
       border="primary"
       background="primary"
       // XXX: this is a very hacky way to ensure that if columns are resized, it doesn't
       // make the page wider than the viewport
-      // padding = 64px; sidebar = 74px; secondary nav = 190px;
+      // sidebar = 74px; secondary nav = 190px;
       maxWidth={
-        navIsCollapsed ? 'calc(100vw - 64px - 74px)' : 'calc(100vw - 64px - 74px - 190px)'
+        layout === NavLayout.MOBILE
+          ? '100vw'
+          : navIsCollapsed
+            ? 'calc(100vw - 74px)'
+            : 'calc(100vw - 74px - 190px)'
       }
     >
       <Flex

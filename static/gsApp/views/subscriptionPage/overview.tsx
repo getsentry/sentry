@@ -390,6 +390,8 @@ function Overview({location, subscription, promotionData}: Props) {
           <SubscriptionHeader organization={organization} subscription={subscription} />
         ) : undefined
       }
+      useBorderTopLogic={false}
+      paddingOverride="0 2xl 3xl"
     >
       {!isNewBillingUI && (
         <SubscriptionHeader organization={organization} subscription={subscription} />
