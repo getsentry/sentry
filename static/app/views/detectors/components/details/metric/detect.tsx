@@ -38,11 +38,11 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
 
   return (
     <Container>
-      <Flex gap="xs" align="center">
-        <Heading as="h4">{t('Dataset:')}</Heading>
-        <Value>{datasetConfig.name}</Value>
-      </Flex>
-      <Flex direction="column" gap="xs">
+      <Flex direction="column" gap="md">
+        <Flex gap="xs" align="baseline">
+          <Heading as="h4">{t('Dataset:')}</Heading>
+          <Value>{datasetConfig.name}</Value>
+        </Flex>
         <Heading as="h4">{t('Query:')}</Heading>
         <Query>
           <Label>
@@ -72,7 +72,7 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
             </Fragment>
           )}
         </Query>
-        <Flex gap="xs" align="center">
+        <Flex gap="xs" align="baseline">
           <Heading as="h4">{t('Interval:')}</Heading>
           <Value>{getExactDuration(dataSource.queryObj.snubaQuery.timeWindow)}</Value>
         </Flex>
@@ -91,6 +91,7 @@ const Query = styled('dl')`
   grid-template-columns: auto minmax(0, 1fr);
   gap: ${p => p.theme.space.sm} ${p => p.theme.space.xs};
   margin: 0;
+  align-items: baseline;
 `;
 
 const Label = styled('dt')`
