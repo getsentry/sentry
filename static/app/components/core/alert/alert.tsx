@@ -185,7 +185,8 @@ const AlertPanel = styled('div')<AlertProps & {hovered: boolean}>`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => getAlertColors(p.theme, p.type).border};
   padding: ${space(1.5)} ${space(2)};
-  background: ${p => getAlertColors(p.theme, p.type).backgroundLight};
+  background-image: ${p =>
+    `linear-gradient(${getAlertColors(p.theme, p.type).backgroundLight}), linear-gradient(${p.theme.tokens.background.primary})`};
 
   a:not([role='button']) {
     color: ${p => getAlertColors(p.theme, p.type).color};
