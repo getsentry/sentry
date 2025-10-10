@@ -210,7 +210,7 @@ export function SpanDescription({
           <CopyToClipboardButton
             borderless
             size="zero"
-            text={formattedDescription}
+            text={spanURL}
             tooltipProps={{disabled: true}}
           />
         </Flex>
