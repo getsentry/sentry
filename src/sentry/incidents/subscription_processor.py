@@ -136,6 +136,7 @@ class SubscriptionProcessor:
 
         self._alert_rule: AlertRule | None = None
         self.detector: Detector | None = None
+        self.last_update = to_datetime(0)  # should be overwritten on all success paths.
         if self._has_workflow_engine_processing_only or self._has_workflow_engine_processing:
             # If we're doing workflow engine processing, we need the Detector.
             try:
