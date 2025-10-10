@@ -3,6 +3,9 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {CodeBlock} from 'sentry/components/core/code';
 import {Link} from 'sentry/components/core/link';
@@ -195,21 +198,22 @@ export function SpanDescription({
         )}
       </CodeSnippetWrapper>
     ) : resolvedModule === ModuleName.HTTP && span.op === 'http.client' && spanURL ? (
-      <HTTPRequestWrapper>
-        <DescriptionWrapper>
-          <HTTPRequestURL>
-            <span>{findSpanAttributeValue(attributes, 'http.request.method')}</span>
-            <span>{spanURL}</span>
+      <Flex direction="column">
+        <Flex align="start" justify="between" gap="xs" padding="md">
+          <Flex align="start" paddingLeft="md" paddingTop="sm" paddingBottom="sm">
+            <Flex gap="xs">
+              <Text>{findSpanAttributeValue(attributes, 'http.request.method')}</Text>
+              <Text wordBreak="break-word">{spanURL}</Text>
+            </Flex>
             <LinkHint value={spanURL} />
-          </HTTPRequestURL>
+          </Flex>
           <CopyToClipboardButton
             borderless
             size="zero"
             text={formattedDescription}
             tooltipProps={{disabled: true}}
           />
-        </DescriptionWrapper>
-
+        </Flex>
         {codeFilepath && (
           <StackTraceMiniFrame
             projectId={node.event?.projectID}
@@ -221,7 +225,7 @@ export function SpanDescription({
             }}
           />
         )}
-      </HTTPRequestWrapper>
+      </Flex>
     ) : resolvedModule === ModuleName.RESOURCE && span.op === 'resource.img' ? (
       <ResourceImageDescription
         formattedDescription={formattedDescription}
@@ -404,12 +408,6 @@ const CodeSnippetWrapper = styled('div')`
   flex: 1;
 `;
 
-const HTTPRequestWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-`;
-
 const StyledLink = styled(Link)`
   display: flex;
   align-items: center;
@@ -432,14 +430,6 @@ const FormattedDescription = styled('div')`
   min-height: 24px;
   display: flex;
   align-items: center;
-`;
-
-const HTTPRequestURL = styled('div')`
-  min-height: 24px;
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  padding: ${p => p.theme.space.md};
 `;
 
 const DescriptionWrapper = styled('div')`
