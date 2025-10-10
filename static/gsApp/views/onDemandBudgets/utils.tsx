@@ -71,6 +71,17 @@ export function getTotalBudget(onDemandBudgets: OnDemandBudgets): number {
   return onDemandBudgets.sharedMaxBudget ?? 0;
 }
 
+export function getTotalSpend(onDemandBudgets: SubscriptionOnDemandBudgets): number {
+  if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+    return Object.values(onDemandBudgets.usedSpends).reduce(
+      (sum, spend) => sum + (spend ?? 0),
+      0
+    );
+  }
+
+  return onDemandBudgets.onDemandSpendUsed ?? 0;
+}
+
 export function isOnDemandBudgetsEqual(
   value: OnDemandBudgets,
   other: OnDemandBudgets

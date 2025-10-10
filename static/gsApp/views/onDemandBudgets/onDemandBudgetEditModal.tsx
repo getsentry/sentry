@@ -14,7 +14,7 @@ import withApi from 'sentry/utils/withApi';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {OnDemandBudgetMode, OnDemandBudgets, Subscription} from 'getsentry/types';
-import {displayBudgetName} from 'getsentry/utils/billing';
+import {displayBudgetName, hasNewBillingUI} from 'getsentry/utils/billing';
 
 import OnDemandBudgetEdit from './onDemandBudgetEdit';
 import {
@@ -184,22 +184,25 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
 
   render() {
     const {Header, Footer, subscription, organization} = this.props;
+    const isNewBillingUI = hasNewBillingUI(organization);
     const onDemandBudgets = subscription.onDemandBudgets!;
 
     return (
       <Fragment>
-        <Header closeButton>
-          <h4>
-            {tct('[action] [budgetType]', {
-              action: onDemandBudgets.enabled ? t('Edit') : t('Set Up'),
-              budgetType: displayBudgetName(subscription.planDetails, {
-                title: true,
-                withBudget: true,
-                pluralOndemand: true,
-              }),
-            })}
-          </h4>
-        </Header>
+        {!isNewBillingUI && (
+          <Header closeButton>
+            <h4>
+              {tct('[action] [budgetType]', {
+                action: onDemandBudgets.enabled ? t('Edit') : t('Set Up'),
+                budgetType: displayBudgetName(subscription.planDetails, {
+                  title: true,
+                  withBudget: true,
+                  pluralOndemand: true,
+                }),
+              })}
+            </h4>
+          </Header>
+        )}
         <OffsetBody>
           {this.renderError(this.state.updateError)}
           <OnDemandBudgetEdit
