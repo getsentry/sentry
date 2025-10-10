@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {Button} from 'sentry/components/core/button';
-import {Flex, Stack} from 'sentry/components/core/layout';
+import {Flex} from 'sentry/components/core/layout';
 import {TabList, TabPanels, TabStateProvider} from 'sentry/components/core/tabs';
 import {Text} from 'sentry/components/core/text';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -86,13 +86,11 @@ function SampleRowComponent({sample}: {sample: SampleRow}) {
           {timestamp}
         </Text>
       </SimpleTable.RowCell>
-      
+
       <SimpleTable.RowCell>
-        <Text size="sm">
-          {sample.value.toFixed(3)}s
-        </Text>
+        <Text size="sm">{sample.value.toFixed(3)}s</Text>
       </SimpleTable.RowCell>
-      
+
       <SimpleTable.RowCell>
         <Flex align="center" gap="sm">
           <TelemetryBubble
