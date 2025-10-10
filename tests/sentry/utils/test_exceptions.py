@@ -3,10 +3,7 @@ from unittest.mock import Mock, patch
 
 from sentry.taskworker.state import CurrentTaskState
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
-from sentry.workflow_engine.utils.exception_grouping import (
-    exception_grouping_context,
-    timeout_grouping_context,
-)
+from sentry.utils.exceptions import exception_grouping_context, timeout_grouping_context
 
 
 class CustomError(Exception):
