@@ -6,8 +6,8 @@ import {t} from 'sentry/locale';
 import type {OnDemandBudgets} from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import ReserveAdditionalVolume from 'getsentry/views/amCheckout/reserveAdditionalVolume';
-import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
+import ReserveAdditionalVolume from 'getsentry/views/amCheckout/components/reserveAdditionalVolume';
+import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {
   getTotalBudget,
