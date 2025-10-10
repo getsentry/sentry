@@ -4,6 +4,7 @@ import logging
 from typing import ClassVar
 
 from django.db import models
+from django.utils import timezone
 
 from sentry import features
 from sentry.backup.scopes import RelocationScope
@@ -47,6 +48,7 @@ class ReleaseProject(Model):
     project = FlexibleForeignKey("sentry.Project")
     release = FlexibleForeignKey("sentry.Release")
     new_groups = BoundedPositiveIntegerField(null=True, default=0)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True, null=True)
 
     adopted = models.DateTimeField(null=True, blank=True)
     unadopted = models.DateTimeField(null=True, blank=True)
