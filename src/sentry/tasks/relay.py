@@ -10,8 +10,8 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import relay_tasks
 from sentry.utils import metrics
+from sentry.utils.exceptions import quiet_redis_noise
 from sentry.utils.sdk import set_current_event_project
-from sentry.workflow_engine.utils.sentry_level_utils import quiet_redis_noise
 
 logger = logging.getLogger(__name__)
 
