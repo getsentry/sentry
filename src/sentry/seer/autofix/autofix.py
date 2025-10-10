@@ -460,14 +460,13 @@ def _get_github_username_for_user(user: User | RpcUser, organization_id: int) ->
 
         if external_actor and external_actor.external_name:
             username = external_actor.external_name
-            return username.lstrip("@") if username.startswith("@") else username
+            return username[1:] if username.startswith("@") else username
 
     except Exception:
         logger.exception(
             "Failed to get GitHub username for user",
             extra={
                 "user_id": user.id,
-                "user_email": user.email,
                 "org_id": organization_id,
             },
         )
