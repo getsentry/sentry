@@ -11,8 +11,6 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
