@@ -38,6 +38,7 @@ SessionsQueryFunction = Literal[
     "foreground_anr_rate()",
     "unhandled_rate(session)",
     "unhandled_rate(user)",
+    "unhealthy_rate(session)",
 ]
 
 GroupByFieldName = Literal[
