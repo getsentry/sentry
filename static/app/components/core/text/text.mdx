@@ -202,6 +202,40 @@ Handle text overflow with the `ellipsis` prop to truncate long text with an elli
 </Container>
 ```
 
+## Wrapping
+
+Use the `textWrap` prop to control how the text wraps, and the `wordBreak` prop to control where the text is split during wrapping.
+
+<Storybook.Demo>
+  <Stack gap="md">
+    <Container width="200px" padding="md" border="primary">
+      <Text wordBreak="break-word">
+        A URL string that breaks on word boundaries:
+        https://example.com/path/?marketingParam1=value1&amp;marketingParam2=some-awkward-long-value
+      </Text>
+    </Container>
+    <Container width="200px" padding="md" border="primary">
+      <Text textWrap="balance">
+        Balanced text wrapping for a string of words of varying lengths
+      </Text>
+    </Container>
+  </Stack>
+</Storybook.Demo>
+```jsx
+<Container width="200px" padding="md" border="primary">
+  <Text wordBreak="break-word">
+    A URL string that breaks on word boundaries:
+    https://example.com/path/?marketingParam1=value1&amp;marketingParam2=some-awkward-long-value
+  </Text>
+</Container>
+
+<Container width="200px" padding="md" border="primary">
+  <Text textWrap="balance">
+    Balanced text wrapping for a string of words of varying lengths
+  </Text>
+</Container>
+```
+
 ## Monospace
 
 Use `monospace` for fixed-width text.
