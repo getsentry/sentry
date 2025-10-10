@@ -453,6 +453,7 @@ export function hasUnsavedFilterChanges(
   type Filters = {
     end?: string;
     environment?: Set<string>;
+    globalFilter?: Set<string>;
     period?: string;
     projects?: Set<number>;
     release?: Set<string>;
@@ -482,6 +483,13 @@ export function hasUnsavedFilterChanges(
     // params, otherwise the dashboard should be using its saved state
     savedFilters.release = new Set(initialDashboard.filters?.release);
     currentFilters.release = new Set(location.query?.release);
+  }
+
+  if (defined(location.query?.globalFilter)) {
+    savedFilters.globalFilter = new Set(
+      initialDashboard.filters?.globalFilter?.map(filter => JSON.stringify(filter))
+    );
+    currentFilters.globalFilter = new Set(decodeList(location.query?.globalFilter));
   }
 
   return !isEqual(savedFilters, currentFilters);
@@ -545,24 +553,29 @@ export function getCurrentPageFilters(
 export function getDashboardFiltersFromURL(location: Location): DashboardFilters | null {
   const dashboardFilters: DashboardFilters = {};
   Object.values(DashboardFilterKeys).forEach(key => {
-    // Skip global filters for now, URL parameter persistence will be added later on
-    if (key === DashboardFilterKeys.GLOBAL_FILTER) {
-      return;
-    }
     if (defined(location.query?.[key])) {
-      dashboardFilters[key] = decodeList(location.query?.[key]);
+      const queryFilters = decodeList(location.query?.[key]);
+
+      if (key === DashboardFilterKeys.GLOBAL_FILTER) {
+        // Global filters are stored as JSON strings
+        dashboardFilters[key] = queryFilters.map(filter => JSON.parse(filter));
+      } else {
+        dashboardFilters[key] = queryFilters;
+      }
     }
   });
   return Object.keys(dashboardFilters).length > 0 ? dashboardFilters : null;
 }
 
 export function dashboardFiltersToString(
-  dashboardFilters: DashboardFilters | null | undefined
+  dashboardFilters: DashboardFilters | null | undefined,
+  widgetType?: WidgetType
 ): string {
   let dashboardFilterConditions = '';
-  const supportedFilters = omit(dashboardFilters, DashboardFilterKeys.GLOBAL_FILTER);
-  if (supportedFilters) {
-    for (const [key, activeFilters] of Object.entries(supportedFilters)) {
+
+  const pinnedFilters = omit(dashboardFilters, DashboardFilterKeys.GLOBAL_FILTER);
+  if (pinnedFilters) {
+    for (const [key, activeFilters] of Object.entries(pinnedFilters)) {
       if (activeFilters.length === 1) {
         dashboardFilterConditions += `${key}:"${activeFilters[0]}" `;
       } else if (activeFilters.length > 1) {
@@ -572,6 +585,17 @@ export function dashboardFiltersToString(
       }
     }
   }
+
+  const globalFilters = dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER];
+  // If widgetType is provided, concatenate global filters that apply
+  if (widgetType && globalFilters) {
+    dashboardFilterConditions +=
+      globalFilters
+        .filter(globalFilter => globalFilter.dataset === widgetType)
+        .map(globalFilter => globalFilter.value)
+        .join(' ') ?? '';
+  }
+
   return dashboardFilterConditions;
 }
 
