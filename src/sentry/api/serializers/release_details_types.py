@@ -76,11 +76,14 @@ class ProjectOptional(TypedDict, total=False):
     dateStarted: datetime | None
 
 
-class Project(ProjectOptional):
+class BaseProject(ProjectOptional):
     id: int
     slug: str
     name: str
-    newGroups: int
     platform: str | None
     platforms: list[str] | None
     hasHealthData: bool
+
+
+class Project(BaseProject):
+    newGroups: int
