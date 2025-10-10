@@ -20,6 +20,7 @@ import {
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
 interface TraceMetricContextValue {
+  removeMetric: () => void;
   setTraceMetric: (traceMetric: TraceMetric) => void;
 }
 
@@ -31,6 +32,7 @@ const [_MetricMetadataContextProvider, useTraceMetricContext, TraceMetricContext
 interface MetricsQueryParamsProviderProps {
   children: ReactNode;
   queryParams: ReadableQueryParams;
+  removeMetric: () => void;
   setQueryParams: (queryParams: ReadableQueryParams) => void;
   setTraceMetric: (traceMetric: TraceMetric) => void;
 }
@@ -40,12 +42,14 @@ export function MetricsQueryParamsProvider({
   queryParams,
   setQueryParams,
   setTraceMetric,
+  removeMetric,
 }: MetricsQueryParamsProviderProps) {
   const setWritableQueryParams = useCallback(
     (writableQueryParams: WritableQueryParams) => {
       const newQueryParams = updateQueryParams(queryParams, {
         query: getUpdatedValue(writableQueryParams.query, defaultQuery),
         aggregateFields: writableQueryParams.aggregateFields,
+        aggregateSortBys: writableQueryParams.aggregateSortBys,
       });
 
       setQueryParams(newQueryParams);
@@ -56,8 +60,9 @@ export function MetricsQueryParamsProvider({
   const traceMetricContextValue = useMemo(
     () => ({
       setTraceMetric,
+      removeMetric,
     }),
-    [setTraceMetric]
+    [setTraceMetric, removeMetric]
   );
 
   return (
@@ -100,6 +105,11 @@ export function useMetricVisualize(): VisualizeFunction {
 export function useSetTraceMetric() {
   const {setTraceMetric} = useTraceMetricContext();
   return setTraceMetric;
+}
+
+export function useRemoveMetric() {
+  const {removeMetric} = useTraceMetricContext();
+  return removeMetric;
 }
 
 export function useSetMetricVisualize() {

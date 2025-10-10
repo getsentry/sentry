@@ -13,8 +13,9 @@ import {
 } from 'sentry/types/workflowEngine/actions';
 import {
   DataConditionGroupLogicType,
+  DataConditionType,
+  type DataCondition,
   type DataConditionGroup,
-  type DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
@@ -186,7 +187,11 @@ export const initialAutomationBuilderState: AutomationBuilderState = {
   triggers: {
     id: 'when',
     logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
-    conditions: [],
+    conditions: [
+      createWhenCondition(DataConditionType.FIRST_SEEN_EVENT),
+      createWhenCondition(DataConditionType.REAPPEARED_EVENT),
+      createWhenCondition(DataConditionType.REGRESSION_EVENT),
+    ],
   },
   actionFilters: [
     {
@@ -293,6 +298,15 @@ type AutomationBuilderAction =
   | UpdateIfActionAction
   | UpdateIfLogicTypeAction;
 
+function createWhenCondition(conditionType: DataConditionType): DataCondition {
+  return {
+    id: uuid4(),
+    type: conditionType,
+    comparison: true,
+    conditionResult: true,
+  };
+}
+
 function addWhenCondition(
   state: AutomationBuilderState,
   action: AddWhenConditionAction
@@ -303,12 +317,7 @@ function addWhenCondition(
       ...state.triggers,
       conditions: [
         ...state.triggers.conditions,
-        {
-          id: uuid4(),
-          type: action.conditionType,
-          comparison: true,
-          conditionResult: true,
-        },
+        createWhenCondition(action.conditionType),
       ],
     },
   };
@@ -478,11 +487,11 @@ function getDefaultConfig(actionHandler: ActionHandler): ActionConfig {
     actionHandler.sentryApp?.id ??
     actionHandler.integrations?.[0]?.services?.[0]?.id ??
     actionHandler.services?.[0]?.slug ??
-    undefined;
+    '';
 
   return {
     targetType,
-    ...(targetIdentifier && {targetIdentifier}),
+    targetIdentifier,
     ...(actionHandler.sentryApp?.id && {
       sentryAppIdentifier: SentryAppIdentifier.SENTRY_APP_ID,
     }),

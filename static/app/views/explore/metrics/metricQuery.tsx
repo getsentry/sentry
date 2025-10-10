@@ -1,3 +1,4 @@
+import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
@@ -23,6 +24,7 @@ export interface BaseMetricQuery {
 }
 
 export interface MetricQuery extends BaseMetricQuery {
+  removeMetric: () => void;
   setQueryParams: (queryParams: ReadableQueryParams) => void;
   setTraceMetric: (traceMetric: TraceMetric) => void;
 }
@@ -36,7 +38,7 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
   }
 
   const metric = json.metric;
-  if (typeof metric !== 'object' || !metric.name || !metric.type) {
+  if (defined(metric) && typeof metric !== 'object') {
     return null;
   }
 
@@ -62,6 +64,11 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
 
   const aggregateFields = [...visualizes, ...groupBys];
 
+  const aggregateSortBys = json.aggregateSortBys;
+  if (!Array.isArray(aggregateSortBys)) {
+    return null;
+  }
+
   return {
     metric,
     queryParams: new ReadableQueryParams({
@@ -75,7 +82,7 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
 
       aggregateCursor: '',
       aggregateFields,
-      aggregateSortBys: defaultAggregateSortBys(),
+      aggregateSortBys,
     }),
   };
 }
@@ -92,6 +99,7 @@ export function encodeMetricQueryParams(metricQuery: BaseMetricQuery): string {
       // Keep Group By as-is
       return field;
     }),
+    aggregateSortBys: metricQuery.queryParams.aggregateSortBys,
   });
 }
 
