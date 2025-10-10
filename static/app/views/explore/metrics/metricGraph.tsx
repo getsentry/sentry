@@ -8,10 +8,7 @@ import {defined} from 'sentry/utils';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
-import {
-  ChartIntervalUnspecifiedStrategy,
-  useChartInterval,
-} from 'sentry/views/explore/hooks/useChartInterval';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {
   useMetricVisualize,
@@ -56,9 +53,7 @@ function Graph({onChartTypeChange, timeseriesResult, visualize}: GraphProps) {
   const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
 
-  const [interval, setInterval, intervalOptions] = useChartInterval({
-    unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
-  });
+  const [interval, setInterval, intervalOptions] = useChartInterval();
 
   const chartInfo = useMemo(() => {
     const series = timeseriesResult.data[aggregate] ?? [];
