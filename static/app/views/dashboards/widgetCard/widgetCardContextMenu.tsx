@@ -71,6 +71,66 @@ export const useTransactionsDeprecationWarning = ({
   return null;
 };
 
+export const useDroppedColumnsWarning = (widget: Widget): React.JSX.Element | null => {
+  if (!widget.changedReason) {
+    return null;
+  }
+
+  const baseWarning = tct(
+    "This widget may look different from the original query. Here's why:",
+    {}
+  );
+  const columnsWarning = [];
+  const equationsWarning = [];
+  const orderbyWarning = [];
+  for (const changedReason of widget.changedReason) {
+    if (changedReason.selected_columns.length > 0) {
+      columnsWarning.push(
+        tct(`- The following columns were dropped: [columns]`, {
+          columns: changedReason.selected_columns.join(', '),
+        })
+      );
+    }
+    if (changedReason.equations) {
+      equationsWarning.push(
+        ...changedReason.equations.map(equation =>
+          tct(`- [equation] was dropped because [reason] is unsupported`, {
+            equation: equation.equation,
+            reason: equation.reason,
+          })
+        )
+      );
+    }
+    if (changedReason.orderby) {
+      orderbyWarning.push(
+        ...changedReason.orderby.map(equation =>
+          tct(`- [orderby] was dropped because [reason]`, {
+            orderby: equation.orderby,
+            reason: equation.reason,
+          })
+        )
+      );
+    }
+  }
+
+  if (
+    columnsWarning.length > 0 ||
+    equationsWarning.length > 0 ||
+    orderbyWarning.length > 0
+  ) {
+    return (
+      <div>
+        {baseWarning}
+        {columnsWarning}
+        {equationsWarning}
+        {orderbyWarning}
+      </div>
+    );
+  }
+
+  return null;
+};
+
 export function getMenuOptions(
   dashboardFilters: DashboardFilters | undefined,
   organization: Organization,
