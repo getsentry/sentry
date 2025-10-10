@@ -385,15 +385,24 @@ function comparator(
   objA: Record<PropertyKey, unknown>,
   objB: Record<PropertyKey, unknown>
 ) {
-  // Compare numbers by near equality, which makes the comparison less sensitive to small natural variations in value caused by request sequencing
   if (
     key &&
     NUMERIC_KEYS.includes(key) &&
     typeof valueA === 'number' &&
     typeof valueB === 'number' &&
-    !objA?.incomplete &&
-    !objB?.incomplete
+    (objA?.incomplete || objB?.incomplete)
   ) {
+    // Treat numerical values in incomplete buckets as equal, we don't care about the differences there
+    return true;
+  }
+
+  if (
+    key &&
+    NUMERIC_KEYS.includes(key) &&
+    typeof valueA === 'number' &&
+    typeof valueB === 'number'
+  ) {
+    // Compare numbers by near equality, which makes the comparison less sensitive to small natural variations in value caused by request sequencing
     return areNumbersAlmostEqual(valueA, valueB, 5);
   }
 
