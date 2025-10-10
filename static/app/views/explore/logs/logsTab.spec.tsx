@@ -29,7 +29,9 @@ const datePageFilterProps: PickableDays = {
 };
 
 describe('LogsTabContent', () => {
-  const {organization, project, setupPageFilters} = initializeLogsTest();
+  const {organization, project, setupPageFilters} = initializeLogsTest({
+    orgFeatures: ['search-query-builder-case-insensitivity'],
+  });
 
   let eventTableMock: jest.Mock;
   let eventStatsMock: jest.Mock;
@@ -243,6 +245,52 @@ describe('LogsTabContent', () => {
     expect(screen.getByRole('tab', {name: 'Aggregates'})).toHaveAttribute(
       'aria-selected',
       'false'
+    );
+  });
+
+  it('should pass caseInsensitive to the query', async () => {
+    render(
+      <ProviderWrapper>
+        <LogsTabContent {...datePageFilterProps} />
+      </ProviderWrapper>,
+      {initialRouterConfig, organization}
+    );
+
+    expect(eventTableMock).toHaveBeenCalled();
+
+    const caseInsensitiveBtn = await screen.findByRole('button', {
+      name: 'Toggle case sensitivity',
+    });
+    await userEvent.click(caseInsensitiveBtn);
+
+    expect(eventTableMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+          statsPeriod: '14d',
+          dataset: 'ourlogs',
+          field: [...AlwaysPresentLogFields, 'message', 'sentry.message.parameters.0'],
+          sort: 'sentry.message.parameters.0',
+          query: 'severity:error',
+          caseInsensitive: 1,
+        }),
+      })
+    );
+
+    expect(eventStatsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events-stats/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+          statsPeriod: '14d',
+          dataset: 'ourlogs',
+          yAxis: 'count(message)',
+          interval: '1h',
+          query: 'severity:error timestamp_precise:<=1508208040000000000',
+          caseInsensitive: 1,
+        }),
+      })
     );
   });
 });
