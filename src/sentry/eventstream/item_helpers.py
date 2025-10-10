@@ -23,8 +23,27 @@ def serialize_event_data_as_item(
             Timestamp(seconds=int(event_data["received"])) if "received" in event_data else None
         ),
         retention_days=event_data.get("retention_days", 90),
-        attributes=encode_attributes(event, event_data, ignore_fields={"event_id", "timestamp"}),
+        attributes=encode_attributes(
+            event, event_data, ignore_fields={"event_id", "timestamp", "tags"}
+        ),
     )
+
+
+def _encode_value(value: Any) -> AnyValue:
+    """Encode a Python value into a protobuf AnyValue."""
+    if isinstance(value, str):
+        return AnyValue(string_value=value)
+    elif isinstance(value, bool):
+        # Note: bool check must come before int check since bool is a subclass of int
+        return AnyValue(bool_value=value)
+    elif isinstance(value, int):
+        return AnyValue(int_value=value)
+    elif isinstance(value, float):
+        return AnyValue(double_value=value)
+    elif isinstance(value, list) or isinstance(value, dict):
+        return AnyValue(string_value="encode not supported for non-scalar values")
+    else:
+        raise NotImplementedError(f"encode not supported for {type(value)}")
 
 
 def encode_attributes(
@@ -36,22 +55,12 @@ def encode_attributes(
     for key, value in event_data.items():
         if key in ignore_fields:
             continue
-        if isinstance(value, str):
-            attributes[key] = AnyValue(string_value=value)
-        elif isinstance(value, int):
-            attributes[key] = AnyValue(int_value=value)
-        elif isinstance(value, float):
-            attributes[key] = AnyValue(double_value=value)
-        elif isinstance(value, bool):
-            attributes[key] = AnyValue(bool_value=value)
-        elif isinstance(value, list):
-            # TODO: FIX
-            attributes[key] = AnyValue(int_value=-1)
-        elif isinstance(value, dict):
-            # TODO: FIX
-            attributes[key] = AnyValue(int_value=-1)
+        attributes[key] = _encode_value(value)
 
     if event.group_id:
         attributes["group_id"] = AnyValue(int_value=event.group_id)
+
+    for key, value in event_data["tags"]:
+        attributes[f"tags[{key}]"] = _encode_value(value)
 
     return attributes
