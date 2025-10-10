@@ -150,7 +150,7 @@ const TimeContainer = styled('div')`
   align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.md};
-  line-height: 1.4;
+  line-height: 1.9;
 `;
 
 const DisplayHeader = styled('div')`
