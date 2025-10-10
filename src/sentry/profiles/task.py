@@ -1643,8 +1643,8 @@ def build_chunk_functions_eap_trace_items(
         profiling_type = AnyValue(string_value="continuous")
 
         depth: int | None = f.get_depth()
-        stack_fingerptint: int | None = f.get_stack_fingerprint()
-        parent_fingerptint: int | None = f.get_parent_fingerprint()
+        stack_fingerprint: int | None = f.get_stack_fingerprint()
+        parent_fingerprint: int | None = f.get_parent_fingerprint()
         environment: str | None = chunk.get_environment()
         release: str | None = chunk.get_release()
 
@@ -1665,11 +1665,11 @@ def build_chunk_functions_eap_trace_items(
             if depth is not None:
                 attributes["depth"] = AnyValue(int_value=depth)
 
-            if stack_fingerptint is not None:
-                attributes["stack_fingerptint"] = AnyValue(int_value=stack_fingerptint)
+            if stack_fingerprint is not None:
+                attributes["stack_fingerprint"] = AnyValue(int_value=stack_fingerprint)
 
-            if parent_fingerptint is not None:
-                attributes["parent_fingerptint"] = AnyValue(int_value=parent_fingerptint)
+            if parent_fingerprint is not None:
+                attributes["parent_fingerprint"] = AnyValue(int_value=parent_fingerprint)
 
             if environment is not None:
                 attributes["environment"] = AnyValue(string_value=environment)
