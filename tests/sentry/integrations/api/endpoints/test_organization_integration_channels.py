@@ -237,7 +237,7 @@ class OrganizationIntegrationChannelsErrorTest(OrganizationIntegrationChannelsTe
         """Test warning for unsupported integration provider."""
         integration = self.create_integration(
             organization=self.organization,
-            provider="github",  # not a messaging integration
+            provider="github",
             name="GitHub",
             external_id="github:1",
         )
@@ -251,7 +251,14 @@ class OrganizationIntegrationChannelsErrorTest(OrganizationIntegrationChannelsTe
     def test_limit_validation(self):
         """Test limit parameter validation and clamping."""
         integration = self.create_integration(
-            organization=self.organization, provider="slack", external_id="test"
+            organization=self.organization,
+            provider="slack",
+            name="Slack Workspace",
+            external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxb-token",
+                "installation_type": "born_as_bot",
+            },
         )
 
         # Test max limit clamping
@@ -260,7 +267,6 @@ class OrganizationIntegrationChannelsErrorTest(OrganizationIntegrationChannelsTe
             self.get_success_response(
                 self.organization.slug, integration.id, qs_params={"limit": 999}
             )
-            # Should clamp to 200
             call_kwargs = m.call_args[1]
             assert call_kwargs["limit"] == 200
 
