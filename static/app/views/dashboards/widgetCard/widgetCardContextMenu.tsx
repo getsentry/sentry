@@ -122,7 +122,7 @@ export const useDroppedColumnsWarning = (widget: Widget): React.JSX.Element | nu
   for (const changedReason of widget.changedReason) {
     if (changedReason.selected_columns.length > 0) {
       columnsWarning.push(
-        tct(`The following columns were dropped: [columns].`, {
+        tct(`The following fields were dropped: [columns].`, {
           columns: changedReason.selected_columns.join(', '),
         })
       );

@@ -21,7 +21,7 @@ export function DroppedFieldsAlert(): React.JSX.Element | null {
   }
 
   const baseWarning = t(
-    "This widget may look different from the original query. Here's why:"
+    "This query may look different from the original query. Here's why:"
   );
   const columnsWarning = [];
   const equationsWarning = [];
@@ -30,7 +30,7 @@ export function DroppedFieldsAlert(): React.JSX.Element | null {
   const changedReason = savedQuery.changedReason;
   if (changedReason.columns.length > 0) {
     columnsWarning.push(
-      tct(`The following columns were dropped: [columns]`, {
+      tct(`The following fields were dropped: [columns]`, {
         columns: changedReason.columns.join(', '),
       })
     );
