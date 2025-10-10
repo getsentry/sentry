@@ -50,6 +50,7 @@ export function MetricsQueryParamsProvider({
         query: getUpdatedValue(writableQueryParams.query, defaultQuery),
         aggregateFields: writableQueryParams.aggregateFields,
         aggregateSortBys: writableQueryParams.aggregateSortBys,
+        mode: writableQueryParams.mode,
       });
 
       setQueryParams(newQueryParams);
