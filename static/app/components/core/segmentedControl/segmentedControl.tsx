@@ -25,7 +25,7 @@ import {
   ChonkStyledSegmentWrap,
   ChonkStyledVisibleLabel,
   type Priority,
-} from './index.chonk';
+} from './segmentedControl.chonk';
 
 interface SegmentedControlItemProps<Value extends string> {
   key: Value;
