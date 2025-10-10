@@ -2965,7 +2965,6 @@ function buildRoutes(): RouteObject[] {
       legacyOrganizationRootRoutes,
       legacyOrgRedirects,
     ],
-    deprecatedRouteProps: true,
   };
 
   const legacyRedirectRoutes: SentryRouteObject = {
