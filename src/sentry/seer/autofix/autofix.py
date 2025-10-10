@@ -444,32 +444,22 @@ def _respond_with_error(reason: str, status: int):
 
 def _get_github_username_for_user(user: User | RpcUser, organization_id: int) -> str | None:
     """Get GitHub username for a user by checking ExternalActor mappings."""
-    try:
-        external_actor: ExternalActor | None = (
-            ExternalActor.objects.filter(
-                user_id=user.id,
-                organization_id=organization_id,
-                provider__in=[
-                    ExternalProviders.GITHUB.value,
-                    ExternalProviders.GITHUB_ENTERPRISE.value,
-                ],
-            )
-            .order_by("-date_added")
-            .first()
+    external_actor: ExternalActor | None = (
+        ExternalActor.objects.filter(
+            user_id=user.id,
+            organization_id=organization_id,
+            provider__in=[
+                ExternalProviders.GITHUB.value,
+                ExternalProviders.GITHUB_ENTERPRISE.value,
+            ],
         )
+        .order_by("-date_added")
+        .first()
+    )
 
-        if external_actor and external_actor.external_name:
-            username = external_actor.external_name
-            return username[1:] if username.startswith("@") else username
-
-    except Exception:
-        logger.exception(
-            "Failed to get GitHub username for user",
-            extra={
-                "user_id": user.id,
-                "org_id": organization_id,
-            },
-        )
+    if external_actor and external_actor.external_name:
+        username = external_actor.external_name
+        return username[1:] if username.startswith("@") else username
 
     return None
 
