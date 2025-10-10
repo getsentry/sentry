@@ -2,9 +2,9 @@ from io import BytesIO
 
 from django.test import override_settings
 
+from sentry.api.authentication import ServiceRpcSignatureAuthentication
 from sentry.models.files.file import File
 from sentry.preprod.models import PreprodArtifact
-from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.response import close_streaming_response
 
@@ -30,7 +30,9 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
 
     def _get_authenticated_request_headers(self, path, data=b""):
         """Generate the RPC signature authentication headers for the request."""
-        signature = generate_service_request_signature(path, data, ["test-secret-key"], "Launchpad")
+        signature = ServiceRpcSignatureAuthentication.generate_signature(
+            path, data, "test-secret-key"
+        )
         return {"HTTP_AUTHORIZATION": f"rpcsignature {signature}"}
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
