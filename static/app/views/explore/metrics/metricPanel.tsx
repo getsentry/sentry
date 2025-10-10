@@ -52,7 +52,7 @@ export function MetricPanel({traceMetric}: MetricPanelProps) {
       search,
       yAxis: [visualize.yAxis],
       interval,
-      fields: [...groupBys],
+      fields: [...groupBys, visualize.yAxis],
       enabled: Boolean(traceMetric.name),
       topEvents,
       orderby: sortBys.map(formatSort),
