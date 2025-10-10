@@ -1,8 +1,10 @@
 import {useEffect, useMemo, useState} from 'react';
+import {useEffectEvent} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
 import isEmpty from 'lodash/isEmpty';
 import isEqualWith from 'lodash/isEqualWith';
 
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {NODE_ENV} from 'sentry/constants';
 import type {
   EventsStats,
@@ -51,6 +53,7 @@ const {warn} = Sentry.logger;
 type SeriesMap = Record<string, TimeSeries[]>;
 
 interface Options<Fields> {
+  caseInsensitive?: CaseInsensitive;
   disableAggregateExtrapolation?: string;
   enabled?: boolean;
   fields?: string[];
@@ -84,6 +87,7 @@ export const useSortedTimeSeries = <
     enabled,
     samplingMode,
     disableAggregateExtrapolation,
+    caseInsensitive,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -158,6 +162,7 @@ export const useSortedTimeSeries = <
       // Timeseries requests do not support cursors, overwrite it to undefined so
       // pagination does not cause extra requests
       cursor: undefined,
+      caseInsensitive,
     }),
     options: {
       enabled: enabled && pageFilters.isReady,
@@ -186,14 +191,12 @@ export const useSortedTimeSeries = <
       : {};
   }, [timeSeriesResult.data]);
 
-  useEffect(() => {
-    if (
-      isTimeSeriesEndpointComparisonEnabled &&
-      !result.isFetching &&
-      !isEmpty(data) &&
-      !timeSeriesResult.isFetching &&
-      !isEmpty(otherData)
-    ) {
+  // We don't want to re-run the comparison every time the `data` changes, since
+  // `data` might be changed or mutated by the live reload functionality.
+  // Instead, extract that into an effect event so it doesn't have a dependency
+  // on `data`.
+  const compareResponses = useEffectEvent(() => {
+    if (!isEmpty(data) && !isEmpty(otherData)) {
       if (!isEqualWith(data, otherData, comparator)) {
         warn(`\`useDiscoverSeries\` found a data difference in responses`, {
           statsData: JSON.stringify(data),
@@ -201,11 +204,19 @@ export const useSortedTimeSeries = <
         });
       }
     }
+  });
+
+  useEffect(() => {
+    if (
+      isTimeSeriesEndpointComparisonEnabled &&
+      !result.isFetching &&
+      !timeSeriesResult.isFetching
+    ) {
+      compareResponses();
+    }
   }, [
     isTimeSeriesEndpointComparisonEnabled,
-    data,
     result.isFetching,
-    otherData,
     timeSeriesResult.isFetching,
   ]);
 
@@ -370,14 +381,18 @@ const NUMERIC_KEYS: Array<symbol | string | number> = [
 function comparator(
   valueA: unknown,
   valueB: unknown,
-  key: symbol | string | number | undefined
+  key: symbol | string | number | undefined,
+  objA: Record<PropertyKey, unknown>,
+  objB: Record<PropertyKey, unknown>
 ) {
   // Compare numbers by near equality, which makes the comparison less sensitive to small natural variations in value caused by request sequencing
   if (
     key &&
     NUMERIC_KEYS.includes(key) &&
     typeof valueA === 'number' &&
-    typeof valueB === 'number'
+    typeof valueB === 'number' &&
+    !objA?.incomplete &&
+    !objB?.incomplete
   ) {
     return areNumbersAlmostEqual(valueA, valueB, 5);
   }

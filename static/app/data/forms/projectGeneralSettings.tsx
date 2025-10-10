@@ -54,9 +54,9 @@ export const fields = {
     name: 'name',
     type: 'string',
     required: true,
-    label: t('Name'),
+    label: t('Slug'),
     placeholder: t('my-awesome-project'),
-    help: t('A name for this project'),
+    help: t('A unique ID used to identify this project'),
     transformInput: slugify,
     getData: (data: {name?: string}) => {
       return {
@@ -68,7 +68,7 @@ export const fields = {
     saveOnBlur: false,
     saveMessageAlertType: 'warning',
     saveMessage: t(
-      "Changing a project's name will also change the project slug. This can break your build scripts! Please proceed carefully."
+      "Changing a project's slug can break your build scripts! Please proceed carefully."
     ),
   },
 
