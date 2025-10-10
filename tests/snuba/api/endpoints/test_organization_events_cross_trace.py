@@ -168,7 +168,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "project": self.project.id,
                 "dataset": "spans",
                 "spanQueries": ["tags[foo]:six"],
-                "logsQueries": ["message:foo"],
+                "logQueries": ["message:foo"],
             }
         )
 
