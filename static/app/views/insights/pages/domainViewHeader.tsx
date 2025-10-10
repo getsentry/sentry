@@ -66,6 +66,7 @@ export function DomainViewHeader({
   const isLaravelInsights = isLaravelInsightsAvailable && isInOverviewPage;
   const isNextJsInsights = isNextJsInsightsAvailable && isInOverviewPage;
   const isAgentMonitoring = view === 'ai';
+  const isSessionsInsights = selectedModule === ModuleName.SESSIONS;
 
   const crumbs: Crumb[] = [
     {
@@ -107,14 +108,16 @@ export function DomainViewHeader({
   ];
 
   const feedbackOptions =
-    isAgentMonitoring || isLaravelInsights || isNextJsInsights
+    isAgentMonitoring || isLaravelInsights || isNextJsInsights || isSessionsInsights
       ? {
           tags: {
             ['feedback.source']: isAgentMonitoring
               ? 'agent-monitoring'
               : isLaravelInsights
                 ? 'laravel-insights'
-                : 'nextjs-insights',
+                : isSessionsInsights
+                  ? 'sessions-insights'
+                  : 'nextjs-insights',
             ['feedback.owner']: 'telemetry-experience',
           },
         }
