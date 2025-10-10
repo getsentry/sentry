@@ -3138,7 +3138,16 @@ function buildRoutes(): RouteObject[] {
           authV2Routes,
           organizationRoutes,
           legacyRedirectRoutes,
-          {path: '*', component: errorHandler(RouteNotFound), deprecatedRouteProps: true},
+          {
+            path: '*',
+            component: errorHandler(OrganizationLayout),
+            children: [
+              {
+                path: '*',
+                component: errorHandler(RouteNotFound),
+              },
+            ],
+          },
         ],
       },
     ],
