@@ -176,8 +176,8 @@ def _ensure_monitor_with_config(
                 "is_upserting": True,
             },
         )
-        ensure_cron_detector(monitor)
         if created:
+            ensure_cron_detector(monitor)
             signal_monitor_created(project, None, True, monitor, None)
 
     # Update existing monitor
