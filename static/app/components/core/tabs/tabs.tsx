@@ -10,7 +10,6 @@ import type {BaseTabProps} from 'sentry/components/core/tabs/tab.chonk';
 import {tabsShouldForwardProp} from './utils';
 
 export {TabList, type TabListProps} from './tabList';
-export {type TabListItemProps} from './item';
 export {TabPanels} from './tabPanels';
 
 export interface TabsProps<T>
