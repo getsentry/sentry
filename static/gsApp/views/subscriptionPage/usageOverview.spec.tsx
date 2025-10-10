@@ -172,8 +172,9 @@ describe('UsageOverview', () => {
     expect(
       screen.queryByRole('button', {name: 'Collapse Prevent details'})
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole('cell', {name: 'Prevent Users'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('cell', {name: 'Prevent Reviews'})).not.toBeInTheDocument();
+    // We test it this way to ensure we don't show the cell with the proper display name or the raw DataCategory
+    expect(screen.queryByRole('cell', {name: /Prevent*Users/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('cell', {name: /Prevent*Reviews/})).not.toBeInTheDocument();
   });
 
   it('can open drawer for data categories but not add ons', async () => {

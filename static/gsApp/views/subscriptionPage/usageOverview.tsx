@@ -122,8 +122,10 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
   useEffect(() => {
     Object.entries(subscription.addOns ?? {})
       .filter(
+        // only show add-on data categories if the add-on is enabled
         ([_, addOnInfo]) =>
-          !addOnInfo.billingFlag || organization.features.includes(addOnInfo.billingFlag)
+          !addOnInfo.billingFlag ||
+          (organization.features.includes(addOnInfo.billingFlag) && addOnInfo.enabled)
       )
       .forEach(([apiName, _]) => {
         setOpenState(prev => ({...prev, [apiName]: true}));
@@ -295,6 +297,8 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
         }),
       ...Object.entries(subscription.addOns ?? {})
         .filter(
+          // show add-ons regardless of whether they're enabled
+          // as long as they're launched for the org
           ([_, addOnInfo]) =>
             !addOnInfo.billingFlag ||
             organization.features.includes(addOnInfo.billingFlag)
@@ -344,36 +348,38 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
           }
           const recurringReservedSpend = bucket?.price ?? 0;
 
-          const childCategoriesData = openState[apiName]
-            ? addOnInfo.dataCategories.map(addOnDataCategory => {
-                const childSpend =
-                  reservedBudget?.categories[addOnDataCategory]?.reservedSpend ?? 0;
-                const childPaygTotal =
-                  subscription.categories[addOnDataCategory]?.onDemandSpendUsed ?? 0;
-                const childProductName = getPlanCategoryName({
-                  plan: subscription.planDetails,
-                  category: addOnDataCategory,
-                  title: true,
-                });
-                const metricHistory = subscription.categories[addOnDataCategory];
-                const softCapType =
-                  metricHistory?.softCapType ??
-                  (metricHistory?.trueForward ? 'TRUE_FORWARD' : undefined);
-                return {
-                  addOnCategory: apiName as AddOnCategory,
-                  dataCategory: addOnDataCategory,
-                  isChildProduct: true,
-                  isOpen: openState[apiName],
-                  hasAccess: true,
-                  isPaygOnly: false,
-                  isUnlimited: !!activeProductTrial,
-                  softCapType: softCapType ?? undefined,
-                  budgetSpend: childPaygTotal,
-                  currentUsage: (childSpend ?? 0) + childPaygTotal,
-                  product: childProductName,
-                };
-              })
-            : null;
+          // Only show child categories if the add-on is open and enabled
+          const childCategoriesData =
+            openState[apiName] && hasAccess
+              ? addOnInfo.dataCategories.map(addOnDataCategory => {
+                  const childSpend =
+                    reservedBudget?.categories[addOnDataCategory]?.reservedSpend ?? 0;
+                  const childPaygTotal =
+                    subscription.categories[addOnDataCategory]?.onDemandSpendUsed ?? 0;
+                  const childProductName = getPlanCategoryName({
+                    plan: subscription.planDetails,
+                    category: addOnDataCategory,
+                    title: true,
+                  });
+                  const metricHistory = subscription.categories[addOnDataCategory];
+                  const softCapType =
+                    metricHistory?.softCapType ??
+                    (metricHistory?.trueForward ? 'TRUE_FORWARD' : undefined);
+                  return {
+                    addOnCategory: apiName as AddOnCategory,
+                    dataCategory: addOnDataCategory,
+                    isChildProduct: true,
+                    isOpen: openState[apiName],
+                    hasAccess: true,
+                    isPaygOnly: false,
+                    isUnlimited: !!activeProductTrial,
+                    softCapType: softCapType ?? undefined,
+                    budgetSpend: childPaygTotal,
+                    currentUsage: (childSpend ?? 0) + childPaygTotal,
+                    product: childProductName,
+                  };
+                })
+              : null;
 
           return [
             {
