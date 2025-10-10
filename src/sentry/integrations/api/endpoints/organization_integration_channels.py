@@ -40,8 +40,9 @@ def _slack_list_channels(
     if cursor:
         params["cursor"] = cursor
     resp = client.conversations_list(**params).data
-    channels = resp.get("channels", []) or []
-    next_cursor: str | None = (resp.get("response_metadata", {}) or {}).get("next_cursor") or None
+    resp_data: dict[str, Any] = resp if isinstance(resp, dict) else {}
+    channels = resp_data.get("channels", []) or []
+    next_cursor: str | None = resp_data.get("response_metadata", {}).get("next_cursor")
 
     results: list[dict[str, Any]] = []
     for ch in channels:
@@ -128,6 +129,9 @@ def _msteams_list_channels(
     """
 
     integration = integration_service.get_integration(integration_id=integration_id)
+    if integration is None:
+        raise ApiError("Microsoft Teams integration not found")
+
     client = MsTeamsClient(integration)
 
     # Cache Teams channel list briefly to avoid re-fetching the full list across pages
