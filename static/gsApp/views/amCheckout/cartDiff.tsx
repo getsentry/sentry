@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Stack} from 'sentry/components/core/layout';
 import {IconChevron} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -537,25 +537,23 @@ function CartDiff({
   }
 
   return (
-    <Flex
+    <Stack
       data-test-id="cart-diff"
-      direction="column"
-      padding="xl"
-      border="primary"
-      background="primary"
-      radius="md"
+      borderBottom="primary"
+      paddingBottom="lg"
+      align="start"
     >
-      <Flex justify="between" align="center">
-        <Title>{tct('Changes ([numChanges])', {numChanges: allChanges.length})}</Title>
-        <Button
-          aria-label={`${isOpen ? 'Hide' : 'Show'} changes`}
-          onClick={() => onToggle(!isOpen)}
-          borderless
-          icon={<IconChevron direction={isOpen ? 'up' : 'down'} />}
-        />
-      </Flex>
+      <Button
+        aria-label={`${isOpen ? 'Hide' : 'Show'} changes`}
+        onClick={() => onToggle(!isOpen)}
+        borderless
+        size="xs"
+        icon={<IconChevron direction={isOpen ? 'up' : 'right'} />}
+      >
+        {isOpen ? t('Hide changes') : t('Show changes')}
+      </Button>
       {isOpen && (
-        <ChangesContainer>
+        <Stack width="100%" paddingLeft="md">
           {planChanges.length + productChanges.length + cycleChanges.length > 0 && (
             <PlanDiff
               currentPlan={currentPlan}
@@ -580,27 +578,13 @@ function CartDiff({
               reservedChanges={reservedChanges}
             />
           )}
-        </ChangesContainer>
+        </Stack>
       )}
-    </Flex>
+    </Stack>
   );
 }
 
 export default CartDiff;
-
-const ChangesContainer = styled('div')`
-  & > div:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
-  max-height: 300px;
-  overflow-y: scroll;
-`;
-
-const Title = styled('h1')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin: 0;
-`;
 
 const Change = styled('div')`
   display: flex;
@@ -651,7 +635,7 @@ const ChangeGrid = styled('div')`
   align-items: center;
 `;
 
-const ChangeSectionTitle = styled('h2')<{hasBottomMargin?: boolean}>`
+const ChangeSectionTitle = styled('p')<{hasBottomMargin?: boolean}>`
   font-size: ${p => p.theme.fontSize.md};
   margin: 0;
   margin-bottom: ${p => (p.hasBottomMargin ? p.theme.space.xs : 0)};
