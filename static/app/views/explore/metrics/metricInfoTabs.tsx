@@ -44,7 +44,7 @@ const FAKE_SAMPLE_DATA: SampleRow[] = [
     value: 1.923,
   },
   {
-    telemetry: {errors: 12, logs: 2311, spans: 67},
+    telemetry: {errors: 7, logs: 2311, spans: 67},
     timestamp: '2024-10-10T14:30:58.567Z',
     traceId: 'ghi789jkl012',
     value: 3.672,
@@ -76,11 +76,11 @@ function TelemetryBubble({
   );
 }
 
-function SampleRowComponent({sample}: {sample: SampleRow}) {
+function SampleRowComponent({sample, isHovered}: {sample: SampleRow; isHovered?: boolean}) {
   const timestamp = new Date(sample.timestamp).toLocaleTimeString();
 
   return (
-    <SimpleTable.Row>
+    <SimpleTable.Row style={isHovered ? {backgroundColor: 'var(--color-background-secondary)'} : undefined}>
       <SimpleTable.RowCell>
         <Text size="sm" variant="muted">
           {timestamp}
@@ -140,7 +140,7 @@ export default function MetricInfoTabs() {
                 <SimpleTable.HeaderCell>{t('Trace')}</SimpleTable.HeaderCell>
               </SimpleTable.Header>
               {FAKE_SAMPLE_DATA.map((sample, index) => (
-                <SampleRowComponent key={index} sample={sample} />
+                <SampleRowComponent key={index} sample={sample} isHovered={index === 1} />
               ))}
             </SimpleTable>
           </TabPanels.Item>
