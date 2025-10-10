@@ -190,6 +190,7 @@ const LiveIndicator = styled('div')`
   position: relative;
   border-radius: 50%;
   margin-left: 6px;
+  margin-right: 6px;
 
   @media (prefers-reduced-motion: reduce) {
     &:before {
