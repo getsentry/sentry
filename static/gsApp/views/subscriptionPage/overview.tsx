@@ -332,14 +332,14 @@ function Overview({location, subscription, promotionData}: Props) {
         // TODO(isabella): move spacing to the parent
         marginTop="xl"
       >
-        <Text bold>
+        <Flex align="center" gap="sm">
           <IconSupport />
-          {t(' Having trouble?')}
-        </Text>
+          <Text bold>{t('Having trouble?')}</Text>
+        </Flex>
         <Text>
           {tct('Reach out to [supportLink], or vent to a real human on [discordLink]', {
             supportLink: (
-              <ExternalLink href="mailto:support@sentry.io">{t('Support')}</ExternalLink>
+              <ExternalLink href="https://support.sentry.io">{t('Support')}</ExternalLink>
             ),
             discordLink: (
               <ExternalLink href="https://discord.com/invite/sentry">
