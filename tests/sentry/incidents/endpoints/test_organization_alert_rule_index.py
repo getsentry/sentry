@@ -1715,7 +1715,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         ):
             resp = self.get_error_response(self.organization.slug, status_code=400, **data)
         assert (
-            resp.data["dataset"][0]
+            resp.data[0]
             == "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (`dataset=events_analytics_platform`) with the is_transaction:true filter instead."
         )
 
@@ -1726,11 +1726,15 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         data["aggregate"] = "p95(transaction.duration)"
 
         with self.feature(
-            ["organizations:incidents", "organizations:discover-saved-queries-deprecation"]
+            [
+                "organizations:incidents",
+                "organizations:discover-saved-queries-deprecation",
+                "organizations:performance-view",
+            ]
         ):
             resp = self.get_error_response(self.organization.slug, status_code=400, **data)
         assert (
-            resp.data["dataset"][0]
+            resp.data[0]
             == "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (`dataset=events_analytics_platform`) with the is_transaction:true filter instead."
         )
 
