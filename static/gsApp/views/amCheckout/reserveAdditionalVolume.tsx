@@ -38,7 +38,11 @@ function ReserveAdditionalVolume({
     isDeveloperPlan(subscription.planDetails)
       ? false
       : Object.values(subscription.categories ?? {})
-          .filter(({category}) => activePlan.checkoutCategories.includes(category))
+          .filter(
+            ({category}) =>
+              activePlan.checkoutCategories.includes(category) &&
+              category in activePlan.planCategories
+          )
           .some(
             ({category, reserved}) =>
               getBucket({
