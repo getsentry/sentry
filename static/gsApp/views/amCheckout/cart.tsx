@@ -132,16 +132,15 @@ interface TotalSummaryProps extends BaseSummaryProps {
 
 function ItemFlex({children}: {children: React.ReactNode}) {
   return (
-    <StyledFlex justify="between" align="center" gap="3xl">
+    <Flex justify="between" align="center" gap="3xl" height="18px">
       {children}
-    </StyledFlex>
+    </Flex>
   );
 }
 
 function ItemWithPrice({
   item,
   price,
-  shouldBoldItem,
   isCredit,
 }: {
   item: React.ReactNode;
@@ -151,7 +150,7 @@ function ItemWithPrice({
 }) {
   return (
     <ItemFlex>
-      <Text bold={shouldBoldItem}>{item}</Text>
+      <Text size="md">{item}</Text>
       <Text align="right" variant={isCredit ? 'success' : 'primary'}>
         {price}
       </Text>
@@ -334,7 +333,7 @@ function SubtotalSummary({
 
   return (
     <Container borderTop="primary">
-      <Flex direction="column" padding="2xl 2xl" gap="md">
+      <Flex direction="column" gap="md" padding="xl 0">
         <Item data-test-id="summary-item-plan-total">
           <ItemWithPrice
             item={t('Plan Total')}
@@ -347,17 +346,6 @@ function SubtotalSummary({
             }
             shouldBoldItem
           />
-          {previewDataLoading ? (
-            <Placeholder height="14px" width="200px" />
-          ) : (
-            renewalDate && (
-              <RenewalDate>
-                {tct('Renews [date]', {
-                  date: moment(renewalDate).format('MMM D, YYYY'),
-                })}
-              </RenewalDate>
-            )
-          )}
         </Item>
         {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.SHARED &&
           !!formData.onDemandMaxSpend && (
@@ -542,7 +530,7 @@ function TotalSummary({
 
   return (
     <Flex direction="column" height="100%" justify="end">
-      <Flex direction="column" padding="2xl 2xl 0" gap="md" borderTop="primary">
+      <Flex direction="column" paddingTop="2xl" gap="md" borderTop="primary">
         {isOpen && (
           <Fragment>
             {!previewDataLoading && (
@@ -601,7 +589,7 @@ function TotalSummary({
         )}
         <Item data-test-id="summary-item-due-today">
           <ItemFlex>
-            <Text bold size="lg">
+            <Text bold size="xl">
               {isDueToday
                 ? t('Due today')
                 : tct('Due on [date]', {
@@ -615,20 +603,20 @@ function TotalSummary({
                 {isDueToday ? (
                   <Fragment>
                     {originalBilledTotal > billedTotal && (
-                      <Text strikethrough variant="muted" size="2xl" bold>
+                      <Text strikethrough variant="muted" size="xl">
                         {utils.displayPrice({
                           cents: originalBilledTotal,
                         })}{' '}
                       </Text>
                     )}
-                    <Text size="2xl" bold>
+                    <Text size="xl" bold>
                       {utils.displayPrice({
                         cents: billedTotal,
                       })}
                     </Text>
                   </Fragment>
                 ) : (
-                  <Text size="2xl" bold>
+                  <Text size="xl" bold>
                     {utils.displayPrice({
                       cents: billedTotal,
                     })}
@@ -640,7 +628,7 @@ function TotalSummary({
           </ItemFlex>
         </Item>
       </Flex>
-      <Flex direction="column" padding="2xl 2xl" gap="md">
+      <Flex direction="column" padding="xl 0" gap="md">
         <Flex gap="sm" justify="between" align="center">
           {isMigratingPartner && (
             <StyledButton
@@ -673,7 +661,9 @@ function TotalSummary({
         {previewDataLoading ? (
           <Placeholder height="40px" />
         ) : (
-          <Subtext>{getSubtext()}</Subtext>
+          <Text size="md" variant="muted" align="center">
+            {getSubtext()}
+          </Text>
         )}
       </Flex>
     </Flex>
@@ -835,7 +825,7 @@ function Cart({
         organization={organization}
       />
       <Flex direction="column" gap="sm" height="100%">
-        <Flex justify="between" align="center" gap="sm" padding="lg 2xl">
+        <Flex justify="between" align="center" gap="sm">
           <Heading as="h2" textWrap="nowrap">
             {t('Plan Summary')}
           </Heading>
@@ -903,18 +893,6 @@ const ItemWithIcon = styled(Item)`
   display: grid;
   grid-template-columns: min-content auto;
   gap: ${p => p.theme.space.xs};
-`;
-
-const StyledFlex = styled(Flex)`
-  line-height: 100%;
-
-  > * {
-    margin-bottom: ${p => p.theme.space.xs};
-  }
-
-  &:not(:first-child) {
-    color: ${p => p.theme.subText};
-  }
 `;
 
 const IconContainer = styled('div')`
