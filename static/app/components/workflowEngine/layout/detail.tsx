@@ -23,11 +23,6 @@ function DetailLayout({children}: WorkflowEngineDetailLayoutProps) {
   return <StyledPage>{children}</StyledPage>;
 }
 
-const ProjectContainer = styled('div')`
-  margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSize.md};
-`;
-
 const StyledPage = styled(Layout.Page)`
   background: ${p => p.theme.background};
 `;
@@ -61,7 +56,7 @@ function Sidebar({children}: RequiredChildren) {
 }
 
 function Header({children}: RequiredChildren) {
-  return <Layout.Header unified>{children}</Layout.Header>;
+  return <Layout.Header>{children}</Layout.Header>;
 }
 
 function HeaderContent({children}: RequiredChildren) {
@@ -81,9 +76,9 @@ function Title({title, project}: {title: string; project?: AvatarProject}) {
     <Fragment>
       <Layout.Title>{title}</Layout.Title>
       {project && (
-        <ProjectContainer>
+        <Flex align="center" padding="md 0">
           <ProjectBadge project={project} disableLink avatarSize={16} />
-        </ProjectContainer>
+        </Flex>
       )}
     </Fragment>
   );
