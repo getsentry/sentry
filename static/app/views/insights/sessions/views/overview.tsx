@@ -12,7 +12,6 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
-import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {
   useDomainViewFilters,
@@ -37,7 +36,6 @@ function SessionsOverview() {
 
   return (
     <Fragment>
-      <ViewSpecificHeader view={view} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -62,15 +60,6 @@ function SessionsOverview() {
       </Layout.Body>
     </Fragment>
   );
-}
-
-function ViewSpecificHeader({view}: {view: DomainView | ''}) {
-  switch (view) {
-    case MOBILE_LANDING_SUB_PATH:
-      return <MobileHeader module={ModuleName.SESSIONS} />;
-    default:
-      return null;
-  }
 }
 
 function ViewSpecificCharts({

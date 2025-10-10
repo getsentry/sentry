@@ -38,11 +38,9 @@ import {
   MobileOverviewTable,
   type ValidSort,
 } from 'sentry/views/insights/pages/mobile/mobileOverviewTable';
-import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {Referrer} from 'sentry/views/insights/pages/mobile/referrers';
 import {
   DEFAULT_SORT,
-  MOBILE_LANDING_TITLE,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
@@ -216,7 +214,6 @@ function EAPMobileOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <MobileHeader headerTitle={MOBILE_LANDING_TITLE} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
