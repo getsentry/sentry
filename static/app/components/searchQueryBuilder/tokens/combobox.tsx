@@ -95,10 +95,11 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
     extra: {state: ComboBoxState<T>}
   ) => void;
   onKeyUp?: (e: KeyboardEvent) => void;
-  onOpenChange?: (newOpenState: boolean) => void;
+  onOpenChange?: (newOpenState: boolean, state?: any) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   openOnFocus?: boolean;
   placeholder?: string;
+  preserveFocusOnInputChange?: boolean;
   ref?: React.Ref<HTMLInputElement>;
   /**
    * Function to determine whether the menu should close when interacting with
@@ -365,6 +366,7 @@ export function SearchQueryBuilderCombobox<
   onClick,
   customMenu,
   isOpen: incomingIsOpen,
+  preserveFocusOnInputChange = false,
   ['data-test-id']: dataTestId,
   ref,
 }: SearchQueryBuilderComboboxProps<T>) {
@@ -462,10 +464,15 @@ export function SearchQueryBuilderCombobox<
 
   const previousInputValue = usePrevious(inputValue);
   useEffect(() => {
-    if (inputValue !== previousInputValue) {
+    if (!preserveFocusOnInputChange && inputValue !== previousInputValue) {
       state.selectionManager.setFocusedKey(null);
     }
-  }, [inputValue, previousInputValue, state.selectionManager]);
+  }, [
+    inputValue,
+    previousInputValue,
+    state.selectionManager,
+    preserveFocusOnInputChange,
+  ]);
 
   const totalOptions = items.reduce(
     (acc, item) => acc + (itemIsSection(item) ? item.options.length : 1),
@@ -482,9 +489,10 @@ export function SearchQueryBuilderCombobox<
     isOpen: incomingIsOpen,
   });
 
+  // Always notify parent of state so they can maintain up-to-date references
   useEffect(() => {
-    onOpenChange?.(isOpen);
-  }, [onOpenChange, isOpen]);
+    onOpenChange?.(isOpen, state);
+  }, [onOpenChange, isOpen, state]);
 
   const {
     overlayProps,
