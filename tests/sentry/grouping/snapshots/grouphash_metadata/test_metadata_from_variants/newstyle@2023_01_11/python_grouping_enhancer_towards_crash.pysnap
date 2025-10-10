@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:42.815332+00:00'
+created: '2025-10-07T20:42:06.005342+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -26,7 +26,8 @@ contributing variants:
   system*
     hash: "90888e813b09fa25061af2883c0fb9bd"
     contributing component: exception
-    component:
+    hint: None
+    root_component:
       system*
         exception*
           stacktrace*
@@ -35,21 +36,21 @@ contributing variants:
                 "django.core.handlers.base"
               function*
                 "get_response"
-              context-line*
+              context_line*
                 "response = wrapped_callback(request, *callback_args, **callback_kwargs)"
             frame*
               module*
                 "django.views.generic.base"
               function*
                 "view"
-              context-line*
+              context_line*
                 "return self.dispatch(request, *args, **kwargs)"
             frame*
               module*
                 "django.utils.decorators"
               function*
                 "_wrapper"
-              context-line*
+              context_line*
                 "return bound_func(*args, **kwargs)"
           type*
             "MultiValueDictKeyError"

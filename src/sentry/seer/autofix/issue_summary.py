@@ -13,13 +13,12 @@ from django.contrib.auth.models import AnonymousUser
 from sentry import eventstore, features, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import DataCategory
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.locks import locks
 from sentry.models.group import Group
-from sentry.models.project import Project
 from sentry.net.http import connection_from_url
-from sentry.seer.autofix.autofix import trigger_autofix
+from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_autofix
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     FixabilityScoreThresholds,
@@ -31,7 +30,6 @@ from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.taskworker.retry import Retry
 from sentry.users.models.user import User
@@ -51,16 +49,9 @@ auto_run_source_map = {
 
 @instrumented_task(
     name="sentry.tasks.autofix.trigger_autofix_from_issue_summary",
-    max_retries=1,
-    soft_time_limit=60,  # 1 minute
-    time_limit=65,
-    taskworker_config=TaskworkerConfig(
-        namespace=seer_tasks,
-        processing_deadline_duration=65,
-        retry=Retry(
-            times=1,
-        ),
-    ),
+    namespace=seer_tasks,
+    processing_deadline_duration=65,
+    retry=Retry(times=1),
 )
 def _trigger_autofix_task(group_id: int, event_id: str, user_id: int | None, auto_run_source: str):
     """
@@ -128,13 +119,8 @@ def _get_event(
 def _call_seer(
     group: Group,
     serialized_event: dict[str, Any],
-    connected_groups: list[Group],
-    connected_serialized_events: list[dict[str, Any]],
+    trace_tree: dict[str, Any] | None,
 ):
-    # limit amount of connected data we send to first few connected issues
-    connected_groups = connected_groups[:4]
-    connected_serialized_events = connected_serialized_events[:4]
-
     path = "/v1/automation/summarize/issue"
     body = orjson.dumps(
         {
@@ -145,15 +131,7 @@ def _call_seer(
                 "short_id": group.qualified_short_id,
                 "events": [serialized_event],
             },
-            "connected_issues": [
-                {
-                    "id": connected_groups[i].id,
-                    "title": connected_groups[i].title,
-                    "short_id": connected_groups[i].qualified_short_id,
-                    "events": [connected_serialized_events[i]],
-                }
-                for i in range(len(connected_groups))
-            ],
+            "trace_tree": trace_tree,
             "organization_slug": group.organization.slug,
             "organization_id": group.organization.id,
             "project_id": group.project.id,
@@ -161,29 +139,16 @@ def _call_seer(
         option=orjson.OPT_NON_STR_KEYS,
     )
 
-    # Route to summarization URL first
-    try:
-        response = requests.post(
-            f"{settings.SEER_SUMMARIZATION_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
-        )
-        response.raise_for_status()
-    except Exception:
-        # If the new pod fails, fall back to the old pod
-        logger.warning("New Summarization pod connection failed", exc_info=True)
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
-        )
-        response.raise_for_status()
+    # Route to summarization URL
+    response = requests.post(
+        f"{settings.SEER_SUMMARIZATION_URL}{path}",
+        data=body,
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            **sign_with_seer_secret(body),
+        },
+    )
+    response.raise_for_status()
 
     return SummarizeIssueResponse.validate(response.json())
 
@@ -211,54 +176,6 @@ def _generate_fixability_score(group: Group) -> SummarizeIssueResponse:
         raise Exception(f"Seer API error: {response.status}")
     response_data = orjson.loads(response.data)
     return SummarizeIssueResponse.validate(response_data)
-
-
-def _get_trace_connected_issues(event: GroupEvent) -> list[Group]:
-    try:
-        trace_id = event.trace_id
-        if not trace_id:
-            return []
-    except (
-        AttributeError
-    ):  # sometimes the trace doesn't exist and this errors, so we just ignore it
-        return []
-    organization = event.group.organization
-    conditions = [["trace", "=", trace_id]]
-    start = event.datetime - timedelta(days=1)
-    end = event.datetime + timedelta(days=1)
-    project_ids = list(
-        dict(
-            Project.objects.filter(
-                organization=organization, status=ObjectStatus.ACTIVE
-            ).values_list("id", "slug")
-        ).keys()
-    )
-    event_filter = eventstore.Filter(
-        conditions=conditions, start=start, end=end, project_ids=project_ids
-    )
-    connected_events = eventstore.backend.get_events(
-        filter=event_filter,
-        referrer="api.group_ai_summary",
-        tenant_ids={"organization_id": organization.id},
-        limit=5,
-    )
-    connected_events = sorted(
-        connected_events, key=lambda event: event.datetime
-    )  # sort chronologically
-
-    issue_ids = set()
-    connected_issues = []
-    for e in connected_events:
-        if event.event_id == e.event_id:
-            continue
-        if e.group_id not in issue_ids:
-            issue_ids.add(e.group_id)
-            try:
-                if e.group:
-                    connected_issues.append(e.group)
-            except Group.DoesNotExist:
-                continue
-    return connected_issues
 
 
 def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
@@ -312,7 +229,10 @@ def _run_automation(
 
     group.update(seer_fixability_score=issue_summary.scores.fixability_score)
 
-    if not _is_issue_fixable(group, issue_summary.scores.fixability_score):
+    if (
+        not _is_issue_fixable(group, issue_summary.scores.fixability_score)
+        and not group.issue_type.always_trigger_seer_automation
+    ):
         return
 
     has_budget: bool = quotas.backend.has_available_reserved_budget(
@@ -351,23 +271,21 @@ def _generate_summary(
     if not serialized_event or not event:
         return {"detail": "Could not find an event for the issue"}, 400
 
-    # get trace connected issues
-    connected_issues = _get_trace_connected_issues(event)
-
-    # get recommended event for each connected issue
-    serialized_events_for_connected_issues = []
-    filtered_connected_issues = []
-    for issue in connected_issues:
-        serialized_connected_event, _ = _get_event(issue, user)
-        if serialized_connected_event:
-            serialized_events_for_connected_issues.append(serialized_connected_event)
-            filtered_connected_issues.append(issue)
+    trace_tree = None
+    if event:
+        try:
+            trace_tree = _get_trace_tree_for_event(event, group.project, timeout=3)
+        except Exception:
+            logger.warning(
+                "Failed to get trace for event in issue summary",
+                extra={"group_id": group.id},
+                exc_info=True,
+            )
 
     issue_summary = _call_seer(
         group,
         serialized_event,
-        filtered_connected_issues,
-        serialized_events_for_connected_issues,
+        trace_tree,
     )
 
     try:

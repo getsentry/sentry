@@ -14,7 +14,6 @@ import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {getHasTag} from 'sentry/components/events/searchBar';
 import {
   STATIC_FIELD_TAGS,
   STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
@@ -50,6 +49,7 @@ import {
 } from 'sentry/utils/measurements/measurements';
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
+import {getHasTag} from 'sentry/utils/tag';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import withTags from 'sentry/utils/withTags';
@@ -575,7 +575,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           <Alert.Container>
             <Alert type="warning">
               {tctCode(
-                'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
+                'Editing of transaction-based alerts is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, use span-based alerts with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
                 {
                   FAQLink: (
                     <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />

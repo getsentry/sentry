@@ -12,19 +12,16 @@ describe('useGetTraceItemAttributeValues', () => {
     MockApiClient.clearMockResponses();
 
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [1],
-        environments: [],
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: false,
-        },
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: false,
       },
-      new Set()
-    );
+    });
   });
 
   it('getTraceItemAttributeValues works correctly for string type', async () => {

@@ -1,6 +1,7 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -33,7 +34,7 @@ export function ScoreCard({
 
   return (
     <ScorePanel className={className}>
-      <HeaderWrapper>
+      <Flex wrap="wrap" align="center" justify="between">
         <HeaderTitle>
           <Title>{title}</Title>
           {help && (
@@ -46,7 +47,7 @@ export function ScoreCard({
           )}
         </HeaderTitle>
         {renderOpenButton?.()}
-      </HeaderWrapper>
+      </Flex>
 
       <ScoreWrapper>
         <Score>{displayScore}</Score>
@@ -92,13 +93,6 @@ export const Title = styled('div')`
   color: ${p => p.theme.headingColor};
   ${p => p.theme.overflowEllipsis};
   font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
 `;
 
 export const ScoreWrapper = styled('div')`

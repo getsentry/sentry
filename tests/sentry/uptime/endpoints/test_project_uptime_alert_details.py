@@ -4,7 +4,6 @@ import pytest
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.serializers import serialize
-from sentry.constants import ObjectStatus
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
@@ -207,7 +206,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         assert get_uptime_subscription(detector).status == UptimeSubscription.Status.DISABLED.value
 
     def test_status_enable(self) -> None:
-        detector = self.create_uptime_detector(status=ObjectStatus.DISABLED)
+        detector = self.create_uptime_detector(enabled=False)
         resp = self.get_success_response(
             self.organization.slug,
             detector.project.slug,
@@ -226,7 +225,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
     def test_status_enable_no_seat_assignment(
         self, _mock_check_assign_seat: mock.MagicMock
     ) -> None:
-        detector = self.create_uptime_detector(status=ObjectStatus.DISABLED)
+        detector = self.create_uptime_detector(enabled=False)
         resp = self.get_error_response(
             self.organization.slug,
             detector.project.slug,

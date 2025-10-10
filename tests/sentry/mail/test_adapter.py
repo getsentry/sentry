@@ -169,7 +169,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
 
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule: Rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = Notification(event=event, rule=rule)
@@ -215,7 +215,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 organization_id=self.organization.id,
                 project_id=self.project.id,
                 provider="email",
-                alert_id=str(rule.id),
+                alert_id=rule.id,
                 alert_type="issue_alert",
                 external_id="ANY",
                 notification_uuid="ANY",
@@ -868,7 +868,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         assert "Suspect Commits" in msg.body
         assert self.user.email in msg.body
-        assert commit.key[-7] in msg.body
+        assert commit.key[:7] in msg.body
 
     def test_notify_with_replay_id(self) -> None:
         project = self.project

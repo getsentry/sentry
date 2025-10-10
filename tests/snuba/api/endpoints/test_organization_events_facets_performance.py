@@ -11,7 +11,6 @@ class BaseOrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITest
     url: str
     feature_list = (
         "organizations:discover-basic",
-        "organizations:global-views",
         "organizations:performance-view",
     )
 

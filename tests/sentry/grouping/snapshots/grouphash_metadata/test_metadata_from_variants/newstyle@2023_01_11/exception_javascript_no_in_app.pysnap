@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:31.468845+00:00'
+created: '2025-10-07T20:42:03.956611+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -26,19 +26,20 @@ contributing variants:
   system*
     hash: "26552f86ca2368e708afa1df6effc1c5"
     contributing component: exception
-    component:
+    hint: None
+    root_component:
       system*
         exception*
           stacktrace*
             frame*
               module*
                 "app/components/modals/createTeamModal"
-              context-line*
+              context_line*
                 "onError(err);"
             frame*
               module*
                 "app/views/settings/components/forms/form"
-              context-line*
+              context_line*
                 "this.model.submitError(error);"
           type*
             "TypeError"

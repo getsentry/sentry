@@ -1,10 +1,10 @@
 ---
-created: '2025-09-08T19:48:04.598068+00:00'
+created: '2025-10-07T22:42:54.632069+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_chained_exception_message": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -14,7 +14,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         {
           "contributes": true,
           "hint": null,
-          "id": "chained-exception",
+          "id": "chained_exception",
           "name": null,
           "values": [
             {
@@ -27,7 +27,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                   "contributes": false,
                   "hint": null,
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": []
                 },
                 {
@@ -60,7 +60,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                   "contributes": false,
                   "hint": null,
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": []
                 },
                 {
@@ -93,7 +93,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                   "contributes": false,
                   "hint": null,
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": []
                 },
                 {
@@ -140,9 +140,11 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
-    "description": "in-app exception",
+    "contributes": true,
+    "description": "chained exception messages",
     "hash": "bca604b98cb4637167eb6190a92e8933",
-    "key": "app",
+    "hint": null,
+    "key": "app_chained_exception_message",
     "type": "component"
   }
 }

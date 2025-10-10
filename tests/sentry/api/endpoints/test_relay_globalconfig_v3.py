@@ -42,16 +42,15 @@ def call_endpoint(client, relay, private_key):
         "relay.span-usage-metric": True,
         "relay.cardinality-limiter.mode": "passive",
         "replay.relay-snuba-publishing-disabled.sample-rate": 1.0,
+        "relay.kafka.span-v2.sample-rate": 1.0,
         "relay.metric-bucket-distribution-encodings": {
             "custom": "array",
-            "metric_stats": "array",
             "profiles": "array",
             "spans": "array",
             "transactions": "array",
         },
         "relay.metric-bucket-set-encodings": {
             "custom": "base64",
-            "metric_stats": "base64",
             "profiles": "base64",
             "spans": "base64",
             "transactions": "base64",
@@ -66,21 +65,6 @@ def test_global_config() -> None:
     # It is not allowed to specify `None` as default for an option.
     if not config["options"]["relay.span-normalization.allowed_hosts"]:
         del config["options"]["relay.span-normalization.allowed_hosts"]
-
-    # NOTE (vgrozdanic): temporary fix for the test, until metric_stats is completely removed
-    # from sentry codebase. It has been removed from relay, without being first removed from
-    # sentry
-    if "metric_stats" in config["options"]["relay.metric-bucket-distribution-encodings"]:
-        del config["options"]["relay.metric-bucket-distribution-encodings"]["metric_stats"]
-
-    if "metric_stats" in normalized["options"]["relay.metric-bucket-distribution-encodings"]:
-        del normalized["options"]["relay.metric-bucket-distribution-encodings"]["metric_stats"]
-
-    if "metric_stats" in config["options"]["relay.metric-bucket-set-encodings"]:
-        del config["options"]["relay.metric-bucket-set-encodings"]["metric_stats"]
-
-    if "metric_stats" in normalized["options"]["relay.metric-bucket-set-encodings"]:
-        del normalized["options"]["relay.metric-bucket-set-encodings"]["metric_stats"]
 
     assert normalized == config
 

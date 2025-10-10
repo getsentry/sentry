@@ -4,15 +4,16 @@ import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  useExploreDataset,
-  useExploreSortBys,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {SpansRPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useProgressiveQuery} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useQueryParamsAggregateFields} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsAggregateFields,
+  useQueryParamsAggregateSortBys,
+  useQueryParamsExtrapolate,
+} from 'sentry/views/explore/queryParams/context';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 interface UseExploreAggregatesTableOptions {
@@ -33,6 +34,8 @@ export function useExploreAggregatesTable({
   limit,
   query,
 }: UseExploreAggregatesTableOptions) {
+  const extrapolate = useQueryParamsExtrapolate();
+
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useSpansQuery<any[]>>) => {
       const canGoToHigherAccuracyTier = results.meta?.dataScanned === 'partial';
@@ -46,6 +49,7 @@ export function useExploreAggregatesTable({
     queryHookArgs: {enabled, limit, query},
     queryOptions: {
       canTriggerHighAccuracy,
+      disableExtrapolation: !extrapolate,
     },
   });
 }
@@ -60,7 +64,7 @@ function useExploreAggregatesTableImp({
 
   const dataset = useExploreDataset();
   const aggregateFields = useQueryParamsAggregateFields({validate: true});
-  const sorts = useExploreSortBys();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
 
   const fields = useMemo(() => {
     // When rendering the table, we want the group bys first
@@ -89,14 +93,14 @@ function useExploreAggregatesTableImp({
       id: undefined,
       name: 'Explore - Span Aggregates',
       fields,
-      orderby: sorts.map(formatSort),
+      orderby: aggregateSortBys.map(formatSort),
       query,
       version: 2,
       dataset,
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [dataset, fields, sorts, query, selection]);
+  }, [dataset, fields, aggregateSortBys, query, selection]);
 
   const result = useSpansQuery({
     enabled,

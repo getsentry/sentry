@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from django.urls import reverse
@@ -455,6 +456,171 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("get", self.url(self.dashboard.id))
         assert response.status_code == 200
         assert response.data["isFavorited"] is True
+
+    def test_explore_url_for_transaction_widget(self) -> None:
+        with self.feature("organizations:transaction-widget-deprecation-explore-view"):
+            dashboard_deprecation = Dashboard.objects.create(
+                title="Dashboard With Transaction Widget",
+                created_by_id=self.user.id,
+                organization=self.organization,
+            )
+            widget_deprecation = DashboardWidget.objects.create(
+                dashboard=dashboard_deprecation,
+                title="transaction widget",
+                display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+                widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+                interval="1d",
+                detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            )
+
+            DashboardWidgetQuery.objects.create(
+                widget=widget_deprecation,
+                fields=["count()", "transaction"],
+                columns=["transaction"],
+                aggregates=["count()"],
+                conditions="count():>50",
+                orderby="-count",
+                order=0,
+            )
+            response = self.do_request("get", self.url(dashboard_deprecation.id))
+            assert response.status_code == 200
+            explore_url = response.data["widgets"][0]["exploreUrls"][0]
+            assert "http://testserver/explore/traces/" in explore_url
+
+            params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
+            assert params["query"] == ["(count(span.duration):>50) AND is_transaction:1"]
+            assert params["sort"] == ["-count(span.duration)"]
+            assert params["mode"] == ["aggregate"]
+            assert params["aggregateField"] == [
+                '{"groupBy":"transaction"}',
+                '{"yAxes":["count(span.duration)"],"chartType":1}',
+            ]
+
+    def test_explore_url_for_table_widget(self) -> None:
+        with self.feature("organizations:transaction-widget-deprecation-explore-view"):
+            dashboard_deprecation = Dashboard.objects.create(
+                title="Dashboard With Transaction Widget",
+                created_by_id=self.user.id,
+                organization=self.organization,
+            )
+            widget_deprecation = DashboardWidget.objects.create(
+                dashboard=dashboard_deprecation,
+                title="table widget",
+                display_type=DashboardWidgetDisplayTypes.TABLE,
+                widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+                interval="1d",
+                detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            )
+
+            DashboardWidgetQuery.objects.create(
+                widget=widget_deprecation,
+                fields=["id", "title"],
+                columns=["id", "title"],
+                aggregates=[],
+                order=0,
+            )
+
+            response = self.do_request("get", self.url(dashboard_deprecation.id))
+            assert response.status_code == 200
+            explore_url = response.data["widgets"][0]["exploreUrls"][0]
+            assert "http://testserver/explore/traces/" in explore_url
+
+            params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
+            assert params["query"] == ["is_transaction:1"]
+            assert "sort" not in params
+            assert params["mode"] == ["samples"]
+            # need to sort because fields order is not guaranteed
+            assert params["field"].sort() == ["id", "transaction"].sort()
+            assert "aggregateField" not in params
+
+    def test_explore_url_for_widget_with_discover_split_param(self) -> None:
+        with self.feature("organizations:transaction-widget-deprecation-explore-view"):
+            dashboard_deprecation = Dashboard.objects.create(
+                title="Dashboard With Transaction Widget",
+                created_by_id=self.user.id,
+                organization=self.organization,
+                filters={
+                    "release": ["1.0.0", "2.0.0"],
+                },
+            )
+            widget_deprecation = DashboardWidget.objects.create(
+                dashboard=dashboard_deprecation,
+                title="transaction widget",
+                display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+                widget_type=DashboardWidgetTypes.DISCOVER,
+                discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,
+                interval="1d",
+                detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            )
+
+            DashboardWidgetQuery.objects.create(
+                widget=widget_deprecation,
+                fields=["count()", "transaction"],
+                columns=["transaction"],
+                aggregates=["count()"],
+                conditions="count():>50",
+                orderby="-count",
+                order=0,
+            )
+
+            response = self.do_request("get", self.url(dashboard_deprecation.id))
+            assert response.status_code == 200
+            explore_url = response.data["widgets"][0]["exploreUrls"][0]
+            assert "http://testserver/explore/traces/" in explore_url
+
+            params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
+            assert params["query"] == [
+                "(count(span.duration):>50) AND is_transaction:1 AND release:1.0.0,2.0.0"
+            ]
+            assert params["sort"] == ["-count(span.duration)"]
+            assert params["mode"] == ["aggregate"]
+            assert params["aggregateField"] == [
+                '{"groupBy":"transaction"}',
+                '{"yAxes":["count(span.duration)"],"chartType":1}',
+            ]
+
+    def test_explore_url_for_deformed_widget(self) -> None:
+        with self.feature("organizations:transaction-widget-deprecation-explore-view"):
+            dashboard_deprecation = Dashboard.objects.create(
+                title="Dashboard With Transaction Widget",
+                created_by_id=self.user.id,
+                organization=self.organization,
+            )
+            widget_deprecation = DashboardWidget.objects.create(
+                dashboard=dashboard_deprecation,
+                title="line widget",
+                display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+                widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+                interval="1d",
+                detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            )
+
+            DashboardWidgetQuery.objects.create(
+                widget=widget_deprecation,
+                fields=["query.dataset"],
+                columns=["query.dataset"],
+                aggregates=["p95(transaction.duration)"],
+                orderby="-p95(transaction.duration)",
+                conditions="transaction:/api/0/organizations/{organization_id_or_slug}/events/",
+                order=0,
+            )
+
+            response = self.do_request("get", self.url(dashboard_deprecation.id))
+            assert response.status_code == 200
+            explore_url = response.data["widgets"][0]["exploreUrls"][0]
+            assert "http://testserver/explore/traces/" in explore_url
+
+            params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
+            assert params["query"] == [
+                "(transaction:/api/0/organizations/{organization_id_or_slug}/events/) AND is_transaction:1"
+            ]
+            assert params["sort"] == ["-p95(span.duration)"]
+            assert params["mode"] == ["aggregate"]
+            assert params["field"].sort() == ["query.dataset", "span.duration"].sort()
+            assert params["aggregateField"] == [
+                '{"groupBy":"query.dataset"}',
+                '{"yAxes":["p95(span.duration)"],"chartType":1}',
+            ]
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
@@ -3121,7 +3287,51 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             assert current_version.extraction_state == "enabled:creation"
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
-    def test_cardinality_precedence_over_feature_checks(self, mock_query: mock.MagicMock) -> None:
+    def test_cardinality_check_with_feature_flag(self, mock_query: mock.MagicMock) -> None:
+        mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
+            "sometag",
+        ]
+        data: dict[str, Any] = {
+            "title": "first dashboard",
+            "widgets": [
+                {
+                    "title": "errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "widgetType": DashboardWidgetTypes.get_type_name(self.widget_type),
+                    "queries": [
+                        {
+                            "name": "errors",
+                            "fields": ["count()", "sometag"],
+                            "columns": ["sometag"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        with self.feature(["organizations:on-demand-metrics-extraction-widgets"]):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+        last = list(widgets).pop()
+        queries = last.dashboardwidgetquery_set.all()
+
+        ondemand_objects = DashboardWidgetQueryOnDemand.objects.filter(
+            dashboard_widget_query=queries[0]
+        )
+        for version in OnDemandMetricSpecVersioning.get_spec_versions():
+            current_version = ondemand_objects.filter(spec_version=version.version).first()
+            assert current_version is not None
+            assert current_version.extraction_state == "disabled:high-cardinality"
+
+    @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
+    def test_feature_check_takes_precedence_over_cardinality(
+        self, mock_query: mock.MagicMock
+    ) -> None:
         mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
             "sometag",
         ]
@@ -3158,7 +3368,7 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
         for version in OnDemandMetricSpecVersioning.get_spec_versions():
             current_version = ondemand_objects.filter(spec_version=version.version).first()
             assert current_version is not None
-            assert current_version.extraction_state == "disabled:high-cardinality"
+            assert current_version.extraction_state == "disabled:pre-rollout"
 
     @mock.patch("sentry.api.serializers.rest_framework.dashboard.get_current_widget_specs")
     def test_cardinality_skips_non_discover_widget_types(

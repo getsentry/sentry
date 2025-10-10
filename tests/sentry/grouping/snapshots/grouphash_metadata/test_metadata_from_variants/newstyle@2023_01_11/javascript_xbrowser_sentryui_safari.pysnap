@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:24:37.967829+00:00'
+created: '2025-10-07T20:42:05.504096+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -26,63 +26,65 @@ contributing variants:
   app*
     hash: "4a3cf3893b6485428dd02da116c8370e"
     contributing component: exception
-    component:
+    hint: None
+    root_component:
       app*
         exception*
           stacktrace*
             frame* (marked in-app by the client)
               module*
                 "app/components/lazyLoad"
-              context-line*
+              context_line*
                 "this.setState({"
             frame* (marked in-app by the client)
               module*
                 "app/views/groupDetails/shared/groupEventDetails"
-              context-line*
+              context_line*
                 "this.fetchData();"
             frame* (marked in-app by the client)
               module*
                 "app/views/groupDetails/shared/groupEventDetails"
-              context-line*
+              context_line*
                 "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
             frame* (marked in-app by the client)
               module*
                 "app/api"
-              context-line*
+              context_line*
                 "const preservedError = new Error();"
           type*
             "NotFoundError"
   system*
     hash: "0b81da6ea3d7cc82b1d4825b7aac0b8d"
     contributing component: exception
-    component:
+    hint: None
+    root_component:
       system*
         exception*
           stacktrace*
             frame*
               module*
                 "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
-              context-line*
+              context_line*
                 "asyncGeneratorStep(gen, resolve, reject, _next, _throw, \"next\", value);"
             frame*
               module*
                 "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
-              context-line*
+              context_line*
                 "var info = gen[key](arg);"
             frame*
               module*
                 "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
-              context-line*
+              context_line*
                 "var record = tryCatch(innerFn, self, context);"
             frame*
               module*
                 "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
-              context-line*
+              context_line*
                 "return { type: \"normal\", arg: fn.call(obj, arg) };"
             frame*
               module*
                 "app/components/lazyLoad"
-              context-line*
+              context_line*
                 "this.setState({"
             frame*
               module*
@@ -117,17 +119,17 @@ contributing variants:
             frame*
               module*
                 "app/views/groupDetails/shared/groupEventDetails"
-              context-line*
+              context_line*
                 "this.fetchData();"
             frame*
               module*
                 "app/views/groupDetails/shared/groupEventDetails"
-              context-line*
+              context_line*
                 "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
             frame*
               module*
                 "app/api"
-              context-line*
+              context_line*
                 "const preservedError = new Error();"
           type*
             "NotFoundError"

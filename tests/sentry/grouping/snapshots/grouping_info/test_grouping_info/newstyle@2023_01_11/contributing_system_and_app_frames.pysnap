@@ -1,10 +1,10 @@
 ---
-created: '2025-09-08T19:48:03.574833+00:00'
+created: '2025-10-06T21:57:32.894796+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -21,7 +21,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": false,
@@ -57,7 +57,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return server.serve(port);"
@@ -99,7 +99,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return handler(request);"
@@ -141,7 +141,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return withMetrics(handler, metricName, tags);"
@@ -183,7 +183,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "raise FailedToFetchError('Charlie didn't bring the ball back!');"
@@ -235,12 +235,14 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
-    "description": "in-app exception stack-trace",
+    "contributes": true,
+    "description": "exception stacktrace — in-app frames",
     "hash": "161ce02ecc5d6685a72e8e520ab726b3",
-    "key": "app",
+    "hint": null,
+    "key": "app_exception_stacktrace",
     "type": "component"
   },
-  "system": {
+  "system_exception_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -257,7 +259,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": false,
@@ -293,7 +295,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return server.serve(port);"
@@ -335,7 +337,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return handler(request);"
@@ -377,7 +379,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return withMetrics(handler, metricName, tags);"
@@ -419,7 +421,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "raise FailedToFetchError('Charlie didn't bring the ball back!');"
@@ -471,9 +473,11 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
-    "description": "exception stack-trace",
+    "contributes": true,
+    "description": "exception stacktrace — all frames",
     "hash": "c5e4b4a9ad1803c4d4ca7feee5e430ae",
-    "key": "system",
+    "hint": null,
+    "key": "system_exception_stacktrace",
     "type": "component"
   }
 }

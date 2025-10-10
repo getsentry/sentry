@@ -96,6 +96,7 @@ def try_incident_threshold(
                 "monitor": monitor_env.monitor,
                 "starting_checkin_id": starting_checkin.id,
                 "starting_timestamp": starting_checkin.date_added,
+                "grouphash": monitor_env.build_occurrence_fingerprint(),
             },
         )
 
@@ -161,11 +162,11 @@ def try_incident_resolution(ok_checkin: MonitorCheckIn) -> bool:
 
     incident = monitor_env.active_incident
     if incident:
-        resolve_incident_group(incident, ok_checkin.monitor.project_id)
         incident.update(
             resolving_checkin=ok_checkin,
             resolving_timestamp=ok_checkin.date_added,
         )
+        resolve_incident_group(incident, ok_checkin.monitor.project_id)
         logger.info(
             "monitors.logic.mark_ok.resolving_incident",
             extra={

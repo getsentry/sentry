@@ -5,9 +5,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
-from sentry.celery import app
 
 
+# TODO(taskworker) Remove this endpoint from the _manage as well.
 @all_silo_endpoint
 class InternalQueueTasksEndpoint(Endpoint):
     owner = ApiOwner.HYBRID_CLOUD
@@ -17,4 +17,4 @@ class InternalQueueTasksEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:
-        return Response(sorted(app.tasks.keys()))
+        return Response([])

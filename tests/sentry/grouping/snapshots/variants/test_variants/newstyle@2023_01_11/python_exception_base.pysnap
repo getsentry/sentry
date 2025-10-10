@@ -1,14 +1,15 @@
 ---
-created: '2025-04-25T21:22:12.945442+00:00'
+created: '2025-10-07T20:41:49.313725+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "c52ebcc2d9d0780a23c7d99831678830"
-  contributing component: chained-exception
-  component:
+  contributing component: chained_exception
+  hint: None
+  root_component:
     app*
-      chained-exception*
+      chained_exception*
         exception*
           stacktrace*
             frame* (marked in-app by the client)
@@ -30,10 +31,11 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "669cb6664e0f5fed38665da04e464f7e"
-  contributing component: chained-exception
-  component:
+  contributing component: chained_exception
+  hint: None
+  root_component:
     system*
-      chained-exception*
+      chained_exception*
         exception*
           stacktrace*
             frame*

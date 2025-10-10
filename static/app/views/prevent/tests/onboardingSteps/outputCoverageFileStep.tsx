@@ -1,11 +1,11 @@
 import {Fragment, useState} from 'react';
-import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
+import {Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
 interface OutputCoverageFileStepProps {
@@ -17,15 +17,14 @@ type Frameworks = 'jest' | 'vitest' | 'pytest' | 'phpunit';
 const INSTALL_REQUIREMENTS_SNIPPETS: Record<Frameworks, string> = {
   jest: 'npm install --save-dev jest',
   vitest: 'npm install --save-dev vitest @vitest/coverage-v8',
-  pytest: 'pip install pytest pytest-cov',
+  pytest: 'pip install pytest',
   phpunit: 'composer require --dev phpunit/phpunit',
 };
 
 const GENERATE_FILE_SNIPPETS: Record<Frameworks, string> = {
-  jest: `npm i --save-dev jest-junit
-JEST_JUNIT_CLASSNAME="{filepath}" jest --reporters=jest-junit`,
+  jest: `JEST_JUNIT_CLASSNAME="{filepath}" jest --reporters=jest-junit`,
   vitest: 'vitest --reporter=junit --outputFile=test-report.junit.xml',
-  pytest: 'pytest --cov --junitxml=junit.xml -o junit_family=legacy',
+  pytest: 'pytest --junitxml=junit.xml -o junit_family=legacy',
   phpunit: './vendor/bin/phpunit --log-junit junit.xml',
 };
 
@@ -40,20 +39,18 @@ export function OutputCoverageFileStep({step}: OutputCoverageFileStepProps) {
       <OnboardingStep.Body>
         <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
         <OnboardingStep.Content>
-          <p>
+          <Text>
             {tct(
-              "Select your language below to generate your testing reports. If your language isn't listed, view [doc] to learn more about how to generate a file with the JUnit XML file format.",
+              "Select your language below to generate your testing reports. If your language isn't listed, see [doc:the Test Analytics documentation] to learn more about how to generate a file with the JUnit XML file format.",
               {
                 doc: (
-                  <Link to="https://docs.sentry.io/product/test-analytics/">
-                    {t('this doc')}
-                  </Link>
+                  <ExternalLink href="https://docs.sentry.io/product/test-analytics/" />
                 ),
               }
             )}
-          </p>
+          </Text>
           <StyledSelectControl
-            size="md"
+            size="sm"
             options={[
               {label: 'Jest', value: 'jest'},
               {label: 'Vitest', value: 'vitest'},
@@ -63,22 +60,20 @@ export function OutputCoverageFileStep({step}: OutputCoverageFileStepProps) {
             value={selectedFramework}
             onChange={(option: {value: Frameworks}) => setSelectedFramework(option.value)}
           />
-          <StyledInstruction>
-            {t('Install requirements in your terminal:')}
-          </StyledInstruction>
-          <CodeSnippet dark language="bash">
+          <Text>{t('Install requirements in your terminal:')}</Text>
+          <CodeBlock dark language="bash">
             {INSTALL_REQUIREMENTS_SNIPPETS[selectedFramework]}
-          </CodeSnippet>
+          </CodeBlock>
           {GENERATE_FILE_SNIPPETS[selectedFramework] ? (
             <Fragment>
-              <StyledInstruction>
+              <Text>
                 {t(
                   'Generate a JUnit XML file that contains the results of your test run.'
                 )}
-              </StyledInstruction>
-              <CodeSnippet dark language="bash">
+              </Text>
+              <CodeBlock dark language="bash">
                 {GENERATE_FILE_SNIPPETS[selectedFramework]}
-              </CodeSnippet>
+              </CodeBlock>
             </Fragment>
           ) : null}
         </OnboardingStep.Content>
@@ -89,9 +84,4 @@ export function OutputCoverageFileStep({step}: OutputCoverageFileStepProps) {
 
 const StyledSelectControl = styled(Select)`
   width: 110px;
-  margin-bottom: ${space(1.5)};
-`;
-
-const StyledInstruction = styled('p')`
-  margin: ${space(1.5)} 0;
 `;

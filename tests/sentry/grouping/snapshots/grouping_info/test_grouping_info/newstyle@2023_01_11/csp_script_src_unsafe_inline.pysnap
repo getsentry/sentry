@@ -1,10 +1,10 @@
 ---
-created: '2025-09-08T19:48:03.791403+00:00'
+created: '2025-10-06T19:13:32.305823+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "default": {
+  "csp_local_script_violation": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -37,7 +37,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
             },
             {
               "contributes": false,
-              "hint": "violation takes precedence",
+              "hint": "ignored because violation takes precedence",
               "id": "uri",
               "name": "URL",
               "values": [
@@ -48,7 +48,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         },
         {
           "contributes": false,
-          "hint": "csp takes precedence",
+          "hint": "ignored because csp takes precedence",
           "id": "message",
           "name": "message",
           "values": [
@@ -77,9 +77,11 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
-    "description": "violation",
+    "contributes": true,
+    "description": "directive",
     "hash": "d346ee37d19a2be6587e609075ca2d57",
-    "key": "default",
+    "hint": null,
+    "key": "csp_local_script_violation",
     "type": "component"
   }
 }

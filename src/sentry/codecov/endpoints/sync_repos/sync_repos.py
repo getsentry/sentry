@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams, PreventParams
 from sentry.codecov.base import CodecovEndpoint
@@ -14,6 +15,13 @@ from sentry.codecov.client import CodecovApiClient
 from sentry.codecov.endpoints.sync_repos.query import mutation, query
 from sentry.codecov.endpoints.sync_repos.serializers import SyncReposSerializer
 from sentry.integrations.services.integration.model import RpcIntegration
+
+
+class SyncReposPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
+    }
 
 
 @extend_schema(tags=["Prevent"])
@@ -24,6 +32,7 @@ class SyncReposEndpoint(CodecovEndpoint):
         "POST": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
     }
+    permission_classes = (SyncReposPermission,)
 
     @extend_schema(
         operation_id="Syncs repositories from an integrated org with GitHub",

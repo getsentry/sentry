@@ -1,13 +1,13 @@
 ---
-created: '2025-09-08T19:48:05.040493+00:00'
+created: '2025-10-06T21:57:33.795682+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_stacktrace": {
     "component": {
       "contributes": false,
-      "hint": "stacktrace of system takes precedence",
+      "hint": "ignored because system stacktrace takes precedence",
       "id": "app",
       "name": "in-app",
       "values": [
@@ -15,7 +15,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
           "contributes": false,
           "hint": "ignored because it contains no in-app frames",
           "id": "stacktrace",
-          "name": "stack-trace",
+          "name": "stacktrace",
           "values": [
             {
               "contributes": false,
@@ -51,7 +51,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                 {
                   "contributes": true,
                   "hint": null,
-                  "id": "context-line",
+                  "id": "context_line",
                   "name": null,
                   "values": [
                     "hello world"
@@ -83,12 +83,14 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
-    "description": "in-app",
+    "contributes": false,
+    "description": "event-level stacktrace — in-app frames",
     "hash": null,
-    "key": "app",
+    "hint": "ignored because system stacktrace takes precedence",
+    "key": "app_stacktrace",
     "type": "component"
   },
-  "system": {
+  "system_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -99,7 +101,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
           "contributes": true,
           "hint": null,
           "id": "stacktrace",
-          "name": "stack-trace",
+          "name": "stacktrace",
           "values": [
             {
               "contributes": true,
@@ -135,7 +137,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                 {
                   "contributes": true,
                   "hint": null,
-                  "id": "context-line",
+                  "id": "context_line",
                   "name": null,
                   "values": [
                     "hello world"
@@ -167,9 +169,11 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
-    "description": "stack-trace",
+    "contributes": true,
+    "description": "event-level stacktrace — all frames",
     "hash": "64a0e0a34d99dce03a8c5a4c237a4b5a",
-    "key": "system",
+    "hint": null,
+    "key": "system_stacktrace",
     "type": "component"
   }
 }

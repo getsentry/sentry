@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:43.680038+00:00'
+created: '2025-10-07T20:42:06.390675+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -20,10 +20,11 @@ contributing variants:
   default*
     hash: "1f5bdebe3c9f414c7dbb4296a8353245"
     contributing component: template
-    component:
+    hint: None
+    root_component:
       default*
         template*
           filename*
             "foo.html"
-          context-line*
+          context_line*
             "{% invalid template tag %}"

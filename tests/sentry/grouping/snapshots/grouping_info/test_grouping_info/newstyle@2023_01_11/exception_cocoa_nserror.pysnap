@@ -1,10 +1,10 @@
 ---
-created: '2025-09-10T21:59:26.474607+00:00'
+created: '2025-10-06T21:57:33.120005+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_ns_error": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -21,7 +21,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": false,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": []
             },
             {
@@ -36,7 +36,7 @@ source: tests/sentry/grouping/test_grouping_info.py
             {
               "contributes": true,
               "hint": null,
-              "id": "ns-error",
+              "id": "ns_error",
               "name": null,
               "values": [
                 {
@@ -72,7 +72,7 @@ source: tests/sentry/grouping/test_grouping_info.py
         },
         {
           "contributes": false,
-          "hint": "exception of app takes precedence",
+          "hint": "ignored because app exception takes precedence",
           "id": "threads",
           "name": "thread",
           "values": [
@@ -80,7 +80,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": false,
@@ -821,21 +821,23 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app exception",
+    "contributes": true,
+    "description": "NSError",
     "hash": "029f3b967068b1539f96957b7c0451d7",
-    "key": "app",
+    "hint": null,
+    "key": "app_ns_error",
     "type": "component"
   },
-  "system": {
+  "system_thread_stacktrace": {
     "component": {
       "contributes": false,
-      "hint": "exception of app takes precedence",
+      "hint": "ignored because app exception takes precedence",
       "id": "system",
       "name": null,
       "values": [
         {
           "contributes": false,
-          "hint": "exception of app takes precedence",
+          "hint": "ignored because app exception takes precedence",
           "id": "threads",
           "name": "thread",
           "values": [
@@ -843,7 +845,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": false,
@@ -1584,9 +1586,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "system",
+    "contributes": false,
+    "description": "thread stacktrace — all frames",
     "hash": null,
-    "key": "system",
+    "hint": "ignored because app exception takes precedence",
+    "key": "system_thread_stacktrace",
     "type": "component"
   }
 }

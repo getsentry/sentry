@@ -32,6 +32,7 @@ from sentry.explore.endpoints.bases import ExploreSavedQueryPermission
 from sentry.explore.endpoints.serializers import ExploreSavedQuerySerializer
 from sentry.explore.models import (
     ExploreSavedQuery,
+    ExploreSavedQueryDataset,
     ExploreSavedQueryLastVisited,
     ExploreSavedQueryStarred,
 )
@@ -333,6 +334,12 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
             .prefetch_related("projects")
             .extra(select={"lower_name": "lower(name)"})
         )
+
+        if not features.has(
+            "organizations:expose-migrated-discover-queries", organization, actor=request.user
+        ):
+            queryset = queryset.exclude(dataset=ExploreSavedQueryDataset.SEGMENT_SPANS)
+
         query = request.query_params.get("query")
         if query:
             tokens = tokenize_query(query)

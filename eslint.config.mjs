@@ -22,6 +22,7 @@ import * as mdx from 'eslint-plugin-mdx';
 import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
+import reactYouMightNotNeedAnEffect from 'eslint-plugin-react-you-might-not-need-an-effect';
 // @ts-expect-error TS(7016): Could not find a declaration file
 import sentry from 'eslint-plugin-sentry';
 import testingLibrary from 'eslint-plugin-testing-library';
@@ -191,8 +192,8 @@ export default typescript.config([
     },
     settings: {
       react: {
-        version: '19.1.0',
-        defaultVersion: '19.1',
+        version: '19.2.0',
+        defaultVersion: '19.2',
       },
       'import/parsers': {'@typescript-eslint/parser': ['.ts', '.tsx']},
       'import/resolver': {typescript: {}},
@@ -354,6 +355,12 @@ export default typescript.config([
             'JSXExpressionContainer > CallExpression[callee.type="ArrowFunctionExpression"], JSXExpressionContainer > CallExpression[callee.type="FunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="ArrowFunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="FunctionExpression"]',
           message: 'Do not use IIFEs inside JSX.',
         },
+        // Forbid absolute URLs in Link's to=. Use ExternalLink instead.
+        {
+          selector:
+            "JSXOpeningElement[name.name='Link'] JSXAttribute[name.name='to'] Literal[value=/^https?:/i]",
+          message: "Do not pass an absolute URL to Link's to=. Use ExternalLink instead.",
+        },
       ],
       'no-return-assign': 'error',
       'no-script-url': 'error',
@@ -363,7 +370,7 @@ export default typescript.config([
       'object-shorthand': ['error', 'properties'],
       'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
       radix: 'error',
-      'require-await': 'error', // Enabled in favor of @typescript-eslint/require-await, which requires type info
+      'require-await': 'off', // Disabled in favor of @typescript-eslint/require-await
       'spaced-comment': [
         'error',
         'always',
@@ -381,7 +388,7 @@ export default typescript.config([
       ...eslint.configs.recommended.rules,
       'no-cond-assign': ['error', 'always'],
       'no-prototype-builtins': 'off',
-      'no-useless-escape': 'off',
+      'no-useless-escape': 'error',
     },
   },
   {
@@ -457,6 +464,10 @@ export default typescript.config([
       // https://github.com/jsx-eslint/eslint-plugin-react/blob/master/index.js
       ...react.configs.flat.recommended.rules,
       ...react.configs.flat['jsx-runtime'].rules,
+      'react/jsx-curly-brace-presence': [
+        'error',
+        {props: 'never', children: 'ignore', propElementValues: 'always'},
+      ],
       'react/display-name': 'off', // TODO(ryan953): Fix violations and delete this line
       'react/no-unescaped-entities': 'off',
       'react/no-unknown-property': ['error', {ignore: ['css']}],
@@ -490,6 +501,7 @@ export default typescript.config([
           '@typescript-eslint/no-unnecessary-type-assertion': 'error',
           '@typescript-eslint/only-throw-error': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',
+          '@typescript-eslint/require-await': 'error',
           '@typescript-eslint/no-meaningless-void-operator': 'error',
         }
       : {},
@@ -572,25 +584,7 @@ export default typescript.config([
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Customization
-      '@typescript-eslint/no-unused-vars': [
-        'error',
-        {
-          vars: 'all',
-          args: 'all',
-          // TODO(scttcper): We could enable this to enforce catch (error)
-          // https://eslint.org/docs/latest/rules/no-unused-vars#caughterrors
-          caughtErrors: 'none',
-
-          // Ignore vars that start with an underscore
-          // e.g. if you want to omit a property using object spread:
-          //
-          //   const {name: _name, ...props} = this.props;
-          //
-          varsIgnorePattern: '^_',
-          argsIgnorePattern: '^_',
-          destructuredArrayIgnorePattern: '^_',
-        },
-      ],
+      '@typescript-eslint/no-unused-vars': 'off', // disabled in favor of "noUnusedLocals": true in tsconfig
     },
   },
   {
@@ -721,6 +715,22 @@ export default typescript.config([
       'import/newline-after-import': 'off',
       // prettier-plugin-sort-imports always combines imports
       'import/no-duplicates': 'off',
+    },
+  },
+  {
+    name: 'plugin/you-might-not-need-an-effect',
+    ...reactYouMightNotNeedAnEffect.configs.recommended,
+    rules: {
+      'react-you-might-not-need-an-effect/no-derived-state': 'error',
+      'react-you-might-not-need-an-effect/no-chain-state-updates': 'off',
+      'react-you-might-not-need-an-effect/no-event-handler': 'off',
+      'react-you-might-not-need-an-effect/no-adjust-state-on-prop-change': 'off',
+      'react-you-might-not-need-an-effect/no-reset-all-state-on-prop-change': 'off',
+      'react-you-might-not-need-an-effect/no-pass-live-state-to-parent': 'off',
+      'react-you-might-not-need-an-effect/no-pass-data-to-parent': 'off',
+      'react-you-might-not-need-an-effect/no-initialize-state': 'off',
+      'react-you-might-not-need-an-effect/no-manage-parent': 'off',
+      'react-you-might-not-need-an-effect/no-empty-effect': 'off',
     },
   },
   {

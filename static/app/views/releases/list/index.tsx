@@ -336,16 +336,7 @@ export default function ReleasesList() {
               selection={selection}
             />
             <ReleasesPageFilterBar condensed>
-              <DemoTourElement
-                id={DemoTourStep.RELEASES_COMPARE}
-                title={t('Compare releases')}
-                description={t(
-                  'Click here and select the "react" project to see how the release is trending compared to previous releases.'
-                )}
-                position="bottom-start"
-              >
-                <ProjectPageFilter />
-              </DemoTourElement>
+              <ProjectPageFilter />
               <EnvironmentPageFilter />
               <DatePageFilter
                 disallowArbitraryRelativeRanges
@@ -386,18 +377,27 @@ export default function ReleasesList() {
             {releasesErrorMessage ? (
               <LoadingError message={releasesErrorMessage} />
             ) : (
-              <ReleaseListInner
-                activeDisplay={activeDisplay}
-                loading={isReleasesPending}
-                organization={organization}
-                releases={releases}
-                releasesPageLinks={releasesPageLinks}
-                reloading={isReleasesRefetching}
-                selectedProject={selectedProject}
-                selection={selection}
-                shouldShowQuickstart={shouldShowQuickstart}
-                showReleaseAdoptionStages={showReleaseAdoptionStages}
-              />
+              <DemoTourElement
+                id={DemoTourStep.RELEASES_LIST}
+                title={t('Latest releases')}
+                description={t(
+                  'View the latest releases for your project. Select a release to review new and regressed issues, and business critical metrics like crash rate, and user adoption. '
+                )}
+                position="top-start"
+              >
+                <ReleaseListInner
+                  activeDisplay={activeDisplay}
+                  loading={isReleasesPending}
+                  organization={organization}
+                  releases={releases}
+                  releasesPageLinks={releasesPageLinks}
+                  reloading={isReleasesRefetching}
+                  selectedProject={selectedProject}
+                  selection={selection}
+                  shouldShowQuickstart={shouldShowQuickstart}
+                  showReleaseAdoptionStages={showReleaseAdoptionStages}
+                />
+              </DemoTourElement>
             )}
             <FloatingFeedbackWidget />
           </Layout.Main>

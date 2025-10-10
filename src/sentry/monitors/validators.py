@@ -24,6 +24,7 @@ from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.project import Project
 from sentry.monitors.constants import MAX_MARGIN, MAX_THRESHOLD, MAX_TIMEOUT
+from sentry.monitors.logic.monitor_environment import update_monitor_environment
 from sentry.monitors.models import (
     MONITOR_CONFIG,
     CheckInStatus,
@@ -31,7 +32,9 @@ from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
+    MonitorLimitsExceeded,
     ScheduleType,
+    check_organization_monitor_limit,
 )
 from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
 from sentry.monitors.types import CrontabSchedule, slugify_monitor_slug
@@ -304,6 +307,16 @@ class MonitorValidator(CamelSnakeSerializer):
     config = ConfigValidator(help_text="The configuration for the monitor.")
     alert_rule = MonitorAlertRuleValidator(required=False)
 
+    def validate(self, attrs):
+        # When creating a new monitor, check if we would exceed the organization limit
+        if not self.instance:
+            organization = self.context["organization"]
+            try:
+                check_organization_monitor_limit(organization.id)
+            except MonitorLimitsExceeded as e:
+                raise serializers.ValidationError(str(e))
+        return attrs
+
     def validate_status(self, value):
         status = MONITOR_STATUSES.get(value, value)
         monitor = self.context.get("monitor")
@@ -392,6 +405,8 @@ class MonitorValidator(CamelSnakeSerializer):
         existing_config = instance.config.copy()
         existing_margin = existing_config.get("checkin_margin")
         existing_max_runtime = existing_config.get("max_runtime")
+        existing_schedule_type = existing_config.get("schedule_type")
+        existing_schedule = existing_config.get("schedule")
         existing_slug = instance.slug
 
         params: dict[str, Any] = {}
@@ -456,18 +471,30 @@ class MonitorValidator(CamelSnakeSerializer):
             quotas.backend.update_monitor_slug(existing_slug, params["slug"], instance.project_id)
 
         if "config" in validated_data:
-            new_config = validated_data["config"]
-            checkin_margin = new_config.get("checkin_margin")
+            # Use the merged config from the instance (not the partial config from the request)
+            # to avoid false positives when comparing against existing values
+            updated_config = instance.config
+            checkin_margin = updated_config.get("checkin_margin")
             if checkin_margin != existing_margin:
                 MonitorEnvironment.objects.filter(monitor_id=instance.id).update(
                     next_checkin_latest=F("next_checkin") + get_checkin_margin(checkin_margin)
                 )
 
-            max_runtime = new_config.get("max_runtime")
+            max_runtime = updated_config.get("max_runtime")
             if max_runtime != existing_max_runtime:
                 MonitorCheckIn.objects.filter(
                     monitor_id=instance.id, status=CheckInStatus.IN_PROGRESS
                 ).update(timeout_at=TruncMinute(F("date_added")) + get_max_runtime(max_runtime))
+
+            # If the schedule changed, recompute next_checkin and next_checkin_latest for all environments
+            schedule_type = updated_config.get("schedule_type")
+            schedule = updated_config.get("schedule")
+            if schedule_type != existing_schedule_type or schedule != existing_schedule:
+                now = timezone.now()
+                for monitor_env in MonitorEnvironment.objects.filter(monitor_id=instance.id):
+                    # Use last_checkin if available, otherwise use current time
+                    last_checkin = monitor_env.last_checkin or now
+                    update_monitor_environment(monitor_env, last_checkin, now)
 
         # Update alert rule after in case slug or name changed
         if "alert_rule" in validated_data:
@@ -657,7 +684,8 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
     data_source field (MonitorDataSourceValidator).
     """
 
-    data_source = MonitorDataSourceValidator(required=True)
+    data_source = MonitorDataSourceValidator(required=False)
+    data_sources = serializers.ListField(child=MonitorDataSourceValidator(), required=False)
 
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
         super().update(instance, validated_data)

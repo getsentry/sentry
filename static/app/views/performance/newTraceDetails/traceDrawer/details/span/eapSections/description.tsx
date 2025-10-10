@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
@@ -14,7 +14,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -48,7 +47,6 @@ import {
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
-import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
@@ -102,10 +100,11 @@ export function SpanDescription({
     return formatter.toString(dbQueryText ?? span.description ?? '');
   }, [span.description, resolvedModule, dbSystem, dbQueryText]);
 
-  const exploreAttributeName = shouldUseOTelFriendlyUI
+  const exploreUsingName = shouldUseOTelFriendlyUI && span.name !== span.op;
+  const exploreAttributeName = exploreUsingName
     ? SpanFields.NAME
     : SpanFields.SPAN_DESCRIPTION;
-  const exploreAttributeValue = shouldUseOTelFriendlyUI ? span.name : span.description;
+  const exploreAttributeValue = exploreUsingName ? span.name : span.description;
 
   const actions = exploreAttributeValue ? (
     <BodyContentWrapper
@@ -136,27 +135,17 @@ export function SpanDescription({
         project_id={span.project_id.toString()}
         organization={organization}
       />
-      <StyledLink
-        to={
-          hasExploreEnabled
-            ? getSearchInExploreTarget(
-                organization,
-                location,
-                node.event?.projectID,
-                exploreAttributeName,
-                exploreAttributeValue,
-                TraceDrawerActionKind.INCLUDE
-              )
-            : spanDetailsRouteWithQuery({
-                organization,
-                transaction: node.event?.title ?? '',
-                query: location.query,
-                spanSlug: {op: span.op, group: group ?? ''},
-                projectID: node.event?.projectID,
-              })
-        }
-        onClick={() => {
-          if (hasExploreEnabled) {
+      {hasExploreEnabled && (
+        <StyledLink
+          to={getSearchInExploreTarget(
+            organization,
+            location,
+            node.event?.projectID,
+            exploreAttributeName,
+            exploreAttributeValue,
+            TraceDrawerActionKind.INCLUDE
+          )}
+          onClick={() => {
             traceAnalytics.trackExploreSearch(
               organization,
               exploreAttributeName,
@@ -164,17 +153,12 @@ export function SpanDescription({
               TraceDrawerActionKind.INCLUDE,
               'drawer'
             );
-          } else {
-            trackAnalytics('trace.trace_layout.view_span_summary', {
-              organization,
-              module: resolvedModule,
-            });
-          }
-        }}
-      >
-        <IconGraph type="scatter" size="xs" />
-        {hasExploreEnabled ? t('More Samples') : t('View Similar Spans')}
-      </StyledLink>
+          }}
+        >
+          <IconGraph type="scatter" size="xs" />
+          {hasExploreEnabled ? t('More Samples') : t('View Similar Spans')}
+        </StyledLink>
+      )}
     </BodyContentWrapper>
   ) : null;
 
@@ -211,7 +195,7 @@ export function SpanDescription({
         node={node}
         attributes={attributes}
       />
-    ) : shouldUseOTelFriendlyUI && span.name ? (
+    ) : shouldUseOTelFriendlyUI && span.name && span.name !== span.op ? (
       <DescriptionWrapper>
         <FormattedDescription>{span.name}</FormattedDescription>
         <CopyToClipboardButton
@@ -252,7 +236,6 @@ export function SpanDescription({
       bodyContent={actions}
       hideNodeActions={hideNodeActions}
       highlightedAttributes={getHighlightedSpanAttributes({
-        organization,
         attributes,
         op: span.op,
       })}
@@ -400,7 +383,7 @@ const BodyContentWrapper = styled('div')<{padding: string}>`
   padding: ${p => p.padding};
 `;
 
-const StyledCodeSnippet = styled(CodeSnippet)`
+const StyledCodeSnippet = styled(CodeBlock)`
   code {
     text-wrap: wrap;
   }

@@ -5,15 +5,10 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/agents/components/modelName';
-import {
-  hasAgentInsightsFeature,
-  hasMCPInsightsFeature,
-} from 'sentry/views/insights/agents/utils/features';
 import {AI_CREATE_AGENT_OPS, getIsAiSpan} from 'sentry/views/insights/agents/utils/query';
 
 type HighlightedAttribute = {
@@ -31,20 +26,18 @@ function tryParseJson(value: string) {
 
 export function getHighlightedSpanAttributes({
   op,
-  organization,
   attributes = {},
 }: {
   attributes: Record<string, string> | undefined | TraceItemResponseAttribute[];
   op: string | undefined;
-  organization: Organization;
 }): HighlightedAttribute[] {
   const attributeObject = ensureAttributeObject(attributes);
 
-  if (hasAgentInsightsFeature(organization) && getIsAiSpan({op})) {
+  if (getIsAiSpan({op})) {
     return getAISpanAttributes(attributeObject, op);
   }
 
-  if (hasMCPInsightsFeature(organization) && op?.startsWith('mcp.')) {
+  if (op?.startsWith('mcp.')) {
     return getMCPAttributes(attributeObject);
   }
 
@@ -92,9 +85,9 @@ function getAISpanAttributes(
   }
 
   const inputTokens = attributes['gen_ai.usage.input_tokens'];
-  const cachedTokens = attributes['gen_ai.usage.cached_tokens'];
+  const cachedTokens = attributes['gen_ai.usage.input_tokens.cached'];
   const outputTokens = attributes['gen_ai.usage.output_tokens'];
-  const reasoningTokens = attributes['gen_ai.usage.reasoning_tokens'];
+  const reasoningTokens = attributes['gen_ai.usage.output_tokens.reasoning'];
   const totalTokens = attributes['gen_ai.usage.total_tokens'];
 
   if (inputTokens && outputTokens && totalTokens && Number(totalTokens) > 0) {

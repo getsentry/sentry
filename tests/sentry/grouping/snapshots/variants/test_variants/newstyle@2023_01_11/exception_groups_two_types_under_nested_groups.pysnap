@@ -1,14 +1,15 @@
 ---
-created: '2024-12-17T22:47:10.970525+00:00'
+created: '2025-10-07T20:41:47.208339+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "fca0fd23f09e8da4481304ef2a531100"
-  contributing component: chained-exception
-  component:
+  contributing component: chained_exception
+  hint: None
+  root_component:
     app*
-      chained-exception*
+      chained_exception*
         exception*
           type*
             "MyApp.CoolException"

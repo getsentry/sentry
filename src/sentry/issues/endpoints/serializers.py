@@ -77,7 +77,6 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer[ProjectCodeOwners]):
             validated_data = create_schema_from_issue_owners(
                 issue_owners=issue_owner_rules,
                 project_id=self.context["project"].id,
-                add_owner_ids=True,
             )
             return {
                 **attrs,

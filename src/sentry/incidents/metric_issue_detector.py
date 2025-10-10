@@ -74,7 +74,7 @@ class MetricIssueComparisonConditionValidator(BaseDataConditionValidator):
         (Condition.GREATER, Condition.LESS, Condition.ANOMALY_DETECTION)
     )
     supported_condition_results = frozenset(
-        (DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM)
+        (DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM, DetectorPriorityLevel.OK)
     )
 
     def validate_type(self, value: str) -> Condition:
@@ -125,7 +125,10 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
 
 
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
-    data_source = SnubaQueryValidator(required=True, timeWindowSeconds=True)
+    data_source = SnubaQueryValidator(required=False, timeWindowSeconds=True)
+    data_sources = serializers.ListField(
+        child=SnubaQueryValidator(timeWindowSeconds=True), required=False
+    )
     condition_group = MetricIssueConditionGroupValidator(required=True)
 
     def validate(self, attrs):

@@ -1,10 +1,10 @@
 ---
-created: '2025-09-08T19:48:04.756592+00:00'
+created: '2025-10-03T22:58:45.817940+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "default": {
+  "expect_ct": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -14,7 +14,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         {
           "contributes": true,
           "hint": null,
-          "id": "expect-ct",
+          "id": "expect_ct",
           "name": null,
           "values": [
             {
@@ -59,9 +59,11 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
+    "contributes": true,
     "description": "hostname",
     "hash": "3d2933f4b5ec459ec8d569a398fd328c",
-    "key": "default",
+    "hint": null,
+    "key": "expect_ct",
     "type": "component"
   }
 }

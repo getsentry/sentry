@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {PreventContext} from 'sentry/components/prevent/context/preventContext';
 import {AddUploadTokenStep} from 'sentry/views/prevent/tests/onboardingSteps/addUploadTokenStep';
@@ -36,6 +36,17 @@ describe('AddUploadTokenStep', () => {
       key: 'github',
       name: 'GitHub',
     },
+    status: 'active',
+  };
+
+  const mockRepoDataWithToken = {
+    testAnalyticsEnabled: false,
+    uploadToken: 'test-token',
+  };
+
+  const mockRepoDataWithoutToken = {
+    testAnalyticsEnabled: false,
+    uploadToken: null,
   };
 
   const renderComponent = (props = {}) => {
@@ -51,14 +62,24 @@ describe('AddUploadTokenStep', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-  });
 
-  it('renders the step header with correct step number', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/test-org/prevent/owner/123/repository/test-repo/',
+      body: mockRepoDataWithToken,
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/test-org/prevent/owner/123/repository/test-repo/token/regenerate/',
+      body: {token: 'test-token'},
+    });
+
     MockApiClient.addMockResponse({
       url: '/organizations/test-org/integrations/',
       body: [mockGitHubIntegration],
     });
+  });
 
+  it('renders the step header with correct step number', async () => {
     renderComponent({step: '2'});
 
     await screen.findByText('Step 2: Add token as');
@@ -66,37 +87,19 @@ describe('AddUploadTokenStep', () => {
   });
 
   it('constructs the GitHub URL correctly using GitHub organization name and repository', async () => {
-    const customOrg = OrganizationFixture({slug: 'custom-org'});
-    const customContext = {
-      ...mockPreventContext,
-      repository: 'custom-repo',
-      integratedOrgId: '456',
-    };
-    const customIntegration = {
-      ...mockGitHubIntegration,
-      id: '456',
-      name: 'github-org-name',
-      domainName: 'github.com/github-org-name',
-    };
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/custom-org/integrations/',
-      body: [customIntegration],
-    });
-
     render(
-      <PreventContext.Provider value={customContext}>
+      <PreventContext.Provider value={mockPreventContext}>
         <AddUploadTokenStep step="1" />
       </PreventContext.Provider>,
       {
-        organization: customOrg,
+        organization: mockOrganization,
       }
     );
 
     const link = await screen.findByRole('link', {name: 'repository secret'});
     expect(link).toHaveAttribute(
       'href',
-      'https://github.com/github-org-name/custom-repo/settings/secrets/actions'
+      'https://github.com/github-org-name/test-repo/settings/secrets/actions'
     );
   });
 
@@ -121,8 +124,7 @@ describe('AddUploadTokenStep', () => {
     );
 
     const link = await screen.findByRole('link', {name: 'repository secret'});
-    // this href is after "#" was normalized by the Link component
-    expect(link).toHaveAttribute('href', '/mock-pathname/');
+    expect(link).toHaveAttribute('href', '#');
   });
 
   it('handles valid GitHub naming characters in organization and repository names', async () => {
@@ -141,6 +143,11 @@ describe('AddUploadTokenStep', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/test-org/integrations/',
       body: [integrationWithValidChars],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/test-org/prevent/owner/789/repository/test-repo_v2/',
+      body: mockRepoDataWithToken,
     });
 
     render(
@@ -165,29 +172,17 @@ describe('AddUploadTokenStep', () => {
       body: [mockGitHubIntegration],
     });
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/test-org/prevent/owner/123/repository/test-repo/',
+      body: mockRepoDataWithoutToken,
+    });
+
     renderComponent();
 
     await screen.findByRole('button', {name: 'Generate Repository Token'});
     expect(
       screen.getByRole('button', {name: 'Generate Repository Token'})
     ).toBeInTheDocument();
-  });
-
-  it('shows token details after clicking generate button', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/test-org/integrations/',
-      body: [mockGitHubIntegration],
-    });
-
-    renderComponent();
-
-    const generateButton = screen.getByRole('button', {
-      name: 'Generate Repository Token',
-    });
-    await userEvent.click(generateButton);
-
-    expect(screen.getByText('SENTRY_PREVENT_TOKEN')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Regenerate'})).toBeInTheDocument();
   });
 
   it('renders repository admin text correctly', async () => {

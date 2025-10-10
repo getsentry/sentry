@@ -1,10 +1,10 @@
 ---
-created: '2025-09-08T19:48:06.056004+00:00'
+created: '2025-10-07T22:42:55.939638+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_message_hybrid_fingerprint": {
     "client_values": [
       "{{ default }}",
       "dogs are great"
@@ -25,7 +25,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
               "contributes": false,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": []
             },
             {
@@ -70,9 +70,11 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
-    "description": "modified in-app exception",
+    "contributes": true,
+    "description": "exception message and custom fingerprint",
     "hash": "e3d593b4335190212ca7c18b8e967fb1",
-    "key": "app",
+    "hint": null,
+    "key": "app_exception_message_hybrid_fingerprint",
     "type": "salted_component",
     "values": [
       "{{ default }}",

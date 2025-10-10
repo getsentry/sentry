@@ -602,6 +602,18 @@ class MonitorConsumerTest(TestCase):
                 "schedule": {"type": "crontab", "value": "13 * * * *"},
                 "owner": f"user:{bad_user.id}",
             },
+            expected_error=ProcessingErrorsException(
+                [
+                    {
+                        "type": ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
+                        "errors": {
+                            f"user:{bad_user.id}": [
+                                "[ErrorDetail(string='User is not a member of this organization', code='invalid')]"
+                            ]
+                        },
+                    }
+                ],
+            ),
         )
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)

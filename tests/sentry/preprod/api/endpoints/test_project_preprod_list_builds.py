@@ -420,6 +420,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         resp_data = response.json()
         assert len(resp_data["builds"]) == 1
         assert resp_data["builds"][0]["app_info"]["app_id"] == "com.example.configured"
+        assert resp_data["builds"][0]["app_info"]["build_configuration"] == "Release"
 
     # Build version filtering tests
     def test_list_builds_filter_by_build_version(self) -> None:

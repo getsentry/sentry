@@ -399,7 +399,6 @@ export const profiling: PlatformKey[] = [
   'dotnet-winforms',
   'dotnet-wpf',
   'flutter',
-  'go',
   'javascript',
   'javascript-angular',
   'javascript-astro',
@@ -525,6 +524,7 @@ export const releaseHealth: PlatformKey[] = [
   'dotnet-xamarin',
   'unity',
   'java',
+  'kotlin',
 ];
 
 // These are the backend platforms that can set up replay -- e.g. they can be set up via a linked JS framework or via JS loader.
@@ -711,9 +711,11 @@ export const featureFlagDrawerPlatforms: readonly PlatformKey[] = platformKeys.f
 );
 
 export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
+  'javascript-astro',
   'javascript-nextjs',
-  'javascript-remix',
+  'javascript-nuxt',
   'javascript-react-router',
+  'javascript-remix',
   'javascript-solidstart',
   'javascript-sveltekit',
   'javascript-tanstackstart-react',

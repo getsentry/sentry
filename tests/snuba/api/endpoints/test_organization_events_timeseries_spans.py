@@ -81,7 +81,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
     def _do_request(self, data, url=None, features=None):
         if features is None:
-            features = {"organizations:discover-basic": True, "organizations:global-views": True}
+            features = {"organizations:discover-basic": True}
         features.update(self.features)
         with self.feature(features):
             return self.client.get(self.url if url is None else url, data=data, format="json")
@@ -126,12 +126,13 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             3_600_000,
             event_counts,
             sample_count=event_counts,
-            sample_rate=[1 if val else 0 for val in event_counts],
+            sample_rate=[1 if val else None for val in event_counts],
             confidence=[any_confidence if val else None for val in event_counts],
         )
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
 
@@ -312,6 +313,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
 
@@ -407,6 +409,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
 
@@ -484,6 +487,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 60_000,
             "isOther": False,
             "order": 0,
@@ -499,6 +503,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 60_000,
             "isOther": False,
             "order": 1,
@@ -514,6 +519,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 60_000,
             "isOther": True,
             "order": 2,
@@ -566,6 +572,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 60_000,
             "isOther": False,
             "order": 0,
@@ -581,6 +588,76 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
+            "interval": 60_000,
+            "isOther": False,
+            "order": 1,
+        }
+
+    def test_top_events_exclude_other(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction": transaction, "status": "success"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                    duration=duration,
+                )
+                for transaction, duration in [("foo", 2000), ("bar", 1999), ("quz", 100)]
+            ],
+            is_eap=True,
+        )
+
+        self.end = self.start + timedelta(minutes=6)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": "count()",
+                "groupBy": ["transaction", "sum(span.self_time)"],
+                "orderby": ["-sum(span.self_time)"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "excludeOther": 1,
+                "topEvents": 2,
+            },
+        )
+        assert response.status_code == 200, response.content
+
+        assert response.data["meta"] == {
+            "dataset": "spans",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeSeries"]) == 2
+
+        timeseries = response.data["timeSeries"][0]
+        assert len(timeseries["values"]) == 6
+        assert timeseries["yAxis"] == "count()"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
+        )
+        assert timeseries["groupBy"] == [{"key": "transaction", "value": "foo"}]
+        assert timeseries["meta"] == {
+            "dataScanned": "full",
+            "valueType": "integer",
+            "valueUnit": None,
+            "interval": 60_000,
+            "isOther": False,
+            "order": 0,
+        }
+
+        timeseries = response.data["timeSeries"][1]
+        assert len(timeseries["values"]) == 6
+        assert timeseries["yAxis"] == "count()"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
+        )
+        assert timeseries["groupBy"] == [{"key": "transaction", "value": "bar"}]
+        assert timeseries["meta"] == {
+            "dataScanned": "full",
+            "valueType": "integer",
+            "valueUnit": None,
             "interval": 60_000,
             "isOther": False,
             "order": 1,
@@ -633,6 +710,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 60_000,
             "isOther": False,
             "order": 0,
@@ -664,6 +742,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 60_000,
             "isOther": False,
             "order": 1,
@@ -695,6 +774,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 60_000,
             "isOther": True,
             "order": 2,
@@ -769,6 +849,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 60_000,
             "isOther": False,
             "order": 0,
@@ -784,6 +865,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 60_000,
             "isOther": False,
             "order": 1,
@@ -799,6 +881,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 60_000,
             "isOther": True,
             "order": 2,
@@ -858,6 +941,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 60_000,
             "isOther": False,
             "order": 0,
@@ -876,6 +960,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 60_000,
             "isOther": False,
             "order": 1,
@@ -891,6 +976,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 60_000,
             "isOther": True,
             "order": 2,
@@ -911,6 +997,22 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             },
         )
         assert response.status_code == 200, response.content
+
+    def test_top_events_without_groupby(self) -> None:
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": ["count()"],
+                "orderby": ["-count()"],
+                "topEvents": 5,
+                "dataset": "spans",
+            },
+        )
+
+        assert response.status_code == 400, response.content
+        assert "groupBy is a required" in response.data["detail"]
 
     def test_count_extrapolation(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -957,12 +1059,13 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             3_600_000,
             [val * 10 for val in event_counts],
             sample_count=event_counts,
-            sample_rate=[pytest.approx(0.1) if val else 0 for val in event_counts],
+            sample_rate=[pytest.approx(0.1) if val else None for val in event_counts],
             confidence=["low" if val else None for val in event_counts],
         )
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
 
@@ -1030,7 +1133,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 3_600_000,
                 expected_values,
                 sample_count=event_counts,
-                sample_rate=[pytest.approx(0.1) if val else 0 for val in event_counts],
+                sample_rate=[pytest.approx(0.1) if val else None for val in event_counts],
                 confidence=[any_confidence if val else None for val in event_counts],
             ), y_axis
 
@@ -1081,7 +1184,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 3_600_000,
                 [val * 10 if y_axis == "count()" else val for val in event_counts],
                 sample_count=event_counts,
-                sample_rate=[pytest.approx(0.1) if val else 0 for val in event_counts],
+                sample_rate=[pytest.approx(0.1) if val else None for val in event_counts],
                 confidence=[any_confidence if val else None for val in event_counts],
             )
 
@@ -1154,7 +1257,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 60_000,
                 [val * 10 for val in event_counts],
                 sample_count=event_counts,
-                sample_rate=[pytest.approx(0.1) if val else 0 for val in event_counts],
+                sample_rate=[pytest.approx(0.1) if val else None for val in event_counts],
                 confidence=[any_confidence if val else None for val in event_counts],
             )
 
@@ -1211,6 +1314,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
 
@@ -1257,6 +1361,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
 
@@ -1336,6 +1441,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             assert timeseries["meta"] == {
                 "dataScanned": "full",
                 "valueType": "integer",
+                "valueUnit": None,
                 "interval": 3_600_000,
             }
 
@@ -1401,6 +1507,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             assert timeseries["meta"] == {
                 "dataScanned": "full",
                 "valueType": "integer",
+                "valueUnit": None,
                 "interval": 3_600_000,
             }
 
@@ -1532,6 +1639,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "percentage",
+            "valueUnit": None,
             "interval": 60_000,
         }
 
@@ -1594,6 +1702,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "percentage",
+            "valueUnit": None,
             "interval": 60_000,
         }
 
@@ -1644,6 +1753,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 60_000,
         }
 
@@ -1693,6 +1803,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 60_000,
         }
 
@@ -1725,6 +1836,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 60_000,
         }
 
@@ -1781,6 +1893,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "isOther": False,
             "order": 0,
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 60_000,
         }
 
@@ -1819,6 +1932,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "isOther": False,
             "order": 0,
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 60_000,
         }
 
@@ -1869,6 +1983,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "number",
+            "valueUnit": None,
             "interval": 60_000,
         }
 
@@ -1920,6 +2035,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "number",
+            "valueUnit": None,
             "interval": 60_000,
         }
 
@@ -1970,6 +2086,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "number",
+            "valueUnit": None,
             "interval": 60_000,
         }
 
@@ -1982,6 +2099,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "number",
+            "valueUnit": None,
             "interval": 60_000,
         }
 
@@ -2062,6 +2180,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "number",
+            "valueUnit": None,
             "interval": 60_000,
             "isOther": False,
             "order": 0,
@@ -2078,6 +2197,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         ]
         assert timeseries["meta"] == {
             "dataScanned": "full",
+            "valueUnit": None,
             "valueType": "number",
             "interval": 60_000,
             "isOther": False,
@@ -2093,6 +2213,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["groupBy"] is None
         assert timeseries["meta"] == {
             "dataScanned": "full",
+            "valueUnit": None,
             "valueType": "number",
             "interval": 60_000,
             "isOther": True,
@@ -2146,6 +2267,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",
+            "valueUnit": None,
             "interval": 3_600_000,
         }
 

@@ -141,7 +141,7 @@ class TestResultsEndpointTest(APITestCase):
             },
             "ordering": {
                 "direction": "DESC",
-                "parameter": "TOTAL_FAIL_COUNT",
+                "parameter": "RUNS_FAILED",
             },
             "first": 20,
             "last": None,
@@ -284,7 +284,7 @@ class TestResultsEndpointTest(APITestCase):
             },
             "ordering": {
                 "direction": "DESC",
-                "parameter": "TOTAL_FAIL_COUNT",
+                "parameter": "RUNS_FAILED",
             },
             "first": 20,
             "last": None,
@@ -321,7 +321,7 @@ class TestResultsEndpointTest(APITestCase):
             },
             "ordering": {
                 "direction": "DESC",
-                "parameter": "TOTAL_FAIL_COUNT",
+                "parameter": "RUNS_FAILED",
             },
             "first": None,
             "last": 10,

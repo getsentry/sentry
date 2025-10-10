@@ -10,7 +10,6 @@ from sentry.issues.grouptype import (
     GroupType,
     GroupTypeRegistry,
     NoiseConfig,
-    PerformanceGroupTypeDefaults,
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
     get_group_type_by_slug,
@@ -98,12 +97,13 @@ class GroupTypeTest(BaseGroupTypeTest):
             category_v2 = GroupCategory.ERROR.value
 
         @dataclass(frozen=True)
-        class TestGroupType2(PerformanceGroupTypeDefaults, GroupType):
+        class TestGroupType2(GroupType):
             type_id = 2
             slug = "hellboy"
             description = "Hellboy"
             category = GroupCategory.PERFORMANCE.value
             category_v2 = GroupCategory.DB_QUERY.value
+            noise_config = NoiseConfig()
 
         assert TestGroupType.noise_config is None
         assert TestGroupType2.noise_config == NoiseConfig()
@@ -112,7 +112,7 @@ class GroupTypeTest(BaseGroupTypeTest):
 
     def test_noise_config(self) -> None:
         @dataclass(frozen=True)
-        class TestGroupType(PerformanceGroupTypeDefaults, GroupType):
+        class TestGroupType(GroupType):
             type_id = 2
             slug = "hellboy"
             description = "Hellboy"
@@ -127,12 +127,13 @@ class GroupTypeTest(BaseGroupTypeTest):
 class GroupTypeReleasedTest(BaseGroupTypeTest):
     def test_released(self) -> None:
         @dataclass(frozen=True)
-        class TestGroupType(PerformanceGroupTypeDefaults, GroupType):
+        class TestGroupType(GroupType):
             type_id = 1
             slug = "test"
             description = "Test"
             category = GroupCategory.PERFORMANCE.value
             category_v2 = GroupCategory.DB_QUERY.value
+            noise_config = NoiseConfig()
             released = True
 
         assert TestGroupType.allow_post_process_group(self.organization)
@@ -140,12 +141,13 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
 
     def test_not_released(self) -> None:
         @dataclass(frozen=True)
-        class TestGroupType(PerformanceGroupTypeDefaults, GroupType):
+        class TestGroupType(GroupType):
             type_id = 1
             slug = "test"
             description = "Test"
             category = GroupCategory.PERFORMANCE.value
             category_v2 = GroupCategory.DB_QUERY.value
+            noise_config = NoiseConfig()
             released = False
 
         assert not TestGroupType.allow_post_process_group(self.organization)
@@ -153,12 +155,13 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
 
     def test_not_released_features(self) -> None:
         @dataclass(frozen=True)
-        class TestGroupType(PerformanceGroupTypeDefaults, GroupType):
+        class TestGroupType(GroupType):
             type_id = 1
             slug = "test"
             description = "Test"
             category = GroupCategory.PERFORMANCE.value
             category_v2 = GroupCategory.DB_QUERY.value
+            noise_config = NoiseConfig()
             released = False
 
         with self.feature(TestGroupType.build_post_process_group_feature_name()):

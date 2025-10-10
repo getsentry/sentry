@@ -56,7 +56,7 @@ class EventDatastore:
         self._messages: list[_MessageInfo] | None = None
         self._log_info: list[_LogInfo] | None = None
         self._toplevel: list[_MessageInfo | _ExceptionInfo] | None = None
-        self._tags: list[dict[str, str]] | None = None
+        self._tags: list[dict[str, str | None]] | None = None
         self._sdk: list[_SdkInfo] | None = None
         self._family: list[_FamilyInfo] | None = None
         self._release: list[_ReleaseInfo] | None = None
@@ -72,15 +72,15 @@ class EventDatastore:
             self._messages = []
             message = get_path(self.event, "logentry", "formatted", filter=True)
             if message:
-                self._messages.append({"message": message})
+                self._messages.append({"message": message.strip()})
         return self._messages
 
     def _get_log_info(self) -> list[_LogInfo]:
         if self._log_info is None:
             log_info: _LogInfo = {}
-            logger = get_path(self.event, "logger", filter=True)
-            if logger:
-                log_info["logger"] = logger
+            logger_name = get_path(self.event, "logger", filter=True)
+            if logger_name:
+                log_info["logger"] = logger_name
             level = get_path(self.event, "level", filter=True)
             if level:
                 log_info["level"] = level
@@ -97,7 +97,7 @@ class EventDatastore:
                 self._exceptions.append(
                     {
                         "type": exc.get("type"),
-                        "value": exc.get("value"),
+                        "value": exc["value"].strip() if exc.get("value") else None,
                     }
                 )
         return self._exceptions
@@ -128,10 +128,13 @@ class EventDatastore:
             self._toplevel = [*self._get_messages(), *self._get_exceptions()]
         return self._toplevel
 
-    def _get_tags(self) -> list[dict[str, str]]:
+    def _get_tags(self) -> list[dict[str, str | None]]:
         if self._tags is None:
             self._tags = [
-                {"tags.%s" % k: v for (k, v) in get_path(self.event, "tags", filter=True) or ()}
+                {
+                    "tags.%s" % k: v.strip() if v else None
+                    for (k, v) in get_path(self.event, "tags", filter=True) or ()
+                }
             ]
         return self._tags
 
@@ -147,5 +150,7 @@ class EventDatastore:
         return self._family
 
     def _get_release(self) -> list[_ReleaseInfo]:
-        self._release = self._release or [{"release": self.event.get("release")}]
+        self._release = self._release or [
+            {"release": self.event["release"].strip() if self.event.get("release") else None}
+        ]
         return self._release

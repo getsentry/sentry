@@ -37,6 +37,7 @@ import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/use
 
 interface ExploreChartsProps {
   confidences: Confidence[];
+  extrapolate: boolean;
   query: string;
   setVisualizes: (visualizes: BaseVisualize[]) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
@@ -63,6 +64,7 @@ const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
 export function ExploreCharts({
   query,
+  extrapolate,
   timeseriesResult,
   visualizes,
   setVisualizes,
@@ -103,6 +105,7 @@ export function ExploreCharts({
           return (
             <Chart
               key={`${index}`}
+              extrapolate={extrapolate}
               index={index}
               onChartTypeChange={chartType => handleChartTypeChange(index, chartType)}
               onChartVisibilityChange={visible =>
@@ -122,6 +125,7 @@ export function ExploreCharts({
 }
 
 interface ChartProps {
+  extrapolate: boolean;
   index: number;
   onChartTypeChange: (chartType: ChartType) => void;
   onChartVisibilityChange: (visible: boolean) => void;
@@ -133,6 +137,7 @@ interface ChartProps {
 }
 
 function Chart({
+  extrapolate,
   index,
   onChartTypeChange,
   onChartVisibilityChange,
@@ -235,7 +240,7 @@ function Chart({
       </Tooltip>
       <ChartContextMenu
         key="context"
-        visualizeYAxes={[visualize.yAxis]}
+        visualizeYAxes={[visualize]}
         query={query}
         interval={interval}
         visualizeIndex={index}
@@ -265,6 +270,7 @@ function Chart({
         Footer={
           visualize.visible && (
             <ConfidenceFooter
+              extrapolate={extrapolate}
               sampleCount={chartInfo.sampleCount}
               isLoading={chartInfo.timeseriesResult?.isPending || false}
               isSampled={chartInfo.isSampled}

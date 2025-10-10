@@ -1,12 +1,14 @@
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {getAggregateFieldsFromLocation} from 'sentry/views/explore/queryParams/aggregateField';
 import {getAggregateSortBysFromLocation} from 'sentry/views/explore/queryParams/aggregateSortBy';
 import {getCursorFromLocation} from 'sentry/views/explore/queryParams/cursor';
+import {getExtrapolateFromLocation} from 'sentry/views/explore/queryParams/extrapolate';
 import {getFieldsFromLocation} from 'sentry/views/explore/queryParams/field';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {
@@ -36,6 +38,7 @@ const SPANS_AGGREGATE_FIELD_KEY = 'aggregateField';
 const SPANS_GROUP_BY_KEY = 'groupBy';
 const SPANS_VISUALIZATION_KEY = 'visualize';
 const SPANS_AGGREGATE_SORT_KEY = 'aggregateSort';
+const SPANS_EXTRAPOLATE_KEY = 'extrapolate';
 
 export function isDefaultFields(location: Location): boolean {
   return getFieldsFromLocation(location, SPANS_FIELD_KEY) ? false : true;
@@ -45,6 +48,7 @@ export function getReadableQueryParamsFromLocation(
   location: Location,
   organization: Organization
 ): ReadableQueryParams {
+  const extrapolate = getExtrapolateFromLocation(location, SPANS_EXTRAPOLATE_KEY);
   const mode = getModeFromLocation(location, SPANS_MODE_KEY);
   const query = getQueryFromLocation(location, SPANS_QUERY_KEY) ?? '';
 
@@ -64,6 +68,7 @@ export function getReadableQueryParamsFromLocation(
     ) ?? defaultAggregateSortBys(aggregateFields);
 
   return new ReadableQueryParams({
+    extrapolate,
     mode,
     query,
 
@@ -83,9 +88,28 @@ export function getTargetWithReadableQueryParams(
 ): Location {
   const target: Location = {...location, query: {...location.query}};
 
+  updateNullableLocation(
+    target,
+    SPANS_EXTRAPOLATE_KEY,
+    defined(writableQueryParams.extrapolate)
+      ? writableQueryParams.extrapolate
+        ? null
+        : '0'
+      : writableQueryParams.extrapolate
+  );
+  updateNullableLocation(target, SPANS_QUERY_KEY, writableQueryParams.query);
   updateNullableLocation(target, SPANS_MODE_KEY, writableQueryParams.mode);
 
   updateNullableLocation(target, SPANS_FIELD_KEY, writableQueryParams.fields);
+  updateNullableLocation(
+    target,
+    SPANS_SORT_KEY,
+    writableQueryParams.sortBys === null
+      ? null
+      : writableQueryParams.sortBys?.map(
+          sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`
+        )
+  );
 
   updateNullableLocation(
     target,
@@ -93,6 +117,15 @@ export function getTargetWithReadableQueryParams(
     writableQueryParams.aggregateFields?.map(aggregateField =>
       JSON.stringify(aggregateField)
     )
+  );
+  updateNullableLocation(
+    target,
+    SPANS_AGGREGATE_SORT_KEY,
+    writableQueryParams.aggregateSortBys === null
+      ? null
+      : writableQueryParams.aggregateSortBys?.map(
+          sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`
+        )
   );
 
   return target;

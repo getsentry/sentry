@@ -1,10 +1,10 @@
 ---
-created: '2025-09-08T19:48:06.336505+00:00'
+created: '2025-10-03T22:58:47.180536+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "default": {
+  "message": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -42,9 +42,11 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
+    "contributes": true,
     "description": "message",
     "hash": "4119639092e62c55ea8be348e4d9260d",
-    "key": "default",
+    "hint": null,
+    "key": "message",
     "type": "component"
   }
 }

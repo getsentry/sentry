@@ -1,10 +1,10 @@
 ---
-created: '2025-09-08T19:48:07.554008+00:00'
+created: '2025-10-06T19:13:35.034050+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "default": {
+  "template": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -29,7 +29,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
             {
               "contributes": true,
               "hint": null,
-              "id": "context-line",
+              "id": "context_line",
               "name": null,
               "values": [
                 "{% invalid template tag %}"
@@ -59,9 +59,11 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
-    "description": "template",
+    "contributes": true,
+    "description": "filename and context line",
     "hash": "1f5bdebe3c9f414c7dbb4296a8353245",
-    "key": "default",
+    "hint": null,
+    "key": "template",
     "type": "component"
   }
 }

@@ -1,4 +1,5 @@
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
@@ -83,3 +84,13 @@ class OrganizationUptimeAlertIndexEndpointTest(OrganizationUptimeAlertIndexBaseE
             owner=["user:12345"],
         )
         self.check_valid_response(response, [])
+
+    def test_only_returns_active_detectors(self) -> None:
+        active_detector = self.create_uptime_detector(name="active", status=ObjectStatus.ACTIVE)
+        self.create_uptime_detector(name="pending_deletion", status=ObjectStatus.PENDING_DELETION)
+        self.create_uptime_detector(
+            name="deletion_in_progress", status=ObjectStatus.DELETION_IN_PROGRESS
+        )
+
+        response = self.get_success_response(self.organization.slug)
+        self.check_valid_response(response, [active_detector])

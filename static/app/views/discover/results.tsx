@@ -44,7 +44,6 @@ import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/custom
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
 import {
-  DatasetSource,
   DiscoverDatasets,
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
@@ -70,7 +69,6 @@ import ResultsHeader from 'sentry/views/discover/results/resultsHeader';
 import ResultsSearchQueryBuilder from 'sentry/views/discover/results/resultsSearchQueryBuilder';
 import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
 import Tags from 'sentry/views/discover/results/tags';
-import {DATASET_LABEL_MAP} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,
@@ -654,44 +652,6 @@ export class Results extends Component<Props, State> {
     return null;
   }
 
-  renderForcedDatasetBanner() {
-    const {organization, savedQuery} = this.props;
-    if (
-      hasDatasetSelector(organization) &&
-      this.state.showForcedDatasetAlert &&
-      (this.state.splitDecision || savedQuery?.datasetSource === DatasetSource.FORCED)
-    ) {
-      const splitDecision = this.state.splitDecision ?? savedQuery?.queryDataset;
-      if (!splitDecision) {
-        return null;
-      }
-      return (
-        <Alert.Container>
-          <Alert
-            type="warning"
-            trailingItems={
-              <StyledCloseButton
-                icon={<IconClose size="sm" />}
-                aria-label={t('Close')}
-                onClick={() => {
-                  this.setState({showForcedDatasetAlert: false});
-                }}
-                size="zero"
-                borderless
-              />
-            }
-          >
-            {tct(
-              "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to [splitDecision]. Edit as you see fit.",
-              {splitDecision: DATASET_LABEL_MAP[splitDecision]}
-            )}
-          </Alert>
-        </Alert.Container>
-      );
-    }
-    return null;
-  }
-
   renderTransactionsDatasetDeprecationBanner() {
     const {savedQueryDataset} = this.state;
     const {location, organization} = this.props;
@@ -803,7 +763,7 @@ export class Results extends Component<Props, State> {
   }
 
   render() {
-    const {organization, location, router, selection, api, setSavedQuery, isHomepage} =
+    const {organization, location, selection, api, setSavedQuery, isHomepage} =
       this.props;
     const {
       eventView,
@@ -836,7 +796,6 @@ export class Results extends Component<Props, State> {
             location={location}
             eventView={eventView}
             yAxis={yAxisArray}
-            router={router}
             isHomepage={isHomepage}
             splitDecision={splitDecision}
           />
@@ -846,7 +805,6 @@ export class Results extends Component<Props, State> {
                 {this.renderMetricsFallbackBanner()}
                 {this.renderError(error)}
                 {this.renderTips()}
-                {this.renderForcedDatasetBanner()}
                 {this.renderQueryIncompatibleWithDatasetBanner()}
                 {this.renderTransactionsDatasetDeprecationBanner()}
                 {!hasDatasetSelectorFeature && <SampleDataAlert query={query} />}
@@ -1033,9 +991,7 @@ export default function ResultsContainer(
         organization.features.includes('discover-query') &&
         !!(props.savedQuery || props.location.query.id)
       }
-      skipLoadLastUsed={
-        organization.features.includes('global-views') && !!props.savedQuery
-      }
+      skipLoadLastUsed={!!props.savedQuery}
       // The Discover Results component will manage URL params, including page filters state
       // This avoids an unnecessary re-render when forcing a project filter for team plan users
       skipInitializeUrlParams

@@ -21,6 +21,14 @@ def dedupe_cron_shadow_workflows(apps: StateApps, schema_editor: BaseDatabaseSch
         rules_by_org[rule.project.organization_id].append(rule)
 
     for organization_id, rules in rules_by_org.items():
+        links = AlertRuleWorkflow.objects.filter(rule_id__in=[r.id for r in rules]).select_related(
+            "workflow"
+        )
+        rule_workflows = {link.rule_id: link.workflow for link in links}
+        # We filter out rules with no links here - if we re-run the script, we don't need to reprocess rules that
+        # have already been de-duped
+        rules = [r for r in rules if r.id in rule_workflows]
+
         monitors = Monitor.objects.filter(organization_id=organization_id)
         rule_monitors = {
             int(m.config["alert_rule_id"]): m for m in monitors if "alert_rule_id" in m.config
@@ -32,10 +40,6 @@ def dedupe_cron_shadow_workflows(apps: StateApps, schema_editor: BaseDatabaseSch
         monitor_id_to_detector = {
             int(dsl.data_source.source_id): dsl.detector for dsl in data_source_links
         }
-        links = AlertRuleWorkflow.objects.filter(rule_id__in=[r.id for r in rules]).select_related(
-            "workflow"
-        )
-        rule_workflows = {link.rule_id: link.workflow for link in links}
         rule_hashes = defaultdict(list)
         for rule in rules:
             data = deepcopy(rule.data)

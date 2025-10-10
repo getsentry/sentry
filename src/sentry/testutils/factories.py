@@ -55,6 +55,7 @@ from sentry.incidents.models.incident import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.doc_integration import DocIntegration
 from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvatar
 from sentry.integrations.models.external_actor import ExternalActor
@@ -69,6 +70,7 @@ from sentry.integrations.models.integration_feature import (
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
+from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
@@ -125,7 +127,7 @@ from sentry.notifications.models.notificationaction import (
 )
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
-from sentry.performance_issues.performance_problem import PerformanceProblem
+from sentry.preprod.models import PreprodArtifactSizeMetrics
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -151,17 +153,13 @@ from sentry.tempest.models import TempestCredentials
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
-from sentry.types.actor import Actor
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
 from sentry.uptime.models import (
     IntervalSecondsLiteral,
-    ProjectUptimeSubscription,
-    UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
-from sentry.uptime.types import UptimeMonitorMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
@@ -1200,6 +1198,13 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_forwarder(organization, provider, config, **kwargs):
+        return DataForwarder.objects.create(
+            organization=organization, provider=provider, config=config, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_file_from_path(path, name=None, **kwargs):
         if name is None:
             name = os.path.basename(path)
@@ -1701,9 +1706,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_incident_activity(incident, type, comment=None, user_id=None):
+    def create_incident_activity(incident, type, comment=None, user_id=None, **kwargs):
         return IncidentActivity.objects.create(
-            incident=incident, type=type, comment=comment, user_id=user_id
+            incident=incident, type=type, comment=comment, user_id=user_id, **kwargs
         )
 
     @staticmethod
@@ -2095,8 +2100,6 @@ class Factories:
         headers,
         body,
         date_updated: datetime,
-        uptime_status: UptimeStatus,
-        uptime_status_update_date: datetime,
         trace_sampling: bool = False,
     ):
         if url is None:
@@ -2119,41 +2122,6 @@ class Factories:
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
-            uptime_status=uptime_status,
-            uptime_status_update_date=uptime_status_update_date,
-        )
-
-    @staticmethod
-    def create_project_uptime_subscription(
-        project: Project,
-        env: Environment | None,
-        uptime_subscription: UptimeSubscription,
-        status: int,
-        mode: UptimeMonitorMode,
-        name: str | None,
-        owner: Actor | None,
-        id: int | None,
-    ):
-        if name is None:
-            name = petname.generate().title()
-        owner_team_id = None
-        owner_user_id = None
-        if owner:
-            if owner.is_team:
-                owner_team_id = owner.id
-            elif owner.is_user:
-                owner_user_id = owner.id
-
-        return ProjectUptimeSubscription.objects.create(
-            uptime_subscription=uptime_subscription,
-            project=project,
-            environment=env,
-            status=status,
-            mode=mode,
-            name=name,
-            owner_team_id=owner_team_id,
-            owner_user_id=owner_user_id,
-            pk=id,
         )
 
     @staticmethod
@@ -2467,4 +2435,48 @@ class Factories:
             condition_group = Factories.create_data_condition_group()
         return DataConditionGroupAction.objects.create(
             action=action, condition_group=condition_group, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_preprod_artifact_size_metrics(
+        artifact,
+        metrics_type=None,
+        state=None,
+        identifier=None,
+        min_download_size=1024 * 1024,  # 1 MB
+        max_download_size=1024 * 1024,  # 1 MB
+        min_install_size=2 * 1024 * 1024,  # 2 MB
+        max_install_size=2 * 1024 * 1024,  # 2 MB
+    ):
+        if metrics_type is None:
+            metrics_type = PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        if state is None:
+            state = PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+
+        return PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=metrics_type,
+            state=state,
+            identifier=identifier,
+            min_download_size=(
+                min_download_size
+                if state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+                else None
+            ),
+            max_download_size=(
+                max_download_size
+                if state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+                else None
+            ),
+            min_install_size=(
+                min_install_size
+                if state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+                else None
+            ),
+            max_install_size=(
+                max_install_size
+                if state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+                else None
+            ),
         )

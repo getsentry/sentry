@@ -1,10 +1,10 @@
 ---
-created: '2025-09-08T19:48:04.555801+00:00'
+created: '2025-10-06T21:57:33.398579+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_chained_exception_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -14,7 +14,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         {
           "contributes": true,
           "hint": null,
-          "id": "chained-exception",
+          "id": "chained_exception",
           "name": null,
           "values": [
             {
@@ -27,7 +27,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                   "contributes": true,
                   "hint": null,
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": [
                     {
                       "contributes": true,
@@ -127,7 +127,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                   "contributes": true,
                   "hint": null,
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": [
                     {
                       "contributes": true,
@@ -227,7 +227,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                   "contributes": false,
                   "hint": null,
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": []
                 },
                 {
@@ -274,12 +274,14 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
-    "description": "in-app exception stack-trace",
+    "contributes": true,
+    "description": "chained exception stacktraces — in-app frames",
     "hash": "d505dfb9059ac63c11955233323a9100",
-    "key": "app",
+    "hint": null,
+    "key": "app_chained_exception_stacktrace",
     "type": "component"
   },
-  "system": {
+  "system_chained_exception_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -289,7 +291,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         {
           "contributes": true,
           "hint": null,
-          "id": "chained-exception",
+          "id": "chained_exception",
           "name": null,
           "values": [
             {
@@ -302,7 +304,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                   "contributes": true,
                   "hint": null,
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": [
                     {
                       "contributes": true,
@@ -402,7 +404,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                   "contributes": true,
                   "hint": null,
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": [
                     {
                       "contributes": true,
@@ -516,9 +518,11 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
-    "description": "exception stack-trace",
+    "contributes": true,
+    "description": "chained exception stacktraces — all frames",
     "hash": "4f9cc6a81f4eb34f9e917374f281b9dc",
-    "key": "system",
+    "hint": null,
+    "key": "system_chained_exception_stacktrace",
     "type": "component"
   }
 }

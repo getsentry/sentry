@@ -9,7 +9,6 @@ from typing import Any
 from django.db.models import Subquery
 from django.db.models.query_utils import Q
 
-from sentry import features
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.ownership.grammar import parse_code_owners
@@ -42,27 +41,13 @@ def build_codeowners_associations(
         filter=dict(emails=emails, organization_id=project.organization_id)
     )
 
-    if features.has("organizations:use-case-insensitive-codeowners", project.organization):
-        # GitHub team and user names are case-insensitive
-        # We build a query that filters on each name we parsed case-insensitively
-        queries = [Q(external_name__iexact=xname) for xname in usernames + team_names]
-        if queries:
-            query = reduce(or_, queries)
-            external_actors = ExternalActor.objects.filter(
-                query,
-                organization_id=project.organization_id,
-                provider__in=[
-                    ExternalProviders.GITHUB.value,
-                    ExternalProviders.GITHUB_ENTERPRISE.value,
-                    ExternalProviders.GITLAB.value,
-                ],
-            )
-        else:
-            external_actors = ExternalActor.objects.none()
-    else:
-        # Check if the usernames/teamnames have an association
+    # GitHub team and user names are case-insensitive
+    # We build a query that filters on each name we parsed case-insensitively
+    queries = [Q(external_name__iexact=xname) for xname in usernames + team_names]
+    if queries:
+        query = reduce(or_, queries)
         external_actors = ExternalActor.objects.filter(
-            external_name__in=usernames + team_names,
+            query,
             organization_id=project.organization_id,
             provider__in=[
                 ExternalProviders.GITHUB.value,
@@ -70,6 +55,8 @@ def build_codeowners_associations(
                 ExternalProviders.GITLAB.value,
             ],
         )
+    else:
+        external_actors = ExternalActor.objects.none()
 
     # Convert CODEOWNERS into IssueOwner syntax
     users_dict = {}

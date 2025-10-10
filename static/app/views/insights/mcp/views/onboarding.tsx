@@ -65,7 +65,7 @@ function useOnboardingProject() {
 
 function useAiSpanWaiter(project: Project) {
   const {selection} = usePageFilters();
-  const [refetchKey, setRefetchKey] = useState(0);
+  const [shouldRefetch, setShouldRefetch] = useState(true);
 
   const request = useSpans(
     {
@@ -74,7 +74,7 @@ function useAiSpanWaiter(project: Project) {
       limit: 1,
       enabled: !!project,
       useQueryOptions: {
-        additonalQueryKey: [`refetch-${refetchKey}`],
+        refetchInterval: shouldRefetch ? 5000 : undefined,
       },
       pageFilters: {
         ...selection,
@@ -92,17 +92,11 @@ function useAiSpanWaiter(project: Project) {
 
   const hasEvents = Boolean(request.data?.length);
 
-  // Create a custom key that changes every 5 seconds to trigger refetch
-  // TODO(aknaus): remove this and add refetchInterval to useEAPSpans
   useEffect(() => {
-    if (hasEvents) return () => {};
-
-    const interval = setInterval(() => {
-      setRefetchKey(prev => prev + 1);
-    }, 5000); // Poll every 5 seconds
-
-    return () => clearInterval(interval);
-  }, [hasEvents]);
+    if (hasEvents && shouldRefetch) {
+      setShouldRefetch(false);
+    }
+  }, [hasEvents, shouldRefetch]);
 
   return request;
 }
@@ -217,8 +211,17 @@ function OnboardingPanel({
               <Image src={emptyTraceImg} />
             </HeaderWrapper>
             <Divider />
+
             <Body>
               <Setup>{children}</Setup>
+              <Preview>
+                <BodyTitle>{t('Preview MCP Insights')}</BodyTitle>
+                <Arcade
+                  src="https://demo.arcade.software/dMIA7maXWbgcaAGP79ah?embed"
+                  loading="lazy"
+                  allowFullScreen
+                />
+              </Preview>
             </Body>
           </div>
         </AuthTokenGeneratorProvider>
@@ -432,6 +435,12 @@ const Body = styled('div')`
   }
 `;
 
+const BodyTitle = styled('div')`
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  margin-bottom: ${space(1)};
+`;
+
 const Image = styled('img')`
   display: block;
   pointer-events: none;
@@ -450,6 +459,18 @@ const Divider = styled('hr')`
   border: none;
   margin-top: 0;
   margin-bottom: 0;
+`;
+
+const Preview = styled('div')`
+  padding: ${space(4)};
+`;
+
+const Arcade = styled('iframe')`
+  width: 750px;
+  max-width: 100%;
+  margin-top: ${space(3)};
+  height: 522px;
+  border: 0;
 `;
 
 const CONTENT_SPACING = space(1);

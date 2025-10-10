@@ -5,7 +5,7 @@ import re
 from collections.abc import Callable, Generator, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, overload
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
@@ -206,9 +206,9 @@ sep                  = ":"
 negation             = "!"
 # Note: wildcard unicode is defined in src/sentry/search/events/constants.py
 wildcard_unicode     = "\uF00D"
-contains             = "contains"
-starts_with          = "starts with"
-ends_with            = "ends with"
+contains             = "Contains"
+starts_with          = "StartsWith"
+ends_with            = "EndsWith"
 comma                = ","
 spaces               = " "*
 
@@ -479,8 +479,10 @@ class SearchValue(NamedTuple):
     def value(self) -> Any:
         if self.use_raw_value:
             return self.raw_value
-        elif self.is_wildcard():
-            return translate_wildcard(cast(str, self.raw_value))
+        elif self.is_wildcard() and isinstance(self.raw_value, str):
+            return translate_wildcard(self.raw_value)
+        elif self.is_wildcard() and isinstance(self.raw_value, (list, tuple)):
+            return f"({"|".join(map(translate_wildcard, self.raw_value))})"
         elif isinstance(self.raw_value, str):
             return translate_escape_sequences(self.raw_value)
         return self.raw_value

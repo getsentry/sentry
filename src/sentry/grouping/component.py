@@ -6,7 +6,10 @@ from collections.abc import Generator, Iterator, Sequence
 from functools import cached_property
 from typing import Any
 
+import sentry_sdk
+
 from sentry.grouping.utils import hash_from_values
+from sentry.utils.env import in_test_environment
 
 # When a component ID appears here it has a human readable name which also
 # makes it a major component.  A major component is described as such for
@@ -14,7 +17,7 @@ from sentry.grouping.utils import hash_from_values
 KNOWN_MAJOR_COMPONENT_NAMES = {
     "app": "in-app",
     "exception": "exception",
-    "stacktrace": "stack-trace",
+    "stacktrace": "stacktrace",
     "threads": "thread",
     "hostname": "hostname",
     "violation": "violation",
@@ -73,6 +76,10 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
     def name(self) -> str | None:
         return KNOWN_MAJOR_COMPONENT_NAMES.get(self.id)
 
+    @property
+    def key(self) -> str:
+        return self.name or self.id
+
     @cached_property
     def description(self) -> str:
         """
@@ -112,14 +119,30 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         return self.name or self.id
 
     def get_subcomponent(
-        self, id: str, only_contributing: bool = False
-    ) -> str | int | BaseGroupingComponent[Any] | None:
-        """Looks up a subcomponent by the id and returns the first or `None`."""
-        return next(self.iter_subcomponents(id=id, only_contributing=only_contributing), None)
+        self, id: str, recursive: bool = False, only_contributing: bool = False
+    ) -> BaseGroupingComponent[Any] | None:
+        """
+        Looks up a subcomponent by id and returns the first instance found, or `None` if no
+        instances are found.
+
+        Unless `recursive=True` is passed, only direct children (the components in `self.values`)
+        are checked.
+
+        By default, any matching result will be returned. To filter out non-contributing components,
+        pass `only_contributing=True`. (Note that if a component has `contributes = True` but has a
+        non-contributing ancestor, the component is not considered contributing for purposes of this
+        method.)
+        """
+        return next(
+            self.iter_subcomponents(
+                id=id, recursive=recursive, only_contributing=only_contributing
+            ),
+            None,
+        )
 
     def iter_subcomponents(
         self, id: str, recursive: bool = False, only_contributing: bool = False
-    ) -> Iterator[str | int | BaseGroupingComponent[Any] | None]:
+    ) -> Iterator[BaseGroupingComponent[Any] | None]:
         """Finds all subcomponents matching an id, optionally recursively."""
         for value in self.values:
             if isinstance(value, BaseGroupingComponent):
@@ -145,6 +168,18 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         if values is not None:
             if contributes is None:
                 contributes = _calculate_contributes(values)
+
+            # Ensure components which wrap primitives only ever have one child
+            if len(values) > 0 and any(isinstance(value, (int, str)) for value in values):
+                try:
+                    assert (
+                        len(values) == 1
+                    ), f"Components which wrap primitives can wrap at most one value. Got {values}."
+                except AssertionError as e:
+                    if in_test_environment():
+                        raise
+                    sentry_sdk.capture_exception(e)
+
             self.values = values
         if contributes is not None:
             self.contributes = contributes
@@ -199,7 +234,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
 
 
 class ContextLineGroupingComponent(BaseGroupingComponent[str]):
-    id: str = "context-line"
+    id: str = "context_line"
 
 
 class ErrorTypeGroupingComponent(BaseGroupingComponent[str]):
@@ -233,10 +268,10 @@ class NSErrorCodeGroupingComponent(BaseGroupingComponent[int]):
 class NSErrorGroupingComponent(
     BaseGroupingComponent[NSErrorDomainGroupingComponent | NSErrorCodeGroupingComponent]
 ):
-    id: str = "ns-error"
+    id: str = "ns_error"
 
 
-FrameGroupingComponentChildren = (
+FrameGroupingComponentChild = (
     ContextLineGroupingComponent
     | FilenameGroupingComponent
     | FunctionGroupingComponent
@@ -244,13 +279,13 @@ FrameGroupingComponentChildren = (
 )
 
 
-class FrameGroupingComponent(BaseGroupingComponent[FrameGroupingComponentChildren]):
+class FrameGroupingComponent(BaseGroupingComponent[FrameGroupingComponentChild]):
     id: str = "frame"
     in_app: bool
 
     def __init__(
         self,
-        values: Sequence[FrameGroupingComponentChildren],
+        values: Sequence[FrameGroupingComponentChild],
         in_app: bool,
         hint: str | None = None,
         contributes: bool | None = None,
@@ -310,6 +345,41 @@ class StacktraceGroupingComponent(BaseGroupingComponent[FrameGroupingComponent])
         return result
 
 
+def _get_exception_component_key(
+    component: ExceptionGroupingComponent | ChainedExceptionGroupingComponent,
+) -> str:
+    key = component.id
+
+    contributing_stacktrace = component.get_subcomponent(
+        "stacktrace", recursive=True, only_contributing=True
+    )
+    contributing_error_message = component.get_subcomponent(
+        "value", recursive=True, only_contributing=True
+    )
+    contributing_error_type = component.get_subcomponent(
+        "type", recursive=True, only_contributing=True
+    )
+    contributing_ns_error = component.get_subcomponent(
+        "ns_error", recursive=True, only_contributing=True
+    )
+
+    # The ordering here reflects the precedence order of grouping methods, plus what counts as the
+    # "main" method in cases where multiple components contribute. (For example, when we group on
+    # stacktrace or message, the error type technically does contribute to grouping as well, but in
+    # an explaining-it-to-humans sense, it's clearer - and close enough, given how infrequently type
+    # is the only differentiator between two events - to just say we're grouping on stacktrace.)
+    if contributing_stacktrace:
+        key += "_stacktrace"
+    elif contributing_error_message:
+        key += "_message"
+    elif contributing_ns_error:
+        key = key.replace("exception", "ns_error")
+    elif contributing_error_type:
+        key += "_type"
+
+    return key
+
+
 ExceptionGroupingComponentChildren = (
     ErrorTypeGroupingComponent
     | ErrorValueGroupingComponent
@@ -332,9 +402,13 @@ class ExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponen
         super().__init__(hint=hint, contributes=contributes, values=values)
         self.frame_counts = frame_counts or Counter()
 
+    @property
+    def key(self) -> str:
+        return _get_exception_component_key(self)
+
 
 class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponent]):
-    id: str = "chained-exception"
+    id: str = "chained_exception"
     frame_counts: Counter[str]
     reverse_when_serializing: bool = False
 
@@ -356,9 +430,14 @@ class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingC
 
         return result
 
+    @property
+    def key(self) -> str:
+        return _get_exception_component_key(self)
+
 
 class ThreadsGroupingComponent(BaseGroupingComponent[StacktraceGroupingComponent]):
     id: str = "threads"
+    key: str = "thread_stacktrace"
     frame_counts: Counter[str]
 
     def __init__(
@@ -377,17 +456,30 @@ class CSPGroupingComponent(
 ):
     id: str = "csp"
 
+    @property
+    def key(self) -> str:
+        key = "csp"
+        local_script_violation = self.get_subcomponent("violation")
+        url = self.get_subcomponent("uri")
+
+        if local_script_violation and local_script_violation.contributes:
+            key += "_local_script_violation"
+        elif url and url.contributes:
+            key += "_url"
+
+        return key
+
 
 class ExpectCTGroupingComponent(
     BaseGroupingComponent[HostnameGroupingComponent | SaltGroupingComponent]
 ):
-    id: str = "expect-ct"
+    id: str = "expect_ct"
 
 
 class ExpectStapleGroupingComponent(
     BaseGroupingComponent[HostnameGroupingComponent | SaltGroupingComponent]
 ):
-    id: str = "expect-staple"
+    id: str = "expect_staple"
 
 
 class HPKPGroupingComponent(
@@ -402,44 +494,6 @@ class TemplateGroupingComponent(
     id: str = "template"
 
 
-# Wrapper components used to link component trees to variants
-
-
-class DefaultGroupingComponent(
-    BaseGroupingComponent[
-        CSPGroupingComponent
-        | ExpectCTGroupingComponent
-        | ExpectStapleGroupingComponent
-        | HPKPGroupingComponent
-        | MessageGroupingComponent
-        | TemplateGroupingComponent
-    ]
-):
-    id: str = "default"
-
-
-class AppGroupingComponent(
-    BaseGroupingComponent[
-        ChainedExceptionGroupingComponent
-        | ExceptionGroupingComponent
-        | StacktraceGroupingComponent
-        | ThreadsGroupingComponent
-    ]
-):
-    id: str = "app"
-
-
-class SystemGroupingComponent(
-    BaseGroupingComponent[
-        ChainedExceptionGroupingComponent
-        | ExceptionGroupingComponent
-        | StacktraceGroupingComponent
-        | ThreadsGroupingComponent
-    ]
-):
-    id: str = "system"
-
-
 ContributingComponent = (
     ChainedExceptionGroupingComponent
     | ExceptionGroupingComponent
@@ -452,3 +506,42 @@ ContributingComponent = (
     | MessageGroupingComponent
     | TemplateGroupingComponent
 )
+
+
+# Wrapper component used to link component trees to variants
+class RootGroupingComponent(BaseGroupingComponent[ContributingComponent]):
+
+    def __init__(
+        self,
+        variant_name: str,
+        hint: str | None = None,
+        contributes: bool | None = None,
+        values: Sequence[ContributingComponent] | None = None,
+    ):
+        super().__init__(hint, contributes, values)
+        self.variant_name = variant_name
+
+    @property
+    def id(self) -> str:
+        return self.variant_name
+
+    @property
+    def key(self) -> str:
+        variant_name = self.variant_name
+
+        if not self.values:  # Insurance - shouldn't ever happen
+            return variant_name
+
+        # Variant root components which don't contribute won't have any contributing children, but
+        # we can find the component which would be the contributing component, were the root
+        # component itself contributing. Strategies are run in descending order of priority, and
+        # added into `values` in order, so the highest-priority option will always be first.
+        would_be_contributing_component = self.values[0]
+
+        return would_be_contributing_component.key
+
+    def __repr__(self) -> str:
+        base_repr = super().__repr__()
+        # Fake the class name so that instead of showing as `RootGroupingComponent` in the repr it
+        # shows as `AppGroupingComponent`/`SystemGroupingComponent`/`DefaultGroupingComponent`
+        return base_repr.replace("Root", self.id.title())

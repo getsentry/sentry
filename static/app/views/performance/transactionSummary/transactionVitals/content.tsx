@@ -116,8 +116,7 @@ function VitalsContent(props: Props) {
                         });
                         handleFilterChange(opt.value);
                       }}
-                      triggerProps={{prefix: t('Outliers')}}
-                      triggerLabel={activeFilter.label}
+                      triggerProps={{prefix: t('Outliers'), children: activeFilter.label}}
                     />
                     <Button
                       onClick={() => {
@@ -134,7 +133,6 @@ function VitalsContent(props: Props) {
                     </Button>
                   </FilterActions>
                   <VitalsPanel
-                    theme={theme}
                     organization={organization}
                     location={location}
                     eventView={eventView}

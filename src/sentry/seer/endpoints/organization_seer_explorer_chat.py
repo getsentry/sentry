@@ -13,6 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -34,14 +35,21 @@ class SeerExplorerChatSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Optional timestamp for the message.",
     )
+    on_page_context = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="Optional context from the user's screen.",
+    )
 
 
 def _call_seer_explorer_chat(
+    *,
     organization: Organization,
     run_id: int | None,
     query: str,
     insert_index: int | None = None,
     message_timestamp: float | None = None,
+    on_page_context: str | None = None,
 ):
     """Call Seer explorer chat endpoint."""
     path = "/v1/automation/explorer/chat"
@@ -52,6 +60,7 @@ def _call_seer_explorer_chat(
             "query": query,
             "insert_index": insert_index,
             "message_timestamp": message_timestamp,
+            "on_page_context": on_page_context,
         },
         option=orjson.OPT_NON_STR_KEYS,
     )
@@ -108,18 +117,20 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
-    rate_limits = {
-        "POST": {
-            RateLimitCategory.IP: RateLimit(limit=25, window=60),
-            RateLimitCategory.USER: RateLimit(limit=25, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60 * 60),
-        },
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=100, window=60),
-            RateLimitCategory.USER: RateLimit(limit=100, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=1000, window=60),
-        },
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.IP: RateLimit(limit=25, window=60),
+                RateLimitCategory.USER: RateLimit(limit=25, window=60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60 * 60),
+            },
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=100, window=60),
+                RateLimitCategory.USER: RateLimit(limit=100, window=60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=1000, window=60),
+            },
+        }
+    )
     permission_classes = (OrganizationSeerExplorerChatPermission,)
 
     def get(
@@ -140,6 +151,13 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         if not get_seer_org_acknowledgement(organization.id):
             return Response(
                 {"detail": "Seer has not been acknowledged by the organization."}, status=403
+            )
+        if not organization.flags.allow_joinleave:
+            return Response(
+                {
+                    "detail": "Organization does not have open team membership enabled. Seer requires this to aggregate context across all projects and allow members to ask questions freely."
+                },
+                status=403,
             )
 
         if not run_id:
@@ -175,6 +193,13 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             return Response(
                 {"detail": "Seer has not been acknowledged by the organization."}, status=403
             )
+        if not organization.flags.allow_joinleave:
+            return Response(
+                {
+                    "detail": "Organization does not have open team membership enabled. Seer requires this to aggregate context across all projects and allow members to ask questions freely."
+                },
+                status=403,
+            )
 
         serializer = SeerExplorerChatSerializer(data=request.data)
         if not serializer.is_valid():
@@ -184,8 +209,14 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         query = validated_data["query"]
         insert_index = validated_data.get("insert_index")
         message_timestamp = validated_data.get("message_timestamp")
+        on_page_context = validated_data.get("on_page_context")
 
         response_data = _call_seer_explorer_chat(
-            organization, run_id, query, insert_index, message_timestamp
+            organization=organization,
+            run_id=run_id,
+            query=query,
+            insert_index=insert_index,
+            message_timestamp=message_timestamp,
+            on_page_context=on_page_context,
         )
         return Response(response_data)

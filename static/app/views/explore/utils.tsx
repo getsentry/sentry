@@ -267,14 +267,14 @@ export function generateTargetQuery({
   sorts,
   yAxes,
 }: {
-  fields: string[];
+  fields: readonly string[];
   groupBys: readonly string[];
   location: Location;
   // needed to generate targets when `project` is in the group by
   projects: Project[];
   row: Record<string, any>;
   search: MutableSearch;
-  sorts: Sort[];
+  sorts: readonly Sort[];
   yAxes: string[];
 }) {
   search = search.copy();
@@ -365,14 +365,14 @@ export function viewSamplesTarget({
   row,
   projects,
 }: {
-  fields: string[];
+  fields: readonly string[];
   groupBys: readonly string[];
   location: Location;
   // needed to generate targets when `project` is in the group by
   projects: Project[];
   query: string;
   row: Record<string, any>;
-  sorts: Sort[];
+  sorts: readonly Sort[];
   visualizes: readonly Visualize[];
 }) {
   const search = new MutableSearch(query);
@@ -745,6 +745,7 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.LOGS]: getLogsUrlFromSavedQueryUrl,
   [TraceItemDataset.SPANS]: getExploreUrlFromSavedQueryUrl,
   [TraceItemDataset.UPTIME_RESULTS]: undefined,
+  [TraceItemDataset.TRACEMETRICS]: undefined,
 };
 
 /**

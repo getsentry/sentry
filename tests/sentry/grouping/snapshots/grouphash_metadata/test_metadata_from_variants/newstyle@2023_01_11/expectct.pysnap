@@ -1,12 +1,12 @@
 ---
-created: '2024-12-17T22:50:31.761139+00:00'
+created: '2025-10-07T20:42:04.094722+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: violation
 hashing_metadata: {
   "blocked_host": "example.com",
-  "security_report_type": "expect-ct"
+  "security_report_type": "expect_ct"
 }
 ---
 metrics with tags: {
@@ -15,17 +15,18 @@ metrics with tags: {
     "is_hybrid_fingerprint": "False"
   },
   "grouping.grouphashmetadata.event_hashing_metadata.violation": {
-    "security_report_type": "expect-ct"
+    "security_report_type": "expect_ct"
   }
 }
 ---
 contributing variants:
   default*
     hash: "3d2933f4b5ec459ec8d569a398fd328c"
-    contributing component: expect-ct
-    component:
+    contributing component: expect_ct
+    hint: None
+    root_component:
       default*
-        expect-ct*
+        expect_ct*
           salt* (a static salt)
             "expect-ct"
           hostname*

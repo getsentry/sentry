@@ -61,7 +61,16 @@ export function EditDetectorAction({detector}: {detector: Detector}) {
 
   const permissionTooltipText = tct(
     'You do not have permission to edit this monitor. Ask your organization owner or manager to [settingsLink:enable monitor access] for you.',
-    {settingsLink: <Link to={`/settings/${organization.slug}/#alertsMemberWrite`} />}
+    {
+      settingsLink: (
+        <Link
+          to={{
+            pathname: `/settings/${organization.slug}/`,
+            hash: 'alertsMemberWrite',
+          }}
+        />
+      ),
+    }
   );
 
   return (

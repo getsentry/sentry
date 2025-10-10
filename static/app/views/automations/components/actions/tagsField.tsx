@@ -8,7 +8,7 @@ export function TagsField() {
     <AutomationBuilderInput
       name={`${actionId}.data.tags`}
       aria-label={t('Tags')}
-      placeholder={t('example tags')}
+      placeholder={t('e.g., environment,my_tag')}
       value={action.data.tags}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({

@@ -36,6 +36,7 @@ export type Incident = {
   activities?: ActivityType[];
 };
 
+/** @internal exported for tests */
 export type IncidentStats = {
   eventStats: {
     data: Data;

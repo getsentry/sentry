@@ -1,10 +1,10 @@
 ---
-created: '2025-09-08T19:48:07.617596+00:00'
+created: '2025-10-06T21:57:35.718556+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -21,7 +21,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": false,
@@ -331,12 +331,14 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
-    "description": "in-app exception stack-trace",
+    "contributes": true,
+    "description": "exception stacktrace — in-app frames",
     "hash": "a12d579fed7636c2a5d2fae110c95ce5",
-    "key": "app",
+    "hint": null,
+    "key": "app_exception_stacktrace",
     "type": "component"
   },
-  "system": {
+  "system_exception_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -353,7 +355,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": true,
@@ -663,9 +665,11 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
-    "description": "exception stack-trace",
+    "contributes": true,
+    "description": "exception stacktrace — all frames",
     "hash": "c0dbeebf0430b3310ad1f7ceb48553a6",
-    "key": "system",
+    "hint": null,
+    "key": "system_exception_stacktrace",
     "type": "component"
   }
 }

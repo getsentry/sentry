@@ -1,6 +1,7 @@
 from fixtures.page_objects.organization_integration_settings import (
     OrganizationSentryAppDetailViewPage,
 )
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
@@ -49,6 +50,10 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
 
         detail_view_page.uninstall()
         self.browser.wait_until('[data-test-id="toast-success"]')
+
+        with self.tasks():
+            run_scheduled_deletions_control()
+
         assert not SentryAppInstallation.objects.filter(
             organization_id=self.organization.id, sentry_app=self.sentry_app
         )

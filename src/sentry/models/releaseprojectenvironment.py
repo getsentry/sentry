@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import Enum
+from typing import TypedDict
 
 from django.db import models
 from django.utils import timezone
@@ -105,12 +106,22 @@ class ReleaseProjectEnvironment(Model):
         return instance
 
     @property
-    def adoption_stages(self):
-        if self.adopted is not None and self.unadopted is None:
-            stage = ReleaseStages.ADOPTED
-        elif self.adopted is not None and self.unadopted is not None:
-            stage = ReleaseStages.REPLACED
-        else:
-            stage = ReleaseStages.LOW_ADOPTION
+    def adoption_stages(self) -> AdoptionStage:
+        return adoption_stage(self.adopted, self.unadopted)
 
-        return {"stage": stage, "adopted": self.adopted, "unadopted": self.unadopted}
+
+class AdoptionStage(TypedDict):
+    stage: ReleaseStages
+    adopted: datetime | None
+    unadopted: datetime | None
+
+
+def adoption_stage(adopted: datetime | None, unadopted: datetime | None) -> AdoptionStage:
+    if adopted is not None and unadopted is None:
+        stage = ReleaseStages.ADOPTED
+    elif adopted is not None and unadopted is not None:
+        stage = ReleaseStages.REPLACED
+    else:
+        stage = ReleaseStages.LOW_ADOPTION
+
+    return {"stage": stage, "adopted": adopted, "unadopted": unadopted}

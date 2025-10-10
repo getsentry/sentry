@@ -52,9 +52,11 @@ from sentry.testutils.silo import assume_test_silo_mode
 # on a per-class method basis
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
-from sentry.uptime.models import UptimeStatus, UptimeSubscription, UptimeSubscriptionRegion
+from sentry.uptime.models import UptimeSubscription, UptimeSubscriptionRegion
 from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
+    DEFAULT_DOWNTIME_THRESHOLD,
+    DEFAULT_RECOVERY_THRESHOLD,
     GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
     UptimeMonitorMode,
 )
@@ -353,6 +355,11 @@ class Fixtures:
 
     def create_file(self, **kwargs):
         return Factories.create_file(**kwargs)
+
+    def create_data_forwarder(self, organization=None, *args, **kwargs):
+        if organization is None:
+            organization = self.organization
+        return Factories.create_data_forwarder(organization, *args, **kwargs)
 
     def create_file_from_path(self, *args, **kwargs):
         return Factories.create_file_from_path(*args, **kwargs)
@@ -756,8 +763,6 @@ class Fixtures:
         date_updated: None | datetime = None,
         trace_sampling: bool = False,
         region_slugs: list[str] | None = None,
-        uptime_status=UptimeStatus.OK,
-        uptime_status_update_date: datetime | None = None,
     ) -> UptimeSubscription:
         if date_updated is None:
             date_updated = timezone.now()
@@ -765,8 +770,6 @@ class Fixtures:
             headers = []
         if region_slugs is None:
             region_slugs = []
-        if uptime_status_update_date is None:
-            uptime_status_update_date = timezone.now()
 
         subscription = Factories.create_uptime_subscription(
             type=type,
@@ -784,8 +787,6 @@ class Fixtures:
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
-            uptime_status=uptime_status,
-            uptime_status_update_date=uptime_status_update_date,
         )
         for region_slug in region_slugs:
             self.create_uptime_subscription_region(subscription, region_slug)
@@ -806,12 +807,14 @@ class Fixtures:
         env: Environment | None = None,
         uptime_subscription: UptimeSubscription | None = None,
         status: int = ObjectStatus.ACTIVE,
+        enabled: bool = True,
         mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
         name: str | None = None,
         owner: User | Team | None = None,
-        uptime_status=UptimeStatus.OK,
-        uptime_status_update_date: datetime | None = None,
         id: int | None = None,
+        recovery_threshold: int = DEFAULT_RECOVERY_THRESHOLD,
+        downtime_threshold: int = DEFAULT_DOWNTIME_THRESHOLD,
+        detector_state: DetectorPriorityLevel = DetectorPriorityLevel.OK,
     ) -> Detector:
         if project is None:
             project = self.project
@@ -828,10 +831,7 @@ class Fixtures:
                 owner_user_id = actor.id
 
         if uptime_subscription is None:
-            uptime_subscription = self.create_uptime_subscription(
-                uptime_status=uptime_status,
-                uptime_status_update_date=uptime_status_update_date,
-            )
+            uptime_subscription = self.create_uptime_subscription()
 
         data_source = Factories.create_data_source(
             type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
@@ -860,11 +860,14 @@ class Fixtures:
             project=project,
             name=name,
             status=status,
+            enabled=enabled,
             owner_user_id=owner_user_id,
             owner_team_id=owner_team_id,
             config={
                 "environment": env_name,
                 "mode": mode,
+                "recovery_threshold": recovery_threshold,
+                "downtime_threshold": downtime_threshold,
             },
             workflow_condition_group=condition_group,
         )
@@ -873,31 +876,12 @@ class Fixtures:
             detector=detector,
         )
 
-        # Create DetectorState based on the uptime_status from the uptime_subscription
-        if uptime_subscription.uptime_status == UptimeStatus.FAILED:
-            Factories.create_detector_state(
-                detector=detector,
-                state=DetectorPriorityLevel.HIGH,
-                is_triggered=True,
-            )
-        else:
-            Factories.create_detector_state(
-                detector=detector,
-                state=DetectorPriorityLevel.OK,
-                is_triggered=False,
-            )
-
-        # TODO(epurkhiser): Dual create a ProjectUptimeSubscription as well,
-        # can be removed once we completely remove ProjectUptimeSubscription
-        Factories.create_project_uptime_subscription(
-            project,
-            env,
-            uptime_subscription,
-            status,
-            mode,
-            name,
-            Actor.from_object(owner) if owner else None,
-            id,
+        # Create DetectorState with the provided state
+        # Infer is_triggered based on whether state is HIGH
+        Factories.create_detector_state(
+            detector=detector,
+            state=detector_state,
+            is_triggered=detector_state == DetectorPriorityLevel.HIGH,
         )
 
         return detector
