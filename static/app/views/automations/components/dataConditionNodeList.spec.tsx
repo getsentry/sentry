@@ -47,6 +47,7 @@ describe('DataConditionNodeList', () => {
     onDeleteRow: mockOnDeleteRow,
     placeholder: 'Any event',
     updateCondition: mockUpdateCondition,
+    label: 'Add condition',
   };
   const defaultConflictContextProps = {
     conflictingConditionGroups: {},

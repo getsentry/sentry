@@ -26,6 +26,7 @@ interface DataConditionNodeListProps {
   conditions: DataCondition[];
   groupId: string;
   handlerGroup: DataConditionHandlerGroupType;
+  label: string;
   onAddRow: (type: DataConditionType) => void;
   onDeleteRow: (id: string) => void;
   placeholder: string;
@@ -41,6 +42,7 @@ export default function DataConditionNodeList({
   handlerGroup,
   groupId,
   placeholder,
+  label,
   conditions,
   onAddRow,
   onDeleteRow,
@@ -166,7 +168,7 @@ export default function DataConditionNodeList({
         }}
         placeholder={placeholder}
         value={null}
-        aria-label={t('Add condition')}
+        aria-label={label}
       />
     </Fragment>
   );

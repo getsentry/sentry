@@ -153,7 +153,7 @@ function ComparisonTypeField() {
       <AutomationBuilderSelect
         name={`${subfilter_id}.type`}
         aria-label={t('Comparison type')}
-        value={subfilter.type}
+        value={subfilter.type ?? ''}
         placeholder={t('Select value type')}
         options={[
           {
@@ -200,7 +200,7 @@ function AttributeField() {
       name={`${subfilter_id}.attribute`}
       aria-label={t('Attribute')}
       placeholder={t('Select attribute')}
-      value={subfilter.attribute}
+      value={subfilter.attribute ?? ''}
       options={Object.values(Attributes).map(attribute => ({
         value: attribute,
         label: attribute,
@@ -219,7 +219,7 @@ function KeyField() {
       name={`${subfilter_id}.key`}
       aria-label={t('Tag')}
       placeholder={t('tag')}
-      value={subfilter.key}
+      value={subfilter.key ?? ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({...subfilter, key: e.target.value});
         removeError();
@@ -234,7 +234,7 @@ function MatchField() {
     <AutomationBuilderSelect
       name={`${subfilter_id}.match`}
       aria-label={t('Match type')}
-      value={subfilter.match}
+      value={subfilter.match ?? ''}
       options={[
         {
           label: 'is',
@@ -259,7 +259,7 @@ function ValueField() {
       name={`${subfilter_id}.value`}
       aria-label={t('Value')}
       placeholder={t('value')}
-      value={`${subfilter.value}`}
+      value={`${subfilter.value ?? ''}`}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({...subfilter, value: e.target.value});
         removeError();
