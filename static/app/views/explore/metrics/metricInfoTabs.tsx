@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
@@ -76,11 +77,22 @@ function TelemetryBubble({
   );
 }
 
-function SampleRowComponent({sample, isHovered}: {sample: SampleRow; isHovered?: boolean}) {
+function SampleRowComponent({
+  sample,
+  isHovered,
+}: {
+  sample: SampleRow;
+  isHovered?: boolean;
+}) {
   const timestamp = new Date(sample.timestamp).toLocaleTimeString();
+  const theme = useTheme();
 
   return (
-    <SimpleTable.Row style={isHovered ? {backgroundColor: 'var(--color-background-secondary)'} : undefined}>
+    <SimpleTable.Row
+      style={
+        isHovered ? {backgroundColor: theme.backgroundSecondary} : undefined
+      }
+    >
       <SimpleTable.RowCell>
         <Text size="sm" variant="muted">
           {timestamp}
