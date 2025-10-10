@@ -89,7 +89,7 @@ export const Grid = styled(Container, {
     return !omitGridProps.has(prop as any);
   },
 })<GridProps<any>>`
-  ${p => rc('display', p.display, p.theme)};
+  ${p => rc('display', p.display ?? 'grid', p.theme, v => v ?? 'grid')}
 
   ${p => rc('gap', p.gap, p.theme, getSpacing)};
 
