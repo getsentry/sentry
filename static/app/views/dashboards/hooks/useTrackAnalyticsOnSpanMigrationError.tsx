@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DatasetSource} from 'sentry/utils/discover/types';
@@ -10,6 +11,8 @@ interface UseTrackAnalyticsOnErrorProps {
   widget: Widget;
   errorMessage?: string;
 }
+
+const {info, fmt} = Sentry.logger;
 
 export function useTrackAnalyticsOnSpanMigrationError({
   errorMessage,
@@ -39,6 +42,16 @@ export function useTrackAnalyticsOnSpanMigrationError({
       dashboard_id: widget.dashboardId,
       error_message: errorMessage,
     });
+
+    info(
+      fmt`dashboards2.span_migration.results_check:
+      organization: ${organization.slug}
+      widgetId: ${widget.id},
+      dashboardId: ${widget.dashboardId},
+      errorMessage: ${errorMessage},
+    `
+    );
+
     return;
   }, [
     errorMessage,
