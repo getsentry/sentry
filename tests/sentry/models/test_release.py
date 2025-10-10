@@ -444,6 +444,90 @@ class SetCommitsTestCase(TestCase):
         release.set_commits([{"id": "b" * 40, "repository": repo.name, "message": "new message"}])
         assert mock_update.call_count == 1
 
+    def test_multiple_projects_same_release_commits_preserved(self) -> None:
+        """
+        Test that when setting commits for a release from multiple repositories,
+        all commits are preserved (not just the latest repository's commits).
+        """
+        org = self.create_organization(owner=Factories.create_user())
+        frontend_project = self.create_project(organization=org, name="frontend")
+        backend_project = self.create_project(organization=org, name="backend")
+
+        frontend_repo = Repository.objects.create(organization_id=org.id, name="frontend-repo")
+        backend_repo = Repository.objects.create(organization_id=org.id, name="backend-repo")
+
+        release = Release.objects.create(version="app@1.0.0", organization=org)
+        release.add_project(frontend_project)
+        release.add_project(backend_project)
+
+        # add 2 commits from frontend repo
+        frontend_commits = [
+            {
+                "id": "frontend_commit_1",
+                "repository": frontend_repo.name,
+                "message": "Fix frontend bug",
+            },
+            {
+                "id": "frontend_commit_2",
+                "repository": frontend_repo.name,
+                "message": "Update frontend UI",
+            },
+        ]
+        release.set_commits(frontend_commits)
+
+        frontend_commits_count = ReleaseCommit.objects.filter(
+            release=release, commit__repository_id=frontend_repo.id
+        ).count()
+        assert frontend_commits_count == 2
+
+        # should add 2 commits from backend repo to existing 2 commits
+        backend_commits = [
+            {
+                "id": "backend_commit_1",
+                "repository": backend_repo.name,
+                "message": "Fix backend API",
+            },
+            {
+                "id": "backend_commit_2",
+                "repository": backend_repo.name,
+                "message": "Update backend logic",
+            },
+        ]
+        release.set_commits(backend_commits)
+
+        backend_commits_count = ReleaseCommit.objects.filter(
+            release=release, commit__repository_id=backend_repo.id
+        ).count()
+        assert backend_commits_count == 2
+        frontend_commits_count = ReleaseCommit.objects.filter(
+            release=release, commit__repository_id=frontend_repo.id
+        ).count()
+        assert frontend_commits_count == 2
+        total_commits = ReleaseCommit.objects.filter(release=release).count()
+        assert total_commits == 4
+
+        # should overwrite only the commits in the frontend repo
+        release.set_commits(
+            [
+                {
+                    "id": "frontend_commit_3",
+                    "repository": frontend_repo.name,
+                    "message": "Update frontend UI",
+                }
+            ]
+        )
+
+        frontend_commits_count = ReleaseCommit.objects.filter(
+            release=release, commit__repository_id=frontend_repo.id
+        ).count()
+        assert frontend_commits_count == 1
+        backend_commits_count = ReleaseCommit.objects.filter(
+            release=release, commit__repository_id=backend_repo.id
+        ).count()
+        assert backend_commits_count == 2
+        total_commits = ReleaseCommit.objects.filter(release=release).count()
+        assert total_commits == 3
+
     @receivers_raise_on_send()
     def test_resolution_support_full_featured(self) -> None:
         org = self.create_organization(owner=self.user)
