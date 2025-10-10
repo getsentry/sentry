@@ -69,6 +69,7 @@ from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profi
 from sentry.seer.explorer.index_data import (
     rpc_get_issues_for_transaction,
     rpc_get_profiles_for_trace,
+    rpc_get_trace_details,
     rpc_get_trace_for_transaction,
     rpc_get_transactions_for_project,
 )
@@ -1016,6 +1017,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_trace_for_transaction": rpc_get_trace_for_transaction,
     "get_profiles_for_trace": rpc_get_profiles_for_trace,
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
+    "get_trace_details": rpc_get_trace_details,
     "execute_trace_query_chart": execute_trace_query_chart,
     "execute_trace_query_table": execute_trace_query_table,
     #
