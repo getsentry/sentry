@@ -1,12 +1,17 @@
 import logging
+from collections import defaultdict
 from typing import Final
 
+from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.types import (
     NotificationData,
+    NotificationProviderKey,
     NotificationStrategy,
     NotificationTarget,
+    NotificationTemplate,
 )
+from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
 
@@ -19,12 +24,27 @@ class NotificationService[T: NotificationData]:
     def __init__(self, *, data: T):
         self.data: Final[T] = data
 
-    # TODO(ecosystem): Eventually this should be converted to spawn a task with the business logic below
+    def _get_and_validate_provider(
+        self, target: NotificationTarget
+    ) -> type[NotificationProvider[T]]:
+        provider = provider_registry.get(target.provider_key)
+        provider.validate_target(target=target)
+        return provider
+
+    def _render_template[RenderableT](
+        self, template: NotificationTemplate[T], provider: type[NotificationProvider[RenderableT]]
+    ) -> RenderableT:
+        rendered_template = template.render(data=self.data)
+        renderer = provider.get_renderer(data=self.data, category=template.category)
+        return renderer.render(data=self.data, rendered_template=rendered_template)
+
     def notify_target(self, *, target: NotificationTarget) -> None:
         """
-        Send a notification directly to a target.
+        Send a notification directly to a target synchronously.
         NOTE: This method ignores notification settings. When possible, consider using a strategy instead of
-        using this method directly to prevent unwanted noise associated with your notifications.
+              using this method directly to prevent unwanted noise associated with your notifications.
+        NOTE: Use this method when you care about the notification sending result and delivering that back to the user.
+              Otherwise, we generally reccomend using the async version.
         """
         if not self.data:
             raise NotificationServiceError(
@@ -32,15 +52,12 @@ class NotificationService[T: NotificationData]:
             )
 
         # Step 1: Get the provider, and validate the target against it
-        provider = provider_registry.get(target.provider_key)
-        provider.validate_target(target=target)
+        provider = self._get_and_validate_provider(target=target)
 
         # Step 2: Render the template
         template_cls = template_registry.get(self.data.source)
         template = template_cls()
-        rendered_template = template.render(data=self.data)
-        renderer = provider.get_renderer(data=self.data, category=template.category)
-        renderable = renderer.render(data=self.data, rendered_template=rendered_template)
+        renderable = self._render_template(template=template, provider=provider)
 
         # Step 3: Send the notification
         provider.send(target=target, renderable=renderable)
@@ -50,7 +67,7 @@ class NotificationService[T: NotificationData]:
         *,
         strategy: NotificationStrategy | None = None,
         targets: list[NotificationTarget] | None = None,
-    ) -> None:
+    ) -> None | dict[NotificationProviderKey, list[ApiError]]:
         if not strategy and not targets:
             raise NotificationServiceError(
                 "Must provide either a strategy or targets. Strategy is preferred."
@@ -65,5 +82,12 @@ class NotificationService[T: NotificationData]:
             logger.info("Strategy '%s' did not yield targets", strategy.__class__.__name__)
             return
 
+        errors = defaultdict(list)
         for target in targets:
-            self.notify_target(target=target)
+            try:
+                self.notify_target(target=target)
+            except ApiError as e:
+                errors[target.provider_key].append(e.text)
+
+        if errors:
+            return errors
