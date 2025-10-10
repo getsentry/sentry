@@ -242,6 +242,9 @@ from sentry.integrations.api.endpoints.organization_coding_agents import (
 from sentry.integrations.api.endpoints.organization_config_integrations import (
     OrganizationConfigIntegrationsEndpoint,
 )
+from sentry.integrations.api.endpoints.organization_integration_channels import (
+    OrganizationIntegrationChannelsEndpoint,
+)
 from sentry.integrations.api.endpoints.organization_integration_details import (
     OrganizationIntegrationDetailsEndpoint,
 )
@@ -1878,6 +1881,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/repos/$",
         OrganizationIntegrationReposEndpoint.as_view(),
         name="sentry-api-0-organization-integration-repos",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/channels/$",
+        OrganizationIntegrationChannelsEndpoint.as_view(),
+        name="sentry-api-0-organization-integration-channels",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/issues/$",
