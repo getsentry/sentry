@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from unittest import mock
 
 from selenium.webdriver.common.by import By
 
@@ -43,6 +44,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         )
         return event
 
+    @mock.patch("sentry.api.helpers.group_index.update.update_group_open_period")
     def test_resolve_basic(self) -> None:
         event = self.create_sample_event(platform="python")
         assert event.group is not None

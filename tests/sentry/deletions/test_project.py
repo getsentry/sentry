@@ -72,7 +72,7 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             type=ActivityType.SET_RESOLVED.value,
             user_id=self.user.id,
         )
-        open_period = GroupOpenPeriod.objects.create(
+        open_period = GroupOpenPeriod.objects.get(
             group=group,
             project=project,
         )
