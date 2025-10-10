@@ -1,7 +1,8 @@
-import type {BadgeProps} from 'sentry/components/core/badge';
 import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme.chonk';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
+
+import type {BadgeProps} from './badge';
 
 type FeatureBadgeType = 'alpha' | 'beta' | 'new' | 'experimental';
 interface ChonkBadgeProps extends Omit<BadgeProps, 'type'> {

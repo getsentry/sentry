@@ -1,6 +1,6 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {TabList, TabPanels, Tabs} from '.';
+import {TabList, TabPanels, Tabs} from './tabs';
 
 const TABS = [
   {key: 'details', label: 'Details', content: 'So by colonel hearted ferrars.'},

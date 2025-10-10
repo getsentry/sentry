@@ -18,12 +18,12 @@ import {space} from 'sentry/styles/space';
 import {isChonkTheme, withChonk} from 'sentry/utils/theme/withChonk';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import {TabsContext} from './index';
 import type {TabListItemProps} from './item';
 import {TabListItem} from './item';
 import {Tab} from './tab';
 import type {BaseTabProps} from './tab.chonk';
 import {ChonkStyledTabListOverflowWrap, ChonkStyledTabListWrap} from './tabList.chonk';
+import {TabsContext} from './tabs';
 import {tabsShouldForwardProp} from './utils';
 
 /**

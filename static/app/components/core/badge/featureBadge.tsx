@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
-import {Badge, type BadgeProps} from 'sentry/components/core/badge';
 import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
+
+import {Badge, type BadgeProps} from './badge';
 
 const defaultTitles: Record<FeatureBadgeProps['type'], string> = {
   alpha: t('This feature is internal and available for QA purposes'),
