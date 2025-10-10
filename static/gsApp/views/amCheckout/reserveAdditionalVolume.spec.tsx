@@ -8,7 +8,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {MONTHLY} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
+import {PlanTier, type Subscription} from 'getsentry/types';
 import ReserveAdditionalVolume from 'getsentry/views/amCheckout/reserveAdditionalVolume';
 
 type SliderInfo = {
@@ -201,26 +201,17 @@ describe('ReserveAdditionalVolume', () => {
       const transactions = screen.getByTestId('transactions-volume-item').textContent;
       expect(transactions).not.toContain('Sentry Performance');
     });
-
-    it('can hide sliders', async () => {
-      render(<ReserveAdditionalVolume {...stepProps} />);
-      await openSection();
-      expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
-      await closeSection();
-      expect(screen.queryByTestId('errors-volume-item')).not.toBeInTheDocument();
-    });
   });
 
   describe('Modern Plans', () => {
     const {organization} = initializeOrg();
-    const subscription = SubscriptionFixture({organization});
+    let subscription: Subscription;
 
     const billingConfig = BillingConfigFixture(PlanTier.AM3);
     const bizPlanMonthly = PlanDetailsLookupFixture('am3_business')!;
 
-    const stepProps = {
+    const stepProps: any = {
       checkoutTier: PlanTier.AM3,
-      subscription,
       isActive: true,
       stepNumber: 2,
       onUpdate: jest.fn(),
@@ -238,6 +229,8 @@ describe('ReserveAdditionalVolume', () => {
     };
 
     beforeEach(() => {
+      subscription = SubscriptionFixture({organization});
+      stepProps.subscription = subscription;
       SubscriptionStore.set(organization.slug, subscription);
       MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
@@ -303,6 +296,12 @@ describe('ReserveAdditionalVolume', () => {
       expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
       await closeSection();
       expect(screen.queryByTestId('errors-volume-item')).not.toBeInTheDocument();
+    });
+
+    it('auto-shows sliders if customer has reserved volume above platform', () => {
+      subscription.categories.errors!.reserved = 100_000;
+      render(<ReserveAdditionalVolume {...stepProps} />);
+      expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
     });
   });
 });

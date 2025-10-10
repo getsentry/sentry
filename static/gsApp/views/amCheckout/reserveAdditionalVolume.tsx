@@ -15,7 +15,7 @@ import {isAmPlan} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import VolumeSliders from 'getsentry/views/amCheckout/steps/volumeSliders';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
-import {formatPrice, getShortInterval} from 'getsentry/views/amCheckout/utils';
+import {formatPrice, getBucket, getShortInterval} from 'getsentry/views/amCheckout/utils';
 
 function ReserveAdditionalVolume({
   organization,
@@ -33,7 +33,16 @@ function ReserveAdditionalVolume({
   | 'formData'
   | 'onUpdate'
 >) {
-  const [showSliders, setShowSliders] = useState(false);
+  // if the customer has any reserved volume above platform already, auto-show the sliders
+  const [showSliders, setShowSliders] = useState<boolean>(
+    Object.values(subscription.categories)
+      .filter(({category}) => activePlan.checkoutCategories.includes(category))
+      .some(
+        ({category, reserved}) =>
+          getBucket({buckets: activePlan.planCategories[category], events: reserved ?? 0})
+            .price > 0
+      )
+  );
   const reservedVolumeTotal = useMemo(() => {
     return Object.entries(formData.reserved).reduce((acc, [category, value]) => {
       const bucket = activePlan.planCategories?.[category as DataCategory]?.find(
