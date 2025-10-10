@@ -10,8 +10,21 @@ export function parseGroupBy(
     return null;
   }
 
+  if (fields.length < 1) {
+    return null;
+  }
+
   const groupKeys = fields;
-  const groupValues = groupName.split(',');
+  const groupValues = groupName.split(DELIMITER);
+
+  // If the `groupName` contains commas, that will result in more values than
+  // keys. In this case, concatenate the values back together until the number
+  // of keys and values matches. Do this greedily, which is not always accurate,
+  // but in practice this doesn't make a UI difference since all values are
+  // eventually concatenated with commas.
+  while (groupValues.length > groupKeys.length) {
+    groupValues.splice(0, 2, `${groupValues[0]!}${DELIMITER}${groupValues[1]!}`);
+  }
 
   const groupBys = zipWith(groupKeys, groupValues, (key, value) => {
     return {
@@ -24,3 +37,5 @@ export function parseGroupBy(
 
   return groupBys.length > 0 ? groupBys : null;
 }
+
+const DELIMITER = ',';
