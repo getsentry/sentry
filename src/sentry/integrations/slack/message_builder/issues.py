@@ -655,6 +655,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         action_text = ""
 
+        # TODO: Interactive action blocks (buttons, selects) should not be included in unfurls
+        # because Slack's chat.unfurl API only supports static content blocks. When is_unfurl=True,
+        # we should skip building actions to avoid 'invalid_blocks' errors from Slack.
+        # See: https://api.slack.com/methods/chat.unfurl
         if not self.issue_details or (self.recipient and self.recipient.is_team):
             payload_actions, action_text, has_action = build_actions(
                 self.group, project, text, self.actions, self.identity
