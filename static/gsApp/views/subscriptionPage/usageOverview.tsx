@@ -224,7 +224,9 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
           const free = metricHistory.free;
           const total = metricHistory.usage;
           const paygTotal = metricHistory.onDemandSpendUsed;
-          const softCapType = metricHistory.softCapType;
+          const softCapType =
+            metricHistory.softCapType ??
+            (metricHistory.trueForward ? 'TRUE_FORWARD' : undefined);
           const activeProductTrial = getActiveProductTrial(
             subscription.productTrials ?? [],
             category
@@ -329,7 +331,9 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
                   title: true,
                 });
                 const metricHistory = subscription.categories[addOnDataCategory];
-                const softCapType = metricHistory?.softCapType;
+                const softCapType =
+                  metricHistory?.softCapType ??
+                  (metricHistory?.trueForward ? 'TRUE_FORWARD' : undefined);
                 return {
                   addOnCategory: apiName as AddOnCategory,
                   dataCategory: addOnDataCategory,
@@ -354,7 +358,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
               reserved: reservedBudget?.reservedBudget ?? 0,
               isPaygOnly: !reservedBudget,
               isOpen: openState[apiName],
-              toggleKey: apiName as AddOnCategory,
+              toggleKey: hasAccess ? (apiName as AddOnCategory) : undefined,
               isUnlimited: !!activeProductTrial,
               productTrialCategory: addOnDataCategories[0] as DataCategory,
               product: addOnName,
@@ -621,6 +625,12 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
             query: {...location.query, drawer: row.dataCategory},
           });
         }
+      }}
+      getRowAriaLabel={row => {
+        if (row.dataCategory) {
+          return t('View %s usage', row.product);
+        }
+        return undefined;
       }}
     />
   );

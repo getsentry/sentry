@@ -99,18 +99,19 @@ type GridEditableProps<
   error?: unknown | null;
 
   fit?: 'max-content';
+  getRowAriaLabel?: (row: DataRow) => string | undefined;
   /**
    * Inject a set of buttons into the top of the grid table.
    * The controlling component is responsible for handling any actions
    * in these buttons and updating props to the GridEditable instance.
    */
   headerButtons?: () => React.ReactNode;
+
   height?: CSSProperties['height'];
 
   highlightedRowKey?: number;
 
   isLoading?: boolean;
-
   isRowClickable?: (row: DataRow) => boolean;
   minimumColWidth?: number;
   onRowClick?: (row: DataRow, key: number, event: React.MouseEvent) => void;
@@ -406,6 +407,7 @@ export default class GridEditable<
       highlightedRowKey,
       onRowClick,
       isRowClickable,
+      getRowAriaLabel,
     } = this.props;
     const prependColumns = grid.renderPrependColumns
       ? grid.renderPrependColumns(false, dataRow, row)
@@ -419,6 +421,7 @@ export default class GridEditable<
         onClick={event => onRowClick?.(dataRow, row, event)}
         data-test-id="grid-body-row"
         isClickable={isRowClickable?.(dataRow)}
+        aria-label={getRowAriaLabel?.(dataRow)}
       >
         <InteractionStateLayer
           isHovered={row === highlightedRowKey}
