@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {useOutletContext} from 'react-router-dom';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -22,18 +23,14 @@ import type {Team} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
+import type {TeamDetailsOutletContext} from 'sentry/views/settings/organizationTeams/teamDetails';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-interface TeamSettingsProps {
-  team: Team;
-}
-
-function TeamSettings({team}: TeamSettingsProps) {
-  const params = useParams<{teamId: string}>();
+export default function TeamSettings() {
   const navigate = useNavigate();
   const organization = useOrganization();
   const api = useApi();
+  const {team} = useOutletContext<TeamDetailsOutletContext>();
 
   const handleSubmitSuccess: FormProps['onSubmitSuccess'] = (resp: Team, _model, id) => {
     // Use the old slug when triggering the update so we correctly replace the
@@ -49,7 +46,7 @@ function TeamSettings({team}: TeamSettingsProps) {
 
   const handleRemoveTeam = async () => {
     try {
-      await removeTeam(api, {orgId: organization.slug, teamId: params.teamId});
+      await removeTeam(api, {orgId: organization.slug, teamId: team.slug});
       navigate(`/settings/${organization.slug}/teams/`, {replace: true});
     } catch {
       // removeTeam already displays an error message
@@ -149,5 +146,3 @@ function TeamSettings({team}: TeamSettingsProps) {
     </Fragment>
   );
 }
-
-export default TeamSettings;

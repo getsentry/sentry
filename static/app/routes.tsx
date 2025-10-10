@@ -988,7 +988,6 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/settings/organizationTeams/teamDetails')
           ),
-          deprecatedRouteProps: true,
           children: [
             {
               index: true,
@@ -1000,7 +999,6 @@ function buildRoutes(): RouteObject[] {
               component: make(
                 () => import('sentry/views/settings/organizationTeams/teamMembers')
               ),
-              deprecatedRouteProps: true,
             },
             {
               path: 'notifications/',
@@ -1015,7 +1013,6 @@ function buildRoutes(): RouteObject[] {
               component: make(
                 () => import('sentry/views/settings/organizationTeams/teamProjects')
               ),
-              deprecatedRouteProps: true,
             },
             {
               path: 'settings/',
@@ -1023,7 +1020,6 @@ function buildRoutes(): RouteObject[] {
               component: make(
                 () => import('sentry/views/settings/organizationTeams/teamSettings')
               ),
-              deprecatedRouteProps: true,
             },
           ],
         },

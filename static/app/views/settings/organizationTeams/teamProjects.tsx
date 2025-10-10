@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
+import {useOutletContext} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -19,25 +20,22 @@ import {IconFlag, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import ProjectListItem from 'sentry/views/settings/components/settingsProjectItem';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import type {TeamDetailsOutletContext} from 'sentry/views/settings/organizationTeams/teamDetails';
 
-interface TeamProjectsProps extends RouteComponentProps<{teamId: string}> {
-  team: Team;
-}
-
-function TeamProjects({team, location, params}: TeamProjectsProps) {
+export default function TeamProjects() {
+  const location = useLocation();
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
   const [query, setQuery] = useState<string>('');
-  const teamId = params.teamId;
+  const {team} = useOutletContext<TeamDetailsOutletContext>();
   const {
     data: linkedProjects,
     isError: linkedProjectsError,
@@ -49,7 +47,7 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
       `/organizations/${organization.slug}/projects/`,
       {
         query: {
-          query: `team:${teamId}`,
+          query: `team:${team.slug}`,
           cursor: location.query.cursor,
         },
       },
@@ -64,14 +62,14 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
     [
       `/organizations/${organization.slug}/projects/`,
       {
-        query: {query: query ? `!team:${teamId} ${query}` : `!team:${teamId}`},
+        query: {query: query ? `!team:${team.slug} ${query}` : `!team:${team.slug}`},
       },
     ],
     {staleTime: 0}
   );
 
   const handleLinkProject = (project: Project, action: string) => {
-    api.request(`/projects/${organization.slug}/${project.slug}/teams/${teamId}/`, {
+    api.request(`/projects/${organization.slug}/${project.slug}/teams/${team.slug}/`, {
       method: action === 'add' ? 'POST' : 'DELETE',
       success: resp => {
         refetchLinkedProjects();
@@ -186,5 +184,3 @@ const StyledPanelItem = styled(PanelItem)`
   padding: ${space(2)};
   max-width: 100%;
 `;
-
-export default TeamProjects;
