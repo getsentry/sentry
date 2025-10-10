@@ -16,7 +16,6 @@ from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpoint
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
-from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
@@ -346,17 +345,6 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             ("production", time_from_now(0), time_from_now(9)),
             ("staging", time_from_now(16), time_from_now(16)),
         }
-        source_open_periods = (
-            GroupOpenPeriod.objects.filter(group=source).order_by("-date_started").first()
-        )
-        destination_open_period = (
-            GroupOpenPeriod.objects.filter(group=destination).order_by("-date_started").first()
-        )
-
-        assert source_open_periods is not None
-        assert source_open_periods.date_ended is None
-        assert destination_open_period is not None
-        assert destination_open_period.date_ended is None
 
         rollup_duration = 3600
 
