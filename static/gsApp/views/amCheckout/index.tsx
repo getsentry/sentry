@@ -1015,7 +1015,7 @@ class AMCheckout extends Component<Props, State> {
               gap="xl"
               justify="center"
               width="100%"
-              maxWidth="1000px"
+              maxWidth="1100px"
               align="start"
             >
               {renderCheckoutContent()}
@@ -1068,6 +1068,7 @@ const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
       display: flex;
       flex-direction: column;
       position: relative;
+      padding: ${p.theme.space.xl};
 
       &:before {
         content: '';
@@ -1085,7 +1086,7 @@ const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
         right: 0;
         top: 0;
         min-height: 100vh;
-        max-width: 360px;
+        max-width: 400px;
         border-top: none;
         border-left: 1px solid ${p.theme.border};
       }
