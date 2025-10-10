@@ -302,9 +302,14 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             try:
                 detector = get_detector(subscription)
                 logger.info("disallowed_by_robots", extra=result)
+                metrics.incr(
+                    "uptime.result_processor.disallowed_by_robots",
+                    sample_rate=1.0,
+                    tags={"uptime_region": result.get("region", "default")},
+                )
                 disable_uptime_detector(detector)
             except Exception as e:
-                logger.info("disallowed_by_robots.error", extra={"error": e, "result": result})
+                logger.exception("disallowed_by_robots.error", extra={"error": e, "result": result})
             return
 
         # Discard shadow mode region results
