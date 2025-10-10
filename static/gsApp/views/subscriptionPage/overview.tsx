@@ -329,6 +329,8 @@ function Overview({location, subscription, promotionData}: Props) {
         background="primary"
         radius="md"
         border="primary"
+        // TODO(isabella): move spacing to the parent
+        marginTop="xl"
       >
         <Text bold>
           <IconSupport />
