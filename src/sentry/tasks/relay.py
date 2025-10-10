@@ -11,6 +11,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import relay_tasks
 from sentry.utils import metrics
 from sentry.utils.sdk import set_current_event_project
+from sentry.workflow_engine.utils.sentry_level_utils import quiet_redis_noise
 
 logger = logging.getLogger(__name__)
 
@@ -311,17 +312,18 @@ def schedule_invalidate_project_config(
         # XXX(iker): updating a lot of organizations or projects in a single
         # database transaction causes the `on_commit` list to grow considerably
         # and may cause memory leaks.
-        transaction.on_commit(
-            lambda: _schedule_invalidate_project_config(
-                trigger=trigger,
-                trigger_details=trigger_details,
-                organization_id=organization_id,
-                project_id=project_id,
-                public_key=public_key,
-                countdown=countdown,
-            ),
-            using=transaction_db,
-        )
+        with quiet_redis_noise():
+            transaction.on_commit(
+                lambda: _schedule_invalidate_project_config(
+                    trigger=trigger,
+                    trigger_details=trigger_details,
+                    organization_id=organization_id,
+                    project_id=project_id,
+                    public_key=public_key,
+                    countdown=countdown,
+                ),
+                using=transaction_db,
+            )
 
 
 def _schedule_invalidate_project_config(
