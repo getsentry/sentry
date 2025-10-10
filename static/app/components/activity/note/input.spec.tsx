@@ -107,7 +107,7 @@ describe('NoteInput', () => {
       // Switch to preview
       await userEvent.click(screen.getByRole('tab', {name: 'Preview'}));
 
-      expect(screen.getByText('an existing item')).toBeInTheDocument();
+      expect(screen.getAllByText('an existing item')[0]).toBeInTheDocument();
 
       // Switch to edit
       await userEvent.click(screen.getByRole('tab', {name: 'Edit'}));

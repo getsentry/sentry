@@ -1,10 +1,25 @@
 import {Fragment, useState} from 'react';
 import range from 'lodash/range';
 
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import * as Storybook from 'sentry/stories';
 
 import type {TabListProps, TabsProps} from '.';
 import {TabList, TabPanels, Tabs} from '.';
+
+function StatefulComponent(props: {children?: React.ReactNode}) {
+  const [count, setCount] = useState(0);
+  return (
+    <Flex gap="md" align="center">
+      <Text>{props.children}</Text>
+      <Button onClick={() => setCount(count + 1)}>Inc {count}</Button>
+    </Flex>
+  );
+}
 
 export default Storybook.story('Tabs', story => {
   const TABS = [
@@ -26,6 +41,16 @@ export default Storybook.story('Tabs', story => {
         This will give you all kinds of accessibility and state tracking out of the box.
         But you will have to render all tab content, including hooks, upfront.
       </p>
+      <p>
+        <Alert type="info">
+          Note: All <Storybook.JSXNode name="TabPanels" /> are wrapped in React's new{' '}
+          <ExternalLink href="https://react.dev/reference/react/Activity">
+            <Storybook.JSXNode name="Activity" />
+          </ExternalLink>{' '}
+          by default, which ensures that state is preserved when switching between tabs
+          without impacting render performance.
+        </Alert>
+      </p>
       <Tabs>
         <TabList>
           {TABS.map(tab => (
@@ -36,7 +61,9 @@ export default Storybook.story('Tabs', story => {
         </TabList>
         <TabPanels>
           {TABS.map(tab => (
-            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+            <TabPanels.Item key={tab.key}>
+              <StatefulComponent>{tab.content}</StatefulComponent>
+            </TabPanels.Item>
           ))}
         </TabPanels>
       </Tabs>

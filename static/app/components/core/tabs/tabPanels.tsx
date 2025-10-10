@@ -1,4 +1,4 @@
-import {useContext, useRef} from 'react';
+import {Activity, useContext, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabPanelProps} from '@react-aria/tabs';
@@ -45,13 +45,12 @@ export function TabPanels(props: TabPanelsProps) {
     : null;
 
   return (
-    <TabPanel
-      {...props}
-      state={tabListState}
-      orientation={orientation}
-      key={tabListState?.selectedKey}
-    >
-      {selectedPanel?.props.children}
+    <TabPanel {...props} state={tabListState} orientation={orientation}>
+      {[...collection].map(item => (
+        <Activity mode={item === selectedPanel ? 'visible' : 'hidden'} key={item.key}>
+          {item.props.children}
+        </Activity>
+      ))}
     </TabPanel>
   );
 }
