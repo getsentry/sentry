@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from dataclasses import dataclass
 from enum import StrEnum
 
 from sentry.integrations.types import EventLifecycleOutcome
@@ -12,6 +13,7 @@ class NotificationInteractionType(StrEnum):
     NOTIFY_TARGET_SYNC = "notify_target_sync"
 
 
+@dataclass
 class NotificationEventLifecycleMetric(EventLifecycleMetric):
     interaction_type: NotificationInteractionType
     # The template/source of the notification

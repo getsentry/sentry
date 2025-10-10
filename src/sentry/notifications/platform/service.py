@@ -42,7 +42,9 @@ class NotificationService[T: NotificationData]:
         renderer = provider.get_renderer(data=self.data, category=template.category)
         return renderer.render(data=self.data, rendered_template=rendered_template)
 
-    def notify_target(self, *, target: NotificationTarget) -> None:
+    def notify_target(
+        self, *, target: NotificationTarget
+    ) -> None | dict[NotificationProviderKey, list[str]]:
         """
         Send a notification directly to a target synchronously.
         NOTE: This method ignores notification settings. When possible, consider using a strategy instead of
@@ -59,7 +61,7 @@ class NotificationService[T: NotificationData]:
             interaction_type=NotificationInteractionType.NOTIFY_TARGET_SYNC,
             notification_source=self.data.source,
             notification_provider=target.provider_key,
-        ) as lifecycle:
+        ).capture() as lifecycle:
             # Step 1: Get the provider, and validate the target against it
             provider = self._get_and_validate_provider(target=target)
 
@@ -73,8 +75,17 @@ class NotificationService[T: NotificationData]:
             try:
                 provider.send(target=target, renderable=renderable)
             except ApiError as e:
-                lifecycle.record_failure(failure_reason=e.text)
                 errors[target.provider_key].append(e.text)
+                lifecycle.record_failure(failure_reason=e)
+            return errors
+
+    def notify_target_async(self, *, target: NotificationTarget) -> None:
+        """
+        Send a notification directly to a target asynchronously.
+        NOTE: This method ignores notification settings. When possible, consider using a strategy instead of
+              using this method directly to prevent unwanted noise associated with your notifications.
+        """
+        raise NotImplementedError
 
     def notify(
         self,
@@ -95,12 +106,14 @@ class NotificationService[T: NotificationData]:
             targets = strategy.get_targets()
         if not targets:
             logger.info("Strategy '%s' did not yield targets", strategy.__class__.__name__)
-            return
+            return None
 
         if sync_send:
             for target in targets:
                 errors = self.notify_target(target=target)
-        else:
-            pass
+            return errors
 
-        return errors
+        else:
+            for target in targets:
+                self.notify_target_async(target=target)
+        return None
