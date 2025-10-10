@@ -225,7 +225,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
     def create(self, validated_data: dict[str, Any]):
         detector = super().create(validated_data)
 
-        if detector.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC:
+        if detector.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC.value:
             send_new_detector_data(detector)
 
         schedule_update_project_config(detector)
