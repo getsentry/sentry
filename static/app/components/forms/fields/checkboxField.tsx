@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {Flex} from 'sentry/components/core/layout';
 import {FieldDescription} from 'sentry/components/forms/fieldGroup/fieldDescription';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import {FieldLabel} from 'sentry/components/forms/fieldGroup/fieldLabel';
@@ -51,7 +52,7 @@ function CheckboxField(props: Props) {
         }
 
         return (
-          <FieldLayout>
+          <Flex direction="row">
             <ControlWrapper>
               <Checkbox
                 id={id}
@@ -76,7 +77,7 @@ function CheckboxField(props: Props) {
                 </FieldHelp>
               )}
             </FieldDescription>
-          </FieldLayout>
+          </Flex>
         );
       }}
     </FormField>
@@ -87,11 +88,6 @@ const ControlWrapper = styled('span')`
   align-self: flex-start;
   display: flex;
   margin-right: ${space(1)};
-`;
-
-const FieldLayout = styled('div')`
-  display: flex;
-  flex-direction: row;
 `;
 
 export default CheckboxField;

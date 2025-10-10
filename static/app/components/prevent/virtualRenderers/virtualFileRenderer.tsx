@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useWindowVirtualizer, type Virtualizer} from '@tanstack/react-virtual';
 
+import {Flex} from 'sentry/components/core/layout';
 import {ColorBar} from 'sentry/components/prevent/virtualRenderers/colorBar';
 import {
   LINE_HEIGHT,
@@ -65,7 +66,7 @@ function CodeBody({
   }, [virtualizer, location.hash, lines.length]);
 
   return (
-    <CodeWrapper ref={setWrapperRefState}>
+    <Flex ref={setWrapperRefState} flex="1 1 0%">
       <LineNumberColumn>
         {virtualizer.getVirtualItems().map(virtualItem => {
           const lineNumber = virtualItem.index + 1;
@@ -130,14 +131,9 @@ function CodeBody({
           );
         })}
       </CodeColumn>
-    </CodeWrapper>
+    </Flex>
   );
 }
-
-const CodeWrapper = styled('div')`
-  display: flex;
-  flex: 1 1 0%;
-`;
 
 const CodeColumn = styled('div')`
   height: 100%;

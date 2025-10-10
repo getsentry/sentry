@@ -8,6 +8,7 @@ import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
+import {Flex} from 'sentry/components/core/layout';
 import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconBusiness} from 'sentry/icons/iconBusiness';
@@ -511,17 +512,12 @@ export function computeVisualizeSampleTotals(
 
 function DisabledDateOption({label}: {label: ReactNode}) {
   return (
-    <DisabledDateOptionContainer>
+    <Flex align="center">
       {label}
       <StyledIconBuisness />
-    </DisabledDateOptionContainer>
+    </Flex>
   );
 }
-
-const DisabledDateOptionContainer = styled('div')`
-  display: flex;
-  align-items: center;
-`;
 
 const StyledIconBuisness = styled(IconBusiness)`
   margin-left: auto;

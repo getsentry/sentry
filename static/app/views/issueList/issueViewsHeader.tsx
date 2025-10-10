@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 
 import DisableInDemoMode from 'sentry/components/acl/demoModeDisabled';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconEllipsis, IconPause, IconPlay, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -225,9 +225,9 @@ function IssueViewsHeader({
   return (
     <Layout.Header noActionWrap unified>
       <Layout.HeaderContent unified>
-        <StyledLayoutTitle>
+        <Flex justify="between">
           <PageTitle title={title} description={description} />
-          <Actions>
+          <Flex align="center" gap="md">
             {headerActions}
             {!viewId && (
               <DisableInDemoMode>
@@ -242,8 +242,8 @@ function IssueViewsHeader({
             )}
             <IssueViewStarButton />
             <IssueViewEditMenu />
-          </Actions>
-        </StyledLayoutTitle>
+          </Flex>
+        </Flex>
       </Layout.HeaderContent>
       <Layout.HeaderActions />
     </Layout.Header>
@@ -251,17 +251,6 @@ function IssueViewsHeader({
 }
 
 export default IssueViewsHeader;
-
-const StyledLayoutTitle = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
-
-const Actions = styled('div')`
-  align-items: center;
-  display: flex;
-  gap: ${space(1)};
-`;
 
 const LeftAlignContainer = styled('div')`
   text-align: left;
