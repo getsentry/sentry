@@ -24,7 +24,9 @@ from sentry.integrations.messaging.metrics import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
-from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
+from sentry.integrations.slack.message_builder.metric_alerts import (
+    SlackMetricDetectorMessageBuilder,
+)
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.types import (
     Handler,
@@ -124,8 +126,9 @@ def _unfurl_metric_detectors(
                 sentry_sdk.capture_exception(e)
 
         # TODO: need to make a new message builder
-        result[link.url] = SlackMetricAlertMessageBuilder(
-            alert_rule=detector,
+        result[link.url] = SlackMetricDetectorMessageBuilder(
+            detector=detector,
+            snuba_query=snuba_query,
             chart_url=chart_url,
         ).build()
 

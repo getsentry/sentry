@@ -5,13 +5,15 @@ from sentry.integrations.metric_alerts import metric_detector_unfurl_attachment_
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.types import INCIDENT_COLOR_MAPPING, SlackBody
 from sentry.integrations.slack.utils.escape import escape_slack_text
+from sentry.snuba.models import SnubaQuery
 from sentry.workflow_engine.models import Detector
 
 
-class SlackMetricAlertMessageBuilder(BlockSlackMessageBuilder):
+class SlackMetricDetectorMessageBuilder(BlockSlackMessageBuilder):
     def __init__(
         self,
         detector: Detector,
+        snuba_query: SnubaQuery,
         # incident: Incident | None = None,
         # new_status: IncidentStatus | None = None,
         # metric_value: int | None = None,
@@ -34,6 +36,7 @@ class SlackMetricAlertMessageBuilder(BlockSlackMessageBuilder):
     def build(self) -> SlackBody:
         data = metric_detector_unfurl_attachment_info(
             self.detector,
+            self.snuba_query,
             # self.incident,
             # self.new_status,
             # self.metric_value

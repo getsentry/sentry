@@ -28,6 +28,7 @@ from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mr
 from sentry.snuba.models import SnubaQuery
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
+from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.incident_groupopenperiod import IncidentGroupOpenPeriod
 
@@ -279,6 +280,44 @@ def incident_attachment_info(
         logo_url=logo_url(),
         status=status,
         title_link=title_link,
+    )
+
+
+def metric_detector_unfurl_attachment_info(
+    detector: Detector, snuba_query: SnubaQuery
+) -> AttachmentInfo:
+    pass
+    # fetch latest open period and gopa to get current detector status?
+    status = "medium"  # hard code for now
+    title_link_params: TitleLinkParams = {"detection_type": detector.config.get("detection_type")}
+    title = f"{status}: {detector.name}"
+    title_link = build_title_link_workflow_engine_ui(
+        detector.id,
+        detector.project.organization,
+        detector.project.id,
+        title_link_params,
+    )
+    metric_value = 10  # TODO not hard code this, pass in or fetch it somehow
+    text = ""
+    if metric_value is not None and status != INCIDENT_STATUS[IncidentStatus.CLOSED]:
+        text = get_incident_status_text(
+            snuba_query=snuba_query,
+            threshold_type=AlertRuleThresholdType.ABOVE,  # TODO this is on the data condition and get_incident_status_text will need to be duped to handle it
+            comparison_delta=5,  # TODO this is also on the data condition
+            metric_value=str(metric_value),
+        )
+    if features.has("organizations:anomaly-detection-alerts", detector.project.organization):
+        text += f"\nThreshold: {detector.config.get("detection_type").title()}"
+
+    date_started = None  # TODO: latest open period date_started
+
+    return AttachmentInfo(
+        title_link=title_link,
+        title=title,
+        text=text,
+        status=status,
+        logo_url=logo_url(),
+        date_started=date_started,
     )
 
 
