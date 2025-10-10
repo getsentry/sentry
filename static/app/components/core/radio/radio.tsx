@@ -2,7 +2,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {chonkRadioStyles} from 'sentry/components/core/radio/index.chonk';
+import {chonkRadioStyles} from 'sentry/components/core/radio/radio.chonk';
 import {growIn} from 'sentry/styles/animations';
 
 export interface RadioProps
