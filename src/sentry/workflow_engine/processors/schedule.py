@@ -182,14 +182,15 @@ def mark_projects_processed(
     if not all_project_ids_and_timestamps:
         return
     with metrics.timer("workflow_engine.scheduler.mark_projects_processed"):
-        member_maxes = [
+        processed_member_maxes = [
             (project_id, max(timestamps))
             for project_id, timestamps in all_project_ids_and_timestamps.items()
+            if project_id in processed_project_ids
         ]
         deleted_project_ids = set[int]()
         # The conditional delete can be slow, so we break it into chunks that probably
         # aren't big enough to hold onto the main redis thread for too long.
-        for chunk in chunked(member_maxes, 500):
+        for chunk in chunked(processed_member_maxes, 500):
             with metrics.timer(
                 "workflow_engine.conditional_delete_from_sorted_sets.chunk_duration"
             ):

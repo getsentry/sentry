@@ -454,6 +454,18 @@ class TestChosenProjects:
         # persist_updates should not be called if fetch_updates fails
         mock_buffer_client.persist_updates.assert_not_called()
 
+    def test_chosen_projects_exception_during_processing(self, mock_project_chooser):
+        mock_buffer_client = Mock(spec=DelayedWorkflowClient)
+        mock_project_chooser.client = mock_buffer_client
+        mock_buffer_client.fetch_updates.return_value = Mock(spec=CohortUpdates)
+        mock_project_chooser.project_ids_to_process.return_value = [1, 2, 3]
+
+        with pytest.raises(RuntimeError, match="Processing failed"):
+            with chosen_projects(mock_project_chooser, 1000.0, [1, 2, 3, 4, 5]):
+                raise RuntimeError("Processing failed")
+
+        mock_buffer_client.persist_updates.assert_not_called()
+
 
 @override_options({"workflow_engine.scheduler.use_conditional_delete": True})
 def test_mark_projects_processed_only_cleans_up_processed_projects() -> None:
