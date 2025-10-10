@@ -6,10 +6,9 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import StaffPermission
 from sentry.preprod.analytics import PreprodArtifactApiAdminGetInfoEvent
-from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.models import (
     InstallablePreprodArtifact,
     PreprodArtifact,
@@ -20,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-class PreprodArtifactAdminInfoEndpoint(PreprodArtifactEndpoint):
+class PreprodArtifactAdminInfoEndpoint(Endpoint):
     owner = ApiOwner.EMERGE_TOOLS
     permission_classes = (StaffPermission,)
     publish_status = {
