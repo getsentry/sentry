@@ -3518,3 +3518,11 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Rate at which to forward events to eap_items. 1.0
+# means that 100% of projects will forward events to eap_items.
+register(
+    "eventstream.eap_forwarding_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
