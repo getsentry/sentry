@@ -5,6 +5,8 @@ import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Pagination from 'sentry/components/pagination';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
@@ -14,6 +16,7 @@ import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {makeDetectorListQueryKey, useDetectorsQuery} from 'sentry/views/detectors/hooks';
@@ -63,38 +66,50 @@ function AllMonitors({
 }) {
   const [query, setQuery] = useState('');
   const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const {selection, isReady} = usePageFilters();
   const {
     data: monitors = [],
     isLoading,
     isError,
     getResponseHeader,
-  } = useDetectorsQuery({
-    query,
-    cursor,
-    limit: 10,
-  });
+  } = useDetectorsQuery(
+    {
+      query,
+      cursor,
+      limit: 10,
+      projects: selection.projects,
+    },
+    {enabled: isReady}
+  );
 
   return (
-    <Section title={t('All Monitors')}>
-      <DetectorSearch initialQuery={query} onSearch={setQuery} />
-      <ConnectedMonitorsList
-        data-test-id="drawer-all-monitors-list"
-        detectors={monitors}
-        connectedDetectorIds={connectedIds}
-        isLoading={isLoading}
-        isError={isError}
-        toggleConnected={toggleConnected}
-        emptyMessage={t('No monitors found')}
-        numSkeletons={10}
-      />
-      <Flex justify="between">
-        <div>{footerContent}</div>
-        <PaginationWithoutMargin
-          onCursor={setCursor}
-          pageLinks={getResponseHeader?.('Link')}
+    <PageFiltersContainer>
+      <Section title={t('All Monitors')}>
+        <Flex gap="xl">
+          <ProjectPageFilter storageNamespace="automationDrawer" />
+          <div style={{flexGrow: 1}}>
+            <DetectorSearch initialQuery={query} onSearch={setQuery} />
+          </div>
+        </Flex>
+        <ConnectedMonitorsList
+          data-test-id="drawer-all-monitors-list"
+          detectors={monitors}
+          connectedDetectorIds={connectedIds}
+          isLoading={isLoading}
+          isError={isError}
+          toggleConnected={toggleConnected}
+          emptyMessage={t('No monitors found')}
+          numSkeletons={10}
         />
-      </Flex>
-    </Section>
+        <Flex justify="between">
+          <div>{footerContent}</div>
+          <PaginationWithoutMargin
+            onCursor={setCursor}
+            pageLinks={getResponseHeader?.('Link')}
+          />
+        </Flex>
+      </Section>
+    </PageFiltersContainer>
   );
 }
 
@@ -189,6 +204,8 @@ export default function EditConnectedMonitors({connectedIds, setConnectedIds}: P
       ),
       {
         ariaLabel: t('Connect Monitors'),
+        shouldCloseOnLocationChange: nextLocation =>
+          nextLocation.pathname !== window.location.pathname,
         shouldCloseOnInteractOutside: el => {
           if (!ref.current) {
             return true;
