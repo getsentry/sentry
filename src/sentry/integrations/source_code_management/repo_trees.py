@@ -194,22 +194,36 @@ class RepoTreesIntegration(ABC):
             if any. This is useful if the remaining API requests are low
         """
         key = f"{self.integration_name}:repo:{repo_full_name}:{'source-code' if only_source_code_files else 'all'}"
-        repo_files: list[str] = cache.get(key, [])
-        if not repo_files and not only_use_cache:
+
+        # A value of None means cache miss; [] (empty list) means cached repo with no files.
+        repo_files_cached: list[str] | None = cache.get(key)
+
+        cache_hit: bool = repo_files_cached is not None
+
+        # When restricted to cache-only, treat a miss as an empty list.
+        repo_files: list[str] = repo_files_cached if repo_files_cached is not None else []
+
+        if not cache_hit and not only_use_cache:
+            # Cache miss – fetch from API
             tree = self.get_client().get_tree(repo_full_name, tree_sha)
             if tree:
                 # Keep files; discard directories
-                repo_files = [x["path"] for x in tree if x["type"] == "blob"]
+                repo_files = [node["path"] for node in tree if node["type"] == "blob"]
                 if only_source_code_files:
                     repo_files = filter_source_code_files(files=repo_files)
-                # The backend's caching will skip silently if the object size greater than 5MB
-                # The trees API does not return structures larger than 7MB
-                # As an example, all file paths in Sentry is about 1.3MB
-                # Larger customers may have larger repositories, however,
-                # the cost of not having cached the files cached for those
-                # repositories is a single API network request, thus,
-                # being acceptable to sometimes not having everything cached
-                cache.set(key, repo_files, self.CACHE_SECONDS + shifted_seconds)
+            else:
+                # Explicitly remember that this repo has no files so we don't call again.
+                repo_files = []
+
+            cache.set(key, repo_files, self.CACHE_SECONDS + shifted_seconds)
+            metrics.incr("integrations.source_code_management.get_repo_files.cache_set")
+
+        source: str = "cache" if cache_hit else "api"
+
+        metrics.incr(
+            "integrations.source_code_management.get_repo_files",
+            tags={"source": source},
+        )
 
         return repo_files
 
