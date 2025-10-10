@@ -11,6 +11,7 @@ from sentry.seer.autofix.autofix import (
     TIMEOUT_SECONDS,
     _call_autofix,
     _get_all_tags_overview,
+    _get_github_username_for_user,
     _get_logs_for_event,
     _get_profile_from_trace_tree,
     _get_trace_tree_for_event,
@@ -1020,13 +1021,15 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
 
 
 class TestCallAutofix(TestCase):
+    @patch("sentry.seer.autofix.autofix._get_github_username_for_user")
     @patch("sentry.seer.autofix.autofix.requests.post")
     @patch("sentry.seer.autofix.autofix.sign_with_seer_secret")
-    def test_call_autofix(self, mock_sign, mock_post) -> None:
+    def test_call_autofix(self, mock_sign, mock_post, mock_get_username) -> None:
         """Tests the _call_autofix function makes the correct API call."""
         # Setup mocks
         mock_sign.return_value = {"Authorization": "Bearer test"}
         mock_post.return_value.json.return_value = {"run_id": "test-run-id"}
+        mock_get_username.return_value = None  # No GitHub username
 
         # Mock objects
         user = Mock()
@@ -1092,6 +1095,7 @@ class TestCallAutofix(TestCase):
         assert body["timeout_secs"] == TIMEOUT_SECONDS
         assert body["invoking_user"]["id"] == 123
         assert body["invoking_user"]["display_name"] == "Test User"
+        assert body["invoking_user"]["github_username"] is None
         assert (
             body["options"]["comment_on_pr_with_url"]
             == "https://github.com/getsentry/sentry/pull/123"
@@ -1102,6 +1106,133 @@ class TestCallAutofix(TestCase):
         headers = mock_post.call_args[1]["headers"]
         assert headers["content-type"] == "application/json;charset=utf-8"
         assert headers["Authorization"] == "Bearer test"
+
+
+class TestGetGithubUsernameForUser(TestCase):
+    def test_get_github_username_for_user_with_github(self) -> None:
+        """Tests getting GitHub username from ExternalActor with GitHub provider."""
+        from sentry.integrations.models.external_actor import ExternalActor
+        from sentry.integrations.types import ExternalProviders
+
+        user = self.create_user()
+        organization = self.create_organization()
+
+        # Create an ExternalActor with GitHub provider
+        ExternalActor.objects.create(
+            user_id=user.id,
+            organization=organization,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@testuser",
+            external_id="12345",
+            integration_id=1,
+        )
+
+        username = _get_github_username_for_user(user, organization.id)
+        assert username == "testuser"
+
+    def test_get_github_username_for_user_with_github_enterprise(self) -> None:
+        """Tests getting GitHub username from ExternalActor with GitHub Enterprise provider."""
+        from sentry.integrations.models.external_actor import ExternalActor
+        from sentry.integrations.types import ExternalProviders
+
+        user = self.create_user()
+        organization = self.create_organization()
+
+        # Create an ExternalActor with GitHub Enterprise provider
+        ExternalActor.objects.create(
+            user_id=user.id,
+            organization=organization,
+            provider=ExternalProviders.GITHUB_ENTERPRISE.value,
+            external_name="@gheuser",
+            external_id="67890",
+            integration_id=2,
+        )
+
+        username = _get_github_username_for_user(user, organization.id)
+        assert username == "gheuser"
+
+    def test_get_github_username_for_user_without_at_prefix(self) -> None:
+        """Tests getting GitHub username when external_name doesn't have @ prefix."""
+        from sentry.integrations.models.external_actor import ExternalActor
+        from sentry.integrations.types import ExternalProviders
+
+        user = self.create_user()
+        organization = self.create_organization()
+
+        # Create an ExternalActor without @ prefix
+        ExternalActor.objects.create(
+            user_id=user.id,
+            organization=organization,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="noprefixuser",
+            external_id="11111",
+            integration_id=3,
+        )
+
+        username = _get_github_username_for_user(user, organization.id)
+        assert username == "noprefixuser"
+
+    def test_get_github_username_for_user_no_mapping(self) -> None:
+        """Tests that None is returned when user has no GitHub mapping."""
+        user = self.create_user()
+        organization = self.create_organization()
+
+        username = _get_github_username_for_user(user, organization.id)
+        assert username is None
+
+    def test_get_github_username_for_user_non_github_provider(self) -> None:
+        """Tests that None is returned when user only has non-GitHub external actors."""
+        from sentry.integrations.models.external_actor import ExternalActor
+        from sentry.integrations.types import ExternalProviders
+
+        user = self.create_user()
+        organization = self.create_organization()
+
+        # Create an ExternalActor with Slack provider (should be ignored)
+        ExternalActor.objects.create(
+            user_id=user.id,
+            organization=organization,
+            provider=ExternalProviders.SLACK.value,
+            external_name="@slackuser",
+            external_id="slack123",
+            integration_id=4,
+        )
+
+        username = _get_github_username_for_user(user, organization.id)
+        assert username is None
+
+    def test_get_github_username_for_user_multiple_mappings(self) -> None:
+        """Tests that most recent GitHub mapping is used when multiple exist."""
+        from sentry.integrations.models.external_actor import ExternalActor
+        from sentry.integrations.types import ExternalProviders
+
+        user = self.create_user()
+        organization = self.create_organization()
+
+        # Create older mapping
+        ExternalActor.objects.create(
+            user_id=user.id,
+            organization=organization,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@olduser",
+            external_id="old123",
+            integration_id=5,
+            date_added=before_now(days=10),
+        )
+
+        # Create newer mapping
+        ExternalActor.objects.create(
+            user_id=user.id,
+            organization=organization,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@newuser",
+            external_id="new456",
+            integration_id=6,
+            date_added=before_now(days=1),
+        )
+
+        username = _get_github_username_for_user(user, organization.id)
+        assert username == "newuser"
 
 
 class TestRespondWithError(TestCase):
