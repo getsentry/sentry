@@ -45,7 +45,7 @@ export const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
 function makeChonkAlertTheme(props: ChonkAlertProps): SerializedStyles {
   const tokens = getChonkAlertTokens(props.type, props.theme!);
   return css`
-    ${generateAlertBackground(props, tokens)};
+    ${generateAlertBackground(props, tokens, props.theme!)};
     border-color: ${tokens.border};
 
     /* We dont want to override the color of any elements inside buttons */
@@ -99,21 +99,24 @@ function getChonkAlertTokens(
 
 function generateAlertBackground(
   props: ChonkAlertProps,
-  tokens: ReturnType<typeof getChonkAlertTokens>
+  tokens: ReturnType<typeof getChonkAlertTokens>,
+  theme: ReturnType<typeof useChonkTheme>
 ) {
   const width = 44;
   if (props.showIcon) {
     return css`
-      background: linear-gradient(
-        to right,
-        ${tokens.iconBackground},
-        ${tokens.iconBackground} ${width - 1}px,
-        ${tokens.iconBackground} ${width - 1}px,
-        ${tokens.border} ${width - 1}px,
-        ${tokens.border} ${width}px,
-        ${tokens.background} ${width}px,
-        ${tokens.background} ${width + 1}px
-      );
+      background-image:
+        linear-gradient(
+          to right,
+          ${tokens.iconBackground},
+          ${tokens.iconBackground} ${width - 1}px,
+          ${tokens.iconBackground} ${width - 1}px,
+          ${tokens.border} ${width - 1}px,
+          ${tokens.border} ${width}px,
+          ${tokens.background} ${width}px,
+          ${tokens.background} ${width + 1}px
+        ),
+        linear-gradient(${theme.colors.background.primary});
       padding-left: calc(${width}px + ${props.theme!.space.lg});
     `;
   }
