@@ -20,7 +20,7 @@ interface UseMetricAggregatesTableOptions {
   metricName: string;
 }
 
-export interface MetricAggregatesTableResult {
+interface MetricAggregatesTableResult {
   eventView: EventView;
   fields: string[];
   result: ReturnType<typeof useSpansQuery<any[]>>;
