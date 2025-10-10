@@ -938,7 +938,7 @@ class AMCheckout extends Component<Props, State> {
             ) : (
               <CheckoutOverview {...overviewProps} />
             )}
-            <Flex padding={`0 ${isNewCheckout ? '2xl' : '0'}`}>
+            <Flex padding="0 0">
               <SupportPrompt>
                 {t('Have a question?')}
                 <TextOverflow>
@@ -959,29 +959,29 @@ class AMCheckout extends Component<Props, State> {
                 </TextOverflow>
               </SupportPrompt>
             </Flex>
+            <DisclaimerText>{discountInfo?.disclaimerText}</DisclaimerText>
+            {subscription.canCancel && (
+              <CancelSubscription>
+                <LinkButton
+                  to={`/settings/${organization.slug}/billing/cancel/`}
+                  disabled={subscription.cancelAtPeriodEnd}
+                >
+                  {subscription.cancelAtPeriodEnd
+                    ? t('Pending Cancellation')
+                    : t('Cancel Subscription')}
+                </LinkButton>
+              </CancelSubscription>
+            )}
+            {showAnnualTerms && (
+              <AnnualTerms>
+                {tct(
+                  `Annual subscriptions require a one-year non-cancellable commitment.
+                By using Sentry you agree to our [terms: Terms of Service].`,
+                  {terms: <a href="https://sentry.io/terms/" />}
+                )}
+              </AnnualTerms>
+            )}
           </OverviewContainer>
-          <DisclaimerText>{discountInfo?.disclaimerText}</DisclaimerText>
-          {subscription.canCancel && (
-            <CancelSubscription>
-              <LinkButton
-                to={`/settings/${organization.slug}/billing/cancel/`}
-                disabled={subscription.cancelAtPeriodEnd}
-              >
-                {subscription.cancelAtPeriodEnd
-                  ? t('Pending Cancellation')
-                  : t('Cancel Subscription')}
-              </LinkButton>
-            </CancelSubscription>
-          )}
-          {showAnnualTerms && (
-            <AnnualTerms>
-              {tct(
-                `Annual subscriptions require a one-year non-cancellable commitment.
-              By using Sentry you agree to our [terms: Terms of Service].`,
-                {terms: <a href="https://sentry.io/terms/" />}
-              )}
-            </AnnualTerms>
-          )}
         </SidePanel>
       </Fragment>
     );
@@ -1012,7 +1012,7 @@ class AMCheckout extends Component<Props, State> {
           {isNewCheckout ? (
             <Flex
               direction={{xs: 'column', md: 'row'}}
-              gap="xl"
+              gap="md 3xl"
               justify="center"
               width="100%"
               maxWidth="1100px"
@@ -1068,7 +1068,7 @@ const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
       display: flex;
       flex-direction: column;
       position: relative;
-      padding: ${p.theme.space.xl};
+      padding: ${p.theme.space['2xl']};
 
       &:before {
         content: '';
@@ -1086,9 +1086,10 @@ const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
         right: 0;
         top: 0;
         min-height: 100vh;
-        max-width: 400px;
+        max-width: 440px;
         border-top: none;
         border-left: 1px solid ${p.theme.border};
+        padding-left: ${p.theme.space['3xl']};
       }
     `}
 
@@ -1125,6 +1126,10 @@ const OverviewContainer = styled('div')<{isNewCheckout: boolean}>`
       display: flex;
       flex-direction: column;
       position: relative;
+
+      @media (min-width: ${p.theme.breakpoints.md}) {
+        padding-left: ${p.theme.space['2xl']};
+      }
     `}
 `;
 
