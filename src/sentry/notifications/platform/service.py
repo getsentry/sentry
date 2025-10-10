@@ -71,13 +71,12 @@ class NotificationService[T: NotificationData]:
             renderable = self._render_template(template=template, provider=provider)
 
             # Step 3: Send the notification
-            errors = defaultdict(list)
             try:
                 provider.send(target=target, renderable=renderable)
             except ApiError as e:
-                errors[target.provider_key].append(e.text)
-                lifecycle.record_failure(failure_reason=e)
-            return errors
+                lifecycle.record_failure(failure_reason=e, capture_event=False)
+                raise
+            return None
 
     def notify_target_async(self, *, target: NotificationTarget) -> None:
         """
@@ -109,8 +108,12 @@ class NotificationService[T: NotificationData]:
             return None
 
         if sync_send:
+            errors = defaultdict(list)
             for target in targets:
-                errors = self.notify_target(target=target)
+                try:
+                    self.notify_target(target=target)
+                except ApiError as e:
+                    errors[target.provider_key].append(e)
             return errors
 
         else:
