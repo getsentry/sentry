@@ -31,7 +31,7 @@ function LinksCard({organization}: {organization: Organization}) {
               <LinkButton
                 priority="link"
                 icon={<IconTimer />}
-                to="/settings/billing/usage-log/"
+                to="/settings/billing/activity-logs/"
               >
                 <Text size="sm" variant="accent">
                   {t('View activity')}
@@ -51,7 +51,7 @@ function LinksCard({organization}: {organization: Organization}) {
             <LinkButton
               priority="link"
               icon={<IconTimer />}
-              to="/settings/billing/usage-log/"
+              to="/settings/billing/activity-logs/"
             >
               <Text size="sm" variant="accent">
                 {t('View activity')}
