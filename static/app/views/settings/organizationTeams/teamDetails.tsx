@@ -5,6 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {joinTeam} from 'sentry/actionCreators/teams';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -115,7 +116,7 @@ function TeamDetails({children}: Props) {
       ) : (
         <Alert.Container>
           <Alert type="warning">
-            <RequestAccessWrapper>
+            <Flex justify="between" align="center">
               <div>
                 {tct('You do not have access to the [teamSlug] team.', {
                   teamSlug: <strong>{`#${team.slug}`}</strong>,
@@ -128,7 +129,7 @@ function TeamDetails({children}: Props) {
               >
                 {team.isPending ? t('Request Pending') : t('Request Access')}
               </Button>
-            </RequestAccessWrapper>
+            </Flex>
           </Alert>
         </Alert.Container>
       )}
@@ -141,9 +142,3 @@ const TabsContainer = styled('div')`
 `;
 
 export default TeamDetails;
-
-const RequestAccessWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
