@@ -297,7 +297,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   get transactionAlertDisabledMessage() {
-    return tct(
+    return tctCode(
       'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
       {
         FAQLink: (
