@@ -297,8 +297,13 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   get transactionAlertDisabledMessage() {
-    return t(
-      'Transaction based alerts are no longer supported. Create span alerts instead.'
+    return tct(
+      'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
+      {
+        FAQLink: (
+          <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+        ),
+      }
     );
   }
 
