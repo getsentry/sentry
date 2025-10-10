@@ -19,6 +19,7 @@ import {useQueryClient} from 'sentry/utils/queryClient';
 import useIsLive from 'sentry/utils/replays/hooks/useIsLive';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import usePollReplayRecord from 'sentry/utils/replays/hooks/usePollReplayRecord';
+import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
@@ -45,10 +46,10 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
     orgSlug,
   });
 
-  if (countSegments && replayRecord) {
-    if (countSegments !== replayRecord.count_segments && !showRefreshButton) {
+  if (countSegments && replayRecord?.count_segments) {
+    if (countSegments > replayRecord.count_segments && !showRefreshButton) {
       setShowRefreshButton(true);
-    } else if (countSegments === replayRecord.count_segments && showRefreshButton) {
+    } else if (countSegments <= replayRecord.count_segments && showRefreshButton) {
       setShowRefreshButton(false);
     }
   }
@@ -72,12 +73,19 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
 
   const searchQuery = getUserSearchQuery();
   const userDisplayName = replayRecord?.user.display_name || t('Anonymous User');
+  const projectSlug = useReplayProjectSlug({replayRecord});
 
   const handleRefresh = () => {
     setShowRefreshButton(false);
     queryClient.refetchQueries({
       queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
       exact: true,
+      type: 'all',
+    });
+    queryClient.invalidateQueries({
+      queryKey: [
+        `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
+      ],
       type: 'all',
     });
   };
