@@ -6,8 +6,8 @@ from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import Any, TypeAlias, TypeVar
 
-import rb
 import pydantic
+import rb
 from redis.client import Pipeline
 
 ClusterPipeline: TypeAlias = Any
