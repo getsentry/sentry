@@ -121,7 +121,9 @@ function generateAlertBackground(
     `;
   }
   return css`
-    background: ${tokens.background};
+    background-image:
+      linear-gradient(${tokens.background}),
+      linear-gradient(${theme.colors.background.primary});
   `;
 }
 
