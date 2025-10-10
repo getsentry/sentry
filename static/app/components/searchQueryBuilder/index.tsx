@@ -201,7 +201,7 @@ function ActionButtons({
   }
 
   const isCaseInsensitive = caseInsensitive === 1;
-  const caseInsensitiveLabel = isCaseInsensitive ? t('Ignore case') : t('Match case');
+  const caseInsensitiveLabel = isCaseInsensitive ? t('Match case') : t('Ignore case');
 
   return (
     <ButtonsWrapper ref={ref}>
