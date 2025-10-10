@@ -1,3 +1,4 @@
+import React from 'react';
 import {Link} from 'react-router-dom';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
@@ -6,6 +7,9 @@ import {Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import IdBadge from 'sentry/components/idBadge';
+import * as Layout from 'sentry/components/layouts/thirds';
+import Version from 'sentry/components/version';
 import {IconEllipsis, IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -115,13 +119,19 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     isSentryEmployee,
   });
 
+  const version = `v${buildDetailsData.app_info.version} (${buildDetailsData.app_info.build_number})`;
+
   return (
-    <Flex direction="column" padding="0 0 xl 0">
-      <Breadcrumbs crumbs={breadcrumbs} />
-      <Flex align="center" justify="between" gap="md">
-        <Heading as="h1">
-          v{buildDetailsData.app_info.version} ({buildDetailsData.app_info.build_number})
-        </Heading>
+    <React.Fragment>
+      <Layout.HeaderContent>
+        <Breadcrumbs crumbs={breadcrumbs} />
+        <Layout.Title>
+          <IdBadge project={project} avatarSize={28} hideName />
+          <Version version={version} anchor={false} truncate />
+        </Layout.Title>
+      </Layout.HeaderContent>
+
+      <Layout.HeaderActions>
         <Flex align="center" gap="sm" flexShrink={0}>
           <Link
             to={`/organizations/${organization.slug}/preprod/${projectId}/compare/${buildDetailsData.id}/`}
@@ -145,7 +155,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             )}
           />
         </Flex>
-      </Flex>
-    </Flex>
+      </Layout.HeaderActions>
+    </React.Fragment>
   );
 }
