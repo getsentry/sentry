@@ -1,9 +1,8 @@
 import {useMemo} from 'react';
 
-import {Flex} from 'sentry/components/core/layout';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
-import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   TraceItemSearchQueryBuilder,
   useSearchQueryBuilderProps,
@@ -11,21 +10,20 @@ import {
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {AggregateDropdown} from 'sentry/views/explore/metrics/metricRow/aggregateDropdown';
-import {DeleteMetricButton} from 'sentry/views/explore/metrics/metricRow/deleteMetricButton';
-import {GroupBySelector} from 'sentry/views/explore/metrics/metricRow/groupBySelector';
-import {MetricSelector} from 'sentry/views/explore/metrics/metricRow/metricSelector';
 import {
   useQueryParamsQuery,
   useSetQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-interface MetricRowProps {
+const EMPTY_TAG_COLLECTION: TagCollection = {};
+const EMPTY_ALIASES: TagCollection = {};
+
+interface FilterProps {
   traceMetric: TraceMetric;
 }
 
-export function MetricRow({traceMetric}: MetricRowProps) {
+export function Filter({traceMetric}: FilterProps) {
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
 
@@ -50,10 +48,10 @@ export function MetricRow({traceMetric}: MetricRowProps) {
     useMemo(() => {
       return {
         itemType: TraceItemDataset.TRACEMETRICS,
-        numberAttributes: numberTags ?? {},
-        stringAttributes: stringTags ?? {},
-        numberSecondaryAliases: {},
-        stringSecondaryAliases: {},
+        numberAttributes: numberTags ?? EMPTY_TAG_COLLECTION,
+        stringAttributes: stringTags ?? EMPTY_TAG_COLLECTION,
+        numberSecondaryAliases: EMPTY_ALIASES,
+        stringSecondaryAliases: EMPTY_ALIASES,
         initialQuery: query,
         onSearch: setQuery,
         searchSource: 'tracemetrics',
@@ -65,35 +63,13 @@ export function MetricRow({traceMetric}: MetricRowProps) {
   );
 
   return (
-    <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
-      <MetricToolbar
-        tracesItemSearchQueryBuilderProps={tracesItemSearchQueryBuilderProps}
-        traceMetric={traceMetric}
-      />
+    <SearchQueryBuilderProvider
+      // Use the metric name as a key to force remount when it changes
+      // This prevents race conditions when navigating between different metrics
+      key={traceMetric.name}
+      {...searchQueryBuilderProviderProps}
+    >
+      <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
     </SearchQueryBuilderProvider>
-  );
-}
-interface MetricToolbarProps {
-  traceMetric: TraceMetric;
-  tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps;
-}
-
-function MetricToolbar({
-  tracesItemSearchQueryBuilderProps,
-  traceMetric,
-}: MetricToolbarProps) {
-  return (
-    <div style={{width: '100%'}}>
-      <Flex direction="row" gap="md" align="center">
-        {t('Query')}
-        <MetricSelector traceMetric={traceMetric} />
-        <AggregateDropdown type={traceMetric.type} />
-        {t('by')}
-        <GroupBySelector metricName={traceMetric.name} />
-        {t('where')}
-        <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
-        <DeleteMetricButton />
-      </Flex>
-    </div>
   );
 }

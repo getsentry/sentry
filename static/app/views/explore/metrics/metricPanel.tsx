@@ -12,8 +12,8 @@ import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
 import MetricInfoTabs from 'sentry/views/explore/metrics/metricInfoTabs';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {MetricRow} from 'sentry/views/explore/metrics/metricRow';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
+import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {
   useQueryParamsGroupBys,
   useQueryParamsSearch,
@@ -62,7 +62,7 @@ export function MetricPanel({traceMetric}: MetricPanelProps) {
   return (
     <Panel>
       <PanelHeader>
-        <MetricRow traceMetric={traceMetric} />
+        <MetricToolbar traceMetric={traceMetric} />
       </PanelHeader>
       <PanelBody>
         <div ref={measureRef}>
