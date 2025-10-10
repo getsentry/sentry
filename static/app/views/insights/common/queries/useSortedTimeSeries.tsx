@@ -119,7 +119,7 @@ export const useSortedTimeSeries = <
   // compare the result and spot-check that there aren't any differences.
 
   // Re-roll the random value whenever the filters change
-  const key = `${yAxis.join(',')}-${typeof search === 'string' ? search : search?.formatString()}-${(fields ?? []).join(',')}-${pageFilters.selection.datetime.period}`;
+  const key = `${yAxis.join(',')}-${typeof search === 'string' ? search : search?.formatString()}-${topEvents}-${(fields ?? []).join(',')}-${pageFilters.selection.datetime.period}-${pageFilters.selection.datetime.start}-${pageFilters.selection.datetime.end}-${disableAggregateExtrapolation}`;
 
   const isTimeSeriesEndpointComparisonEnabled =
     useIsSampled(0.1, key) &&
