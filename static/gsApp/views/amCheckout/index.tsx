@@ -1016,6 +1016,8 @@ class AMCheckout extends Component<Props, State> {
                 >
                   {t('Manage Subscription')}
                 </LinkButton>
+
+                <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
               </Flex>
             </CheckoutHeader>
           )}
@@ -1063,6 +1065,16 @@ const CheckoutHeader = styled('header')`
   gap: ${p => p.theme.space.md};
 `;
 
+const OrgSlug = styled('div')`
+  font-family: ${p => p.theme.text.familyMono};
+  color: ${p => p.theme.subText};
+  flex-shrink: 1;
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
+  width: 100%;
+  text-align: right;
+`;
+
 const CheckoutBody = styled('div')<{isNewCheckout: boolean}>`
   ${p =>
     !p.isNewCheckout &&
@@ -1093,19 +1105,7 @@ const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
       border-top: 1px solid ${p.theme.border};
       display: flex;
       flex-direction: column;
-      position: relative;
       padding: ${p.theme.space['2xl']};
-
-      &:before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100%;
-        background-color: ${p.theme.background};
-        z-index: 0;
-      }
 
       @media (min-width: ${p.theme.breakpoints.md}) {
         position: sticky;

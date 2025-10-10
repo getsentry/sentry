@@ -811,7 +811,6 @@ function Cart({
 
   return (
     <Stack data-test-id="cart" gap="xl" paddingTop="xl">
-      <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
       <CartDiff
         activePlan={activePlan}
         formData={formData}
@@ -871,16 +870,6 @@ function Cart({
 }
 
 export default Cart;
-
-const OrgSlug = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  color: ${p => p.theme.subText};
-  flex-shrink: 1;
-  text-overflow: ellipsis;
-  text-wrap: nowrap;
-  width: 100%;
-  text-align: center;
-`;
 
 const Item = styled('div')`
   line-height: normal;
