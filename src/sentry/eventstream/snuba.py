@@ -9,12 +9,13 @@ from uuid import uuid4
 import urllib3
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
-from sentry import options, quotas
+from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.eventstream.base import EventStream, GroupStates
 from sentry.eventstream.item_helpers import serialize_event_data_as_item
 from sentry.eventstream.types import EventStreamEventType
 from sentry.models.project import Project
+from sentry.options.rollout import in_rollout_group
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
@@ -211,13 +212,13 @@ class SnubaProtocolEventStream(EventStream):
             event_type=event_type,
         )
 
-        if options.get("eventstream.eap_forwarding"):
+        if in_rollout_group("eventstream.eap_forwarding_rate", event.project_id):
             self._forward_event_to_items(event, event_data, event_type, project)
 
     def _missing_required_item_fields(self, event_data: Mapping[str, Any]) -> list[str]:
         root_level_fields = ["event_id", "timestamp"]
         missing_fields = [field for field in root_level_fields if field not in event_data]
-        trace_id = event_data.get("contexts", {}).get("trace", {}).get("trace_id", None)
+        trace_id = get_path(event_data, "contexts", "trace", "trace_id", default=None)
         if trace_id is None:
             missing_fields.append("trace_id")
 

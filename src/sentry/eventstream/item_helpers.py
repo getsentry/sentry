@@ -30,7 +30,6 @@ def serialize_event_data_as_item(
 
 
 def _encode_value(value: Any) -> AnyValue:
-    """Encode a Python value into a protobuf AnyValue."""
     if isinstance(value, str):
         return AnyValue(string_value=value)
     elif isinstance(value, bool):

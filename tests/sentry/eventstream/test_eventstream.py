@@ -443,7 +443,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         group_event = event.for_group(group_info.group)
         group_event.occurrence = occurrence
 
-        with self.options({"eventstream.eap_forwarding": 1.0}):
+        with self.options({"eventstream.eap_forwarding_rate": 1.0}):
             with patch.object(es, "_send_item") as send:
                 es.insert(
                     group_event,
