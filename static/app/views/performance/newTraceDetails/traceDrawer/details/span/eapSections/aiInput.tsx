@@ -138,30 +138,28 @@ export function hasAIInputAttribute(
 }
 
 function useInvalidRoleDetection(roles: string[]) {
-  const hasReportedInvalidRoles = useRef(false);
+  const invalidRoles = roles.filter(role => !ALLOWED_MESSAGE_ROLES.has(role));
+  const hasInvalidRoles = invalidRoles.length > 0;
+
+  const captureMessage = useEffectEvent(() => {
+    Sentry.captureMessage('Gen AI message with invalid role', {
+      level: 'warning',
+      tags: {
+        feature: 'agent-monitoring',
+        invalid_role_count: invalidRoles.length,
+      },
+      extra: {
+        invalid_roles: invalidRoles,
+        allowed_roles: Array.from(ALLOWED_MESSAGE_ROLES),
+      },
+    });
+  });
 
   useEffect(() => {
-    if (hasReportedInvalidRoles.current || roles.length === 0) {
-      return;
+    if (hasInvalidRoles) {
+      captureMessage();
     }
-
-    const invalidRoles = roles.filter(role => !ALLOWED_MESSAGE_ROLES.has(role));
-
-    if (invalidRoles.length > 0) {
-      Sentry.captureMessage('Gen AI message with invalid role', {
-        level: 'warning',
-        tags: {
-          feature: 'agent-monitoring',
-          invalid_role_count: invalidRoles.length,
-        },
-        extra: {
-          invalid_roles: invalidRoles,
-          allowed_roles: Array.from(ALLOWED_MESSAGE_ROLES),
-        },
-      });
-      hasReportedInvalidRoles.current = true;
-    }
-  }, [roles]);
+  }, [hasInvalidRoles]);
 }
 
 export function AIInputSection({
