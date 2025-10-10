@@ -2,12 +2,14 @@ import {useMemo} from 'react';
 
 import {Flex} from 'sentry/components/core/layout';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t} from 'sentry/locale';
 import {
   TraceItemSearchQueryBuilder,
   useSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {AggregateDropdown} from 'sentry/views/explore/metrics/metricRow/aggregateDropdown';
 import {GroupBySelector} from 'sentry/views/explore/metrics/metricRow/groupBySelector';
@@ -26,19 +28,36 @@ export function MetricRow({traceMetric}: MetricRowProps) {
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
 
+  const metricNameFilter = traceMetric.name
+    ? MutableSearch.fromQueryObject({['metric.name']: [traceMetric.name]}).formatString()
+    : undefined;
+
+  const {attributes: numberTags} = useTraceItemAttributeKeys({
+    traceItemType: TraceItemDataset.TRACEMETRICS,
+    type: 'number',
+    enabled: Boolean(metricNameFilter),
+    query: metricNameFilter,
+  });
+  const {attributes: stringTags} = useTraceItemAttributeKeys({
+    traceItemType: TraceItemDataset.TRACEMETRICS,
+    type: 'string',
+    enabled: Boolean(metricNameFilter),
+    query: metricNameFilter,
+  });
+
   const tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps =
     useMemo(() => {
       return {
         itemType: TraceItemDataset.TRACEMETRICS,
-        numberAttributes: {},
-        stringAttributes: {},
+        numberAttributes: numberTags ?? {},
+        stringAttributes: stringTags ?? {},
         numberSecondaryAliases: {},
         stringSecondaryAliases: {},
         initialQuery: query,
         onSearch: setQuery,
         searchSource: 'tracemetrics',
       };
-    }, [query, setQuery]);
+    }, [query, setQuery, numberTags, stringTags]);
 
   const searchQueryBuilderProviderProps = useSearchQueryBuilderProps(
     tracesItemSearchQueryBuilderProps
