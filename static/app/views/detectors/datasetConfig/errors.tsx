@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {EventsStats} from 'sentry/types/organization';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
@@ -74,6 +75,7 @@ const DEFAULT_FIELD: QueryFieldValue = {
 const DEFAULT_EVENT_TYPES = [EventTypes.ERROR, EventTypes.DEFAULT];
 
 export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> = {
+  name: t('Errors'),
   SearchBar: EventsSearchBar,
   defaultEventTypes: DEFAULT_EVENT_TYPES,
   defaultField: DEFAULT_FIELD,

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   FilterWrapper,
@@ -37,8 +37,12 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
 
   return (
     <Container>
-      <Flex direction="column" gap="xs">
-        <Heading>{t('Query:')}</Heading>
+      <Flex direction="column" gap="md">
+        <Flex gap="xs" align="baseline">
+          <Heading as="h4">{t('Dataset:')}</Heading>
+          <Value>{datasetConfig.name}</Value>
+        </Flex>
+        <Heading as="h4">{t('Query:')}</Heading>
         <Query>
           <Label>
             <Text variant="muted">{t('Visualize')}</Text>
@@ -67,10 +71,10 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
             </Fragment>
           )}
         </Query>
-      </Flex>
-      <Flex gap="xs" align="center">
-        <Heading>{t('Interval:')}</Heading>
-        <Value>{getExactDuration(dataSource.queryObj.snubaQuery.timeWindow)}</Value>
+        <Flex gap="xs" align="baseline">
+          <Heading as="h4">{t('Interval:')}</Heading>
+          <Value>{getExactDuration(dataSource.queryObj.snubaQuery.timeWindow)}</Value>
+        </Flex>
       </Flex>
     </Container>
   );
@@ -81,16 +85,12 @@ export function MetricDetectorDetailsDetect({detector}: MetricDetectorDetectProp
   return <SnubaQueryDetails dataSource={dataSource} />;
 }
 
-const Heading = styled('h4')`
-  font-size: ${p => p.theme.fontSize.md};
-  margin: 0;
-`;
-
 const Query = styled('dl')`
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: ${p => p.theme.space.sm} ${p => p.theme.space.xs};
   margin: 0;
+  align-items: baseline;
 `;
 
 const Label = styled('dt')`
