@@ -103,5 +103,4 @@ const FormStack = styled('div')`
   flex-direction: column;
   gap: ${p => p.theme.space['2xl']};
   max-width: ${p => p.theme.breakpoints.lg};
-  padding-bottom: 160px;
 `;

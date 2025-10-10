@@ -119,7 +119,7 @@ export const useSortedTimeSeries = <
   // compare the result and spot-check that there aren't any differences.
 
   // Re-roll the random value whenever the filters change
-  const key = `${yAxis.join(',')}-${typeof search === 'string' ? search : search?.formatString()}-${(fields ?? []).join(',')}-${pageFilters.selection.datetime.period}`;
+  const key = `${yAxis.join(',')}-${typeof search === 'string' ? search : search?.formatString()}-${topEvents}-${(fields ?? []).join(',')}-${pageFilters.selection.datetime.period}-${pageFilters.selection.datetime.start}-${pageFilters.selection.datetime.end}-${disableAggregateExtrapolation}`;
 
   const isTimeSeriesEndpointComparisonEnabled =
     useIsSampled(0.1, key) &&
@@ -136,6 +136,7 @@ export const useSortedTimeSeries = <
       sort: decodeSorts(orderby)[0],
       interval,
       sampling: samplingMode,
+      extrapolate: !disableAggregateExtrapolation,
       enabled: isTimeSeriesEndpointComparisonEnabled,
     },
     `${referrer}-time-series`
@@ -385,15 +386,24 @@ function comparator(
   objA: Record<PropertyKey, unknown>,
   objB: Record<PropertyKey, unknown>
 ) {
-  // Compare numbers by near equality, which makes the comparison less sensitive to small natural variations in value caused by request sequencing
   if (
     key &&
     NUMERIC_KEYS.includes(key) &&
     typeof valueA === 'number' &&
     typeof valueB === 'number' &&
-    !objA?.incomplete &&
-    !objB?.incomplete
+    (objA?.incomplete || objB?.incomplete)
   ) {
+    // Treat numerical values in incomplete buckets as equal, we don't care about the differences there
+    return true;
+  }
+
+  if (
+    key &&
+    NUMERIC_KEYS.includes(key) &&
+    typeof valueA === 'number' &&
+    typeof valueB === 'number'
+  ) {
+    // Compare numbers by near equality, which makes the comparison less sensitive to small natural variations in value caused by request sequencing
     return areNumbersAlmostEqual(valueA, valueB, 5);
   }
 
