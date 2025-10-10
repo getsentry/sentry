@@ -896,24 +896,6 @@ class AMCheckout extends Component<Props, State> {
               data-test-id="change-subscription"
             />
           )}
-          {isNewCheckout && <LogoSentry height="24px" />}
-          {isNewCheckout && (
-            <Flex align="center" gap="md" paddingTop="2xl">
-              <LinkButton
-                aria-label={t('Back to Subscription Overview')}
-                to={`/settings/${organization.slug}/billing/`}
-                icon={<IconChevron direction="left" />}
-                size="xs"
-                onClick={() => {
-                  trackGetsentryAnalytics('checkout.exit', {
-                    subscription,
-                    organization,
-                  });
-                }}
-              />
-              <Heading as="h3">{t('Manage Subscription')}</Heading>
-            </Flex>
-          )}
           {this.renderPartnerAlert()}
           <CheckoutStepsContainer
             data-test-id="checkout-steps"
@@ -1009,14 +991,43 @@ class AMCheckout extends Component<Props, State> {
               <Alert type="info">{promotionDisclaimerText}</Alert>
             </Alert.Container>
           )}
+          {isNewCheckout && (
+            <CheckoutHeader>
+              <Flex
+                width="100%"
+                align="center"
+                maxWidth="82rem"
+                gap="lg"
+                padding="xl 2xl"
+              >
+                <LogoSentry height="24px" />
+                <LinkButton
+                  aria-label={t('Back to Subscription Overview')}
+                  to={`/settings/${organization.slug}/billing/`}
+                  icon={<IconChevron direction="left" />}
+                  size="md"
+                  borderless
+                  onClick={() => {
+                    trackGetsentryAnalytics('checkout.exit', {
+                      subscription,
+                      organization,
+                    });
+                  }}
+                >
+                  {t('Manage Subscription')}
+                </LinkButton>
+              </Flex>
+            </CheckoutHeader>
+          )}
           {isNewCheckout ? (
             <Flex
               direction={{xs: 'column', md: 'row'}}
               gap="md 3xl"
-              justify="center"
+              justify="between"
               width="100%"
               maxWidth="82rem"
               align="start"
+              paddingTop="3xl"
             >
               {renderCheckoutContent()}
             </Flex>
@@ -1039,6 +1050,19 @@ class AMCheckout extends Component<Props, State> {
   }
 }
 
+const CheckoutHeader = styled('header')`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: ${p => p.theme.background};
+  border-bottom: 1px solid ${p => p.theme.border};
+  display: flex;
+  justify-content: center;
+  gap: ${p => p.theme.space.md};
+`;
+
 const CheckoutBody = styled('div')<{isNewCheckout: boolean}>`
   ${p =>
     !p.isNewCheckout &&
@@ -1051,11 +1075,13 @@ const CheckoutBody = styled('div')<{isNewCheckout: boolean}>`
   ${p =>
     p.isNewCheckout &&
     css`
-      padding: ${p.theme.space['2xl']};
+      padding: ${p.theme.space['3xl']} ${p.theme.space['2xl']};
       width: 100%;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
+      max-width: 45rem;
+      margin-top: ${p.theme.space['3xl']};
     `}
 `;
 
@@ -1084,11 +1110,10 @@ const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
       @media (min-width: ${p.theme.breakpoints.md}) {
         position: sticky;
         right: 0;
-        top: 0;
+        top: 8rem;
         min-height: 100vh;
-        max-width: 440px;
+        max-width: 480px;
         border-top: none;
-        border-left: 1px solid ${p.theme.border};
         padding-left: ${p.theme.space['3xl']};
       }
     `}
@@ -1129,6 +1154,7 @@ const OverviewContainer = styled('div')<{isNewCheckout: boolean}>`
 
       @media (min-width: ${p.theme.breakpoints.md}) {
         padding-left: ${p.theme.space['2xl']};
+        padding-right: ${p.theme.space['2xl']};
       }
     `}
 `;
