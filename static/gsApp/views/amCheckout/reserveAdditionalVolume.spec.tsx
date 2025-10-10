@@ -299,8 +299,9 @@ describe('ReserveAdditionalVolume', () => {
     });
 
     it('auto-shows sliders if customer has reserved volume above platform', () => {
-      subscription.categories.errors!.reserved = 100_000;
-      render(<ReserveAdditionalVolume {...stepProps} />);
+      const paidSub = SubscriptionFixture({organization, plan: 'am3_business'});
+      paidSub.categories.errors!.reserved = 100_000;
+      render(<ReserveAdditionalVolume {...stepProps} subscription={paidSub} />);
       expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
     });
   });
