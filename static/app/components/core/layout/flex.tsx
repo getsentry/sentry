@@ -9,7 +9,7 @@ const omitFlexProps = new Set<keyof FlexLayoutProps | 'as'>([
   'direction',
   'flex',
   'gap',
-  'inline',
+  'display',
   'align',
   'justify',
   'wrap',
@@ -21,13 +21,22 @@ interface FlexLayoutProps {
    * Uses CSS align-items property.
    */
   align?: Responsive<'start' | 'end' | 'center' | 'baseline' | 'stretch'>;
-  direction?: Responsive<'row' | 'row-reverse' | 'column' | 'column-reverse'>;
-  flex?: Responsive<CSSProperties['flex']>;
-  gap?: Responsive<SpacingSize | `${SpacingSize} ${SpacingSize}`>;
   /**
-   * Determines whether the flex container should be displayed as an inline-flex.
+   * Specifies the direction of the flex items.
    */
-  inline?: Responsive<boolean>;
+  direction?: Responsive<'row' | 'row-reverse' | 'column' | 'column-reverse'>;
+  /**
+   * Specifies the display type of the flex container.
+   */
+  display?: Responsive<'flex' | 'inline-flex' | 'none'>;
+  /**
+   * Shorthand for the flex property.
+   */
+  flex?: Responsive<CSSProperties['flex']>;
+  /**
+   * Specifies the spacing between flex items.
+   */
+  gap?: Responsive<SpacingSize | `${SpacingSize} ${SpacingSize}`>;
   /**
    * Aligns flex items along the block axis of the current line of flex items.
    * Uses CSS justify-content property.
@@ -35,6 +44,9 @@ interface FlexLayoutProps {
   justify?: Responsive<
     'start' | 'end' | 'center' | 'between' | 'around' | 'evenly' | 'left' | 'right'
   >;
+  /**
+   * Specifies the wrapping behavior of the flex items.
+   */
   wrap?: Responsive<'nowrap' | 'wrap' | 'wrap-reverse'>;
 }
 
@@ -46,8 +58,7 @@ export const Flex = styled(Container, {
     return !omitFlexProps.has(prop as any);
   },
 })<FlexProps<any>>`
-  ${p => rc('display', p.as === 'span' || p.inline ? 'inline-flex' : 'flex', p.theme)};
-
+  ${p => rc('display', p.display, p.theme)};
   ${p => rc('order', p.order, p.theme)};
   ${p => rc('gap', p.gap, p.theme, getSpacing)};
 

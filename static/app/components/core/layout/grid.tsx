@@ -12,7 +12,7 @@ const omitGridProps = new Set<keyof GridLayoutProps | 'as'>([
   'autoRows',
   'flow',
   'gap',
-  'inline',
+  'display',
   'justify',
   'justifyItems',
   'areas',
@@ -54,15 +54,15 @@ interface GridLayoutProps {
    */
   columns?: Responsive<CSSProperties['gridTemplateColumns']>;
   /**
+   * Determines the grid display type.
+   */
+  display?: Responsive<'grid' | 'inline-grid' | 'none'>;
+  /**
    * Controls the auto-placement algorithm for grid items.
    * Uses CSS grid-auto-flow property.
    */
   flow?: Responsive<'row' | 'column' | 'row dense' | 'column dense'>;
   gap?: Responsive<SpacingSize | `${SpacingSize} ${SpacingSize}`>;
-  /**
-   * Determines whether the grid container should be displayed as an inline-grid.
-   */
-  inline?: Responsive<boolean>;
   /**
    * Aligns the grid container's content along the row axis when the grid is smaller than its container.
    * Uses CSS justify-content property.
@@ -89,7 +89,7 @@ export const Grid = styled(Container, {
     return !omitGridProps.has(prop as any);
   },
 })<GridProps<any>>`
-  ${p => rc('display', p.as === 'span' || p.inline ? 'inline-grid' : 'grid', p.theme)};
+  ${p => rc('display', p.display, p.theme)};
 
   ${p => rc('gap', p.gap, p.theme, getSpacing)};
 
