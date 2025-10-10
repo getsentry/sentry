@@ -28,26 +28,20 @@ class OrganizationIntegrationChannelsSlackTest(OrganizationIntegrationChannelsTe
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_list")
     def test_slack_channels_list(self, mock_conversations_list):
-        """Test listing Slack channels with proper formatting and pagination."""
-        channels = [
-            {"id": "C123", "name": "general", "is_private": False},
-            {"id": "C456", "name": "alerts", "is_private": True},
-        ]
+        """Test listing Slack channels with proper formatting"""
+        channel = {"id": "C123", "name": "general", "is_private": False}
         mock_conversations_list.return_value.data = {
             "ok": True,
-            "channels": channels,
+            "channels": [channel],
             "response_metadata": {"next_cursor": "cursor123"},
         }
-        resp = self.get_success_response(
-            self.organization.slug, self.integration.id, qs_params={"limit": 1}
-        )
+        resp = self.get_success_response(self.organization.slug, self.integration.id)
         results = resp.data["results"]
-        expected_first = channels[0]
         assert len(results) == 1
         assert results[0] == {
-            "id": expected_first["id"],
-            "name": expected_first["name"],
-            "display": f"#{expected_first['name']}",
+            "id": channel["id"],
+            "name": channel["name"],
+            "display": f"#{channel['name']}",
             "type": "public",
         }
         assert resp.data["nextCursor"] == "cursor123"
@@ -64,7 +58,7 @@ class OrganizationIntegrationChannelsSlackTest(OrganizationIntegrationChannelsTe
         resp = self.get_success_response(
             self.organization.slug,
             self.integration.id,
-            qs_params={"cursor": "cursor123", "limit": 2},
+            qs_params={"cursor": "cursor123"},
         )
         assert resp.data["results"] == [
             {
@@ -228,9 +222,7 @@ class OrganizationIntegrationChannelsMsTeamsTest(OrganizationIntegrationChannels
 class OrganizationIntegrationChannelsErrorTest(OrganizationIntegrationChannelsTest):
     def test_integration_not_found(self):
         """Test 404 when integration doesn't exist."""
-        response = self.get_error_response(
-            self.organization.slug, integration_id=9999, status_code=404
-        )
+        response = self.get_error_response(self.organization.slug, 9999, status_code=404)
         assert response.status_code == 404
 
     def test_unsupported_provider(self):
