@@ -29,6 +29,6 @@ class Migration(CheckedMigration):
         migrations.AddField(
             model_name="releaseproject",
             name="date_added",
-            field=models.DateTimeField(db_index=True, default=django.utils.timezone.now, null=True),
+            field=models.DateTimeField(default=django.utils.timezone.now, null=True),
         ),
     ]
