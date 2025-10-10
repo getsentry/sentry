@@ -335,7 +335,7 @@ function Overview({location, subscription, promotionData}: Props) {
           {t(' Having trouble?')}
         </Text>
         <Text>
-          {tct('Reach out toh [supportLink], or vent to a real human on [discordLink]', {
+          {tct('Reach out to [supportLink], or vent to a real human on [discordLink]', {
             supportLink: (
               <ExternalLink href="mailto:support@sentry.io">{t('Support')}</ExternalLink>
             ),
