@@ -11,7 +11,7 @@ import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/ne
 
 const {organization, projects, router} = initializeOrg({
   organization: {
-    features: ['global-views', 'open-membership', 'visibility-explore-view'],
+    features: ['open-membership', 'visibility-explore-view'],
   },
   projects: [
     {id: '1', slug: 'project-1', isMember: true},
@@ -35,14 +35,11 @@ describe('NewWidgetBuilder', () => {
     OrganizationStore.init();
 
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [],
-        environments: [],
-        datetime: {start: null, end: null, period: '14d', utc: null},
-      },
-      new Set(['projects'])
-    );
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
 
     OrganizationStore.onUpdate(organization, {replace: true});
     ProjectsStore.loadInitialData(projects);

@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -39,152 +39,131 @@ type Props = {
   };
 };
 
-const initialState = {visible: true, checked: false, busy: false};
-
 const similarityEmbeddingScoreValues = [0.9, 0.925, 0.95, 0.975, 0.99, 1];
 
-type State = typeof initialState;
+export function SimilarStackTraceItem(props: Props) {
+  const {aggregate, scoresByInterface, issue, hasSimilarityEmbeddingsFeature} = props;
+  const [checked, setChecked] = useState<boolean>(false);
+  const [busy, setBusy] = useState<boolean>(false);
 
-class Item extends Component<Props, State> {
-  state: State = initialState;
-
-  componentWillUnmount() {
-    this.listener?.();
-  }
-
-  listener = GroupingStore.listen((data: any) => this.onGroupChange(data), undefined);
-
-  handleToggle = () => {
-    const {issue} = this.props;
-
-    // clicking anywhere in the row will toggle the checkbox
-    if (!this.state.busy) {
-      GroupingStore.onToggleMerge(issue.id);
-    }
-  };
-
-  handleShowDiff = (event: React.MouseEvent) => {
-    const {orgId, groupId: baseIssueId, issue, project, location} = this.props;
-    const {id: targetIssueId} = issue;
-
-    openDiffModal({
-      baseIssueId,
-      targetIssueId,
-      project,
-      orgId,
-      location,
-    });
-    event.stopPropagation();
-  };
-
-  handleCheckClick = () => {
-    // noop to appease React warnings
-    // This is controlled via row click instead of only Checkbox
-  };
-
-  onGroupChange = ({mergeState}: any) => {
-    if (!mergeState) {
-      return;
-    }
-
-    const {issue} = this.props;
-
-    const stateForId = mergeState.has(issue.id) && mergeState.get(issue.id);
-
-    if (!stateForId) {
-      return;
-    }
-
-    Object.keys(stateForId).forEach(key => {
-      if (stateForId[key] === this.state[key as keyof State]) {
+  const onGroupChange = useCallback(
+    ({mergeState}: ReturnType<typeof GroupingStore.getState>) => {
+      if (!mergeState) {
         return;
       }
-      this.setState(prevState => ({
-        ...prevState,
-        [key]: stateForId[key],
-      }));
-    });
-  };
 
-  render() {
-    const {aggregate, scoresByInterface, issue, hasSimilarityEmbeddingsFeature} =
-      this.props;
-    const {visible, busy} = this.state;
-    const similarInterfaces: Array<'exception' | 'message'> =
-      hasSimilarityEmbeddingsFeature ? ['exception'] : ['exception', 'message'];
+      const stateForId = mergeState.has(issue.id) && mergeState.get(issue.id);
 
-    if (!visible) {
-      return null;
+      if (!stateForId) {
+        return;
+      }
+
+      setChecked(prev =>
+        typeof stateForId.checked === 'undefined' ? prev : stateForId.checked
+      );
+      setBusy(prev => (typeof stateForId.busy === 'undefined' ? prev : stateForId.busy));
+    },
+    [issue.id]
+  );
+
+  useEffect(() => {
+    const unsubscribe = GroupingStore.listen(
+      (data: ReturnType<typeof GroupingStore.getState>) => onGroupChange(data),
+      undefined
+    );
+    return () => {
+      unsubscribe?.();
+    };
+  }, [onGroupChange]);
+
+  const handleToggle = useCallback(() => {
+    // clicking anywhere in the row will toggle the checkbox
+    if (!busy) {
+      GroupingStore.onToggleMerge(issue.id);
     }
+  }, [busy, issue.id]);
 
-    const cx = classNames('group', {
-      isResolved: issue.status === 'resolved',
-      busy,
-    });
+  const handleShowDiff = useCallback(
+    (event: React.MouseEvent) => {
+      const {orgId, groupId: baseIssueId, project, location} = props;
+      const {id: targetIssueId} = issue;
 
-    return (
-      <StyledPanelItem
-        data-test-id="similar-item-row"
-        className={cx}
-        onClick={this.handleToggle}
-      >
-        <Details>
-          <Checkbox
-            id={issue.id}
-            value={issue.id}
-            checked={this.state.checked}
-            onChange={this.handleCheckClick}
-          />
-          <EventDetails>
-            <EventOrGroupHeader data={issue} source="similar-issues" />
-            <EventOrGroupExtraDetails data={{...issue, lastSeen: ''}} showAssignee />
-          </EventDetails>
+      openDiffModal({
+        baseIssueId,
+        targetIssueId,
+        project,
+        orgId,
+        location,
+      });
+      event.stopPropagation();
+    },
+    [issue, props]
+  );
 
-          <Diff>
-            <Button onClick={this.handleShowDiff} size="sm">
-              {t('Diff')}
-            </Button>
-          </Diff>
-        </Details>
+  const similarInterfaces: Array<'exception' | 'message'> = hasSimilarityEmbeddingsFeature
+    ? ['exception']
+    : ['exception', 'message'];
 
-        <Columns>
-          <StyledCount value={issue.count} />
-          {similarInterfaces.map(interfaceName => {
-            const avgScore = aggregate?.[interfaceName];
-            const scoreList = scoresByInterface?.[interfaceName] || [];
+  const cx = classNames('group', {
+    isResolved: issue.status === 'resolved',
+    busy,
+  });
 
-            // Check for valid number (and not NaN)
-            let scoreValue =
-              typeof avgScore === 'number' && !Number.isNaN(avgScore) ? avgScore : 0;
-            // If hasSimilarityEmbeddingsFeature is on, translate similarity score in range 0.9-1 to score between 1-5
-            if (hasSimilarityEmbeddingsFeature) {
-              for (let i = 0; i <= similarityEmbeddingScoreValues.length; i++) {
-                if (scoreValue <= similarityEmbeddingScoreValues[i]!) {
-                  scoreValue = i;
-                  break;
-                }
+  return (
+    <StyledPanelItem
+      data-test-id="similar-item-row"
+      className={cx}
+      onClick={handleToggle}
+    >
+      <Details>
+        <Checkbox id={issue.id} value={issue.id} checked={checked} onChange={() => {}} />
+        <EventDetails>
+          <EventOrGroupHeader data={issue} source="similar-issues" />
+          <EventOrGroupExtraDetails data={{...issue, lastSeen: ''}} showAssignee />
+        </EventDetails>
+
+        <Diff>
+          <Button onClick={handleShowDiff} size="sm">
+            {t('Diff')}
+          </Button>
+        </Diff>
+      </Details>
+
+      <Columns>
+        <StyledCount value={issue.count} />
+        {similarInterfaces.map(interfaceName => {
+          const avgScore = aggregate?.[interfaceName];
+          const scoreList = scoresByInterface?.[interfaceName] || [];
+
+          // Check for valid number (and not NaN)
+          let scoreValue =
+            typeof avgScore === 'number' && !Number.isNaN(avgScore) ? avgScore : 0;
+          // If hasSimilarityEmbeddingsFeature is on, translate similarity score in range 0.9-1 to score between 1-5
+          if (hasSimilarityEmbeddingsFeature) {
+            for (let i = 0; i <= similarityEmbeddingScoreValues.length; i++) {
+              if (scoreValue <= similarityEmbeddingScoreValues[i]!) {
+                scoreValue = i;
+                break;
               }
             }
+          }
 
-            return (
-              <Column key={interfaceName}>
-                {!hasSimilarityEmbeddingsFeature && (
-                  <Hovercard
-                    body={scoreList.length && <SimilarScoreCard scoreList={scoreList} />}
-                  >
-                    <ScoreBar vertical score={Math.round(scoreValue * 5)} />
-                  </Hovercard>
-                )}
-                {hasSimilarityEmbeddingsFeature && (
-                  <ScoreBar vertical score={scoreValue} />
-                )}
-              </Column>
-            );
-          })}
-        </Columns>
-      </StyledPanelItem>
-    );
-  }
+          return (
+            <Column key={interfaceName}>
+              {!hasSimilarityEmbeddingsFeature && (
+                <Hovercard
+                  body={scoreList.length && <SimilarScoreCard scoreList={scoreList} />}
+                >
+                  <ScoreBar vertical score={Math.round(scoreValue * 5)} />
+                </Hovercard>
+              )}
+              {hasSimilarityEmbeddingsFeature && <ScoreBar vertical score={scoreValue} />}
+            </Column>
+          );
+        })}
+      </Columns>
+    </StyledPanelItem>
+  );
 }
 
 const Details = styled('div')`
@@ -237,5 +216,3 @@ const EventDetails = styled('div')`
   flex: 1;
   ${p => p.theme.overflowEllipsis};
 `;
-
-export default Item;

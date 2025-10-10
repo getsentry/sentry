@@ -27,6 +27,8 @@ import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphR
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
+const PROFILE_TYPE = 'differential aggregate flamegraph' as const;
+
 interface DifferentialFlamegraphProps {
   canvasPoolManager: CanvasPoolManager;
   differentialFlamegraph: DifferentialFlamegraphModel;
@@ -191,6 +193,7 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
       setFlamegraphCanvasRef={setFlamegraphCanvasRef}
       setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
       contextMenu={FlamegraphContextMenu}
+      profileType={PROFILE_TYPE}
     />
   );
 }

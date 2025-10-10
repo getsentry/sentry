@@ -80,6 +80,7 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
+        assert activity.group is not None
         self.group = activity.group
 
     def get_description(self) -> tuple[str, str | None, Mapping[str, Any]]:

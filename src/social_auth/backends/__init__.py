@@ -16,7 +16,7 @@ import logging
 import threading
 from typing import Any
 from urllib.error import HTTPError
-from urllib.parse import urlencode
+from urllib.parse import parse_qsl, urlencode
 from urllib.request import Request
 
 import requests
@@ -64,6 +64,8 @@ PIPELINE = setting(
         "social_auth.backends.pipeline.user.update_user_details",
     ),
 )
+
+UNSAFE_QUERY_PARAMS = ["client_id", "redirect_uri", "state", "response_type"]
 
 logger = logging.getLogger("social_auth")
 
@@ -579,11 +581,30 @@ class BaseOAuth2(OAuthAuth):
         params.update(self.get_scope_argument())
         params.update(self.auth_extra_arguments())
 
-        if self.request.META.get("QUERY_STRING"):
-            query_string = "&" + self.request.META["QUERY_STRING"]
-        else:
-            query_string = ""
+        query_string = self._get_safe_query_string()
         return self.AUTHORIZATION_URL + "?" + urlencode(params) + query_string
+
+    def _get_safe_query_string(self):
+        """
+        Returns filtered query string without client_id parameter.
+        """
+
+        query_string = self.request.META.get("QUERY_STRING", "")
+        if not query_string:
+            return ""
+
+        parsed_params = parse_qsl(query_string, keep_blank_values=True)
+        safe_params = []
+
+        for param_name, param_value in parsed_params:
+            # Remove client_id parameter
+            if param_name.lower() not in UNSAFE_QUERY_PARAMS:
+                safe_params.append((param_name, param_value))
+
+        if safe_params:
+            return "&" + urlencode(safe_params)
+        else:
+            return ""
 
     def validate_state(self):
         """Validate state value. Raises exception on error, returns state

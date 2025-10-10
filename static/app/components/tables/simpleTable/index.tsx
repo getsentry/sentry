@@ -1,5 +1,6 @@
 import type {ComponentProps, CSSProperties, HTMLAttributes, RefObject} from 'react';
 import {css} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
@@ -57,7 +58,7 @@ function HeaderCell({
     >
       {divider && <HeaderDivider />}
       {canSort && <InteractionStateLayer />}
-      <HeadingText>{children}</HeadingText>
+      <Flex align="center">{children}</Flex>
       {isSorted && (
         <SortIndicator
           aria-hidden
@@ -148,11 +149,6 @@ const StyledRow = styled('div', {
     `}
 `;
 
-const HeadingText = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
 const HeaderDivider = styled('div')`
   position: absolute;
   left: 0;
@@ -193,6 +189,21 @@ const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
     `}
 `;
 
+const rowLinkStyle = (p: {theme: Theme}) => css`
+  /** Adjust margin/padding to account for StyledRowCell padding */
+  margin: -${p.theme.space.lg} -${p.theme.space.xl};
+  padding: ${p.theme.space.lg} ${p.theme.space.xl};
+
+  /** Ensure cursor is set in case this is applied to a div */
+  cursor: pointer;
+
+  &:before {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+`;
+
 const SortIndicator = styled(IconArrow, {
   shouldForwardProp: prop => prop !== 'isSorted',
 })<{isSorted?: boolean}>`
@@ -220,4 +231,5 @@ SimpleTable.Header = Header;
 SimpleTable.HeaderCell = HeaderCell;
 SimpleTable.Row = Row;
 SimpleTable.RowCell = RowCell;
+SimpleTable.rowLinkStyle = rowLinkStyle;
 SimpleTable.Empty = StyledEmptyMessage;

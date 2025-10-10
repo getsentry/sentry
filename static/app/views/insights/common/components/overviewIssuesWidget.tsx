@@ -9,6 +9,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {WidgetFrame} from 'sentry/views/dashboards/widgetCard/widgetFrame';
 import type {
   TabularColumn,
@@ -36,6 +37,9 @@ const WIDGET_LIMIT = 4;
 
 export function OverviewIssuesWidget() {
   const organization = useOrganization();
+  const {
+    selection: {projects},
+  } = usePageFilters();
   const {data, meta, isLoading} = useErrors(
     {
       fields: [ErrorField.ISSUE_ID, ErrorField.TITLE, 'last_seen()', 'epm()'],
@@ -60,12 +64,16 @@ export function OverviewIssuesWidget() {
     data: newData,
     meta: {fields: {...meta?.fields}, units: {...meta?.units}} as TabularMeta, // TODO: ideally this is properly typed, but EventsMeta doesn't match TabularMeta even tho they seem like they should
   };
+  const projectParams = new URLSearchParams();
+  projects.forEach(project => projectParams.append('project', String(project)));
 
   const menuItems: MenuItemProps[] = [
     {
       key: 'open-in-issues',
       label: 'Open in Issues',
-      to: normalizeUrl(`/organizations/${organization.slug}/issues/`),
+      to: normalizeUrl(
+        `/organizations/${organization.slug}/issues/?${projectParams.toString()}`
+      ),
     },
   ];
 

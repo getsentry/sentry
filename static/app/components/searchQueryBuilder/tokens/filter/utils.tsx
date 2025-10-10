@@ -1,25 +1,18 @@
 import {
-  WildcardOperators,
-  type SearchQueryBuilderOperators,
-} from 'sentry/components/searchQueryBuilder/types';
-import {
-  allOperators,
+  comparisonOperators,
   FilterType,
   filterTypeConfig,
   interchangeableFilterOperators,
+  isInterchangeableFilterOperator,
   TermOperator,
   Token,
-  WildcardPositions,
+  wildcardOperators,
   type AggregateFilter,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
-import {
-  FieldValueType,
-  getFieldDefinition,
-  type FieldDefinition,
-} from 'sentry/utils/fields';
+import {FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 
 const SHOULD_ESCAPE_REGEX = /[\s"(),]/;
 
@@ -31,10 +24,12 @@ export const OP_LABELS = {
   [TermOperator.LESS_THAN_EQUAL]: '<=',
   [TermOperator.EQUAL]: 'is',
   [TermOperator.NOT_EQUAL]: 'is not',
-  [WildcardOperators.CONTAINS]: 'contains',
-  [WildcardOperators.DOES_NOT_CONTAIN]: 'does not contain',
-  [WildcardOperators.STARTS_WITH]: 'starts with',
-  [WildcardOperators.ENDS_WITH]: 'ends with',
+  [TermOperator.CONTAINS]: 'contains',
+  [TermOperator.DOES_NOT_CONTAIN]: 'does not contain',
+  [TermOperator.STARTS_WITH]: 'starts with',
+  [TermOperator.DOES_NOT_START_WITH]: 'does not start with',
+  [TermOperator.ENDS_WITH]: 'ends with',
+  [TermOperator.DOES_NOT_END_WITH]: 'does not end with',
 };
 
 export const DATE_OP_LABELS = {
@@ -70,58 +65,71 @@ export function isAggregateFilterToken(
   }
 }
 
-export function getValidOpsForFilter(
-  filterToken: TokenResult<Token.FILTER>,
-  hasWildcardOperators: boolean
-): readonly SearchQueryBuilderOperators[] {
-  const fieldDefinition = getFieldDefinition(filterToken.key.text);
-
-  if (fieldDefinition?.allowComparisonOperators) {
-    const validOps = new Set<SearchQueryBuilderOperators>(allOperators);
-
-    return [...validOps];
-  }
-
+export function getValidOpsForFilter({
+  filterToken,
+  hasWildcardOperators,
+  fieldDefinition,
+}: {
+  fieldDefinition: FieldDefinition | null;
+  filterToken: TokenResult<Token.FILTER>;
+  hasWildcardOperators: boolean;
+}): readonly TermOperator[] {
   // If the token is invalid we want to use the possible expected types as our filter type
   const validTypes = filterToken.invalid?.expectedType ?? [filterToken.filter];
 
   // Determine any interchangeable filter types for our valid types
-  const interchangeableTypes = validTypes.map(
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    type => interchangeableFilterOperators[type] ?? []
+  const interchangeableTypes = validTypes.flatMap(type =>
+    isInterchangeableFilterOperator(type) ? interchangeableFilterOperators[type] : []
   );
 
   // Combine all types
-  const allValidTypes = [...new Set([...validTypes, ...interchangeableTypes.flat()])];
+  const allValidTypes = [...new Set([...validTypes, ...interchangeableTypes])];
 
   // Find all valid operations
-  const validOps = new Set<SearchQueryBuilderOperators>(
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  const validOps = new Set<TermOperator>(
     allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
   );
 
-  // Special case for text, add contains operator
+  // Conditionally add comparison operators if they're not already present:
+  // - Field definition allows comparison operators
+  if (fieldDefinition?.allowComparisonOperators) {
+    comparisonOperators.forEach(op => validOps.add(op));
+  }
+
+  // Conditionally remove wildcard operators if:
+  // - Feature flag is not enabled
+  // - Field definition does not allow wildcard operators
+  // - Field definition is a string field
   if (
-    hasWildcardOperators &&
-    areWildcardOperatorsAllowed(fieldDefinition) &&
-    (filterToken.filter === FilterType.TEXT || filterToken.filter === FilterType.TEXT_IN)
+    !hasWildcardOperators ||
+    !areWildcardOperatorsAllowed(fieldDefinition) ||
+    fieldDefinition?.valueType !== FieldValueType.STRING
   ) {
-    validOps.add(WildcardOperators.CONTAINS);
-    validOps.add(WildcardOperators.DOES_NOT_CONTAIN);
-    validOps.add(WildcardOperators.STARTS_WITH);
-    validOps.add(WildcardOperators.ENDS_WITH);
+    wildcardOperators.forEach(op => validOps.delete(op));
   }
 
   return [...validOps];
 }
 
-export function escapeTagValue(value: string): string {
+interface EscapeTagValueOptions {
+  allowArrayValue?: boolean;
+}
+
+export function escapeTagValue(
+  value: string,
+  options: EscapeTagValueOptions = {}
+): string {
   if (!value) {
     return '';
   }
 
+  const {allowArrayValue = true} = options;
+
   // Wrap in quotes if there is a space or parens
-  return SHOULD_ESCAPE_REGEX.test(value) ? `"${escapeDoubleQuotes(value)}"` : value;
+  const shouldEscape =
+    SHOULD_ESCAPE_REGEX.test(value) ||
+    (allowArrayValue && value.startsWith('[') && value.endsWith(']'));
+  return shouldEscape ? `"${escapeDoubleQuotes(value)}"` : value;
 }
 
 export function unescapeTagValue(value: string): string {
@@ -130,21 +138,18 @@ export function unescapeTagValue(value: string): string {
 
 export function formatFilterValue({
   token,
-  stripWildcards = false,
 }: {
   token: TokenResult<Token.FILTER>['value'];
-  stripWildcards?: boolean;
 }): string {
   switch (token.type) {
     case Token.VALUE_TEXT: {
       const content = token.value ? token.value : token.text;
-      const cleanedContent = stripWildcards ? content.replace(/^\*+|\*+$/g, '') : content;
 
       if (!token.value) {
-        return cleanedContent;
+        return content;
       }
 
-      return token.quoted ? unescapeTagValue(cleanedContent) : cleanedContent;
+      return token.quoted ? unescapeTagValue(content) : content;
     }
     case Token.VALUE_RELATIVE_DATE:
       return t('%s', `${token.value}${token.unit} ago`);
@@ -205,83 +210,32 @@ export function convertTokenTypeToValueType(tokenType: Token): FieldValueType {
   }
 }
 
-type TokenValue = string | boolean | undefined;
-
-function getIsContains(tokenValue: TokenValue) {
-  return tokenValue === WildcardPositions.SURROUNDED;
-}
-
-function getIsStartsWith(tokenValue: TokenValue) {
-  return tokenValue === WildcardPositions.TRAILING;
-}
-
-function getIsEndsWith(tokenValue: TokenValue) {
-  return tokenValue === WildcardPositions.LEADING;
-}
-
 export function getLabelAndOperatorFromToken(
   token: TokenResult<Token.FILTER>,
   hasWildcardOperators: boolean
 ) {
-  const fieldDefinition = getFieldDefinition(token.key.text);
+  let operator = token.operator;
 
-  if (
-    token.value.type === Token.VALUE_TEXT &&
-    hasWildcardOperators &&
-    areWildcardOperatorsAllowed(fieldDefinition)
-  ) {
-    if (getIsContains(token.value.wildcard)) {
-      return {
-        label: token.negated ? t('does not contain') : t('contains'),
-        operator: token.negated
-          ? WildcardOperators.DOES_NOT_CONTAIN
-          : WildcardOperators.CONTAINS,
-      };
-    }
-
-    if (getIsStartsWith(token.value.wildcard)) {
-      return {
-        label: t('starts with'),
-        operator: WildcardOperators.STARTS_WITH,
-      };
-    }
-
-    if (getIsEndsWith(token.value.wildcard)) {
-      return {
-        label: t('ends with'),
-        operator: WildcardOperators.ENDS_WITH,
-      };
-    }
+  if (hasWildcardOperators && token.negated && token.operator === TermOperator.CONTAINS) {
+    operator = TermOperator.DOES_NOT_CONTAIN;
   } else if (
-    token.value.type === Token.VALUE_TEXT_LIST &&
     hasWildcardOperators &&
-    areWildcardOperatorsAllowed(fieldDefinition)
+    token.negated &&
+    token.operator === TermOperator.STARTS_WITH
   ) {
-    if (token.value.items.every(entry => getIsContains(entry.value?.wildcard))) {
-      return {
-        label: token.negated ? t('does not contain') : t('contains'),
-        operator: token.negated
-          ? WildcardOperators.DOES_NOT_CONTAIN
-          : WildcardOperators.CONTAINS,
-      };
-    }
-
-    if (token.value.items.every(entry => getIsStartsWith(entry.value?.wildcard))) {
-      return {
-        label: t('starts with'),
-        operator: WildcardOperators.STARTS_WITH,
-      };
-    }
-
-    if (token.value.items.every(entry => getIsEndsWith(entry.value?.wildcard))) {
-      return {
-        label: t('ends with'),
-        operator: WildcardOperators.ENDS_WITH,
-      };
-    }
+    operator = TermOperator.DOES_NOT_START_WITH;
+  } else if (
+    hasWildcardOperators &&
+    token.negated &&
+    token.operator === TermOperator.ENDS_WITH
+  ) {
+    operator = TermOperator.DOES_NOT_END_WITH;
+  } else if (hasWildcardOperators && token.operator === TermOperator.ENDS_WITH) {
+    operator = TermOperator.ENDS_WITH;
+  } else if (token.negated) {
+    operator = TermOperator.NOT_EQUAL;
   }
 
-  const operator = token.negated ? TermOperator.NOT_EQUAL : token.operator;
   const label = OP_LABELS[operator] ?? operator;
 
   return {

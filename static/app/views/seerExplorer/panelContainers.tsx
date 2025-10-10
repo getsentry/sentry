@@ -2,39 +2,51 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {IconSeer} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-import type {PanelSize} from './types';
+import MinimizedStrip from './minimizedStrip';
+import type {Block, PanelSize} from './types';
 
 interface PanelContainersProps {
+  blocks: Block[];
   children: React.ReactNode;
   isOpen: boolean;
-  onMinPanelClick: () => void;
+  isPolling: boolean;
+  onClear: () => void;
+  onMaxSize: () => void;
+  onMedSize: () => void;
+  onMinSize: () => void;
+  onSubmit: (message: string) => void;
   panelSize: PanelSize;
 }
 
 function PanelContainers({
   isOpen,
   panelSize,
-  onMinPanelClick,
   children,
+  blocks,
+  onSubmit,
+  isPolling,
+  onMaxSize,
+  onMedSize,
+  onMinSize,
+  onClear,
 }: PanelContainersProps) {
   return (
     <AnimatePresence>
       {isOpen && (
         <Fragment>
           {panelSize === 'min' ? (
-            <MinimizedPanel
+            <MinimizedStrip
               key="minimized"
-              initial={{opacity: 0, scale: 0.1, transformOrigin: 'bottom center'}}
-              animate={{opacity: 1, scale: 1, transformOrigin: 'bottom center'}}
-              exit={{opacity: 0, scale: 0.1, transformOrigin: 'bottom center'}}
-              transition={{duration: 0.2, ease: 'easeInOut'}}
-              onClick={onMinPanelClick}
-            >
-              <IconSeer size="lg" variant="waiting" />
-            </MinimizedPanel>
+              blocks={blocks}
+              onSubmit={onSubmit}
+              isPolling={isPolling}
+              onMaxSize={onMaxSize}
+              onMedSize={onMedSize}
+              onMinSize={onMinSize}
+              onClear={onClear}
+            />
           ) : (
             <Fragment>
               {panelSize === 'max' && (
@@ -58,7 +70,7 @@ function PanelContainers({
                 exit={{opacity: 0, y: 50, scale: 0.1, transformOrigin: 'bottom center'}}
                 transition={{duration: 0.1, ease: 'easeOut'}}
               >
-                <PanelContent>{children}</PanelContent>
+                <PanelContent data-seer-explorer-root="">{children}</PanelContent>
               </PanelContainer>
             </Fragment>
           )}
@@ -102,28 +114,6 @@ const PanelContainer = styled(motion.div)<{panelSize: 'max' | 'med'}>`
     `}
 
   transition: all 0.2s ease-in-out;
-`;
-
-const MinimizedPanel = styled(motion.div)`
-  position: fixed;
-  bottom: ${space(2)};
-  left: 50%;
-  margin-left: -30px;
-  width: 60px;
-  height: 60px;
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  box-shadow: ${p => p.theme.dropShadowHeavy};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 10000;
-
-  &:hover {
-    background: ${p => p.theme.backgroundSecondary};
-  }
 `;
 
 const PanelContent = styled('div')`

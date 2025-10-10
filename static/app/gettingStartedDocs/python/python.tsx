@@ -5,18 +5,20 @@ import {
   type Docs,
   type DocsParams,
   type OnboardingConfig,
+  type OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  getCrashReportBackendInstallStep,
+  getCrashReportBackendInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {
-  AlternativeConfiguration,
-  getPythonInstallConfig,
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
+  getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -209,72 +211,52 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct('Install our Python SDK:', {
-        code: <code />,
-      }),
-      configurations: getPythonInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct('Install our Python SDK:', {
+            code: <code />,
+          }),
+        },
+        getPythonInstallCodeBlock(),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Import and initialize the Sentry SDK early in your application's setup:"
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            "Import and initialize the Sentry SDK early in your application's setup:"
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
+        alternativeProfilingConfiguration(params),
       ],
-      additionalInfo: params.isProfilingSelected &&
-        params.profilingOptions?.defaultProfilingMode === 'continuous' && (
-          <AlternativeConfiguration />
-        ),
     },
   ],
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      configurations: [
+      content: [
         {
-          description: t(
+          type: 'text',
+          text: t(
             'You can verify your setup by intentionally causing an error that breaks your application:'
           ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: 'division_by_zero = 1 / 0',
         },
-        ...(params.isLogsSelected
-          ? [
-              {
-                description: t(
-                  'You can send logs to Sentry using the Sentry logging APIs:'
-                ),
-                language: 'python',
-                code: `import sentry_sdk
-
-# Send logs directly to Sentry
-sentry_sdk.logger.info('This is an info log message')
-sentry_sdk.logger.warning('This is a warning message')
-sentry_sdk.logger.error('This is an error message')`,
-              },
-              {
-                description: t(
-                  "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
-                ),
-                language: 'python',
-                code: `import logging
-
-# Your existing logging setup
-logger = logging.getLogger(__name__)
-
-# These logs will be automatically sent to Sentry
-logger.info('This will be sent to Sentry')
-logger.warning('User login failed')
-logger.error('Something went wrong')`,
-              },
-            ]
-          : []),
+        getVerifyLogsContent(params),
       ],
     },
   ],
@@ -298,13 +280,18 @@ logger.error('Something went wrong')`,
 
 export const crashReportOnboardingPython: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportBackendInstallStep(params),
+  install: (params: Params) => getCrashReportBackendInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/python/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/python/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],
@@ -410,24 +397,31 @@ export const featureFlagOnboarding: OnboardingConfig = {
     return [
       {
         type: StepType.INSTALL,
-        description:
-          featureFlagOptions.integration === FeatureFlagProviderEnum.GENERIC
-            ? t('Install the Sentry SDK.')
-            : t('Install the Sentry SDK with an extra.'),
-        configurations: getPythonInstallConfig({
-          packageName,
-        }),
+        content: [
+          {
+            type: 'text',
+            text:
+              featureFlagOptions.integration === FeatureFlagProviderEnum.GENERIC
+                ? t('Install the Sentry SDK.')
+                : t('Install the Sentry SDK with an extra.'),
+          },
+          getPythonInstallCodeBlock({packageName}),
+        ],
       },
       {
         type: StepType.CONFIGURE,
-        description:
-          featureFlagOptions.integration === FeatureFlagProviderEnum.GENERIC
-            ? `You don't need an integration for a generic usecase. Simply use this API after initializing Sentry.`
-            : tct('Add [name] to your integrations list.', {
-                name: <code>{`${integrationName}`}</code>,
-              }),
-        configurations: [
+        content: [
           {
+            type: 'text',
+            text:
+              featureFlagOptions.integration === FeatureFlagProviderEnum.GENERIC
+                ? `You don't need an integration for a generic usecase. Simply use this API after initializing Sentry.`
+                : tct('Add [name] to your integrations list.', {
+                    name: <code>{`${integrationName}`}</code>,
+                  }),
+          },
+          {
+            type: 'code',
             language: 'python',
             code: makeConfigureCode(dsn.public),
           },
@@ -435,11 +429,15 @@ export const featureFlagOnboarding: OnboardingConfig = {
       },
       {
         type: StepType.VERIFY,
-        description: t(
-          'Test your setup by evaluating a flag, then capturing an exception. Check the Feature Flags table in Issue Details to confirm that your error event has recorded the flag and its result.'
-        ),
-        configurations: [
+        content: [
           {
+            type: 'text',
+            text: t(
+              'Test your setup by evaluating a flag, then capturing an exception. Check the Feature Flags table in Issue Details to confirm that your error event has recorded the flag and its result.'
+            ),
+          },
+          {
+            type: 'code',
             language: 'python',
             code: makeVerifyCode(),
           },
@@ -452,32 +450,50 @@ export const featureFlagOnboarding: OnboardingConfig = {
 };
 
 export const agentMonitoringOnboarding: OnboardingConfig = {
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      description: t('Install our Python SDK:'),
-      configurations: getPythonInstallConfig(),
-    },
-  ],
+  install: (params: Params) => {
+    const selected = (params.platformOptions as any)?.integration ?? 'openai_agents';
+    let packageName = 'sentry-sdk';
+
+    if (selected === 'langchain') {
+      packageName = 'sentry-sdk[langchain]';
+    } else if (selected === 'langgraph') {
+      packageName = 'sentry-sdk[langgraph]';
+    } else if (selected === 'litellm') {
+      packageName = 'sentry-sdk[litellm]';
+    }
+
+    return [
+      {
+        type: StepType.INSTALL,
+        content: [
+          {
+            type: 'text',
+            text: t('Install our Python SDK:'),
+          },
+          getPythonInstallCodeBlock({packageName}),
+        ],
+      },
+    ];
+  },
   configure: (params: Params) => {
-    const openaiAgentsStep = {
+    const openaiAgentsStep: OnboardingStep = {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Import and initialize the Sentry SDK with the [openai:OpenAI Agents] integration:',
+      content: [
         {
-          openai: (
-            <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-openai-agents" />
-          ),
-        }
-      ),
-      configurations: [
-        {
-          code: [
+          type: 'text',
+          text: tct(
+            'Import and initialize the Sentry SDK with the [openai:OpenAI Agents] integration:',
             {
-              label: 'Python',
-              value: 'python',
-              language: 'python',
-              code: `
+              openai: (
+                <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-openai-agents" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
 import sentry_sdk
 from sentry_sdk.integrations.openai_agents import OpenAIAgentsIntegration
 
@@ -491,16 +507,258 @@ sentry_sdk.init(
         OpenAIAgentsIntegration(),
     ],
 )`,
-            },
-          ],
         },
         {
-          code: [
+          type: 'text',
+          text: t(
+            'The OpenAI Agents integration will automatically collect information about agents, tools, prompts, tokens, and models.'
+          ),
+        },
+      ],
+    };
+
+    const openaiSdkStep: OnboardingStep = {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Import and initialize the Sentry SDK - the OpenAIIntegration will be enabled automatically:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn="${params.dsn.public}",
+    traces_sample_rate=1.0,
+    # Add data like inputs and responses to/from LLMs and tools;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+)`,
+        },
+      ],
+    };
+
+    const anthropicSdkStep: OnboardingStep = {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Import and initialize the Sentry SDK - the Anthropic Integration will be enabled automatically:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn="${params.dsn.public}",
+    traces_sample_rate=1.0,
+    # Add data like inputs and responses to/from LLMs and tools;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+)`,
+        },
+      ],
+    };
+
+    const manualStep: OnboardingStep = {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'If you are not using a supported SDK integration, you can instrument your AI calls manually. See [link:manual instrumentation docs] for details.',
             {
-              label: 'Python',
-              value: 'python',
-              language: 'python',
-              code: `
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+import sentry_sdk
+
+sentry_sdk.init(dsn="${params.dsn.public}", traces_sample_rate=1.0)
+`,
+        },
+      ],
+    };
+
+    const langchainStep: OnboardingStep = {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Import and initialize the Sentry SDK for [langchain:LangChain] monitoring:',
+            {
+              langchain: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/integrations/langchain/" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+import sentry_sdk
+from sentry_sdk.integrations.openai import OpenAIIntegration
+
+sentry_sdk.init(
+    dsn="${params.dsn.public}",
+    environment="local",
+    traces_sample_rate=1.0,
+    # Add data like inputs and responses to/from LLMs and tools;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+    # Disable OpenAI integration for correct token accounting
+    disabled_integrations=[OpenAIIntegration()],
+)`,
+        },
+        {
+          type: 'text',
+          text: t(
+            'The LangChain integration will automatically collect information about agents, tools, prompts, tokens, and models.'
+          ),
+        },
+      ],
+    };
+
+    const langgraphStep: OnboardingStep = {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Import and initialize the Sentry SDK for [langgraph:LangGraph] monitoring:',
+            {
+              langgraph: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/integrations/langgraph/" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+import sentry_sdk
+from sentry_sdk.integrations.openai import OpenAIIntegration
+
+sentry_sdk.init(
+    dsn="${params.dsn.public}",
+    environment="local",
+    traces_sample_rate=1.0,
+    # Add data like inputs and responses to/from LLMs and tools;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+    # Disable OpenAI integration for correct token accounting
+    disabled_integrations=[OpenAIIntegration()],
+)`,
+        },
+        {
+          type: 'text',
+          text: t(
+            'The LangGraph integration will automatically collect information about agents, tools, prompts, tokens, and models.'
+          ),
+        },
+      ],
+    };
+
+    const liteLLMStep: OnboardingStep = {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Import and initialize the Sentry SDK for [litellm:LiteLLM] monitoring:',
+            {
+              litellm: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/integrations/litellm/" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+import sentry_sdk
+from sentry_sdk.integrations.openai import OpenAIIntegration
+from sentry_sdk.integrations.litellm import LiteLLMIntegration
+
+sentry_sdk.init(
+    dsn="${params.dsn.public}",
+    environment="local",
+    traces_sample_rate=1.0,
+    # Add data like inputs and responses to/from LLMs and tools;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+    integrations=[
+        LiteLLMIntegration(),
+    ],
+    # Disable OpenAI integration for correct token accounting
+    disabled_integrations=[OpenAIIntegration()],
+)`,
+        },
+        {
+          type: 'text',
+          text: t(
+            'The LiteLLM integration will automatically collect information about agents, tools, prompts, tokens, and models.'
+          ),
+        },
+      ],
+    };
+
+    const selected = (params.platformOptions as any)?.integration ?? 'openai_agents';
+    if (selected === 'openai') {
+      return [openaiSdkStep];
+    }
+    if (selected === 'anthropic') {
+      return [anthropicSdkStep];
+    }
+    if (selected === 'langchain') {
+      return [langchainStep];
+    }
+    if (selected === 'langgraph') {
+      return [langgraphStep];
+    }
+    if (selected === 'litellm') {
+      return [liteLLMStep];
+    }
+    if (selected === 'manual') {
+      return [manualStep];
+    }
+    return [openaiAgentsStep];
+  },
+  verify: (params: Params) => {
+    const openaiAgentsVerifyStep: OnboardingStep = {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that agent monitoring is working correctly by creating and running a simple agent:'
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
 # Example Agents SDK usage (replace with your actual calls)
 class MyAgent:
     def __init__(self, name: str, model_provider: str, model: str):
@@ -521,86 +779,215 @@ my_agent = MyAgent(
 result = my_agent.run()
 print(result)
 `,
-            },
-          ],
         },
       ],
-      additionalInfo: t(
-        'The OpenAI Agents integration will automatically collect information about agents, tools, prompts, tokens, and models.'
-      ),
     };
 
-    const openaiSdkStep = {
-      type: StepType.CONFIGURE,
-      description: tct(
-        'Import and initialize the Sentry SDK with the [code:OpenAIIntegration] to instrument the OpenAI SDK:',
-        {code: <code />}
-      ),
-      configurations: [
+    const openaiSdkVerifyStep: OnboardingStep = {
+      type: StepType.VERIFY,
+      content: [
         {
-          code: [
-            {
-              label: 'Python',
-              value: 'python',
-              language: 'python',
-              code: `
-import sentry_sdk
-from sentry_sdk.integrations.openai import OpenAIIntegration
-
-sentry_sdk.init(
-    dsn="${params.dsn.public}",
-    traces_sample_rate=1.0,
-    # Add data like inputs and responses to/from LLMs and tools;
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
-)`,
-            },
-          ],
+          type: 'text',
+          text: t(
+            'Verify that agent monitoring is working correctly by making a simple OpenAI API call:'
+          ),
         },
         {
-          code: [
-            {
-              label: 'Python',
-              value: 'python',
-              language: 'python',
-              code: `
+          type: 'code',
+          language: 'python',
+          code: `
 from openai import OpenAI
 
 client = OpenAI()
-response = client.responses.create(
+response = client.chat.completions.create(
     model="gpt-4o-mini",
-    input="Tell me a joke",
+    messages=[{"role": "user", "content": "Tell me a joke"}],
 )
-print(response)
+print(response.choices[0].message.content)
 `,
-            },
-          ],
         },
       ],
     };
 
-    const manualStep = {
-      type: StepType.CONFIGURE,
-      description: tct(
-        'If you are not using a supported SDK integration, you can instrument your AI calls manually. See [link:manual instrumentation docs] for details.',
+    const anthropicSdkVerifyStep: OnboardingStep = {
+      type: StepType.VERIFY,
+      content: [
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
+          type: 'text',
+          text: t(
+            'Verify that agent monitoring is working correctly by making a simple Anthropic API call:'
           ),
-        }
-      ),
-      configurations: [
+        },
         {
-          code: [
-            {
-              label: 'Python',
-              value: 'python',
-              language: 'python',
-              code: `
+          type: 'code',
+          language: 'python',
+          code: `
+import anthropic
+
+client = anthropic.Anthropic()
+message = client.messages.create(
+    model="claude-3-5-sonnet-20241022",
+    max_tokens=1000,
+    messages=[
+        {"role": "user", "content": "Tell me a joke"}
+    ]
+)
+print(message.content)
+`,
+        },
+      ],
+    };
+
+    const langchainVerifyStep: OnboardingStep = {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that agent monitoring is working correctly by creating a LangChain agent:'
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+import random
+from langchain.agents import AgentExecutor, create_openai_functions_agent
+from langchain.chat_models import init_chat_model
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.tools import tool
+
+@tool
+def roll_die(sides: int = 6) -> str:
+    """Roll a die with a given number of sides"""
+    return f"Rolled a {random.randint(1, sides)} on a {sides}-sided die."
+
+with sentry_sdk.start_transaction(name="langchain-openai"):
+    model = init_chat_model(
+        "gpt-4o-mini",
+        model_provider="openai",
+        model_kwargs={"stream_options": {"include_usage": True}},
+    )
+    tools = [roll_die]
+    prompt = ChatPromptTemplate.from_messages([
+        SystemMessage(content="Greet the user and use the die roll tool."),
+        HumanMessage(content="{input}"),
+        MessagesPlaceholder("agent_scratchpad"),
+    ])
+
+    agent = create_openai_functions_agent(model, tools, prompt)
+    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+
+    result = agent_executor.invoke({
+        "input": "Hello, my name is Alice! Please roll a six-sided die.",
+        "chat_history": [],
+    })
+    print(result)
+`,
+        },
+      ],
+    };
+
+    const langgraphVerifyStep: OnboardingStep = {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that agent monitoring is working correctly by creating a LangGraph workflow:'
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+import random
+from typing import Annotated, Literal, TypedDict
+
+from langchain.chat_models import init_chat_model
+from langchain_core.messages import AnyMessage, HumanMessage
+from langchain_core.tools import tool
+from langgraph.graph import END, StateGraph
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode
+
+
+class State(TypedDict):
+    messages: Annotated[list[AnyMessage], add_messages]
+
+@tool
+def roll_die(sides: int = 6) -> str:
+    """Roll a die with a given number of sides"""
+    return f"Rolled a {random.randint(1, sides)} on a {sides}-sided die."
+
+def chatbot(state: State):
+    model = init_chat_model("gpt-4o-mini", model_provider="openai")
+    return {"messages": [model.bind_tools([roll_die]).invoke(state["messages"])]}
+
+def should_continue(state: State) -> Literal["tools", END]:
+    last_message = state["messages"][-1]
+    return "tools" if getattr(last_message, "tool_calls", None) else END
+
+with sentry_sdk.start_transaction(name="langgraph-openai"):
+    graph_builder = StateGraph(State)
+    graph_builder.add_node("chatbot", chatbot)
+    graph_builder.add_node("tools", ToolNode([roll_die]))
+    graph_builder.set_entry_point("chatbot")
+    graph_builder.add_conditional_edges("chatbot", should_continue)
+    graph_builder.add_edge("tools", "chatbot")
+    graph = graph_builder.compile()
+    result = graph.invoke({
+        "messages": [
+            HumanMessage(content="Hello, my name is Alice! Please roll a six-sided die.")
+        ]
+    })
+    print(result)
+`,
+        },
+      ],
+    };
+
+    const liteLLMVerifyStep: OnboardingStep = {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that agent monitoring is working correctly by creating a LiteLLM completion:'
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+from litellm import completion
+
+response = completion(
+    model="openai/gpt-4o-mini",
+    messages=[{"role": "user", "content": "Tell me a joke"}],
+)
+print(response.choices[0].message.content)
+`,
+        },
+      ],
+    };
+
+    const manualVerifyStep: OnboardingStep = {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that agent monitoring is working correctly by running your manually instrumented code:'
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
 import json
 import sentry_sdk
-
-sentry_sdk.init(dsn="${params.dsn.public}", traces_sample_rate=1.0)
 
 # Invoke Agent span
 with sentry_sdk.start_span(op="gen_ai.invoke_agent", name="invoke_agent Weather Agent") as span:
@@ -618,22 +1005,31 @@ with sentry_sdk.start_span(op="gen_ai.chat", name="chat o3-mini") as span:
     span.set_data("gen_ai.request.message", json.dumps([{"role": "user", "content": "Tell me a joke"}]))
     span.set_data("gen_ai.response.text", json.dumps(["joke..."]))
 `,
-            },
-          ],
         },
       ],
     };
 
     const selected = (params.platformOptions as any)?.integration ?? 'openai_agents';
     if (selected === 'openai') {
-      return [openaiSdkStep];
+      return [openaiSdkVerifyStep];
+    }
+    if (selected === 'anthropic') {
+      return [anthropicSdkVerifyStep];
+    }
+    if (selected === 'langchain') {
+      return [langchainVerifyStep];
+    }
+    if (selected === 'langgraph') {
+      return [langgraphVerifyStep];
+    }
+    if (selected === 'litellm') {
+      return [liteLLMVerifyStep];
     }
     if (selected === 'manual') {
-      return [manualStep];
+      return [manualVerifyStep];
     }
-    return [openaiAgentsStep];
+    return [openaiAgentsVerifyStep];
   },
-  verify: () => [],
 };
 
 const logsOnboarding = getPythonLogsOnboarding();

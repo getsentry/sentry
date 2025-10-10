@@ -1,9 +1,7 @@
 import logging
 from typing import TypedDict
 
-from django.conf import settings
-
-from sentry.net.http import connection_from_url
+from sentry.feedback.lib.seer_api import seer_summarization_connection_pool
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json, metrics
 
@@ -24,10 +22,8 @@ MAX_AI_LABELS = 15
 MAX_AI_LABELS_JSON_LENGTH = 200
 
 SEER_LABEL_GENERATION_ENDPOINT_PATH = "/v1/automation/summarize/feedback/labels"
-
-seer_connection_pool = connection_from_url(
-    settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
-)
+SEER_TIMEOUT_S = 15
+SEER_RETRIES = 0  # Do not retry since this is called in ingest.
 
 
 @metrics.wraps("feedback.generate_labels")
@@ -44,9 +40,11 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
 
     try:
         response = make_signed_seer_api_request(
-            connection_pool=seer_connection_pool,
+            connection_pool=seer_summarization_connection_pool,
             path=SEER_LABEL_GENERATION_ENDPOINT_PATH,
             body=json.dumps(request).encode("utf-8"),
+            timeout=SEER_TIMEOUT_S,
+            retries=SEER_RETRIES,
         )
         response_data = response.json()
     except Exception:

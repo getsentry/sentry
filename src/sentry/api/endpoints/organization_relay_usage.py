@@ -2,7 +2,6 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -41,12 +40,7 @@ class OrganizationRelayUsage(OrganizationEndpoint):
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Return a list of trusted relays bound to an organization.
-
-        If the organization doesn't have Relay usage enabled it returns a 404.
         """
-        has_relays = features.has("organizations:relay", organization, actor=request.user)
-        if not has_relays:
-            return Response(status=404)
 
         option_key = "sentry:trusted-relays"
         trusted_relays = organization.get_option(option_key)

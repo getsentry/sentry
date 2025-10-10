@@ -1,7 +1,7 @@
 import abc
 import dataclasses
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from typing import Any, Generic, cast
 from uuid import uuid4
 
@@ -391,8 +391,9 @@ class StatefulDetectorHandler(
                 group_data_values[group_key]
             )
 
-            if condition_results is None:
+            if condition_results is None or condition_results.logic_result is False:
                 # Invalid condition result, nothing we can do
+                # Or if we didn't match any conditions in the evaluation
                 continue
 
             if state_data.status == evaluated_priority:
@@ -595,7 +596,6 @@ class StatefulDetectorHandler(
             occurrence_id=str(uuid4()),
             project_id=self.detector.project_id,
             status=new_priority,
-            detection_time=datetime.now(UTC),
             additional_evidence_data=evidence_data,
         )
 

@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
-from celery.exceptions import Retry
 from django.utils import timezone
 
 from sentry.analytics.events.integration_commit_context_all_frames import (
@@ -34,9 +33,11 @@ from sentry.models.pullrequest import (
     PullRequestCommit,
 )
 from sentry.models.repository import Repository
+from sentry.releases.commits import _dual_write_commit
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.commit_context import PR_COMMENT_WINDOW, process_commit_context
+from sentry.taskworker.retry import NoRetriesRemainingError, RetryError
 from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
@@ -219,6 +220,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                 author=self.commit_author,
                 key="existing-commit",
             )
+            _dual_write_commit(existing_commit)
             existing_commit.update(message="")
             assert Commit.objects.count() == 2
             event_frames = get_frame_paths(self.event)
@@ -286,6 +288,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                 key="existing-commit",
             )
             existing_commit.update(message="")
+            _dual_write_commit(existing_commit)
             assert Commit.objects.count() == 2
             event_frames = get_frame_paths(self.event)
             process_commit_context(
@@ -399,6 +402,65 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             "commitId": created_commit.id,
             "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
         }
+
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
+    )
+    def test_success_external_author_no_user(self, mock_get_commit_context: MagicMock, _) -> None:
+        """
+        Test that process_commit_context creates GroupOwner with user_id=None
+        when commit author has no Sentry user mapping.
+        """
+        # Create blame info with external commit author (no Sentry user)
+        blame_external = FileBlameInfo(
+            repo=self.repo,
+            path="sentry/external.py",
+            ref="master",
+            code_mapping=self.code_mapping,
+            lineno=50,
+            commit=CommitInfo(
+                commitId="external-commit-id",
+                committedDate=datetime.now(tz=datetime_timezone.utc) - timedelta(hours=2),
+                commitMessage="external commit by non-user",
+                commitAuthorName="External Developer",
+                commitAuthorEmail="external@example.com",
+            ),
+        )
+
+        mock_get_commit_context.return_value = [blame_external]
+
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+
+            # Verify GroupOwner created with user_id=None
+            created_group_owner = GroupOwner.objects.get(
+                group=self.event.group,
+                project=self.project,
+                organization_id=self.organization.id,
+                type=GroupOwnerType.SUSPECT_COMMIT.value,
+            )
+            assert created_group_owner.user_id is None
+
+            # Verify the created commit and author
+            created_commit = Commit.objects.get(key="external-commit-id")
+            assert created_commit.message == "external commit by non-user"
+            assert created_commit.author is not None
+            assert created_commit.author.name == "External Developer"
+            assert created_commit.author.email == "external@example.com"
+            assert created_group_owner.context == {
+                "commitId": created_commit.id,
+                "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
+            }
 
     @patch("sentry.analytics.record")
     @patch(
@@ -684,6 +746,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             key="existing-commit",
         )
         existing_commit.update(message="")
+        _dual_write_commit(existing_commit)
 
         # Map blame names to actual blame objects
         blame_mapping = {
@@ -766,7 +829,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
             event_frames = get_frame_paths(self.event)
-            with pytest.raises(Retry):
+            with pytest.raises(RetryError):
                 process_commit_context(
                     event_id=self.event.event_id,
                     event_platform=self.event.platform,
@@ -806,21 +869,20 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
         mock_process_suspect_commits.assert_not_called()
 
-    @patch("celery.app.task.Task.request")
+    @patch("sentry.tasks.commit_context.retry_task")
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
         side_effect=ApiError("Unknown API error"),
     )
     def test_no_fall_back_on_max_retries(
-        self, mock_get_commit_context, mock_process_suspect_commits, mock_request
+        self, mock_get_commit_context, mock_process_suspect_commits, mock_retry_task
     ):
         """
         A failure case where the integration hits an unknown API error a fifth time.
         After 5 retries, the task should bail.
         """
-        mock_request.called_directly = False
-        mock_request.retries = 5
+        mock_retry_task.side_effect = NoRetriesRemainingError()
 
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()

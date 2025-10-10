@@ -29,8 +29,8 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.silo.base import SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
+from sentry.silo.util import clean_proxy_headers
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import hybridcloud_control_tasks
 from sentry.types.region import Region, get_region_by_name
 from sentry.utils import metrics
@@ -85,12 +85,9 @@ class DeliveryFailed(Exception):
 
 @instrumented_task(
     name="sentry.hybridcloud.tasks.deliver_webhooks.schedule_webhook_delivery",
-    queue="webhook.control",
+    namespace=hybridcloud_control_tasks,
+    processing_deadline_duration=30,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(
-        namespace=hybridcloud_control_tasks,
-        processing_deadline_duration=30,
-    ),
 )
 def schedule_webhook_delivery() -> None:
     """
@@ -99,7 +96,7 @@ def schedule_webhook_delivery() -> None:
 
     Prioritizes webhooks based on provider importance.
 
-    Triggered frequently by celery beat.
+    Triggered frequently by task-scheduler.
     """
     # Se use the replica for any read queries to webhook payload
     WebhookPayloadReplica = WebhookPayload.objects.using_replica()
@@ -161,12 +158,9 @@ def schedule_webhook_delivery() -> None:
 
 @instrumented_task(
     name="sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox",
-    queue="webhook.control",
+    namespace=hybridcloud_control_tasks,
+    processing_deadline_duration=300,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(
-        namespace=hybridcloud_control_tasks,
-        processing_deadline_duration=300,
-    ),
 )
 def drain_mailbox(payload_id: int) -> None:
     """
@@ -239,12 +233,9 @@ def drain_mailbox(payload_id: int) -> None:
 
 @instrumented_task(
     name="sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox_parallel",
-    queue="webhook.control",
+    namespace=hybridcloud_control_tasks,
+    processing_deadline_duration=180,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(
-        namespace=hybridcloud_control_tasks,
-        processing_deadline_duration=180,
-    ),
 )
 def drain_mailbox_parallel(payload_id: int) -> None:
     """
@@ -606,7 +597,7 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
             response = client.post(
                 endpoint=endpoint,
                 data=payload.request_body,
-                headers=headers,
+                headers=clean_proxy_headers(headers),
             )
 
             if response.status_code != 200:

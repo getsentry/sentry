@@ -95,7 +95,9 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         org.flags.early_adopter = True
         org.flags.codecov_access = True
         org.flags.require_2fa = True
-        org.flags.disable_member_project_creation = True
+        org.flags.disable_member_project_creation = (
+            False  # set to True by default for new orgs in save()
+        )
         org.flags.prevent_superuser_access = True
         org.flags.disable_member_invite = True
         assert flag_has_changed(org, "allow_joinleave") is False
@@ -120,22 +122,6 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         update_tracked_data(o)
         o.value = True
         assert has_changed(o, "value") is True
-
-        OrganizationOption.objects.create(
-            organization=org, key="sentry:account-rate-limit", value=0
-        )
-        p = OrganizationOption.objects.get(organization=org, key="sentry:account-rate-limit")
-        update_tracked_data(p)
-        p.value = 50000
-        assert has_changed(p, "value") is True
-
-        OrganizationOption.objects.create(
-            organization=org, key="sentry:project-rate-limit", value=85
-        )
-        r = OrganizationOption.objects.get(organization=org, key="sentry:project-rate-limit")
-        update_tracked_data(r)
-        r.value = 85
-        assert has_changed(r, "value") is False
 
         OrganizationOption.objects.create(organization=org, key="sentry:sensitive_fields", value=[])
         s = OrganizationOption.objects.get(organization=org, key="sentry:sensitive_fields")

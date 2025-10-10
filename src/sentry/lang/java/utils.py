@@ -2,14 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import orjson
-import sentry_sdk
-
-from sentry.attachments import CachedAttachment, attachment_cache
-from sentry.ingest.consumer.processors import CACHE_TIMEOUT
-from sentry.models.project import Project
 from sentry.stacktraces.processing import StacktraceInfo
-from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path
 
 # Platform values that should mark an event
@@ -51,44 +44,6 @@ def get_jvm_images(event: dict[str, Any]) -> set[str]:
     for image in get_path(event, "debug_meta", "images", filter=is_valid_jvm_image, default=()):
         images.add(str(image["debug_id"]).lower())
     return images
-
-
-@sentry_sdk.trace
-def deobfuscation_template(data, map_type, deobfuscation_fn):
-    """
-    Template for operations involved in deobfuscating view hierarchies.
-
-    The provided deobfuscation function is expected to modify the view hierarchy dict in-place.
-    """
-    project = Project.objects.get_from_cache(id=data["project"])
-
-    cache_key = cache_key_for_event(data)
-    attachments = [*attachment_cache.get(cache_key)]
-
-    if not any(attachment.type == "event.view_hierarchy" for attachment in attachments):
-        return
-
-    new_attachments = []
-    for attachment in attachments:
-        if attachment.type == "event.view_hierarchy":
-            view_hierarchy = orjson.loads(attachment_cache.get_data(attachment))
-            deobfuscation_fn(data, project, view_hierarchy)
-
-            # Reupload to cache as a unchunked data
-            new_attachments.append(
-                CachedAttachment(
-                    type=attachment.type,
-                    id=attachment.id,
-                    name=attachment.name,
-                    content_type=attachment.content_type,
-                    data=orjson.dumps(view_hierarchy),
-                    chunks=None,
-                )
-            )
-        else:
-            new_attachments.append(attachment)
-
-    attachment_cache.set(cache_key, attachments=new_attachments, timeout=CACHE_TIMEOUT)
 
 
 def is_jvm_event(data: Any, stacktraces: list[StacktraceInfo]) -> bool:

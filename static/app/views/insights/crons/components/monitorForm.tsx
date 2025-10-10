@@ -6,6 +6,7 @@ import {Observer} from 'mobx-react-lite';
 import {Alert} from 'sentry/components/core/alert';
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {ExternalLink} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -19,7 +20,6 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import Text from 'sentry/components/text';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -181,7 +181,6 @@ function MonitorForm({
   const form = useRef(
     new FormModel({
       transformData: transformMonitorFormData,
-      mapFormErrors: mapMonitorFormErrors,
     })
   );
   const {projects} = useProjects();
@@ -255,6 +254,7 @@ function MonitorForm({
       }
       onSubmitSuccess={onSubmitSuccess}
       submitLabel={submitLabel}
+      mapFormErrors={mapMonitorFormErrors}
     >
       <StyledList symbol="colored-numeric">
         {monitor?.isUpserting && (
@@ -358,6 +358,11 @@ function MonitorForm({
                       hideLabel
                       placeholder="* * * * *"
                       defaultValue={DEFAULT_CRONTAB}
+                      transformInput={(value: string) =>
+                        // Remove non-ASCII characters from crontab schedule
+                        // eslint-disable-next-line no-control-regex
+                        value.replace(/[^\x00-\x7F]/g, '')
+                      }
                       css={css`
                         input {
                           font-family: ${theme.text.familyMono};
@@ -492,7 +497,6 @@ function MonitorForm({
                 name="owner"
                 label={t('Owner')}
                 help={t('Automatically assign issues to a team or user.')}
-                menuPlacement="auto"
               />
             </PanelBody>
           </Panel>
@@ -527,7 +531,6 @@ function MonitorForm({
                       name="alertRule.targets"
                       memberOfProjectSlugs={projectSlug ? [projectSlug] : undefined}
                       multiple
-                      menuPlacement="auto"
                     />
                   );
                 }}
@@ -547,7 +550,6 @@ function MonitorForm({
                       name="alertRule.environment"
                       options={alertRuleEnvs}
                       disabled={disabled}
-                      menuPlacement="auto"
                       defaultValue=""
                       disabledReason={t(
                         'Please select which teams or members to notify first.'

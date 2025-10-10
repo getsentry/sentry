@@ -6,7 +6,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  getCrashReportBackendInstallStep,
+  getCrashReportBackendInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
@@ -15,7 +15,7 @@ import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersi
 
 type Params = DocsParams;
 
-const getInstallSnippet = (params: Params, defaultVersion = '0.39.0') => {
+const getInstallSnippet = (params: Params, defaultVersion = '0.42.0') => {
   const version = getPackageVersion(params, 'sentry.rust', defaultVersion);
   return params.isLogsSelected
     ? `
@@ -110,13 +110,18 @@ const onboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportBackendInstallStep(params),
+  install: (params: Params) => getCrashReportBackendInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/rust/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/rust/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],
@@ -131,7 +136,7 @@ const logsOnboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Logs in Rust are supported in Sentry Rust SDK version [code:0.39.0] and above. Additionally, the [code:logs] feature flag needs to be enabled.',
+            'Logs in Rust are supported in Sentry Rust SDK version [code:0.42.0] and above. Additionally, the [code:logs] feature flag needs to be enabled.',
             {
               code: <code />,
             }
@@ -140,7 +145,7 @@ const logsOnboarding: OnboardingConfig = {
         {
           type: 'code',
           language: 'rust',
-          code: getInstallSnippet(params, '0.39.0'),
+          code: getInstallSnippet(params, '0.42.0'),
         },
       ],
     },

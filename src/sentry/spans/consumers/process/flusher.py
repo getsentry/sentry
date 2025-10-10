@@ -68,6 +68,7 @@ class MultiProducer:
 
         if sliced_configs:
             # Multiple producers configured via SLICED_KAFKA_TOPICS
+            # TODO(markus): Everything should go through get_arroyo_producer
             for config in sliced_configs:
                 cluster_name = config["cluster"]
                 topic_name = config["topic"]

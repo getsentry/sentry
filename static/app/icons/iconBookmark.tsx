@@ -9,7 +9,7 @@ interface Props extends SVGIconProps {
   isSolid?: boolean;
 }
 
-function IconBookmark({isSolid = false, ...props}: Props) {
+export function IconBookmark({isSolid = false, ...props}: Props) {
   const theme = useTheme();
 
   const {color: providedColor = 'currentColor'} = useIconDefaults(props);
@@ -32,7 +32,3 @@ function IconBookmark({isSolid = false, ...props}: Props) {
     </SvgIcon>
   );
 }
-
-IconBookmark.displayName = 'IconBookmark';
-
-export {IconBookmark};

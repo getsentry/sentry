@@ -217,16 +217,18 @@ function EventDisplay({
               }))}
               value={selectedEventId}
               onChange={({value}) => setSelectedEventId(value)}
-              triggerLabel={
-                <ButtonLabelWrapper>
-                  <TextOverflow>
-                    {eventSelectLabel}:{' '}
-                    <SelectionTextWrapper>
-                      {getShortEventId(selectedEventId)}
-                    </SelectionTextWrapper>
-                  </TextOverflow>
-                </ButtonLabelWrapper>
-              }
+              triggerProps={{
+                children: (
+                  <ButtonLabelWrapper>
+                    <TextOverflow>
+                      {eventSelectLabel}:{' '}
+                      <SelectionTextWrapper>
+                        {getShortEventId(selectedEventId)}
+                      </SelectionTextWrapper>
+                    </TextOverflow>
+                  </ButtonLabelWrapper>
+                ),
+              }}
             />
             <LinkButton
               title={t('Full Event Details')}

@@ -27,9 +27,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import CreateDashboard from 'sentry/views/dashboards/create';
-import DashboardDetail, {
-  handleUpdateDashboardSplit,
-} from 'sentry/views/dashboards/detail';
+import DashboardDetail from 'sentry/views/dashboards/detail';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import * as types from 'sentry/views/dashboards/types';
 import {DashboardState} from 'sentry/views/dashboards/types';
@@ -79,7 +77,7 @@ class MockIntersectionObserver {
 
 describe('Dashboards > Detail', () => {
   const organization = OrganizationFixture({
-    features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
+    features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
   const projects = [ProjectFixture()];
   window.IntersectionObserver = MockIntersectionObserver as any;
@@ -207,7 +205,7 @@ describe('Dashboards > Detail', () => {
       });
       initialData = initializeOrg({
         organization: OrganizationFixture({
-          features: ['global-views', 'dashboards-basic', 'discover-query'],
+          features: ['dashboards-basic', 'discover-query'],
         }),
       });
 
@@ -295,14 +293,11 @@ describe('Dashboards > Detail', () => {
         },
       });
       PageFiltersStore.init();
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [],
-          environments: [],
-          datetime: {start: null, end: null, period: '14d', utc: null},
-        },
-        new Set()
-      );
+      PageFiltersStore.onInitializeUrlState({
+        projects: [],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      });
       widgets = [
         WidgetFixture({
           queries: [
@@ -488,7 +483,7 @@ describe('Dashboards > Detail', () => {
       await waitFor(() => expect(mockVisit).toHaveBeenCalledTimes(1));
 
       // Enter edit mode.
-      await userEvent.click(screen.getByRole('button', {name: 'Edit Dashboard'}));
+      await userEvent.click(screen.getByRole('button', {name: 'edit-dashboard'}));
 
       // Remove the second and third widgets
       await userEvent.click(
@@ -587,7 +582,7 @@ describe('Dashboards > Detail', () => {
       );
 
       // Enter edit mode.
-      await userEvent.click(await screen.findByRole('button', {name: 'Edit Dashboard'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'edit-dashboard'}));
       expect(await screen.findByRole('button', {name: 'Add Widget'})).toBeInTheDocument();
     });
 
@@ -603,12 +598,7 @@ describe('Dashboards > Detail', () => {
 
       initialData = initializeOrg({
         organization: OrganizationFixture({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-          ],
+          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
         }),
       });
 
@@ -659,7 +649,7 @@ describe('Dashboards > Detail', () => {
       );
 
       // Enter edit mode.
-      await userEvent.click(await screen.findByRole('button', {name: 'Edit Dashboard'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'edit-dashboard'}));
       expect(screen.queryByRole('button', {name: 'Add widget'})).not.toBeInTheDocument();
     });
 
@@ -775,10 +765,10 @@ describe('Dashboards > Detail', () => {
         }
       );
 
-      await userEvent.click(await screen.findByText('Edit Dashboard'));
+      await userEvent.click(await screen.findByRole('button', {name: 'edit-dashboard'}));
       await userEvent.click(await screen.findByText('Save and Finish'));
 
-      expect(screen.getByText('Edit Dashboard')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'edit-dashboard'})).toBeInTheDocument();
       expect(mockPut).not.toHaveBeenCalled();
     });
 
@@ -828,7 +818,7 @@ describe('Dashboards > Detail', () => {
         }
       );
 
-      await userEvent.click(await screen.findByText('Edit Dashboard'));
+      await userEvent.click(await screen.findByRole('button', {name: 'edit-dashboard'}));
       const widget = (await screen.findByText('First Widget')).closest(
         '.react-grid-item'
       ) as HTMLElement;
@@ -884,7 +874,7 @@ describe('Dashboards > Detail', () => {
         }
       );
 
-      await userEvent.click(await screen.findByText('Edit Dashboard'));
+      await userEvent.click(await screen.findByRole('button', {name: 'edit-dashboard'}));
       await userEvent.click(await screen.findByText('Cancel'));
 
       expect(window.confirm).not.toHaveBeenCalled();
@@ -1216,12 +1206,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-          ],
+          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
         }),
         router: {
           location: {
@@ -1293,12 +1278,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-          ],
+          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
         }),
         router: {
           location: {
@@ -1356,12 +1336,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-          ],
+          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
         }),
         router: {
           location: {
@@ -1426,12 +1401,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-          ],
+          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
         }),
         router: {
           location: {
@@ -1478,7 +1448,7 @@ describe('Dashboards > Detail', () => {
       );
     });
 
-    it('disables the Edit Dashboard button when there are unsaved filters', async () => {
+    it('disables the edit-dashboard button when there are unsaved filters', async () => {
       const router = RouterFixture({
         location: {
           ...LocationFixture(),
@@ -1501,7 +1471,6 @@ describe('Dashboards > Detail', () => {
       const testData = initializeOrg({
         organization: OrganizationFixture({
           features: [
-            'global-views',
             'dashboards-basic',
             'dashboards-edit',
             'discover-basic',
@@ -1536,7 +1505,7 @@ describe('Dashboards > Detail', () => {
 
       expect(await screen.findByText('Save')).toBeInTheDocument();
       expect(screen.getByTestId('filter-bar-cancel')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Edit Dashboard'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'edit-dashboard'})).toBeDisabled();
     });
 
     it('ignores the order of selection of page filters to render unsaved filters', async () => {
@@ -1571,12 +1540,7 @@ describe('Dashboards > Detail', () => {
 
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-          ],
+          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
         }),
         router: {
           location: {
@@ -1631,12 +1595,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-          ],
+          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
         }),
         router: {
           location: {
@@ -1690,12 +1649,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-          ],
+          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
         }),
         router: {
           location: {
@@ -1756,12 +1710,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-          ],
+          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
         }),
         router: {
           location: LocationFixture(),
@@ -1828,7 +1777,6 @@ describe('Dashboards > Detail', () => {
       const testData = initializeOrg({
         organization: OrganizationFixture({
           features: [
-            'global-views',
             'dashboards-basic',
             'dashboards-edit',
             'discover-basic',
@@ -1877,9 +1825,9 @@ describe('Dashboards > Detail', () => {
         }
       );
 
-      await userEvent.click(await screen.findByText('Edit Access:'));
+      await userEvent.click(await screen.findByText('Editors:'));
       expect(screen.getByText('Creator')).toBeInTheDocument();
-      expect(screen.getByText('All users')).toBeInTheDocument();
+      expect(screen.getByText('Select All')).toBeInTheDocument();
     });
 
     it('creates and updates new permissions for dashboard with no edit perms initialized', async () => {
@@ -1908,16 +1856,16 @@ describe('Dashboards > Detail', () => {
           deprecatedRouterMocks: true,
         }
       );
-      await userEvent.click(await screen.findByText('Edit Access:'));
+      await userEvent.click(await screen.findByText('Editors:'));
 
-      // deselects 'All users' so only creator has edit access
-      expect(await screen.findByText('All users')).toBeEnabled();
-      expect(await screen.findByRole('option', {name: 'All users'})).toHaveAttribute(
+      // deselects 'Select All' so only creator has edit access
+      expect(await screen.findByText('Select All')).toBeEnabled();
+      expect(await screen.findByRole('option', {name: 'Select All'})).toHaveAttribute(
         'aria-selected',
         'true'
       );
-      await userEvent.click(screen.getByRole('option', {name: 'All users'}));
-      expect(await screen.findByRole('option', {name: 'All users'})).toHaveAttribute(
+      await userEvent.click(screen.getByRole('option', {name: 'Select All'}));
+      expect(await screen.findByRole('option', {name: 'Select All'})).toHaveAttribute(
         'aria-selected',
         'false'
       );
@@ -1975,16 +1923,16 @@ describe('Dashboards > Detail', () => {
           deprecatedRouterMocks: true,
         }
       );
-      await userEvent.click(await screen.findByText('Edit Access:'));
+      await userEvent.click(await screen.findByText('Editors:'));
 
-      // selects 'All users' so everyone has edit access
-      expect(await screen.findByText('All users')).toBeEnabled();
-      expect(await screen.findByRole('option', {name: 'All users'})).toHaveAttribute(
+      // selects 'Select All' so everyone has edit access
+      expect(await screen.findByRole('option', {name: 'Select All'})).toBeEnabled();
+      expect(await screen.findByRole('option', {name: 'Select All'})).toHaveAttribute(
         'aria-selected',
         'false'
       );
-      await userEvent.click(screen.getByRole('option', {name: 'All users'}));
-      expect(await screen.findByRole('option', {name: 'All users'})).toHaveAttribute(
+      await userEvent.click(screen.getByRole('option', {name: 'Select All'}));
+      expect(await screen.findByRole('option', {name: 'Select All'})).toHaveAttribute(
         'aria-selected',
         'true'
       );
@@ -2063,10 +2011,10 @@ describe('Dashboards > Detail', () => {
           deprecatedRouterMocks: true,
         }
       );
-      await userEvent.click(await screen.findByText('Edit Access:'));
+      await userEvent.click(await screen.findByText('Editors:'));
 
-      expect(await screen.findByText('All users')).toBeEnabled();
-      expect(await screen.findByRole('option', {name: 'All users'})).toHaveAttribute(
+      expect(await screen.findByRole('option', {name: 'Select All'})).toBeEnabled();
+      expect(await screen.findByRole('option', {name: 'Select All'})).toHaveAttribute(
         'aria-selected',
         'false'
       );
@@ -2138,8 +2086,8 @@ describe('Dashboards > Detail', () => {
         }
       );
 
-      await screen.findByText('Edit Access:');
-      expect(screen.getByRole('button', {name: 'Edit Dashboard'})).toBeDisabled();
+      await screen.findByText('Editors:');
+      expect(screen.getByRole('button', {name: 'edit-dashboard'})).toBeDisabled();
       expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
     });
 
@@ -2204,8 +2152,8 @@ describe('Dashboards > Detail', () => {
         }
       );
 
-      await screen.findByText('Edit Access:');
-      expect(screen.getByRole('button', {name: 'Edit Dashboard'})).toBeDisabled();
+      await screen.findByText('Editors:');
+      expect(screen.getByRole('button', {name: 'edit-dashboard'})).toBeDisabled();
       expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
       await userEvent.click(await screen.findByLabelText('Widget actions'));
       expect(
@@ -2221,7 +2169,7 @@ describe('Dashboards > Detail', () => {
       );
     });
 
-    it('renders favorite button in unfavorited state', async () => {
+    it('renders favorite button in unstarred state', async () => {
       const router = RouterFixture({
         location: LocationFixture(),
         params: {orgId: 'org-slug', dashboardId: '1'},
@@ -2250,9 +2198,9 @@ describe('Dashboards > Detail', () => {
         }
       );
 
-      const favoriteButton = await screen.findByLabelText('dashboards-favourite');
+      const favoriteButton = await screen.findByLabelText('star-dashboard');
       expect(favoriteButton).toBeInTheDocument();
-      expect(await screen.findByLabelText('Favorite')).toBeInTheDocument();
+      expect(await screen.findByLabelText('Star')).toBeInTheDocument();
     });
 
     it('renders favorite button in favorited state', async () => {
@@ -2284,9 +2232,9 @@ describe('Dashboards > Detail', () => {
         }
       );
 
-      const favoriteButton = await screen.findByLabelText('dashboards-favourite');
+      const favoriteButton = await screen.findByLabelText('star-dashboard');
       expect(favoriteButton).toBeInTheDocument();
-      expect(await screen.findByLabelText('UnFavorite')).toBeInTheDocument();
+      expect(await screen.findByLabelText('Unstar')).toBeInTheDocument();
     });
 
     it('toggles favorite button', async () => {
@@ -2324,12 +2272,12 @@ describe('Dashboards > Detail', () => {
         }
       );
 
-      const favoriteButton = await screen.findByLabelText('dashboards-favourite');
+      const favoriteButton = await screen.findByLabelText('star-dashboard');
       expect(favoriteButton).toBeInTheDocument();
 
-      expect(await screen.findByLabelText('UnFavorite')).toBeInTheDocument();
+      expect(await screen.findByLabelText('Unstar')).toBeInTheDocument();
       await userEvent.click(favoriteButton);
-      expect(await screen.findByLabelText('Favorite')).toBeInTheDocument();
+      expect(await screen.findByLabelText('Star')).toBeInTheDocument();
     });
 
     describe('widget builder redesign', () => {
@@ -2337,12 +2285,7 @@ describe('Dashboards > Detail', () => {
       beforeEach(() => {
         initialData = initializeOrg({
           organization: OrganizationFixture({
-            features: [
-              'global-views',
-              'dashboards-basic',
-              'dashboards-edit',
-              'discover-query',
-            ],
+            features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
           }),
         });
 
@@ -2660,61 +2603,6 @@ describe('Dashboards > Detail', () => {
         );
         await waitFor(() => {
           expect(addLoadingMessage).toHaveBeenCalledWith('Saving widget');
-        });
-      });
-    });
-
-    describe('discover split', () => {
-      it('calls the dashboard callbacks with the correct widgetType for discover split', () => {
-        const widget = {
-          displayType: types.DisplayType.TABLE,
-          interval: '1d',
-          queries: [
-            {
-              name: 'Test Widget',
-              fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
-              columns: ['project'],
-              aggregates: ['count()', 'count_unique(user)', 'epm()'],
-              conditions: '',
-              orderby: '',
-            },
-          ],
-          title: 'Transactions',
-          id: '1',
-          widgetType: types.WidgetType.DISCOVER,
-        };
-        const mockDashboard = DashboardFixture([widget], {
-          id: '1',
-          title: 'Custom Errors',
-        });
-        const mockModifiedDashboard = DashboardFixture([widget], {
-          id: '1',
-          title: 'Custom Errors',
-        });
-
-        const mockOnDashboardUpdate = jest.fn();
-        const mockStateSetter = jest
-          .fn()
-          .mockImplementation(fn => fn({modifiedDashboard: mockModifiedDashboard}));
-
-        handleUpdateDashboardSplit({
-          widgetId: '1',
-          splitDecision: types.WidgetType.ERRORS,
-          dashboard: mockDashboard,
-          modifiedDashboard: mockModifiedDashboard,
-          onDashboardUpdate: mockOnDashboardUpdate,
-          stateSetter: mockStateSetter,
-        });
-
-        expect(mockOnDashboardUpdate).toHaveBeenCalledWith({
-          ...mockDashboard,
-          widgets: [{...widget, widgetType: types.WidgetType.ERRORS}],
-        });
-        expect(mockStateSetter).toHaveReturnedWith({
-          modifiedDashboard: {
-            ...mockModifiedDashboard,
-            widgets: [{...widget, widgetType: types.WidgetType.ERRORS}],
-          },
         });
       });
     });

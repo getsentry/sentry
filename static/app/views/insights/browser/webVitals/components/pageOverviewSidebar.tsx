@@ -1,10 +1,12 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -32,12 +34,18 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
+import type {ProjectData} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
-import {useWebVitalsIssuesQuery} from 'sentry/views/insights/browser/webVitals/queries/useWebVitalsIssuesQuery';
+import {useSampleWebVitalTraceParallel} from 'sentry/views/insights/browser/webVitals/queries/useSampleWebVitalTrace';
+import {
+  POLL_INTERVAL,
+  useWebVitalsIssuesQuery,
+} from 'sentry/views/insights/browser/webVitals/queries/useWebVitalsIssuesQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
+import {useRunSeerAnalysis} from 'sentry/views/insights/browser/webVitals/utils/useRunSeerAnalysis';
 import type {SubregionCode} from 'sentry/views/insights/types';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -46,6 +54,7 @@ const CHART_HEIGHTS = 100;
 type Props = {
   transaction: string;
   browserTypes?: BrowserType[];
+  projectData?: ProjectData[];
   projectScore?: ProjectScore;
   projectScoreIsLoading?: boolean;
   search?: string;
@@ -58,11 +67,17 @@ export function PageOverviewSidebar({
   projectScoreIsLoading,
   browserTypes,
   subregions,
+  projectData,
 }: Props) {
   const hasSeerWebVitalsSuggestions = useHasSeerWebVitalsSuggestions();
   const theme = useTheme();
   const pageFilters = usePageFilters();
   const {period, start, end, utc} = pageFilters.selection.datetime;
+  const [isCreatingIssues, setIsCreatingIssues] = useState(false);
+  // Event IDs of issues created by the user on this page. Used to control polling logic.
+  const [newlyCreatedIssueEventIds, setNewlyCreatedIssueEventIds] = useState<
+    string[] | undefined
+  >(undefined);
 
   const {data, isLoading: isLoading} = useProjectRawWebVitalsValuesTimeseriesQuery({
     transaction,
@@ -72,8 +87,13 @@ export function PageOverviewSidebar({
 
   const shouldDoublePeriod = false;
 
+  const countTimeSeries = data?.timeSeries?.find(ts => ts.yAxis === 'count()');
+  const countData = countTimeSeries
+    ? countTimeSeries.values.map(v => ({name: v.timestamp, value: v.value || 0}))
+    : [];
+
   const {countDiff, currentSeries, currentCount, initialCount} = processSeriesData(
-    data['count()'].data,
+    countData,
     isLoading,
     pageFilters.selection.datetime,
     shouldDoublePeriod
@@ -86,13 +106,20 @@ export function PageOverviewSidebar({
     },
   ];
 
+  const inpTimeSeries = data?.timeSeries?.find(
+    ts => ts.yAxis === 'count_scores(measurements.score.inp)'
+  );
+  const inpData = inpTimeSeries
+    ? inpTimeSeries.values.map(v => ({name: v.timestamp, value: v.value || 0}))
+    : [];
+
   const {
     countDiff: inpCountDiff,
     currentSeries: currentInpSeries,
     currentCount: currentInpCount,
     initialCount: initialInpCount,
   } = processSeriesData(
-    data['count_scores(measurements.score.inp)'].data,
+    inpData,
     isLoading,
     pageFilters.selection.datetime,
     shouldDoublePeriod
@@ -127,11 +154,37 @@ export function PageOverviewSidebar({
   const ringSegmentColors = theme.chart.getColorPalette(4);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
-  const {data: issues, isLoading: isLoadingIssues} = useWebVitalsIssuesQuery({
+  const {data: issues} = useWebVitalsIssuesQuery({
     issueTypes: [IssueType.WEB_VITALS],
     transaction,
     enabled: hasSeerWebVitalsSuggestions,
+    // We only poll for issues if we've created them in this session, otherwise we only attempt to load any existing issues once
+    pollInterval: POLL_INTERVAL,
+    eventIds: newlyCreatedIssueEventIds,
   });
+
+  const {isLoading: isLoadingWebVitalTraceSamples, ...webVitalTraceSamples} =
+    useSampleWebVitalTraceParallel({
+      transaction,
+      projectData,
+      enabled: hasSeerWebVitalsSuggestions,
+    });
+
+  const runSeerAnalysis = useRunSeerAnalysis({
+    projectScore,
+    projectData: projectData?.[0],
+    transaction,
+    webVitalTraceSamples,
+  });
+
+  const runSeerAnalysisOnClickHandler = async () => {
+    setIsCreatingIssues(true);
+    const newIssueEventIds = await runSeerAnalysis();
+    setNewlyCreatedIssueEventIds(newIssueEventIds);
+    setIsCreatingIssues(false);
+  };
+
+  const hasProjectScore = !projectScoreIsLoading && Boolean(projectScore);
 
   return (
     <Fragment>
@@ -165,20 +218,15 @@ export function PageOverviewSidebar({
         {projectScoreIsLoading && <ProjectScoreEmptyLoadingElement />}
       </SidebarPerformanceScoreRingContainer>
       <SidebarSpacer />
-      {hasSeerWebVitalsSuggestions && !isLoadingIssues && issues && issues.length > 0 && (
-        <Fragment>
-          <SectionHeading>{t('Seer Suggestions')}</SectionHeading>
-          <Content>
-            <InsightGrid>
-              {isLoadingIssues && <Placeholder height="1.5rem" />}
-              {issues
-                ? issues.map(issue => (
-                    <IssueAutofixSuggestions key={issue.shortId} issue={issue} />
-                  ))
-                : null}
-            </InsightGrid>
-          </Content>
-        </Fragment>
+      {hasSeerWebVitalsSuggestions && (
+        <SeerSuggestionsSection
+          isCreatingIssues={isCreatingIssues}
+          hasProjectScore={hasProjectScore}
+          issues={issues}
+          newlyCreatedIssueEventIds={newlyCreatedIssueEventIds}
+          runSeerAnalysis={runSeerAnalysisOnClickHandler}
+          isLoadingWebVitalTraceSamples={isLoadingWebVitalTraceSamples}
+        />
       )}
       <SidebarSpacer />
       <SectionHeading>
@@ -268,12 +316,81 @@ export function PageOverviewSidebar({
   );
 }
 
-function IssueAutofixSuggestions({issue}: {issue: Group}) {
+function SeerSuggestionsSection({
+  isCreatingIssues,
+  hasProjectScore,
+  isLoadingWebVitalTraceSamples,
+  issues,
+  newlyCreatedIssueEventIds,
+  runSeerAnalysis,
+}: {
+  hasProjectScore: boolean;
+  isCreatingIssues: boolean;
+  isLoadingWebVitalTraceSamples: boolean;
+  issues: Group[] | undefined;
+  newlyCreatedIssueEventIds: string[] | undefined;
+  runSeerAnalysis: () => void;
+}) {
+  // Check if we are done loading issues.
+  // If we created new issues in this session, we expect the issues results array to match in length. This should eventually be true, due to polling.
+  // If we didn't create new issues, just check to see if the issues results array is defined.
+  const areIssuesFullyLoaded =
+    !!issues &&
+    (newlyCreatedIssueEventIds
+      ? issues.length === newlyCreatedIssueEventIds.length
+      : true);
+  const loading = !(
+    areIssuesFullyLoaded &&
+    hasProjectScore &&
+    !isCreatingIssues &&
+    !isLoadingWebVitalTraceSamples
+  );
+
+  return (
+    <div>
+      <SectionHeading>
+        {t('Seer Suggestions')}
+        <FeatureBadge type="beta" />
+      </SectionHeading>
+      <Content>
+        <SeerSuggestionGrid>
+          {/* Issues are still loading, or projectScore is still loading, or seer analysis is still running */}
+          {loading && <Placeholder height="1.5rem" width="100%" />}
+          {/* Issues are done loading and they don't exist */}
+          {!loading && issues.length === 0 && (
+            <RunSeerAnalysisButton
+              size="sm"
+              icon={<StyledIconSeer size="md" />}
+              onClick={runSeerAnalysis}
+              title={t(
+                'Create an issue for each underperforming web vital and run a root cause analysis.'
+              )}
+            >
+              {t('Run Seer Analysis')}
+            </RunSeerAnalysisButton>
+          )}
+          {/* Issues are done loading and they exist */}
+          {!loading &&
+            issues.length > 0 &&
+            issues.map(issue => <SeerSuggestion key={issue.shortId} issue={issue} />)}
+        </SeerSuggestionGrid>
+      </Content>
+    </div>
+  );
+}
+
+function SeerSuggestion({issue}: {issue: Group}) {
   const organization = useOrganization();
   const {data, isLoading: isLoadingAutofix} = useApiQuery<AutofixResponse>(
     makeAutofixQueryKey(organization.slug, issue.id),
     {
-      staleTime: Infinity,
+      staleTime: 0,
+      refetchInterval: query => {
+        const result = query.state.data?.[0];
+        // Wait for any status other than PROCESSING to indicate the the run has stopped
+        const isProcessing = result?.autofix?.status === 'PROCESSING';
+        return !query.state.data?.[0]?.autofix || isProcessing ? POLL_INTERVAL : false;
+      },
     }
   );
 
@@ -304,12 +421,8 @@ function IssueAutofixSuggestions({issue}: {issue: Group}) {
     [autofixData]
   );
 
-  if (isLoadingAutofix) {
-    return <Placeholder height="1.5rem" />;
-  }
-
   return (
-    <InsightCard key={issue.shortId}>
+    <SeerSuggestionCard key={issue.shortId}>
       <CardTitle>
         <CardTitleIcon>
           <StyledIconSeer size="md" />
@@ -318,16 +431,22 @@ function IssueAutofixSuggestions({issue}: {issue: Group}) {
       </CardTitle>
       <CardContentContainer>
         <CardContent>
-          <AutofixSummary
-            group={issue}
-            rootCauseDescription={rootCauseDescription}
-            solutionDescription={solutionDescription}
-            codeChangesDescription={null}
-            codeChangesIsLoading={false}
-            rootCauseCopyText={rootCauseCopyText}
-            solutionCopyText={solutionCopyText}
-            solutionIsLoading={solutionIsLoading}
-          />
+          {isLoadingAutofix ||
+          autofixData === undefined ||
+          rootCauseDescription === null ? (
+            <Placeholder height="1.5rem" width="100%" />
+          ) : (
+            <AutofixSummary
+              group={issue}
+              rootCauseDescription={rootCauseDescription}
+              solutionDescription={solutionDescription}
+              codeChangesDescription={null}
+              codeChangesIsLoading={false}
+              rootCauseCopyText={rootCauseCopyText}
+              solutionCopyText={solutionCopyText}
+              solutionIsLoading={solutionIsLoading}
+            />
+          )}
           <ViewIssueButtonContainer>
             <LinkButton
               to={`/organizations/${organization.slug}/issues/${issue.id}?seerDrawer=true`}
@@ -338,7 +457,7 @@ function IssueAutofixSuggestions({issue}: {issue: Group}) {
           </ViewIssueButtonContainer>
         </CardContent>
       </CardContentContainer>
-    </InsightCard>
+    </SeerSuggestionCard>
   );
 }
 
@@ -438,13 +557,15 @@ const Content = styled(Flex)`
   margin: ${p => p.theme.space.md} 0;
 `;
 
-const InsightGrid = styled('div')`
+const SeerSuggestionGrid = styled('div')`
+  min-height: 40px;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.xs};
 `;
 
-const InsightCard = styled('div')`
+const SeerSuggestionCard = styled('div')`
   display: flex;
   flex-direction: column;
   border-radius: ${p => p.theme.borderRadius};
@@ -497,4 +618,8 @@ const StyledIconSeer = styled(IconSeer)`
 
 const ViewIssueButtonContainer = styled('div')`
   margin: ${p => p.theme.space.lg} 0;
+`;
+
+const RunSeerAnalysisButton = styled(Button)`
+  align-self: flex-start;
 `;

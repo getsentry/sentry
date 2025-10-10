@@ -2,11 +2,9 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sentry.testutils.cases import APITestCase, UptimeCheckSnubaTestCase
+from sentry.testutils.cases import APITestCase, UptimeCheckSnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.uptime.models import get_detector
 from sentry.uptime.types import IncidentStatus
-from tests.sentry.uptime.endpoints.test_base import UptimeResultEAPTestCase
 
 MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
 
@@ -23,10 +21,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
         self.subscription = self.create_uptime_subscription(
             url="https://santry.io", subscription_id=self.subscription_id
         )
-        self.project_uptime_subscription = self.create_project_uptime_subscription(
-            uptime_subscription=self.subscription
-        )
-        self.detector = get_detector(self.subscription)
+        self.detector = self.create_uptime_detector(uptime_subscription=self.subscription)
 
         scenarios: list[dict] = [
             {"check_status": "success"},
@@ -86,8 +81,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
         subscription2 = self.create_uptime_subscription(
             url="https://example.com", subscription_id=subscription_id2
         )
-        self.create_project_uptime_subscription(uptime_subscription=subscription2)
-        detector2 = get_detector(subscription2)
+        detector2 = self.create_uptime_detector(uptime_subscription=subscription2)
 
         # Add data for second subscription
         scenarios2: list[dict[str, Any]] = [
@@ -136,8 +130,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
         empty_subscription = self.create_uptime_subscription(
             url="https://empty.com", subscription_id=empty_subscription_id
         )
-        self.create_project_uptime_subscription(uptime_subscription=empty_subscription)
-        empty_detector = get_detector(empty_subscription)
+        empty_detector = self.create_uptime_detector(uptime_subscription=empty_subscription)
 
         with self.feature(self.features):
             response = self.get_success_response(
@@ -177,10 +170,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
                 until=datetime.now(timezone.utc).timestamp(),
             )
             assert response.status_code == 400
-            assert (
-                response.json()
-                == "Either project uptime subscription ids or uptime detector ids must be provided"
-            )
+            assert response.json() == "Uptime detector ids must be provided"
 
     def test_too_many_detector_ids(self) -> None:
         """Test that sending too many detector IDs produces a 400 response."""
@@ -203,10 +193,9 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
         other_subscription = self.create_uptime_subscription(
             url="https://other.com", subscription_id=other_subscription_id
         )
-        self.create_project_uptime_subscription(
+        other_detector = self.create_uptime_detector(
             uptime_subscription=other_subscription, project=other_project
         )
-        other_detector = get_detector(other_subscription)
 
         with self.feature(self.features):
             response = self.get_response(
@@ -225,8 +214,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
         success_subscription = self.create_uptime_subscription(
             url="https://success.com", subscription_id=success_subscription_id
         )
-        self.create_project_uptime_subscription(uptime_subscription=success_subscription)
-        success_detector = get_detector(success_subscription)
+        success_detector = self.create_uptime_detector(uptime_subscription=success_subscription)
 
         # Only success checks
         for _ in range(5):
@@ -256,8 +244,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
         filter_subscription = self.create_uptime_subscription(
             url="https://filter-test.com", subscription_id=filter_subscription_id
         )
-        self.create_project_uptime_subscription(uptime_subscription=filter_subscription)
-        filter_detector = get_detector(filter_subscription)
+        filter_detector = self.create_uptime_detector(uptime_subscription=filter_subscription)
 
         for i in range(10):
             check_time = datetime.now(timezone.utc) - timedelta(minutes=i * 5)
@@ -290,23 +277,6 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
             assert stats["downtimeChecks"] == 0
             assert stats["missedWindowChecks"] == 0
 
-    def test_both_ids_provided_error(self) -> None:
-        """Test that providing both ID types produces an error."""
-        with self.feature(self.features):
-            response = self.get_response(
-                self.organization.slug,
-                project=[self.project.id],
-                projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
-                uptimeDetectorId=[str(self.detector.id)],
-                since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
-                until=datetime.now(timezone.utc).timestamp(),
-            )
-            assert response.status_code == 400
-            assert (
-                response.json()
-                == "Cannot provide both project uptime subscription ids and uptime detector ids"
-            )
-
     def test_no_ids_provided_error(self) -> None:
         """Test that providing no IDs produces an error."""
         with self.feature(self.features):
@@ -317,34 +287,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
                 until=datetime.now(timezone.utc).timestamp(),
             )
             assert response.status_code == 400
-            assert (
-                response.json()
-                == "Either project uptime subscription ids or uptime detector ids must be provided"
-            )
-
-    def test_backward_compatibility_with_subscription_ids(self) -> None:
-        """Test that the endpoint still works with legacy projectUptimeSubscriptionId."""
-        with self.feature(self.features):
-            response = self.get_success_response(
-                self.organization.slug,
-                project=[self.project.id],
-                projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
-                since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
-                until=datetime.now(timezone.utc).timestamp(),
-            )
-            assert response.data is not None
-            data = response.data
-
-            # Verify structure using subscription ID
-            assert self.project_uptime_subscription.id in data
-            stats = data[self.project_uptime_subscription.id]
-
-            # Should have the same data as the detector ID test
-            assert stats["totalChecks"] == 8
-            assert stats["failedChecks"] == 2
-            assert stats["downtimeChecks"] == 1
-            assert stats["missedWindowChecks"] == 2
-            assert "avgDurationUs" in stats
+            assert response.json() == "Uptime detector ids must be provided"
 
 
 @freeze_time(MOCK_DATETIME)
@@ -380,14 +323,14 @@ class OrganizationUptimeSummarySnubaTest(
             response = self.get_success_response(
                 self.organization.slug,
                 project=[self.project.id],
-                projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
+                uptimeDetectorId=[str(self.detector.id)],
                 since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
                 until=datetime.now(timezone.utc).timestamp(),
             )
             assert response.data is not None
             data = response.data
 
-            stats = data[self.project_uptime_subscription.id]
+            stats = data[self.detector.id]
             assert stats["avgDurationUs"] is None
 
 
@@ -430,8 +373,7 @@ class OrganizationUptimeSummaryEAPTest(OrganizationUptimeSummaryBaseTest, Uptime
         duration_subscription = self.create_uptime_subscription(
             url="https://duration-test.com", subscription_id=duration_subscription_id
         )
-        self.create_project_uptime_subscription(uptime_subscription=duration_subscription)
-        duration_detector = get_detector(duration_subscription)
+        duration_detector = self.create_uptime_detector(uptime_subscription=duration_subscription)
 
         # Store checks with specific durations
         durations = [100000, 200000, 300000]  # 100ms, 200ms, 300ms in microseconds

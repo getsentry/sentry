@@ -22,7 +22,7 @@ class GroupOwnerTest(TestCase):
             "project_id": self.project.id,
             "organization_id": self.organization.id,
         }
-        self.scm_extra_lookup = {"context__contains": f'"commitId":{self.c.id}'}
+        self.scm_extra_lookup = {"context__asjsonb__commitId": self.c.id}
 
         self.defaults = {
             "date_added": self.timestamp,

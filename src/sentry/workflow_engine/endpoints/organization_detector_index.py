@@ -39,11 +39,12 @@ from sentry.models.group import GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_audit_entry
-from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
+from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
@@ -106,6 +107,7 @@ SORT_MAP = {
 DETECTOR_TYPE_ALIASES = {
     "metric": MetricIssue.slug,
     "uptime": UptimeDomainCheckFailure.slug,
+    "cron": MonitorIncidentType.slug,
 }
 
 

@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import GroupEndpoint
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.tasks.reprocessing2 import reprocess_group
 
 

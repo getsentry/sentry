@@ -2,10 +2,11 @@ import {useEffect, useMemo} from 'react';
 
 import emptyTraceImg from 'sentry-images/spot/performance-empty-trace.svg';
 
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -71,7 +72,7 @@ function PerformanceSetupBanner({
     traceAnalytics.trackPerformanceSetupBannerLoaded(organization);
 
     if (location.hash === '#performance-sidequest') {
-      SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
+      OnboardingDrawerStore.open(OnboardingDrawerKey.PERFORMANCE_ONBOARDING);
     }
   }, [projectsWithOnboardingChecklist, hideBanner, organization, location.hash]);
 
@@ -96,7 +97,7 @@ function PerformanceSetupBanner({
           },
           hash: '#performance-sidequest',
         });
-        SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
+        OnboardingDrawerStore.open(OnboardingDrawerKey.PERFORMANCE_ONBOARDING);
       }}
       onSecondaryButtonClick={() =>
         traceAnalytics.trackPerformanceSetupLearnMoreClicked(organization)
@@ -117,7 +118,7 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
 
   const {
     data: {hasExceededPerformanceUsageLimit, subscription},
-  } = usePerformanceSubscriptionDetails();
+  } = usePerformanceSubscriptionDetails({traceItemDataset: 'default'});
 
   // Check if events were dropped due to exceeding the transaction quota, around when the trace occurred.
   const droppedTransactionsCount = performanceUsageStats?.totals['sum(quantity)'] || 0;

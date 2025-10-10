@@ -85,7 +85,7 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.usage_accountant import usage_accountant_backend
-from sentry.testutils.performance_issues.event_generators import get_event
+from sentry.testutils.issue_detection.event_generators import get_event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
@@ -251,8 +251,104 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group is not None
         assert event.group.title == f"TypeError: {cause_error_value}"
 
+    def test_java_rxjava_exceptions_correct_error_title_subtitle(self) -> None:
+        wrapper_exception_types = [
+            "OnErrorNotImplementedException",
+            "CompositeException",
+            "UndeliverableException",
+        ]
+        for exception_type in wrapper_exception_types:
+            manager = EventManager(
+                make_event(
+                    exception={
+                        "values": [
+                            {
+                                "type": "NullPointerException",
+                                "value": "Attempt to read from field 'a.b.c' on a null object",
+                                "module": "java.lang",
+                                "mechanism": {"type": "chained", "exception_id": 1, "parent_id": 0},
+                            },
+                            {
+                                "type": exception_type,
+                                "value": "The exception was not handled due to missing onError handler in the subscribe() method call.",
+                                "module": "io.reactivex.rxjava3.exceptions",
+                                "mechanism": {
+                                    "type": "UncaughtExceptionHandler",
+                                    "handled": False,
+                                    "exception_id": 0,
+                                },
+                            },
+                        ]
+                    },
+                )
+            )
+            event = manager.save(self.project.id)
+            assert event.data["metadata"]["type"] == "NullPointerException"
+            assert (
+                event.data["metadata"]["value"]
+                == "Attempt to read from field 'a.b.c' on a null object"
+            )
+            assert event.group is not None
+            assert (
+                event.group.title
+                == "NullPointerException: Attempt to read from field 'a.b.c' on a null object"
+            )
+
+    def test_java_rxjava_non_wrapped_exceptions_correct_title_subtitle(self) -> None:
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "MissingBackpressureException",
+                            "value": "Attempted to emit a value but the downstream wasn't ready for it.",
+                            "module": "io.reactivex.rxjava3.exceptions",
+                            "mechanism": {
+                                "type": "MissingBackpressureException",
+                                "handled": False,
+                                "exception_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "MissingBackpressureException"
+        assert (
+            event.data["metadata"]["value"]
+            == "Attempted to emit a value but the downstream wasn't ready for it."
+        )
+        assert event.group is not None
+        assert (
+            event.group.title
+            == "MissingBackpressureException: Attempted to emit a value but the downstream wasn't ready for it."
+        )
+
+    def test_java_rxjava_incomplete_error_correct_title_subtitle(self) -> None:
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "NullPointerException",
+                            "value": "Attempt to read from field 'a.b.c' on a null object",
+                        },
+                        {
+                            "type": "CompositeException",
+                            "value": "Can't call onError.",
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "CompositeException"
+        assert event.data["metadata"]["value"] == "Can't call onError."
+        assert event.group is not None
+        assert event.group.title == "CompositeException: Can't call onError."
+
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
-    @with_feature("organizations:issue-open-periods")
     def test_unresolve_auto_resolved_group(self, send_robust: mock.MagicMock) -> None:
         ts = before_now(minutes=5).isoformat()
 
@@ -262,6 +358,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with self.tasks():
             event = manager.save(self.project.id)
 
+        assert event.group_id is not None
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
         group.substatus = None
@@ -307,7 +404,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert open_period.date_ended == resolved_at
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
-    @with_feature("organizations:issue-open-periods")
     def test_unresolves_group(self, send_robust: mock.MagicMock) -> None:
         ts = before_now(minutes=5).isoformat()
 
@@ -317,6 +413,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with self.tasks():
             event = manager.save(self.project.id)
 
+        assert event.group_id is not None
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
         group.substatus = None
@@ -361,7 +458,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert open_period.date_ended == resolved_at
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
-    @with_feature("organizations:issue-open-periods")
     def test_unresolves_group_without_open_period(self, send_robust: mock.MagicMock) -> None:
         ts = before_now(minutes=5).isoformat()
 
@@ -371,6 +467,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with self.tasks():
             event = manager.save(self.project.id)
 
+        assert event.group_id is not None
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
         group.substatus = None
@@ -408,6 +505,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             manager.normalize()
             event = manager.save(self.project.id)
 
+        assert event.group_id is not None
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
         group.substatus = None
@@ -1066,7 +1164,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
 
     @mock.patch("sentry.models.Group.is_resolved")
-    @with_feature("organizations:issue-open-periods")
     def test_unresolves_group_with_auto_resolve(self, mock_is_resolved: mock.MagicMock) -> None:
         ts = before_now(minutes=5).isoformat()
         mock_is_resolved.return_value = False
@@ -1138,9 +1235,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event1.culprit == "foobar"
 
     def test_culprit_after_stacktrace_processing(self) -> None:
-        from sentry.grouping.enhancer import Enhancements
+        from sentry.grouping.enhancer import EnhancementsConfig
 
-        enhancements_str = Enhancements.from_rules_text(
+        enhancements_str = EnhancementsConfig.from_rules_text(
             """
             function:in_app_function +app
             function:not_in_app_function -app
@@ -1453,6 +1550,47 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert None not in event.tags
 
     @mock.patch("sentry.event_manager.eventstream.backend.insert")
+    def test_multi_group_environment(self, eventstream_insert: mock.MagicMock) -> None:
+        def save_event(env: str) -> Event:
+            manager = EventManager(
+                make_event(
+                    **{
+                        "message": "foo",
+                        "event_id": uuid.uuid1().hex,
+                        "environment": env,
+                        "release": "1.0",
+                    }
+                )
+            )
+            manager.normalize()
+            return manager.save(self.project.id)
+
+        event = save_event("dev")
+        assert event.group_id is not None
+
+        instance = GroupEnvironment.objects.get(
+            group_id=event.group_id,
+            environment_id=Environment.objects.get(
+                organization_id=self.project.organization_id, name="dev"
+            ).id,
+        )
+
+        assert instance.first_seen == event.datetime
+
+        event = save_event("prod")
+        assert event.group_id is not None
+
+        new_instance = GroupEnvironment.objects.get(
+            group_id=event.group_id,
+            environment_id=Environment.objects.get(
+                organization_id=self.project.organization_id, name="prod"
+            ).id,
+        )
+
+        assert new_instance.id != instance.id
+        assert new_instance.first_seen == event.datetime
+
+    @mock.patch("sentry.event_manager.eventstream.backend.insert")
     def test_group_environment(self, eventstream_insert: mock.MagicMock) -> None:
         release_version = "1.0"
 
@@ -1481,6 +1619,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             ).id,
         )
 
+        assert instance.first_seen == event.datetime
         assert Release.objects.get(id=instance.first_release_id).version == release_version
 
         group_states1 = {
@@ -1549,7 +1688,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.data["type"] == "default"
         assert group.data["metadata"]["title"] == "foo bar"
 
-    @with_feature("organizations:issue-open-periods")
     def test_error_event_type(self) -> None:
         from sentry.models.groupopenperiod import GroupOpenPeriod
 
@@ -1576,7 +1714,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert open_period[0].date_started == group.first_seen
         assert open_period[0].date_ended is None
 
-    @with_feature("organizations:issue-open-periods")
     def test_error_event_with_minified_stacktrace(self) -> None:
         with patch(
             "sentry.receivers.onboarding.record_event_with_first_minified_stack_trace_for_project",  # autospec=True
@@ -2122,6 +2259,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with self.tasks():
             event = manager.save(self.project.id)
 
+        assert event.group_id is not None
         group = Group.objects.get(id=event.group_id)
         tombstone = GroupTombstone.objects.create(
             project_id=group.project_id,
@@ -2198,17 +2336,27 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         cache_key = cache_key_for_event(manager.get_data())
         attachment_cache.set(cache_key, attachments=[a1, a2])
 
+        mock_track_outcome = mock.Mock()
+        mock_track_outcome_aggregated = mock.Mock()
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
-            with self.feature("organizations:event-attachments"):
-                with self.tasks():
-                    manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
+            with mock.patch(
+                "sentry.event_manager.outcome_aggregator.track_outcome_aggregated",
+                mock_track_outcome_aggregated,
+            ):
+                with self.feature("organizations:event-attachments"):
+                    with self.tasks():
+                        manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
         # The first minidump should be accepted, since the limit is 1
-        assert mock_track_outcome.call_count == 3
+        # Event outcome goes through aggregator (1 call), attachments go through direct track_outcome (2 calls)
+        assert mock_track_outcome_aggregated.call_count == 1
+        assert mock_track_outcome_aggregated.mock_calls[0].kwargs["outcome"] == Outcome.ACCEPTED
+        assert mock_track_outcome.call_count == 2
         for o in mock_track_outcome.mock_calls:
             assert o.kwargs["outcome"] == Outcome.ACCEPTED
 
         mock_track_outcome.reset_mock()
+        mock_track_outcome_aggregated.reset_mock()
 
         manager = EventManager(
             make_event(message="foo", event_id="b" * 32, fingerprint=["a" * 32]),
@@ -2220,13 +2368,22 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         attachment_cache.set(cache_key, attachments=[a1, a2])
 
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
-            with self.feature("organizations:event-attachments"):
-                with self.tasks():
-                    event = manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
+            with mock.patch(
+                "sentry.event_manager.outcome_aggregator.track_outcome_aggregated",
+                mock_track_outcome_aggregated,
+            ):
+                with self.feature("organizations:event-attachments"):
+                    with self.tasks():
+                        event = manager.save(
+                            self.project.id, cache_key=cache_key, has_attachments=True
+                        )
 
         assert event.data["metadata"]["stripped_crash"] is True
 
-        assert mock_track_outcome.call_count == 3
+        # Event outcome goes through aggregator (1 call), attachments: 1 filtered + 1 accepted (2 calls)
+        assert mock_track_outcome_aggregated.call_count == 1
+        assert mock_track_outcome_aggregated.mock_calls[0].kwargs["outcome"] == Outcome.ACCEPTED
+        assert mock_track_outcome.call_count == 2
         o = mock_track_outcome.mock_calls[0]
         assert o.kwargs["outcome"] == Outcome.FILTERED
         assert o.kwargs["category"] == DataCategory.ATTACHMENT
@@ -2239,12 +2396,15 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager = EventManager(make_event(message="foo"))
         manager.normalize()
 
-        mock_track_outcome = mock.Mock()
-        with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
+        mock_track_outcome_aggregated = mock.Mock()
+        with mock.patch(
+            "sentry.event_manager.outcome_aggregator.track_outcome_aggregated",
+            mock_track_outcome_aggregated,
+        ):
             manager.save(self.project.id)
 
         assert_mock_called_once_with_partial(
-            mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.ERROR
+            mock_track_outcome_aggregated, outcome=Outcome.ACCEPTED, category=DataCategory.ERROR
         )
 
     def test_attachment_accepted_outcomes(self) -> None:
@@ -2259,21 +2419,28 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         attachment_cache.set(cache_key, attachments=[a1, a2, a3])
 
         mock_track_outcome = mock.Mock()
+        mock_track_outcome_aggregated = mock.Mock()
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
-            with self.feature("organizations:event-attachments"):
-                manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
+            with mock.patch(
+                "sentry.event_manager.outcome_aggregator.track_outcome_aggregated",
+                mock_track_outcome_aggregated,
+            ):
+                with self.feature("organizations:event-attachments"):
+                    manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
-        assert mock_track_outcome.call_count == 3
+        # Event outcome goes through aggregator (1 call), attachments through direct track_outcome (2 calls)
+        assert mock_track_outcome_aggregated.call_count == 1
+        assert mock_track_outcome.call_count == 2
 
+        # Check aggregated event outcome
+        assert mock_track_outcome_aggregated.mock_calls[0].kwargs["outcome"] == Outcome.ACCEPTED
+        assert mock_track_outcome_aggregated.mock_calls[0].kwargs["category"] == DataCategory.ERROR
+
+        # Check attachment outcomes
         for o in mock_track_outcome.mock_calls:
             assert o.kwargs["outcome"] == Outcome.ACCEPTED
-
-        for o in mock_track_outcome.mock_calls[:2]:
             assert o.kwargs["category"] == DataCategory.ATTACHMENT
             assert o.kwargs["quantity"] == 5
-
-        final = mock_track_outcome.mock_calls[2]
-        assert final.kwargs["category"] == DataCategory.ERROR
 
     def test_attachment_filtered_outcomes(self) -> None:
         manager = EventManager(make_event(message="foo"), project=self.project)
@@ -2288,11 +2455,22 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         attachment_cache.set(cache_key, attachments=[a1, a2, a3])
 
         mock_track_outcome = mock.Mock()
+        mock_track_outcome_aggregated = mock.Mock()
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
-            with self.feature("organizations:event-attachments"):
-                manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
+            with mock.patch(
+                "sentry.event_manager.outcome_aggregator.track_outcome_aggregated",
+                mock_track_outcome_aggregated,
+            ):
+                with self.feature("organizations:event-attachments"):
+                    manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
-        assert mock_track_outcome.call_count == 3
+        # Event outcome goes through aggregator (1 call), attachments through direct track_outcome (2 calls)
+        assert mock_track_outcome_aggregated.call_count == 1
+        assert mock_track_outcome.call_count == 2
+
+        # Event outcome through aggregator
+        assert mock_track_outcome_aggregated.mock_calls[0].kwargs["outcome"] == Outcome.ACCEPTED
+        assert mock_track_outcome_aggregated.mock_calls[0].kwargs["category"] == DataCategory.ERROR
 
         # First outcome is the rejection of the minidump
         o = mock_track_outcome.mock_calls[0]
@@ -2305,11 +2483,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert o.kwargs["outcome"] == Outcome.ACCEPTED
         assert o.kwargs["category"] == DataCategory.ATTACHMENT
         assert o.kwargs["quantity"] == 5
-
-        # Last outcome is the event
-        o = mock_track_outcome.mock_calls[2]
-        assert o.kwargs["outcome"] == Outcome.ACCEPTED
-        assert o.kwargs["category"] == DataCategory.ERROR
 
     def test_transaction_outcome_accepted(self) -> None:
         """
@@ -2339,13 +2512,18 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         )
         manager.normalize()
 
-        mock_track_outcome = mock.Mock()
-        with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
+        mock_track_outcome_aggregated = mock.Mock()
+        with mock.patch(
+            "sentry.event_manager.outcome_aggregator.track_outcome_aggregated",
+            mock_track_outcome_aggregated,
+        ):
             with self.feature({"organizations:transaction-metrics-extraction": False}):
                 manager.save(self.project.id)
 
         assert_mock_called_once_with_partial(
-            mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.TRANSACTION
+            mock_track_outcome_aggregated,
+            outcome=Outcome.ACCEPTED,
+            category=DataCategory.TRANSACTION,
         )
 
     def test_transaction_indexed_outcome_accepted(self) -> None:
@@ -2377,13 +2555,18 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         )
         manager.normalize()
 
-        mock_track_outcome = mock.Mock()
-        with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
+        mock_track_outcome_aggregated = mock.Mock()
+        with mock.patch(
+            "sentry.event_manager.outcome_aggregator.track_outcome_aggregated",
+            mock_track_outcome_aggregated,
+        ):
             with self.feature("organizations:transaction-metrics-extraction"):
                 manager.save(self.project.id)
 
         assert_mock_called_once_with_partial(
-            mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.TRANSACTION_INDEXED
+            mock_track_outcome_aggregated,
+            outcome=Outcome.ACCEPTED,
+            category=DataCategory.TRANSACTION_INDEXED,
         )
 
     def test_invalid_checksum_gets_hashed(self) -> None:
@@ -2461,9 +2644,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         Regression test to ensure that grouping in-app enhancements work in
         principle.
         """
-        from sentry.grouping.enhancer import Enhancements
+        from sentry.grouping.enhancer import EnhancementsConfig
 
-        enhancements_str = Enhancements.from_rules_text(
+        enhancements_str = EnhancementsConfig.from_rules_text(
             """
             function:foo category=bar
             function:foo2 category=bar
@@ -2537,9 +2720,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         Regression test to ensure categories are applied consistently and don't
         produce hash mismatches.
         """
-        from sentry.grouping.enhancer import Enhancements
+        from sentry.grouping.enhancer import EnhancementsConfig
 
-        enhancements_str = Enhancements.from_rules_text(
+        enhancements_str = EnhancementsConfig.from_rules_text(
             """
             function:foo category=foo_like
             category:foo_like -group
@@ -2589,7 +2772,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_perf_issue_creation(self) -> None:
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
             )
             data = event.data
             assert event.get_event_type() == "transaction"
@@ -2683,7 +2866,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_perf_issue_update(self) -> None:
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
             )
             group = event.group
             assert group is not None
@@ -2701,7 +2884,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
             with self.tasks():
                 self.create_performance_issue(
-                    event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
+                    event_data=make_event(
+                        **get_event("n-plus-one-db/n-plus-one-in-django-index-view")
+                    )
                 )
 
             # Make sure the original group is updated via buffers
@@ -2724,7 +2909,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         """Test that you can't associate a performance event with an error issue"""
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
             )
             assert event.group is not None
 
@@ -2734,7 +2919,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             group.type = ErrorGroupType.type_id
             group.save()
             event = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
             )
 
             assert event.group is None
@@ -2765,7 +2950,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_perf_issue_creation_ignored(self) -> None:
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view")),
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
                 noise_limit=2,
             )
             assert event.get_event_type() == "transaction"
@@ -2776,13 +2961,16 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_perf_issue_creation_over_ignored_threshold(self) -> None:
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event_1 = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view")), noise_limit=3
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
+                noise_limit=3,
             )
             event_2 = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view")), noise_limit=3
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
+                noise_limit=3,
             )
             event_3 = self.create_performance_issue(
-                event_data=make_event(**get_event("n-plus-one-in-django-index-view")), noise_limit=3
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
+                noise_limit=3,
             )
             assert event_1.get_event_type() == "transaction"
             assert event_2.get_event_type() == "transaction"
@@ -2802,7 +2990,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_perf_issue_slow_db_issue_is_created(self) -> None:
         def attempt_to_generate_slow_db_issue() -> Event:
             return self.create_performance_issue(
-                event_data=make_event(**get_event("slow-db-spans")),
+                event_data=make_event(**get_event("slow-db/slow-db-spans")),
                 issue_type=PerformanceSlowDBQueryGroupType,
             )
 

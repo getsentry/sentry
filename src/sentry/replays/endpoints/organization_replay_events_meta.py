@@ -16,8 +16,10 @@ from sentry.models.organization import Organization
 
 @region_silo_endpoint
 class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
-    """The generic Events endpoints require that the `organizations:global-views` feature
+    # TODO: now that cross-project selection is enabled for all plans, we may be able to consolidate this with the generic OrganizationEventsV2Endpoint
+    """The generic Events endpoints require that the cross-project selection feature
     be enabled before they return across multiple projects.
+
 
     This endpoint is purpose built for the Session Replay product which intentionally
     requests data across multiple transactions, and therefore potentially multiple projects.
@@ -53,7 +55,7 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response({"count": 0})
 

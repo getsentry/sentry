@@ -19,10 +19,7 @@ import type {
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  DocsPageLocation,
-  StepType,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {DocsPageLocation} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
@@ -65,7 +62,7 @@ function useOnboardingProject() {
 
 function useAiSpanWaiter(project: Project) {
   const {selection} = usePageFilters();
-  const [refetchKey, setRefetchKey] = useState(0);
+  const [shouldRefetch, setShouldRefetch] = useState(true);
 
   const request = useSpans(
     {
@@ -74,7 +71,7 @@ function useAiSpanWaiter(project: Project) {
       limit: 1,
       enabled: !!project,
       useQueryOptions: {
-        additonalQueryKey: [`refetch-${refetchKey}`],
+        refetchInterval: shouldRefetch ? 5000 : undefined,
       },
       pageFilters: {
         ...selection,
@@ -92,17 +89,11 @@ function useAiSpanWaiter(project: Project) {
 
   const hasEvents = Boolean(request.data?.length);
 
-  // Create a custom key that changes every 5 seconds to trigger refetch
-  // TODO(aknaus): remove this and add refetchInterval to useEAPSpans
   useEffect(() => {
-    if (hasEvents) return () => {};
-
-    const interval = setInterval(() => {
-      setRefetchKey(prev => prev + 1);
-    }, 5000); // Poll every 5 seconds
-
-    return () => clearInterval(interval);
-  }, [hasEvents]);
+    if (hasEvents && shouldRefetch) {
+      setShouldRefetch(false);
+    }
+  }, [hasEvents, shouldRefetch]);
 
   return request;
 }
@@ -258,11 +249,17 @@ export function Onboarding() {
         ? [
             {label: 'OpenAI SDK', value: 'openai'},
             {label: 'OpenAI Agents SDK', value: 'openai_agents'},
+            {label: 'Anthropic SDK', value: 'anthropic'},
+            {label: 'LangChain', value: 'langchain'},
+            {label: 'LangGraph', value: 'langgraph'},
+            {label: 'LiteLLM', value: 'litellm'},
             {label: 'Manual', value: 'manual'},
           ]
         : [
-            {label: 'Vercel AI SDK', value: 'vercelai'},
+            {label: 'Vercel AI SDK', value: 'vercel_ai'},
             {label: 'OpenAI SDK', value: 'openai'},
+            {label: 'Anthropic SDK', value: 'anthropic'},
+            {label: 'Google Gen AI SDK', value: 'google_genai'},
             {label: 'Manual', value: 'manual'},
           ],
     },
@@ -347,12 +344,7 @@ export function Onboarding() {
   const steps = [
     ...(agentMonitoringDocs.install?.(docParams) || []),
     ...(agentMonitoringDocs.configure?.(docParams) || []),
-    {
-      type: StepType.VERIFY,
-      description: t(
-        'Verify that agent monitoring is working correctly by triggering some AI agent interactions in your application.'
-      ),
-    },
+    ...(agentMonitoringDocs.verify?.(docParams) || []),
   ];
 
   return (

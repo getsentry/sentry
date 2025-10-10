@@ -1,14 +1,11 @@
 from sentry import analytics
 
 
+@analytics.eventclass("relocation.created")
 class RelocationCreatedEvent(analytics.Event):
-    type = "relocation.created"
-
-    attributes = (
-        analytics.Attribute("creator_id"),
-        analytics.Attribute("owner_id"),
-        analytics.Attribute("uuid"),
-    )
+    creator_id: int
+    owner_id: int
+    uuid: str
 
 
 analytics.register(RelocationCreatedEvent)

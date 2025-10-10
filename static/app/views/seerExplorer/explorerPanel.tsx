@@ -16,7 +16,6 @@ import type {Block, ExplorerPanelProps} from './types';
 function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   const organization = useOrganization({allowNull: true});
 
-  const [isOpen, setIsOpen] = useState(isVisible);
   const [inputValue, setInputValue] = useState('');
   const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1); // -1 means input is focused
   const [showSlashCommands, setShowSlashCommands] = useState(false);
@@ -25,8 +24,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   // Custom hooks
-  const {panelSize, handleMaxSize, handleMedSize, handleMinSize, handleMinPanelClick} =
-    usePanelSizing();
+  const {panelSize, handleMaxSize, handleMedSize, handleMinSize} = usePanelSizing();
   const {sessionData, sendMessage, deleteFromIndex, startNewSession, isPolling} =
     useSeerExplorer();
 
@@ -34,7 +32,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData]);
 
   useBlockNavigation({
-    isOpen,
+    isOpen: isVisible,
     focusedBlockIndex,
     blocks,
     blockRefs,
@@ -44,7 +42,6 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   });
 
   useEffect(() => {
-    setIsOpen(isVisible);
     // Focus textarea when panel opens and reset focus
     if (isVisible) {
       setFocusedBlockIndex(-1);
@@ -127,9 +124,15 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
 
   const panelContent = (
     <PanelContainers
-      isOpen={isOpen}
+      isOpen={isVisible}
       panelSize={panelSize}
-      onMinPanelClick={handleMinPanelClick}
+      blocks={blocks}
+      onSubmit={sendMessage}
+      isPolling={isPolling}
+      onMaxSize={handleMaxSize}
+      onMedSize={handleMedSize}
+      onMinSize={handleMinSize}
+      onClear={startNewSession}
     >
       <BlocksContainer ref={scrollContainerRef}>
         {blocks.length === 0 ? (

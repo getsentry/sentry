@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
@@ -13,14 +12,11 @@ import {getDateWithTimezoneInUtc, getUserTimezone} from 'sentry/utils/dates';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 import AuditLogList from './auditLogList';
-
-type Props = {
-  location: Location;
-};
 
 type State = {
   entryList: AuditLog[] | null;
@@ -35,7 +31,8 @@ type State = {
   start?: DateString;
 };
 
-function OrganizationAuditLog({location}: Props) {
+function OrganizationAuditLog() {
+  const location = useLocation();
   const [state, setState] = useState<State>({
     entryList: [],
     entryListPageLinks: null,

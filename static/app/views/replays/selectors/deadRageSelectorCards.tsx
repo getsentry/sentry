@@ -3,8 +3,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Accordion from 'sentry/components/container/accordion';
-import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, type FlexProps} from 'sentry/components/core/layout';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -15,21 +14,16 @@ import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
-  ContentContainer,
   HeaderContainer,
   HeaderTitleLegend,
   Subtitle,
   WidgetContainer,
 } from 'sentry/views/profiling/landing/styles';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import ExampleReplaysList from 'sentry/views/replays/selectors/exampleReplaysList';
-import {
-  ProjectInfo,
-  SelectorLink,
-  transformSelectorQuery,
-} from 'sentry/views/replays/selectors/selectorTable';
+import ProjectInfo from 'sentry/views/replays/selectors/projectInfo';
+import {SelectorLink} from 'sentry/views/replays/selectors/selectorLink';
+import {transformSelectorQuery} from 'sentry/views/replays/selectors/utils';
 
 export default function DeadRageSelectorCards() {
   return (
@@ -116,8 +110,8 @@ function AccordionWidget({
           <StyledPlaceholder />
         </LoadingContainer>
       ) : isError || (!isLoading && filteredData.length === 0) ? (
-        <CenteredContentContainer>
-          <EmptyStateWarning withIcon={false}>
+        <Flex flex="1 1 auto" direction="column" justify="center">
+          <StyledEmptyStateWarning withIcon={false}>
             <EmptyHeader>
               <IconSearch size="sm" />
               {t('No results found')}
@@ -128,10 +122,10 @@ function AccordionWidget({
                 {type: deadOrRage}
               )}
             </EmptySubtitle>
-          </EmptyStateWarning>
-        </CenteredContentContainer>
+          </StyledEmptyStateWarning>
+        </Flex>
       ) : (
-        <LeftAlignedContentContainer>
+        <Flex flex="1 1 auto" direction="column" justify="start">
           <Accordion
             collapsible
             expandedIndex={selectedListIndex}
@@ -161,13 +155,8 @@ function AccordionWidget({
               };
             })}
           />
-        </LeftAlignedContentContainer>
+        </Flex>
       )}
-      <SearchButton
-        label={t('See all selectors')}
-        path="/selectors/"
-        sort={`-${clickType}`}
-      />
     </StyledWidgetContainer>
   );
 }
@@ -206,44 +195,6 @@ function AccordionItemHeader({
   );
 }
 
-function SearchButton({
-  label,
-  sort,
-  path,
-  ...props
-}: {
-  label: ReactNode;
-  path: '/' | `/${string}/`;
-  sort: string;
-} & Omit<LinkButtonProps, 'size' | 'to' | 'external'>) {
-  const location = useLocation();
-  const organization = useOrganization();
-
-  const pathname = makeReplaysPathname({
-    path,
-    organization,
-  });
-
-  return (
-    <StyledLinkButton
-      {...props}
-      priority="transparent"
-      size="md"
-      to={{
-        pathname,
-        query: {
-          ...location.query,
-          sort,
-          query: undefined,
-          cursor: undefined,
-        },
-      }}
-    >
-      {label}
-    </StyledLinkButton>
-  );
-}
-
 const SplitCardContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -268,23 +219,12 @@ const StyledHeaderContainer = styled(HeaderContainer)`
   grid-template-columns: 30px auto;
 `;
 
-const LeftAlignedContentContainer = styled(ContentContainer)`
-  justify-content: flex-start;
-`;
-
-const CenteredContentContainer = styled(ContentContainer)`
-  justify-content: center;
-`;
-
-const StyledLinkButton = styled(LinkButton)`
-  border-top: 1px solid ${p => p.theme.border};
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-`;
-
 const StyledAccordionHeader = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
   flex: 1;
+  padding: ${space(0.25)};
+  align-items: center;
 `;
 
 const TitleTooltipContainer = styled('div')`
@@ -320,13 +260,14 @@ const EmptySubtitle = styled('div')`
   padding-right: ${space(1)};
 `;
 
-const LoadingContainer = styled(ContentContainer)`
-  gap: ${space(0.25)};
+const LoadingContainer = styled((props: FlexProps) => (
+  <Flex gap="2xs" flex="1 1 auto" direction="column" justify="start" {...props} />
+))`
   padding: ${space(1)} ${space(0.5)} 3px ${space(0.5)};
 `;
 
 const StyledPlaceholder = styled(Placeholder)`
-  height: ${p => (p.theme.isChonk ? '39px' : '34px')};
+  height: 36px;
 `;
 
 const EmptyHeader = styled(Flex)`
@@ -334,4 +275,8 @@ const EmptyHeader = styled(Flex)`
   align-items: center;
   gap: ${space(1.5)};
   color: ${p => p.theme.subText};
+`;
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  padding: 24px;
 `;

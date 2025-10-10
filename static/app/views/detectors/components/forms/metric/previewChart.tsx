@@ -3,9 +3,11 @@ import {useMemo} from 'react';
 import {MetricDetectorChart} from 'sentry/views/detectors/components/forms/metric/metricDetectorChart';
 import {
   createConditions,
+  getBackendDataset,
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 
 export function MetricDetectorPreviewChart() {
   // Get all the form fields needed for the chart
@@ -14,7 +16,7 @@ export function MetricDetectorPreviewChart() {
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
   const interval = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.interval);
-  const query = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
+  const rawQuery = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
   const environment = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.environment);
   const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
 
@@ -30,6 +32,12 @@ export function MetricDetectorPreviewChart() {
   );
   const initialPriorityLevel = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel
+  );
+  const resolutionStrategy = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy
+  );
+  const resolutionValue = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.resolutionValue
   );
   const detectionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.detectionType
@@ -54,15 +62,30 @@ export function MetricDetectorPreviewChart() {
       conditionValue,
       initialPriorityLevel,
       highThreshold,
+      resolutionStrategy,
+      resolutionValue,
     });
-  }, [conditionType, conditionValue, initialPriorityLevel, highThreshold, detectionType]);
+  }, [
+    conditionType,
+    conditionValue,
+    initialPriorityLevel,
+    highThreshold,
+    resolutionStrategy,
+    resolutionValue,
+    detectionType,
+  ]);
+
+  const datasetConfig = getDatasetConfig(dataset);
+  const {query, eventTypes} = datasetConfig.separateEventTypesFromQuery(rawQuery);
 
   return (
     <MetricDetectorChart
-      dataset={dataset}
+      detectorDataset={dataset}
+      dataset={getBackendDataset(dataset)}
       aggregate={aggregateFunction}
       interval={interval}
       query={query}
+      eventTypes={eventTypes}
       environment={environment}
       projectId={projectId}
       conditions={conditions}

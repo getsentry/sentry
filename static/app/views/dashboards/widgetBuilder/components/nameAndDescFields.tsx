@@ -46,10 +46,19 @@ function WidgetBuilderNameAndDescription({
         value={state.title}
         onChange={(newTitle: any) => {
           // clear error once user starts typing
-          setError?.({...error, title: undefined});
-          dispatch({type: BuilderStateAction.SET_TITLE, payload: newTitle});
+          if (error?.title) {
+            setError?.({...error, title: undefined});
+          }
+          dispatch(
+            {type: BuilderStateAction.SET_TITLE, payload: newTitle},
+            {updateUrl: false}
+          );
         }}
-        onBlur={() => {
+        onBlur={value => {
+          dispatch(
+            {type: BuilderStateAction.SET_TITLE, payload: value},
+            {updateUrl: true}
+          );
           trackAnalytics('dashboards_views.widget_builder.change', {
             from: source,
             widget_type: state.dataset ?? '',
@@ -71,7 +80,7 @@ function WidgetBuilderNameAndDescription({
           onClick={() => {
             setIsDescSelected(true);
           }}
-          data-test-id={'add-description'}
+          data-test-id="add-description"
         >
           {t('+ Add Description')}
         </Button>
@@ -85,9 +94,19 @@ function WidgetBuilderNameAndDescription({
           rows={4}
           value={state.description}
           onChange={e => {
-            dispatch({type: BuilderStateAction.SET_DESCRIPTION, payload: e.target.value});
+            dispatch(
+              {type: BuilderStateAction.SET_DESCRIPTION, payload: e.target.value},
+              {updateUrl: false}
+            );
           }}
-          onBlur={() => {
+          onBlur={e => {
+            dispatch(
+              {
+                type: BuilderStateAction.SET_DESCRIPTION,
+                payload: e.target.value,
+              },
+              {updateUrl: true}
+            );
             trackAnalytics('dashboards_views.widget_builder.change', {
               from: source,
               widget_type: state.dataset ?? '',

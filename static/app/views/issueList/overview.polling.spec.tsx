@@ -1,11 +1,9 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {GroupStatsFixture} from 'sentry-fixture/groupStats';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MemberFixture} from 'sentry-fixture/member';
-import {SearchFixture} from 'sentry-fixture/search';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -14,9 +12,11 @@ import TagStore from 'sentry/stores/tagStore';
 import IssueList from 'sentry/views/issueList/overview';
 
 jest.mock('sentry/views/issueList/filters', () => jest.fn(() => null));
-jest.mock('sentry/components/stream/group', () =>
-  jest.fn(({id}) => <div data-test-id={id} />)
-);
+jest.mock('sentry/components/stream/group', () => ({
+  __esModule: true,
+  default: jest.fn(({id}: {id: string}) => <div data-test-id={id} />),
+  LoadingStreamGroup: jest.fn(({id}: {id: string}) => <div data-test-id={id} />),
+}));
 
 jest.mock('js-cookie', () => ({
   get: jest.fn(),
@@ -37,32 +37,13 @@ describe('IssueList -> Polling', () => {
     MockApiClient.clearMockResponses();
   });
 
-  const {organization, project, routerProps} = initializeOrg({
-    organization: {
-      access: ['project:releases'],
-    },
-  });
-  const savedSearch = SearchFixture({
-    id: '789',
-    query: 'is:unresolved',
-    name: 'Unresolved Issues',
-  });
-
+  const project = ProjectFixture();
   const group = GroupFixture({project});
   const group2 = GroupFixture({project, id: '2'});
 
-  const defaultProps = {
-    location: LocationFixture({
-      query: {query: 'is:unresolved'},
-      search: 'query=is:unresolved',
-    }),
-    params: {},
-    organization,
-  };
-
   /* helpers */
   const renderComponent = async () => {
-    render(<IssueList {...routerProps} {...defaultProps} />, {
+    render(<IssueList />, {
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/',
@@ -85,10 +66,6 @@ describe('IssueList -> Polling', () => {
 
     MockApiClient.clearMockResponses();
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/searches/',
-      body: [savedSearch],
-    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
@@ -125,10 +102,6 @@ describe('IssueList -> Polling', () => {
       url: '/organizations/org-slug/recent-searches/',
       method: 'GET',
       body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/searches/',
-      body: [savedSearch],
     });
     issuesRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',

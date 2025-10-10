@@ -14,11 +14,15 @@ from sentry.testutils.cases import (
 )
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [
+    pytest.mark.sentry_metrics,
+    thread_leak_allowlist(reason="sentry sdk background worker", issue=97042),
+]
 
 
 class OrganizationEventsMetaEndpoint(
@@ -74,23 +78,6 @@ class OrganizationEventsMetaEndpoint(
 
         with self.feature(self.features):
             response = self.client.get(self.url, format="json", data={"dataset": "logs"})
-
-        assert response.status_code == 200, response.content
-        assert response.data["count"] == 2
-
-    def test_multiple_projects(self) -> None:
-        project2 = self.create_project()
-
-        self.store_event(data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id)
-        self.store_event(data={"timestamp": self.min_ago.isoformat()}, project_id=project2.id)
-
-        response = self.client.get(self.url, format="json")
-
-        assert response.status_code == 400, response.content
-
-        self.features["organizations:global-views"] = True
-        with self.feature(self.features):
-            response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
         assert response.data["count"] == 2

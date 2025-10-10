@@ -58,10 +58,16 @@ class WorkflowValidator(CamelSnakeSerializer):
             actions, condition_group = self._split_action_and_condition_group(action_filter)
             BaseDataConditionGroupValidator(data=condition_group).is_valid(raise_exception=True)
 
+            validated_actions = []
             for action in actions:
-                BaseActionValidator(data=action, context=self.context).is_valid(
-                    raise_exception=True
-                )
+                action_validator = BaseActionValidator(data=action, context=self.context)
+                action_validator.is_valid(raise_exception=True)
+
+                # update because the validated data does not contain "id" for updates
+                action.update(action_validator.validated_data)
+                validated_actions.append(action)
+
+            action_filter["actions"] = validated_actions
 
         return value
 
@@ -71,12 +77,43 @@ class WorkflowValidator(CamelSnakeSerializer):
         validator: serializers.Serializer,
         Model: type[ModelType],
     ) -> ModelType:
-        if input_data.get("id") is None:
-            return validator.create(input_data)
+        input_id = input_data.get("id")
+        instance = None
+        partial = False
 
-        instance = Model.objects.get(id=input_data["id"])
-        validator.update(instance, input_data)
-        return instance
+        # Determine if this is an update or create operation
+        if input_id:
+            instance = Model.objects.get(id=input_id)
+            # partial update since we are updating an existing instance
+            # https://www.django-rest-framework.org/api-guide/serializers/#partial-updates
+            partial = True
+
+        serializer = validator.__class__(
+            instance=instance, data=input_data, context=self.context, partial=partial
+        )
+
+        if not serializer.is_valid():
+            raise serializers.ValidationError(serializer.errors)
+
+        return serializer.save()
+
+    def _update_or_create_action(
+        self,
+        input_data: dict[str, Any],
+    ) -> Action:
+        # Validating actions hits external APIs. We already validated the data with WorkflowValidator.is_valid().
+        # Avoid re-validating the data by saving the Action directly.
+
+        input_id = input_data.get("id")
+        instance = None
+
+        # Determine if this is an update or create operation
+        if input_id:
+            instance = Action.objects.get(id=input_id)
+            instance.update(**input_data)
+            return instance
+
+        return Action.objects.create(**input_data)
 
     def update_or_create_actions(
         self,
@@ -87,9 +124,8 @@ class WorkflowValidator(CamelSnakeSerializer):
             actions_data, condition_group.dataconditiongroupaction_set, "action__id"
         )
 
-        validator = BaseActionValidator(context=self.context)
         for action in actions_data:
-            action_instance = self._update_or_create(action, validator, Action)
+            action_instance = self._update_or_create_action(action)
 
             # If this is a new action, associate it to the condition group
             if action.get("id") is None:

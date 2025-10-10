@@ -1,14 +1,12 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sentry.testutils.cases import APITestCase, UptimeCheckSnubaTestCase
+from sentry.testutils.cases import APITestCase, UptimeCheckSnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.uptime.endpoints.organization_uptime_stats import add_extra_buckets_for_epoch_cutoff
-from sentry.uptime.models import get_detector
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import json
-from tests.sentry.uptime.endpoints.test_base import UptimeResultEAPTestCase
 
 MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
 
@@ -25,10 +23,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
         self.subscription = self.create_uptime_subscription(
             url="https://santry.io", subscription_id=self.subscription_id
         )
-        self.project_uptime_subscription = self.create_project_uptime_subscription(
-            uptime_subscription=self.subscription
-        )
-        self.detector = get_detector(self.subscription)
+        self.detector = self.create_uptime_detector(uptime_subscription=self.subscription)
 
         scenarios: list[dict] = [
             {"check_status": "success"},
@@ -129,7 +124,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
         subscription = self.create_uptime_subscription(
             url="https://santry.io/test", subscription_id=subscription_id
         )
-        self.create_project_uptime_subscription(uptime_subscription=subscription)
+        detector = self.create_uptime_detector(uptime_subscription=subscription)
 
         # Store data for the cutoff test scenario
         self.store_uptime_data(
@@ -141,8 +136,6 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
         self.store_uptime_data(
             subscription_id, "failure", scheduled_check_time=MOCK_DATETIME - timedelta(hours=2)
         )
-
-        detector = get_detector(subscription)
 
         with self.feature(self.features):
             response = self.get_success_response(
@@ -201,10 +194,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 resolution="1d",
             )
             assert response.status_code == 400
-            assert (
-                response.json()
-                == "Either project uptime subscription ids or uptime detector ids must be provided"
-            )
+            assert response.json() == "Uptime detector ids must be provided"
 
     def test_too_many_periods(self) -> None:
         """Test that requesting a high resolution across a large period of time produces a 400 response."""
@@ -234,24 +224,6 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
             assert response.status_code == 400
             assert response.json() == "Too many uptime detector ids provided. Maximum is 100"
 
-    def test_both_ids_provided_error(self) -> None:
-        """Test that providing both ID types produces an error."""
-        with self.feature(self.features):
-            response = self.get_response(
-                self.organization.slug,
-                project=[self.project.id],
-                projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
-                uptimeDetectorId=["123"],
-                since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
-                until=datetime.now(timezone.utc).timestamp(),
-                resolution="1d",
-            )
-            assert response.status_code == 400
-            assert (
-                response.json()
-                == "Cannot provide both project uptime subscription ids and uptime detector ids"
-            )
-
     def test_no_ids_provided_error(self) -> None:
         """Test that providing no IDs produces an error."""
         with self.feature(self.features):
@@ -263,46 +235,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 resolution="1d",
             )
             assert response.status_code == 400
-            assert (
-                response.json()
-                == "Either project uptime subscription ids or uptime detector ids must be provided"
-            )
-
-    def test_too_many_detector_ids(self) -> None:
-        """Test that sending too many detector IDs produces a 400."""
-        with self.feature(self.features):
-            response = self.get_response(
-                self.organization.slug,
-                project=[self.project.id],
-                uptimeDetectorId=[str(i) for i in range(101)],
-                since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
-                until=datetime.now(timezone.utc).timestamp(),
-                resolution="1d",
-            )
-            assert response.status_code == 400
-            assert response.json() == "Too many uptime detector ids provided. Maximum is 100"
-
-    def test_backward_compatibility_with_subscription_ids(self) -> None:
-        """Test that the endpoint still works with legacy projectUptimeSubscriptionId."""
-        with self.feature(self.features):
-            response = self.get_success_response(
-                self.organization.slug,
-                project=[self.project.id],
-                projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
-                since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
-                until=datetime.now(timezone.utc).timestamp(),
-                resolution="1d",
-            )
-            assert response.data is not None
-            data = json.loads(json.dumps(response.data))
-            assert len(data[str(self.project_uptime_subscription.id)]) == 7
-            # Should have the same data as the detector ID test
-            assert data[str(self.project_uptime_subscription.id)][-1][1] == {
-                "failure": 4,
-                "failure_incident": 1,
-                "success": 3,
-                "missed_window": 0,
-            }
+            assert response.json() == "Uptime detector ids must be provided"
 
 
 @freeze_time(MOCK_DATETIME)
@@ -410,8 +343,7 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
         uptime_subscription = self.create_uptime_subscription(
             url="https://detector-eap-test.com", subscription_id=detector_subscription_id
         )
-        self.create_project_uptime_subscription(uptime_subscription=uptime_subscription)
-        detector = get_detector(uptime_subscription)
+        detector = self.create_uptime_detector(uptime_subscription=uptime_subscription)
 
         # Add some test data
         for scenario in (

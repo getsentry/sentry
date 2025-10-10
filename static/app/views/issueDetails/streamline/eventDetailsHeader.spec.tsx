@@ -25,7 +25,9 @@ jest.mock('sentry/views/issueDetails/utils', () => ({
 }));
 
 describe('EventDetailsHeader', () => {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({
+    features: ['search-query-builder-input-flow-changes'],
+  });
   const project = ProjectFixture({
     environments: ['production', 'staging', 'development'],
   });
@@ -33,7 +35,11 @@ describe('EventDetailsHeader', () => {
     // first seen 19 days ago
     firstSeen: new Date(Date.now() - 19 * 24 * 60 * 60 * 1000).toISOString(),
   });
-  const event = EventFixture({id: 'event-id'});
+  const event = EventFixture({
+    id: 'event-id',
+    occurrence: {evidenceData: {}},
+  });
+
   const defaultProps = {group, event, project};
   const router = RouterFixture();
 
@@ -53,14 +59,11 @@ describe('EventDetailsHeader', () => {
       body: [],
     });
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [],
-        environments: [],
-        datetime: {start: null, end: null, period: '14d', utc: null},
-      },
-      new Set(['environments'])
-    );
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
@@ -136,7 +139,8 @@ describe('EventDetailsHeader', () => {
 
     const search = await screen.findByPlaceholderText('Filter events\u2026');
     await userEvent.type(search, `${tagKey}:`, {delay: null});
-    await userEvent.keyboard(`${tagValue}{enter}{enter}`, {delay: null});
+    await userEvent.click(screen.getByRole('option', {name: 'is'}));
+    await userEvent.keyboard(`${tagValue}{enter}`, {delay: null});
     await waitFor(() => {
       expect(mockUseNavigate).toHaveBeenCalledWith(
         expect.objectContaining(locationQuery),
@@ -167,6 +171,7 @@ describe('EventDetailsHeader', () => {
         })}
         event={EventFixture({
           occurrence: {
+            evidenceData: {},
             evidenceDisplay: [
               {name: 'Status Code', value: '500'},
               {name: 'Failure reason', value: 'bad things'},

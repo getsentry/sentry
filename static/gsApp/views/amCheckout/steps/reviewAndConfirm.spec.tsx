@@ -13,51 +13,40 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
+import {AddOnCategory, PlanTier} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import AMCheckout from 'getsentry/views/amCheckout/';
-import {SelectableProduct} from 'getsentry/views/amCheckout/types';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 
 import ReviewAndConfirm from './reviewAndConfirm';
 
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('getsentry/utils/trackGetsentryAnalytics');
-jest.mock('getsentry/utils/stripe', () => ({
-  loadStripe: (cb: any) => {
-    if (!cb) {
-      return;
-    }
-    cb(() => ({
-      handleCardAction(secretKey: string, _options: any) {
-        if (secretKey === 'ERROR') {
-          return new Promise(resolve => {
-            resolve({error: {message: 'Invalid card', type: 'card_error'}});
-          });
-        }
-        if (secretKey === 'GENERIC_ERROR') {
-          return new Promise(resolve => {
-            resolve({
-              error: {
-                message: 'Something bad that users should not see',
-                type: 'internal_error',
-              },
-            });
-          });
-        }
-        return new Promise(resolve => {
-          resolve({setupIntent: {payment_method: 'pm_abc123'}});
+
+// Other Stripe mocks handled by global setup.ts
+jest.mock('getsentry/hooks/useStripeInstance', () => ({
+  useStripeInstance: jest.fn(() => ({
+    handleCardAction: jest.fn((secretKey: string) => {
+      if (secretKey === 'ERROR') {
+        return Promise.resolve({error: {message: 'Invalid card', type: 'card_error'}});
+      }
+      if (secretKey === 'GENERIC_ERROR') {
+        return Promise.resolve({
+          error: {
+            message: 'Something bad that users should not see',
+            type: 'internal_error',
+          },
         });
-      },
-    }));
-  },
+      }
+      return Promise.resolve({setupIntent: {payment_method: 'test-pm'}});
+    }),
+  })),
 }));
 
 describe('AmCheckout > ReviewAndConfirm', () => {
   const api = new MockApiClient();
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['seer-billing']});
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
   const bizPlan = PlanDetailsLookupFixture('am1_business')!;
   const billingConfig = BillingConfigFixture(PlanTier.AM2);
@@ -150,7 +139,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={subscription.planTier as PlanTier}
@@ -253,8 +242,8 @@ describe('AmCheckout > ReviewAndConfirm', () => {
     const updatedData = {
       ...formData,
       reserved: {...formData.reserved, errors: reservedErrors},
-      selectedProducts: {
-        [SelectableProduct.SEER]: {
+      addOns: {
+        [AddOnCategory.SEER]: {
           enabled: true,
         },
       },
@@ -274,15 +263,6 @@ describe('AmCheckout > ReviewAndConfirm', () => {
         }),
       })
     );
-    // No DOM updates to wait on, but we can use this.
-    await waitFor(() =>
-      expect(router.location).toEqual(
-        expect.objectContaining({
-          pathname: `/settings/${organization.slug}/billing/overview/`,
-          query: {referrer: 'billing', showSeerAutomationAlert: 'true'},
-        })
-      )
-    );
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith('checkout.upgrade', {
       organization,
@@ -301,6 +281,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
       replays: updatedData.reserved.replays,
       monitorSeats: updatedData.reserved.monitorSeats,
       uptime: 1,
+      isNewCheckout: false,
     });
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith('checkout.product_select', {
@@ -310,6 +291,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
         enabled: true,
         previously_enabled: false,
       },
+      isNewCheckout: false,
     });
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
@@ -321,6 +303,15 @@ describe('AmCheckout > ReviewAndConfirm', () => {
         transactions: updatedData.reserved.transactions,
         previous_transactions: 10_000,
       }
+    );
+    // No DOM updates to wait on, but we can use this.
+    await waitFor(() =>
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/settings/${organization.slug}/billing/overview/`,
+          query: {referrer: 'billing', showSeerAutomationAlert: 'true'},
+        })
+      )
     );
   });
 
@@ -413,6 +404,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
       spans: updatedData.reserved.spans,
       profileDuration: updatedData.reserved.profileDuration,
       uptime: updatedData.reserved.uptime,
+      isNewCheckout: false,
     });
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
@@ -423,6 +415,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
         applyNow: false,
         daysLeft: 7,
         partner: 'FOO',
+        isNewCheckout: false,
       }
     );
   });
@@ -511,6 +504,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
       monitorSeats: updatedData.reserved.monitorSeats,
       spans: updatedData.reserved.spans,
       previous_uptime: 1,
+      isNewCheckout: false,
     });
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
@@ -521,6 +515,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
         applyNow: true,
         daysLeft: 20,
         partner: 'FOO',
+        isNewCheckout: false,
       }
     );
   });
@@ -723,6 +718,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
       monitorSeats: updatedData.reserved.monitorSeats,
       uptime: updatedData.reserved.uptime,
       spans: undefined,
+      isNewCheckout: false,
     });
     expect(trackGetsentryAnalytics).not.toHaveBeenCalledWith(
       'checkout.transactions_upgrade'
@@ -790,6 +786,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
       monitorSeats: updatedData.reserved.monitorSeats,
       uptime: updatedData.reserved.uptime,
       spans: undefined,
+      isNewCheckout: false,
     });
 
     expect(trackGetsentryAnalytics).not.toHaveBeenCalledWith(

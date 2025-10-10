@@ -1,12 +1,15 @@
+from datetime import timedelta
 from hashlib import sha1
 
 from django.core.files.base import ContentFile
+from django.utils import timezone
 
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.preprod.models import (
     PreprodArtifact,
+    PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
 )
@@ -15,6 +18,7 @@ from sentry.preprod.tasks import (
     assemble_preprod_artifact_installable_app,
     assemble_preprod_artifact_size_analysis,
     create_preprod_artifact,
+    detect_expired_preprod_artifacts,
 )
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -22,9 +26,12 @@ from sentry.tasks.assemble import (
     delete_assemble_status,
     get_assemble_status,
 )
+from sentry.testutils.cases import TestCase
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from tests.sentry.tasks.test_assemble import BaseAssembleTest
 
 
+@thread_leak_allowlist(reason="preprod tasks", issue=97039)
 class AssemblePreprodArtifactTest(BaseAssembleTest):
     def tearDown(self) -> None:
         """Clean up assembly status and force garbage collection to close unclosed files"""
@@ -44,20 +51,20 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         blob = FileBlob.from_file_with_organization(fileobj, self.organization)
 
         # Create preprod artifact first
-        artifact_id = create_preprod_artifact(
+        artifact = create_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration="release",
         )
-        assert artifact_id is not None
+        assert artifact is not None
 
         assemble_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
-            artifact_id=artifact_id,
+            artifact_id=artifact.id,
             build_configuration="release",
         )
 
@@ -89,17 +96,16 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         total_checksum = sha1(content).hexdigest()
 
         # Create preprod artifact with release notes
-        artifact_id = create_preprod_artifact(
+        artifact = create_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration="release",
             release_notes="This is a test release with important changes",
         )
-        assert artifact_id is not None
+        assert artifact is not None
 
         # Verify the artifact was created with release notes in extras
-        artifact = PreprodArtifact.objects.get(id=artifact_id)
         assert artifact.extras is not None
         assert artifact.extras["release_notes"] == "This is a test release with important changes"
 
@@ -114,7 +120,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         blob = FileBlob.from_file_with_organization(fileobj, self.organization)
 
         # Create preprod artifact first
-        artifact_id = create_preprod_artifact(
+        artifact = create_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
@@ -128,14 +134,14 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             base_ref="main",
             pr_number=123,
         )
-        assert artifact_id is not None
+        assert artifact is not None
 
         assemble_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
-            artifact_id=artifact_id,
+            artifact_id=artifact.id,
             head_sha="a" * 40,
             base_sha="b" * 40,
             provider="github",
@@ -178,19 +184,19 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         blob = FileBlob.from_file_with_organization(fileobj, self.organization)
 
         # Create preprod artifact first
-        artifact_id = create_preprod_artifact(
+        artifact = create_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
         )
-        assert artifact_id is not None
+        assert artifact is not None
 
         assemble_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
-            artifact_id=artifact_id,
+            artifact_id=artifact.id,
         )
 
         # The main assemble_preprod_artifact task doesn't set assembly status
@@ -214,19 +220,19 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         blob = FileBlob.from_file_with_organization(fileobj, self.organization)
 
         # Create preprod artifact first
-        artifact_id = create_preprod_artifact(
+        artifact = create_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
         )
-        assert artifact_id is not None
+        assert artifact is not None
 
         assemble_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
-            artifact_id=artifact_id,
+            artifact_id=artifact.id,
         )
 
         # The main assemble_preprod_artifact task doesn't set assembly status
@@ -249,19 +255,19 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         blob = FileBlob.from_file_with_organization(fileobj, self.organization)
 
         # Create preprod artifact first
-        artifact_id = create_preprod_artifact(
+        artifact = create_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=wrong_checksum,
         )
-        assert artifact_id is not None
+        assert artifact is not None
 
         assemble_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=wrong_checksum,
             chunks=[blob.checksum],
-            artifact_id=artifact_id,
+            artifact_id=artifact.id,
         )
 
         status, details = get_assemble_status(
@@ -277,19 +283,19 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         total_checksum = sha1(b"test for missing chunks").hexdigest()
 
         # Create preprod artifact first
-        artifact_id = create_preprod_artifact(
+        artifact = create_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
         )
-        assert artifact_id is not None
+        assert artifact is not None
 
         assemble_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[missing_checksum],
-            artifact_id=artifact_id,
+            artifact_id=artifact.id,
         )
 
         status, details = get_assemble_status(
@@ -309,12 +315,12 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         nonexistent_org_id = 99999
 
         # Create preprod artifact with valid org first
-        artifact_id = create_preprod_artifact(
+        artifact = create_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
         )
-        assert artifact_id is not None
+        assert artifact is not None
 
         # Then try to assemble with nonexistent org
         assemble_preprod_artifact(
@@ -322,12 +328,12 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
-            artifact_id=artifact_id,
+            artifact_id=artifact.id,
         )
 
         # The task catches exceptions but doesn't set assembly status for database errors
         # Check that the artifact was marked as failed instead
-        artifacts = PreprodArtifact.objects.filter(id=artifact_id)
+        artifacts = PreprodArtifact.objects.filter(id=artifact.id)
         assert len(artifacts) == 1
         assert artifacts[0].state == PreprodArtifact.ArtifactState.FAILED
 
@@ -340,12 +346,12 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         nonexistent_project_id = 99999
 
         # Create preprod artifact with valid project first
-        artifact_id = create_preprod_artifact(
+        artifact = create_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
         )
-        assert artifact_id is not None
+        assert artifact is not None
 
         # Then try to assemble with nonexistent project
         assemble_preprod_artifact(
@@ -353,17 +359,56 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             project_id=nonexistent_project_id,
             checksum=total_checksum,
             chunks=[blob.checksum],
-            artifact_id=artifact_id,
+            artifact_id=artifact.id,
         )
 
         # The task catches exceptions but doesn't set assembly status for database errors
         # Check that the artifact was marked as failed instead
-        artifacts = PreprodArtifact.objects.filter(id=artifact_id)
+        artifacts = PreprodArtifact.objects.filter(id=artifact.id)
         assert len(artifacts) == 1
         assert artifacts[0].state == PreprodArtifact.ArtifactState.FAILED
 
     # Note: Tests currently expect ERROR state because the task tries to access
     # assemble_result.build_configuration which doesn't exist
+
+
+class CreatePreprodArtifactTest(TestCase):
+    def test_create_preprod_artifact_with_all_vcs_params_succeeds(self) -> None:
+        """Test that create_preprod_artifact succeeds when all required VCS params are provided"""
+        content = b"test with all VCS params"
+        total_checksum = sha1(content).hexdigest()
+
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            head_sha="a" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            head_ref="feature/xyz",
+            # Optional parameters
+            base_sha="b" * 40,
+            base_repo_name="owner/repo",
+            base_ref="main",
+            pr_number=123,
+        )
+
+        assert artifact is not None
+        assert artifact.commit_comparison is not None
+
+    def test_create_preprod_artifact_with_no_vcs_params_succeeds(self) -> None:
+        """Test that create_preprod_artifact succeeds when no VCS params are provided"""
+        content = b"test with no VCS params"
+        total_checksum = sha1(content).hexdigest()
+
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+        )
+
+        assert artifact is not None
+        assert artifact.commit_comparison is None
 
 
 class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
@@ -502,6 +547,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         # Create an existing size metrics record
         existing_size_metrics = PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=self.preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
         )
 
@@ -558,3 +604,247 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
             preprod_artifact=self.preprod_artifact
         )
         assert len(size_metrics) == 0
+
+
+class DetectExpiredPreprodArtifactsTest(TestCase):
+    def test_detect_expired_preprod_artifacts_no_expired(self):
+        """Test that no artifacts are marked as expired when none are expired"""
+        recent_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+        )
+
+        recent_size_metric = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=recent_artifact,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        )
+
+        another_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+        another_size_metric = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=another_artifact,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        )
+
+        recent_size_comparison = PreprodArtifactSizeComparison.objects.create(
+            head_size_analysis=recent_size_metric,
+            base_size_analysis=another_size_metric,
+            organization_id=self.organization.id,
+            state=PreprodArtifactSizeComparison.State.PROCESSING,
+        )
+
+        detect_expired_preprod_artifacts()
+
+        # Verify nothing changed
+        recent_artifact.refresh_from_db()
+        recent_size_metric.refresh_from_db()
+        recent_size_comparison.refresh_from_db()
+
+        assert recent_artifact.state == PreprodArtifact.ArtifactState.UPLOADED
+        assert recent_size_metric.state == PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING
+        assert recent_size_comparison.state == PreprodArtifactSizeComparison.State.PROCESSING
+
+    def test_detect_expired_preprod_artifacts_with_expired(self):
+        """Test that expired artifacts are marked as failed"""
+        current_time = timezone.now()
+        old_time = current_time - timedelta(minutes=35)  # 35 minutes ago (expired)
+
+        expired_uploading_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADING,
+        )
+        PreprodArtifact.objects.filter(id=expired_uploading_artifact.id).update(
+            date_updated=old_time
+        )
+
+        expired_uploaded_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+        )
+        PreprodArtifact.objects.filter(id=expired_uploaded_artifact.id).update(
+            date_updated=old_time
+        )
+
+        expired_size_metric = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=expired_uploaded_artifact,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        )
+        PreprodArtifactSizeMetrics.objects.filter(id=expired_size_metric.id).update(
+            date_updated=old_time
+        )
+
+        another_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+        another_size_metric = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=another_artifact,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        )
+
+        expired_size_comparison = PreprodArtifactSizeComparison.objects.create(
+            head_size_analysis=expired_size_metric,
+            base_size_analysis=another_size_metric,
+            organization_id=self.organization.id,
+            state=PreprodArtifactSizeComparison.State.PROCESSING,
+        )
+        PreprodArtifactSizeComparison.objects.filter(id=expired_size_comparison.id).update(
+            date_updated=old_time
+        )
+
+        detect_expired_preprod_artifacts()
+
+        # Verify expired items were marked as failed
+        expired_uploading_artifact.refresh_from_db()
+        expired_uploaded_artifact.refresh_from_db()
+        expired_size_metric.refresh_from_db()
+        expired_size_comparison.refresh_from_db()
+
+        assert expired_uploading_artifact.state == PreprodArtifact.ArtifactState.FAILED
+        assert (
+            expired_uploading_artifact.error_code
+            == PreprodArtifact.ErrorCode.ARTIFACT_PROCESSING_TIMEOUT
+        )
+        assert (
+            expired_uploading_artifact.error_message
+            and "30 minutes" in expired_uploading_artifact.error_message
+        )
+
+        assert expired_uploaded_artifact.state == PreprodArtifact.ArtifactState.FAILED
+        assert (
+            expired_uploaded_artifact.error_code
+            == PreprodArtifact.ErrorCode.ARTIFACT_PROCESSING_TIMEOUT
+        )
+        assert (
+            expired_uploaded_artifact.error_message
+            and "30 minutes" in expired_uploaded_artifact.error_message
+        )
+
+        assert expired_size_metric.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
+        assert expired_size_metric.error_code == PreprodArtifactSizeMetrics.ErrorCode.TIMEOUT
+        assert (
+            expired_size_metric.error_message and "30 minutes" in expired_size_metric.error_message
+        )
+
+        assert expired_size_comparison.state == PreprodArtifactSizeComparison.State.FAILED
+        assert expired_size_comparison.error_code == PreprodArtifactSizeComparison.ErrorCode.TIMEOUT
+        assert (
+            expired_size_comparison.error_message
+            and "30 minutes" in expired_size_comparison.error_message
+        )
+
+    def test_detect_expired_preprod_artifacts_mixed_states(self):
+        """Test that only artifacts in the right states are considered for expiration"""
+        current_time = timezone.now()
+        old_time = current_time - timedelta(minutes=35)  # 35 minutes ago (expired)
+
+        uploading_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADING,  # Should expire
+        )
+        PreprodArtifact.objects.filter(id=uploading_artifact.id).update(date_updated=old_time)
+
+        uploaded_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,  # Should expire
+        )
+        PreprodArtifact.objects.filter(id=uploaded_artifact.id).update(date_updated=old_time)
+
+        processed_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,  # Should NOT expire
+        )
+        PreprodArtifact.objects.filter(id=processed_artifact.id).update(date_updated=old_time)
+
+        failed_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.FAILED,  # Should NOT expire
+        )
+        PreprodArtifact.objects.filter(id=failed_artifact.id).update(date_updated=old_time)
+
+        processing_size_metric = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=uploaded_artifact,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,  # Should expire
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        )
+        PreprodArtifactSizeMetrics.objects.filter(id=processing_size_metric.id).update(
+            date_updated=old_time
+        )
+
+        completed_size_metric = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=processed_artifact,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,  # Should NOT expire
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        )
+        PreprodArtifactSizeMetrics.objects.filter(id=completed_size_metric.id).update(
+            date_updated=old_time
+        )
+
+        detect_expired_preprod_artifacts()
+
+        uploading_artifact.refresh_from_db()
+        uploaded_artifact.refresh_from_db()
+        processed_artifact.refresh_from_db()
+        failed_artifact.refresh_from_db()
+        processing_size_metric.refresh_from_db()
+        completed_size_metric.refresh_from_db()
+
+        # Both UPLOADING and UPLOADED artifacts should be marked as failed
+        assert uploading_artifact.state == PreprodArtifact.ArtifactState.FAILED
+        assert uploaded_artifact.state == PreprodArtifact.ArtifactState.FAILED
+        assert processed_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+        assert failed_artifact.state == PreprodArtifact.ArtifactState.FAILED  # Was already failed
+
+        # Only the PROCESSING size metric should be marked as failed
+        assert processing_size_metric.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
+        assert completed_size_metric.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+
+    def test_detect_expired_preprod_artifacts_boundary_time(self):
+        """Test the 30-minute boundary for expiration"""
+        current_time = timezone.now()
+        exactly_30_min_ago = current_time - timedelta(minutes=30)
+        just_under_30_min_ago = current_time - timedelta(minutes=29)  # More buffer
+        just_over_30_min_ago = current_time - timedelta(minutes=31)  # More buffer
+
+        exactly_30_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADING,  # Test UPLOADING state
+        )
+        PreprodArtifact.objects.filter(id=exactly_30_artifact.id).update(
+            date_updated=exactly_30_min_ago
+        )
+
+        just_under_30_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+        )
+        PreprodArtifact.objects.filter(id=just_under_30_artifact.id).update(
+            date_updated=just_under_30_min_ago
+        )
+
+        just_over_30_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADING,  # Test UPLOADING state
+        )
+        PreprodArtifact.objects.filter(id=just_over_30_artifact.id).update(
+            date_updated=just_over_30_min_ago
+        )
+
+        detect_expired_preprod_artifacts()
+
+        exactly_30_artifact.refresh_from_db()
+        just_under_30_artifact.refresh_from_db()
+        just_over_30_artifact.refresh_from_db()
+
+        # Only artifacts that are exactly 30 minutes or older should expire
+        assert exactly_30_artifact.state == PreprodArtifact.ArtifactState.FAILED
+        assert (
+            just_under_30_artifact.state == PreprodArtifact.ArtifactState.UPLOADED
+        )  # Still processing
+        assert just_over_30_artifact.state == PreprodArtifact.ArtifactState.FAILED

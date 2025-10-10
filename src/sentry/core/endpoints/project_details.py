@@ -15,7 +15,8 @@ from sentry import audit_log, features, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
-from sentry.api.decorators import sudo_required
+from sentry.api.decorators import is_considered_sudo
+from sentry.api.exceptions import SudoRequired
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.permissions import StaffPermissionMixin
@@ -32,14 +33,13 @@ from sentry.constants import (
     SAMPLING_MODE_DEFAULT,
     ObjectStatus,
 )
-from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
-from sentry.grouping.enhancer import Enhancements
+from sentry.grouping.enhancer import EnhancementsConfig
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.fingerprinting import FingerprintingRules
+from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import HighlightContextField
@@ -55,6 +55,7 @@ from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
+from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.tasks.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 from sentry.tempest.utils import has_tempest_access
@@ -357,7 +358,7 @@ E.g. `['release', 'environment']`""",
             return value
 
         try:
-            Enhancements.from_rules_text(value)
+            EnhancementsConfig.from_rules_text(value)
         except InvalidEnhancerConfig as e:
             raise serializers.ValidationError(str(e))
 
@@ -378,7 +379,7 @@ E.g. `['release', 'environment']`""",
             return value
 
         try:
-            FingerprintingRules.from_config_string(value)
+            FingerprintingConfig.from_config_string(value)
         except InvalidFingerprintingConfig as e:
             raise serializers.ValidationError(str(e))
 
@@ -439,8 +440,7 @@ E.g. `['release', 'environment']`""",
 
     def validate_tempestFetchScreenshots(self, value):
         organization = self.context["project"].organization
-        actor = self.context["request"].user
-        if not has_tempest_access(organization, actor=actor):
+        if not has_tempest_access(organization):
             raise serializers.ValidationError(
                 "Organization does not have the tempest feature enabled."
             )
@@ -448,8 +448,7 @@ E.g. `['release', 'environment']`""",
 
     def validate_tempestFetchDumps(self, value):
         organization = self.context["project"].organization
-        actor = self.context["request"].user
-        if not has_tempest_access(organization, actor=actor):
+        if not has_tempest_access(organization):
             raise serializers.ValidationError(
                 "Organization does not have the tempest feature enabled."
             )
@@ -968,8 +967,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    @sudo_required
-    def delete(self, request: Request, project) -> Response:
+    def delete(self, request: Request, project: Project) -> Response:
         """
         Schedules a project for deletion.
 
@@ -982,6 +980,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        # In most cases we want to confirm password before deleting a project, but this isn't
+        # necessary if we never received any events in the first place. This allows us to avoid
+        # password confirmation in onboarding when undoing project creation.
+        if project.first_event is not None and not is_considered_sudo(request):
+            raise SudoRequired(request.user)
+
         updated = Project.objects.filter(id=project.id, status=ObjectStatus.ACTIVE).update(
             status=ObjectStatus.PENDING_DELETION
         )
@@ -989,7 +993,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             scheduled = RegionScheduledDeletion.schedule(project, days=0, actor=request.user)
 
             common_audit_data = {
-                "request": request,
                 "organization": project.organization,
                 "target_object": project.id,
                 "transaction_id": scheduled.id,
@@ -998,6 +1001,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if request.data.get("origin"):
                 self.create_audit_entry(
                     **common_audit_data,
+                    request=request,
                     event=audit_log.get_event_id("PROJECT_REMOVE_WITH_ORIGIN"),
                     data={
                         **project.get_audit_log_data(),
@@ -1007,6 +1011,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             else:
                 self.create_audit_entry(
                     **common_audit_data,
+                    request=request,
                     event=audit_log.get_event_id("PROJECT_REMOVE"),
                     data={**project.get_audit_log_data()},
                 )

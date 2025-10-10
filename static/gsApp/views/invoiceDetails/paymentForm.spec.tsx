@@ -10,27 +10,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {InvoiceItemType} from 'getsentry/types';
 import InvoiceDetailsPaymentForm from 'getsentry/views/invoiceDetails/paymentForm';
 
-jest.mock('getsentry/utils/stripe', () => ({
-  loadStripe: (cb: any) => {
-    cb(() => ({
-      confirmCardPayment: jest.fn(
-        () =>
-          new Promise(resolve => {
-            resolve({error: undefined, paymentIntent: {id: 'pi_123abc'}});
-          })
-      ),
-      elements: jest.fn(() => ({
-        create: jest.fn(() => ({
-          mount: jest.fn(),
-          on(_name: any, handler: any) {
-            handler();
-          },
-          update: jest.fn(),
-        })),
-      })),
-    }));
-  },
-}));
+// Stripe mocks handled by global setup.ts
 
 describe('InvoiceDetails > Payment Form', () => {
   const organization = OrganizationFixture();
@@ -57,6 +37,7 @@ describe('InvoiceDetails > Payment Form', () => {
   };
 
   beforeEach(() => {
+    organization.features = [];
     MockApiClient.clearMockResponses();
     SubscriptionStore.set(organization.slug, {});
   });
@@ -81,13 +62,38 @@ describe('InvoiceDetails > Payment Form', () => {
     );
 
     await waitFor(() => expect(mockget).toHaveBeenCalled());
-    expect(screen.getByText('Pay Invoice')).toBeInTheDocument();
+    expect(screen.getByText('Pay Bill')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Pay Now'})).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {name: 'Cancel', hidden: true})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Pay Now', hidden: true})
-    ).toBeInTheDocument();
+      screen.queryByText(
+        /, you authorize Sentry to automatically charge you recurring subscription fees and applicable on-demand fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for on-demand fees. You may cancel your subscription at any time/
+      )
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders form when Stripe components are enabled', async () => {
+    organization.features = ['stripe-components'];
+    const mockget = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/${invoice.id}/new/`,
+      method: 'GET',
+      body: intentData,
+    });
+    render(
+      <InvoiceDetailsPaymentForm
+        organization={organization}
+        Header={modalDummy}
+        Body={ModalBody}
+        closeModal={jest.fn()}
+        reloadInvoice={jest.fn()}
+        invoice={invoice}
+      />
+    );
+
+    await waitFor(() => expect(mockget).toHaveBeenCalled());
+    expect(screen.getByText('Pay Bill')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Pay Now'})).toBeInTheDocument();
     expect(
       screen.queryByText(
         /, you authorize Sentry to automatically charge you recurring subscription fees and applicable on-demand fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for on-demand fees. You may cancel your subscription at any time/
@@ -116,7 +122,7 @@ describe('InvoiceDetails > Payment Form', () => {
     await waitFor(() => expect(mockget).toHaveBeenCalled());
     expect(mockget).toHaveBeenCalled();
 
-    expect(screen.getByText('Pay Invoice')).toBeInTheDocument();
+    expect(screen.getByText('Pay Bill')).toBeInTheDocument();
 
     let error = screen.getByText(/Unable to initialize payment/);
     expect(error).toBeInTheDocument();
@@ -150,7 +156,7 @@ describe('InvoiceDetails > Payment Form', () => {
     await waitFor(() => expect(mockget).toHaveBeenCalled());
     expect(mockget).toHaveBeenCalled();
 
-    expect(screen.getByText('Pay Invoice')).toBeInTheDocument();
+    expect(screen.getByText('Pay Bill')).toBeInTheDocument();
 
     const button = screen.getByRole('button', {name: 'Pay Now'});
     await userEvent.click(button);

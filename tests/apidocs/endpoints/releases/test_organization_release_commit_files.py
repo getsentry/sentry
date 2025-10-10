@@ -26,11 +26,14 @@ class CommitFileChangeDocsTest(APIDocsTestCase):
             organization_id=project.organization_id, release=release, commit=commit2, order=0
         )
         CommitFileChange.objects.create(
-            organization_id=project.organization_id, commit=commit, filename=".gitignore", type="M"
+            organization_id=project.organization_id,
+            commit_id=commit.id,
+            filename=".gitignore",
+            type="M",
         )
         CommitFileChange.objects.create(
             organization_id=project.organization_id,
-            commit=commit2,
+            commit_id=commit2.id,
             filename="/static/js/widget.js",
             type="A",
         )

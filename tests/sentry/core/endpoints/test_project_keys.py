@@ -55,6 +55,22 @@ class ListProjectKeysTest(APITestCase):
         assert response.status_code == 200
         assert response.data[0]["dsn"]["otlp_traces"] == key.otlp_traces_endpoint
 
+    def test_otlp_logs_endpoint(self) -> None:
+        project = self.create_project()
+        key = ProjectKey.objects.get_or_create(project=project)[0]
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-keys",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert response.data[0]["dsn"]["otlp_logs"] == key.otlp_logs_endpoint
+        assert "integration/otlp/v1/logs" in response.data[0]["dsn"]["otlp_logs"]
+
     def test_use_case(self) -> None:
         """Regular user can access user DSNs but not internal DSNs"""
         project = self.create_project()

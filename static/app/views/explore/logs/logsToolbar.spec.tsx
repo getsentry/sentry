@@ -3,16 +3,16 @@ import type {ReactNode} from 'react';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
-    <LogsQueryParamsProvider source="location">
-      <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
-        {children}
-      </LogsPageParamsProvider>
+    <LogsQueryParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+      source="location"
+    >
+      {children}
     </LogsQueryParamsProvider>
   );
 }
@@ -111,9 +111,11 @@ describe('LogsToolbar', () => {
       await userEvent.click(screen.getByRole('option', {name: 'count unique'}));
       await userEvent.click(screen.getByRole('button', {name: 'message'})); // this one isnt remapped for some reason
       options = screen.getAllByRole('option');
-      expect(options).toHaveLength(2);
-      expect(options[0]).toHaveTextContent('message'); // this one isnt remapped for some reason
-      expect(options[1]).toHaveTextContent('severity');
+      expect(options).toHaveLength(4);
+      expect(options[0]).toHaveTextContent('barnumber');
+      expect(options[1]).toHaveTextContent('foonumber');
+      expect(options[2]).toHaveTextContent('message'); // this one isnt remapped for some reason
+      expect(options[3]).toHaveTextContent('severity');
       await userEvent.click(screen.getByRole('option', {name: 'severity'}));
       expect(router.location.query.aggregateField).toEqual(
         [{groupBy: ''}, {yAxes: ['count_unique(severity)']}].map(aggregateField =>
@@ -218,7 +220,7 @@ describe('LogsToolbar', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Add Group'}));
       expect(router.location.query.aggregateField).toEqual(
-        [{groupBy: 'message'}, {yAxes: ['count(message)']}, {groupBy: ''}].map(
+        [{groupBy: 'message'}, {groupBy: ''}, {yAxes: ['count(message)']}].map(
           aggregateField => JSON.stringify(aggregateField)
         )
       );

@@ -5,16 +5,15 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
+import {AddOnCategory, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 import CheckoutOverviewV2 from 'getsentry/views/amCheckout/checkoutOverviewV2';
-import {SelectableProduct, type CheckoutFormData} from 'getsentry/views/amCheckout/types';
+import {type CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
 describe('CheckoutOverviewV2', () => {
   const api = new MockApiClient();
   const {organization, routerProps} = initializeOrg();
   const subscription = SubscriptionFixture({organization, plan: 'am3_f'});
-  const params = {};
 
   const billingConfig = BillingConfigFixture(PlanTier.AM3);
   const teamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf')!;
@@ -50,7 +49,7 @@ describe('CheckoutOverviewV2', () => {
         api={api}
         checkoutTier={PlanTier.AM3}
         onToggleLegacy={jest.fn()}
-        params={params}
+        navigate={jest.fn()}
       />
     );
 
@@ -80,8 +79,8 @@ describe('CheckoutOverviewV2', () => {
         uptime: 1,
       },
       onDemandMaxSpend: 5000,
-      selectedProducts: {
-        [SelectableProduct.SEER]: {
+      addOns: {
+        [AddOnCategory.SEER]: {
           enabled: true,
         },
       },
@@ -98,7 +97,7 @@ describe('CheckoutOverviewV2', () => {
       />
     );
 
-    expect(screen.getByTestId('seer-reserved')).toHaveTextContent('Seer AI Agent$216/yr');
+    expect(screen.getByTestId('seer-reserved')).toHaveTextContent('Seer$216/yr');
     expect(screen.getByText('Total Annual Charges')).toBeInTheDocument();
     expect(screen.getByText('$312/yr')).toBeInTheDocument();
     expect(screen.getByTestId('additional-monthly-charge')).toHaveTextContent(
@@ -165,7 +164,7 @@ describe('CheckoutOverviewV2', () => {
     expect(screen.getAllByText('Product not available')[0]).toBeInTheDocument();
   });
 
-  it('does not show product when not selected', () => {
+  it('does not show add-on when not selected', () => {
     const formData: CheckoutFormData = {
       plan: 'am3_team_auf',
       reserved: {
@@ -179,8 +178,8 @@ describe('CheckoutOverviewV2', () => {
         uptime: 1,
       },
       onDemandMaxSpend: 5000,
-      selectedProducts: {
-        [SelectableProduct.SEER]: {
+      addOns: {
+        [AddOnCategory.SEER]: {
           enabled: false,
         },
       },
@@ -200,7 +199,7 @@ describe('CheckoutOverviewV2', () => {
     expect(screen.queryByTestId('seer-reserved')).not.toBeInTheDocument();
   });
 
-  it('does not show selectable product when not included in formData', () => {
+  it('does not show add-on when not included in formData', () => {
     const formData: CheckoutFormData = {
       plan: 'am3_team_auf',
       reserved: {

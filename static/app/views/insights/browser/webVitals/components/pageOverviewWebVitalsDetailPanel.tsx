@@ -310,7 +310,6 @@ export function PageOverviewWebVitalsDetailPanel({
             }
             webVital={webVital}
             score={webVitalScore}
-            transaction={transaction}
           />
         )}
         <ChartContainer>

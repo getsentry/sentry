@@ -213,36 +213,6 @@ export function getFullUrl(data: EntryRequest['data']): string | undefined {
   return escapeBashString(fullUrl);
 }
 
-/**
- * Converts an object of body/querystring key/value pairs
- * into a tuple of [key, value] pairs, and sorts them.
- *
- * This handles the case for query strings that were decoded like so:
- *
- *   ?foo=bar&foo=baz => { foo: ['bar', 'baz'] }
- *
- * By converting them to [['foo', 'bar'], ['foo', 'baz']]
- */
-export function objectToSortedTupleArray(obj: Record<string, string | string[]>) {
-  return Object.keys(obj)
-    .reduce<Array<[string, string]>>((out, k) => {
-      const val = obj[k];
-      return out.concat(
-        Array.isArray(val)
-          ? val.map(v => [k, v]) // key has multiple values (array)
-          : ([[k, val]] as Array<[string, string]>) // key has single value
-      );
-    }, [])
-    .sort(([keyA, valA], [keyB, valB]) => {
-      // if keys are identical, sort on value
-      if (keyA === keyB) {
-        return valA < valB ? -1 : 1;
-      }
-
-      return keyA < keyB ? -1 : 1;
-    });
-}
-
 function isValidContextValue(value: unknown): value is string {
   return typeof value === 'string' && value !== FILTER_MASK;
 }

@@ -66,7 +66,7 @@ SETTINGS: Settings = {
     "attribute_types": {"float": float, "int": int, "str": str, "bool": bool},
     "default_limit": 1,
     "default_offset": 0,
-    "extrapolation_mode": "none",
+    "extrapolation_modes": {},
 }
 
 

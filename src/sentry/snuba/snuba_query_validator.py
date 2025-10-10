@@ -15,6 +15,7 @@ from sentry.exceptions import (
     InvalidSearchQuery,
     UnsupportedQuerySubscription,
 )
+from sentry.explore.utils import is_logs_enabled
 from sentry.incidents.logic import (
     check_aggregate_column_support,
     get_column_from_aggregate,
@@ -156,10 +157,8 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 % [item.name.lower() for item in SnubaQueryEventType.EventType]
             )
 
-        if not features.has(
-            "organizations:ourlogs-alerts",
-            self.context["organization"],
-            actor=self.context.get("user", None),
+        if not is_logs_enabled(
+            self.context["organization"], actor=self.context.get("user", None)
         ) and any([v for v in validated if v == SnubaQueryEventType.EventType.TRACE_ITEM_LOG]):
             raise serializers.ValidationError("You do not have access to the log alerts feature.")
 
@@ -345,9 +344,21 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                     "Invalid Time Window: Allowed time windows for crash rate alerts are: "
                     "30min, 1h, 2h, 4h, 12h and 24h"
                 )
+        if dataset == Dataset.EventsAnalyticsPlatform:
+            if time_window_seconds < 300:
+                raise serializers.ValidationError(
+                    "Invalid Time Window: Time window for this alert type must be at least 5 minutes."
+                )
         return time_window_seconds
 
     def _validate_performance_dataset(self, dataset):
+        if features.has(
+            "organizations:discover-saved-queries-deprecation", self.context["organization"]
+        ):
+            raise serializers.ValidationError(
+                f"The {dataset.value} dataset is being deprecated. Please use the 'events_analytics_platform' dataset with the `is_transaction:true` filter instead."
+            )
+
         if dataset != Dataset.Transactions:
             return dataset
 

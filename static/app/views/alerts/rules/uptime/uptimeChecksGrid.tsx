@@ -13,8 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getShortEventId} from 'sentry/utils/events';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
-import type {UptimeCheck, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   reasonToText,
@@ -23,8 +22,8 @@ import {
 } from 'sentry/views/insights/uptime/timelineConfig';
 
 type Props = {
+  traceSampling: boolean;
   uptimeChecks: UptimeCheck[];
-  uptimeRule: UptimeRule;
 };
 
 /**
@@ -33,7 +32,12 @@ type Props = {
  */
 const EMPTY_TRACE = '00000000000000000000000000000000';
 
-export function UptimeChecksGrid({uptimeRule, uptimeChecks}: Props) {
+/**
+ * The number of system uptime spans that are always recorded for each uptime check.
+ */
+const SYSTEM_UPTIME_SPAN_COUNT = 7;
+
+export function UptimeChecksGrid({traceSampling, uptimeChecks}: Props) {
   const traceIds = uptimeChecks?.map(check => check.traceId) ?? [];
 
   const {data: spanCounts, isPending: spanCountLoading} = useSpans(
@@ -42,6 +46,9 @@ export function UptimeChecksGrid({uptimeRule, uptimeChecks}: Props) {
       enabled: traceIds.length > 0,
       search: new MutableSearch('').addDisjunctionFilterValues('trace', traceIds),
       fields: ['trace', 'count()'],
+      // Ignore the cursor parameter, since we use that on this page to
+      // paginate the checks table.
+      noPagination: true,
     },
     'api.uptime-checks-grid'
   );
@@ -73,7 +80,7 @@ export function UptimeChecksGrid({uptimeRule, uptimeChecks}: Props) {
         renderBodyCell: (column, dataRow) => (
           <CheckInBodyCell
             column={column as GridColumnOrder<keyof UptimeCheck>}
-            uptimeRule={uptimeRule}
+            traceSampling={traceSampling}
             check={dataRow}
             spanCount={traceSpanCounts?.[dataRow.traceId]}
           />
@@ -87,15 +94,14 @@ function CheckInBodyCell({
   check,
   column,
   spanCount,
-  uptimeRule,
+  traceSampling,
 }: {
   check: UptimeCheck;
   column: GridColumnOrder<keyof UptimeCheck>;
   spanCount: number | undefined;
-  uptimeRule: UptimeRule;
+  traceSampling: boolean;
 }) {
   const theme = useTheme();
-  const organization = useOrganization();
 
   const {
     timestamp,
@@ -110,10 +116,6 @@ function CheckInBodyCell({
   if (check[column.key] === undefined) {
     return <Cell />;
   }
-
-  const alwaysShowTraceLink = organization.features.includes(
-    'uptime-eap-uptime-results-query'
-  );
 
   switch (column.key) {
     case 'timestamp': {
@@ -143,13 +145,13 @@ function CheckInBodyCell({
     }
     case 'checkStatus': {
       const color = tickStyle(theme)[checkStatus].labelColor ?? theme.textColor;
+      const checkStatusReasonLabel = checkStatusReason
+        ? reasonToText[checkStatusReason](check)
+        : null;
       return (
         <Cell style={{color}}>
           {statusToText[checkStatus]}{' '}
-          {checkStatusReason &&
-            tct('([reason])', {
-              reason: reasonToText[checkStatusReason](check),
-            })}
+          {checkStatusReasonLabel && t('(%s)', checkStatusReasonLabel)}
         </Cell>
       );
     }
@@ -162,16 +164,21 @@ function CheckInBodyCell({
         <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/uptime-tracing/" />
       );
 
+      // Check if there are only system spans (no real user spans)
+      const hasOnlySystemSpans = spanCount !== undefined && spanCount === 0;
+      const totalSpanCount =
+        spanCount === undefined ? undefined : spanCount + SYSTEM_UPTIME_SPAN_COUNT;
+
       const badge =
-        spanCount === undefined ? (
+        totalSpanCount === undefined ? (
           <Placeholder height="20px" width="70px" />
-        ) : spanCount === 0 ? (
+        ) : hasOnlySystemSpans ? (
           <Tooltip
             isHoverable
             title={
-              uptimeRule.traceSampling
+              traceSampling
                 ? tct(
-                    'No spans found in this trace. Configure your SDKs to see correlated spans across services. [learnMore:Learn more].',
+                    'Only Uptime Spans are present in this trace. Configure your SDKs to see correlated spans across services. [learnMore:Learn more].',
                     {learnMore}
                   )
                 : tct(
@@ -180,29 +187,25 @@ function CheckInBodyCell({
                   )
             }
           >
-            <Tag type="default">{t('0 spans')}</Tag>
+            <Tag type="default">{t('%s spans', totalSpanCount)}</Tag>
           </Tooltip>
         ) : (
-          <Tag type="info">{t('%s spans', spanCount)}</Tag>
+          <Tag type="info">{t('%s spans', totalSpanCount)}</Tag>
         );
 
       return (
         <TraceCell>
-          {alwaysShowTraceLink || spanCount ? (
-            <Link
-              to={{
-                pathname: `/performance/trace/${traceId}/`,
-                query: {
-                  includeUptime: '1',
-                  timestamp: new Date(timestamp).getTime() / 1000,
-                },
-              }}
-            >
-              {getShortEventId(traceId)}
-            </Link>
-          ) : (
-            getShortEventId(traceId)
-          )}
+          <Link
+            to={{
+              pathname: `/performance/trace/${traceId}/`,
+              query: {
+                includeUptime: '1',
+                timestamp: new Date(timestamp).getTime() / 1000,
+              },
+            }}
+          >
+            {getShortEventId(traceId)}
+          </Link>
           {badge}
         </TraceCell>
       );

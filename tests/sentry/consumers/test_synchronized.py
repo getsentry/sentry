@@ -15,8 +15,11 @@ from arroyo.commit import Commit
 from arroyo.types import BrokerValue, Partition, Topic
 
 from sentry.consumers.synchronized import SynchronizedConsumer, commit_codec
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 
 T = TypeVar("T")
+
+pytestmark = [thread_leak_allowlist(reason="synchronized consumer", issue=98806)]
 
 
 @contextmanager

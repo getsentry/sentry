@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Alert} from 'sentry/components/core/alert';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
@@ -14,9 +16,24 @@ import {CronDetectorFormResolveSection} from 'sentry/views/detectors/components/
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 
-function CronDetectorForm({isEditing}: {isEditing: boolean}) {
+function CronDetectorForm({
+  detector,
+  isEditing,
+}: {
+  isEditing: boolean;
+  detector?: CronDetector;
+}) {
+  const dataSource = detector?.dataSources[0];
+
   return (
     <FormStack>
+      {dataSource?.queryObj.isUpserting && (
+        <Alert type="warning">
+          {t(
+            'This monitor is managed in code and updates automatically with each check-in. Changes made here may be overwritten!'
+          )}
+        </Alert>
+      )}
       <CronDetectorFormDetectSection isEditing={isEditing} />
       <CronDetectorFormResolveSection />
       <AssignSection />
@@ -46,7 +63,7 @@ export function EditExistingCronDetectorForm({detector}: {detector: CronDetector
       formDataToEndpointPayload={cronFormDataToEndpointPayload}
       savedDetectorToFormData={cronSavedDetectorToFormData}
     >
-      <CronDetectorForm isEditing />
+      <CronDetectorForm isEditing detector={detector} />
     </EditDetectorLayout>
   );
 }

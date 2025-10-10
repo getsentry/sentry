@@ -639,7 +639,7 @@ describe('OnDemandBudgets', () => {
 
     expect(
       screen.getByText(
-        "Additional Seer usage is only available through a shared on-demand budget. To ensure you'll have access to additional Seer usage, set up a shared on-demand budget instead."
+        'Additional Seer usage is only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.'
       )
     ).toBeInTheDocument();
   });
@@ -697,7 +697,7 @@ describe('OnDemandBudgets', () => {
     // When logs-billing is enabled, should show the logs warning
     expect(
       screen.getByText(
-        'Additional logs and Seer usage are only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.'
+        'Additional logs usage is only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.'
       )
     ).toBeInTheDocument();
 
@@ -719,5 +719,38 @@ describe('OnDemandBudgets', () => {
         'Additional logs and Seer usage are only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.'
       )
     ).toBeInTheDocument();
+  });
+
+  it('displays does not display contact support for education sponsored', () => {
+    const subscription = SubscriptionFixture({
+      plan: 'am3_sponsored_team_auf',
+      planTier: PlanTier.AM3,
+      sponsoredType: 'education',
+      isFree: false,
+      isTrial: false,
+      supportsOnDemand: true,
+      planDetails: {
+        ...PlanDetailsLookupFixture('am3_team_auf')!,
+      },
+      organization,
+      onDemandBudgets: {
+        enabled: false,
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: 0,
+        onDemandSpendUsed: 0,
+      },
+    });
+
+    render(
+      <OnDemandBudgets
+        {...defaultProps}
+        subscription={subscription}
+        organization={organization}
+        onDemandEnabled={false}
+        hasPaymentSource={false}
+      />
+    );
+
+    expect(screen.queryByText('Contact Support')).not.toBeInTheDocument();
   });
 });

@@ -110,6 +110,14 @@ class DatasetSourcesTypes(Enum):
      Dataset inferred by split script, version 2
     """
     SPLIT_VERSION_2 = 5
+    """
+     Dataset modified by transaction -> span migration
+    """
+    SPAN_MIGRATION_VERSION_1 = 6
+    """
+     Dataset modified by using the widget snapshot to restore the original transaction query
+    """
+    RESTORED_SPAN_MIGRATION_VERSION_1 = 7
 
     @classmethod
     def as_choices(cls):
@@ -267,7 +275,7 @@ class DashboardWidget(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     dashboard = FlexibleForeignKey("sentry.Dashboard")
-    order = BoundedPositiveIntegerField()
+    order = BoundedPositiveIntegerField(null=True)
     title = models.CharField(max_length=255)
     description = models.CharField(max_length=255, null=True)
     thresholds = JSONField(null=True)
@@ -288,9 +296,14 @@ class DashboardWidget(Model):
         db_default=DatasetSourcesTypes.UNKNOWN.value,
     )
 
+    # These fields are used for the dashboards transactions -> spans widget migration.
+    # This field is used to store a snapshot of the widget before the migration.
+    widget_snapshot = models.JSONField(null=True)
+    # This field is used to store the reason for dropping fields or substantial changes to the widget query.
+    changed_reason = models.JSONField(null=True)
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_dashboardwidget"
-        unique_together = (("dashboard", "order"),)
 
     __repr__ = sane_repr("dashboard", "title")

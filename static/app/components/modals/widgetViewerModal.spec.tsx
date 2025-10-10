@@ -144,14 +144,11 @@ describe('Modals -> WidgetViewerModal', () => {
     });
 
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [1, 2],
-        environments: ['prod', 'dev'],
-        datetime: {start: null, end: null, period: '24h', utc: null},
-      },
-      new Set()
-    );
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1, 2],
+      environments: ['prod', 'dev'],
+      datetime: {start: null, end: null, period: '24h', utc: null},
+    });
   });
 
   afterEach(() => {
@@ -239,17 +236,6 @@ describe('Modals -> WidgetViewerModal', () => {
         expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeEnabled();
       });
 
-      it('renders Open button disabled for discover widget if dataset selector flag enabled', async () => {
-        mockEvents();
-        await renderModal({initialData, widget: mockWidget});
-        expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
-        expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-        expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
-          'aria-disabled',
-          'true'
-        );
-      });
-
       it('renders updated table columns and orderby', async () => {
         const eventsMock = mockEvents();
         await renderModal({initialData, widget: mockWidget});
@@ -311,7 +297,7 @@ describe('Modals -> WidgetViewerModal', () => {
         });
         expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
           'href',
-          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&queryDataset=error-events&statsPeriod=24h&yAxis=count%28%29'
+          '/organizations/org-slug/explore/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&queryDataset=error-events&statsPeriod=24h&yAxis=count%28%29'
         );
       });
 
@@ -393,7 +379,7 @@ describe('Modals -> WidgetViewerModal', () => {
         });
         expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
           'href',
-          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&queryDataset=error-events&statsPeriod=24h&yAxis=count%28%29'
+          '/organizations/org-slug/explore/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&queryDataset=error-events&statsPeriod=24h&yAxis=count%28%29'
         );
       });
 
@@ -406,7 +392,7 @@ describe('Modals -> WidgetViewerModal', () => {
         });
         expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
           'href',
-          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=&queryDataset=error-events&statsPeriod=24h&yAxis=count%28%29'
+          '/organizations/org-slug/explore/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=&queryDataset=error-events&statsPeriod=24h&yAxis=count%28%29'
         );
       });
 

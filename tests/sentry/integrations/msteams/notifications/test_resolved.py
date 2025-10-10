@@ -13,10 +13,10 @@ pytestmark = [requires_snuba]
 
 
 @patch(
-    "sentry.integrations.msteams.MsTeamsClientABC.get_user_conversation_id",
+    "sentry.integrations.msteams.client.MsTeamsClientABC.get_user_conversation_id",
     Mock(return_value="some_conversation_id"),
 )
-@patch("sentry.integrations.msteams.MsTeamsClientABC.send_card")
+@patch("sentry.integrations.msteams.client.MsTeamsClientABC.send_card")
 class MSTeamsResolvedNotificationTest(MSTeamsActivityNotificationTest):
     def test_resolved(self, mock_send_card: MagicMock) -> None:
         """
@@ -57,7 +57,7 @@ class MSTeamsResolvedNotificationTest(MSTeamsActivityNotificationTest):
             == body[3]["columns"][1]["items"][0]["text"]
         )
 
-    def test_resolved_in_release(self, mock_send_card) -> None:
+    def test_resolved_in_release(self, mock_send_card: MagicMock) -> None:
         """
         Test that the card for MS Teams notification is generated correctly when an issue is resolved in a release.
         """

@@ -1,11 +1,13 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
+import moment from 'moment-timezone';
 
 import {
   deleteMonitorProcessingErrorByType,
   updateMonitor,
 } from 'sentry/actionCreators/monitors';
+import {SectionHeading} from 'sentry/components/charts/styles';
 import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -40,7 +42,7 @@ import type {
 } from 'sentry/views/insights/crons/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
 
-const DEFAULT_POLL_INTERVAL_MS = 5000;
+import {getMonitorRefetchInterval} from './utils';
 
 type Props = RouteComponentProps<{monitorSlug: string; projectId: string}>;
 
@@ -72,7 +74,7 @@ function MonitorDetails({params, location}: Props) {
         return false;
       }
       const [monitorData] = query.state.data;
-      return hasLastCheckIn(monitorData) ? false : DEFAULT_POLL_INTERVAL_MS;
+      return getMonitorRefetchInterval(monitorData, moment());
     },
   });
 
@@ -105,15 +107,15 @@ function MonitorDetails({params, location}: Props) {
     }
   };
 
-  function handleDismissError(errortype: ProcessingErrorType) {
-    deleteMonitorProcessingErrorByType(
+  async function handleDismissError(errortype: ProcessingErrorType) {
+    await deleteMonitorProcessingErrorByType(
       api,
       organization.slug,
       params.projectId,
       params.monitorSlug,
       errortype
     );
-    refetchErrors();
+    await refetchErrors();
   }
 
   const userTimezone = useTimezone();
@@ -195,10 +197,15 @@ function MonitorDetails({params, location}: Props) {
                 <DetailsTimeline monitor={monitor} onStatsLoaded={checkHasUnknown} />
                 <MonitorStats monitor={monitor} monitorEnvs={monitor.environments} />
                 <MonitorIssues monitor={monitor} monitorEnvs={monitor.environments} />
-                <MonitorCheckIns monitor={monitor} monitorEnvs={monitor.environments} />
+                <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
+                <MonitorCheckIns
+                  monitorSlug={monitor.slug}
+                  monitorEnvs={monitor.environments}
+                  project={monitor.project}
+                />
               </Fragment>
             ) : (
-              <MonitorOnboarding monitor={monitor} />
+              <MonitorOnboarding monitorSlug={monitor.slug} project={monitor.project} />
             )}
           </Layout.Main>
           <Layout.Side>

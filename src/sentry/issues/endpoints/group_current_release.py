@@ -4,10 +4,10 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.grouprelease import GroupReleaseWithStatsSerializer
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releases.release_project import ReleaseProject

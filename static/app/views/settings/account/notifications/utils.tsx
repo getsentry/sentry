@@ -56,6 +56,9 @@ export function getPricingDocsLinkForEventType(event: DataCategoryExact) {
     case DataCategoryExact.SEER_AUTOFIX:
     case DataCategoryExact.SEER_SCANNER:
       return 'https://docs.sentry.io/pricing/quotas/manage-seer-budget/';
+    case DataCategoryExact.LOG_BYTE:
+    case DataCategoryExact.LOG_ITEM:
+      return 'https://docs.sentry.io/pricing/quotas/manage-logs-quota/';
     default:
       return 'https://docs.sentry.io/pricing/quotas/manage-event-stream-guide/';
   }

@@ -2,6 +2,7 @@ import {connect} from 'echarts';
 import type {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
@@ -55,11 +56,11 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
-export type ValidationError = {
+type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
 };
 
-export type FlatValidationError = {
+type FlatValidationError = {
   [key: string]: string | FlatValidationError[] | FlatValidationError;
 };
 
@@ -403,27 +404,6 @@ export function isCustomMeasurement(field: string) {
   return !DEFINED_MEASUREMENTS.has(field) && isMeasurement(field);
 }
 
-export function isCustomMeasurementWidget(widget: Widget) {
-  return (
-    widget.widgetType === WidgetType.DISCOVER &&
-    widget.queries.some(({aggregates, columns, fields}) => {
-      const aggregateArgs = aggregates.reduce((acc: string[], aggregate) => {
-        // Should be ok to use getAggregateArg. getAggregateArg only returns the first arg
-        // but there aren't any custom measurement aggregates that use custom measurements
-        // outside of the first arg.
-        const aggregateArg = getAggregateArg(aggregate);
-        if (aggregateArg) {
-          acc.push(aggregateArg);
-        }
-        return acc;
-      }, []);
-      return [...aggregateArgs, ...columns, ...(fields ?? [])].some(field =>
-        isCustomMeasurement(field)
-      );
-    })
-  );
-}
-
 export function isWidgetUsingTransactionName(widget: Widget) {
   return (
     widget.widgetType === WidgetType.DISCOVER &&
@@ -458,7 +438,7 @@ export function hasSavedPageFilters(
 ) {
   return !(
     (dashboard.projects === undefined || dashboard.projects.length === 0) &&
-    dashboard.environment === undefined &&
+    (dashboard.environment === undefined || dashboard.environment.length === 0) &&
     dashboard.start === undefined &&
     dashboard.end === undefined &&
     dashboard.period === undefined
@@ -554,8 +534,7 @@ export function getCurrentPageFilters(
         : typeof project === 'string'
           ? [Number(project)]
           : project.map(Number),
-    environment:
-      typeof environment === 'string' ? [environment] : (environment ?? undefined),
+    environment: decodeList(environment),
     period: statsPeriod as string | undefined,
     start: defined(start) ? normalizeDateTimeString(start as string) : undefined,
     end: defined(end) ? normalizeDateTimeString(end as string) : undefined,
@@ -566,6 +545,10 @@ export function getCurrentPageFilters(
 export function getDashboardFiltersFromURL(location: Location): DashboardFilters | null {
   const dashboardFilters: DashboardFilters = {};
   Object.values(DashboardFilterKeys).forEach(key => {
+    // Skip global filters for now, URL parameter persistence will be added later on
+    if (key === DashboardFilterKeys.GLOBAL_FILTER) {
+      return;
+    }
     if (defined(location.query?.[key])) {
       dashboardFilters[key] = decodeList(location.query?.[key]);
     }
@@ -577,8 +560,9 @@ export function dashboardFiltersToString(
   dashboardFilters: DashboardFilters | null | undefined
 ): string {
   let dashboardFilterConditions = '';
-  if (dashboardFilters) {
-    for (const [key, activeFilters] of Object.entries(dashboardFilters)) {
+  const supportedFilters = omit(dashboardFilters, DashboardFilterKeys.GLOBAL_FILTER);
+  if (supportedFilters) {
+    for (const [key, activeFilters] of Object.entries(supportedFilters)) {
       if (activeFilters.length === 1) {
         dashboardFilterConditions += `${key}:"${activeFilters[0]}" `;
       } else if (activeFilters.length > 1) {

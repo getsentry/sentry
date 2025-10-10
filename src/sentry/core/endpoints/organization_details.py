@@ -5,11 +5,11 @@ from copy import copy
 from datetime import datetime, timedelta, timezone
 from typing import TypedDict
 
+from django import forms
 from django.db import models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
 from django.utils import timezone as django_timezone
-from django.utils.functional import cached_property
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
 from sentry_sdk import capture_exception
@@ -22,7 +22,6 @@ from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields import AvatarField
-from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.models.organization import (
@@ -42,7 +41,6 @@ from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.auth.services.auth import auth_service
 from sentry.auth.staff import is_active_staff
 from sentry.constants import (
-    ACCOUNT_RATE_LIMIT_DEFAULT,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
@@ -59,9 +57,7 @@ from sentry.constants import (
     INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
-    LEGACY_RATE_LIMIT_OPTIONS,
     METRIC_ALERTS_THREAD_DEFAULT,
-    PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
@@ -72,7 +68,6 @@ from sentry.constants import (
     ObjectStatus,
 )
 from sentry.core.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
-from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects_of_org_with_query,
@@ -103,13 +98,16 @@ from sentry.organizations.services.organization.model import (
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,
 )
+from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
     organization_provisioning_service,
 )
+from sentry.types.prevent_config import PREVENT_AI_CONFIG_GITHUB_DEFAULT, PREVENT_AI_CONFIG_SCHEMA
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.audit import create_audit_entry
+from sentry.workflow_engine.endpoints.validators.utils import validate_json_schema
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
 ERR_NO_USER = "This request requires an authenticated user."
@@ -117,20 +115,10 @@ ERR_NO_2FA = "Cannot require two-factor authentication without personal two-fact
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
 ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration. Contact support if you need assistance."
 ERR_PLAN_REQUIRED = "A paid plan is required to enable this feature."
+
+
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
-    (
-        "projectRateLimit",
-        "sentry:project-rate-limit",
-        int,
-        PROJECT_RATE_LIMIT_DEFAULT,
-    ),
-    (
-        "accountRateLimit",
-        "sentry:account-rate-limit",
-        int,
-        ACCOUNT_RATE_LIMIT_DEFAULT,
-    ),
     ("dataScrubber", "sentry:require_scrub_data", bool, REQUIRE_SCRUB_DATA_DEFAULT),
     ("sensitiveFields", "sentry:sensitive_fields", list, None),
     ("safeFields", "sentry:safe_fields", list, None),
@@ -250,6 +238,12 @@ ORG_OPTIONS = (
         DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ),
     (
+        "preventAiConfigGithub",
+        "sentry:prevent_ai_config_github",
+        dict,
+        PREVENT_AI_CONFIG_GITHUB_DEFAULT,
+    ),
+    (
         "enablePrReviewTestGeneration",
         "sentry:enable_pr_review_test_generation",
         bool,
@@ -296,12 +290,6 @@ DEFERRED = object()
 
 
 class OrganizationSerializer(BaseOrganizationSerializer):
-    accountRateLimit = EmptyIntegerField(
-        min_value=0, max_value=1000000, required=False, allow_null=True
-    )
-    projectRateLimit = EmptyIntegerField(
-        min_value=50, max_value=100, required=False, allow_null=True
-    )
     avatar = AvatarField(required=False, allow_null=True)
     avatarType = serializers.ChoiceField(
         choices=(("upload", "upload"), ("letter_avatar", "letter_avatar")),
@@ -360,17 +348,11 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     )
     enablePrReviewTestGeneration = serializers.BooleanField(required=False)
     enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
+    preventAiConfigGithub = serializers.JSONField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
     ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
     )
-
-    @cached_property
-    def _has_legacy_rate_limits(self):
-        org = self.context["organization"]
-        return OrganizationOption.objects.filter(
-            organization=org, key__in=LEGACY_RATE_LIMIT_OPTIONS
-        ).exists()
 
     def _has_sso_enabled(self):
         org = self.context["organization"]
@@ -418,16 +400,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def validate_trustedRelays(self, value):
-        from sentry import features
-
-        organization = self.context["organization"]
-        request = self.context["request"]
-        has_relays = features.has("organizations:relay", organization, actor=request.user)
-        if not has_relays:
-            raise serializers.ValidationError(
-                "Organization does not have the relay feature enabled"
-            )
-
         # make sure we don't have multiple instances of one public key
         public_keys = set()
         if value is not None:
@@ -463,20 +435,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return value
 
-    def validate_accountRateLimit(self, value):
-        if not self._has_legacy_rate_limits:
-            raise serializers.ValidationError(
-                "The accountRateLimit option cannot be configured for this organization"
-            )
-        return value
-
-    def validate_projectRateLimit(self, value):
-        if not self._has_legacy_rate_limits:
-            raise serializers.ValidationError(
-                "The accountRateLimit option cannot be configured for this organization"
-            )
-        return value
-
     def validate_targetSampleRate(self, value):
         organization = self.context["organization"]
         request = self.context["request"]
@@ -499,6 +457,14 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         # as this is handled by a choice field, we don't need to check the values of the field
 
+        return value
+
+    def validate_preventAiConfigGithub(self, value):
+        """Validate the structure using JSON Schema - generic error for invalid configs."""
+        try:
+            validate_json_schema(value, PREVENT_AI_CONFIG_SCHEMA)
+        except forms.ValidationError:
+            raise serializers.ValidationError("Prevent AI config option is invalid")
         return value
 
     def validate(self, attrs):
@@ -776,6 +742,7 @@ def create_console_platform_audit_log(
         "genAIConsent",
         "defaultAutofixAutomationTuning",
         "defaultSeerScannerAutomation",
+        "preventAiConfigGithub",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
     ]
@@ -980,12 +947,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
 
     # private attributes
     # legacy features
-    accountRateLimit = serializers.IntegerField(
-        min_value=ACCOUNT_RATE_LIMIT_DEFAULT, required=False
-    )
-    projectRateLimit = serializers.IntegerField(
-        min_value=PROJECT_RATE_LIMIT_DEFAULT, required=False
-    )
     apdexThreshold = serializers.IntegerField(required=False)
 
 

@@ -25,6 +25,7 @@ from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.issue_detection.detectors.disable_detectors import set_default_disabled_detectors
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
@@ -40,9 +41,10 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '
 
 
 def apply_default_project_settings(organization: Organization, project: Project) -> None:
-    # Turns on some inbound filters by default for new Javascript platform projects
     if project.platform and project.platform.startswith("javascript"):
         set_default_inbound_filters(project, organization)
+
+    set_default_disabled_detectors(project)
 
     set_default_symbol_sources(project)
 
@@ -190,11 +192,12 @@ class TeamProjectsEndpoint(TeamEndpoint):
             409: OpenApiResponse(description="A project with this slug already exists."),
         },
         examples=ProjectExamples.CREATE_PROJECT,
+        description="""Create a new project bound to a team.
+
+        Note: If your organization has disabled member project creation, the `org:write` or `team:admin` scope is required.
+        """,
     )
     def post(self, request: Request, team: Team) -> Response:
-        """
-        Create a new project bound to a team.
-        """
         from sentry.core.endpoints.organization_projects_experiment import (
             DISABLED_FEATURE_ERROR_STRING,
         )

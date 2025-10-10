@@ -40,7 +40,7 @@ export enum SpanFields {
   NAME = 'span.name',
   KIND = 'span.kind',
   SPAN_STATUS = 'span.status',
-  STATUS_MESSAGE = 'span.status_message',
+  STATUS_MESSAGE = 'span.status.message',
   RELEASE = 'release',
   PROJECT_ID = 'project.id',
   SPAN_STATUS_CODE = 'span.status_code',
@@ -127,6 +127,8 @@ export enum SpanFields {
   APP_START_WARM = 'measurements.app_start_warm',
   MOBILE_FRAMES_DELAY = 'mobile.frames_delay',
   APP_START_TYPE = 'app_start_type',
+  TTID = 'sentry.ttid',
+  TTFD = 'sentry.ttfd',
 
   // Messaging fields
   MESSAGING_MESSAGE_ID = 'messaging.message.id',
@@ -174,7 +176,7 @@ type SpanBooleanFields =
   | SpanFields.IS_TRANSACTION
   | SpanFields.IS_STARRED_TRANSACTION;
 
-type SpanNumberFields =
+export type SpanNumberFields =
   | SpanFields.AI_TOTAL_COST
   | SpanFields.AI_TOTAL_TOKENS_USED
   | SpanFields.SPAN_SELF_TIME
@@ -185,10 +187,6 @@ type SpanNumberFields =
   | SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY
   | SpanFields.CACHE_ITEM_SIZE
   | SpanFields.MOBILE_FRAMES_DELAY
-  | SpanFields.MOBILE_FROZEN_FRAMES
-  | SpanFields.MOBILE_TOTAL_FRAMES
-  | SpanFields.MOBILE_SLOW_FRAMES
-  | SpanFields.SPAN_DURATION
   | SpanFields.MOBILE_FROZEN_FRAMES
   | SpanFields.MOBILE_TOTAL_FRAMES
   | SpanFields.MOBILE_SLOW_FRAMES
@@ -224,17 +222,15 @@ type SpanNumberFields =
   | SpanFields.FCP_SCORE
   | SpanFields.FCP_SCORE_RATIO
   | SpanFields.FCP_SCORE_WEIGHT
-  | SpanFields.SPAN_SELF_TIME
-  | SpanFields.CACHE_ITEM_SIZE
   | SpanFields.CODE_LINENO
   | SpanFields.APP_START_COLD
   | SpanFields.APP_START_WARM
-  | SpanFields.CODE_LINENO
   | SpanFields.PRECISE_START_TS
   | SpanFields.PRECISE_FINISH_TS
-  | SpanFields.CACHE_ITEM_SIZE
   | SpanFields.THREAD_ID
-  | SpanFields.PROJECT_ID;
+  | SpanFields.PROJECT_ID
+  | SpanFields.TTID
+  | SpanFields.TTFD;
 
 // TODO: Enforce that these fields all come from SpanFields
 export type SpanStringFields =
@@ -268,7 +264,6 @@ export type SpanStringFields =
   | SpanFields.USER_IP
   | SpanFields.CLS_SOURCE
   | SpanFields.LCP_ELEMENT
-  | SpanFields.SPAN_ID
   | SpanFields.TRANSACTION_SPAN_ID
   | SpanFields.DB_SYSTEM
   | SpanFields.CODE_FILEPATH
@@ -286,17 +281,13 @@ export type SpanStringFields =
   | SpanFields.TRACE_STATUS
   | SpanFields.APP_START_TYPE
   | SpanFields.FILE_EXTENSION
-  | SpanFields.SPAN_ID
   | SpanFields.SPAN_OP
   | SpanFields.SPAN_DESCRIPTION
-  | SpanFields.SPAN_ACTION
   | SpanFields.SPAN_GROUP
   | SpanFields.SPAN_CATEGORY
   | SpanFields.SPAN_SYSTEM
   | SpanFields.TIMESTAMP
-  | SpanFields.TRACE
   | SpanFields.TRANSACTION
-  | SpanFields.TRANSACTION_SPAN_ID
   | SpanFields.TRANSACTION_METHOD
   | SpanFields.RELEASE
   | SpanFields.OS_NAME
@@ -305,14 +296,7 @@ export type SpanStringFields =
   | SpanFields.PROJECT
   | SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME
   | SpanFields.USER
-  | SpanFields.USER_ID
-  | SpanFields.USER_EMAIL
-  | SpanFields.USER_USERNAME
-  | SpanFields.USER_IP
-  | SpanFields.REPLAYID
-  | SpanFields.PROFILEID
   | SpanFields.PROFILER_ID
-  | SpanFields.SPAN_DOMAIN
   | SpanFields.USER_DISPLAY;
 
 type WebVitalsMeasurements =
@@ -398,7 +382,6 @@ type CounterConditionalAggregate =
   | SpanFunction.P99_IF;
 
 type ConditionalAggregate =
-  | SpanFunction.AVG_IF
   | SpanFunction.DIVISION_IF
   | SpanFunction.COUNT_OP
   | SpanFunction.FAILURE_RATE_IF
@@ -494,11 +477,12 @@ type SpanResponseRaw = {
   } & CustomResponseFields & {
     [Property in SpanFields as `count_unique(${Property})`]: number;
   } & {
-    [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${string})`]: number;
+    // TODO: The middle arg represents the operator, however adding this creastes too large of a map and tsc fails
+    [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${string},${string})`]: number;
   } & {
     [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
   } & {
-    [Property in SpanFields as `count_if(${Property},${'equals' | 'notEquals' | 'lessOrEquals' | 'greaterOrEquals' | 'less' | 'greater'},${string})`]: number;
+    [Property in SpanFields as `${SpanFunction.COUNT_IF}(${Property},${string},${string})`]: number;
   };
 
 export type SpanResponse = Flatten<SpanResponseRaw>;

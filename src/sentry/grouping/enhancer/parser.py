@@ -108,7 +108,7 @@ class EnhancementsVisitor(NodeVisitor[list[EnhancementRule]]):
 
     def visit_frame_matcher(
         self, node: Node, children: tuple[object, bool, str, object, str]
-    ) -> FrameMatch:
+    ) -> EnhancementMatch:
         _, negation, ty, _, argument = children
         return FrameMatch.from_key(ty, argument, bool(negation))
 

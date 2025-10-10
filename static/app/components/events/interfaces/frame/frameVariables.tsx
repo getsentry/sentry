@@ -7,7 +7,10 @@ import type {KeyValueListData} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/project';
 
 type Props = {
-  data: Record<string, string | null | boolean | number | Record<string, string | null>>;
+  data: Record<
+    string,
+    string | null | boolean | number | Record<string, string | null>
+  > | null;
   meta?: Record<any, any>;
   platform?: PlatformKey;
 };
@@ -81,32 +84,27 @@ const getStructuredDataConfig = ({
 };
 
 export function FrameVariables({data, meta, platform}: Props) {
-  // make sure that clicking on the variables does not actually do
-  // anything on the containing element.
-  const handlePreventToggling = () => (event: React.MouseEvent<HTMLTableElement>) => {
-    event.stopPropagation();
-  };
+  const transformedData = useMemo<KeyValueListData>(() => {
+    const config = getStructuredDataConfig({platform});
+    if (!data) {
+      return [];
+    }
 
-  const transformedData: KeyValueListData = [];
+    return Object.keys(data)
+      .reverse()
+      .map<KeyValueListData[number]>(key => ({
+        key,
+        subject: key,
+        value: (
+          <StructuredEventData
+            config={config}
+            data={data[key]}
+            meta={meta?.[key]}
+            withAnnotatedText
+          />
+        ),
+      }));
+  }, [data, meta, platform]);
 
-  const dataKeys = Object.keys(data).reverse();
-
-  const config = useMemo(() => getStructuredDataConfig({platform}), [platform]);
-
-  for (const key of dataKeys) {
-    transformedData.push({
-      key,
-      subject: key,
-      value: (
-        <StructuredEventData
-          config={config}
-          data={data[key]}
-          meta={meta?.[key]}
-          withAnnotatedText
-        />
-      ),
-    });
-  }
-
-  return <KeyValueList data={transformedData} onClick={handlePreventToggling} />;
+  return <KeyValueList data={transformedData} />;
 }

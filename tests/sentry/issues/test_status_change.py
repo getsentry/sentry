@@ -10,7 +10,6 @@ from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
@@ -122,7 +121,6 @@ class HandleStatusChangeTest(TestCase):
             group=self.group, status=GroupHistoryStatus.UNRESOLVED
         ).exists()
 
-    @with_feature("organizations:issue-open-periods")
     @patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolve_resolved_issue(self, issue_unresolved: Any) -> None:
         from sentry.models.groupopenperiod import GroupOpenPeriod

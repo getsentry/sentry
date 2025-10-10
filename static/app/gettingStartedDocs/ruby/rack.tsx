@@ -71,16 +71,23 @@ const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'The Sentry SDK for Ruby comes as a gem that should be added to your [gemfileCode:Gemfile]:',
+      content: [
         {
-          gemfileCode: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'The Sentry SDK for Ruby comes as a gem that should be added to your [gemfileCode:Gemfile]:',
+            {
+              gemfileCode: <code />,
+            }
+          ),
+        },
         {
-          description: params.isProfilingSelected
-            ? tct(
+          type: 'conditional',
+          condition: params.isProfilingSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
                 'Ruby Profiling beta is available since SDK version 5.9.0. We use the [stackprofLink:stackprof gem] to collect profiles for Ruby. Make sure [code:stackprof] is loaded before [code:sentry-ruby].',
                 {
                   stackprofLink: (
@@ -88,13 +95,21 @@ const onboarding: OnboardingConfig = {
                   ),
                   code: <code />,
                 }
-              )
-            : undefined,
+              ),
+            },
+          ],
+        },
+        {
+          type: 'code',
           language: 'ruby',
           code: getInstallSnippet(params),
         },
         {
-          description: t('After adding the gems, run the following to install the SDK:'),
+          type: 'text',
+          text: t('After adding the gems, run the following to install the SDK:'),
+        },
+        {
+          type: 'code',
           language: 'ruby',
           code: 'bundle install',
         },
@@ -104,14 +119,18 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Add [code:use Sentry::Rack::CaptureExceptions] to your [code:config.ru] or other rackup file (this is automatically inserted in Rails):',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Add [code:use Sentry::Rack::CaptureExceptions] to your [code:config.ru] or other rackup file (this is automatically inserted in Rails):',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'ruby',
           code: getConfigureSnippet(params),
         },
@@ -121,15 +140,18 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains a deliberate error and message sent to Sentry and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: t(
+            "This snippet contains a deliberate error and message sent to Sentry and can be used as a test to make sure that everything's working as expected."
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'ruby',
-              value: 'ruby',
               language: 'ruby',
               code: getVerifySnippet(),
             },

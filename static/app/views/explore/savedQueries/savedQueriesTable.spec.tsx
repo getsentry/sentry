@@ -140,7 +140,7 @@ describe('SavedQueriesTable', () => {
     });
     expect(await screen.findByText('Query Name')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/traces/?environment=production&groupBy=&id=1&project=1&title=Query%20Name'
+      '/organizations/org-slug/explore/traces/?environment=production&groupBy=&id=1&project=1&title=Query%20Name'
     );
   });
 

@@ -1,12 +1,15 @@
 import dataclasses
+import random
+import string
+import time
 from collections import defaultdict
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import grpc
 import pytest
-from django.test import override_settings
 from google.protobuf.message import Message
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
@@ -18,11 +21,13 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 )
 
 from sentry.taskworker.client.client import (
+    HealthCheckSettings,
     HostTemporarilyUnavailable,
     TaskworkerClient,
     make_broker_hosts,
 )
 from sentry.taskworker.client.processing_result import ProcessingResult
+from sentry.taskworker.constants import DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
@@ -131,6 +136,54 @@ def test_init_no_hosts() -> None:
 
 
 @django_db_all
+def test_health_check_is_debounced() -> None:
+    channel = MockChannel()
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        GetTaskResponse(
+            task=TaskActivation(
+                id="abc123",
+                namespace="testing",
+                taskname="do_thing",
+                parameters="",
+                headers={},
+                processing_deadline_duration=10,
+            )
+        ),
+    )
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
+        SetTaskStatusResponse(
+            task=TaskActivation(
+                id="abc123",
+                namespace="testing",
+                taskname="do_thing",
+                parameters="",
+                headers={},
+                processing_deadline_duration=10,
+            )
+        ),
+    )
+    with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
+        mock_channel.return_value = channel
+        health_check_path = Path(f"/tmp/{''.join(random.choices(string.ascii_letters, k=16))}")
+        client = TaskworkerClient(
+            ["localhost-0:50051"],
+            health_check_settings=HealthCheckSettings(health_check_path, 1),
+        )
+        client._health_check_settings.file_path = Mock()  # type: ignore[union-attr]
+
+        _ = client.get_task()
+        _ = client.get_task()
+        assert client._health_check_settings.file_path.touch.call_count == 1  # type: ignore[union-attr]
+
+        with patch("sentry.taskworker.client.client.time") as mock_time:
+            mock_time.time.return_value = time.time() + 1
+            _ = client.get_task()
+            assert client._health_check_settings.file_path.touch.call_count == 2  # type: ignore[union-attr]
+
+
+@django_db_all
 def test_get_task_ok() -> None:
     channel = MockChannel()
     channel.add_response(
@@ -158,7 +211,34 @@ def test_get_task_ok() -> None:
 
 
 @django_db_all
-@override_settings(TASKWORKER_SHARED_SECRET='["a long secret value","notused"]')
+def test_get_task_writes_to_health_check_file() -> None:
+    channel = MockChannel()
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        GetTaskResponse(
+            task=TaskActivation(
+                id="abc123",
+                namespace="testing",
+                taskname="do_thing",
+                parameters="",
+                headers={},
+                processing_deadline_duration=10,
+            )
+        ),
+    )
+
+    with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
+        mock_channel.return_value = channel
+        health_check_path = Path(f"/tmp/{''.join(random.choices(string.ascii_letters, k=16))}")
+        client = TaskworkerClient(
+            ["localhost-0:50051"],
+            health_check_settings=HealthCheckSettings(health_check_path, 3),
+        )
+        _ = client.get_task()
+        assert health_check_path.exists()
+
+
+@django_db_all
 def test_get_task_with_interceptor() -> None:
     channel = MockChannel()
     channel.add_response(
@@ -180,9 +260,10 @@ def test_get_task_with_interceptor() -> None:
             ),
         ),
     )
+    secret = '["a long secret value","notused"]'
     with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient(["localhost-0:50051"])
+        client = TaskworkerClient(["localhost-0:50051"], rpc_secret=secret)
         result = client.get_task()
 
         assert result
@@ -245,6 +326,38 @@ def test_get_task_failure() -> None:
         client = TaskworkerClient(["localhost:50051"])
         with pytest.raises(grpc.RpcError):
             client.get_task()
+
+
+@django_db_all
+def test_update_task_writes_to_health_check_file() -> None:
+    channel = MockChannel()
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
+        SetTaskStatusResponse(
+            task=TaskActivation(
+                id="abc123",
+                namespace="testing",
+                taskname="do_thing",
+                parameters="",
+                headers={},
+                processing_deadline_duration=10,
+            )
+        ),
+    )
+    with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
+        mock_channel.return_value = channel
+        health_check_path = Path(f"/tmp/{''.join(random.choices(string.ascii_letters, k=16))}")
+        client = TaskworkerClient(
+            make_broker_hosts("localhost:50051", num_brokers=1),
+            health_check_settings=HealthCheckSettings(
+                health_check_path, DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH
+            ),
+        )
+        _ = client.update_task(
+            ProcessingResult("abc123", TASK_ACTIVATION_STATUS_RETRY, "localhost-0:50051", 0),
+            FetchNextTask(namespace=None),
+        )
+        assert health_check_path.exists()
 
 
 @django_db_all

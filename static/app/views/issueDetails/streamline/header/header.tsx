@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import Color from 'color';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -87,26 +86,15 @@ export default function StreamlinedGroupHeader({
 
   const hasErrorUpsampling = project.features.includes('error-upsampling');
 
-  const isQueryInjection = group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY;
+  const hasFeedbackForm =
+    group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY ||
+    (group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS &&
+      organization.features.includes('experimental-n-plus-one-api-detector-rollout'));
+  const feedbackSource =
+    group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY
+      ? 'issue_details_query_injection'
+      : 'issue_details_n_plus_one_api_calls';
   const openForm = useFeedbackForm();
-  const feedbackButton = openForm ? (
-    <Button
-      aria-label={t('Give feedback on the query injection issue')}
-      icon={<IconMegaphone />}
-      size={'xs'}
-      onClick={() =>
-        openForm({
-          messagePlaceholder: t('Please provide feedback on the query injection issue.'),
-          tags: {
-            ['feedback.source']: 'issue_details_query_injection',
-          },
-        })
-      }
-    >
-      {t('Give Feedback')}
-    </Button>
-  ) : null;
-
   const statusProps = getBadgeProperties(group.status, group.substatus);
   const issueTypeConfig = getConfigForIssueType(group, project);
 
@@ -146,12 +134,12 @@ export default function StreamlinedGroupHeader({
             )}
           </Flex>
           <ButtonBar gap="xs">
-            {!hasOnlyOneUIOption && !isQueryInjection && (
+            {!hasOnlyOneUIOption && !hasFeedbackForm && (
               <LinkButton
                 size="xs"
                 external
                 title={t('Learn more about the new UI')}
-                href={`https://docs.sentry.io/product/issues/issue-details/`}
+                href="https://docs.sentry.io/product/issues/issue-details/"
                 aria-label={t('Learn more about the new UI')}
                 icon={<IconInfo />}
                 analyticsEventKey="issue_details.streamline_ui_learn_more"
@@ -162,22 +150,24 @@ export default function StreamlinedGroupHeader({
                 {showLearnMore ? t("See What's New") : null}
               </LinkButton>
             )}
-            {isQueryInjection ? (
-              <ButtonBar gap="xs">
-                <LinkButton
-                  size="xs"
-                  external
-                  title={t('Learn more about the query injection issue')}
-                  href={`https://docs.sentry.io/product/issues/issue-details/query-injection-issues/`}
-                  aria-label={t('Learn more about the query injection issue')}
-                  icon={<IconInfo />}
-                  analyticsEventKey="issue_details.query_injection_learn_more"
-                  analyticsEventName="Issue Details: Query Injection Learn More"
-                >
-                  {t('Learn more')}
-                </LinkButton>
-                {feedbackButton}
-              </ButtonBar>
+            {hasFeedbackForm && openForm ? (
+              <Button
+                aria-label={t('Give feedback on the issue Sentry detected')}
+                icon={<IconMegaphone />}
+                size="xs"
+                onClick={() =>
+                  openForm({
+                    messagePlaceholder: t(
+                      'Please provide feedback on the issue Sentry detected.'
+                    ),
+                    tags: {
+                      ['feedback.source']: feedbackSource,
+                    },
+                  })
+                }
+              >
+                {t('Give Feedback')}
+              </Button>
             ) : (
               <NewIssueExperienceButton />
             )}
@@ -194,7 +184,6 @@ export default function StreamlinedGroupHeader({
             >
               <PrimaryTitle>{primaryTitle}</PrimaryTitle>
             </Tooltip>
-            {isQueryInjection && <FeatureBadge type="beta" />}
           </Title>
           <StatTitle>
             {issueTypeConfig.eventAndUserCounts.enabled && (
@@ -414,7 +403,7 @@ const Workflow = styled('div')`
 
 const Title = styled('div')`
   display: grid;
-  grid-template-columns: minmax(0, max-content) min-content;
+  grid-template-columns: minmax(0, max-content);
   align-items: center;
   column-gap: ${p => p.theme.space.sm};
 `;

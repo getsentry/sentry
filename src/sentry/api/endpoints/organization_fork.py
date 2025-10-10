@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry_sdk import capture_exception
 
 from sentry import analytics
+from sentry.analytics.events.relocation_forked import RelocationForkedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
@@ -168,13 +169,14 @@ class OrganizationForkEndpoint(Endpoint):
 
         try:
             analytics.record(
-                "relocation.forked",
-                creator_id=request.user.id,
-                owner_id=owner.id,
-                uuid=str(new_relocation.uuid),
-                from_org_slug=org_mapping.slug,
-                requesting_region_name=requesting_region_name,
-                replying_region_name=replying_region_name,
+                RelocationForkedEvent(
+                    creator_id=request.user.id,
+                    owner_id=owner.id,
+                    uuid=str(new_relocation.uuid),
+                    from_org_slug=org_mapping.slug,
+                    requesting_region_name=requesting_region_name,
+                    replying_region_name=replying_region_name,
+                )
             )
         except Exception as e:
             capture_exception(e)

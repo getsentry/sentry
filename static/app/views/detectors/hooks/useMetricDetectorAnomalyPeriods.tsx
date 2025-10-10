@@ -1,12 +1,11 @@
 import {useMemo} from 'react';
-import type {Theme} from '@emotion/react';
-import {useTheme} from '@emotion/react';
 
-import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
+  Dataset,
+  EventTypes,
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
 import type {Anomaly} from 'sentry/views/alerts/types';
@@ -25,9 +24,11 @@ import {useMetricDetectorAnomalies} from './useMetricDetectorAnomalies';
 
 interface UseMetricDetectorAnomalyPeriodsProps {
   aggregate: string;
-  dataset: DetectorDataset;
+  dataset: Dataset;
+  detectorDataset: DetectorDataset;
   enabled: boolean;
   environment: string | undefined;
+  eventTypes: EventTypes[];
   interval: number;
   /**
    * Should not fetch anomalies if series is loading
@@ -52,7 +53,6 @@ interface UseMetricDetectorAnomalyPeriodsResult {
  */
 function groupAnomaliesForBubbles(
   anomalies: Anomaly[],
-  theme: Theme,
   timePeriodMs?: number
 ): IncidentPeriod[] {
   const periods: IncidentPeriod[] = [];
@@ -72,12 +72,10 @@ function groupAnomaliesForBubbles(
       if (currentPeriod === null) {
         // Start a new anomaly period
         currentPeriod = {
-          type: anomaly.anomaly.anomaly_type,
-          name: isHighConfidence
-            ? t('High Confidence Anomaly')
-            : t('Low Confidence Anomaly'),
-          color: isHighConfidence ? theme.red400 : theme.yellow400,
-          hoverColor: isHighConfidence ? theme.red300 : theme.yellow400,
+          // Anomaly id is not shown
+          id: anomalies.indexOf(anomaly).toString(),
+          type: 'open-period-start',
+          priority: isHighConfidence ? 'high' : 'medium',
           start: timestampMs,
           end: timestampMs,
         };
@@ -86,10 +84,7 @@ function groupAnomaliesForBubbles(
         currentPeriod.end = timestampMs;
         // Use higher confidence if available
         if (isHighConfidence) {
-          currentPeriod.type = AnomalyType.HIGH_CONFIDENCE;
-          currentPeriod.name = t('High Confidence Anomaly');
-          currentPeriod.color = theme.red400;
-          currentPeriod.hoverColor = theme.red300;
+          currentPeriod.priority = 'high';
         }
       }
     } else if (currentPeriod) {
@@ -123,9 +118,11 @@ function groupAnomaliesForBubbles(
 export function useMetricDetectorAnomalyPeriods({
   series,
   isLoadingSeries,
+  detectorDataset,
   dataset,
   aggregate,
   query,
+  eventTypes,
   environment,
   projectId,
   statsPeriod,
@@ -134,12 +131,10 @@ export function useMetricDetectorAnomalyPeriods({
   sensitivity,
   enabled,
 }: UseMetricDetectorAnomalyPeriodsProps): UseMetricDetectorAnomalyPeriodsResult {
-  const theme = useTheme();
-
   // Fetch historical data with extended time period for anomaly detection baseline comparison
   const isFiveMinuteInterval = interval === 300;
   // EAP datasets have to select fewer historical data points
-  const historicalPeriod = isEapDataset(dataset)
+  const historicalPeriod = isEapDataset(detectorDataset)
     ? EAP_HISTORICAL_TIME_PERIOD_MAP[
         statsPeriod as keyof typeof EAP_HISTORICAL_TIME_PERIOD_MAP
       ]
@@ -157,10 +152,12 @@ export function useMetricDetectorAnomalyPeriods({
     isLoading: isHistoricalLoading,
     error: historicalError,
   } = useMetricDetectorSeries({
+    detectorDataset,
     dataset,
     aggregate,
     interval,
     query,
+    eventTypes,
     environment,
     projectId,
     statsPeriod: historicalPeriod as TimePeriod,
@@ -196,15 +193,8 @@ export function useMetricDetectorAnomalyPeriods({
     }
     // Convert timePeriod from seconds to milliseconds for minimum anomaly width
     const timePeriodMs = interval ? interval * 1000 : undefined;
-    return groupAnomaliesForBubbles(anomalies, theme, timePeriodMs);
-  }, [
-    anomalies,
-    theme,
-    interval,
-    isHistoricalLoading,
-    isAnomalyLoading,
-    isLoadingSeries,
-  ]);
+    return groupAnomaliesForBubbles(anomalies, timePeriodMs);
+  }, [anomalies, interval, isHistoricalLoading, isAnomalyLoading, isLoadingSeries]);
 
   return {
     anomalyPeriods,

@@ -8,10 +8,10 @@ import {
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
-  useLogsFields,
-  useLogsSearch,
-  useSetLogsPageParams,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+  useQueryParamsFields,
+  useQueryParamsSearch,
+  useSetQueryParams,
+} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
 
@@ -26,10 +26,10 @@ export function useLogsSearchQueryBuilderProps({
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
 }) {
-  const logsSearch = useLogsSearch();
+  const logsSearch = useQueryParamsSearch();
   const oldLogsSearch = usePrevious(logsSearch);
-  const fields = useLogsFields();
-  const setLogsPageParams = useSetLogsPageParams();
+  const fields = useQueryParamsFields();
+  const setQueryParams = useSetQueryParams();
   const onSearch = useCallback(
     (newQuery: string) => {
       const newSearch = new MutableSearch(newQuery);
@@ -41,12 +41,12 @@ export function useLogsSearchQueryBuilderProps({
       const existingFields = new Set(fields);
       const newColumns = suggestedColumns.filter(col => !existingFields.has(col));
 
-      setLogsPageParams({
-        search: newSearch,
+      setQueryParams({
+        query: newSearch.formatString(),
         fields: newColumns.length ? [...fields, ...newColumns] : undefined,
       });
     },
-    [oldLogsSearch, numberAttributes, stringAttributes, fields, setLogsPageParams]
+    [oldLogsSearch, numberAttributes, stringAttributes, fields, setQueryParams]
   );
 
   const tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps = {

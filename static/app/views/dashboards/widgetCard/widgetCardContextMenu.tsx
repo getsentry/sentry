@@ -1,32 +1,23 @@
-import type React from 'react';
-import styled from '@emotion/styled';
+import {useMemo} from 'react';
 import type {Location} from 'history';
+import qs from 'query-string';
 
 import {
   openAddToDashboardModal,
   openDashboardWidgetQuerySelectorModal,
 } from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Link} from 'sentry/components/core/link';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
-import {IconEllipsis, IconExpand, IconInfo} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   MEPState,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {safeURL} from 'sentry/utils/url/safeURL';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
@@ -42,34 +33,10 @@ import {
   getWidgetLogURL,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
-
-type Props = {
-  dashboardFilters: DashboardFilters | undefined;
-  location: Location;
-  organization: Organization;
-  router: InjectedRouter;
-  selection: PageFilters;
-  widget: Widget;
-  widgetLimitReached: boolean;
-  description?: string;
-  hasEditAccess?: boolean;
-  index?: string;
-  isPreview?: boolean;
-  onDelete?: () => void;
-  onDuplicate?: () => void;
-  onEdit?: () => void;
-  pageLinks?: string;
-  seriesData?: Series[];
-  seriesResultsType?: Record<string, AggregationOutputType>;
-  showContextMenu?: boolean;
-  tableData?: TableDataWithTitle[];
-  title?: string | React.ReactNode;
-  totalIssuesCount?: string;
-};
 
 export const useIndexedEventsWarning = (): string | null => {
   const {isMetricsData} = useDashboardsMEPContext();
@@ -84,202 +51,60 @@ export const useIndexedEventsWarning = (): string | null => {
     : null;
 };
 
-function WidgetCardContextMenu({
-  organization,
-  dashboardFilters,
-  selection,
+export const useTransactionsDeprecationWarning = ({
   widget,
-  widgetLimitReached,
-  hasEditAccess,
-  onDelete,
-  onDuplicate,
-  onEdit,
-  showContextMenu,
-  isPreview,
-  router,
-  location,
-  index,
-  seriesData,
-  tableData,
-  pageLinks,
-  totalIssuesCount,
-  seriesResultsType,
-  description,
-  title,
-}: Props) {
-  const indexedEventsWarning = useIndexedEventsWarning();
-  const {isMetricsData} = useDashboardsMEPContext();
+  selection,
+}: {
+  selection: PageFilters;
+  widget: Widget;
+}): React.JSX.Element | null => {
+  const organization = useOrganization();
 
-  if (!showContextMenu) {
-    return null;
-  }
-
-  const openWidgetViewerPath = (id: string | undefined) => {
-    if (!isWidgetViewerPath(location.pathname)) {
-      router.push({
-        pathname: `${location.pathname}${
-          location.pathname.endsWith('/') ? '' : '/'
-        }widget/${id}/`,
-        query: location.query,
-      });
+  // memoize the URL to avoid recalculating it on every render
+  const exploreUrl = useMemo(() => {
+    if (
+      !organization.features.includes('transaction-widget-deprecation-explore-view') ||
+      widget.widgetType !== WidgetType.TRANSACTIONS ||
+      !widget.exploreUrls ||
+      widget.exploreUrls.length === 0
+    ) {
+      return null;
     }
-  };
+    return createExploreUrl(widget.exploreUrls[0]!, selection, organization);
+  }, [organization, widget.widgetType, widget.exploreUrls, selection]);
 
-  if (isPreview) {
-    return (
-      <WidgetViewerContext.Consumer>
-        {({setData}) => (
-          <ContextWrapper>
-            {indexedEventsWarning ? (
-              <Tooltip title={indexedEventsWarning} skipWrapper>
-                <SampledTag>{t('Indexed')}</SampledTag>
-              </Tooltip>
-            ) : null}
-            {title && (
-              <Tooltip
-                title={
-                  <span>
-                    <WidgetTooltipTitle>{title}</WidgetTooltipTitle>
-                    {description && (
-                      <WidgetTooltipDescription>{description}</WidgetTooltipDescription>
-                    )}
-                  </span>
-                }
-                containerDisplayMode="grid"
-                isHoverable
-              >
-                <WidgetTooltipButton
-                  aria-label={t('Widget description')}
-                  borderless
-                  size="xs"
-                  icon={<IconInfo />}
-                />
-              </Tooltip>
-            )}
-            <StyledDropdownMenuControl
-              items={[
-                {
-                  key: 'preview',
-                  label: t(
-                    'This is a preview only. To edit, you must add this dashboard.'
-                  ),
-                  disabled: true,
-                },
-              ]}
-              triggerProps={{
-                'aria-label': t('Widget actions'),
-                size: 'xs',
-                borderless: true,
-                showChevron: false,
-                icon: <IconEllipsis direction="down" size="sm" />,
-              }}
-              position="bottom-end"
-            />
-            <Button
-              aria-label={t('Open Widget Viewer')}
-              borderless
-              size="xs"
-              icon={<IconExpand />}
-              onClick={() => {
-                if (seriesData || tableData) {
-                  setData({
-                    seriesData,
-                    tableData,
-                    pageLinks,
-                    totalIssuesCount,
-                    seriesResultsType,
-                  });
-                }
-                openWidgetViewerPath(index);
-              }}
-            />
-          </ContextWrapper>
-        )}
-      </WidgetViewerContext.Consumer>
-    );
-  }
-
-  const menuOptions = getMenuOptions(
-    dashboardFilters,
-    organization,
-    selection,
-    widget,
-    Boolean(isMetricsData),
-    widgetLimitReached,
-    hasEditAccess,
-    location,
-    router,
-    onDelete,
-    onDuplicate,
-    onEdit
-  );
-
-  if (!menuOptions.length) {
+  if (!exploreUrl) {
     return null;
   }
 
-  return (
-    <WidgetViewerContext.Consumer>
-      {({setData}) => (
-        <ContextWrapper>
-          {indexedEventsWarning ? (
-            <Tooltip title={indexedEventsWarning} skipWrapper>
-              <SampledTag>{t('Indexed')}</SampledTag>
-            </Tooltip>
-          ) : null}
-          {title && (
-            <Tooltip
-              title={
-                <span>
-                  <WidgetTooltipTitle>{title}</WidgetTooltipTitle>
-                  {description && (
-                    <WidgetTooltipDescription>{description}</WidgetTooltipDescription>
-                  )}
-                </span>
-              }
-              containerDisplayMode="grid"
-              isHoverable
-            >
-              <WidgetTooltipButton
-                aria-label={t('Widget description')}
-                borderless
-                size="xs"
-                icon={<IconInfo />}
-              />
-            </Tooltip>
-          )}
-          <StyledDropdownMenuControl
-            items={menuOptions}
-            triggerProps={{
-              'aria-label': t('Widget actions'),
-              size: 'xs',
-              borderless: true,
-              showChevron: false,
-              icon: <IconEllipsis direction="down" size="sm" />,
-            }}
-            position="bottom-end"
-          />
-          <Button
-            aria-label={t('Open Widget Viewer')}
-            borderless
-            size="xs"
-            icon={<IconExpand />}
-            onClick={() => {
-              setData({
-                seriesData,
-                tableData,
-                pageLinks,
-                totalIssuesCount,
-                seriesResultsType,
-              });
-              openWidgetViewerPath(widget.id ?? index);
-            }}
-          />
-        </ContextWrapper>
-      )}
-    </WidgetViewerContext.Consumer>
+  return tct(
+    'Transaction based widgets will soon be migrated to spans widgets. To see what your query could look like, open it in [explore:Explore].',
+    {
+      explore: <Link to={exploreUrl} />,
+    }
   );
-}
+};
+
+const createExploreUrl = (
+  baseUrl: string,
+  selection: PageFilters,
+  organization: Organization
+): string => {
+  const parsedUrl = safeURL(baseUrl);
+  const queryParams = qs.parse(parsedUrl?.search ?? '');
+
+  if (queryParams.aggregateField) {
+    // we need to parse the aggregateField because it comes in stringified but needs to be passed in JSON format
+    if (typeof queryParams.aggregateField === 'string') {
+      queryParams.aggregateField = JSON.parse(queryParams.aggregateField);
+    } else if (Array.isArray(queryParams.aggregateField)) {
+      queryParams.aggregateField = queryParams.aggregateField.map(item =>
+        JSON.parse(item)
+      );
+    }
+  }
+  return getExploreUrl({organization, selection, ...queryParams});
+};
 
 export function getMenuOptions(
   dashboardFilters: DashboardFilters | undefined,
@@ -290,7 +115,6 @@ export function getMenuOptions(
   widgetLimitReached: boolean,
   hasEditAccess = true,
   location: Location,
-  router: InjectedRouter,
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void
@@ -329,11 +153,7 @@ export function getMenuOptions(
           : widget.queries.length === 1
             ? discoverPath
             : undefined,
-        tooltip: isUsingPerformanceScore(widget)
-          ? performanceScoreTooltip
-          : t(
-              'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
-            ),
+        tooltip: isUsingPerformanceScore(widget) ? performanceScoreTooltip : null,
         tooltipOptions: {disabled: !optionDisabled},
         disabled: optionDisabled,
         showDetailsInOverlay: true,
@@ -417,7 +237,6 @@ export function getMenuOptions(
         openAddToDashboardModal({
           organization,
           location,
-          router,
           selection,
           widget: {
             ...widget,
@@ -464,41 +283,3 @@ export function getMenuOptions(
 
   return menuOptions;
 }
-
-export default WidgetCardContextMenu;
-
-const ContextWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  height: ${space(3)};
-  margin-left: ${space(1)};
-  gap: ${space(0.25)};
-`;
-
-const StyledDropdownMenuControl = styled(DropdownMenu)`
-  display: flex;
-  & > button {
-    z-index: auto;
-  }
-`;
-
-const SampledTag = styled(Tag)`
-  margin-right: ${space(0.5)};
-`;
-
-const WidgetTooltipTitle = styled('div')`
-  font-weight: bold;
-  font-size: ${p => p.theme.fontSize.md};
-  text-align: left;
-`;
-
-const WidgetTooltipDescription = styled('div')`
-  margin-top: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.sm};
-  text-align: left;
-`;
-
-// We're using a button here to preserve tab accessibility
-const WidgetTooltipButton = styled(Button)`
-  pointer-events: none;
-`;

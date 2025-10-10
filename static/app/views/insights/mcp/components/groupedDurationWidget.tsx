@@ -5,6 +5,7 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {ExternalLink} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -13,8 +14,6 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
-import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {
@@ -53,20 +52,20 @@ export default function GroupedDurationWidget(props: GroupedDurationWidgetProps)
     props.referrer
   );
 
-  const timeSeriesRequest = useTopNSpanSeries(
+  const timeSeriesRequest = useFetchSpanTimeSeries(
     {
       ...pageFilterChartParams,
-      search: fullQuery,
-      fields: [props.groupBy, 'avg(span.duration)'],
+      query: fullQuery,
+      groupBy: [props.groupBy],
       yAxis: ['avg(span.duration)'],
       sort: {field: 'avg(span.duration)', kind: 'desc'},
-      topN: 3,
+      topEvents: 3,
       enabled: !!topEventsRequest.data && topEventsRequest.data.length > 0,
     },
     props.referrer
   );
 
-  const timeSeries = timeSeriesRequest.data;
+  const timeSeries = timeSeriesRequest.data?.timeSeries || [];
 
   const isLoading = timeSeriesRequest.isLoading || topEventsRequest.isLoading;
   const error = timeSeriesRequest.error || topEventsRequest.error;
@@ -87,7 +86,9 @@ export default function GroupedDurationWidget(props: GroupedDurationWidgetProps)
           message={tct(
             'No MCP spans found. Try updating your filters or learn more about MCP monitoring in our [link:documentation].',
             {
-              link: <ExternalLink href="https://docs.sentry.io/product/insights/mcp/" />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/insights/ai/mcp/" />
+              ),
             }
           )}
         />
@@ -97,10 +98,8 @@ export default function GroupedDurationWidget(props: GroupedDurationWidgetProps)
         showLegend: 'never',
         plottables: timeSeries.map(
           (ts, index) =>
-            new Line(convertSeriesToTimeseries(ts), {
-              color:
-                ts.seriesName === 'Other' ? theme.chart.neutral : colorPalette[index],
-              alias: ts.seriesName,
+            new Line(ts, {
+              color: ts.meta.isOther ? theme.chartOther : colorPalette[index],
             })
         ),
       }}
@@ -142,7 +141,7 @@ export default function GroupedDurationWidget(props: GroupedDurationWidgetProps)
               mode: Mode.AGGREGATE,
               visualize: [
                 {
-                  chartType: ChartType.BAR,
+                  chartType: ChartType.LINE,
                   yAxes: ['avg(span.duration)'],
                 },
               ],

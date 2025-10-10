@@ -7,11 +7,8 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {getDefaultValueForValueType} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {
-  isWildcardOperator,
-  WildcardOperators,
   type FieldDefinitionGetter,
   type FocusOverride,
-  type SearchQueryBuilderOperators,
 } from 'sentry/components/searchQueryBuilder/types';
 import {
   isDateToken,
@@ -80,18 +77,94 @@ type DeleteTokensAction = {
   focusOverride?: FocusOverride;
 };
 
-type UpdateFreeTextAction = {
+type UpdateFreeTextActionOnSelect = {
   shouldCommitQuery: boolean;
   text: string;
   tokens: ParseResultToken[];
-  type: 'UPDATE_FREE_TEXT';
+  type: 'UPDATE_FREE_TEXT_ON_SELECT';
   focusOverride?: FocusOverride;
 };
 
-type ReplaceTokensWithTextAction = {
+type UpdateFreeTextActionOnBlur = {
+  shouldCommitQuery: boolean;
   text: string;
   tokens: ParseResultToken[];
-  type: 'REPLACE_TOKENS_WITH_TEXT';
+  type: 'UPDATE_FREE_TEXT_ON_BLUR';
+  focusOverride?: FocusOverride;
+};
+
+type UpdateFreeTextActionOnCommit = {
+  shouldCommitQuery: boolean;
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'UPDATE_FREE_TEXT_ON_COMMIT';
+  focusOverride?: FocusOverride;
+};
+
+type UpdateFreeTextActionOnExit = {
+  shouldCommitQuery: boolean;
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'UPDATE_FREE_TEXT_ON_EXIT';
+  focusOverride?: FocusOverride;
+};
+
+type UpdateFreeTextActionOnFunction = {
+  shouldCommitQuery: boolean;
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'UPDATE_FREE_TEXT_ON_FUNCTION';
+  focusOverride?: FocusOverride;
+};
+
+type UpdateFreeTextActionOnParenthesis = {
+  shouldCommitQuery: boolean;
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'UPDATE_FREE_TEXT_ON_PARENTHESIS';
+  focusOverride?: FocusOverride;
+};
+
+type UpdateFreeTextActionOnColon = {
+  shouldCommitQuery: boolean;
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'UPDATE_FREE_TEXT_ON_COLON';
+  focusOverride?: FocusOverride;
+};
+
+type ReplaceTokensWithTextOnPasteAction = {
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE';
+  focusOverride?: FocusOverride;
+};
+
+type ReplaceTokensWithTextOnDeleteAction = {
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'REPLACE_TOKENS_WITH_TEXT_ON_DELETE';
+  focusOverride?: FocusOverride;
+};
+
+type ReplaceTokensWithTextOnCutAction = {
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'REPLACE_TOKENS_WITH_TEXT_ON_CUT';
+  focusOverride?: FocusOverride;
+};
+
+type ReplaceTokensWithTextOnKeyDownAction = {
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'REPLACE_TOKENS_WITH_TEXT_ON_KEY_DOWN';
+  focusOverride?: FocusOverride;
+};
+
+type ReplaceTokensWithTextOnSelectAction = {
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT';
   focusOverride?: FocusOverride;
 };
 
@@ -102,9 +175,11 @@ type UpdateFilterKeyAction = {
 };
 
 type UpdateFilterOpAction = {
-  op: SearchQueryBuilderOperators;
+  op: TermOperator;
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_FILTER_OP';
+  focusOverride?: FocusOverride;
+  shouldCommitQuery?: boolean;
 };
 
 type UpdateTokenValueAction = {
@@ -128,6 +203,15 @@ type UpdateAggregateArgsAction = {
 
 type ResetClearAskSeerFeedbackAction = {type: 'RESET_CLEAR_ASK_SEER_FEEDBACK'};
 
+type UpdateFreeTextActions =
+  | UpdateFreeTextActionOnSelect
+  | UpdateFreeTextActionOnBlur
+  | UpdateFreeTextActionOnCommit
+  | UpdateFreeTextActionOnExit
+  | UpdateFreeTextActionOnFunction
+  | UpdateFreeTextActionOnParenthesis
+  | UpdateFreeTextActionOnColon;
+
 export type QueryBuilderActions =
   | ClearAction
   | CommitQueryAction
@@ -135,8 +219,18 @@ export type QueryBuilderActions =
   | ResetFocusOverrideAction
   | DeleteTokenAction
   | DeleteTokensAction
-  | UpdateFreeTextAction
-  | ReplaceTokensWithTextAction
+  | UpdateFreeTextActionOnSelect
+  | UpdateFreeTextActionOnBlur
+  | UpdateFreeTextActionOnCommit
+  | UpdateFreeTextActionOnExit
+  | UpdateFreeTextActionOnFunction
+  | UpdateFreeTextActionOnParenthesis
+  | UpdateFreeTextActionOnColon
+  | ReplaceTokensWithTextOnPasteAction
+  | ReplaceTokensWithTextOnDeleteAction
+  | ReplaceTokensWithTextOnCutAction
+  | ReplaceTokensWithTextOnKeyDownAction
+  | ReplaceTokensWithTextOnSelectAction
   | UpdateFilterKeyAction
   | UpdateFilterOpAction
   | UpdateTokenValueAction
@@ -173,101 +267,32 @@ function deleteQueryTokens(
   };
 }
 
-export function addWildcardToToken(
-  token: TokenResult<Token.VALUE_TEXT>,
-  isContains: boolean,
-  isStartsWith: boolean,
-  isEndsWith: boolean
-) {
-  let newTokenValue = token.value;
-  if ((isContains || isEndsWith) && !token.value.startsWith('*')) {
-    newTokenValue = `*${newTokenValue}`;
-  }
-
-  if ((isContains || isStartsWith) && !token.value.endsWith('*')) {
-    newTokenValue = `${newTokenValue}*`;
-  }
-
-  return newTokenValue;
-}
-
-export function removeWildcardFromToken(
-  token: TokenResult<Token.VALUE_TEXT>,
-  isContains: boolean,
-  isStartsWith: boolean,
-  isEndsWith: boolean
-) {
-  let newTokenValue = token.value;
-  if (!isEndsWith && !isContains && token.value.startsWith('*')) {
-    newTokenValue = newTokenValue.slice(1);
-  }
-
-  if (!isStartsWith && !isContains && token.value.endsWith('*')) {
-    newTokenValue = newTokenValue.slice(0, -1);
-  }
-
-  return newTokenValue;
-}
-
 function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: SearchQueryBuilderOperators,
+  newOperator: TermOperator,
   hasWildcardOperators: boolean
 ): string {
   if (isDateToken(token)) {
     return modifyFilterOperatorDate(query, token, newOperator);
   }
 
-  const isNotEqual =
-    newOperator === TermOperator.NOT_EQUAL ||
-    newOperator === WildcardOperators.DOES_NOT_CONTAIN;
   const newToken: TokenResult<Token.FILTER> = {...token};
-  newToken.negated = isNotEqual;
+  newToken.negated =
+    newOperator === TermOperator.NOT_EQUAL ||
+    newOperator === TermOperator.DOES_NOT_CONTAIN ||
+    newOperator === TermOperator.DOES_NOT_START_WITH ||
+    newOperator === TermOperator.DOES_NOT_END_WITH;
 
-  if (isWildcardOperator(newOperator)) {
-    // whenever we have a wildcard operator, we want to set the operator to the default,
-    // because there is no special characters for the wildcard operators just the asterisk
-    newToken.operator = TermOperator.DEFAULT;
+  if (hasWildcardOperators && newOperator === TermOperator.DOES_NOT_CONTAIN) {
+    newToken.operator = TermOperator.CONTAINS;
+  } else if (hasWildcardOperators && newOperator === TermOperator.DOES_NOT_START_WITH) {
+    newToken.operator = TermOperator.STARTS_WITH;
+  } else if (hasWildcardOperators && newOperator === TermOperator.DOES_NOT_END_WITH) {
+    newToken.operator = TermOperator.ENDS_WITH;
   } else {
-    newToken.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
-  }
-
-  const isContains =
-    newOperator === WildcardOperators.CONTAINS ||
-    newOperator === WildcardOperators.DOES_NOT_CONTAIN;
-  const isStartsWith = newOperator === WildcardOperators.STARTS_WITH;
-  const isEndsWith = newOperator === WildcardOperators.ENDS_WITH;
-
-  if (hasWildcardOperators && newToken.value.type === Token.VALUE_TEXT) {
-    newToken.value.value = addWildcardToToken(
-      newToken.value,
-      isContains,
-      isStartsWith,
-      isEndsWith
-    );
-    newToken.value.value = removeWildcardFromToken(
-      newToken.value,
-      isContains,
-      isStartsWith,
-      isEndsWith
-    );
-  } else if (hasWildcardOperators && newToken.value.type === Token.VALUE_TEXT_LIST) {
-    newToken.value.items.forEach(item => {
-      if (!item.value) return;
-      item.value.value = addWildcardToToken(
-        item.value,
-        isContains,
-        isStartsWith,
-        isEndsWith
-      );
-      item.value.value = removeWildcardFromToken(
-        item.value,
-        isContains,
-        isStartsWith,
-        isEndsWith
-      );
-    });
+    newToken.operator =
+      newOperator === TermOperator.NOT_EQUAL ? TermOperator.DEFAULT : newOperator;
   }
 
   return replaceQueryToken(query, token, stringifyToken(newToken));
@@ -285,21 +310,22 @@ function modifyFilterOperator(
     hasWildcardOperators
   );
 
-  if (newQuery === state.query) {
+  if (newQuery === state.query && !action.focusOverride) {
     return state;
   }
 
   return {
     ...state,
+    focusOverride: action.focusOverride ?? null,
     query: newQuery,
-    committedQuery: newQuery,
+    committedQuery: (action.shouldCommitQuery ?? true) ? newQuery : state.committedQuery,
   };
 }
 
 function modifyFilterOperatorDate(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: SearchQueryBuilderOperators
+  newOperator: TermOperator
 ): string {
   switch (newOperator) {
     case TermOperator.GREATER_THAN:
@@ -431,7 +457,7 @@ function replaceTokensWithPadding(
 
 function updateFreeText(
   state: QueryBuilderState,
-  action: UpdateFreeTextAction
+  action: UpdateFreeTextActions
 ): QueryBuilderState {
   const newQuery = replaceTokensWithPadding(state.query, action.tokens, action.text);
 
@@ -643,7 +669,8 @@ export function useQueryBuilderState({
   initialQuery: string;
   setDisplayAskSeerFeedback: (value: boolean) => void;
 }) {
-  const hasWildcardOperators = useOrganization().features.includes(
+  const organization = useOrganization();
+  const hasWildcardOperators = organization.features.includes(
     'search-query-builder-wildcard-operators'
   );
 
@@ -705,7 +732,13 @@ export function useQueryBuilderState({
             clearAskSeerFeedback: displayAskSeerFeedback ? true : false,
           };
         }
-        case 'UPDATE_FREE_TEXT': {
+        case 'UPDATE_FREE_TEXT_ON_SELECT':
+        case 'UPDATE_FREE_TEXT_ON_BLUR':
+        case 'UPDATE_FREE_TEXT_ON_COMMIT':
+        case 'UPDATE_FREE_TEXT_ON_EXIT':
+        case 'UPDATE_FREE_TEXT_ON_FUNCTION':
+        case 'UPDATE_FREE_TEXT_ON_PARENTHESIS':
+        case 'UPDATE_FREE_TEXT_ON_COLON': {
           const newState = updateFreeText(state, action);
 
           return {
@@ -714,7 +747,11 @@ export function useQueryBuilderState({
               newState.query !== state.query && displayAskSeerFeedback ? true : false,
           };
         }
-        case 'REPLACE_TOKENS_WITH_TEXT':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_CUT':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_DELETE':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_KEY_DOWN':
           return replaceTokensWithText(state, {
             tokens: action.tokens,
             text: action.text,

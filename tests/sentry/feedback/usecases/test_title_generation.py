@@ -66,7 +66,7 @@ def test_get_feedback_title_from_seer_exception(mock_make_seer_request):
     """Test the get_feedback_title_from_seer function with exception during API call."""
     mock_make_seer_request.side_effect = Exception("Network error")
     assert get_feedback_title_from_seer("Login button broken", 123) is None
-    mock_make_seer_request.assert_called_once()
+    assert mock_make_seer_request.call_count == 1
 
 
 @patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")

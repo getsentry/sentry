@@ -12,8 +12,7 @@
         "value": {
           "quoted": false,
           "type": "valueText",
-          "value": "1.2.3",
-          "wildcard": false
+          "value": "1.2.3"
         }
       },
       {"type": "spaces", "value": ""}
@@ -32,8 +31,7 @@
         "value": {
           "quoted": false,
           "type": "valueText",
-          "value": "1.2.3-hi",
-          "wildcard": false
+          "value": "1.2.3-hi"
         }
       },
       {"type": "spaces", "value": ""}
@@ -52,8 +50,7 @@
         "value": {
           "quoted": false,
           "type": "valueText",
-          "value": "1.2.3-hi",
-          "wildcard": false
+          "value": "1.2.3-hi"
         }
       },
       {"type": "spaces", "value": ""}
@@ -72,8 +69,7 @@
         "value": {
           "quoted": false,
           "type": "valueText",
-          "value": "1.2.3-hi",
-          "wildcard": false
+          "value": "1.2.3-hi"
         }
       },
       {"type": "spaces", "value": ""}

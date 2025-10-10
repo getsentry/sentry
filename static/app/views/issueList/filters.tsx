@@ -1,4 +1,3 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -7,10 +6,9 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {space} from 'sentry/styles/space';
 import IssueListSortOptions from 'sentry/views/issueList/actions/sortOptions';
-import {IssueSearchWithSavedSearches} from 'sentry/views/issueList/issueSearchWithSavedSearches';
+import {IssueSearch} from 'sentry/views/issueList/issueSearch';
 import {IssueViewSaveButton} from 'sentry/views/issueList/issueViews/issueViewSaveButton';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 interface Props {
   onSearch: (query: string) => void;
@@ -19,15 +17,15 @@ interface Props {
   sort: IssueSortOptions;
 }
 
-function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
-  const prefersStackedNav = usePrefersStackedNav();
+const RESET_PARAMS_ON_CHANGE = ['page', 'cursor'];
 
+function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
   return (
-    <FiltersContainer prefersStackedNav={prefersStackedNav}>
+    <FiltersContainer>
       <StyledPageFilterBar>
-        <ProjectPageFilter />
-        <EnvironmentPageFilter />
-        <DatePageFilter />
+        <ProjectPageFilter resetParamsOnChange={RESET_PARAMS_ON_CHANGE} />
+        <EnvironmentPageFilter resetParamsOnChange={RESET_PARAMS_ON_CHANGE} />
+        <DatePageFilter resetParamsOnChange={RESET_PARAMS_ON_CHANGE} />
       </StyledPageFilterBar>
 
       <Search {...{query, onSearch}} />
@@ -41,62 +39,39 @@ function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
           showIcon={false}
         />
 
-        {prefersStackedNav && <IssueViewSaveButton query={query} sort={sort} />}
+        <IssueViewSaveButton query={query} sort={sort} />
       </SortSaveContainer>
     </FiltersContainer>
   );
 }
 
-const FiltersContainer = styled('div')<{prefersStackedNav: boolean}>`
+const FiltersContainer = styled('div')`
   display: grid;
   column-gap: ${space(1)};
   row-gap: ${space(1)};
   margin-bottom: ${space(2)};
   width: 100%;
 
-  ${p =>
-    p.prefersStackedNav
-      ? css`
-          grid-template-columns: 100%;
-          grid-template-areas:
-            'page-filters'
-            'search'
-            'sort-save';
+  grid-template-columns: 100%;
+  grid-template-areas:
+    'page-filters'
+    'search'
+    'sort-save';
 
-          @media (min-width: ${p.theme.breakpoints.xs}) {
-            grid-template-columns: 1fr auto;
-            grid-template-areas:
-              'page-filters sort-save'
-              'search search';
-          }
+  @media (min-width: ${p => p.theme.breakpoints.xs}) {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'page-filters sort-save'
+      'search search';
+  }
 
-          @media (min-width: ${p.theme.breakpoints.xl}) {
-            grid-template-columns: auto 1fr auto;
-            grid-template-areas: 'page-filters search sort-save';
-          }
-        `
-      : css`
-          grid-template-columns: 100%;
-          grid-template-areas:
-            'page-filters'
-            'search'
-            'sort-save';
-
-          @media (min-width: ${p.theme.breakpoints.xs}) {
-            grid-template-columns: auto 1fr;
-            grid-template-areas:
-              'page-filters sort-save'
-              'search search';
-          }
-
-          @media (min-width: ${p.theme.breakpoints.lg}) {
-            grid-template-columns: auto 1fr auto;
-            grid-template-areas: 'page-filters search sort-save';
-          }
-        `}
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: 'page-filters search sort-save';
+  }
 `;
 
-const Search = styled(IssueSearchWithSavedSearches)`
+const Search = styled(IssueSearch)`
   grid-area: search;
 `;
 

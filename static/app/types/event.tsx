@@ -51,16 +51,17 @@ export const enum EventGroupVariantType {
   CHECKSUM = 'checksum',
   FALLBACK = 'fallback',
   CUSTOM_FINGERPRINT = 'custom_fingerprint',
-  BUILT_IN_FINGERPRINT = 'built_in_fingerprint',
   COMPONENT = 'component',
   SALTED_COMPONENT = 'salted_component',
   PERFORMANCE_PROBLEM = 'performance_problem',
 }
 
 interface BaseVariant {
+  contributes: boolean;
   description: string | null;
   hash: string | null;
   hashMismatch: boolean;
+  hint: string | null;
   key: string;
   type: string;
 }
@@ -89,10 +90,6 @@ interface CustomFingerprintVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.CUSTOM_FINGERPRINT;
 }
 
-interface BuiltInFingerprintVariant extends BaseVariant, HasComponentGrouping {
-  type: EventGroupVariantType.BUILT_IN_FINGERPRINT;
-}
-
 interface SaltedComponentVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.SALTED_COMPONENT;
 }
@@ -108,7 +105,6 @@ export type EventGroupVariant =
   | ComponentVariant
   | SaltedComponentVariant
   | CustomFingerprintVariant
-  | BuiltInFingerprintVariant
   | PerformanceProblemVariant;
 
 /**
@@ -531,8 +527,6 @@ export enum UnityContextKey {
   TARGET_FRAME_RATE = 'target_frame_rate',
 }
 
-// Unity Context
-// TODO(Priscila): Add this context to the docs
 export interface UnityContext {
   [UnityContextKey.COPY_TEXTURE_SUPPORT]: string;
   [UnityContextKey.EDITOR_VERSION]: string;
@@ -561,8 +555,6 @@ export enum MemoryInfoContextKey {
   PAUSE_DURATIONS = 'pause_durations',
 }
 
-// MemoryInfo Context
-// TODO(Priscila): Add this context to the docs
 export interface MemoryInfoContext {
   type: 'Memory Info' | 'memory_info';
   [MemoryInfoContextKey.FINALIZATION_PENDING_COUNT]: number;
@@ -592,8 +584,6 @@ export enum ThreadPoolInfoContextKey {
   AVAILABLE_COMPLETION_PORT_THREADS = 'available_completion_port_threads',
 }
 
-// ThreadPoolInfo Context
-// TODO(Priscila): Add this context to the docs
 export interface ThreadPoolInfoContext {
   type: 'ThreadPool Info' | 'threadpool_info';
   [ThreadPoolInfoContextKey.MIN_WORKER_THREADS]: number;

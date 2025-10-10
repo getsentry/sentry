@@ -15,7 +15,7 @@ interface UseGroupByFieldsProps {
    * All the group bys that are in use. They will be injected if
    * they dont exist already.
    */
-  groupBys: string[];
+  groupBys: readonly string[];
   numberTags: TagCollection;
   stringTags: TagCollection;
   traceItemType: TraceItemDataset;
@@ -52,15 +52,7 @@ export function useGroupByFields({
     options.sort((a, b) => {
       const aLabel = a.label || '';
       const bLabel = b.label || '';
-      if (aLabel < bLabel) {
-        return -1;
-      }
-
-      if (aLabel > bLabel) {
-        return 1;
-      }
-
-      return 0;
+      return aLabel.localeCompare(bLabel);
     });
 
     return [

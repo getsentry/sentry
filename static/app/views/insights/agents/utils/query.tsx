@@ -25,9 +25,23 @@ export const AI_GENERATION_OPS = [
   'gen_ai.embeddings', // Python OpenAI
   'gen_ai.text_completion',
   'gen_ai.responses',
+  // Span ops coming from seer, remove ASAP
+  'gen_ai.generate structured',
+  'gen_ai.generate text',
+  'gen_ai.gemini stream',
+  'gen_ai.gemini generation with grounding',
+  'gen_ai.bug prediction formatter',
+  'gen_ai.anthropic generation',
 ];
 
-const NON_GENERATION_OPS = [...AI_RUN_OPS, 'gen_ai.execute_tool', 'gen_ai.handoff'];
+export const AI_CREATE_AGENT_OPS = ['gen_ai.create_agent'];
+
+const NON_GENERATION_OPS = [
+  ...AI_RUN_OPS,
+  ...AI_CREATE_AGENT_OPS,
+  'gen_ai.execute_tool',
+  'gen_ai.handoff',
+];
 
 export function getIsAiSpan({op = 'default'}: {op?: string}) {
   return op.startsWith('gen_ai.');
@@ -40,6 +54,18 @@ export function getIsAiRunSpan({op = 'default'}: {op?: string}) {
 // All of the gen_ai.* spans that are not agent invocations, handoffs, or tool calls are considered generation spans
 export function getIsAiGenerationSpan({op = 'default'}: {op?: string}) {
   return op.startsWith('gen_ai.') && !NON_GENERATION_OPS.includes(op);
+}
+
+export function getIsExecuteToolSpan({op = 'default'}: {op?: string}) {
+  return op === 'gen_ai.execute_tool';
+}
+
+export function getIsHandoffSpan({op = 'default'}: {op?: string}) {
+  return op === 'gen_ai.handoff';
+}
+
+export function getIsAiCreateAgentSpan({op = 'default'}: {op?: string}) {
+  return AI_CREATE_AGENT_OPS.includes(op);
 }
 
 function joinValues(values: string[]) {

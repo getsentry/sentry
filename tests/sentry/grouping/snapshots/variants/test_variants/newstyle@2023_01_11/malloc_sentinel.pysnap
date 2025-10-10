@@ -1,0 +1,198 @@
+---
+created: '2025-10-07T20:41:49.008392+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  hint: ignored because system exception takes precedence
+  root_component:
+    app (ignored because system exception takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace (ignored because it contains no in-app frames)
+          frame (marked out of app by the client)
+            function*
+              "_pthread_start"
+          frame (marked out of app by the client)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by the client)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by the client)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by the client)
+            filename*
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame (marked out of app by the client)
+            filename*
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame (marked out of app by the client)
+            filename*
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame (marked out of app by the client)
+            filename*
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame (marked out of app by the client)
+            filename*
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame (marked out of app by the client)
+            filename*
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame (marked out of app by the client)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by the client)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by the client)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by the client)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by the client)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by the client)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by the client)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by the client)
+            function*
+              "std::__1::basic_string<T>::~basic_string"
+          frame (marked out of app by the client)
+            function*
+              "free"
+          frame (marked out of app by the client)
+            function*
+              "malloc_report"
+          frame (marked out of app by the client)
+            function*
+              "malloc_vreport"
+          frame (marked out of app by the client)
+            function*
+              "abort"
+          frame (marked out of app by the client)
+            function*
+              "pthread_kill"
+          frame (marked out of app by the client)
+            function*
+              "__pthread_kill"
+        type*
+          "SIGABRT"
+        value*
+          "<redacted>"
+--------------------------------------------------------------------------
+system:
+  hash: "70b7b816193e06eb5d6649989fbaf605"
+  contributing component: exception
+  hint: None
+  root_component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_pthread_start"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame*
+            filename*
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            filename*
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            filename*
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            filename*
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            filename*
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            filename*
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "std::__1::basic_string<T>::~basic_string"
+          frame*
+            function*
+              "free"
+          frame*
+            function*
+              "malloc_report"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "malloc_vreport"
+          frame*
+            function*
+              "abort"
+          frame (ignored by stack trace rule (category:throw ^-group))
+            function*
+              "pthread_kill"
+          frame (ignored by stack trace rule (category:throw ^-group))
+            function*
+              "__pthread_kill"
+        type*
+          "SIGABRT"
+        value (ignored because stacktrace takes precedence)
+          "<redacted>"

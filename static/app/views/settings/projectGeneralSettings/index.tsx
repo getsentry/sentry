@@ -9,6 +9,7 @@ import {
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
 import {ExternalLink} from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
@@ -26,10 +27,13 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
+import {consoles} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Project} from 'sentry/types/project';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
@@ -48,10 +52,27 @@ type Props = {
   onChangeSlug: (slug: string) => void;
 };
 
+function isPlatformAllowed({
+  isSelfHosted,
+  platform,
+  organization,
+}: {
+  isSelfHosted: boolean;
+  organization: Organization;
+  platform: PlatformKey;
+}) {
+  if (!consoles.includes(platform)) {
+    return true;
+  }
+
+  return organization.enabledConsolePlatforms?.includes(platform) && !isSelfHosted;
+}
+
 function ProjectGeneralSettings({onChangeSlug}: Props) {
   const form: Record<string, FieldValue> = {};
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const {isSelfHosted} = useLegacyStore(ConfigStore);
 
   const organization = useOrganization();
   const {projectId} = useParams<{projectId: string}>();
@@ -308,23 +329,21 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
     help: t('The unique identifier for this project. It cannot be modified.'),
   };
 
-  const consolePlatforms: ReadonlySet<string> = new Set([
-    'nintendo-switch',
-    'playstation',
-    'xbox',
-  ] as const);
-
   // Create filtered platform field without mutating the shared fields object
   const platformField = {
     ...fields.platform,
     options: fields.platform.options.filter(({value}) => {
-      if (!consolePlatforms.has(value)) return true;
-
-      return (
-        organization.features?.includes('project-creation-games-tab') &&
-        organization.enabledConsolePlatforms?.includes(value)
-      );
+      // Always include the current project's platform to display its icon and label
+      if (project.platform === value) return true;
+      return isPlatformAllowed({isSelfHosted, organization, platform: value});
     }),
+    isOptionDisabled: (option: SelectOptionWithKey<string>) => {
+      // Mark the current platform as disabled if it's no longer allowed
+      return (
+        option.value === project.platform &&
+        !isPlatformAllowed({isSelfHosted, organization, platform: option.value})
+      );
+    },
   };
 
   return (

@@ -6,7 +6,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
@@ -15,9 +14,10 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useMobileVitalsDrawer} from 'sentry/views/insights/common/utils/useMobileVitalsDrawer';
@@ -267,13 +267,13 @@ function ScreensLandingPage() {
             headerActions={isProjectCrossPlatform && <PlatformSelector />}
             module={moduleName}
           />
-          <ModuleBodyUpsellHook moduleName={moduleName}>
+          <ModuleFeature moduleName={moduleName}>
             <Layout.Body>
               <Layout.Main fullWidth>
                 <Container>
                   <PageFilterBar condensed>
                     <InsightsProjectSelector onChange={handleProjectChange} />
-                    <EnvironmentPageFilter />
+                    <InsightsEnvironmentSelector />
                     <DatePageFilter />
                   </PageFilterBar>
                 </Container>
@@ -317,7 +317,7 @@ function ScreensLandingPage() {
                 </ModulesOnboarding>
               </Layout.Main>
             </Layout.Body>
-          </ModuleBodyUpsellHook>
+          </ModuleFeature>
         </PageAlertProvider>
       </Layout.Page>
     </ModulePageProviders>

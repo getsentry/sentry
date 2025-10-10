@@ -1,4 +1,4 @@
-import React, {useRef} from 'react';
+import React, {useCallback, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
@@ -25,6 +25,8 @@ import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
   EChartEventHandler,
+  EChartLegendSelectChangeHandler,
+  ECharts,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
@@ -57,6 +59,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {useTrackAnalyticsOnSpanMigrationError} from 'sentry/views/dashboards/hooks/useTrackAnalyticsOnSpanMigrationError';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
@@ -145,6 +148,25 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   const location = useLocation();
   const theme = useTheme();
 
+  useTrackAnalyticsOnSpanMigrationError({errorMessage, widget, loading});
+
+  const handleChartReady = useCallback(
+    (instance: ECharts) => {
+      // `connectDashboardCharts` runs before charts are mounted, and creates a
+      // lightweight lookup entry in ECharts to let it know that a group exists.
+      // When each chart is mounted, this "ready" callback fires, and attaches
+      // the group directly to the chart instance. When an event is dispatched
+      // on any of the chart instances, it's propagated to any other currently
+      // rendered charts that have a matching group. This creates synchronized
+      // cursors.
+      // N.B. Always use `onChartReady` for this, rather than `ref`, since
+      // `onChartReady` correctly fires async when the instance becomes
+      // available, unlike `ref`!
+      if (props.chartGroup) instance.group = props.chartGroup;
+    },
+    [props.chartGroup]
+  );
+
   if (errorMessage) {
     return (
       <StyledErrorPanel>
@@ -175,6 +197,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
       </TransitionChart>
     );
   }
+
   const {start, end, period, utc} = selection.datetime;
   const {projects, environments} = selection;
 
@@ -245,7 +268,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   const durationUnit = isDurationChart
     ? timeseriesResults && getDurationUnit(timeseriesResults, legendOptions)
     : undefined;
-  const bucketSize = getBucketSize(timeseriesResults);
+  const bucketSize = getBucketSize(series);
 
   const valueFormatter = (value: number, seriesName?: string) => {
     const decodedSeriesName = seriesName
@@ -262,6 +285,21 @@ function WidgetCardChart(props: WidgetCardChartProps) {
 
   const nameFormatter = (name: string) => {
     return WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(name);
+  };
+
+  const handleLegendSelectChange: EChartLegendSelectChangeHandler = (
+    params,
+    instance
+  ) => {
+    // Legend changes, like tooltips, are dispatched to every chart in the
+    // group. However, we do _not_ want to synchronize legend state! There is no
+    // simple way to prevent this in ECharts. Instead, we make sure that we only
+    // dispatch the _handler_ for widget selection from the current chart.
+    if (!isChartHovered(chartRef.current)) {
+      return;
+    }
+
+    onLegendSelectChanged?.(params, instance);
   };
 
   const chartOptions = {
@@ -349,11 +387,6 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   const handleRef = (nextRef: ReactEchartsRef): void => {
     if (nextRef && !chartRef.current) {
       chartRef.current = nextRef;
-      // add chart to the group so that it has synced cursors
-      const instance = nextRef.getEchartsInstance?.();
-      if (instance && !instance.group && props.chartGroup) {
-        instance.group = props.chartGroup;
-      }
     }
 
     if (!nextRef) {
@@ -421,7 +454,8 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                                 ? (modifiedReleaseSeriesResults ?? [])
                                 : []),
                             ],
-                            onLegendSelectChanged,
+                            onLegendSelectChanged: handleLegendSelectChange,
+                            onChartReady: handleChartReady,
                             ref: props.chartGroup ? handleRef : undefined,
                           },
                           widget

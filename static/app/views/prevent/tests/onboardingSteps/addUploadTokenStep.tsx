@@ -1,118 +1,109 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import testAnalyticsRepoSecretDark from 'sentry-images/features/test-analytics-repo-secret-dark.png';
 import testAnalyticsRepoSecretLight from 'sentry-images/features/test-analytics-repo-secret-light.png';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {IconClose} from 'sentry/icons';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
+import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
+import {integratedOrgIdToDomainName} from 'sentry/components/prevent/utils';
 import {t, tct} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
+import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
+import {useRepo} from 'sentry/views/prevent/tests/queries/useRepo';
+import {useRegenerateRepositoryToken} from 'sentry/views/prevent/tokens/repoTokenTable/hooks/useRegenerateRepositoryToken';
 
 interface AddUploadTokenStepProps {
   step: string;
 }
 
-// HARDCODED VALUES FOR TESTING
-const FULL_TOKEN = '91b57316-b1ff-4884-8d55-92b9936a05a3';
-const TRUNCATED_TOKEN = '********05a3';
-
 export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
-  const [showTokenDetails, setShowTokenDetails] = useState(false);
-  // this value is only used when showing token details
-  const [showFullToken, setShowFullToken] = useState(true);
-  const [showWarning, setShowWarning] = useState(true);
-
+  const organization = useOrganization();
   const theme = useTheme();
   const isDarkMode = theme.type === 'dark';
+  const {integratedOrgId, repository} = usePreventContext();
+  const {data: repoData} = useRepo();
 
-  const headerText = tct(`Step [step]: Add token as [repositorySecret]`, {
-    step,
-    // TODO: replace with actual link
-    repositorySecret: (
-      <Link to="https://github.com/codecov/codecov-test-repo">
-        {t('repository secret')}
-      </Link>
-    ),
-  });
+  const {data: integrations = []} = useGetActiveIntegratedOrgs({organization});
+  const githubOrgDomain = integratedOrgIdToDomainName(integratedOrgId, integrations);
+  const githubUrl =
+    githubOrgDomain && repository
+      ? `https://${githubOrgDomain}/${repository}/settings/secrets/actions`
+      : '#';
 
-  const handleGenerateClick = () => {
-    setShowTokenDetails(true);
-  };
+  const headerText = tct(
+    `Step [step]: Add token as [repositorySecret:repository secret]`,
+    {
+      step,
+      repositorySecret: <ExternalLink href={githubUrl} />,
+    }
+  );
 
-  const handleDoneClick = () => {
-    setShowFullToken(false);
-  };
-
-  const handleDismiss = () => {
-    setShowWarning(false);
-  };
+  const {mutate: regenerateToken} = useRegenerateRepositoryToken();
 
   return (
     <OnboardingStep.Container>
       <OnboardingStep.Body>
         <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
         <OnboardingStep.Content>
-          <p>
+          <Text>
             {tct(
               'Sentry requires a token to authenticate uploading your coverage reports. GitHub [repoAdmin] is required to access organization settings > secrets and variables > actions',
               {
                 repoAdmin: <b>{t('Repository admin')}</b>,
               }
             )}
-          </p>
-          {showTokenDetails ? (
-            showFullToken ? (
-              <Fragment>
-                {showWarning && (
-                  <Alert.Container>
-                    <Alert
-                      type="warning"
-                      data-test-id="page-error-alert"
-                      trailingItems={<IconClose size="sm" onClick={handleDismiss} />}
-                    >
-                      {t(
-                        "Please copy this token to a safe place - it won't be shown again."
-                      )}
-                    </Alert>
-                  </Alert.Container>
-                )}
-                <Flex justify="between" gap="md">
-                  <Flex justify="between" gap="md">
-                    <CodeSnippet dark>SENTRY_PREVENT_TOKEN</CodeSnippet>
-                    <CodeSnippet dark>{FULL_TOKEN}</CodeSnippet>
-                  </Flex>
-                  <Button priority="primary" onClick={handleDoneClick}>
-                    {t('Done')}
-                  </Button>
-                </Flex>
-              </Fragment>
-            ) : (
+          </Text>
+          {repoData?.uploadToken ? (
+            <Fragment>
               <Flex justify="between" gap="md">
                 <Flex justify="between" gap="md">
-                  <CodeSnippet dark>SENTRY_PREVENT_TOKEN</CodeSnippet>
-                  <CodeSnippet dark>{TRUNCATED_TOKEN}</CodeSnippet>
+                  <RightPaddedCodeSnippet dark>
+                    SENTRY_PREVENT_TOKEN
+                  </RightPaddedCodeSnippet>
+                  <RightPaddedCodeSnippet dark>
+                    {repoData.uploadToken}
+                  </RightPaddedCodeSnippet>
                 </Flex>
-                <Button priority="default" onClick={handleGenerateClick}>
-                  {t('Regenerate')}
-                </Button>
+                {integratedOrgId && repository && (
+                  <Button
+                    onClick={() => {
+                      regenerateToken({
+                        orgSlug: organization.slug,
+                        integratedOrgId,
+                        repository,
+                      });
+                    }}
+                  >
+                    {t('Regenerate')}
+                  </Button>
+                )}
               </Flex>
-            )
-          ) : (
-            <Button priority="primary" onClick={handleGenerateClick}>
+            </Fragment>
+          ) : integratedOrgId && repository ? (
+            <Button
+              priority="primary"
+              onClick={() => {
+                regenerateToken({
+                  orgSlug: organization.slug,
+                  integratedOrgId,
+                  repository,
+                });
+              }}
+            >
               {t('Generate Repository Token')}
             </Button>
-          )}
+          ) : null}
         </OnboardingStep.Content>
       </OnboardingStep.Body>
       <OnboardingStep.ExpandableDropdown
-        triggerContent={
-          <div>{t('Your repository secret in GitHub should look like this:')}</div>
-        }
+        triggerContent={t('Your repository secret in GitHub should look like this:')}
       >
         <img
           src={isDarkMode ? testAnalyticsRepoSecretDark : testAnalyticsRepoSecretLight}
@@ -121,3 +112,7 @@ export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
     </OnboardingStep.Container>
   );
 }
+
+const RightPaddedCodeSnippet = styled(CodeBlock)`
+  padding-right: ${p => p.theme.space['2xl']};
+`;

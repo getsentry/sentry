@@ -1,8 +1,23 @@
 from __future__ import annotations
 
-from .component import DiscordMessageComponent
-from .embed import DiscordMessageEmbed
-from .flags import DiscordMessageFlags
+from typing import NotRequired, TypedDict
+
+from sentry.integrations.discord.message_builder.base.component.base import (
+    DiscordMessageComponent,
+    DiscordMessageComponentDict,
+)
+from sentry.integrations.discord.message_builder.base.embed.base import (
+    DiscordMessageEmbed,
+    DiscordMessageEmbedDict,
+)
+from sentry.integrations.discord.message_builder.base.flags import DiscordMessageFlags
+
+
+class DiscordMessage(TypedDict):
+    content: str
+    components: NotRequired[list[DiscordMessageComponentDict]]
+    embeds: NotRequired[list[DiscordMessageEmbedDict]]
+    flags: NotRequired[int]
 
 
 class DiscordMessageBuilder:
@@ -25,7 +40,7 @@ class DiscordMessageBuilder:
         self.components = components
         self.flags = flags
 
-    def build(self, notification_uuid: str | None = None) -> dict[str, object]:
+    def build(self, notification_uuid: str | None = None) -> DiscordMessage:
         return self._build(
             self.content,
             self.embeds,
@@ -39,16 +54,18 @@ class DiscordMessageBuilder:
         embeds: list[DiscordMessageEmbed] | None = None,
         components: list[DiscordMessageComponent] | None = None,
         flags: DiscordMessageFlags | None = None,
-    ) -> dict[str, object]:
+    ) -> DiscordMessage:
         """
         Helper method for building arbitrary Discord messages.
         """
-        message: dict[str, object] = {}
-        message["content"] = content
-        message["embeds"] = [] if embeds is None else [embed.build() for embed in embeds]
-        message["components"] = (
+        embeds_list = [] if embeds is None else [embed.build() for embed in embeds]
+        components_list = (
             [] if components is None else [component.build() for component in components]
         )
+
+        message = DiscordMessage(content=content, embeds=embeds_list, components=components_list)
+
         if flags is not None:
             message["flags"] = flags.value
+
         return message

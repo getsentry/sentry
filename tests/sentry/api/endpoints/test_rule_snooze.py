@@ -309,6 +309,45 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
         assert not RuleSnooze.objects.filter(alert_rule=self.metric_alert_rule.id).exists()
         assert "Datetime has wrong format." in response.data["until"][0]
 
+    def test_create_snooze_disables_workflow(self) -> None:
+        """Test that creating a rule snooze for everyone disables the workflow"""
+        workflow = self.create_workflow()
+        self.create_alert_rule_workflow(rule_id=self.issue_alert_rule.id, workflow=workflow)
+
+        # Create snooze for everyone
+        # This should cause the workflow to be disabled
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.issue_alert_rule.id,
+                target="everyone",
+                status_code=201,
+            )
+
+        # Verify workflow is disabled
+        workflow.refresh_from_db()
+        assert workflow.enabled is False
+
+    def test_create_user_snooze_does_not_disable_workflow(self) -> None:
+        """Test that creating a user-specific rule snooze does not disable the workflow"""
+        workflow = self.create_workflow()
+        self.create_alert_rule_workflow(rule_id=self.issue_alert_rule.id, workflow=workflow)
+
+        # Create snooze for the user
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.issue_alert_rule.id,
+                target="me",
+                status_code=201,
+            )
+
+        # Verify workflow is still enabled (user-specific snooze should not affect it)
+        workflow.refresh_from_db()
+        assert workflow.enabled is True
+
 
 class DeleteRuleSnoozeTest(BaseRuleSnoozeTest):
     endpoint = "sentry-api-0-rule-snooze"
@@ -365,6 +404,47 @@ class DeleteRuleSnoozeTest(BaseRuleSnoozeTest):
         assert RuleSnooze.objects.filter(
             rule=self.issue_alert_rule.id, user_id=self.user.id
         ).exists()
+
+    def test_delete_snooze_enables_workflow(self) -> None:
+        """Test that deleting a rule snooze for everyone will re-enable the workflow"""
+        # Create a snooze for everyone
+        self.snooze_rule(owner_id=self.user.id, rule=self.issue_alert_rule)
+
+        workflow = self.create_workflow(enabled=False)
+        self.create_alert_rule_workflow(rule_id=self.issue_alert_rule.id, workflow=workflow)
+
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.issue_alert_rule.id,
+                status_code=204,
+            )
+
+        # Verify workflow is re-enabled
+        workflow.refresh_from_db()
+        assert workflow.enabled is True
+
+    def test_delete_user_snooze_does_not_enable_workflow(self) -> None:
+        """Test that deleting a user-specific rule snooze does not re-enable the workflow"""
+        # Also create a user-specific snooze
+        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=self.issue_alert_rule)
+
+        workflow = self.create_workflow(enabled=False)
+        self.create_alert_rule_workflow(rule_id=self.issue_alert_rule.id, workflow=workflow)
+
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.issue_alert_rule.id,
+                target="me",
+                status_code=204,
+            )
+
+        # Verify workflow is still disabled (user-specific snooze should not affect it)
+        workflow.refresh_from_db()
+        assert workflow.enabled is False
 
 
 class PostMetricRuleSnoozeTest(BaseRuleSnoozeTest):
@@ -644,3 +724,46 @@ class DeleteMetricRuleSnoozeTest(BaseRuleSnoozeTest):
         assert RuleSnooze.objects.filter(
             alert_rule=self.metric_alert_rule.id, user_id=self.user.id
         ).exists()
+
+    def test_delete_snooze_enables_detector_metric(self) -> None:
+        """Test that deleting a rule snooze for everyone will re-enable the detector"""
+        # Create snooze for everyone
+        self.snooze_rule(owner_id=self.user.id, alert_rule=self.metric_alert_rule)
+
+        detector = self.create_detector(enabled=False)
+        self.create_alert_rule_detector(alert_rule_id=self.metric_alert_rule.id, detector=detector)
+
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.metric_alert_rule.id,
+                status_code=204,
+            )
+
+        # Verify detector is re-enabled
+        detector.refresh_from_db()
+        assert detector.enabled is True
+
+    def test_delete_user_snooze_does_not_enable_detector_metric(self) -> None:
+        """Test that deleting a user-specific rule snooze will not re-enable the detector"""
+        # Create a user-specific snooze
+        self.snooze_rule(
+            user_id=self.user.id, owner_id=self.user.id, alert_rule=self.metric_alert_rule
+        )
+
+        detector = self.create_detector(enabled=False)
+        self.create_alert_rule_detector(alert_rule_id=self.metric_alert_rule.id, detector=detector)
+
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.metric_alert_rule.id,
+                target="me",
+                status_code=204,
+            )
+
+        # Verify detector is still disabled
+        detector.refresh_from_db()
+        assert detector.enabled is False

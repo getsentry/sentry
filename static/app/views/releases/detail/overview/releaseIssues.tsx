@@ -370,11 +370,12 @@ class ReleaseIssues extends Component<Props, State> {
       <Fragment>
         <ControlsWrapper>
           <DemoTourElement
-            id={DemoTourStep.RELEASES_STATES}
+            id={DemoTourStep.RELEASES_ISSUES}
             title={t('New and regressed issues')}
             description={t(
               `Along with reviewing how your release is trending over time compared to previous releases, you can view new and regressed issues here.`
             )}
+            position="top-start"
           >
             <SegmentedControl
               aria-label={t('Issue type')}
@@ -416,6 +417,7 @@ class ReleaseIssues extends Component<Props, State> {
             withPagination={false}
             onFetchSuccess={this.handleFetchSuccess}
             source="release"
+            numPlaceholderRows={queryParams.limit}
           />
         </div>
       </Fragment>

@@ -18,6 +18,7 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
@@ -26,11 +27,7 @@ import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/trace
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {
-  useLogsFields,
-  useLogsSearch,
-  useSetLogsFields,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {usePersistedLogsPageParams} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -44,6 +41,7 @@ import {
   HiddenLogSearchFields,
 } from 'sentry/views/explore/logs/constants';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
+import {LogsExportButton} from 'sentry/views/explore/logs/logsExport';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
 import {
@@ -77,16 +75,22 @@ import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreami
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsAggregateSortBys,
+  useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsMode,
+  useQueryParamsSearch,
   useQueryParamsSortBys,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
+  useSetQueryParamsFields,
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import type {PickableDays} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+
+// eslint-disable-next-line no-restricted-imports,boundaries/element-types
+import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 type LogsTabProps = PickableDays;
 
@@ -96,8 +100,8 @@ export function LogsTabContent({
   relativeOptions,
 }: LogsTabProps) {
   const pageFilters = usePageFilters();
-  const logsSearch = useLogsSearch();
-  const fields = useLogsFields();
+  const logsSearch = useQueryParamsSearch();
+  const fields = useQueryParamsFields();
   const groupBys = useQueryParamsGroupBys();
   const mode = useQueryParamsMode();
   const topEventsLimit = useQueryParamsTopEventsLimit();
@@ -105,12 +109,13 @@ export function LogsTabContent({
   const sortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const setMode = useSetQueryParamsMode();
-  const setFields = useSetLogsFields();
+  const setFields = useSetQueryParamsFields();
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState<bigint>(
     getMaxIngestDelayTimestamp()
   );
+  const [_, setPersistentParams] = usePersistedLogsPageParams();
   usePersistentLogsPageParameters(); // persist the columns you chose last time
 
   const columnEditorButtonRef = useRef<HTMLButtonElement>(null);
@@ -229,25 +234,36 @@ export function LogsTabContent({
     await tableData.refetch();
   }, [tableData, queryClient]);
 
+  const onColumnsChange = useCallback(
+    (newFields: string[]) => {
+      setPersistentParams(prev => ({
+        ...prev,
+        fields: newFields,
+      }));
+      setFields(newFields);
+    },
+    [setFields, setPersistentParams]
+  );
+
   const openColumnEditor = useCallback(() => {
     openModal(
       modalProps => (
         <ColumnEditorModal
           {...modalProps}
-          columns={fields}
-          onColumnsChange={setFields}
+          columns={fields.slice()}
+          onColumnsChange={onColumnsChange}
           stringTags={stringAttributes}
           numberTags={numberAttributes}
           hiddenKeys={HiddenColumnEditorLogFields}
           handleReset={() => {
-            setFields(defaultLogFields());
+            onColumnsChange(defaultLogFields());
           }}
           isDocsButtonHidden
         />
       ),
       {closeEvents: 'escape-key'}
     );
-  }, [fields, setFields, stringAttributes, numberAttributes]);
+  }, [fields, onColumnsChange, stringAttributes, numberAttributes]);
 
   const tableTab = mode === Mode.AGGREGATE ? 'aggregates' : 'logs';
   const setTableTab = useCallback(
@@ -315,7 +331,7 @@ export function LogsTabContent({
                 trigger={triggerProps => (
                   <Button
                     {...triggerProps}
-                    priority="primary"
+                    priority="default"
                     aria-label={t('Save as')}
                     onClick={e => {
                       e.stopPropagation();
@@ -350,29 +366,41 @@ export function LogsTabContent({
             <LogsToolbar stringTags={stringAttributes} numberTags={numberAttributes} />
           </ToolbarContainer>
         )}
-        <BottomSectionBody>
+        <BottomSectionBody sidebarOpen={sidebarOpen}>
           <section>
-            <LogsSidebarCollapseButton
-              sidebarOpen={sidebarOpen}
-              aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
-              size="xs"
-              icon={
-                <IconChevron
-                  isDouble
-                  direction={sidebarOpen ? 'left' : 'right'}
-                  size="xs"
-                />
-              }
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            />
+            <OverChartButtonGroup>
+              <LogsSidebarCollapseButton
+                sidebarOpen={sidebarOpen}
+                aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
+                size="xs"
+                icon={
+                  <IconChevron
+                    isDouble
+                    direction={sidebarOpen ? 'left' : 'right'}
+                    size="xs"
+                  />
+                }
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+              >
+                {sidebarOpen ? null : t('Advanced')}
+              </LogsSidebarCollapseButton>
+              <LogsExportButton
+                isLoading={tableData.isPending}
+                tableData={tableData.data}
+                error={tableData.error}
+              />
+            </OverChartButtonGroup>
+            {!tableData.isPending && tableData.isEmpty && (
+              <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
+            )}
             <LogsGraphContainer>
               <LogsGraph timeseriesResult={timeseriesResult} />
             </LogsGraphContainer>
             <LogsTableActionsContainer>
               <Tabs value={tableTab} onChange={setTableTab} size="sm">
                 <TabList hideBorder variant="floating">
-                  <TabList.Item key={'logs'}>{t('Logs')}</TabList.Item>
-                  <TabList.Item key={'aggregates'}>{t('Aggregates')}</TabList.Item>
+                  <TabList.Item key="logs">{t('Logs')}</TabList.Item>
+                  <TabList.Item key="aggregates">{t('Aggregates')}</TabList.Item>
                 </TabList>
               </Tabs>
               <TableActionsContainer>

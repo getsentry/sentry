@@ -9,7 +9,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.types import (
@@ -22,6 +22,7 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.services import eventstore
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 map_issue_args = make_type_coercer(
     {
@@ -33,9 +34,9 @@ map_issue_args = make_type_coercer(
 
 def unfurl_issues(
     request: HttpRequest,
-    integration: Integration,
+    integration: Integration | RpcIntegration,
     links: list[UnfurlableUrl],
-    user: User | None = None,
+    user: User | RpcUser | None = None,
 ) -> UnfurledUrl:
     """
     Returns a map of the attachments used in the response we send to Slack
@@ -49,7 +50,9 @@ def unfurl_issues(
         return _unfurl_issues(integration, links)
 
 
-def _unfurl_issues(integration: Integration, links: list[UnfurlableUrl]) -> UnfurledUrl:
+def _unfurl_issues(
+    integration: Integration | RpcIntegration, links: list[UnfurlableUrl]
+) -> UnfurledUrl:
     org_integrations = integration_service.get_organization_integrations(
         integration_id=integration.id
     )

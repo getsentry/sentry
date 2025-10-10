@@ -15,7 +15,7 @@ import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRe
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {PlatformKey, Project} from 'sentry/types/project';
-import Onboarding from 'sentry/views/onboarding/onboarding';
+import {OnboardingWithoutContext} from 'sentry/views/onboarding/onboarding';
 
 describe('Onboarding', () => {
   beforeAll(() => {
@@ -39,10 +39,16 @@ describe('Onboarding', () => {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/welcome/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 
@@ -62,10 +68,16 @@ describe('Onboarding', () => {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/select-platform/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 
@@ -139,10 +151,16 @@ describe('Onboarding', () => {
           },
         }}
       >
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/setup-docs/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 
@@ -209,10 +227,16 @@ describe('Onboarding', () => {
           },
         }}
       >
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/setup-docs/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 
@@ -243,10 +267,16 @@ describe('Onboarding', () => {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/select-platform/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 
@@ -319,10 +349,16 @@ describe('Onboarding', () => {
           },
         }}
       >
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/setup-docs/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 
@@ -372,10 +408,16 @@ describe('Onboarding', () => {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding {...routerProps} />
+        <OnboardingWithoutContext {...routerProps} />
       </OnboardingContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/org-slug/select-platform/',
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
       }
     );
 

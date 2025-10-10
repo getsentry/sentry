@@ -31,7 +31,7 @@ node_modules
 /src/sentry/static/sentry/rest_framework/
 /src/sentry/integration-docs
 /src/sentry/loader/_registry.json
-/config/chartcuterie/config.js*
+/config/chartcuterie/config.*
 /config/*.pem
 /tests/apidocs/openapi-derefed.json
 /tests/apidocs/openapi-deprecated.json
@@ -54,8 +54,6 @@ junit.xml
 .webpack.meta
 pip-wheel-metadata/
 Brewfile.lock.json
-import-graph.txt
-import-graph.dot
 bin/rrweb-output
 model-manifest.json
 .mypy_cache

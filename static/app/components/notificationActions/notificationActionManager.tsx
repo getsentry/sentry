@@ -51,6 +51,7 @@ function NotificationActionManager({
     useState<Array<Partial<NotificationAction>>>(actions);
 
   useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setNotificationActions(actions);
   }, [actions]);
 

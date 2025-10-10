@@ -42,9 +42,9 @@ describe('OutputCoverageFileStep component', () => {
     expect(screen.getByText('Pytest')).toBeInTheDocument();
 
     // Check Pytest installation snippet
-    expect(screen.getByText('pip install pytest pytest-cov')).toBeInTheDocument();
+    expect(screen.getByText('pip install pytest')).toBeInTheDocument();
     expect(
-      screen.getByText('pytest --cov --junitxml=junit.xml -o junit_family=legacy')
+      screen.getByText('pytest --junitxml=junit.xml -o junit_family=legacy')
     ).toBeInTheDocument();
   });
 

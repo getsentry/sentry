@@ -93,11 +93,12 @@ class ProjectCodeOwners(Model):
     def update_schema(self, organization: Organization, raw: str | None = None) -> None:
         """
         Updating the schema goes through the following steps:
-        1. parsing the original codeowner file to get the associations
-        2. convert the codeowner file to the ownership syntax
-        3. convert the ownership syntax to the schema
+        1. Update the raw content (original CODEOWNERS text)
+        2. Parse the original CODEOWNERS file to get the associations
+        3. Convert the CODEOWNERS file to the ownership syntax
+        4. Convert the ownership syntax to the schema
         """
-        from sentry.api.validators.project_codeowners import validate_codeowners_associations
+        from sentry.api.validators.project_codeowners import build_codeowners_associations
         from sentry.utils.codeowners import MAX_RAW_LENGTH
 
         if raw and self.raw != raw:
@@ -118,7 +119,7 @@ class ProjectCodeOwners(Model):
             logger.warning({"raw": f"Raw needs to be <= {MAX_RAW_LENGTH} characters in length"})
             return
 
-        associations, _ = validate_codeowners_associations(self.raw, self.project)
+        associations, _ = build_codeowners_associations(self.raw, self.project)
 
         issue_owner_rules = convert_codeowners_syntax(
             codeowners=self.raw,
@@ -129,13 +130,16 @@ class ProjectCodeOwners(Model):
         # Convert IssueOwner syntax into schema syntax
         try:
             schema = create_schema_from_issue_owners(
-                project_id=self.project.id, issue_owners=issue_owner_rules
+                project_id=self.project.id,
+                issue_owners=issue_owner_rules,
+                remove_deleted_owners=True,
             )
             # Convert IssueOwner syntax into schema syntax
             if schema:
                 self.schema = schema
                 self.save()
         except ValidationError:
+            logger.exception("Failed to create schema from issue owners.")
             return
 
 

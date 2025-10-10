@@ -15,7 +15,7 @@ import msgpack
 import sentry_sdk
 import vroomrs
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from django.conf import settings
 from packaging.version import InvalidVersion
 from packaging.version import parse as parse_version
@@ -53,13 +53,12 @@ from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import ingest_profiling_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
-from sentry.utils.arroyo_producer import SingletonProducer
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
+from sentry.utils.kafka_config import get_topic_definition
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
@@ -76,12 +75,11 @@ UNSAMPLED_PROFILE_ID = "00000000000000000000000000000000"
 
 
 def _get_profiles_producer_from_topic(topic: Topic) -> KafkaProducer:
-    cluster_name = get_topic_definition(topic)["cluster"]
-    producer_config = get_kafka_producer_cluster_options(cluster_name)
-    producer_config.pop("compression.type", None)
-    producer_config.pop("message.max.bytes", None)
-    producer_config["client.id"] = "sentry.profiles.task"
-    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+    return get_arroyo_producer(
+        name="sentry.profiles.task",
+        topic=topic,
+        exclude_config_keys=["compression.type", "message.max.bytes"],
+    )
 
 
 processed_profiles_producer = SingletonProducer(
@@ -118,24 +116,11 @@ def encode_payload(message: dict[str, Any]) -> str:
 
 @instrumented_task(
     name="sentry.profiles.task.process_profile",
-    retry_backoff=True,
-    retry_backoff_max=20,
-    retry_jitter=True,
-    default_retry_delay=5,  # retries after 5s
-    max_retries=2,
-    acks_late=True,
-    task_time_limit=60,
-    task_acks_on_failure_or_timeout=False,
+    namespace=ingest_profiling_tasks,
+    processing_deadline_duration=60,
+    retry=Retry(times=2, delay=5),
+    compression_type=CompressionType.ZSTD,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=ingest_profiling_tasks,
-        processing_deadline_duration=60,
-        retry=Retry(
-            times=2,
-            delay=5,
-        ),
-        compression_type=CompressionType.ZSTD,
-    ),
 )
 def process_profile_task(
     profile: Profile | None = None,
@@ -1434,16 +1419,16 @@ def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
             # should we loosen the constraints on the number and type of functions to be extracted.
             if options.get("profiling.track_functions_metrics_write_rate.eap.enabled"):
                 eap_functions = prof.extract_functions_metrics(
-                    min_depth=1, filter_system_frames=True, filter_non_leaf_functions=False
+                    min_depth=1, filter_system_frames=False, filter_non_leaf_functions=False
                 )
                 if eap_functions is not None and len(eap_functions) > 0:
                     tot = 0
                     for f in eap_functions:
                         tot += len(f.get_self_times_ns())
                     metrics.incr(
-                        "process_profile.eap_functions_metrics.count",
+                        "process_profile.eap_functions_metrics.all_frames.count",
                         tot,
-                        tags={"type": "profile"},
+                        tags={"type": "profile", "platform": profile["platform"]},
                         sample_rate=1.0,
                     )
             return True
@@ -1498,16 +1483,16 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
             # should we loosen the constraints on the number and type of functions to be extracted.
             if options.get("profiling.track_functions_metrics_write_rate.eap.enabled"):
                 eap_functions = chunk.extract_functions_metrics(
-                    min_depth=1, filter_system_frames=True, filter_non_leaf_functions=False
+                    min_depth=1, filter_system_frames=False, filter_non_leaf_functions=False
                 )
                 if eap_functions is not None and len(eap_functions) > 0:
                     tot = 0
                     for f in eap_functions:
                         tot += len(f.get_self_times_ns())
                     metrics.incr(
-                        "process_profile.eap_functions_metrics.count",
+                        "process_profile.eap_functions_metrics.all_frames.count",
                         tot,
-                        tags={"type": "chunk"},
+                        tags={"type": "chunk", "platform": profile["platform"]},
                         sample_rate=1.0,
                     )
             return True

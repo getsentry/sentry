@@ -1,6 +1,6 @@
 import type {PlatformKey} from 'sentry/types/project';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import type {TraceWaterFallSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import type {TraceTreeSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {TraceDrawerActionKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 export type TracingEventParameters = {
@@ -14,9 +14,6 @@ export type TracingEventParameters = {
     group_by_count: number;
     query: string;
     visualize_count: number;
-  };
-  'trace.explorer.ai_query_example_clicked': {
-    example_query: string;
   };
   'trace.explorer.ai_query_feedback': {
     correct_query_results: 'yes' | 'no';
@@ -34,7 +31,7 @@ export type TracingEventParameters = {
     natural_language_query: string;
   };
   'trace.explorer.metadata': {
-    columns: string[];
+    columns: readonly string[];
     columns_count: number;
     confidences: string[];
     dataScanned: string;
@@ -52,6 +49,7 @@ export type TracingEventParameters = {
     title: string;
     user_queries: string;
     user_queries_count: number;
+    version: 2;
     visualizes: BaseVisualize[];
     visualizes_count: number;
   };
@@ -68,11 +66,11 @@ export type TracingEventParameters = {
     type: 'samples' | 'traces' | 'aggregates';
   };
   'trace.load.empty_state': {
-    source: TraceWaterFallSource;
+    source: TraceTreeSource;
   };
   'trace.load.error_state': {
     error_status: number | null;
-    source: TraceWaterFallSource;
+    source: TraceTreeSource;
     span_count: number | null;
   };
   'trace.metadata': {
@@ -84,7 +82,7 @@ export type TracingEventParameters = {
     project_platforms: string[];
     referrer: string | null;
     shape: string;
-    source: TraceWaterFallSource;
+    source: TraceTreeSource;
     trace_age: string;
     trace_duration_seconds: number;
   };
@@ -224,7 +222,6 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.explorer.ai_query_submitted': 'Trace Explorer: AI Query Submitted',
   'trace.explorer.ai_query_interface': 'Trace Explorer: AI Query Interface',
   'trace.explorer.ai_query_feedback': 'Trace Explorer: AI Query Feedback',
-  'trace.explorer.ai_query_example_clicked': 'Trace Explorer: AI Query Example Clicked',
   'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
   'trace.explorer.schema_hints_click':
     'Improved Trace Explorer: Schema Hints Click Events',

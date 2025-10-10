@@ -27,30 +27,32 @@ import {
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
 import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
+import {TransactionsDatasetWarning} from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
-  DEFAULT_THRESHOLD_METRIC_FORM_DATA,
   METRIC_DETECTOR_FORM_FIELDS,
   metricDetectorFormDataToEndpointPayload,
   metricSavedDetectorToFormData,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
+import {ResolveSection} from 'sentry/views/detectors/components/forms/metric/resolveSection';
+import {useInitialMetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/useInitialMetricDetectorFormData';
 import {useIntervalChoices} from 'sentry/views/detectors/components/forms/metric/useIntervalChoices';
 import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
-import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
 import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 function MetricDetectorForm() {
   return (
     <FormStack>
+      <TransactionsDatasetWarningListener />
       <DetectSection />
       <PrioritizeSection />
       <ResolveSection />
@@ -67,6 +69,7 @@ export function EditExistingMetricDetectorForm({detector}: {detector: Detector})
       previewChart={<MetricDetectorPreviewChart />}
       formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
       savedDetectorToFormData={metricSavedDetectorToFormData}
+      mapFormErrors={mapMetricDetectorFormErrors}
     >
       <MetricDetectorForm />
     </EditDetectorLayout>
@@ -74,17 +77,36 @@ export function EditExistingMetricDetectorForm({detector}: {detector: Detector})
 }
 
 export function NewMetricDetectorForm() {
+  const initialMetricFormData = useInitialMetricDetectorFormData();
+
   return (
     <NewDetectorLayout
       detectorType="metric_issue"
       previewChart={<MetricDetectorPreviewChart />}
       formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
-      initialFormData={DEFAULT_THRESHOLD_METRIC_FORM_DATA}
+      initialFormData={initialMetricFormData}
+      mapFormErrors={mapMetricDetectorFormErrors}
     >
       <MetricDetectorForm />
     </NewDetectorLayout>
   );
 }
+
+// Errors come back as nested objects, we need to flatten them
+// to match the form state
+const mapMetricDetectorFormErrors = (error: unknown) => {
+  if (typeof error !== 'object' || error === null) {
+    return error;
+  }
+
+  if ('dataSource' in error && typeof error.dataSource === 'object') {
+    return {
+      ...error,
+      ...error.dataSource,
+    };
+  }
+  return error;
+};
 
 const DETECTION_TYPE_MAP: Record<
   MetricDetectorConfig['detectionType'],
@@ -125,53 +147,6 @@ function DetectionType() {
       choices={options}
       preserveOnUnmount
     />
-  );
-}
-
-function ResolveSection() {
-  const detectionType = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.detectionType
-  );
-  const conditionValue = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.conditionValue
-  );
-  const conditionType = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.conditionType
-  );
-  const conditionComparisonAgo = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.conditionComparisonAgo
-  );
-  const aggregate = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
-  );
-  const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
-
-  const description = getResolutionDescription(
-    detectionType === 'percent'
-      ? {
-          detectionType: 'percent',
-          conditionType,
-          conditionValue,
-          comparisonDelta: conditionComparisonAgo ?? 3600, // Default to 1 hour if not set
-          thresholdSuffix,
-        }
-      : detectionType === 'static'
-        ? {
-            detectionType: 'static',
-            conditionType,
-            conditionValue,
-            thresholdSuffix,
-          }
-        : {
-            detectionType: 'dynamic',
-            thresholdSuffix,
-          }
-  );
-
-  return (
-    <Container>
-      <Section title={t('Resolve')} description={description} />
-    </Container>
   );
 }
 
@@ -447,6 +422,15 @@ function DetectSection() {
   );
 }
 
+function TransactionsDatasetWarningListener() {
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  if (dataset !== DetectorDataset.TRANSACTIONS) {
+    return null;
+  }
+
+  return <TransactionsDatasetWarning />;
+}
+
 const FormStack = styled('div')`
   display: flex;
   flex-direction: column;
@@ -492,6 +476,7 @@ const DetectionTypeField = styled(SegmentedRadioField)`
     padding: 0;
   }
 `;
+
 const ThresholdField = styled(NumberField)`
   padding: 0;
   margin: 0;
@@ -499,7 +484,7 @@ const ThresholdField = styled(NumberField)`
 
   > div {
     padding: 0;
-    width: 10ch;
+    width: 18ch;
   }
 `;
 

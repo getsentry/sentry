@@ -57,8 +57,8 @@ export default function TimelineTooltip({container}: Props) {
       ref={labelRef}
       style={{
         display: lastHoverTime ? 'block' : 'none',
-        top: 0,
         left: toPercent(divide(lastHoverTime ?? 0, durationMs)),
+        transform: 'translateX(10px)',
       }}
     >
       <Text size="sm" tabular style={{fontWeight: 'normal'}}>
@@ -81,6 +81,8 @@ export default function TimelineTooltip({container}: Props) {
 
 const CursorLabel = styled(Overlay)`
   position: absolute;
-  translate: 10px -10px;
   padding: ${space(0.75)} ${space(1)};
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 1000;
 `;

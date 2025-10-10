@@ -1,4 +1,6 @@
 import * as Sentry from '@sentry/react';
+import {type PaymentIntentResult, type Stripe} from '@stripe/stripe-js';
+import camelCase from 'lodash/camelCase';
 import moment from 'moment-timezone';
 
 import {
@@ -26,8 +28,11 @@ import {
 } from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {
+  AddOnCategory,
   InvoiceItemType,
   PlanTier,
+  type BillingDetails,
+  type CheckoutAddOns,
   type EventBucket,
   type OnDemandBudgets,
   type Plan,
@@ -37,8 +42,10 @@ import {
 } from 'getsentry/types';
 import {
   getAmPlanTier,
+  getReservedBudgetCategoryForAddOn,
   getSlot,
   hasPartnerMigrationFeature,
+  hasSomeBillingDetails,
   isBizPlanFamily,
   isTeamPlanFamily,
   isTrialPlan,
@@ -46,12 +53,11 @@ import {
 import {isByteCategory} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
+import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
 import {
-  SelectableProduct,
   type CheckoutAPIData,
   type CheckoutFormData,
   type PlanContent,
-  type SelectedProductData,
 } from 'getsentry/views/amCheckout/types';
 import {
   normalizeOnDemandBudget,
@@ -199,17 +205,17 @@ export function getBucket({
 type ReservedTotalProps = {
   plan: Plan;
   reserved: Partial<Record<DataCategory, number>>;
+  addOns?: CheckoutAddOns;
   amount?: number;
   creditCategory?: InvoiceItemType;
   discountType?: string;
   maxDiscount?: number;
-  selectedProducts?: Record<SelectableProduct, SelectedProductData>;
 };
 
 /**
  * Returns the price for a reserved budget category (ie. Seer) in cents.
  */
-export function getReservedPriceForReservedBudgetCategory({
+function getReservedPriceForReservedBudgetCategory({
   plan,
   reservedBudgetCategory,
 }: {
@@ -239,7 +245,7 @@ export function getReservedPriceCents({
   discountType,
   maxDiscount,
   creditCategory,
-  selectedProducts,
+  addOns,
 }: ReservedTotalProps): number {
   let reservedCents = plan.basePrice;
 
@@ -260,16 +266,12 @@ export function getReservedPriceCents({
       }).price)
   );
 
-  Object.entries(selectedProducts ?? {}).forEach(([apiName, selectedProductData]) => {
-    if (selectedProductData.enabled) {
-      const budgetTypeInfo =
-        plan.availableReservedBudgetTypes[apiName as ReservedBudgetCategoryType];
-      if (budgetTypeInfo) {
-        reservedCents += getReservedPriceForReservedBudgetCategory({
-          plan,
-          reservedBudgetCategory: apiName as ReservedBudgetCategoryType,
-        });
-      }
+  Object.entries(addOns ?? {}).forEach(([apiName, {enabled}]) => {
+    if (enabled) {
+      reservedCents += getPrepaidPriceForAddOn({
+        plan,
+        addOnCategory: apiName as AddOnCategory,
+      });
     }
   });
 
@@ -292,7 +294,7 @@ export function getReservedTotal({
   discountType,
   maxDiscount,
   creditCategory,
-  selectedProducts,
+  addOns,
 }: ReservedTotalProps): string {
   return formatPrice({
     cents: getReservedPriceCents({
@@ -302,7 +304,7 @@ export function getReservedTotal({
       discountType,
       maxDiscount,
       creditCategory,
-      selectedProducts,
+      addOns,
     }),
   });
 }
@@ -393,17 +395,15 @@ function recordAnalytics(
   isMigratingPartnerAccount: boolean
 ) {
   trackMarketingEvent('Upgrade', {plan: data.plan});
+  const isNewCheckout = hasNewCheckout(organization);
 
   const currentData: CheckoutData = {
     plan: data.plan,
   };
 
-  Object.keys(data).forEach(key => {
-    if (key.startsWith('reserved')) {
-      const targetKey = key.charAt(8).toLowerCase() + key.slice(9);
-      (currentData as any)[targetKey] = data[key as keyof CheckoutAPIData];
-    }
-  });
+  const productSelectAnalyticsData: Partial<
+    Record<AddOnCategory, {enabled: boolean; previously_enabled: boolean}>
+  > = {};
 
   const previousData: PreviousData = {
     previous_plan: subscription.plan,
@@ -419,31 +419,35 @@ function recordAnalytics(
     }
   });
 
-  // TODO(reserved budgets): in future, we should just be able to pass data.selectedProducts
-  const selectableProductData = {
-    [SelectableProduct.SEER]: {
-      enabled: data.seer ?? false,
-      previously_enabled: isTrialPlan(previousData.previous_plan) // don't count trial budgets
-        ? false
-        : (subscription.reservedBudgets?.some(
-            budget =>
-              (budget.apiName as string as SelectableProduct) ===
-                SelectableProduct.SEER && budget.reservedBudget > 0
-          ) ?? false),
-    },
-  };
+  Object.keys(data).forEach(key => {
+    if (key.startsWith('reserved')) {
+      const targetKey = key.charAt(8).toLowerCase() + key.slice(9);
+      (currentData as any)[targetKey] = data[key as keyof CheckoutAPIData];
+    }
+    if (key.startsWith('addOn')) {
+      const targetKey = (key.charAt(5).toLowerCase() + key.slice(6)) as AddOnCategory;
+      const previouslyEnabled = subscription.addOns?.[targetKey]?.enabled ?? false;
+      productSelectAnalyticsData[targetKey] = {
+        enabled: data[key as keyof CheckoutAPIData] as boolean,
+        // don't count trial addons
+        previously_enabled: !isTrialPlan(previousData.previous_plan) && previouslyEnabled,
+      };
+    }
+  });
 
   trackGetsentryAnalytics('checkout.upgrade', {
     organization,
     subscription,
     ...previousData,
     ...currentData,
+    isNewCheckout,
   });
 
   trackGetsentryAnalytics('checkout.product_select', {
     organization,
     subscription,
-    ...selectableProductData,
+    ...productSelectAnalyticsData,
+    isNewCheckout,
   });
 
   let {onDemandBudget} = data;
@@ -481,13 +485,14 @@ function recordAnalytics(
       applyNow: data.applyNow ?? false,
       daysLeft: moment(subscription.contractPeriodEnd).diff(moment(), 'days'),
       partner: subscription.partner?.partnership.id,
+      isNewCheckout,
     });
   }
 }
 
 export function stripeHandleCardAction(
   intentDetails: IntentDetails,
-  stripeInstance?: stripe.Stripe,
+  stripeInstance: Stripe | null,
   onSuccess?: () => void,
   onError?: (errorMessage?: string) => void
 ) {
@@ -498,7 +503,7 @@ export function stripeHandleCardAction(
   // This allows us to complete 3DS and MFA during checkout.
   stripeInstance
     .handleCardAction(intentDetails.paymentSecret)
-    .then((result: stripe.PaymentIntentResponse) => {
+    .then((result: PaymentIntentResult) => {
       if (result.error) {
         let message =
           'Your payment could not be authorized. Please try a different card, or try again later.';
@@ -516,7 +521,6 @@ export function stripeHandleCardAction(
     });
 }
 
-/** @internal exported for tests only */
 export function getCheckoutAPIData({
   formData,
   onDemandBudget,
@@ -540,6 +544,15 @@ export function getCheckoutAPIData({
     ? (formData.onDemandMaxSpend ?? 0)
     : undefined;
 
+  const addOnData = Object.fromEntries(
+    Object.entries(formData.addOns ?? {}).map(([addOnName, {enabled}]) => [
+      `addOn${toTitleCase(addOnName, {
+        allowInnerUpperCase: true,
+      })}`,
+      enabled,
+    ])
+  ) satisfies Partial<Record<`addOn${Capitalize<AddOnCategory>}`, boolean>>;
+
   let data: CheckoutAPIData = {
     ...reservedData,
     onDemandBudget,
@@ -548,7 +561,7 @@ export function getCheckoutAPIData({
     referrer: referrer || 'billing',
     ...(previewToken && {previewToken}),
     ...(paymentIntent && {paymentIntent}),
-    seer: formData.selectedProducts?.seer?.enabled, // TODO: in future, we should just be able to pass selectedProducts
+    ...addOnData,
   };
 
   if (formData.applyNow) {
@@ -616,18 +629,30 @@ export function normalizeAndGetCheckoutAPIData({
 export function useSubmitCheckout({
   organization,
   subscription,
+  previewData,
   onErrorMessage,
   onSubmitting,
   onHandleCardAction,
   onFetchPreviewData,
+  onSuccess,
   referrer = 'billing',
 }: {
   onErrorMessage: (message: string) => void;
   onFetchPreviewData: () => void;
   onHandleCardAction: ({intentDetails}: {intentDetails: IntentDetails}) => void;
   onSubmitting: (b: boolean) => void;
+  onSuccess: ({
+    isSubmitted,
+    invoice,
+    nextQueryParams,
+    previewData,
+  }: Pick<
+    CheckoutState,
+    'invoice' | 'nextQueryParams' | 'isSubmitted' | 'previewData'
+  >) => void;
   organization: Organization;
   subscription: Subscription;
+  previewData?: PreviewData;
   referrer?: string;
 }) {
   const api = useApi({});
@@ -646,7 +671,7 @@ export function useSubmitCheckout({
         }
       );
     },
-    onSuccess: (_, _variables) => {
+    onSuccess: (response, _variables) => {
       recordAnalytics(
         organization,
         subscription,
@@ -656,13 +681,8 @@ export function useSubmitCheckout({
 
       // seer automation alert
       const alreadyHasSeer =
-        !isTrialPlan(subscription.plan) &&
-        subscription.reservedBudgets?.some(
-          budget =>
-            (budget.apiName as string as SelectableProduct) === SelectableProduct.SEER &&
-            budget.reservedBudget > 0
-        );
-      const justBoughtSeer = _variables.data.seer && !alreadyHasSeer;
+        !isTrialPlan(subscription.plan) && subscription.addOns?.seer?.enabled;
+      const justBoughtSeer = _variables.data.addOnSeer && !alreadyHasSeer;
 
       // refresh org and subscription state
       // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
@@ -670,14 +690,12 @@ export function useSubmitCheckout({
       fetchOrganizationDetails(new Client(), organization.slug);
       SubscriptionStore.loadData(organization.slug);
 
-      // TODO(checkout v3): This should be changed to redirect to the success page
-      browserHistory.push(
-        normalizeUrl(
-          `/settings/${organization.slug}/billing/overview/?referrer=${referrer}${
-            justBoughtSeer ? '&showSeerAutomationAlert=true' : ''
-          }`
-        )
-      );
+      const {invoice} = response;
+      const nextQueryParams = [referrer];
+      if (justBoughtSeer) {
+        nextQueryParams.push('showSeerAutomationAlert=true');
+      }
+      onSuccess({isSubmitted: true, invoice, nextQueryParams, previewData});
     },
     onError: (error: RequestError, _variables) => {
       const body = error.responseJSON;
@@ -773,13 +791,8 @@ export async function submitCheckout(
     recordAnalytics(organization, subscription, data, isMigratingPartnerAccount);
 
     const alreadyHasSeer =
-      !isTrialPlan(subscription.plan) &&
-      subscription.reservedBudgets?.some(
-        budget =>
-          (budget.apiName as string as SelectableProduct) === SelectableProduct.SEER &&
-          budget.reservedBudget > 0
-      );
-    const justBoughtSeer = data.seer && !alreadyHasSeer;
+      !isTrialPlan(subscription.plan) && subscription.addOns?.seer?.enabled;
+    const justBoughtSeer = data.addOnSeer && !alreadyHasSeer;
 
     // refresh org and subscription state
     // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
@@ -850,16 +863,12 @@ export function getToggleTier(checkoutTier: PlanTier | undefined) {
   return SUPPORTED_TIERS[tierIndex + 1];
 }
 
-export function hasCheckoutV3(organization: Organization) {
-  return organization.features.includes('checkout-v3');
-}
-
-export function getContentForPlan(plan: Plan): PlanContent {
+export function getContentForPlan(plan: Plan, isNewCheckout?: boolean): PlanContent {
   if (isBizPlanFamily(plan)) {
     return {
-      description: t(
-        'Everything in the Team plan + deeper insight into your application health.'
-      ),
+      description: isNewCheckout
+        ? t('For teams that need more powerful debugging')
+        : t('Everything in the Team plan + deeper insight into your application health.'),
       features: {
         discover: t('Advanced analytics with Discover'),
         enhanced_priority_alerts: t('Enhanced issue priority and alerting'),
@@ -876,7 +885,9 @@ export function getContentForPlan(plan: Plan): PlanContent {
 
   if (isTeamPlanFamily(plan)) {
     return {
-      description: t('Resolve errors and track application performance as a team.'),
+      description: isNewCheckout
+        ? t('Everything to monitor your application as it scales')
+        : t('Resolve errors and track application performance as a team.'),
       features: {
         unlimited_members: t('Unlimited members'),
         integrations: t('Third-party integrations'),
@@ -898,4 +909,67 @@ export function getContentForPlan(plan: Plan): PlanContent {
       logBytes: t('5GB Logs'),
     },
   };
+}
+
+export function invoiceItemTypeToDataCategory(
+  type: InvoiceItemType
+): DataCategory | null {
+  if (!type.startsWith('reserved_') && !type.startsWith('ondemand_')) {
+    return null;
+  }
+  return camelCase(
+    type.replace('reserved_', '').replace('ondemand_', '')
+  ) as DataCategory;
+}
+
+export function invoiceItemTypeToAddOn(type: InvoiceItemType): AddOnCategory | null {
+  switch (type) {
+    case InvoiceItemType.RESERVED_SEER_BUDGET:
+      return AddOnCategory.SEER;
+    case InvoiceItemType.RESERVED_PREVENT_USERS:
+      return AddOnCategory.PREVENT;
+    default:
+      return null;
+  }
+}
+
+// TODO(isabella): clean this up after GA
+export function hasNewCheckout(organization: Organization) {
+  return organization.features.includes('checkout-v3');
+}
+
+/**
+ * Returns true if the subscription has either a payment source or some billing details set.
+ */
+export function hasBillingInfo(
+  billingDetails: BillingDetails | undefined,
+  subscription: Subscription,
+  isComplete: boolean
+) {
+  if (isComplete) {
+    return !!subscription.paymentSource && hasSomeBillingDetails(billingDetails);
+  }
+  return !!subscription.paymentSource || hasSomeBillingDetails(billingDetails);
+}
+
+/**
+ * Get the prepaid price for an add-on
+ */
+export function getPrepaidPriceForAddOn({
+  addOnCategory,
+  plan,
+}: {
+  addOnCategory: AddOnCategory;
+  plan: Plan;
+}) {
+  const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(addOnCategory);
+  if (reservedBudgetCategory) {
+    return getReservedPriceForReservedBudgetCategory({
+      plan,
+      reservedBudgetCategory,
+    });
+  }
+
+  // if it's not a reserved budget add on, we assume it's a PAYG only add on (costs $0)
+  return 0;
 }

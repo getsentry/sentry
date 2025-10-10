@@ -5,7 +5,6 @@ from functools import partial
 
 import orjson
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaProducer, build_kafka_producer_configuration
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
@@ -17,10 +16,11 @@ from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partitio
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.consumers.process_segments.convert import convert_span_to_item
-from sentry.spans.consumers.process_segments.enrichment import Span
 from sentry.spans.consumers.process_segments.message import process_segment
+from sentry.spans.consumers.process_segments.types import CompatibleSpan
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.arroyo_producer import get_arroyo_producer
+from sentry.utils.kafka_config import get_topic_definition
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,6 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         self.pool = MultiprocessingPool(num_processes)
 
         topic_definition = get_topic_definition(Topic.SNUBA_ITEMS)
-        producer_config = get_kafka_producer_cluster_options(topic_definition["cluster"])
 
         # Due to the unfold step that precedes the producer, this pipeline
         # writes large bursts of spans at once when a batch of segments is
@@ -61,11 +60,11 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         # so that it can accommodate batches from all subprocesses at the
         # sime time, assuming some upper bound of spans per segment.
         self.kafka_queue_size = self.max_batch_size * self.num_processes * SPANS_PER_SEG_P95
-        producer_config["queue.buffering.max.messages"] = self.kafka_queue_size
-        producer_config["client.id"] = "sentry.spans.consumers.process_segments"
 
-        self.producer = KafkaProducer(
-            build_kafka_producer_configuration(default_config=producer_config),
+        self.producer = get_arroyo_producer(
+            "sentry.spans.consumers.process_segments",
+            Topic.SNUBA_ITEMS,
+            additional_config={"queue.buffering.max.messages": self.kafka_queue_size},
             use_simple_futures=True,
         )
         self.output_topic = ArroyoTopic(topic_definition["real_topic_name"])
@@ -123,7 +122,7 @@ def _process_message(
         raise InvalidMessage(message.value.partition, message.value.offset)
 
 
-def _serialize_payload(span: Span, timestamp: datetime | None) -> Value[KafkaPayload]:
+def _serialize_payload(span: CompatibleSpan, timestamp: datetime | None) -> Value[KafkaPayload]:
     item = convert_span_to_item(span)
     return Value(
         KafkaPayload(

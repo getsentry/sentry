@@ -80,7 +80,7 @@ export default function useReplayInit() {
     }
 
     const sessionSampleRate = user.isStaff ? 1.0 : 0.05;
-    const errorSampleRate = 0.5;
+    const errorSampleRate = 1.0;
 
     init(sessionSampleRate, errorSampleRate);
 

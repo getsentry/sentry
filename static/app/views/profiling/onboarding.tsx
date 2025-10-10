@@ -6,6 +6,7 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
+import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
   OnboardingCodeSnippet,
   TabbedCodeSnippet,
@@ -14,7 +15,6 @@ import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   DocsPageLocation,
   ProductSolution,
-  StepType,
   type Configuration,
   type DocsParams,
   type OnboardingStep,
@@ -23,6 +23,7 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import {ContinuousProfilingBillingRequirementBanner} from 'sentry/components/profiling/billing/alerts';
 import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
 import {profiling as profilingPlatforms} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
@@ -130,7 +131,11 @@ function StepRenderer({
 
   return (
     <GuidedSteps.Step stepKey={type || title} title={title || (type && StepTitles[type])}>
-      <ConfigurationRenderer configuration={step} />
+      {step.content ? (
+        <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+      ) : (
+        <ConfigurationRenderer configuration={step} />
+      )}
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
         <GuidedSteps.NextButton size="md" />
@@ -273,16 +278,7 @@ export function Onboarding() {
               {project: project.slug}
             )}
           </p>
-          <LinkButton
-            size="sm"
-            href={
-              // TODO(aknaus): Go does not have profiling docs yet, so we redirect to the general profiling docs. Remove this once Go has docs.
-              currentPlatform.id === 'go'
-                ? 'https://docs.sentry.io/product/profiling/getting-started/'
-                : `${currentPlatform.link}/profiling/`
-            }
-            external
-          >
+          <LinkButton size="sm" href={`${currentPlatform.link}/profiling/`} external>
             {t('Go to Documentation')}
           </LinkButton>
         </DescriptionWrapper>
@@ -323,19 +319,14 @@ export function Onboarding() {
   const steps = [
     ...profilingDocs.install(docParams),
     ...profilingDocs.configure(docParams),
-    // TODO(aknaus): Move into snippets once all have profiling docs
-    {
-      type: StepType.VERIFY,
-      description: t(
-        'Verify that profiling is working correctly by simply using your application.'
-      ),
-    },
+    ...profilingDocs.verify(docParams),
   ];
 
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
+      <ContinuousProfilingBillingRequirementBanner project={project} />
       <GuidedSteps>
         {steps
           // Only show non-optional steps

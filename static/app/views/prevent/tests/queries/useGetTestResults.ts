@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 
 import type {ApiResult} from 'sentry/api';
-import {ALL_BRANCHES} from 'sentry/components/prevent/branchSelector/branchSelector';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {
   fetchDataQuery,
@@ -38,7 +37,6 @@ function sortValueToSortKey(value: string) {
 
 type TestResultItem = {
   avgDuration: number;
-  commitsFailed: number;
   failureRate: number;
   flakeRate: number;
   lastDuration: number;
@@ -71,13 +69,19 @@ export function useInfiniteTestResults({
   cursor?: string | null;
   navigation?: 'next' | 'prev';
 }) {
-  const {integratedOrgId, repository, branch, preventPeriod} = usePreventContext();
+  const {
+    integratedOrgId,
+    repository,
+    branch: rawBranch,
+    preventPeriod,
+  } = usePreventContext();
   const organization = useOrganization();
   const [searchParams] = useSearchParams();
 
-  const filterBranch = branch === ALL_BRANCHES ? null : branch;
+  // Normalize branch to undefined when falsy for consistent caching
+  const branch = rawBranch || undefined;
 
-  const sortBy = searchParams.get('sort') || '-commitsFailed';
+  const sortBy = searchParams.get('sort') || '-totalFailCount';
   const signedSortBy = sortValueToSortKey(sortBy);
 
   const term = searchParams.get('term') || '';
@@ -101,7 +105,7 @@ export function useInfiniteTestResults({
       `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repository/${repository}/test-results/`,
       {
         query: {
-          branch: filterBranch,
+          branch,
           preventPeriod,
           signedSortBy,
           mappedFilterBy,
@@ -129,7 +133,7 @@ export function useInfiniteTestResults({
                 ],
               sortBy: signedSortBy,
               term,
-              branch: filterBranch,
+              branch,
               ...(mappedFilterBy ? {filterBy: mappedFilterBy} : {}),
               ...(testSuites ? {testSuites} : {}),
               ...(cursor ? {cursor} : {}),
@@ -153,7 +157,7 @@ export function useInfiniteTestResults({
         : undefined;
     },
     initialPageParam: null,
-    enabled: !!(integratedOrgId && repository && branch && preventPeriod),
+    enabled: !!(integratedOrgId && repository && preventPeriod),
   });
 
   const memoizedData = useMemo(

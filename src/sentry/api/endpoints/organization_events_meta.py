@@ -128,8 +128,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         try:
-            # events-meta is still used by events v1 which doesn't require global views
-            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 from collections import Counter
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import datetime, tzinfo
 from typing import TYPE_CHECKING, Any
 
 from django.utils import dateformat
@@ -15,7 +15,13 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
 
 
-def get_digest_subject(group: Group, counts: Counter[Group], date: datetime) -> str:
+def get_digest_subject(
+    group: Group, counts: Counter[Group], date: datetime, timezone: tzinfo | None = None
+) -> str:
+    # Convert date to user's timezone if provided
+    if timezone:
+        date = date.astimezone(timezone)
+
     return "{short_id} - {count} new {noun} since {date}".format(
         short_id=group.qualified_short_id,
         count=len(counts),

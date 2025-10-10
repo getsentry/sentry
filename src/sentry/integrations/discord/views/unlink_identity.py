@@ -3,6 +3,7 @@ from typing import Any
 
 from django.urls import reverse
 
+from sentry import analytics
 from sentry.integrations.discord.views.linkage import DiscordIdentityLinkageView
 from sentry.integrations.messaging.linkage import UnlinkIdentityView
 from sentry.integrations.models.integration import Integration
@@ -28,6 +29,13 @@ class DiscordUnlinkIdentityView(DiscordIdentityLinkageView, UnlinkIdentityView):
     ) -> tuple[str, dict[str, Any]]:
         return "sentry/integrations/discord/unlinked.html", {}
 
-    @property
-    def analytics_operation_key(self) -> str | None:
-        return "identity_unlinked"
+    def get_analytics_event(
+        self, provider: str, actor_id: int, actor_type: str
+    ) -> analytics.Event | None:
+        from sentry.integrations.discord.analytics import DiscordIntegrationIdentityUnlinked
+
+        return DiscordIntegrationIdentityUnlinked(
+            provider=provider,
+            actor_id=actor_id,
+            actor_type=actor_type,
+        )

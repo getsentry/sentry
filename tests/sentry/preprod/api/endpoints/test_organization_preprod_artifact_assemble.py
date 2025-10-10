@@ -13,6 +13,7 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.preprod.api.endpoints.organization_preprod_artifact_assemble import (
     validate_preprod_artifact_schema,
 )
+from sentry.preprod.tasks import create_preprod_artifact
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import AssembleTask, ChunkFileState, set_assemble_status
 from sentry.testutils.cases import APITestCase, TestCase
@@ -235,6 +236,16 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
         assert response.status_code == 400, response.content
 
+    def test_assemble_json_schema_invalid_provider(self) -> None:
+        """Test that invalid provider is rejected."""
+        response = self.client.post(
+            self.url,
+            data={"checksum": "a" * 40, "chunks": [], "provider": "invalid"},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data["error"] == "Unsupported provider"
+
     def test_assemble_json_schema_missing_checksum(self) -> None:
         """Test that missing checksum field is rejected."""
         response = self.client.post(
@@ -344,9 +355,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
     ) -> None:
         content = b"test preprod artifact content"
         total_checksum = sha1(content).hexdigest()
-        artifact_id = "test-artifact-id"
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+        )
+        assert artifact is not None
+        artifact_id = artifact.id
 
-        mock_create_preprod_artifact.return_value = artifact_id
+        mock_create_preprod_artifact.return_value = artifact
 
         blob = FileBlob.from_file(ContentFile(content))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
@@ -405,9 +422,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
     ) -> None:
         content = b"test preprod artifact with metadata"
         total_checksum = sha1(content).hexdigest()
-        artifact_id = "test-artifact-id-with-metadata"
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+        )
+        assert artifact is not None
+        artifact_id = artifact.id
 
-        mock_create_preprod_artifact.return_value = artifact_id
+        mock_create_preprod_artifact.return_value = artifact
 
         blob = FileBlob.from_file(ContentFile(content))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
@@ -719,7 +742,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
-        assert response.status_code == 200, response.content
+        assert response.status_code == 500, response.content
         assert response.data["state"] == ChunkFileState.ERROR
         assert response.data["detail"] == "Failed to create preprod artifact row."
 
@@ -738,3 +761,46 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             base_ref=None,
             pr_number=None,
         )
+
+    def test_assemble_missing_vcs_parameters(self) -> None:
+        """Test that providing partial VCS parameters returns a 400 error with specific missing params."""
+        content = b"test missing vcs params"
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file(ContentFile(content))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
+
+        # Test missing head_ref
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob.checksum],
+                "head_sha": "e" * 40,
+                "provider": "github",
+                "head_repo_name": "owner/repo",
+                # Missing head_ref
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        assert response.status_code == 400, response.content
+        assert "error" in response.data
+        assert "Missing parameters: head_ref" in response.data["error"]
+
+        # Test missing multiple parameters
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob.checksum],
+                "head_sha": "e" * 40,
+                # Missing provider, head_repo_name, head_ref
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        assert response.status_code == 400, response.content
+        assert "error" in response.data
+        assert "Missing parameters:" in response.data["error"]
+        assert "head_repo_name" in response.data["error"]
+        assert "provider" in response.data["error"]
+        assert "head_ref" in response.data["error"]

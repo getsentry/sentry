@@ -22,7 +22,6 @@ import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
-import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {useUser} from 'sentry/utils/useUser';
 import useFinalizeRelease from 'sentry/views/releases/components/useFinalizeRelease';
 import type {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
@@ -129,19 +128,9 @@ function ReleaseCard({
               query: {project: getReleaseProjectId(release, selection)},
             }}
           >
-            <DemoTourElement
-              id={DemoTourStep.RELEASES_DETAILS}
-              disabled={!isTopRelease || projectsToShow.length > 1}
-              title={t('Release-specific trends')}
-              description={t(
-                'Select the latest release to review new and regressed issues, and business critical metrics like crash rate, and user adoption.'
-              )}
-              position="bottom-start"
-            >
-              <VersionWrapper>
-                <StyledVersion version={version} tooltipRawVersion anchor={false} />
-              </VersionWrapper>
-            </DemoTourElement>
+            <VersionWrapper>
+              <StyledVersion version={version} tooltipRawVersion anchor={false} />
+            </VersionWrapper>
           </GlobalSelectionLink>
           {commitCount > 0 && (
             <ReleaseCardCommits release={release} withHeading={false} />
@@ -157,7 +146,10 @@ function ReleaseCard({
                   </TextOverflow>
                 )}
               </PackageName>
-              <TimeSince date={lastDeploy?.dateFinished || dateCreated} />
+              <TimeSince
+                tooltipPrefix={lastDeploy?.dateFinished ? t('Finished:') : t('Created:')}
+                date={lastDeploy?.dateFinished || dateCreated}
+              />
               {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
               &nbsp;
             </PackageContainer>
@@ -220,7 +212,7 @@ function ReleaseCard({
         {/* projects is the table */}
         <ReleaseProjectsHeader lightText>
           <ReleaseProjectsLayout showReleaseAdoptionStages={showReleaseAdoptionStages}>
-            <ReleaseProjectColumn>{t('Project Name')}</ReleaseProjectColumn>
+            <ReleaseProjectColumn>{t('Project Slug')}</ReleaseProjectColumn>
             {showReleaseAdoptionStages && (
               <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
             )}

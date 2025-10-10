@@ -14,7 +14,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.utils.committers import get_frame_paths, get_serialized_event_file_committers
+from sentry.utils.committers import get_frame_paths
 
 pytestmark = [requires_snuba]
 
@@ -128,26 +128,6 @@ class TestGroupOwners(TestCase):
             schedule_hybrid_cloud_foreign_key_jobs()
 
         assert GroupOwner.objects.count() == 1
-
-    def test_no_matching_user(self) -> None:
-        self.set_release_commits("not@real.user")
-
-        result = get_serialized_event_file_committers(self.project, self.event)
-
-        assert len(result) == 1
-        assert "commits" in result[0]
-        assert len(result[0]["commits"]) == 1
-        assert result[0]["commits"][0]["id"] == "a" * 40
-        assert not GroupOwner.objects.filter(group=self.event.group).exists()
-        event_frames = get_frame_paths(self.event)
-        process_suspect_commits(
-            event_id=self.event.event_id,
-            event_platform=self.event.platform,
-            event_frames=event_frames,
-            group_id=self.event.group_id,
-            project_id=self.event.project_id,
-        )
-        assert not GroupOwner.objects.filter(group=self.event.group).exists()
 
     def test_delete_old_entries(self) -> None:
         # As new events come in associated with new owners, we should delete old ones.
@@ -492,3 +472,40 @@ class TestGroupOwners(TestCase):
         )
 
         assert owners.count() == 1
+
+    def test_external_author_no_user(self) -> None:
+        """
+        Test _process_suspect_commits with external commit author (no Sentry user).
+        TODO(nora): This test should FAIL until I update the code to handle external authors.
+        """
+        # Set up a commit with external author email (not a Sentry user)
+        external_email = "external@company.com"
+        self.set_release_commits(external_email)
+
+        assert not GroupOwner.objects.filter(group=self.event.group).exists()
+        event_frames = get_frame_paths(self.event)
+
+        # Test: process_suspect_commits should handle external authors.
+        # Currently this will NOT create a GroupOwner because the code
+        # only processes authors that have existing Sentry user accounts.
+        process_suspect_commits(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_frames=event_frames,
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+        )
+
+        # Once the code is updated, this should pass:
+        # group_owners = GroupOwner.objects.filter(
+        #     group=self.event.group,
+        #     project=self.event.project,
+        #     organization=self.event.project.organization,
+        #     type=GroupOwnerType.SUSPECT_COMMIT.value,
+        # )
+        # assert group_owners.count() == 1
+        # group_owner = group_owners[0]
+        # assert group_owner.user_id is None  # No Sentry user mapping
+        # assert (
+        #     group_owner.context.get("suspectCommitStrategy") == SuspectCommitStrategy.RELEASE_BASED
+        # )

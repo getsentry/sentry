@@ -13,6 +13,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.models.environment import Environment
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.search.utils import _HACKY_INVALID_USER
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import (
@@ -56,7 +57,6 @@ class OrganizationDetectorIndexBaseTest(APITestCase):
 
 @region_silo_test
 class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
-
     def test_simple(self) -> None:
         detector = self.create_detector(
             project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
@@ -93,6 +93,8 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             config={
                 "mode": 1,
                 "environment": "production",
+                "recovery_threshold": 1,
+                "downtime_threshold": 3,
             },
         )
         self.create_data_source_detector(
@@ -401,8 +403,16 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             config={
                 "mode": 1,
                 "environment": "production",
+                "recovery_threshold": 1,
+                "downtime_threshold": 3,
             },
         )
+        cron_detector = self.create_detector(
+            project_id=self.project.id,
+            name="Cron Detector",
+            type=MonitorIncidentType.slug,
+        )
+
         response = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id, "query": "type:metric"}
         )
@@ -412,6 +422,11 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             self.organization.slug, qs_params={"project": self.project.id, "query": "type:uptime"}
         )
         assert {d["name"] for d in response.data} == {uptime_detector.name}
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id, "query": "type:cron"}
+        )
+        assert {d["name"] for d in response.data} == {cron_detector.name}
 
     def test_general_query(self) -> None:
         detector = self.create_detector(
@@ -691,15 +706,17 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             "name": "Test Detector",
             "type": MetricIssue.slug,
             "projectId": self.project.id,
-            "dataSource": {
-                "queryType": SnubaQuery.Type.ERROR.value,
-                "dataset": Dataset.Events.name.lower(),
-                "query": "test query",
-                "aggregate": "count()",
-                "timeWindow": 3600,
-                "environment": self.environment.name,
-                "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
-            },
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.ERROR.value,
+                    "dataset": Dataset.Events.name.lower(),
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+                }
+            ],
             "conditionGroup": {
                 "id": self.data_condition_group.id,
                 "organizationId": self.organization.id,
@@ -723,7 +740,9 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
     def test_reject_upsampled_count_aggregate(self) -> None:
         """Users should not be able to submit upsampled_count() directly in ACI."""
         data = {**self.valid_data}
-        data["dataSource"] = {**self.valid_data["dataSource"], "aggregate": "upsampled_count()"}
+        data["dataSources"] = [
+            {**self.valid_data["dataSources"][0], "aggregate": "upsampled_count()"}
+        ]
 
         response = self.get_error_response(
             self.organization.slug,
@@ -805,8 +824,11 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             "detail": ErrorDetail(string="The requested resource does not exist", code="error")
         }
 
+    @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_valid_creation(self, mock_audit: mock.MagicMock) -> None:
+    def test_valid_creation(
+        self, mock_audit: mock.MagicMock, mock_schedule_update_project_config
+    ) -> None:
         with self.tasks():
             response = self.get_success_response(
                 self.organization.slug,
@@ -866,6 +888,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             event=mock.ANY,
             data=detector.get_audit_log_data(),
         )
+        mock_schedule_update_project_config.assert_called_once_with(detector)
 
     def test_invalid_workflow_ids(self) -> None:
         # Workflow doesn't exist at all
@@ -923,7 +946,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
 
     def test_empty_query_string(self) -> None:
         data = {**self.valid_data}
-        data["dataSource"]["query"] = ""
+        data["dataSources"][0]["query"] = ""
 
         with self.tasks():
             response = self.get_success_response(
@@ -961,7 +984,12 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         assert detector.owner.identifier == self.user.get_actor_identifier()
 
         # Verify serialized response includes owner
-        assert response.data["owner"] == self.user.get_actor_identifier()
+        assert response.data["owner"] == {
+            "email": self.user.email,
+            "id": str(self.user.id),
+            "name": self.user.get_username(),
+            "type": "user",
+        }
 
     def test_valid_creation_with_team_owner(self) -> None:
         # Create a team for testing
@@ -989,7 +1017,11 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         assert detector.owner.identifier == f"team:{team.id}"
 
         # Verify serialized response includes team owner
-        assert response.data["owner"] == f"team:{team.id}"
+        assert response.data["owner"] == {
+            "id": str(team.id),
+            "name": team.slug,
+            "type": "team",
+        }
 
     def test_invalid_owner(self) -> None:
         # Test with invalid owner format

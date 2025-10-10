@@ -16,12 +16,10 @@ import * as qs from 'query-string';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Flex} from 'sentry/components/core/layout';
-import {getRelativeDate} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
@@ -48,10 +46,9 @@ import {TraceOpenInExploreButton} from 'sentry/views/performance/newTraceDetails
 import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
-import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
-import type {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
-import type {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
+import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
+import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -69,9 +66,8 @@ import {
   useTraceStateDispatch,
   useTraceStateEmitter,
 } from './traceState/traceStateProvider';
-import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
 import {Trace} from './trace';
-import {traceAnalytics, type TraceWaterFallSource} from './traceAnalytics';
+import {traceAnalytics} from './traceAnalytics';
 import {
   isAutogroupedNode,
   isEAPTraceNode,
@@ -106,8 +102,6 @@ export interface TraceWaterfallProps {
   trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
   traceEventView: EventView;
   traceSlug: string;
-  traceWaterfallModels: ReturnType<typeof useTraceWaterfallModels>;
-  traceWaterfallScrollHandlers: ReturnType<typeof useTraceWaterfallScroll>;
   tree: TraceTree;
   // If set to true, the entire waterfall will not render if it is empty.
   hideIfNoData?: boolean;
@@ -130,20 +124,22 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const traceStateRef = useRef<TraceReducerState>(traceState);
   traceStateRef.current = traceState;
 
-  const {viewManager, traceScheduler, traceView} = props.traceWaterfallModels;
-  const {onScrollToNode, scrollRowIntoView} = props.traceWaterfallScrollHandlers;
+  const {viewManager, traceScheduler, traceView} = useTraceWaterfallModels();
+  const {onScrollToNode, scrollRowIntoView} = useTraceWaterfallScroll({
+    organization,
+    tree: props.tree,
+    viewManager,
+  });
 
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
 
   const projectsRef = useRef<Project[]>(projects);
   projectsRef.current = projects;
 
-  const scrollQueueRef = useTraceScrollToPath();
+  const scrollQueueRef = useTraceScrollToPath({traceSlug: props.traceSlug});
   const forceRerender = useCallback(() => {
     flushSync(rerender);
   }, []);
-
-  const {timestamp} = useTraceQueryParams();
 
   const showLinkedTraces =
     organization?.features.includes('trace-view-linked-traces') &&
@@ -443,47 +439,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     }
   }, [props.tree, props.meta]);
 
-  const {
-    data: {hasExceededPerformanceUsageLimit},
-    isLoading: isLoadingSubscriptionDetails,
-  } = usePerformanceSubscriptionDetails();
-
-  const source: TraceWaterFallSource = props.replay ? 'replay_details' : 'trace_view';
-
-  useEffect(() => {
-    if (props.tree.type !== 'trace') {
-      return;
-    }
-
-    const traceNode = props.tree.root.children[0];
-
-    if (traceNode && !isLoadingSubscriptionDetails) {
-      const traceTimestamp = traceNode.space[0] ?? (timestamp ? timestamp * 1000 : null);
-      const traceAge = defined(traceTimestamp)
-        ? getRelativeDate(traceTimestamp, 'ago')
-        : 'unknown';
-      const issuesCount = TraceTree.UniqueIssues(traceNode).length;
-
-      traceAnalytics.trackTraceShape(
-        props.tree,
-        projectsRef.current,
-        props.organization,
-        hasExceededPerformanceUsageLimit,
-        source,
-        traceAge,
-        issuesCount,
-        props.tree.eap_spans_count
-      );
-    }
-  }, [
-    props.tree,
-    hasExceededPerformanceUsageLimit,
-    source,
-    isLoadingSubscriptionDetails,
-    timestamp,
-    props.organization,
-  ]);
-
   // Callback that is invoked when the trace loads and reaches its initialied state,
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
@@ -493,6 +448,13 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     if (!traceNode) {
       throw new Error('Trace is initialized but no trace node is found');
     }
+
+    traceScheduler.dispatch('initialize trace space', [
+      props.tree.root.space[0],
+      0,
+      props.tree.root.space[1],
+      1,
+    ]);
 
     // The tree has the data fetched, but does not yet respect the user preferences.
     // We will autogroup and inject missing instrumentation if the preferences are set.
@@ -571,6 +533,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       viewManager.row_measurer.on('row measure end', onTargetRowMeasure);
       previouslyScrolledToNodeRef.current = node;
 
+      traceDispatch({type: 'minimize drawer', payload: false});
       setRowAsFocused(node, null, traceStateRef.current.search.resultsLookup, index);
       traceDispatch({
         type: 'set roving index',
@@ -848,14 +811,14 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           props.rootEventResults.data.timestamp ? (
             <Fragment>
               <TraceLinkNavigationButton
-                direction={'previous'}
+                direction="previous"
                 attributes={props.rootEventResults.data.attributes}
                 currentTraceStartTimestamp={
                   new Date(props.rootEventResults.data.timestamp).getTime() / 1000
                 }
               />
               <TraceLinkNavigationButton
-                direction={'next'}
+                direction="next"
                 attributes={props.rootEventResults.data.attributes}
                 currentTraceStartTimestamp={
                   new Date(props.rootEventResults.data.timestamp).getTime() / 1000

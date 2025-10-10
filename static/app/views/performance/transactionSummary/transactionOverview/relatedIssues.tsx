@@ -121,6 +121,7 @@ function RelatedIssues({
           withChart={false}
           withPagination={false}
           source="performance-related-issues"
+          numPlaceholderRows={queryParams.limit}
         />
       </TableWrapper>
     </Fragment>

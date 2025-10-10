@@ -67,6 +67,9 @@ const applyMaxSize: Modifier<'applyMaxSize', Record<string, unknown>> = {
   requires: ['maxSize'],
   enabled: false, // will be enabled when overlay is open
   fn({state}) {
+    if (!state.modifiersData.maxSize) {
+      return;
+    }
     const {width, height} = state.modifiersData.maxSize;
     state.styles.popper!.maxHeight = height;
     state.styles.popper!.maxWidth = width;

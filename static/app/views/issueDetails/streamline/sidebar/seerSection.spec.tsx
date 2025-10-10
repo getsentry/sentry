@@ -130,7 +130,7 @@ describe('SeerSection', () => {
       expect(
         await screen.findByText('Meet Seer, the AI debugging agent.')
       ).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Fix it for me'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Fix with Seer'})).toBeInTheDocument();
     });
 
     it('shows "Find Root Cause" even when autofix needs setup', async () => {

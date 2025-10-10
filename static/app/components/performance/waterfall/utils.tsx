@@ -1,9 +1,6 @@
 import {css, type Theme} from '@emotion/react';
 import Color from 'color';
 
-import type {DurationDisplay} from 'sentry/components/performance/waterfall/types';
-import {space} from 'sentry/styles/space';
-
 import type {SpanBarType} from './constants';
 import {getSpanBarColors} from './constants';
 
@@ -36,48 +33,6 @@ export function getHatchPattern(spanBarType: SpanBarType | undefined, theme: The
 
   return null;
 }
-
-export const getDurationPillAlignment = ({
-  durationDisplay,
-}: {
-  durationDisplay: DurationDisplay;
-  theme: Theme;
-  spanBarType?: SpanBarType;
-}) => {
-  switch (durationDisplay) {
-    case 'left':
-      return css`
-        right: calc(100% + ${space(0.5)});
-      `;
-    case 'right':
-      return css`
-        left: calc(100% + ${space(0.75)});
-      `;
-    default:
-      return css`
-        right: ${space(0.75)};
-      `;
-  }
-};
-
-export const getDurationPillColors = ({
-  durationDisplay,
-  theme,
-  showDetail,
-  spanBarType,
-}: {
-  durationDisplay: DurationDisplay;
-  showDetail: boolean;
-  theme: Theme;
-  spanBarType?: SpanBarType;
-}) => {
-  if (durationDisplay === 'inset') {
-    const {alternate, insetTextColor} = getSpanBarColors(spanBarType, theme);
-    return `background: ${alternate}; color: ${insetTextColor};`;
-  }
-
-  return `color: ${showDetail ? theme.gray200 : theme.gray300};`;
-};
 
 // get position of element relative to top/left of document
 export const getOffsetOfElement = (element: Element) => {

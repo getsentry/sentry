@@ -17,7 +17,7 @@ describe('TableView > CellActions', () => {
   let onChangeShowTags: jest.Mock;
 
   const location = LocationFixture({
-    pathname: '/organizations/org-slug/discover/results/',
+    pathname: '/organizations/org-slug/explore/discover/results/',
     query: {
       id: '42',
       name: 'best query',
@@ -136,7 +136,7 @@ describe('TableView > CellActions', () => {
 
     expect(sortLink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&queryDataset=transaction-like&sort=-equation%7Ccount%28%29%20%2B%20100&statsPeriod=14d&yAxis=p95'
+      '/organizations/org-slug/explore/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&queryDataset=transaction-like&sort=-equation%7Ccount%28%29%20%2B%20100&statsPeriod=14d&yAxis=p95'
     );
   });
 
@@ -149,7 +149,7 @@ describe('TableView > CellActions', () => {
 
     expect(sortLink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&queryDataset=transaction-like&sort=-transaction&statsPeriod=14d&yAxis=p95'
+      '/organizations/org-slug/explore/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&queryDataset=transaction-like&sort=-transaction&statsPeriod=14d&yAxis=p95'
     );
   });
 
@@ -359,7 +359,7 @@ describe('TableView > CellActions', () => {
     };
 
     const loc = LocationFixture({
-      pathname: '/organizations/org-slug/discover/results/',
+      pathname: '/organizations/org-slug/explore/discover/results/',
       query: {
         id: '42',
         name: 'best query',
@@ -388,7 +388,7 @@ describe('TableView > CellActions', () => {
       'href',
       expect.stringMatching(
         new RegExp(
-          '/organizations/org-slug/discover/trace/7fdf8efed85a4f9092507063ced1995b/?.*'
+          '/organizations/org-slug/explore/discover/trace/7fdf8efed85a4f9092507063ced1995b/?.*'
         )
       )
     );
@@ -400,7 +400,7 @@ describe('TableView > CellActions', () => {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Go to release'}));
 
     expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/releases/v1.0.2/',
+      pathname: '/organizations/org-slug/explore/releases/v1.0.2/',
       query: expect.objectContaining({
         environment: eventView.environment,
       }),

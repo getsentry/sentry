@@ -42,6 +42,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {LOADING_PROFILE_GROUP} from 'sentry/views/profiling/profileGroupProvider';
 
+const PROFILE_TYPE = 'differential aggregate flamegraph' as const;
+
 const noopFormatDuration = () => '';
 
 function applicationFrameOnly(frame: Frame): boolean {
@@ -315,6 +317,7 @@ function DifferentialFlamegraphView() {
               setFlamegraphCanvasRef={setFlamegraphCanvasRef}
               setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
               contextMenu={FlamegraphContextMenu}
+              profileType={PROFILE_TYPE}
             />
           }
           flamegraphDrawer={

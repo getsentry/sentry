@@ -19,7 +19,10 @@ SUCCESS_LINKED_MESSAGE = (
 
 
 def build_linking_url(
-    integration: RpcIntegration, slack_id: str, channel_id: str, response_url: str
+    integration: RpcIntegration,
+    slack_id: str | None,
+    channel_id: str | None,
+    response_url: str | None,
 ) -> str:
     return base_build_linking_url(
         "sentry-integration-slack-link-identity",

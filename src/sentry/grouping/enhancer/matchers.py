@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, Literal, Self, TypedDict
+from typing import Any, Literal, TypedDict
 
 from sentry.grouping.utils import bool_from_string
 from sentry.stacktraces.functions import get_function_name_for_frame
@@ -190,11 +190,11 @@ InstanceKey = tuple[str, str, bool]
 
 class FrameMatch(EnhancementMatch):
     # Global registry of matchers
-    instances: dict[InstanceKey, Self] = {}
+    instances: dict[InstanceKey, EnhancementMatch] = {}
     field: MatchFrameKey | None = None
 
     @classmethod
-    def from_key(cls, key: str, pattern: str, negated: bool) -> Self:
+    def from_key(cls, key: str, pattern: str, negated: bool) -> EnhancementMatch:
         instance_key = (key, pattern, negated)
         if instance_key in cls.instances:
             instance = cls.instances[instance_key]

@@ -172,7 +172,7 @@ function AddMemberDropdown({
       data-test-id="add-member-menu"
       disabled={isDropdownDisabled}
       menuTitle={t('Members')}
-      triggerLabel={t('Add Member')}
+      triggerProps={{children: t('Add Member')}}
       searchPlaceholder={t('Search Members')}
       emptyMessage={t('No members')}
       loading={isOrgMembersFetching}

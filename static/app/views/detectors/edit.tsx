@@ -16,6 +16,7 @@ export default function DetectorEdit() {
     data: detector,
     isPending,
     isError,
+    error,
     refetch,
   } = useDetectorQuery(params.detectorId);
 
@@ -27,7 +28,12 @@ export default function DetectorEdit() {
   }
 
   if (isError) {
-    return <LoadingError onRetry={refetch} />;
+    return (
+      <LoadingError
+        message={error.status === 404 ? t('The monitor could not be found.') : undefined}
+        onRetry={refetch}
+      />
+    );
   }
 
   if (!project) {
@@ -35,7 +41,11 @@ export default function DetectorEdit() {
   }
 
   return (
-    <DetectorFormProvider detectorType={detector.type} project={project}>
+    <DetectorFormProvider
+      detectorType={detector.type}
+      project={project}
+      detector={detector}
+    >
       <EditExistingDetectorForm detector={detector} />
     </DetectorFormProvider>
   );

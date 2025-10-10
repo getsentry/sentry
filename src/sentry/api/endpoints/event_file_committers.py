@@ -6,9 +6,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.models.commit import Commit
-from sentry.models.group import Group
-from sentry.models.release import Release
 from sentry.services import eventstore
 from sentry.utils.committers import get_serialized_event_file_committers
 
@@ -22,10 +19,10 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project, event_id) -> Response:
         """
-        Retrieve Committer information for an event
+        Retrieve Suspect Commit information for an event
         ```````````````````````````````````````````
 
-        Return committers on an individual event, plus a per-frame breakdown.
+        Return suspect commits on an individual event.
 
         :pparam string project_id_or_slug: the id or slug of the project the event
                                      belongs to.
@@ -39,18 +36,10 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         elif event.group_id is None:
             raise NotFound(detail="Issue not found")
 
-        try:
-            committers = get_serialized_event_file_committers(
-                project, event, frame_limit=int(request.GET.get("frameLimit", 25))
-            )
+        committers = get_serialized_event_file_committers(project, event)
 
-        # TODO(nisanthan): Remove the Group.DoesNotExist and Release.DoesNotExist once Commit Context goes GA
-        except Group.DoesNotExist:
-            raise NotFound(detail="Issue not found")
-        except Release.DoesNotExist:
-            raise NotFound(detail="Release not found")
-        except Commit.DoesNotExist:
-            raise NotFound(detail="No Commits found for Release")
+        if not committers:
+            raise NotFound(detail="No committers found")
 
         data = {
             "committers": committers,

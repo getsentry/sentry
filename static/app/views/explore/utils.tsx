@@ -34,10 +34,7 @@ import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext'
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import type {
-  BaseVisualize,
-  Visualize,
-} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {
   RawGroupBy,
   RawVisualize,
@@ -53,6 +50,7 @@ import type {
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
@@ -269,14 +267,14 @@ export function generateTargetQuery({
   sorts,
   yAxes,
 }: {
-  fields: string[];
-  groupBys: string[];
+  fields: readonly string[];
+  groupBys: readonly string[];
   location: Location;
   // needed to generate targets when `project` is in the group by
   projects: Project[];
   row: Record<string, any>;
   search: MutableSearch;
-  sorts: Sort[];
+  sorts: readonly Sort[];
   yAxes: string[];
 }) {
   search = search.copy();
@@ -367,15 +365,15 @@ export function viewSamplesTarget({
   row,
   projects,
 }: {
-  fields: string[];
-  groupBys: string[];
+  fields: readonly string[];
+  groupBys: readonly string[];
   location: Location;
   // needed to generate targets when `project` is in the group by
   projects: Project[];
   query: string;
   row: Record<string, any>;
-  sorts: Sort[];
-  visualizes: Visualize[];
+  sorts: readonly Sort[];
+  visualizes: readonly Visualize[];
 }) {
   const search = new MutableSearch(query);
 
@@ -747,6 +745,7 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.LOGS]: getLogsUrlFromSavedQueryUrl,
   [TraceItemDataset.SPANS]: getExploreUrlFromSavedQueryUrl,
   [TraceItemDataset.UPTIME_RESULTS]: undefined,
+  [TraceItemDataset.TRACEMETRICS]: undefined,
 };
 
 /**

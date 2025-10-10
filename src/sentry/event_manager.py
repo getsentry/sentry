@@ -35,7 +35,6 @@ from sentry import (
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
-    INSIGHT_MODULE_FILTERS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
     PLACEHOLDER_EVENT_TITLES,
@@ -77,7 +76,11 @@ from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer.datasource.redis import (
     record_transaction_name as record_transaction_name_for_clustering,
 )
+from sentry.insights import FilterSpan
+from sentry.insights import modules as insights_modules
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
+from sentry.issue_detection.performance_detection import detect_performance_problems
+from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
@@ -91,7 +94,7 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import GroupOpenPeriod, create_open_period
+from sentry.models.groupopenperiod import create_open_period
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
@@ -104,9 +107,6 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
-from sentry.options.rollout import in_random_rollout
-from sentry.performance_issues.performance_detection import detect_performance_problems
-from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
@@ -138,11 +138,12 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
 from sentry.utils.eventuser import EventUser
 from sentry.utils.metrics import MutableTags
-from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.outcomes import Outcome, OutcomeAggregator, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
+from sentry.workflow_engine.processors.detector import associate_new_group_with_detector
 
 from .utils.event_tracker import TransactionStageStatus, track_sampled_event
 
@@ -150,6 +151,8 @@ if TYPE_CHECKING:
     from sentry.services.eventstore.models import BaseEvent, Event
 
 logger = logging.getLogger("sentry.events")
+
+outcome_aggregator = OutcomeAggregator()
 
 SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple", "nel")
 
@@ -546,6 +549,7 @@ class EventManager:
                 increment_group_tombstone_hit_counter(
                     getattr(e, "tombstone_id", None), job["event"]
                 )
+            # TODO: make sure that already stored attachments are deleted
             discard_event(job, attachments)
             raise
 
@@ -564,6 +568,7 @@ class EventManager:
         _tsdb_record_all_metrics(jobs)
 
         if attachments:
+            # TODO: make sure that already stored attachments are deleted
             attachments = filter_attachments_for_group(attachments, job)
 
         # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
@@ -908,17 +913,23 @@ def _get_or_create_environment_many(jobs: Sequence[Job], projects: ProjectsMappi
 @sentry_sdk.tracing.trace
 def _get_or_create_group_environment_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
-        _get_or_create_group_environment(job["environment"], job["release"], job["groups"])
+        _get_or_create_group_environment(
+            job["environment"], job["release"], job["groups"], job["event"].datetime
+        )
 
 
 def _get_or_create_group_environment(
-    environment: Environment, release: Release | None, groups: Sequence[GroupInfo]
+    environment: Environment,
+    release: Release | None,
+    groups: Sequence[GroupInfo],
+    event_datetime: datetime,
 ) -> None:
     for group_info in groups:
+
         group_info.is_new_group_environment = GroupEnvironment.get_or_create(
             group_id=group_info.group.id,
             environment_id=environment.id,
-            defaults={"first_release": release or None},
+            defaults={"first_release": release or None, "first_seen": event_datetime},
         )[1]
 
 
@@ -1162,15 +1173,15 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
         event = job["event"]
 
-        track_outcome(
+        outcome_aggregator.track_outcome_aggregated(
             org_id=event.project.organization_id,
             project_id=job["project_id"],
             key_id=job["key_id"],
             outcome=Outcome.ACCEPTED,
             reason=None,
             timestamp=to_datetime(job["start_time"]),
-            event_id=event.event_id,
             category=job["category"],
+            quantity=1,
         )
 
 
@@ -1312,22 +1323,6 @@ def assign_event_to_group(
             result = "no_match"
 
     # From here on out, we're just doing housekeeping
-
-    # TODO: Temporary metric to debug missing grouphash metadata. This metric *should* exactly match
-    # the `grouping.grouphashmetadata.backfill_needed` metric collected in
-    # `get_or_create_grouphashes`. If it doesn't, perhaps there's a race condition between creation
-    # of the metadata and our ability to pull it from the database immediately thereafter.
-    for grouphash in [*primary.grouphashes, *secondary.grouphashes]:
-        if not grouphash.metadata:
-            logger.warning(
-                "grouphash_metadata.hash_without_metadata",
-                extra={
-                    "event_id": event.event_id,
-                    "project_id": project.id,
-                    "hash": grouphash.hash,
-                },
-            )
-            metrics.incr("grouping.grouphashmetadata.backfill_needed_2", sample_rate=1.0)
 
     # Background grouping is a way for us to get performance metrics for a new
     # config without having it actually affect on how events are grouped. It runs
@@ -1500,6 +1495,7 @@ def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> Gro
             record_new_group_metrics(event)
 
             group = _create_group(project, event, **_get_group_processing_kwargs(job))
+            associate_new_group_with_detector(group)
             add_group_id_to_grouphashes(group, grouphashes)
 
             return GroupInfo(group=group, is_new=True, is_regression=False)
@@ -1601,13 +1597,8 @@ def _create_group(
             logger.exception("Error after unsticking project counter")
             raise
 
-    if features.has("organizations:issue-open-periods", project.organization):
-        GroupOpenPeriod.objects.create(
-            group=group,
-            project_id=project.id,
-            date_started=group.first_seen,
-            date_ended=None,
-        )
+    create_open_period(group=group, start_time=group.first_seen)
+
     return group
 
 
@@ -1933,12 +1924,6 @@ def _process_existing_aggregate(
 
 
 severity_connection_pool = connection_from_url(
-    settings.SEER_SEVERITY_URL,
-    retries=settings.SEER_SEVERITY_RETRIES,
-    timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
-)
-
-severity_connection_pool_gpu = connection_from_url(
     settings.SEER_GROUPING_URL,
     retries=settings.SEER_SEVERITY_RETRIES,
     timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
@@ -2162,17 +2147,11 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
         try:
             with metrics.timer(op):
                 timeout = options.get(
-                    "issues.severity.seer-timout",
-                    settings.SEER_SEVERITY_TIMEOUT / 1000,
+                    "issues.severity.seer-timeout",
+                    settings.SEER_SEVERITY_TIMEOUT,
                 )
-
-                if in_random_rollout("issues.severity.gpu-rollout-rate"):
-                    connection_pool = severity_connection_pool_gpu
-                else:
-                    connection_pool = severity_connection_pool
-
                 response = make_signed_seer_api_request(
-                    connection_pool,
+                    severity_connection_pool,
                     "/v0/issues/severity-score",
                     body=orjson.dumps(payload),
                     timeout=timeout,
@@ -2313,9 +2292,6 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
     :param attachments: The full list of attachments to filter.
     :param job:         The job context container.
     """
-    if not attachments:
-        return attachments
-
     event = job["event"]
     project = event.project
 
@@ -2427,7 +2403,7 @@ def save_attachment(
         timestamp = datetime.now(timezone.utc)
 
     try:
-        attachment.data
+        attachment.stored_id or attachment.data
     except MissingAttachmentChunks:
         track_outcome(
             org_id=project.organization_id,
@@ -2624,15 +2600,14 @@ def _record_transaction_info(
                     event=event,
                 )
 
-            spans = job["data"]["spans"]
-            for module, is_module in INSIGHT_MODULE_FILTERS.items():
-                if is_module(spans):
-                    set_project_flag_and_signal(
-                        project,
-                        INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module],
-                        first_insight_span_received,
-                        module=module,
-                    )
+            spans = [FilterSpan.from_span_v1(span) for span in job["data"]["spans"]]
+            for module in insights_modules(spans):
+                set_project_flag_and_signal(
+                    project,
+                    INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module],
+                    first_insight_span_received,
+                    module=module,
+                )
 
             if job["release"]:
                 environment = job["data"].get("environment") or None  # coorce "" to None

@@ -1,8 +1,8 @@
 import {AuditLogsFixture} from 'sentry-fixture/auditLogs';
 import {AuditLogsApiEventNamesFixture} from 'sentry-fixture/auditLogsApiEventNames';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   screen,
@@ -15,12 +15,7 @@ import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 // XXX(epurkhiser): This appears to also be tested by ./index.spec.tsx
 
 describe('OrganizationAuditLog', () => {
-  const {organization, router} = initializeOrg({
-    projects: [],
-    router: {
-      params: {orgId: 'org-slug'},
-    },
-  });
+  const organization = OrganizationFixture();
   const ENDPOINT = `/organizations/${organization.slug}/audit-logs/`;
 
   beforeEach(() => {
@@ -32,7 +27,7 @@ describe('OrganizationAuditLog', () => {
   });
 
   it('renders', async () => {
-    render(<OrganizationAuditLog location={router.location} />);
+    render(<OrganizationAuditLog />);
 
     expect(await screen.findByRole('heading')).toHaveTextContent('Audit Log');
     // Check that both textboxes are present (date selector search and event selector)
@@ -52,13 +47,13 @@ describe('OrganizationAuditLog', () => {
       body: {rows: [], options: AuditLogsApiEventNamesFixture()},
     });
 
-    render(<OrganizationAuditLog location={router.location} />);
+    render(<OrganizationAuditLog />);
 
     expect(await screen.findByText('No audit entries available')).toBeInTheDocument();
   });
 
   it('displays whether an action was done by a superuser', async () => {
-    render(<OrganizationAuditLog location={router.location} />);
+    render(<OrganizationAuditLog />);
 
     expect(await screen.findByText('Sentry Staff')).toBeInTheDocument();
     expect(screen.getAllByText('Foo Bar')).toHaveLength(2);
@@ -74,7 +69,7 @@ describe('OrganizationAuditLog', () => {
       },
     });
 
-    render(<OrganizationAuditLog location={router.location} />);
+    render(<OrganizationAuditLog />);
 
     await userEvent.click(screen.getByText('Select Action:'));
 
@@ -115,7 +110,7 @@ describe('OrganizationAuditLog', () => {
       },
     });
 
-    render(<OrganizationAuditLog location={router.location} />);
+    render(<OrganizationAuditLog />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 

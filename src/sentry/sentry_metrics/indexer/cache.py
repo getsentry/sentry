@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import random
 from collections.abc import Collection, Iterable, Mapping, MutableMapping, Sequence
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from django.conf import settings
 from django.core.cache import caches
@@ -117,7 +117,7 @@ class StringIndexerCache:
         return formatted
 
     def _is_valid_timestamp(self, timestamp: str) -> bool:
-        return int(timestamp) >= int((datetime.utcnow() - timedelta(hours=3)).timestamp())
+        return int(timestamp) >= int((datetime.now(UTC) - timedelta(hours=3)).timestamp())
 
     def _validate_result(self, result: str | None) -> int | None:
         if result is None:
@@ -150,7 +150,7 @@ class StringIndexerCache:
             metrics.incr(_INDEXER_CACHE_DOUBLE_WRITE_METRIC)
             self.cache.set(
                 key=self._make_namespaced_cache_key(namespace, key),
-                value=self._make_cache_val(value, int(datetime.utcnow().timestamp())),
+                value=self._make_cache_val(value, int(datetime.now(UTC).timestamp())),
                 timeout=self.randomized_ttl,
                 version=self.version,
             )
@@ -180,7 +180,7 @@ class StringIndexerCache:
         self.cache.set_many(cache_key_values, timeout=self.randomized_ttl, version=self.version)
         if options.get(NAMESPACED_WRITE_FEAT_FLAG):
             metrics.incr(_INDEXER_CACHE_DOUBLE_WRITE_METRIC)
-            timestamp = int(datetime.utcnow().timestamp())
+            timestamp = int(datetime.now(UTC).timestamp())
             namespaced_cache_key_values = {
                 self._make_namespaced_cache_key(namespace, k): self._make_cache_val(v, timestamp)
                 for k, v in key_values.items()

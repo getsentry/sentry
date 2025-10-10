@@ -1,28 +1,21 @@
 import unittest
 from datetime import timedelta
-from typing import Any
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock
 from uuid import uuid4
 
-import pytest
 from django.utils import timezone
 
-from sentry.integrations.github.integration import GitHubIntegration
-from sentry.integrations.models.integration import Integration
 from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
-from sentry.models.groupowner import GroupOwner, GroupOwnerType
-from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.release import Release
-from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.committers import (
     _get_commit_file_changes,
-    _match_commits_path,
+    _get_serialized_committers_from_group_owners,
+    _match_commits_paths,
     dedupe_commits,
     get_frame_paths,
     get_previous_releases,
@@ -31,13 +24,18 @@ from sentry.utils.committers import (
     tokenize_path,
 )
 
-# TODO(lb): Tests are still needed for _get_committers and _get_event_file_commiters
-
 
 class CommitTestCase(TestCase):
     def setUp(self) -> None:
         self.repo = Repository.objects.create(
             organization_id=self.organization.id, name=self.organization.id
+        )
+
+    def create_commit_author(self, name=None, email=None):
+        return CommitAuthor.objects.create(
+            organization_id=self.organization.id,
+            name=name or f"Test Author {uuid4().hex[:8]}",
+            email=email or f"test{uuid4().hex[:8]}@example.com",
         )
 
     def create_commit(self, author=None):
@@ -51,7 +49,7 @@ class CommitTestCase(TestCase):
     def create_commitfilechange(self, commit=None, filename=None, type=None):
         return CommitFileChange.objects.create(
             organization_id=self.organization.id,
-            commit=commit or self.create_commit(),
+            commit_id=(commit or self.create_commit()).id,
             filename=filename or "foo.bar",
             type=type or "M",
         )
@@ -127,15 +125,24 @@ class GetFramePathsTestCase(unittest.TestCase):
 class GetCommitFileChangesTestCase(CommitTestCase):
     def setUp(self) -> None:
         super().setUp()
-        file_change_1 = self.create_commitfilechange(filename="hello/app.py", type="A")
-        file_change_2 = self.create_commitfilechange(filename="hello/templates/app.html", type="A")
-        file_change_3 = self.create_commitfilechange(filename="hello/app.py", type="M")
+        commit_1 = self.create_commit()
+        commit_2 = self.create_commit()
+        commit_3 = self.create_commit()
+        file_change_1 = self.create_commitfilechange(
+            filename="hello/app.py", type="A", commit=commit_1
+        )
+        file_change_2 = self.create_commitfilechange(
+            filename="hello/templates/app.html", type="A", commit=commit_2
+        )
+        file_change_3 = self.create_commitfilechange(
+            filename="hello/app.py", type="M", commit=commit_3
+        )
 
         # ensuring its not just getting all filechanges
         self.create_commitfilechange(filename="goodbye/app.py", type="A")
 
         self.file_changes = [file_change_1, file_change_2, file_change_3]
-        self.commits = [file_change.commit for file_change in self.file_changes]
+        self.commits = [commit_1, commit_2, commit_3]
         self.path_name_set = {file_change.filename for file_change in self.file_changes}
 
     def test_no_paths(self) -> None:
@@ -150,12 +157,13 @@ class GetCommitFileChangesTestCase(CommitTestCase):
 
 class MatchCommitsPathTestCase(CommitTestCase):
     def test_simple(self) -> None:
-        file_change = self.create_commitfilechange(filename="hello/app.py", type="A")
+        commit = self.create_commit()
+        file_change = self.create_commitfilechange(filename="hello/app.py", type="A", commit=commit)
         file_changes = [
             file_change,
             self.create_commitfilechange(filename="goodbye/app.js", type="A"),
         ]
-        assert [(file_change.commit, 2)] == _match_commits_path(file_changes, "hello/app.py")
+        assert [(commit, 2)] == _match_commits_paths(file_changes, {"hello/app.py"})["hello/app.py"]
 
     def test_skip_one_score_match_longer_than_one_token(self) -> None:
         file_changes = [
@@ -163,42 +171,60 @@ class MatchCommitsPathTestCase(CommitTestCase):
             self.create_commitfilechange(filename="hello/world/app.py", type="A"),
             self.create_commitfilechange(filename="hello/world/template/app.py", type="A"),
         ]
-        assert [] == _match_commits_path(file_changes, "app.py")
+        assert [] == _match_commits_paths(file_changes, {"app.py"})["app.py"]
 
     def test_similar_paths(self) -> None:
+        commits = [self.create_commit(), self.create_commit(), self.create_commit()]
         file_changes = [
-            self.create_commitfilechange(filename="hello/app.py", type="A"),
-            self.create_commitfilechange(filename="world/hello/app.py", type="A"),
-            self.create_commitfilechange(filename="template/hello/app.py", type="A"),
+            self.create_commitfilechange(filename="hello/app.py", type="A", commit=commits[0]),
+            self.create_commitfilechange(
+                filename="world/hello/app.py", type="A", commit=commits[1]
+            ),
+            self.create_commitfilechange(
+                filename="template/hello/app.py", type="A", commit=commits[2]
+            ),
         ]
-
-        commits = sorted(((fc.commit, 2) for fc in file_changes), key=lambda fc: fc[0].id)
-        assert commits == sorted(
-            _match_commits_path(file_changes, "hello/app.py"), key=lambda fc: fc[0].id
+        assert [(c, 2) for c in commits] == sorted(
+            _match_commits_paths(file_changes, {"hello/app.py"})["hello/app.py"],
+            key=lambda fc: fc[0].id,
         )
 
     def test_path_shorter_than_filechange(self) -> None:
+        commit_1 = self.create_commit()
+        commit_2 = self.create_commit()
         file_changes = [
             self.create_commitfilechange(filename="app.py", type="A"),
-            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="A"),
-            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="M"),
-        ]
-
-        assert set(map(lambda x: x[0], _match_commits_path(file_changes, "e/f/g/h/app.py"))) == {
-            file_changes[1].commit,
-            file_changes[2].commit,
-        }
-
-    def test_path_longer_than_filechange(self) -> None:
-        file_changes = [
-            self.create_commitfilechange(filename="app.py", type="A"),
-            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="A"),
-            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="M"),
+            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="A", commit=commit_1),
+            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="M", commit=commit_2),
         ]
 
         assert set(
-            map(lambda x: x[0], _match_commits_path(file_changes, "/a/b/c/d/e/f/g/h/app.py"))
-        ) == {file_changes[1].commit, file_changes[2].commit}
+            map(
+                lambda x: x[0],
+                _match_commits_paths(file_changes, {"e/f/g/h/app.py"})["e/f/g/h/app.py"],
+            )
+        ) == {
+            commit_1,
+            commit_2,
+        }
+
+    def test_path_longer_than_filechange(self) -> None:
+        commit_1 = self.create_commit()
+        commit_2 = self.create_commit()
+        file_changes = [
+            self.create_commitfilechange(filename="app.py", type="A"),
+            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="A", commit=commit_1),
+            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="M", commit=commit_2),
+        ]
+
+        assert set(
+            map(
+                lambda x: x[0],
+                _match_commits_paths(file_changes, {"/a/b/c/d/e/f/g/h/app.py"})[
+                    "/a/b/c/d/e/f/g/h/app.py"
+                ],
+            )
+        ) == {commit_1, commit_2}
 
 
 class GetPreviousReleasesTestCase(TestCase):
@@ -234,794 +260,269 @@ class GetPreviousReleasesTestCase(TestCase):
         assert releases[1] == release1
 
 
-class GetEventFileCommitters(CommitTestCase):
+class GetSerializedEventFileCommitters(CommitTestCase):
+    """Tests for the GroupOwner-based committers functionality."""
+
     def setUp(self) -> None:
         super().setUp()
-        self.release = self.create_release(project=self.project, version="v12")
-        self.group = self.create_group(
-            project=self.project, message="Kaboom!", first_release=self.release
-        )
+        self.group = self.create_group(project=self.project, message="Kaboom!")
 
-    def test_java_sdk_path_mangling(self) -> None:
+    def test_with_scm_based_groupowner(self) -> None:
+        """Test that SCM-based GroupOwner returns expected commit data."""
         event = self.store_event(
-            data={
-                "message": "Kaboom!",
-                "platform": "java",
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "function": "invoke0",
-                            "abs_path": "NativeMethodAccessorImpl.java",
-                            "in_app": False,
-                            "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
-                            "filename": "NativeMethodAccessorImpl.java",
-                        },
-                        {
-                            "function": "home",
-                            "abs_path": "Application.java",
-                            "module": "io.sentry.example.Application",
-                            "in_app": True,
-                            "lineno": 30,
-                            "filename": "Application.java",
-                        },
-                        {
-                            "function": "handledError",
-                            "abs_path": "Application.java",
-                            "module": "io.sentry.example.Application",
-                            "in_app": True,
-                            "lineno": 39,
-                            "filename": "Application.java",
-                        },
-                    ]
-                },
-                "tags": {"sentry:release": self.release.version},
-            },
-            project_id=self.project.id,
-        )
-        self.release.set_commits(
-            [
-                {
-                    "id": "a" * 40,
-                    "repository": self.repo.name,
-                    "author_email": "bob@example.com",
-                    "author_name": "Bob",
-                    "message": "i fixed a bug",
-                    "patch_set": [
-                        {"path": "src/main/java/io/sentry/example/Application.java", "type": "M"}
-                    ],
-                }
-            ]
+            data={"message": "Kaboom!", "platform": "python"}, project_id=self.project.id
         )
         assert event.group is not None
-        GroupRelease.objects.create(
-            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
-        )
 
-        result = get_serialized_event_file_committers(self.project, event)
-        assert len(result) == 1
-        assert "commits" in result[0]
-        assert len(result[0]["commits"]) == 1
-        assert result[0]["commits"][0]["id"] == "a" * 40
-        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
-
-    def test_kotlin_java_sdk_path_mangling(self) -> None:
-        event = self.store_event(
-            data={
-                "message": "Kaboom!",
-                "platform": "java",
-                "exception": {
-                    "values": [
-                        {
-                            "type": "RuntimeException",
-                            "value": "button clicked",
-                            "module": "java.lang",
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "function": "main",
-                                        "module": "com.android.internal.os.ZygoteInit",
-                                        "filename": "ZygoteInit.java",
-                                        "abs_path": "ZygoteInit.java",
-                                        "lineno": 1003,
-                                        "in_app": False,
-                                    },
-                                    {
-                                        "function": "run",
-                                        "module": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
-                                        "filename": "RuntimeInit.java",
-                                        "abs_path": "RuntimeInit.java",
-                                        "lineno": 548,
-                                        "in_app": False,
-                                    },
-                                    {
-                                        "function": "invoke",
-                                        "module": "java.lang.reflect.Method",
-                                        "filename": "Method.java",
-                                        "abs_path": "Method.java",
-                                        "in_app": False,
-                                    },
-                                    {
-                                        "function": "main",
-                                        "module": "android.app.ActivityThread",
-                                        "filename": "ActivityThread.java",
-                                        "abs_path": "ActivityThread.java",
-                                        "lineno": 7842,
-                                        "in_app": False,
-                                    },
-                                    {
-                                        "function": "loop",
-                                        "module": "android.os.Looper",
-                                        "filename": "Looper.java",
-                                        "abs_path": "Looper.java",
-                                        "lineno": 288,
-                                        "in_app": False,
-                                    },
-                                    {
-                                        "function": "loopOnce",
-                                        "module": "android.os.Looper",
-                                        "filename": "Looper.java",
-                                        "abs_path": "Looper.java",
-                                        "lineno": 201,
-                                        "in_app": False,
-                                    },
-                                    {
-                                        "function": "dispatchMessage",
-                                        "module": "android.os.Handler",
-                                        "filename": "Handler.java",
-                                        "abs_path": "Handler.java",
-                                        "lineno": 99,
-                                        "in_app": False,
-                                    },
-                                    {
-                                        "function": "handleCallback",
-                                        "module": "android.os.Handler",
-                                        "filename": "Handler.java",
-                                        "abs_path": "Handler.java",
-                                        "lineno": 938,
-                                        "in_app": False,
-                                    },
-                                    {
-                                        "function": "run",
-                                        "module": "android.view.View$PerformClick",
-                                        "filename": "View.java",
-                                        "abs_path": "View.java",
-                                        "lineno": 28810,
-                                        "in_app": False,
-                                    },
-                                    {
-                                        "function": "access$3700",
-                                        "module": "android.view.View",
-                                        "filename": "View.java",
-                                        "abs_path": "View.java",
-                                        "lineno": 835,
-                                        "in_app": False,
-                                    },
-                                    {
-                                        "function": "performClickInternal",
-                                        "module": "android.view.View",
-                                        "filename": "View.java",
-                                        "abs_path": "View.java",
-                                        "lineno": 7432,
-                                        "in_app": False,
-                                    },
-                                    {
-                                        "function": "performClick",
-                                        "module": "com.google.android.material.button.MaterialButton",
-                                        "filename": "MaterialButton.java",
-                                        "abs_path": "MaterialButton.java",
-                                        "lineno": 1119,
-                                        "in_app": False,
-                                    },
-                                    {
-                                        "function": "performClick",
-                                        "module": "android.view.View",
-                                        "filename": "View.java",
-                                        "abs_path": "View.java",
-                                        "lineno": 7455,
-                                        "in_app": False,
-                                    },
-                                    {
-                                        "function": "onClick",
-                                        "module": "com.jetbrains.kmm.androidApp.MainActivity$$ExternalSyntheticLambda0",
-                                        "lineno": 2,
-                                        "in_app": True,
-                                    },
-                                    {
-                                        "function": "$r8$lambda$hGNRcN3pFcj8CSoYZBi9fT_AXd0",
-                                        "module": "com.jetbrains.kmm.androidApp.MainActivity",
-                                        "lineno": 0,
-                                        "in_app": True,
-                                    },
-                                    {
-                                        "function": "onCreate$lambda-1",
-                                        "module": "com.jetbrains.kmm.androidApp.MainActivity",
-                                        "filename": "MainActivity.kt",
-                                        "abs_path": "MainActivity.kt",
-                                        "lineno": 55,
-                                        "in_app": True,
-                                    },
-                                ]
-                            },
-                            "thread_id": 2,
-                            "mechanism": {"type": "UncaughtExceptionHandler", "handled": False},
-                        }
-                    ]
-                },
-                "tags": {"sentry:release": self.release.version},
-            },
-            project_id=self.project.id,
-        )
-        self.release.set_commits(
-            [
-                {
-                    "id": "a" * 40,
-                    "repository": self.repo.name,
-                    "author_email": "bob@example.com",
-                    "author_name": "Bob",
-                    "message": "i fixed a bug",
-                    "patch_set": [
-                        {
-                            "path": "App/src/main/com/jetbrains/kmm/androidApp/MainActivity.kt",
-                            "type": "M",
-                        }
-                    ],
-                }
-            ]
-        )
-        assert event.group is not None
-        GroupRelease.objects.create(
-            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
-        )
-
-        result = get_serialized_event_file_committers(self.project, event)
-        assert len(result) == 1
-        assert "commits" in result[0]
-        assert len(result[0]["commits"]) == 1
-        assert result[0]["commits"][0]["id"] == "a" * 40
-        assert result[0]["commits"][0]["score"] > 1
-        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
-
-    def test_cocoa_swift_repo_relative_path(self) -> None:
-        event = self.store_event(
-            data={
-                "message": "Kaboom!",
-                "platform": "cocoa",
-                "exception": {
-                    "values": [
-                        {
-                            "type": "RuntimeException",
-                            "value": "button clicked",
-                            "module": "java.lang",
-                            "thread_id": 2,
-                            "mechanism": {"type": "UncaughtExceptionHandler", "handled": False},
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "in_app": False,
-                                        "image_addr": "0x0",
-                                        "instruction_addr": "0x1028d5aa4",
-                                        "symbol_addr": "0x0",
-                                    },
-                                    {
-                                        "package": "Runner",
-                                        "filename": "AppDelegate.swift",
-                                        "abs_path": "/Users/denis/Repos/sentry/sentry-mobile/ios/Runner/AppDelegate.swift",
-                                        "lineno": 5,
-                                        "in_app": True,
-                                    },
-                                ]
-                            },
-                        }
-                    ]
-                },
-                "tags": {"sentry:release": self.release.version},
-            },
-            project_id=self.project.id,
-        )
-        self.release.set_commits(
-            [
-                {
-                    "id": "a" * 40,
-                    "repository": self.repo.name,
-                    "author_email": "bob@example.com",
-                    "author_name": "Bob",
-                    "message": "i fixed a bug",
-                    "patch_set": [{"path": "Runner/AppDelegate.swift", "type": "M"}],
-                }
-            ]
-        )
-        assert event.group is not None
-        GroupRelease.objects.create(
-            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
-        )
-
-        result = get_serialized_event_file_committers(self.project, event)
-        assert len(result) == 1
-        assert "commits" in result[0]
-        assert len(result[0]["commits"]) == 1
-        assert result[0]["commits"][0]["id"] == "a" * 40
-        assert result[0]["commits"][0]["score"] > 1
-        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
-
-    def test_react_native_unchanged_frames(self) -> None:
-        event = self.store_event(
-            data={
-                "message": "Kaboom!",
-                "platform": "javascript",
-                "exception": {
-                    "values": [
-                        {
-                            "type": "unknown",
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "function": "callFunctionReturnFlushedQueue",
-                                        "module": "react-native/Libraries/BatchedBridge/MessageQueue",
-                                        "filename": "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
-                                        "abs_path": "app:///node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
-                                        "lineno": 115,
-                                        "colno": 5,
-                                        "in_app": False,
-                                        "data": {"sourcemap": "app:///main.jsbundle.map"},
-                                    },
-                                    {
-                                        "function": "apply",
-                                        "filename": "native",
-                                        "abs_path": "native",
-                                        "in_app": True,
-                                    },
-                                    {
-                                        "function": "onPress",
-                                        "module": "src/screens/EndToEndTestsScreen",
-                                        "filename": "src/screens/EndToEndTestsScreen.tsx",
-                                        "abs_path": "app:///src/screens/EndToEndTestsScreen.tsx",
-                                        "lineno": 57,
-                                        "colno": 11,
-                                        "in_app": True,
-                                        "data": {"sourcemap": "app:///main.jsbundle.map"},
-                                    },
-                                ]
-                            },
-                        }
-                    ]
-                },
-                "tags": {"sentry:release": self.release.version},
-            },
-            project_id=self.project.id,
-        )
-        self.release.set_commits(
-            [
-                {
-                    "id": "a" * 40,
-                    "repository": self.repo.name,
-                    "author_email": "bob@example.com",
-                    "author_name": "Bob",
-                    "message": "i fixed a bug",
-                    "patch_set": [{"path": "src/screens/EndToEndTestsScreen.tsx", "type": "M"}],
-                }
-            ]
-        )
-        assert event.group is not None
-        GroupRelease.objects.create(
-            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
-        )
-
-        result = get_serialized_event_file_committers(self.project, event)
-        assert len(result) == 1
-        assert "commits" in result[0]
-        assert len(result[0]["commits"]) == 1
-        assert result[0]["commits"][0]["id"] == "a" * 40
-        assert result[0]["commits"][0]["score"] == 3
-        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
-
-    def test_flutter_munged_frames(self) -> None:
-        event = self.store_event(
-            data={
-                "platform": "other",
-                "sdk": {"name": "sentry.dart.flutter", "version": "1"},
-                "exception": {
-                    "values": [
-                        {
-                            "type": "StateError",
-                            "value": "Bad state: try catch",
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "function": "tryCatchModule",
-                                        "package": "sentry_flutter_example",
-                                        "filename": "test.dart",
-                                        "abs_path": "package:sentry_flutter_example/a/b/test.dart",
-                                        "lineno": 8,
-                                        "colno": 5,
-                                        "in_app": True,
-                                    },
-                                ]
-                            },
-                        }
-                    ]
-                },
-                "tags": {"sentry:release": self.release.version},
-            },
-            project_id=self.project.id,
-        )
-        self.release.set_commits(
-            [
-                {
-                    "id": "a" * 40,
-                    "repository": self.repo.name,
-                    "author_email": "bob@example.com",
-                    "author_name": "Bob",
-                    "message": "i fixed a bug",
-                    "patch_set": [{"path": "a/b/test.dart", "type": "M"}],
-                }
-            ]
-        )
-        assert event.group is not None
-        GroupRelease.objects.create(
-            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
-        )
-
-        result = get_serialized_event_file_committers(self.project, event)
-        assert len(result) == 1
-        assert "commits" in result[0]
-        assert len(result[0]["commits"]) == 1
-        assert result[0]["commits"][0]["id"] == "a" * 40
-        assert result[0]["commits"][0]["score"] == 3
-        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
-
-    def test_matching(self) -> None:
-        event = self.store_event(
-            data={
-                "message": "Kaboom!",
-                "platform": "python",
-                "timestamp": before_now(seconds=1).isoformat(),
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "function": "handle_set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
-                            "module": "sentry.tasks",
-                            "in_app": True,
-                            "lineno": 30,
-                            "filename": "sentry/tasks.py",
-                        },
-                        {
-                            "function": "set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
-                            "module": "sentry.models.release",
-                            "in_app": True,
-                            "lineno": 39,
-                            "filename": "sentry/models/release.py",
-                        },
-                    ]
-                },
-                "tags": {"sentry:release": self.release.version},
-            },
-            project_id=self.project.id,
-        )
-        self.release.set_commits(
-            [
-                {
-                    "id": "a" * 40,
-                    "repository": self.repo.name,
-                    "author_email": "bob@example.com",
-                    "author_name": "Bob",
-                    "message": "i fixed a bug",
-                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
-                }
-            ]
-        )
-        assert event.group is not None
-        GroupRelease.objects.create(
-            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
-        )
-
-        result = get_serialized_event_file_committers(self.project, event)
-        assert len(result) == 1
-        assert "commits" in result[0]
-        assert len(result[0]["commits"]) == 1
-        assert result[0]["commits"][0]["id"] == "a" * 40
-        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
-
-    @patch("sentry.utils.committers.get_frame_paths")
-    def test_none_frame(self, mock_get_frame_paths: MagicMock) -> None:
-        """Test that if a frame is None, we skip over it"""
-        frames: list[Any] = [
-            {
-                "function": "handle_set_commits",
-                "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
-                "module": "sentry.tasks",
-                "in_app": True,
-                "lineno": 30,
-                "filename": "sentry/tasks.py",
-            },
-            {
-                "function": "set_commits",
-                "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
-                "module": "sentry.models.release",
-                "in_app": True,
-                "lineno": 39,
-                "filename": "sentry/models/release.py",
-            },
-        ]
-        event = self.store_event(
-            data={
-                "message": "Kaboom!",
-                "platform": "python",
-                "timestamp": before_now(seconds=1).isoformat(),
-                "stacktrace": {
-                    "frames": frames,
-                },
-                "tags": {"sentry:release": self.release.version},
-            },
-            project_id=self.project.id,
-        )
-        self.release.set_commits(
-            [
-                {
-                    "id": "a" * 40,
-                    "repository": self.repo.name,
-                    "author_email": "bob@example.com",
-                    "author_name": "Bob",
-                    "message": "i fixed a bug",
-                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
-                }
-            ]
-        )
-        assert event.group is not None
-        GroupRelease.objects.create(
-            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
-        )
-        frames.append(None)
-        mock_get_frame_paths.return_value = frames
-        result = get_serialized_event_file_committers(self.project, event)
-        assert len(result) == 1
-        assert "commits" in result[0]
-        assert len(result[0]["commits"]) == 1
-        assert result[0]["commits"][0]["id"] == "a" * 40
-        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
-
-    def test_no_author(self) -> None:
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            model = self.create_provider_integration(
-                provider="github", external_id="github_external_id", name="getsentry"
-            )
-            model.add_organization(self.organization, self.user)
-        GitHubIntegration(model, self.organization.id)
-        event = self.store_event(
-            data={
-                "message": "Kaboom!",
-                "platform": "python",
-                "timestamp": before_now(seconds=1).isoformat(),
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "function": "handle_set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
-                            "module": "sentry.tasks",
-                            "in_app": True,
-                            "lineno": 30,
-                            "filename": "sentry/tasks.py",
-                        },
-                        {
-                            "function": "set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
-                            "module": "sentry.models.release",
-                            "in_app": True,
-                            "lineno": 39,
-                            "filename": "sentry/models/release.py",
-                        },
-                    ]
-                },
-                "tags": {"sentry:release": self.release.version},
-            },
-            project_id=self.project.id,
-        )
-        commit = self.create_commit()
-        ReleaseCommit.objects.create(
-            organization_id=self.organization.id, release=self.release, commit=commit, order=1
-        )
-        assert event.group is not None
-        GroupRelease.objects.create(
-            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
-        )
+        # Create commit author and commit with SCM strategy
+        author = self.create_commit_author()
+        commit = self.create_commit(author=author)
         GroupOwner.objects.create(
             group_id=event.group.id,
             project=self.project,
             organization_id=self.organization.id,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=self.user.id,
+            context={
+                "commitId": commit.id,
+                "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
+            },
+        )
+
+        result = get_serialized_event_file_committers(self.project, event)
+        assert len(result) == 1
+        assert "commits" in result[0]
+        assert len(result[0]["commits"]) == 1
+        assert result[0]["commits"][0]["id"] == commit.key
+        assert result[0]["commits"][0]["suspectCommitType"] == "via SCM integration"
+
+        group_owner = GroupOwner.objects.get(
+            group_id=event.group.id, type=GroupOwnerType.SUSPECT_COMMIT.value
+        )
+        assert result[0]["group_owner_id"] == group_owner.id
+
+    def test_with_release_based_groupowner(self) -> None:
+        """Test that release-based GroupOwner returns expected commit data."""
+        event = self.store_event(
+            data={"message": "Kaboom!", "platform": "python"}, project_id=self.project.id
+        )
+        assert event.group is not None
+
+        # Create commit author and commit with release strategy
+        author = self.create_commit_author()
+        commit = self.create_commit(author=author)
+        GroupOwner.objects.create(
+            group_id=event.group.id,
+            project=self.project,
+            organization_id=self.organization.id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=self.user.id,
+            context={
+                "commitId": commit.id,
+                "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED,
+            },
+        )
+
+        result = get_serialized_event_file_committers(self.project, event)
+        assert len(result) == 1
+        assert "commits" in result[0]
+        assert len(result[0]["commits"]) == 1
+        assert result[0]["commits"][0]["id"] == commit.key
+        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
+
+        group_owner = GroupOwner.objects.get(
+            group_id=event.group.id, type=GroupOwnerType.SUSPECT_COMMIT.value
+        )
+        assert result[0]["group_owner_id"] == group_owner.id
+
+    def test_with_multiple_groupowners(self) -> None:
+        """Test that multiple GroupOwners return the most recent one only."""
+        event = self.store_event(
+            data={"message": "Kaboom!", "platform": "python"}, project_id=self.project.id
+        )
+        assert event.group is not None
+
+        # Create multiple commits with authors
+        author1 = self.create_commit_author()
+        author2 = self.create_commit_author()
+        commit1 = self.create_commit(author=author1)
+        commit2 = self.create_commit(author=author2)
+
+        # Create first GroupOwner (older)
+        GroupOwner.objects.create(
+            group_id=event.group.id,
+            project=self.project,
+            organization_id=self.organization.id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=self.user.id,
+            context={"commitId": commit1.id},
+            date_added=timezone.now() - timedelta(hours=2),
+        )
+
+        # Create second GroupOwner (newer)
+        GroupOwner.objects.create(
+            group_id=event.group.id,
+            project=self.project,
+            organization_id=self.organization.id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=self.user.id,
+            context={"commitId": commit2.id},
+            date_added=timezone.now() - timedelta(hours=1),
+        )
+
+        result = get_serialized_event_file_committers(self.project, event)
+        # Should return the most recent one only
+        assert len(result) == 1
+        assert result[0]["commits"][0]["id"] == commit2.key
+
+        # Check group_owner_id matches the most recent GroupOwner
+        most_recent_group_owner = (
+            GroupOwner.objects.filter(
+                group_id=event.group.id, type=GroupOwnerType.SUSPECT_COMMIT.value
+            )
+            .order_by("-date_added")
+            .first()
+        )
+        assert most_recent_group_owner is not None
+        assert result[0]["group_owner_id"] == most_recent_group_owner.id
+
+    def test_no_groupowners(self) -> None:
+        """Test that no GroupOwners returns empty list."""
+        event = self.store_event(
+            data={"message": "Kaboom!", "platform": "python"}, project_id=self.project.id
+        )
+
+        result = get_serialized_event_file_committers(self.project, event)
+        assert len(result) == 0
+
+    def test_groupowner_without_commit_id(self) -> None:
+        """Test that GroupOwner without commitId returns empty list."""
+        event = self.store_event(
+            data={"message": "Kaboom!", "platform": "python"}, project_id=self.project.id
+        )
+        assert event.group is not None
+
+        # Create GroupOwner without commitId in context
+        GroupOwner.objects.create(
+            group_id=event.group.id,
+            project=self.project,
+            organization_id=self.organization.id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=self.user.id,
+            context={"someOtherData": "value"},
+        )
+
+        result = get_serialized_event_file_committers(self.project, event)
+        assert len(result) == 0
+
+    def test_groupowner_with_nonexistent_commit(self) -> None:
+        """Test that GroupOwner with non-existent commit returns empty list."""
+        event = self.store_event(
+            data={"message": "Kaboom!", "platform": "python"}, project_id=self.project.id
+        )
+        assert event.group is not None
+
+        # Create GroupOwner with non-existent commit ID
+        GroupOwner.objects.create(
+            group_id=event.group.id,
+            project=self.project,
+            organization_id=self.organization.id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=self.user.id,
+            context={"commitId": 99999},  # Non-existent commit ID
+        )
+
+        result = get_serialized_event_file_committers(self.project, event)
+        assert len(result) == 0
+
+    def test_groupowner_with_commit_without_author(self) -> None:
+        """Test that GroupOwner with commit that has no author returns empty list."""
+        event = self.store_event(
+            data={"message": "Kaboom!", "platform": "python"}, project_id=self.project.id
+        )
+        assert event.group is not None
+
+        # Create commit without author
+        commit = self.create_commit(author=None)
+        GroupOwner.objects.create(
+            group_id=event.group.id,
+            project=self.project,
+            organization_id=self.organization.id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=self.user.id,
             context={"commitId": commit.id},
         )
 
         result = get_serialized_event_file_committers(self.project, event)
         assert len(result) == 0
 
-    def test_matching_case_insensitive(self) -> None:
-        event = self.store_event(
-            data={
-                "message": "Kaboom!",
-                "platform": "csp",
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "function": "roar",
-                            "abs_path": "/usr/src/app/TigerMachine.cpp",
-                            "module": "",
-                            "in_app": True,
-                            "lineno": 30,
-                            "filename": "app/TigerMachine.cpp",
-                        }
-                    ]
-                },
-                "tags": {"sentry:release": self.release.version},
-            },
-            project_id=self.project.id,
-        )
-        self.release.set_commits(
-            [
-                {
-                    "id": "a" * 40,
-                    "repository": self.repo.name,
-                    "author_email": "bob@example.com",
-                    "author_name": "Bob",
-                    "message": "i fixed a bug",
-                    "patch_set": [{"path": "app/tigermachine.cpp", "type": "M"}],
-                }
-            ]
-        )
-        assert event.group is not None
-        GroupRelease.objects.create(
-            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
-        )
+    def test_event_without_group_id(self) -> None:
+        """Test that event without group_id returns empty list."""
+        event = Mock()
+        event.group_id = None
 
         result = get_serialized_event_file_committers(self.project, event)
-        assert len(result) == 1
-        assert "commits" in result[0]
-        assert len(result[0]["commits"]) == 1
-        assert result[0]["commits"][0]["id"] == "a" * 40
-        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
+        assert len(result) == 0
 
-    def test_not_matching(self) -> None:
+    def test_non_suspect_commit_groupowners_ignored(self) -> None:
+        """Test that non-suspect-commit GroupOwners are ignored."""
         event = self.store_event(
-            data={
-                "message": "Kaboom!",
-                "platform": "python",
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "function": "handle_set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
-                            "module": "sentry.tasks",
-                            "in_app": True,
-                            "lineno": 30,
-                            "filename": "sentry/tasks.py",
-                        },
-                        {
-                            "function": "set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
-                            "module": "sentry.models.release",
-                            "in_app": True,
-                            "lineno": 39,
-                            "filename": "sentry/models/release.py",
-                        },
-                    ]
-                },
-                "tags": {"sentry:release": self.release.version},
-            },
-            project_id=self.project.id,
-        )
-        self.release.set_commits(
-            [
-                {
-                    "id": "a" * 40,
-                    "repository": self.repo.name,
-                    "author_email": "bob@example.com",
-                    "author_name": "Bob",
-                    "message": "i fixed a bug",
-                    "patch_set": [{"path": "some/other/path.py", "type": "M"}],
-                }
-            ]
+            data={"message": "Kaboom!", "platform": "python"}, project_id=self.project.id
         )
         assert event.group is not None
-        GroupRelease.objects.create(
-            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+
+        # Create GroupOwner with different type (ownership rule)
+        GroupOwner.objects.create(
+            group_id=event.group.id,
+            project=self.project,
+            organization_id=self.organization.id,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
+            user_id=self.user.id,
+            context={"rule": "path:*.py"},
         )
 
         result = get_serialized_event_file_committers(self.project, event)
         assert len(result) == 0
 
-    def test_no_commits(self) -> None:
-        event = self.store_event(
-            data={
-                "timestamp": before_now(seconds=1).isoformat(),
-                "message": "Kaboom!",
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "function": "handle_set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
-                            "module": "sentry.tasks",
-                            "in_app": True,
-                            "lineno": 30,
-                            "filename": "sentry/tasks.py",
-                        },
-                        {
-                            "function": "set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
-                            "module": "sentry.models.release",
-                            "in_app": True,
-                            "lineno": 39,
-                            "filename": "sentry/models/release.py",
-                        },
-                    ]
-                },
-                "tags": {"sentry:release": self.release.version},
+    def test_display_logic_with_no_user_groupowner(self) -> None:
+        """Test _get_serialized_committers_from_group_owners handles user_id=None correctly."""
+        group = self.create_group(project=self.project)
+        # Create commit with external author (no Sentry user)
+        author = self.create_commit_author(name="External Dev", email="external@example.com")
+        commit = self.create_commit(author=author)
+
+        # Create GroupOwner with user_id=None
+        GroupOwner.objects.create(
+            group_id=group.id,
+            project=self.project,
+            organization_id=self.organization.id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=None,  # No Sentry user mapping
+            context={
+                "commitId": commit.id,
+                "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
             },
-            project_id=self.project.id,
-        )
-        assert event.group is not None
-        GroupRelease.objects.create(
-            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
 
-        with pytest.raises(Commit.DoesNotExist):
-            get_serialized_event_file_committers(self.project, event)
+        result = _get_serialized_committers_from_group_owners(self.project, group.id)
 
-    def test_commit_context_fallback(self) -> None:
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            Integration.objects.all().delete()
-        event = self.store_event(
-            data={
-                "message": "Kaboom!",
-                "platform": "python",
-                "timestamp": before_now(seconds=1).isoformat(),
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "function": "handle_set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
-                            "module": "sentry.tasks",
-                            "in_app": True,
-                            "lineno": 30,
-                            "filename": "sentry/tasks.py",
-                        },
-                        {
-                            "function": "set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
-                            "module": "sentry.models.release",
-                            "in_app": True,
-                            "lineno": 39,
-                            "filename": "sentry/models/release.py",
-                        },
-                    ]
-                },
-                "tags": {"sentry:release": self.release.version},
-            },
-            project_id=self.project.id,
-        )
-        self.release.set_commits(
-            [
-                {
-                    "id": "a" * 40,
-                    "repository": self.repo.name,
-                    "author_email": "bob@example.com",
-                    "author_name": "Bob",
-                    "message": "i fixed a bug",
-                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
-                }
-            ]
-        )
-        assert event.group is not None
-        GroupRelease.objects.create(
-            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
-        )
-
-        result = get_serialized_event_file_committers(self.project, event)
+        assert result is not None
         assert len(result) == 1
-        assert "commits" in result[0]
-        assert len(result[0]["commits"]) == 1
-        assert result[0]["commits"][0]["id"] == "a" * 40
-        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
+
+        # Should use commit author data, not Sentry user data
+        author = result[0]["author"]
+        assert author is not None
+        assert author["email"] == "external@example.com"
+        assert author["name"] == "External Dev"
+        assert "username" not in author  # No Sentry user data
+        assert "id" not in author  # No Sentry user data
+        assert result[0]["commits"][0]["id"] == commit.key
+        assert result[0]["commits"][0]["suspectCommitType"] == "via SCM integration"
+
+        group_owner = GroupOwner.objects.get(
+            group_id=group.id, type=GroupOwnerType.SUSPECT_COMMIT.value
+        )
+        assert result[0]["group_owner_id"] == group_owner.id
 
 
 class DedupeCommits(CommitTestCase):

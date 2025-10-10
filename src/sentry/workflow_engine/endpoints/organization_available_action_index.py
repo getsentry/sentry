@@ -3,6 +3,7 @@ from typing import TypedDict
 
 from drf_spectacular.utils import extend_schema
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -19,7 +20,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.sentry_apps.services.app import app_service
-from sentry.workflow_engine.endpoints.serializers import (
+from sentry.workflow_engine.endpoints.serializers.action_handler_serializer import (
     ActionHandlerSerializer,
     ActionHandlerSerializerResponse,
 )
@@ -30,6 +31,7 @@ from sentry.workflow_engine.processors.action import (
     get_notification_plugins_for_org,
 )
 from sentry.workflow_engine.registry import action_handler_registry
+from sentry.workflow_engine.types import ActionHandler
 
 
 class AvailableIntegration(TypedDict):
@@ -63,6 +65,8 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
         """
         Returns a list of available actions for a given org
         """
+        can_create_tickets = features.has("organizations:integrations-ticket-rules", organization)
+
         integration_services = get_integration_services(organization.id)
 
         provider_integrations: dict[str, list[AvailableIntegration]] = defaultdict(list)
@@ -80,6 +84,10 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
 
         actions = []
         for action_type, handler in action_handler_registry.registrations.items():
+            # skip ticket creation actions if organization doesn't have the feature
+            if not can_create_tickets and handler.group == ActionHandler.Group.TICKET_CREATION:
+                continue
+
             # add integration actions
             if hasattr(handler, "provider_slug"):
                 integrations = provider_integrations.get(handler.provider_slug, [])

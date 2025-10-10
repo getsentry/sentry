@@ -9,7 +9,7 @@ import InteractionStateLayer from 'sentry/components/core/interactionStateLayer'
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
+import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -22,6 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   NAV_PRIMARY_LINK_DATA_ATTRIBUTE,
   PRIMARY_SIDEBAR_WIDTH,
+  SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
@@ -177,9 +178,13 @@ function SidebarNavLink({
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
   const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
 
+  // Reload the page when the frontend is stale to ensure users get the latest version
+  const {state: appState} = useFrontendVersion();
+
   return (
     <NavLink
       to={to}
+      reloadDocument={appState === 'stale'}
       state={{source: SIDEBAR_NAVIGATION_SOURCE}}
       aria-selected={activePrimaryNavGroup === group ? true : isActive}
       aria-current={isActive ? 'page' : undefined}

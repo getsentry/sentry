@@ -191,9 +191,9 @@ describe('MetricAlertDetails', () => {
       }
     );
 
-    expect(await screen.findByText('Mute for me')).toBeInTheDocument();
+    expect(await screen.findByText('Mute for everyone')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Mute for me'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Mute for everyone'}));
     expect(postRequest).toHaveBeenCalledTimes(1);
 
     expect(await screen.findByText('Unmute')).toBeInTheDocument();
@@ -247,7 +247,7 @@ describe('MetricAlertDetails', () => {
   it('disables duplicate button if deprecation flag is on', async () => {
     const {organization, routerProps} = initializeOrg({
       organization: {
-        features: ['discover-basic', 'performance-transaction-deprecation-alerts'],
+        features: ['discover-basic', 'discover-saved-queries-deprecation'],
       },
     });
     const rule = MetricRuleFixture({

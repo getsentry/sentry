@@ -1,6 +1,6 @@
 from collections.abc import Mapping
-from datetime import timedelta
-from typing import Any, Literal, NotRequired, TypedDict
+from datetime import datetime, timedelta
+from typing import Any
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -12,6 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERRERS
+from sentry.api.endpoints.timeseries import Row, SeriesMeta, StatsMeta, StatsResponse, TimeSeries
 from sentry.api.utils import handle_query_errors
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.organization import Organization
@@ -43,46 +44,16 @@ TOP_EVENTS_DATASETS = {
     transactions,
 }
 
-
-class StatsMeta(TypedDict):
-    dataset: str
-    start: float
-    end: float
+# Assumed ingestion delay for timeseries, this is a static number for now just to match how the frontend was doing it
+INGESTION_DELAY = 90
+INGESTION_DELAY_MESSAGE = "INCOMPLETE_BUCKET"
 
 
-class Row(TypedDict):
-    timestamp: float
-    value: float
-    comparisonValue: NotRequired[float]
-    sampleCount: NotRequired[float]
-    sampleRate: NotRequired[float]
-    confidence: NotRequired[Literal["low", "high"] | None]
-
-
-class SeriesMeta(TypedDict):
-    order: NotRequired[int]
-    isOther: NotRequired[str]
-    valueUnit: NotRequired[str]
-    dataScanned: NotRequired[Literal["partial", "full"]]
-    valueType: str
-    interval: float
-
-
-class GroupBy(TypedDict):
-    key: str
-    value: str
-
-
-class TimeSeries(TypedDict):
-    values: list[Row]
-    yAxis: str
-    groupBy: NotRequired[list[GroupBy]]
-    meta: SeriesMeta
-
-
-class StatsResponse(TypedDict):
-    meta: StatsMeta
-    timeSeries: list[TimeSeries]
+def null_zero(value: float) -> float | None:
+    if value == 0:
+        return None
+    else:
+        return value
 
 
 @region_silo_endpoint
@@ -164,11 +135,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
             try:
                 snuba_params = self.get_snuba_params(
-                    # old events-stats had global_check on False for v1, trying it off to see if that works for our
-                    # new usage
                     request,
                     organization,
-                    check_global_views=True,
                 )
             except NoProjects:
                 return Response([], status=200)
@@ -234,6 +202,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
 
         if top_events > 0:
             raw_groupby = self.get_field_list(organization, request, param_name="groupBy")
+            if len(raw_groupby) == 0:
+                raise ParseError("groupBy is a required parameter when doing topEvents")
             if "timestamp" in raw_groupby:
                 raise ParseError("Cannot group by timestamp")
             if dataset in RPC_DATASETS:
@@ -244,6 +214,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     raw_groupby=raw_groupby,
                     orderby=self.get_orderby(request),
                     limit=top_events,
+                    include_other=include_other,
                     referrer=referrer,
                     config=SearchResolverConfig(
                         auto_fields=False,
@@ -311,37 +282,44 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         rollup: int,
         dataset,
     ) -> StatsResponse:
+        # We need the current timestamp for the Ingestion Delay incomplete reason
+        now = datetime.now().timestamp()
         response = StatsResponse(
             meta=StatsMeta(
                 dataset=DATASET_LABELS[dataset],
                 start=snuba_params.start_date.timestamp() * 1000,
                 end=snuba_params.end_date.timestamp() * 1000,
             ),
-            timeSeries=self.serialize_result(result, axes, rollup),
+            timeSeries=self.serialize_result(result, axes, rollup, now),
         )
         return response
 
     def serialize_result(
-        self, result: SnubaTSResult | dict[str, SnubaTSResult], axes: list[str], rollup: int
+        self,
+        result: SnubaTSResult | dict[str, SnubaTSResult],
+        axes: list[str],
+        rollup: int,
+        now: float,
     ) -> list[TimeSeries]:
         serialized_result = []
         if isinstance(result, SnubaTSResult):
             for axis in axes:
-                serialized_result.append(self.serialize_timeseries(result, axis, rollup))
+                serialized_result.append(self.serialize_timeseries(result, axis, rollup, now))
         else:
             for key, value in result.items():
                 for axis in axes:
-                    serialized_result.append(self.serialize_timeseries(value, axis, rollup))
+                    serialized_result.append(self.serialize_timeseries(value, axis, rollup, now))
         return serialized_result
 
-    def serialize_timeseries(self, result: SnubaTSResult, axis: str, rollup: int) -> TimeSeries:
+    def serialize_timeseries(
+        self, result: SnubaTSResult, axis: str, rollup: int, now: float
+    ) -> TimeSeries:
         unit, field_type = self.get_unit_and_type(axis, result.data["meta"]["fields"][axis])
         series_meta = SeriesMeta(
             valueType=field_type,
+            valueUnit=unit,
             interval=rollup * 1000,
         )
-        if unit is not None:
-            series_meta["valueUnit"] = unit
         if "is_other" in result.data:
             series_meta["isOther"] = result.data["is_other"]
         if "order" in result.data:
@@ -357,7 +335,11 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
 
         timeseries_values = []
         for row in result.data["data"]:
-            value_row = Row(timestamp=row["time"] * 1000, value=row.get(axis, 0))
+            value_row = Row(timestamp=row["time"] * 1000, value=row.get(axis, 0), incomplete=False)
+
+            if incomplete := self.check_incomplete(row, now, rollup):
+                value_row["incomplete"] = True
+                value_row["incompleteReason"] = incomplete
             if "comparisonCount" in row:
                 value_row["comparisonValue"] = row["comparisonCount"]
             timeseries_values.append(value_row)
@@ -374,9 +356,16 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 processed_timeseries.confidence,
             ):
                 value["sampleCount"] = count[axis]
-                value["sampleRate"] = rate[axis]
+                # We want to null sample rates that are 0 since that means we received no data during this bucket
+                value["sampleRate"] = null_zero(rate[axis])
                 value["confidence"] = confidence[axis]
 
         timeseries["values"] = timeseries_values
 
         return timeseries
+
+    def check_incomplete(self, row: dict[str, Any], now: float, rollup: int) -> str | None:
+        if row["time"] + rollup >= now - INGESTION_DELAY:
+            return INGESTION_DELAY_MESSAGE
+        else:
+            return None

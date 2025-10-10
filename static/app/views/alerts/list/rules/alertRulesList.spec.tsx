@@ -304,7 +304,7 @@ describe('AlertRulesList', () => {
     await userEvent.click(duplicate);
 
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/alerts/new/issue/',
+      pathname: '/organizations/org-slug/issues/alerts/new/issue/',
       query: {
         createFromDuplicate: 'true',
         duplicateRuleId: '123',

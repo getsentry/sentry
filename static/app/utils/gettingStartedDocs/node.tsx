@@ -328,9 +328,7 @@ Sentry.profiler.stopProfiler();
                   'If you need more fine grained control over which spans are profiled, you can do so by [link:enabling manual lifecycle profiling].',
                   {
                     link: (
-                      <ExternalLink
-                        href={`https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/#enabling-manual-lifecycle-profiling`}
-                      />
+                      <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/#enabling-manual-lifecycle-profiling" />
                     ),
                   }
                 )
@@ -341,9 +339,7 @@ Sentry.profiler.stopProfiler();
             'For more detailed information on profiling, see the [link:profiling documentation].',
             {
               link: (
-                <ExternalLink
-                  href={`https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/`}
-                />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/" />
               ),
             }
           ),
@@ -363,14 +359,16 @@ Sentry.profiler.stopProfiler();
 
 export const getNodeAgentMonitoringOnboarding = ({
   basePackage = 'node',
+  configFileName,
 }: {
   basePackage?: string;
+  configFileName?: string;
 } = {}): OnboardingConfig => ({
   install: params => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:10.6.0].',
+        'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:10.14.0].',
         {
           code: <code />,
         }
@@ -381,34 +379,31 @@ export const getNodeAgentMonitoringOnboarding = ({
     },
   ],
   configure: params => {
-    const vercelStep = {
-      title: t('Configure'),
-      description: tct(
-        'Add the [code:vercelAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the [link:Vercel AI SDK] to capture spans for AI operations.',
-        {
-          code: <code />,
-          link: (
-            <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-vercel-ai-sdk" />
-          ),
-        }
-      ),
-      configurations: [
-        {
-          language: 'javascript',
-          code: [
-            {
-              label:
-                params.platformKey === 'javascript-nextjs'
-                  ? 'config.server.ts'
-                  : 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+    const vercelContent: ContentBlock[] = [
+      {
+        type: 'text',
+        text: tct(
+          'Add the [code:vercelAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the [link:Vercel AI SDK] to capture spans for AI operations.',
+          {
+            code: <code />,
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-vercel-ai-sdk" />
+            ),
+          }
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: configFileName ? configFileName : 'JavaScript',
+            language: 'javascript',
+            code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [
-    // Add the Vercel AI SDK integration ${basePackage === 'nextjs' ? 'to config.server.(js/ts)' : ''}
+    // Add the Vercel AI SDK integration ${configFileName ? `to ${configFileName}` : ''}
     Sentry.vercelAIIntegration({
       recordInputs: true,
       recordOutputs: true,
@@ -418,26 +413,29 @@ Sentry.init({
   tracesSampleRate: 1.0,
   sendDefaultPii: true,
 });`,
-            },
-          ],
-        },
-        {
-          description: tct(
-            'To correctly capture spans, pass the [code:experimental_telemetry] object to every [code:generateText], [code:generateObject], and [code:streamText] function call. For more details, see the [link:AI SDK Telemetry Metadata docs].',
-            {
-              code: <code />,
-              link: (
-                <ExternalLink href="https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#telemetry-metadata" />
-              ),
-            }
-          ),
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: `import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
+          },
+        ],
+      },
+      {
+        type: 'text',
+        text: tct(
+          'To correctly capture spans, pass the [code:experimental_telemetry] object to every [code:generateText], [code:generateObject], and [code:streamText] function call. For more details, see the [link:AI SDK Telemetry Metadata docs].',
+          {
+            code: <code />,
+            link: (
+              <ExternalLink href="https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#telemetry-metadata" />
+            ),
+          }
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `const { generateText } = require('ai');
+const { openai } = require('@ai-sdk/openai');
 
 const result = await generateText({
   model: openai("gpt-4o"),
@@ -448,27 +446,94 @@ const result = await generateText({
     recordOutputs: true,
   },
 });`,
-            },
-          ],
-        },
-      ],
-    };
+          },
+        ],
+      },
+    ];
 
-    const openaiStep = {
-      title: t('Configure'),
-      description: tct(
-        'Add the [code:openAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the OpenAI SDK to capture spans for AI operations.',
-        {code: <code />}
-      ),
-      configurations: [
-        {
-          language: 'javascript',
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+    const anthropicContent: ContentBlock[] = [
+      {
+        type: 'text',
+        text: tct(
+          'Add the [code:anthropicAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the Anthropic SDK to capture spans for AI operations.',
+          {code: <code />}
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [
+    // Add the AnthropicAI integration
+    Sentry.anthropicAIIntegration({
+      recordInputs: true,
+      recordOutputs: true,
+    }),
+  ],
+  // Tracing must be enabled for agent monitoring to work
+  tracesSampleRate: 1.0,
+  sendDefaultPii: true,
+});`,
+          },
+        ],
+      },
+    ];
+
+    const googleGenAIContent: ContentBlock[] = [
+      {
+        type: 'text',
+        text: tct(
+          'Add the [code:googleGenAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the Google Gen AI SDK to capture spans for AI operations.',
+          {code: <code />}
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [
+    // Add the Google Gen AI integration
+    Sentry.googleGenAIIntegration({
+      recordInputs: true,
+      recordOutputs: true,
+    }),
+  ],
+  // Tracing must be enabled for agent monitoring to work
+  tracesSampleRate: 1.0,
+  sendDefaultPii: true,
+});`,
+          },
+        ],
+      },
+    ];
+
+    const openaiContent: ContentBlock[] = [
+      {
+        type: 'text',
+        text: tct(
+          'Add the [code:openAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the OpenAI SDK to capture spans for AI operations.',
+          {code: <code />}
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -483,77 +548,147 @@ Sentry.init({
   tracesSampleRate: 1.0,
   sendDefaultPii: true,
 });`,
-            },
-          ],
-        },
-        {
-          language: 'javascript',
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: `
-import OpenAI from "openai";
-const client = new OpenAI();
+          },
+        ],
+      },
+    ];
 
-const response = await client.responses.create({
-  model: "gpt-4o-mini",
-  input: "Tell me a joke",
-});`,
-            },
-          ],
-        },
-      ],
-    };
-
-    const manualStep = {
-      title: t('Configure'),
-      description: tct(
-        'If you are not using a supported SDK integration, you can instrument your AI calls manually. See [link:manual instrumentation docs] for details.',
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
-          ),
-        }
-      ),
-      configurations: [
-        {
-          language: 'javascript',
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: `import * as Sentry from "@sentry/${
-                basePackage === 'nextjs' ? 'nextjs' : basePackage
-              }";
+    const manualContent: ContentBlock[] = [
+      {
+        type: 'text',
+        text: tct(
+          'If you are not using a supported SDK integration, you can instrument your AI calls manually. See [link:manual instrumentation docs] for details.',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
+            ),
+          }
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
 
 // Create a span around your AI call
 await Sentry.startSpan({
-  op: "gen_ai.request",
-  name: "Generate Text",
+  op: "gen_ai.chat",
+  name: "chat gpt-4o",
+  attributes: {
+    "gen_ai.operation.name": "chat",
+    "gen_ai.request.model": "gpt-4o",
+  }
 }, async (span) => {
   // Call your AI function here
   // e.g., await generateText(...)
-  span.setAttribute("ai.model", "gpt-4o");
-});`,
-            },
-          ],
-        },
-      ],
-    };
 
-    const selected = (params.platformOptions as any)?.integration ?? 'vercelai';
+  // Set further span attributes after the AI call
+  span.setAttribute("gen_ai.response.text", "<Your model's response>");
+});`,
+          },
+        ],
+      },
+    ];
+
+    const selected = (params.platformOptions as any)?.integration ?? 'vercel_ai';
+    let content: ContentBlock[] = manualContent;
+    if (selected === 'vercel_ai') {
+      content = vercelContent;
+    }
+    if (selected === 'anthropic') {
+      content = anthropicContent;
+    }
     if (selected === 'openai') {
-      return [openaiStep];
+      content = openaiContent;
     }
-    if (selected === 'manual') {
-      return [manualStep];
+    if (selected === 'google_genai') {
+      content = googleGenAIContent;
     }
-    return [vercelStep];
+    return [
+      {
+        title: t('Configure'),
+        content,
+      },
+    ];
   },
-  verify: () => [],
+  verify: params => {
+    const selected = (params.platformOptions as any)?.integration ?? 'vercel_ai';
+    const content: ContentBlock[] = [
+      {
+        type: 'text',
+        text: t('Verify that your instrumentation works by simply calling your LLM.'),
+      },
+    ];
+
+    if (selected === 'anthropic') {
+      content.push({
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `
+const Anthropic = require("anthropic");
+const anthropic = new Anthropic();
+
+const msg = await anthropic.messages.create({
+model: "claude-3-5-sonnet",
+messages: [{role: "user", content: "Tell me a joke"}],
+});`,
+          },
+        ],
+      });
+    }
+    if (selected === 'openai') {
+      content.push({
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `
+const OpenAI = require("openai");
+const client = new OpenAI();
+
+const response = await client.responses.create({
+model: "gpt-4o-mini",
+input: "Tell me a joke",
+});`,
+          },
+        ],
+      });
+    }
+    if (selected === 'google_genai') {
+      content.push({
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `
+const GoogleGenAI = require("@google/genai").GoogleGenAI;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+const ai = new GoogleGenAI({apiKey: GEMINI_API_KEY});
+
+const response = await ai.models.generateContent({
+  model: 'gemini-2.0-flash-001',
+  contents: 'Why is the sky blue?',
+});`,
+          },
+        ],
+      });
+    }
+    return [
+      {
+        type: StepType.VERIFY,
+        content,
+      },
+    ];
+  },
 });
 
 export const getNodeMcpOnboarding = ({

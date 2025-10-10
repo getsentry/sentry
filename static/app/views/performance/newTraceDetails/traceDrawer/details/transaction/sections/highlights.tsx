@@ -53,7 +53,6 @@ export function TransactionHighlights(props: HighlightProps) {
       <CopyToClipboardButton
         borderless
         size="zero"
-        iconSize="xs"
         text={props.node.value.transaction}
         tooltipProps={{disabled: true}}
       />
@@ -62,7 +61,7 @@ export function TransactionHighlights(props: HighlightProps) {
 
   const bodyContent = (
     <BodyContentWrapper>
-      <Link
+      <StyledLink
         to={transactionSummaryRouteWithQuery({
           organization: props.organization,
           transaction: props.node.value.transaction,
@@ -73,9 +72,9 @@ export function TransactionHighlights(props: HighlightProps) {
           projectID: String(props.node.value.project_id),
         })}
       >
-        <StyledIconGraph type="area" size="xs" />
+        <IconGraph type="area" size="xs" />
         {t('View Summary')}
-      </Link>
+      </StyledLink>
     </BodyContentWrapper>
   );
 
@@ -89,17 +88,12 @@ export function TransactionHighlights(props: HighlightProps) {
       bodyContent={bodyContent}
       hideNodeActions={props.hideNodeActions}
       highlightedAttributes={getHighlightedSpanAttributes({
-        organization: props.organization,
         attributes: props.event.contexts.trace?.data,
         op: props.node.value['transaction.op'],
       })}
     />
   );
 }
-
-const StyledIconGraph = styled(IconGraph)`
-  margin-right: ${space(1)};
-`;
 
 const HeaderContentWrapper = styled('div')`
   padding: ${space(1)};
@@ -111,6 +105,12 @@ const HeaderContentWrapper = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   word-break: break-word;
   line-height: 1.4;
+`;
+
+const StyledLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const BodyContentWrapper = styled('div')`

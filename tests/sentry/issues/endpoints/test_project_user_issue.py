@@ -38,7 +38,10 @@ class ProjectUserIssueEndpointTest(APITestCase):
             "transaction": "/test-transaction",
             "issueType": WebVitalsGroup.slug,
             "score": 75,
+            "value": 1000,
             "vital": "lcp",
+            "traceId": "1234567890",
+            "timestamp": "2025-01-01T00:00:00Z",
         }
 
         with patch(
@@ -52,6 +55,7 @@ class ProjectUserIssueEndpointTest(APITestCase):
             )
 
         assert response.status_code == 200
+        assert response.data == {"event_id": mock_produce.call_args[1]["occurrence"].event_id}
         mock_produce.assert_called_once()
 
         call_args = mock_produce.call_args
@@ -65,17 +69,31 @@ class ProjectUserIssueEndpointTest(APITestCase):
         assert occurrence.subtitle == "/test-transaction has an LCP score of 75"
         assert occurrence.culprit == "/test-transaction"
         assert occurrence.level == "info"
+        assert occurrence.evidence_data == {
+            "transaction": "/test-transaction",
+            "vital": "lcp",
+            "score": 75,
+            "trace_id": "1234567890",
+            "lcp": 1000,
+        }
 
         # Verify event data
         assert event_data["project_id"] == self.project.id
         assert event_data["platform"] == self.project.platform
+        assert event_data["timestamp"] == "2025-01-01T00:00:00+00:00"
         assert "event_id" in event_data
-        assert "timestamp" in event_data
         assert "received" in event_data
         assert event_data["tags"] == {
             "transaction": "/test-transaction",
             "web_vital": "lcp",
-            "score": 75,
+            "score": "75",
+            "lcp": "1000",
+        }
+        assert event_data["contexts"] == {
+            "trace": {
+                "trace_id": "1234567890",
+                "type": "trace",
+            }
         }
 
     def test_no_access(self) -> None:
@@ -118,6 +136,7 @@ class ProjectUserIssueEndpointTest(APITestCase):
             "issueType": WebVitalsGroup.slug,
             "score": 150,
             "vital": "invalid_vital",
+            "value": 1000,
         }
 
         response = self.get_error_response(
@@ -132,12 +151,13 @@ class ProjectUserIssueEndpointTest(APITestCase):
 
     @with_feature("organizations:performance-web-vitals-seer-suggestions")
     @with_feature("organizations:issue-web-vitals-ingest")
-    def test_web_vitals_issue_fingerprint_consistency(self) -> None:
+    def test_web_vitals_issue_fingerprint_uniqueness(self) -> None:
         data = {
             "transaction": "/test-transaction",
             "issueType": WebVitalsGroup.slug,
             "score": 75,
             "vital": "lcp",
+            "value": 1000,
         }
 
         with patch(
@@ -165,5 +185,8 @@ class ProjectUserIssueEndpointTest(APITestCase):
         fingerprint1 = call1_args[1]["occurrence"].fingerprint
         fingerprint2 = call2_args[1]["occurrence"].fingerprint
 
-        assert fingerprint1 == fingerprint2
-        assert fingerprint1 == ["insights-web-vitals-lcp-/test-transaction"]
+        assert len(fingerprint1) == 1
+        assert len(fingerprint2) == 1
+        assert fingerprint1[0].startswith("insights-web-vitals-lcp-/test-transaction-")
+        assert fingerprint2[0].startswith("insights-web-vitals-lcp-/test-transaction-")
+        assert fingerprint1 != fingerprint2

@@ -1,8 +1,9 @@
-import {Fragment, memo, useMemo} from 'react';
+import {Fragment, memo, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {IconChevron, IconCode, IconFire} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
@@ -14,8 +15,11 @@ import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
 import {getIsAiRunNode} from 'sentry/views/insights/agents/utils/aiTraceNodes';
 import {getNodeId} from 'sentry/views/insights/agents/utils/getNodeId';
 import {
+  getIsAiCreateAgentSpan,
   getIsAiGenerationSpan,
   getIsAiRunSpan,
+  getIsExecuteToolSpan,
+  getIsHandoffSpan,
 } from 'sentry/views/insights/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -84,18 +88,56 @@ export function AISpanList({
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeKey: string | null;
 }) {
+  const nodesByTransaction = useMemo(() => {
+    const result: Map<
+      TraceTreeNode<TraceTree.Transaction | TraceTree.EAPSpan>,
+      AITraceSpanNode[]
+    > = new Map();
+    for (const node of nodes) {
+      const transaction = getClosestNode(node, isTransactionNodeEquivalent);
+      if (!transaction) {
+        continue;
+      }
+      const transactionNodes = result.get(transaction) || [];
+      result.set(transaction, [...transactionNodes, node]);
+    }
+    return result;
+  }, [nodes]);
+
+  return (
+    <TraceListContainer>
+      {nodesByTransaction.entries().map(([transaction, transactionNodes]) => (
+        <Fragment key={getNodeId(transaction)}>
+          <TransactionWrapper
+            canCollapse={nodesByTransaction.size > 1}
+            transaction={transaction}
+            nodes={transactionNodes}
+            onSelectNode={onSelectNode}
+            selectedNodeKey={selectedNodeKey}
+          />
+        </Fragment>
+      ))}
+    </TraceListContainer>
+  );
+}
+
+function TransactionWrapper({
+  canCollapse,
+  nodes,
+  onSelectNode,
+  selectedNodeKey,
+  transaction,
+}: {
+  canCollapse: boolean;
+  nodes: AITraceSpanNode[];
+  onSelectNode: (node: AITraceSpanNode) => void;
+  selectedNodeKey: string | null;
+  transaction: TraceTreeNode<TraceTree.Transaction | TraceTree.EAPSpan>;
+}) {
+  const [isExpanded, setIsExpanded] = useState(true);
   const theme = useTheme();
   const colors = [...theme.chart.getColorPalette(5), theme.red300];
-
-  let currentTransaction: TraceTreeNode<
-    TraceTree.Transaction | TraceTree.EAPSpan
-  > | null = null;
-  let currentAiRunNode: AITraceSpanNode | undefined | null = null;
-  let currentTimeBounds: TraceBounds = {
-    startTime: 0,
-    endTime: 0,
-    duration: 0,
-  };
+  const timeBounds = getNodeTimeBounds(nodes);
 
   const nodeAiRunParentsMap = useMemo<Record<string, AITraceSpanNode>>(() => {
     const parents: Record<string, AITraceSpanNode> = {};
@@ -108,74 +150,46 @@ export function AISpanList({
     return parents;
   }, [nodes]);
 
-  const nextNodeMap = useMemo<Record<string, AITraceSpanNode>>(() => {
-    const nextNodes: Record<string, AITraceSpanNode> = {};
-    for (let i = 0; i < nodes.length - 1; i++) {
-      const node = nodes[i];
-      const nextNode = nodes[i + 1];
-      if (node && nextNode) {
-        nextNodes[getNodeId(node)] = nextNode;
-      }
-    }
-    return nextNodes;
-  }, [nodes]);
-
-  function getOrphanedSiblings(node: AITraceSpanNode) {
-    const siblings: AITraceSpanNode[] = [];
-    let currentNode: AITraceSpanNode | undefined = node;
-    while (currentNode && !nodeAiRunParentsMap[getNodeId(currentNode)]) {
-      siblings.push(currentNode);
-      currentNode = nextNodeMap[getNodeId(currentNode)];
-    }
-    return siblings;
-  }
+  const handleCollapse = () => {
+    setIsExpanded(prevValue => !prevValue);
+  };
 
   return (
-    <TraceListContainer>
-      {nodes.map(node => {
-        // find the closest transaction node
-        const transactionNode = getClosestNode(node, isTransactionNodeEquivalent);
-        const aiRunNode = nodeAiRunParentsMap[getNodeId(node)];
+    <Fragment>
+      <TransactionButton type="button" disabled={!canCollapse} onClick={handleCollapse}>
+        {canCollapse ? (
+          <StyledIconChevron direction={isExpanded ? 'down' : 'right'} />
+        ) : null}
+        <Tooltip
+          title={transaction.value.transaction}
+          showOnlyOnOverflow
+          skipWrapper
+          delay={500}
+        >
+          <span>{transaction.value.transaction}</span>
+        </Tooltip>
+      </TransactionButton>
+      {isExpanded &&
+        nodes.map(node => {
+          const aiRunNode = nodeAiRunParentsMap[getNodeId(node)];
 
-        if (aiRunNode !== currentAiRunNode) {
-          currentAiRunNode = aiRunNode;
-          currentTimeBounds = aiRunNode
-            ? getNodeTimeBounds(aiRunNode)
-            : getNodeTimeBounds(getOrphanedSiblings(node));
-        }
+          // Only indent if the node is not the ai run node
+          const shouldIndent = aiRunNode && aiRunNode !== node;
 
-        let transactionName: string | null = null;
-        if (transactionNode !== currentTransaction) {
-          currentTransaction = transactionNode;
-          if (
-            transactionNode &&
-            (isTransactionNode(transactionNode) || isEAPSpanNode(transactionNode))
-          ) {
-            transactionName = transactionNode.value.transaction;
-          }
-        }
-
-        // Only indent if the node is a child of the last ai run node
-        const shouldIndent =
-          aiRunNode && !!TraceTree.ParentNode(node, n => n === aiRunNode);
-
-        const uniqueKey = getNodeId(node);
-        return (
-          <Fragment key={uniqueKey}>
-            {transactionName && <TransactionItem>{transactionName}</TransactionItem>}
+          const uniqueKey = getNodeId(node);
+          return (
             <TraceListItem
               indent={shouldIndent ? 1 : 0}
-              traceBounds={currentTimeBounds}
+              traceBounds={timeBounds}
               key={uniqueKey}
               node={node}
               onClick={() => onSelectNode(node)}
               isSelected={uniqueKey === selectedNodeKey}
               colors={colors}
             />
-          </Fragment>
-        );
-      })}
-    </TraceListContainer>
+          );
+        })}
+    </Fragment>
   );
 }
 
@@ -304,7 +318,7 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
   const truncatedOp = op.startsWith('gen_ai.') ? op.slice(7) : op;
   nodeInfo.title = truncatedOp;
 
-  if (getIsAiRunSpan({op})) {
+  if (getIsAiRunSpan({op}) || getIsAiCreateAgentSpan({op})) {
     const agentName =
       getNodeAttribute(SpanFields.GEN_AI_AGENT_NAME) ||
       getNodeAttribute(SpanFields.GEN_AI_FUNCTION_ID) ||
@@ -314,14 +328,13 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
       getNodeAttribute(SpanFields.GEN_AI_RESPONSE_MODEL) ||
       '';
     nodeInfo.icon = <IconBot size="md" />;
-    nodeInfo.subtitle = agentName;
+    nodeInfo.title = agentName || truncatedOp;
+    nodeInfo.subtitle = truncatedOp;
     if (model) {
-      nodeInfo.subtitle = nodeInfo.subtitle ? (
+      nodeInfo.subtitle = (
         <Fragment>
           {nodeInfo.subtitle} ({model})
         </Fragment>
-      ) : (
-        model
       );
     }
     nodeInfo.color = colors[0];
@@ -345,11 +358,13 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
       );
     }
     nodeInfo.color = colors[2];
-  } else if (op === 'gen_ai.execute_tool') {
+  } else if (getIsExecuteToolSpan({op})) {
+    const toolName = getNodeAttribute(SpanFields.GEN_AI_TOOL_NAME);
     nodeInfo.icon = <IconTool size="md" />;
-    nodeInfo.subtitle = getNodeAttribute(SpanFields.GEN_AI_TOOL_NAME) || '';
+    nodeInfo.title = toolName || truncatedOp;
+    nodeInfo.subtitle = toolName ? truncatedOp : '';
     nodeInfo.color = colors[5];
-  } else if (op === 'gen_ai.handoff') {
+  } else if (getIsHandoffSpan({op})) {
     nodeInfo.icon = <IconChevron size="md" isDouble direction="right" />;
     nodeInfo.subtitle = node.value.description || '';
     nodeInfo.color = colors[4];
@@ -371,9 +386,12 @@ function hasError(node: AITraceSpanNode) {
     return true;
   }
 
-  // spans with status unknown are errors
   if (isEAPSpanNode(node)) {
-    return node.value.additional_attributes?.[SpanFields.SPAN_STATUS] === 'unknown';
+    const status = node.value.additional_attributes?.[SpanFields.SPAN_STATUS];
+    if (typeof status === 'string') {
+      return status.includes('error');
+    }
+    return false;
   }
 
   return false;
@@ -474,18 +492,40 @@ const DurationText = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const TransactionItem = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  padding: ${space(2)} ${space(0.5)} 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+const TransactionButton = styled('button')`
+  position: relative;
   display: flex;
-  min-width: 0;
-  &:first-child {
-    padding-top: 0;
+  align-items: center;
+  font-size: ${p => p.theme.fontSize.sm};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
+  margin-top: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.xs};
+  border-radius: ${p => p.theme.borderRadius};
+  background: transparent;
+  border: none;
+  outline: none;
+  justify-content: flex-start;
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeight.normal};
+
+  &:hover:not(:disabled) {
+    background-color: ${p => p.theme.backgroundSecondary};
   }
+
+  &:first-child {
+    margin-top: 0;
+  }
+
+  & > span {
+    ${p => p.theme.overflowEllipsis};
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+  }
+`;
+
+const StyledIconChevron = styled(IconChevron)`
+  flex-shrink: 0;
 `;
 
 const FlexSpacer = styled('div')`

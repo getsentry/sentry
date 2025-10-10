@@ -16,44 +16,12 @@ import AMCheckout from 'getsentry/views/amCheckout/';
 import AddPaymentMethod from 'getsentry/views/amCheckout/steps/addPaymentMethod';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 
-jest.mock('getsentry/utils/stripe', () => ({
-  loadStripe: (cb: any) => {
-    if (!cb) {
-      return;
-    }
-    cb(() => ({
-      createToken: jest.fn(
-        () =>
-          new Promise(resolve => {
-            resolve({token: {id: 'STRIPE_TOKEN'}});
-          })
-      ),
-      confirmCardSetup(secretKey: string, _options: any) {
-        if (secretKey !== 'ERROR') {
-          return new Promise(resolve => {
-            resolve({setupIntent: {payment_method: 'pm_abc123'}});
-          });
-        }
-        return new Promise(resolve => {
-          resolve({error: {message: 'card invalid'}});
-        });
-      },
-      elements: jest.fn(() => ({
-        create: jest.fn(() => ({
-          mount: jest.fn(),
-          on: jest.fn(),
-          update: jest.fn(),
-        })),
-      })),
-    }));
-  },
-}));
+// Stripe mocks handled by global setup.ts
 
 describe('AddPaymentMethod', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
   let setupIntent!: jest.Mock;
   const stepNumber = 5;
@@ -118,7 +86,7 @@ describe('AddPaymentMethod', () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={subscription.planTier as PlanTier}
@@ -255,7 +223,7 @@ describe('AddPaymentMethod', () => {
       `/customers/${organization.slug}/`,
       expect.objectContaining({
         data: expect.objectContaining({
-          paymentMethod: 'pm_abc123',
+          paymentMethod: 'test-pm',
           ftcConsentLocation: FTCConsentLocation.CHECKOUT,
         }),
       })

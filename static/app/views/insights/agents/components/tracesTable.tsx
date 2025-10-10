@@ -10,6 +10,7 @@ import GridEditable, {
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
+import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -22,7 +23,6 @@ import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {useTraceViewDrawer} from 'sentry/views/insights/agents/components/drawer';
 import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
-import {useColumnOrder} from 'sentry/views/insights/agents/hooks/useColumnOrder';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {ErrorCell, NumberPlaceholder} from 'sentry/views/insights/agents/utils/cells';
 import {
@@ -81,14 +81,13 @@ const GENERATION_COUNTS = AI_GENERATION_OPS.map(
   op => `count_if(span.op,equals,${op})` as const
 );
 
-const AI_AGENT_SUB_OPS = [...AI_GENERATION_OPS, 'gen_ai.execute_tool'].map(
-  op => `count_if(span.op,equals,${op})` as const
-);
-
 export function TracesTable() {
   const navigate = useNavigate();
   const location = useLocation();
-  const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
+  const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
+    columns: defaultColumnOrder,
+  });
+
   const combinedQuery = useCombinedQuery(getAITracesFilter());
 
   const tracesRequest = useTraces({
@@ -123,9 +122,9 @@ export function TracesTable() {
 
   const traceErrorRequest = useSpans(
     {
-      // Get all generations and tool calls with status unknown
-      search: `span.status:unknown trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
-      fields: ['trace', ...AI_AGENT_SUB_OPS],
+      // Get all spans with error status
+      search: `has:span.status span.status:*error trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
+      fields: ['trace', 'count(span.duration)'],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
     },
@@ -139,12 +138,7 @@ export function TracesTable() {
     // sum up the error spans for a trace
     const errors = traceErrorRequest.data?.reduce(
       (acc, span) => {
-        const sum = AI_AGENT_SUB_OPS.reduce(
-          (errorSum, key) => errorSum + (span[key] ?? 0),
-          0
-        );
-
-        acc[span.trace] = sum;
+        acc[span.trace] = Number(span['count(span.duration)'] ?? 0);
         return acc;
       },
       {} as Record<string, number>
@@ -244,7 +238,7 @@ export function TracesTable() {
           grid={{
             renderBodyCell,
             renderHeadCell,
-            onResizeColumn,
+            onResizeColumn: handleResizeColumn,
           }}
         />
         {tracesRequest.isPlaceholderData && <LoadingOverlay />}
@@ -294,7 +288,7 @@ const BodyCell = memo(function BodyCell({
         <ErrorCell
           value={dataRow.errors}
           target={getExploreUrl({
-            query: `${query} span.status:unknown trace:[${dataRow.traceId}]`,
+            query: `${query} span.status:*error trace:[${dataRow.traceId}]`,
             organization,
             selection,
             referrer: Referrer.TRACES_TABLE,

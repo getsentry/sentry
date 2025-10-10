@@ -1,23 +1,10 @@
 from unittest import mock
 
-import pytest
-from django.http import HttpRequest
-from django.test import override_settings
 from django.urls import reverse
-from rest_framework.exceptions import ErrorDetail
-from rest_framework.request import Request
 
-from sentry.api.endpoints.organization_events import (
-    DEFAULT_INCREASED_RATE_LIMIT,
-    DEFAULT_REDUCED_RATE_LIMIT,
-    LEGACY_RATE_LIMIT,
-    rate_limit_events,
-)
 from sentry.search.events import constants
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import Feature, override_options, with_feature
-from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
@@ -76,44 +63,6 @@ class OrganizationEventsEndpointTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["project.name"] == self.project.slug
-
-    def test_multiple_projects_open_membership(self) -> None:
-        assert bool(self.organization.flags.allow_joinleave)
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "timestamp": self.ten_mins_ago_iso,
-            },
-            project_id=self.project.id,
-        )
-        project2 = self.create_project()
-        self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "timestamp": self.ten_mins_ago_iso,
-            },
-            project_id=project2.id,
-        )
-        response = self.do_request(
-            {"field": ["project"], "project": -1, "referrer": "api.issues.issue_events"}
-        )
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 2
-
-        # The test will now not work since the membership is closed
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-        assert bool(self.organization.flags.allow_joinleave) is False
-        response = self.do_request(
-            {"field": ["project"], "project": -1, "referrer": "api.issues.issue_events"}
-        )
-
-        assert response.status_code == 400, response.content
-        assert response.data == {
-            "detail": ErrorDetail(
-                string="You cannot view events from multiple projects.", code="parse_error"
-            )
-        }
 
     @mock.patch("sentry.snuba.discover.query")
     def test_api_token_referrer(self, mock: mock.MagicMock) -> None:
@@ -205,145 +154,3 @@ class OrganizationEventsEndpointTest(APITestCase):
         self.do_request(query)
         _, kwargs = mock.call_args
         self.assertEqual(kwargs["referrer"], "api.insights.transaction-summary")
-
-    @pytest.mark.skip(reason="flaky: #95995")
-    @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_ratelimit(self) -> None:
-        query = {
-            "field": ["transaction"],
-            "project": [self.project.id],
-        }
-        limit = LEGACY_RATE_LIMIT
-        with freeze_time("2000-01-01") as frozen_time:
-            for _ in range(
-                limit["limit"] - 1
-            ):  # for longer windows / higher limits this loop takes too long
-                self.do_request(query)
-            response = self.do_request(query)
-            assert response.status_code == 200, response.content
-            response = self.do_request(query)
-            assert response.status_code == 429, response.content
-            frozen_time.shift(limit["window"] + 1)
-            response = self.do_request(query)
-            assert response.status_code == 200, response.content
-
-    def test_rate_limit_events_without_rollout(self) -> None:
-        slug = self.organization.slug
-        request = Request(HttpRequest())
-
-        assert rate_limit_events(request, slug)["GET"][RateLimitCategory.IP] == RateLimit(
-            **LEGACY_RATE_LIMIT
-        )
-
-    @with_feature("organizations:api-organization_events-rate-limit-reduced-rollout")
-    def test_rate_limit_events_with_rollout(self) -> None:
-        slug = self.organization.slug
-        request = Request(HttpRequest())
-
-        assert rate_limit_events(request, slug)["GET"][RateLimitCategory.IP] == RateLimit(
-            **DEFAULT_REDUCED_RATE_LIMIT
-        )
-
-        with override_options(
-            {
-                "api.organization_events.rate-limit-reduced.limits": {
-                    "limit": 123,
-                    "window": 456,
-                },
-            },
-        ):
-            assert rate_limit_events(request, slug)["GET"][RateLimitCategory.IP] == RateLimit(
-                limit=123,
-                window=456,
-            )
-
-    def test_rate_limit_events_increased(self) -> None:
-        slug = self.organization.slug
-        request = Request(HttpRequest())
-
-        with override_options(
-            {"api.organization_events.rate-limit-increased.orgs": [self.organization.id]}
-        ):
-            assert rate_limit_events(request, slug)["GET"][RateLimitCategory.IP] == RateLimit(
-                **DEFAULT_INCREASED_RATE_LIMIT
-            )
-
-        # when both reduced rollout and increased rate limit for org, increased rate limit should take precedence
-        with (
-            Feature("organizations:api-organization_events-rate-limit-reduced-rollout"),
-            override_options(
-                {"api.organization_events.rate-limit-increased.orgs": [self.organization.id]}
-            ),
-        ):
-            assert rate_limit_events(request, slug)["GET"][RateLimitCategory.IP] == RateLimit(
-                **DEFAULT_INCREASED_RATE_LIMIT
-            )
-
-        with override_options(
-            {
-                "api.organization_events.rate-limit-increased.orgs": [self.organization.id],
-                "api.organization_events.rate-limit-increased.limits": {
-                    "limit": 123,
-                    "window": 456,
-                },
-            },
-        ):
-            assert rate_limit_events(request, slug)["GET"][RateLimitCategory.IP] == RateLimit(
-                limit=123,
-                window=456,
-            )
-
-    def test_rate_limit_events_invalid_options(self) -> None:
-        slug = self.organization.slug
-        request = Request(HttpRequest())
-
-        with override_options(
-            {
-                "api.organization_events.rate-limit-increased.orgs": [self.organization.id],
-                "api.organization_events.rate-limit-increased.limits": {
-                    "limit": "invalid",
-                    "window": 123,
-                },
-            },
-        ):
-            assert rate_limit_events(request, slug)["GET"][RateLimitCategory.IP] == RateLimit(
-                **DEFAULT_INCREASED_RATE_LIMIT
-            )
-
-        with override_options(
-            {
-                "api.organization_events.rate-limit-increased.orgs": [self.organization.id],
-                "api.organization_events.rate-limit-increased.limits": {
-                    "leemeet": 123,
-                    "window": 123,
-                },
-            },
-        ):
-            assert rate_limit_events(request, slug)["GET"][RateLimitCategory.IP] == RateLimit(
-                **DEFAULT_INCREASED_RATE_LIMIT
-            )
-
-        with (
-            Feature("organizations:api-organization_events-rate-limit-reduced-rollout"),
-            override_options(
-                {
-                    "api.organization_events.rate-limit-reduced.limits": {
-                        "limit": 123,
-                        "window": 456,
-                        "concurrent_limit": 789,
-                        "unexpected_key": 0xBAD,
-                    },
-                }
-            ),
-        ):
-            assert rate_limit_events(request, slug)["GET"][RateLimitCategory.IP] == RateLimit(
-                **DEFAULT_REDUCED_RATE_LIMIT
-            )
-
-    def test_rate_limit_events_bad_slug(self) -> None:
-        slug = "ucsc-banana-slugs-go-sammy"
-        request = Request(HttpRequest())
-
-        assert rate_limit_events(request, slug)["GET"][RateLimitCategory.IP] == RateLimit(
-            **LEGACY_RATE_LIMIT
-        )

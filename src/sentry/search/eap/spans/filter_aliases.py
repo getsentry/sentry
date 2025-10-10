@@ -1,3 +1,4 @@
+import string
 from typing import Literal
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
@@ -221,7 +222,13 @@ def trace_filter_converter(params: SnubaParams, search_filter: SearchFilter) -> 
     value = search_filter.value.value
 
     # special handling for 16 char trace id
-    if operator == "=" and isinstance(value, str) and len(value) >= 8 and len(value) < 32:
+    if (
+        operator == "="
+        and isinstance(value, str)
+        and len(value) >= 8
+        and len(value) < 32
+        and all(c in string.hexdigits for c in value)
+    ):
         pad = 32 - len(value)
         return [
             SearchFilter(SearchKey(constants.TRACE), ">=", SearchValue(value + "0" * pad)),

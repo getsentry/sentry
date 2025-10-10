@@ -1,29 +1,17 @@
-import type {ReactNode} from 'react';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
+  Dataset,
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
 import {AnomalyType, type Anomaly} from 'sentry/views/alerts/types';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useMetricDetectorAnomalyPeriods} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyPeriods';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const {organization} = initializeOrg();
-
-function TestContext({children}: {children?: ReactNode}) {
-  return (
-    <QueryClientProvider client={makeTestQueryClient()}>
-      <OrganizationContext value={organization}>{children}</OrganizationContext>
-    </QueryClientProvider>
-  );
-}
 
 describe('useMetricDetectorAnomalyPeriods', () => {
   beforeEach(() => {
@@ -86,23 +74,23 @@ describe('useMetricDetectorAnomalyPeriods', () => {
       },
     ];
 
-    const {result} = renderHook(
-      () =>
-        useMetricDetectorAnomalyPeriods({
-          series,
-          dataset: DetectorDataset.ERRORS,
-          aggregate: 'count()',
-          query: '',
-          environment: undefined,
-          projectId: '1',
-          statsPeriod: TimePeriod.SEVEN_DAYS,
-          interval: 900, // 15 minutes
-          thresholdType: AlertRuleThresholdType.ABOVE,
-          sensitivity: AlertRuleSensitivity.MEDIUM,
-          isLoadingSeries: false,
-          enabled: true,
-        }),
-      {wrapper: TestContext}
+    const {result} = renderHookWithProviders(() =>
+      useMetricDetectorAnomalyPeriods({
+        series,
+        detectorDataset: DetectorDataset.ERRORS,
+        dataset: Dataset.ERRORS,
+        aggregate: 'count()',
+        query: '',
+        eventTypes: [],
+        environment: undefined,
+        projectId: '1',
+        statsPeriod: TimePeriod.SEVEN_DAYS,
+        interval: 900, // 15 minutes
+        thresholdType: AlertRuleThresholdType.ABOVE,
+        sensitivity: AlertRuleSensitivity.MEDIUM,
+        isLoadingSeries: false,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -113,16 +101,16 @@ describe('useMetricDetectorAnomalyPeriods', () => {
     expect(result.current.anomalyPeriods).toHaveLength(2);
     expect(result.current.anomalyPeriods[0]).toEqual(
       expect.objectContaining({
-        type: AnomalyType.HIGH_CONFIDENCE,
-        name: 'High Confidence Anomaly',
+        type: 'open-period-start',
+        priority: 'high',
         start: 1609459200000,
         end: 1609462800000, // Last consecutive anomaly timestamp in ms
       })
     );
     expect(result.current.anomalyPeriods[1]).toEqual(
       expect.objectContaining({
-        type: AnomalyType.HIGH_CONFIDENCE,
-        name: 'High Confidence Anomaly',
+        type: 'open-period-start',
+        priority: 'high',
         start: 1609470000000,
         end: 1609470000000 + 900000, // Plus timePeriod (900s = 15min) in ms for minimum width
       })

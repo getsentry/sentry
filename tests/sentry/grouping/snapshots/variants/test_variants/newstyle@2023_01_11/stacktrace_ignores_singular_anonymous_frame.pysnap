@@ -1,0 +1,46 @@
+---
+created: '2025-10-07T20:41:49.648114+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  hint: ignored because system stacktrace takes precedence
+  root_component:
+    app (ignored because system stacktrace takes precedence)
+      stacktrace (ignored because it contains no in-app frames)
+        frame (marked out of app by the client)
+          filename (ignored because filename is anonymous)
+            "<anonymous>"
+        frame (marked out of app by the client)
+          filename*
+            "dojo.js"
+          function*
+            "c"
+        frame (marked out of app by the client)
+          filename*
+            "dojo.js"
+          function* (trimmed javascript function)
+            "_createDocumentViewModel"
+--------------------------------------------------------------------------
+system:
+  hash: "c5da56c71b31f34c5880d734cbc8f5bb"
+  contributing component: stacktrace
+  hint: None
+  root_component:
+    system*
+      stacktrace*
+        frame (ignored low quality javascript frame)
+          filename (ignored because filename is anonymous)
+            "<anonymous>"
+        frame*
+          filename*
+            "dojo.js"
+          function*
+            "c"
+        frame*
+          filename*
+            "dojo.js"
+          function* (trimmed javascript function)
+            "_createDocumentViewModel"

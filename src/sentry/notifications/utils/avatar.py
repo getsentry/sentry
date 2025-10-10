@@ -36,7 +36,7 @@ def get_sentry_avatar_url() -> str:
     return str(absolute_uri(get_asset_url("sentry", url)))
 
 
-def avatar_as_html(user: User | RpcUser, size: int = 20) -> SafeString:
+def avatar_as_html(user: User | RpcUser | None, size: int = 20) -> SafeString:
     if not user:
         return format_html(
             '<img class="avatar" src="{}" width="{}px" height="{}px" />',

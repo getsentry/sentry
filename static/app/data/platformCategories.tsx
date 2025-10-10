@@ -167,15 +167,8 @@ export const desktop: PlatformKey[] = [
 
 // Mirrors `GAMING` in src/sentry/utils/platform_categories.py
 // When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
-export const gaming: PlatformKey[] = [
-  'godot',
-  'native',
-  'nintendo-switch',
-  'playstation',
-  'unity',
-  'unreal',
-  'xbox',
-];
+export const consoles: PlatformKey[] = ['nintendo-switch', 'playstation', 'xbox'];
+export const gaming: PlatformKey[] = ['godot', 'native', 'unity', 'unreal', ...consoles];
 
 export const sourceMaps: PlatformKey[] = [
   ...frontend,
@@ -406,7 +399,6 @@ export const profiling: PlatformKey[] = [
   'dotnet-winforms',
   'dotnet-wpf',
   'flutter',
-  'go',
   'javascript',
   'javascript-angular',
   'javascript-astro',
@@ -531,6 +523,8 @@ export const releaseHealth: PlatformKey[] = [
   'dotnet-winforms',
   'dotnet-xamarin',
   'unity',
+  'java',
+  'kotlin',
 ];
 
 // These are the backend platforms that can set up replay -- e.g. they can be set up via a linked JS framework or via JS loader.
@@ -717,9 +711,11 @@ export const featureFlagDrawerPlatforms: readonly PlatformKey[] = platformKeys.f
 );
 
 export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
+  'javascript-astro',
   'javascript-nextjs',
-  'javascript-remix',
+  'javascript-nuxt',
   'javascript-react-router',
+  'javascript-remix',
   'javascript-solidstart',
   'javascript-sveltekit',
   'javascript-tanstackstart-react',

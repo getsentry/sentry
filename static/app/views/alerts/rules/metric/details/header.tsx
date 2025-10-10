@@ -14,7 +14,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 import {
   AlertWizardAlertNames,
   DEPRECATED_TRANSACTION_ALERTS,
@@ -65,8 +64,6 @@ function DetailsHeader({
       referrer: 'metric_rule_details',
     },
   };
-
-  const isSnoozed = rule?.snooze ?? false;
 
   const ruleType =
     rule &&
@@ -119,11 +116,10 @@ function DetailsHeader({
             <Access access={['alerts:write']}>
               {({hasAccess}) => (
                 <SnoozeAlert
-                  isSnoozed={isSnoozed}
+                  isSnoozed={rule?.snoozeForEveryone ?? false}
                   onSnooze={onSnooze}
                   ruleId={rule.id}
                   projectSlug={project.slug}
-                  ruleActionCategory={getAlertRuleActionCategory(rule)}
                   hasAccess={hasAccess}
                   type="metric"
                 />

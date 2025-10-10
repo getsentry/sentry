@@ -69,7 +69,58 @@ jest
   .mockImplementation(props => props.children as ReactElement);
 jest.mock('scroll-to-element', () => jest.fn());
 
-jest.mock('getsentry/utils/stripe');
+jest.mock('@stripe/stripe-js', () => ({
+  loadStripe: jest.fn(() =>
+    Promise.resolve({
+      createToken: jest.fn(() => Promise.resolve({token: {id: 'test-token'}})),
+      confirmCardPayment: jest.fn(() =>
+        Promise.resolve({error: undefined, paymentIntent: {id: 'test-payment'}})
+      ),
+      confirmCardSetup: jest.fn((secretKey: string) => {
+        if (secretKey === 'ERROR') {
+          return Promise.resolve({error: {message: 'card invalid'}});
+        }
+        return Promise.resolve({
+          error: undefined,
+          setupIntent: {payment_method: 'test-pm'},
+        });
+      }),
+      handleCardAction: jest.fn(() =>
+        Promise.resolve({setupIntent: {payment_method: 'test-pm'}})
+      ),
+      elements: jest.fn(() => ({
+        create: jest.fn(() => ({
+          mount: jest.fn(),
+          on: jest.fn(),
+          update: jest.fn(),
+        })),
+      })),
+    })
+  ),
+}));
+jest.mock('@stripe/react-stripe-js', () => ({
+  Elements: jest.fn(({children}: {children: any}) => children),
+  AddressElement: jest.fn(() => null),
+  CardElement: jest.fn(() => null),
+  PaymentElement: jest.fn(() => null),
+  useStripe: jest.fn(() => ({
+    confirmCardPayment: jest.fn(() =>
+      Promise.resolve({error: undefined, paymentIntent: {id: 'test-payment'}})
+    ),
+    confirmCardSetup: jest.fn((secretKey: string) => {
+      if (secretKey === 'ERROR') {
+        return Promise.resolve({error: {message: 'card invalid'}});
+      }
+      return Promise.resolve({
+        error: undefined,
+        setupIntent: {payment_method: 'test-pm'},
+      });
+    }),
+  })),
+  useElements: jest.fn(() => ({
+    getElement: jest.fn(() => ({})),
+  })),
+}));
 jest.mock('getsentry/utils/trackMarketingEvent');
 jest.mock('getsentry/utils/trackAmplitudeEvent');
 jest.mock('getsentry/utils/trackReloadEvent');

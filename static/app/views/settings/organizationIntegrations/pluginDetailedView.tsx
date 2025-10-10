@@ -40,6 +40,9 @@ import InstalledPlugin from 'sentry/views/settings/organizationIntegrations/inst
 import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 import PluginDeprecationAlert from 'sentry/views/settings/organizationIntegrations/pluginDeprecationAlert';
 
+// TODO @sentaur-athena: remove this once we have a solution to deprecate these plugins
+const TEMPORARY_PERMITTED_PLUGINS = new Set(['amazon-sqs']);
+
 function makePluginQueryKey({
   orgSlug,
   pluginSlug,
@@ -323,8 +326,9 @@ function PluginDetailedView() {
               hideButtonIfDisabled={false}
               requiresAccess={false}
               renderTopButton={
-                // TODO @sentaur-athena: remove this once we have a solution to deprecate the heroku plugin
-                plugin.id === 'heroku' ? renderTopButton : renderDeprecatedButton
+                TEMPORARY_PERMITTED_PLUGINS.has(plugin.id)
+                  ? renderTopButton
+                  : renderDeprecatedButton
               }
             />
           }

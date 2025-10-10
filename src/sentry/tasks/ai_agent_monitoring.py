@@ -1,5 +1,8 @@
 import logging
+import re
 from typing import Any
+
+from django.conf import settings
 
 from sentry import options
 from sentry.http import safe_urlopen
@@ -12,7 +15,6 @@ from sentry.relay.config.ai_model_costs import (
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import ai_agent_monitoring_tasks
 from sentry.utils.cache import cache
 
@@ -24,19 +26,122 @@ OPENROUTER_MODELS_API_URL = "https://openrouter.ai/api/v1/models"
 MODELS_DEV_API_URL = "https://models.dev/api.json"
 
 
+def _create_suffix_glob_model_name(model_id: str) -> str:
+    """
+    Create a suffix glob version of a model name by stripping dates and versions.
+
+    Examples:
+    - "claude-4-sonnet-20250522" -> "claude-4-sonnet-*"
+    - "o3-pro-2025-06-10" -> "o3-pro-*"
+    - "claude-3-5-haiku@20241022" -> "claude-3-5-haiku@*"
+    - "claude-opus-4-1-20250805-v1:0" -> "claude-opus-4-1-*"
+
+    Args:
+        model_id: The original model ID
+
+    Returns:
+        The glob version of the model name
+    """
+    # Pattern to match various date and version formats
+    # Matches:
+    # - YYYYMMDD (e.g., 20250522)
+    # - YYYY-MM-DD (e.g., 2025-06-10)
+    # - YYYY/MM/DD (e.g., 2025/06/10)
+    # - YYYY.MM.DD (e.g., 2025.06.10)
+    # - v followed by version numbers (e.g., v1:0, v2.1, v3)
+    # - @ followed by dates (e.g., @20241022)
+    # - -v followed by version numbers (e.g., -v1.0)
+    # - _v followed by version numbers (e.g., _v1.0)
+
+    # Use a single comprehensive regex that handles all patterns
+    # This regex matches:
+    # 1. Date patterns: -YYYYMMDD, -YYYY-MM-DD, -YYYY/MM/DD, -YYYY.MM.DD
+    # 2. Version patterns: -v1.0, -v1:0, _v1.0, _v1:0
+    # 3. @date patterns: @YYYYMMDD, @YYYY-MM-DD, @YYYY/MM/DD, @YYYY.MM.DD
+    # 4. Combined patterns: -YYYYMMDD-v1:0, @YYYYMMDD-v1:0
+
+    # First, handle @date patterns (they have special handling)
+    glob_name = re.sub(
+        r"@(?:19|20)\d{2}(?:[-_/.]?\d{2}){2}(?:[-_]v\d+(?:[.:]\d+)*)?", "@*", model_id
+    )
+
+    # Then handle regular date and version patterns
+    glob_name = re.sub(
+        r"([-_])(?:19|20)\d{2}(?:[-_/.]?\d{2}){2}(?:[-_]v\d+(?:[.:]\d+)*)?", r"\1*", glob_name
+    )
+
+    # Handle standalone version patterns (without dates)
+    glob_name = re.sub(r"([-_])v\d+(?:[.:]\d+)*", r"\1*", glob_name)
+
+    return glob_name
+
+
+def _create_prefix_glob_model_name(model_id: str) -> str:
+    """
+    Create a glob version of a model name by adding a wildcard prefix.
+
+    This handles cases where models have random prefixes before the actual model name.
+    Can be used on both regular model IDs and suffix-globbed model names.
+
+    Examples:
+    - "gpt-4" -> "*gpt-4"
+    - "claude-3-5-sonnet" -> "*claude-3-5-sonnet"
+    - "o3-pro" -> "*o3-pro"
+    - "gpt-4o-mini-*" -> "*gpt-4o-mini-*"
+    - "model@*" -> "*model@*"
+
+    Args:
+        model_id: The original model ID or a suffix-globbed model name
+
+    Returns:
+        The glob version with a wildcard prefix
+    """
+    # Simply prepend * to the model name
+    return f"*{model_id}"
+
+
+def _add_glob_model_names(models_dict: dict[ModelId, AIModelCostV2]) -> None:
+    """
+    Add glob versions of model names to the models dictionary.
+
+    For each model, creates three types of glob versions:
+    1. Suffix pattern: stripping dates and versions (e.g., "model-20241022" -> "model-*")
+    2. Prefix pattern: adding wildcard prefix (e.g., "gpt-4" -> "*gpt-4")
+    3. Prefix-suffix pattern: both wildcards for suffix-globbed names (e.g., "model-*" -> "*model-*")
+
+    We DO NOT want to have prefix-suffix glob patterns for models that don't have a suffix glob pattern
+    because that would result in too fuzzy matching, e.g. "gpt-4" -> "*gpt-4*" would match "gpt-4o-mini".
+
+    Args:
+        models_dict: The dictionary of models to add glob versions to
+    """
+
+    # needed to avoid modifying the dictionary during iteration
+    model_ids = list(models_dict.keys())
+
+    for model_id in model_ids:
+        # Add suffix glob pattern (strip dates/versions)
+        suffix_glob_name = _create_suffix_glob_model_name(model_id)
+        if suffix_glob_name != model_id and suffix_glob_name not in models_dict:
+            models_dict[suffix_glob_name] = models_dict[model_id]
+
+            # Add prefix-suffix glob pattern (both wildcards) only for models that have a suffix glob
+            prefix_suffix_glob_name = _create_prefix_glob_model_name(suffix_glob_name)
+            if prefix_suffix_glob_name not in models_dict:
+                models_dict[prefix_suffix_glob_name] = models_dict[model_id]
+
+        # Add prefix glob pattern (wildcard prefix)
+        prefix_glob_name = _create_prefix_glob_model_name(model_id)
+        if prefix_glob_name not in models_dict:
+            models_dict[prefix_glob_name] = models_dict[model_id]
+
+
 @instrumented_task(
     name="sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
-    queue="ai_agent_monitoring",
-    default_retry_delay=5,
-    max_retries=3,
+    namespace=ai_agent_monitoring_tasks,
+    processing_deadline_duration=35,
+    expires=30,
     silo_mode=SiloMode.REGION,
-    soft_time_limit=30,  # 30 seconds
-    time_limit=35,  # 35 seconds
-    taskworker_config=TaskworkerConfig(
-        namespace=ai_agent_monitoring_tasks,
-        processing_deadline_duration=35,
-        expires=30,
-    ),
 )
 def fetch_ai_model_costs() -> None:
     """
@@ -46,6 +151,10 @@ def fetch_ai_model_costs() -> None:
     the AIModelCostV2 format for use by Sentry's LLM cost tracking.
     OpenRouter prices take precedence over models.dev prices.
     """
+
+    # this task shouldn't be run in an air gap environment
+    if settings.SENTRY_AIR_GAP:
+        return
 
     models_dict: dict[ModelId, AIModelCostV2] = {}
 
@@ -85,6 +194,9 @@ def fetch_ai_model_costs() -> None:
             continue
 
         models_dict[alternative_model_id] = models_dict[existing_model_id]
+
+    # Add glob versions of model names for flexible matching
+    _add_glob_model_names(models_dict)
 
     ai_model_costs: AIModelCosts = {"version": 2, "models": models_dict}
     cache.set(AI_MODEL_COSTS_CACHE_KEY, ai_model_costs, AI_MODEL_COSTS_CACHE_TTL)

@@ -35,7 +35,12 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         mock_get_autofix_state.return_value = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={
+                "project_id": 456,
+                "organization_id": group.organization.id,
+                "issue": {"id": 789, "title": "Test Issue"},
+                "repos": [],
+            },
             updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
         )
@@ -52,7 +57,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert "issue_summary" not in response.data["autofix"]["request"]
 
         mock_get_autofix_state.assert_called_once_with(
-            group_id=group.id, check_repo_access=True, is_user_fetching=False
+            group_id=group.id,
+            check_repo_access=True,
+            is_user_fetching=False,
+            organization_id=group.organization.id,
         )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
@@ -69,7 +77,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["autofix"] is None
 
         mock_get_autofix_state.assert_called_once_with(
-            group_id=group.id, check_repo_access=True, is_user_fetching=False
+            group_id=group.id,
+            check_repo_access=True,
+            is_user_fetching=False,
+            organization_id=group.organization.id,
         )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
@@ -83,7 +94,12 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         autofix_state = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={
+                "project_id": 456,
+                "organization_id": group.organization.id,
+                "issue": {"id": 789, "title": "Test Issue"},
+                "repos": [],
+            },
             updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
             codebases={
@@ -135,7 +151,12 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         autofix_state = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={
+                "project_id": 456,
+                "organization_id": group.organization.id,
+                "issue": {"id": 789, "title": "Test Issue"},
+                "repos": [],
+            },
             updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
             codebases={
@@ -213,7 +234,12 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         autofix_state = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={
+                "project_id": 456,
+                "organization_id": group.organization.id,
+                "issue": {"id": 789, "title": "Test Issue"},
+                "repos": [],
+            },
             updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
             codebases={
@@ -258,7 +284,12 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         autofix_state = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={
+                "project_id": 456,
+                "organization_id": group.organization.id,
+                "issue": {"id": 789, "title": "Test Issue"},
+                "repos": [],
+            },
             updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
             # Empty codebases dictionary
@@ -366,7 +397,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 202
 
-        mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
+        mock_check_autofix_status.assert_called_once_with(
+            args=[123, group.organization.id], countdown=900
+        )
 
     @patch("sentry.seer.explorer.utils.get_from_profiling_service")
     @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
@@ -434,7 +467,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 202
 
-        mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
+        mock_check_autofix_status.assert_called_once_with(
+            args=[123, group.organization.id], countdown=900
+        )
 
     @patch("sentry.seer.explorer.utils.get_from_profiling_service")
     @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
@@ -514,7 +549,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 202
 
-        mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
+        mock_check_autofix_status.assert_called_once_with(
+            args=[123, group.organization.id], countdown=900
+        )
 
     @patch("sentry.models.Group.get_recommended_event_for_environments", return_value=None)
     @patch("sentry.seer.explorer.utils.get_from_profiling_service")
@@ -594,7 +631,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 202
 
-        mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
+        mock_check_autofix_status.assert_called_once_with(
+            args=[123, group.organization.id], countdown=900
+        )
 
     @patch("sentry.models.Group.get_recommended_event_for_environments", return_value=None)
     @patch("sentry.models.Group.get_latest_event", return_value=None)
@@ -655,7 +694,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # Verify cache behavior - cache miss should trigger repo access check
         mock_cache.get.assert_called_once_with(f"autofix_access_check:{self.group.id}")
         mock_get_autofix_state.assert_called_once_with(
-            group_id=self.group.id, check_repo_access=True, is_user_fetching=False
+            group_id=self.group.id,
+            check_repo_access=True,
+            is_user_fetching=False,
+            organization_id=self.group.organization.id,
         )
 
         # Verify the cache was set with a 60-second timeout
@@ -686,7 +728,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # Verify cache behavior - cache hit should skip repo access check
         mock_cache.get.assert_called_once_with(f"autofix_access_check:{self.group.id}")
         mock_get_autofix_state.assert_called_once_with(
-            group_id=self.group.id, check_repo_access=False, is_user_fetching=False
+            group_id=self.group.id,
+            check_repo_access=False,
+            is_user_fetching=False,
+            organization_id=self.group.organization.id,
         )
 
         # Verify the cache was not set again
@@ -705,7 +750,12 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # Mock the autofix state
         mock_get_autofix_state.return_value = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={
+                "project_id": 456,
+                "organization_id": group.organization.id,
+                "issue": {"id": 789, "title": "Test Issue"},
+                "repos": [],
+            },
             updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
         )
@@ -719,7 +769,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # Verify first request behavior
         mock_cache.get.assert_called_once_with(f"autofix_access_check:{group.id}")
         mock_get_autofix_state.assert_called_once_with(
-            group_id=group.id, check_repo_access=True, is_user_fetching=False
+            group_id=group.id,
+            check_repo_access=True,
+            is_user_fetching=False,
+            organization_id=group.organization.id,
         )
         mock_cache.set.assert_called_once_with(f"autofix_access_check:{group.id}", True, timeout=60)
 
@@ -736,7 +789,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # Verify second request behavior
         mock_cache.get.assert_called_once_with(f"autofix_access_check:{group.id}")
         mock_get_autofix_state.assert_called_once_with(
-            group_id=group.id, check_repo_access=False, is_user_fetching=False
+            group_id=group.id,
+            check_repo_access=False,
+            is_user_fetching=False,
+            organization_id=group.organization.id,
         )
         mock_cache.set.assert_not_called()
 
@@ -753,6 +809,37 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # Verify third request behavior - should be like the first request
         mock_cache.get.assert_called_once_with(f"autofix_access_check:{group.id}")
         mock_get_autofix_state.assert_called_once_with(
-            group_id=group.id, check_repo_access=True, is_user_fetching=False
+            group_id=group.id,
+            check_repo_access=True,
+            is_user_fetching=False,
+            organization_id=group.organization.id,
         )
         mock_cache.set.assert_called_once_with(f"autofix_access_check:{group.id}", True, timeout=60)
+
+    def test_ai_autofix_post_invalid_stopping_point_string(self, mock_get_seer_org_acknowledgement):
+        group = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"instruction": "test", "stopping_point": "invalid"},
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert "stoppingPoint" in response.data
+        assert "not a valid choice" in str(response.data["stoppingPoint"])
+
+    def test_ai_autofix_post_invalid_stopping_point_type(self, mock_get_seer_org_acknowledgement):
+        group = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"instruction": "test", "stopping_point": 123},
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert "stoppingPoint" in response.data
+        assert "not a valid choice" in str(response.data["stoppingPoint"])
