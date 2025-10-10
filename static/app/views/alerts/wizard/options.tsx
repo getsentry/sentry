@@ -71,6 +71,7 @@ export const DEPRECATED_TRANSACTION_ALERTS: AlertType[] = [
   'lcp',
   'fid',
   'cls',
+  'custom_transactions',
 ];
 
 export const DatasetMEPAlertQueryTypes: Record<
@@ -182,10 +183,12 @@ export const getAlertWizardCategories = (org: Organization) => {
       options: ['crons_monitor'],
     });
 
-    result.push({
-      categoryHeading: t('Custom'),
-      options: ['custom_transactions'],
-    });
+    if (!deprecateTransactionAlerts(org)) {
+      result.push({
+        categoryHeading: t('Custom'),
+        options: ['custom_transactions'],
+      });
+    }
   }
   return result;
 };
