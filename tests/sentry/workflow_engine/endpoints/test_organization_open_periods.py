@@ -29,10 +29,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         self.login_as(user=self.user)
 
         self.detector = self.create_detector()
-        self.group = self.create_group(priority=PriorityLevel.LOW)
-        # Metric issue is the only type (currently) that has open periods
-        self.group.type = MetricIssue.type_id
-        self.group.save()
+        self.group = self.create_group(type=MetricIssue.type_id, priority=PriorityLevel.LOW)
 
         # Link detector to group
         DetectorGroup.objects.create(detector=self.detector, group=self.group)
