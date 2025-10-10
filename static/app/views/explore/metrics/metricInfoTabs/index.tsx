@@ -8,9 +8,7 @@ import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 enum MetricsInfoTab {
   AGGREGATES = 'aggregates',
-  ERRORS = 'errors',
-  LOGS = 'logs',
-  TRACES = 'traces',
+  SAMPLES = 'samples',
 }
 
 interface MetricInfoTabsProps {
@@ -23,9 +21,7 @@ export default function MetricInfoTabs({traceMetric}: MetricInfoTabsProps) {
       <HeaderWrapper>
         <TabList>
           <TabList.Item key={MetricsInfoTab.AGGREGATES}>{t('Aggregates')}</TabList.Item>
-          <TabList.Item key={MetricsInfoTab.ERRORS}>{t('Errors')}</TabList.Item>
-          <TabList.Item key={MetricsInfoTab.LOGS}>{t('Logs')}</TabList.Item>
-          <TabList.Item key={MetricsInfoTab.TRACES}>{t('Traces')}</TabList.Item>
+          <TabList.Item key={MetricsInfoTab.SAMPLES}>{t('Samples')}</TabList.Item>
         </TabList>
       </HeaderWrapper>
 
@@ -34,19 +30,9 @@ export default function MetricInfoTabs({traceMetric}: MetricInfoTabsProps) {
           <TabPanels.Item key={MetricsInfoTab.AGGREGATES}>
             <AggregatesTab metricName={traceMetric.name} />
           </TabPanels.Item>
-          <TabPanels.Item key={MetricsInfoTab.ERRORS}>
+          <TabPanels.Item key={MetricsInfoTab.SAMPLES}>
             <EmptyStateWarning>
-              <p>{t('No errors data available')}</p>
-            </EmptyStateWarning>
-          </TabPanels.Item>
-          <TabPanels.Item key={MetricsInfoTab.LOGS}>
-            <EmptyStateWarning>
-              <p>{t('No logs data available')}</p>
-            </EmptyStateWarning>
-          </TabPanels.Item>
-          <TabPanels.Item key={MetricsInfoTab.TRACES}>
-            <EmptyStateWarning>
-              <p>{t('No traces data available')}</p>
+              <p>{t('No samples data available')}</p>
             </EmptyStateWarning>
           </TabPanels.Item>
         </TabPanels>
