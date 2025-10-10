@@ -57,7 +57,7 @@ class NotificationServiceTest(TestCase):
     def test_basic_notify_target_async(self, mock_record: mock.MagicMock) -> None:
         service = NotificationService(data=MockNotification(message="this is a test notification"))
         with self.tasks():
-            service.notify_target_async(target=self.target)
+            service.notify_target_async(service, target=self.target)
 
         # slo asserts
         assert_count_of_metric(mock_record, EventLifecycleOutcome.STARTED, 1)
@@ -71,7 +71,7 @@ class NotificationServiceTest(TestCase):
         mock_send.side_effect = ApiError("API request failed", 400)
         service = NotificationService(data=MockNotification(message="this is a test notification"))
         with self.tasks():
-            service.notify_target_async(target=self.target)
+            service.notify_target_async(service, target=self.target)
 
         # slo asserts
         assert_count_of_metric(mock_record, EventLifecycleOutcome.STARTED, 1)

@@ -150,5 +150,5 @@ class NotificationService[T: NotificationData]:
 
         else:
             for target in targets:
-                self.notify_target_async.delay(target=target)
+                self.notify_target_async.delay(self, target=target)
         return None
