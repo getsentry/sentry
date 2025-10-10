@@ -91,6 +91,14 @@ def create_metric_alert(
         raise ResourceDoesNotExist
 
     data = deepcopy(request.data)
+
+    if features.has("organizations:discover-saved-queries-deprecation", organization) and data.get(
+        "dataset"
+    ) in ["generic_metrics", "transactions"]:
+        raise ValidationError(
+            "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
+        )
+
     if project:
         data["projects"] = [project.slug]
 
