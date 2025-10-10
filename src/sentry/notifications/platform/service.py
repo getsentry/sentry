@@ -2,6 +2,10 @@ import logging
 from collections import defaultdict
 from typing import Final
 
+from sentry.notifications.platform.metrics import (
+    NotificationEventLifecycleMetric,
+    NotificationInteractionType,
+)
 from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.types import (
@@ -51,23 +55,34 @@ class NotificationService[T: NotificationData]:
                 "Notification service must be initialized with data before sending!"
             )
 
-        # Step 1: Get the provider, and validate the target against it
-        provider = self._get_and_validate_provider(target=target)
+        with NotificationEventLifecycleMetric(
+            interaction_type=NotificationInteractionType.NOTIFY_TARGET_SYNC,
+            notification_source=self.data.source,
+            notification_provider=target.provider_key,
+        ) as lifecycle:
+            # Step 1: Get the provider, and validate the target against it
+            provider = self._get_and_validate_provider(target=target)
 
-        # Step 2: Render the template
-        template_cls = template_registry.get(self.data.source)
-        template = template_cls()
-        renderable = self._render_template(template=template, provider=provider)
+            # Step 2: Render the template
+            template_cls = template_registry.get(self.data.source)
+            template = template_cls()
+            renderable = self._render_template(template=template, provider=provider)
 
-        # Step 3: Send the notification
-        provider.send(target=target, renderable=renderable)
+            # Step 3: Send the notification
+            errors = defaultdict(list)
+            try:
+                provider.send(target=target, renderable=renderable)
+            except ApiError as e:
+                lifecycle.record_failure(failure_reason=e.text)
+                errors[target.provider_key].append(e.text)
 
     def notify(
         self,
         *,
         strategy: NotificationStrategy | None = None,
         targets: list[NotificationTarget] | None = None,
-    ) -> None | dict[NotificationProviderKey, list[ApiError]]:
+        sync_send: bool = False,
+    ) -> None | dict[NotificationProviderKey, list[str]]:
         if not strategy and not targets:
             raise NotificationServiceError(
                 "Must provide either a strategy or targets. Strategy is preferred."
@@ -82,12 +97,10 @@ class NotificationService[T: NotificationData]:
             logger.info("Strategy '%s' did not yield targets", strategy.__class__.__name__)
             return
 
-        errors = defaultdict(list)
-        for target in targets:
-            try:
-                self.notify_target(target=target)
-            except ApiError as e:
-                errors[target.provider_key].append(e.text)
+        if sync_send:
+            for target in targets:
+                errors = self.notify_target(target=target)
+        else:
+            pass
 
-        if errors:
-            return errors
+        return errors
