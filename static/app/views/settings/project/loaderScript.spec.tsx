@@ -8,6 +8,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import LoaderScript from 'sentry/views/settings/project/loaderScript';
@@ -30,8 +31,20 @@ function mockApi({
 }
 
 describe('LoaderScript', () => {
+  const initialRouterConfig = (project: Project, organization: Organization) => ({
+    location: {
+      pathname: `/settings/${organization.slug}/projects/${project.slug}/loader-script/`,
+    },
+    route: '/settings/:orgId/projects/:projectId/loader-script/',
+  });
+
+  beforeEach(() => {
+    ProjectsStore.reset();
+  });
+
   it('renders error', async () => {
     const {organization, project} = initializeOrg();
+    ProjectsStore.loadInitialData([project]);
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/keys/`,
@@ -39,7 +52,10 @@ describe('LoaderScript', () => {
       statusCode: 400,
     });
 
-    render(<LoaderScript project={project} />);
+    render(<LoaderScript />, {
+      organization,
+      initialRouterConfig: initialRouterConfig(project, organization),
+    });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -50,10 +66,14 @@ describe('LoaderScript', () => {
 
   it('renders empty', async () => {
     const {organization, project} = initializeOrg();
+    ProjectsStore.loadInitialData([project]);
 
     mockApi({organization, project, projectKeys: []});
 
-    render(<LoaderScript project={project} />);
+    render(<LoaderScript />, {
+      organization,
+      initialRouterConfig: initialRouterConfig(project, organization),
+    });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -64,12 +84,16 @@ describe('LoaderScript', () => {
 
   it('renders for single project', async () => {
     const {organization, project} = initializeOrg();
+    ProjectsStore.loadInitialData([project]);
     const projectKey = ProjectKeysFixture()[0]!;
     const projectKeys = [projectKey];
 
     mockApi({organization, project, projectKeys});
 
-    render(<LoaderScript project={project} />);
+    render(<LoaderScript />, {
+      organization,
+      initialRouterConfig: initialRouterConfig(project, organization),
+    });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -84,6 +108,7 @@ describe('LoaderScript', () => {
 
   it('renders multiple keys', async () => {
     const {organization, project} = initializeOrg();
+    ProjectsStore.loadInitialData([project]);
     const projectKeys = ProjectKeysFixture([
       {
         dsn: {
@@ -132,7 +157,10 @@ describe('LoaderScript', () => {
 
     mockApi({organization, project, projectKeys});
 
-    render(<LoaderScript project={project} />);
+    render(<LoaderScript />, {
+      organization,
+      initialRouterConfig: initialRouterConfig(project, organization),
+    });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -148,6 +176,7 @@ describe('LoaderScript', () => {
 
   it('allows to update key settings', async () => {
     const {organization, project} = initializeOrg();
+    ProjectsStore.loadInitialData([project]);
     const baseKey = ProjectKeysFixture()[0]!;
     const projectKey = {
       ...baseKey,
@@ -171,7 +200,10 @@ describe('LoaderScript', () => {
       },
     });
 
-    render(<LoaderScript project={project} />);
+    render(<LoaderScript />, {
+      organization,
+      initialRouterConfig: initialRouterConfig(project, organization),
+    });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -226,6 +258,7 @@ describe('LoaderScript', () => {
 
   it('allows to update one of multiple keys', async () => {
     const {organization, project} = initializeOrg();
+    ProjectsStore.loadInitialData([project]);
     const projectKeys = ProjectKeysFixture([
       {
         dsn: {
@@ -286,7 +319,10 @@ describe('LoaderScript', () => {
       },
     });
 
-    render(<LoaderScript project={project} />);
+    render(<LoaderScript />, {
+      organization,
+      initialRouterConfig: initialRouterConfig(project, organization),
+    });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
