@@ -9,6 +9,7 @@ export const FullHeightForm = styled(Form)`
   display: flex;
   flex-direction: column;
   flex: 1 1 0%;
+  background-color: ${p => p.theme.background};
 
   & > div:first-child {
     display: flex;
