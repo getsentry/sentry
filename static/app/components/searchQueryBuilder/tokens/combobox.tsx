@@ -455,7 +455,7 @@ export function SearchQueryBuilderCombobox<
             onCustomValueCommitted(inputValue);
             return;
           default: {
-            if (isOpen || isCtrlKeyPressed(e)) return;
+            if (isCtrlKeyPressed(e)) return;
             state.open();
             return;
           }
