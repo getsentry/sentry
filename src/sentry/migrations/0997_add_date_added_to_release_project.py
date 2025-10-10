@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0995_add_date_updated_to_grouphash_metadata"),
+        ("sentry", "0996_add_dashboard_field_link_model"),
     ]
 
     operations = [

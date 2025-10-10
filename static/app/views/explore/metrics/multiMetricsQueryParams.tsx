@@ -12,6 +12,7 @@ import {
   encodeMetricQueryParams,
   type BaseMetricQuery,
   type MetricQuery,
+  type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 
@@ -63,22 +64,39 @@ export function MultiMetricsQueryParamsProvider({
       };
     }
 
-    function setMetricNameForIndex(i: number) {
-      return function (newMetricName: string) {
+    function setTraceMetricForIndex(i: number) {
+      return function (newTraceMetric: TraceMetric) {
         const target = {...location, query: {...location.query}};
         target.query.metric = metricQueries
-          .map((metric: BaseMetricQuery, j: number) => {
+          .map((metricQuery: BaseMetricQuery, j: number) => {
             if (i !== j) {
-              return metric;
+              return metricQuery;
             }
-            return {
-              ...metric,
-              metric: {name: newMetricName},
-            };
+            return {...metricQuery, metric: newTraceMetric};
           })
           .map((metric: BaseMetricQuery) => encodeMetricQueryParams(metric))
           .filter(defined)
           .filter(Boolean);
+
+        navigate(target);
+      };
+    }
+
+    function removeMetricQueryForIndex(i: number) {
+      return function () {
+        // Don't allow removing the last metric query
+        if (metricQueries.length <= 1) {
+          return;
+        }
+
+        const target = {...location, query: {...location.query}};
+
+        const newMetricQueries: string[] = metricQueries
+          .filter((_, j) => i !== j)
+          .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
+          .filter(defined)
+          .filter(Boolean);
+        target.query.metric = newMetricQueries;
 
         navigate(target);
       };
@@ -89,7 +107,8 @@ export function MultiMetricsQueryParamsProvider({
         return {
           ...metric,
           setQueryParams: setQueryParamsForIndex(index),
-          setMetricName: setMetricNameForIndex(index),
+          setTraceMetric: setTraceMetricForIndex(index),
+          removeMetric: removeMetricQueryForIndex(index),
         };
       }),
     };
