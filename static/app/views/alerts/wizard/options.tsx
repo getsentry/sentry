@@ -71,6 +71,7 @@ export const DEPRECATED_TRANSACTION_ALERTS: AlertType[] = [
   'lcp',
   'fid',
   'cls',
+  'custom_transactions',
 ];
 
 export const DatasetMEPAlertQueryTypes: Record<
