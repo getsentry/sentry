@@ -1,6 +1,6 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion, useAnimation} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
@@ -17,6 +17,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import testableTransition from 'sentry/utils/testableTransition';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useParams} from 'sentry/utils/useParams';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 import Stepper from 'sentry/views/onboarding/components/stepper';
@@ -76,9 +77,7 @@ enum LoadingState {
 }
 
 function RelocationOnboarding(props: Props) {
-  const {
-    params: {step: stepId},
-  } = props;
+  const {step: stepId} = useParams<{step: string}>();
   const onboardingSteps = getRelocationOnboardingSteps();
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
@@ -183,26 +182,6 @@ function RelocationOnboarding(props: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
-  useEffect(() => {
-    return () => {
-      window.clearTimeout(cornerVariantTimeoutRed.current);
-    };
-  }, []);
-
-  const cornerVariantControl = useAnimation();
-  const updateCornerVariant = () => {
-    // TODO(getsentry/team-ospo#214): Find a better way to delay the corner animation.
-    window.clearTimeout(cornerVariantTimeoutRed.current);
-
-    cornerVariantTimeoutRed.current = window.setTimeout(
-      () => cornerVariantControl.start(stepIndex === 0 ? 'top-right' : 'top-left'),
-      1000
-    );
-  };
-
-  useEffect(updateCornerVariant, [stepIndex, cornerVariantControl]);
-
   // Called onExitComplete
   const updateAnimationState = () => {
     if (!stepObj) {
@@ -214,9 +193,6 @@ function RelocationOnboarding(props: Props) {
     if (!stepObj) {
       return;
     }
-    if (step.cornerVariant !== stepObj.cornerVariant) {
-      cornerVariantControl.start('none');
-    }
     props.router.push(normalizeUrl(`/relocation/${step.id}/`));
   };
 
@@ -225,13 +201,9 @@ function RelocationOnboarding(props: Props) {
       const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
       const nextStep = onboardingSteps[currentStepIndex + 1]!;
 
-      if (step.cornerVariant !== nextStep.cornerVariant) {
-        cornerVariantControl.start('none');
-      }
-
       props.router.push(normalizeUrl(`/relocation/${nextStep.id}/`));
     },
-    [onboardingSteps, cornerVariantControl, props.router]
+    [onboardingSteps, props.router]
   );
 
   if (!stepObj || stepIndex === -1) {
@@ -256,21 +228,18 @@ function RelocationOnboarding(props: Props) {
     );
 
   const backButtonView =
-    stepId === 'in-progress' ? null : (
+    stepId === 'in-progress' || stepIndex === 0 ? null : (
       <BackMotionDiv
-        animate={stepIndex > 0 ? 'visible' : 'hidden'}
+        initial="initial"
+        animate="visible"
         transition={testableTransition()}
         variants={{
           initial: {opacity: 0, visibility: 'hidden'},
           visible: {
             opacity: 1,
-            visibility: 'visible',
             transition: testableTransition({delay: 1}),
-          },
-          hidden: {
-            opacity: 0,
             transitionEnd: {
-              visibility: 'hidden',
+              visibility: 'visible',
             },
           },
         }}
@@ -356,7 +325,9 @@ function RelocationOnboarding(props: Props) {
       <Container>
         {backButtonView}
         {contentView}
-        <AdaptivePageCorners animateVariant={cornerVariantControl} />
+        <AdaptivePageCorners
+          animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
+        />
         {errView}
       </Container>
     </OnboardingWrapper>

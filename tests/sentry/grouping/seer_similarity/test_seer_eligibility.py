@@ -3,7 +3,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid1
 
-from sentry.grouping.grouping_info import get_grouping_info_from_variants
+from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.ingest.seer import (
     _event_content_is_seer_eligible,
     should_call_seer_for_grouping,
@@ -49,7 +49,7 @@ class ShouldCallSeerTest(TestCase):
         self.variants = self.event.get_grouping_variants()
         self.primary_hashes = self.event.get_hashes()
         self.stacktrace_string = get_stacktrace_string(
-            get_grouping_info_from_variants(self.variants)
+            get_grouping_info_from_variants_legacy(self.variants)
         )
         self.event_grouphash = GroupHash.objects.create(project_id=self.project.id, hash="908415")
 
@@ -233,7 +233,7 @@ class ShouldCallSeerTest(TestCase):
         empty_frame_variants = empty_frame_event.get_grouping_variants()
         empty_frame_grouphash = GroupHash(project_id=self.project.id, hash="415908")
         empty_frame_stacktrace_string = get_stacktrace_string(
-            get_grouping_info_from_variants(empty_frame_variants)
+            get_grouping_info_from_variants_legacy(empty_frame_variants)
         )
 
         assert self.stacktrace_string != ""

@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -16,6 +16,7 @@ from sentry.api.serializers.types import ReleaseSerializerResponse
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
+from sentry.models.grouprelease import GroupRelease
 from sentry.models.project import Project
 from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.release import Release
@@ -437,4 +438,32 @@ def fetch_project_platforms(project_ids: Iterable[int]) -> list[tuple[int, str]]
         ProjectPlatform.objects.filter(project_id__in=project_ids).values_list(
             "project_id", "platform"
         )
+    )
+
+
+def fetch_semver_packages_for_group(
+    organization_id: int, project_id: int, group_id: int
+) -> list[str]:
+    """Fetch a unique list of semver release packages associated with the group."""
+    release_ids = (
+        GroupRelease.objects.filter(
+            group_id=group_id,
+            project_id=project_id,
+        )
+        .distinct()
+        .values_list("release_id", flat=True)
+    )
+
+    return cast(
+        list[str],
+        list(
+            Release.objects.filter_to_semver()
+            .filter(
+                organization_id=organization_id,
+                id__in=release_ids,
+                package__isnull=False,
+            )
+            .distinct()
+            .values_list("package", flat=True)
+        ),
     )

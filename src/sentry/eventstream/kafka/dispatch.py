@@ -65,6 +65,7 @@ def dispatch_post_process_group_task(
                 "eventstream_type": eventstream_type,
             },
             queue=queue,
+            headers={"sentry-propagate-traces": False},
         )
 
 

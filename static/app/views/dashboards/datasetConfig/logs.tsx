@@ -90,7 +90,7 @@ const EAP_AGGREGATIONS = LOG_AGGREGATES.map(
         parameters: [
           {
             kind: 'column',
-            columnTypes: ['string'],
+            columnTypes: ['number', 'string'],
             defaultValue: 'message.template',
             required: true,
           },
@@ -299,14 +299,14 @@ function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryField
     return true; // COUNT() doesn't need parameters for logs
   }
 
-  const expectedDataType =
+  const expectedDataTypes =
     fieldValue?.kind === 'function' &&
     fieldValue?.function[0] === AggregationKey.COUNT_UNIQUE
-      ? 'string'
-      : 'number';
+      ? new Set(['number', 'string'])
+      : new Set(['number']);
 
   if ('dataType' in option.value.meta) {
-    return option.value.meta.dataType === expectedDataType;
+    return expectedDataTypes.has(option.value.meta.dataType);
   }
   return true;
 }

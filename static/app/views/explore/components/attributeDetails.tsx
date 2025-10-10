@@ -31,13 +31,19 @@ export function AttributeDetails({
   );
 }
 
-function traceItemTypeToType(traceItemType: TraceItemDataset): 'span' | 'log' {
+function traceItemTypeToType(
+  traceItemType: TraceItemDataset
+): 'span' | 'log' | 'tracemetric' {
   if (traceItemType === TraceItemDataset.SPANS) {
     return 'span' as const;
   }
 
   if (traceItemType === TraceItemDataset.LOGS) {
     return 'log' as const;
+  }
+
+  if (traceItemType === TraceItemDataset.TRACEMETRICS) {
+    return 'tracemetric' as const;
   }
 
   throw new Error('Cannot convert unknown trace item type to type');

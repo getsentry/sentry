@@ -81,10 +81,6 @@ const GENERATION_COUNTS = AI_GENERATION_OPS.map(
   op => `count_if(span.op,equals,${op})` as const
 );
 
-const AI_AGENT_SUB_OPS = [...AI_GENERATION_OPS, 'gen_ai.execute_tool'].map(
-  op => `count_if(span.op,equals,${op})` as const
-);
-
 export function TracesTable() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -126,9 +122,9 @@ export function TracesTable() {
 
   const traceErrorRequest = useSpans(
     {
-      // Get all generations and tool calls with status unknown
-      search: `has:span.status !span.status:ok trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
-      fields: ['trace', ...AI_AGENT_SUB_OPS],
+      // Get all spans with error status
+      search: `has:span.status span.status:*error trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
+      fields: ['trace', 'count(span.duration)'],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
     },
@@ -142,12 +138,7 @@ export function TracesTable() {
     // sum up the error spans for a trace
     const errors = traceErrorRequest.data?.reduce(
       (acc, span) => {
-        const sum = AI_AGENT_SUB_OPS.reduce(
-          (errorSum, key) => errorSum + (span[key] ?? 0),
-          0
-        );
-
-        acc[span.trace] = sum;
+        acc[span.trace] = Number(span['count(span.duration)'] ?? 0);
         return acc;
       },
       {} as Record<string, number>
@@ -297,7 +288,7 @@ const BodyCell = memo(function BodyCell({
         <ErrorCell
           value={dataRow.errors}
           target={getExploreUrl({
-            query: `${query} has:span.status !span.status:ok trace:[${dataRow.traceId}]`,
+            query: `${query} span.status:*error trace:[${dataRow.traceId}]`,
             organization,
             selection,
             referrer: Referrer.TRACES_TABLE,
