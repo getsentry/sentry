@@ -2,9 +2,14 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconSupport} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -312,6 +317,41 @@ function Overview({location, subscription, promotionData}: Props) {
     );
   }
 
+  function renderFooter() {
+    if (!subscription.canSelfServe) {
+      return null;
+    }
+    return (
+      <Flex
+        direction="column"
+        gap="sm"
+        padding="xl"
+        background="primary"
+        radius="md"
+        border="primary"
+        // TODO(isabella): move spacing to the parent
+        marginTop="xl"
+      >
+        <Flex align="center" gap="sm">
+          <IconSupport />
+          <Text bold>{t('Having trouble?')}</Text>
+        </Flex>
+        <Text>
+          {tct('Reach out to [supportLink], or vent to a real human on [discordLink]', {
+            supportLink: (
+              <ExternalLink href="https://support.sentry.io">{t('Support')}</ExternalLink>
+            ),
+            discordLink: (
+              <ExternalLink href="https://discord.com/invite/sentry">
+                {t('Discord')}
+              </ExternalLink>
+            ),
+          })}
+        </Text>
+      </Flex>
+    );
+  }
+
   /**
    * It's important to separate the views for folks with billing permissions (org:billing) and those without.
    * Only owners and billing admins have the billing scope, everyone else including managers, admins, and members lack that scope.
@@ -355,6 +395,7 @@ function Overview({location, subscription, promotionData}: Props) {
           </Fragment>
         )}
         <TrialEnded subscription={subscription} />
+        {renderFooter()}
       </Fragment>
     );
   }
@@ -377,6 +418,7 @@ function Overview({location, subscription, promotionData}: Props) {
           </Fragment>
         )}
         <TrialEnded subscription={subscription} />
+        {renderFooter()}
       </Fragment>
     );
   }
