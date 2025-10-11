@@ -183,7 +183,7 @@ const StoryMainContainer = styled('div')`
     margin: 0;
   }
 
-  code:not(pre > code) {
+  code:not([class]):not(pre > code) {
     background: ${p => p.theme.tokens.background.secondary};
     color: ${p => p.theme.tokens.content.primary};
   }
@@ -237,6 +237,12 @@ const StoryMainContainer = styled('div')`
       &:last-child {
         border-bottom: 0;
       }
+    }
+
+    td:first-child {
+      white-space: nowrap;
+      word-break: break-all;
+      hyphens: none;
     }
 
     td {

@@ -491,7 +491,7 @@ const appConfig: Configuration = {
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
 
-      ui: path.join(staticPrefix, 'app', 'components', 'core'),
+      '@sentry/scraps': path.join(staticPrefix, 'app', 'components', 'core'),
 
       getsentry: path.join(staticPrefix, 'gsApp'),
       'getsentry-images': path.join(staticPrefix, 'images'),
@@ -700,7 +700,7 @@ if (IS_UI_DEV_ONLY) {
   // - static/index.ejs
   // - static/app/utils/extractSlug.tsx
   const KNOWN_DOMAINS =
-    /(?:\.?)((?:localhost|dev\.getsentry\.net|sentry\.dev)(?:\:\d*)?)$/;
+    /(?:\.?)((?:localhost|dev\.getsentry\.net|sentry\.dev)(?::\d*)?)$/;
 
   const extractSlug = (hostname: string) => {
     const match = hostname.match(KNOWN_DOMAINS);
@@ -778,7 +778,7 @@ if (IS_UI_DEV_ONLY) {
           '^/region/[^/]*': '',
         },
         router: (req: any) => {
-          const regionPathPattern = /^\/region\/([^\/]+)/;
+          const regionPathPattern = /^\/region\/([^/]+)/;
           const regionname = req.path.match(regionPathPattern);
           if (regionname) {
             return `https://${regionname[1]}.sentry.io`;

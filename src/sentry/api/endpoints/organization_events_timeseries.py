@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -12,6 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERRERS
+from sentry.api.endpoints.timeseries import Row, SeriesMeta, StatsMeta, StatsResponse, TimeSeries
 from sentry.api.utils import handle_query_errors
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.organization import Organization
@@ -48,47 +49,11 @@ INGESTION_DELAY = 90
 INGESTION_DELAY_MESSAGE = "INCOMPLETE_BUCKET"
 
 
-class StatsMeta(TypedDict):
-    dataset: str
-    start: float
-    end: float
-
-
-class Row(TypedDict):
-    timestamp: float
-    value: float
-    incomplete: bool
-    comparisonValue: NotRequired[float]
-    sampleCount: NotRequired[float]
-    sampleRate: NotRequired[float]
-    confidence: NotRequired[Literal["low", "high"] | None]
-    incompleteReason: NotRequired[str]
-
-
-class SeriesMeta(TypedDict):
-    order: NotRequired[int]
-    isOther: NotRequired[str]
-    valueUnit: NotRequired[str]
-    dataScanned: NotRequired[Literal["partial", "full"]]
-    valueType: str
-    interval: float
-
-
-class GroupBy(TypedDict):
-    key: str
-    value: str
-
-
-class TimeSeries(TypedDict):
-    values: list[Row]
-    yAxis: str
-    groupBy: NotRequired[list[GroupBy]]
-    meta: SeriesMeta
-
-
-class StatsResponse(TypedDict):
-    meta: StatsMeta
-    timeSeries: list[TimeSeries]
+def null_zero(value: float) -> float | None:
+    if value == 0:
+        return None
+    else:
+        return value
 
 
 @region_silo_endpoint
@@ -352,10 +317,9 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         unit, field_type = self.get_unit_and_type(axis, result.data["meta"]["fields"][axis])
         series_meta = SeriesMeta(
             valueType=field_type,
+            valueUnit=unit,
             interval=rollup * 1000,
         )
-        if unit is not None:
-            series_meta["valueUnit"] = unit
         if "is_other" in result.data:
             series_meta["isOther"] = result.data["is_other"]
         if "order" in result.data:
@@ -392,7 +356,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 processed_timeseries.confidence,
             ):
                 value["sampleCount"] = count[axis]
-                value["sampleRate"] = rate[axis]
+                # We want to null sample rates that are 0 since that means we received no data during this bucket
+                value["sampleRate"] = null_zero(rate[axis])
                 value["confidence"] = confidence[axis]
 
         timeseries["values"] = timeseries_values

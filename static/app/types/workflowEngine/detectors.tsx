@@ -10,6 +10,7 @@ import type {
   Dataset,
   EventTypes,
 } from 'sentry/views/alerts/rules/metric/types';
+import type {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
 import type {Monitor, MonitorConfig} from 'sentry/views/insights/crons/types';
 
 /**
@@ -47,7 +48,7 @@ export interface SnubaQueryDataSource extends BaseDataSource {
     snubaQuery: SnubaQuery;
     status: number;
     subscription: string;
-  } | null;
+  };
   type: 'snuba_query_subscription';
 }
 
@@ -114,7 +115,8 @@ export type MetricDetectorConfig =
 
 interface UptimeDetectorConfig {
   downtimeThreshold: number;
-  environment: string;
+  environment: string | null;
+  mode: UptimeMonitorMode;
   recoveryThreshold: number;
 }
 
@@ -192,6 +194,7 @@ export interface BaseDetectorUpdatePayload {
 }
 
 export interface UptimeDetectorUpdatePayload extends BaseDetectorUpdatePayload {
+  config: UptimeDetectorConfig;
   dataSource: UpdateUptimeDataSourcePayload;
   type: 'uptime_domain_failure';
 }

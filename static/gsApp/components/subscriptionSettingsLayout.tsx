@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Flex} from 'sentry/components/core/layout';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -49,11 +49,8 @@ function SubscriptionSettingsLayout(props: Props) {
           <SettingsSearch />
         </Flex>
       </StyledSettingsHeader>
-
-      <Flex maxWidth={'1440px'} flex="1">
-        <Container padding={{xs: 'xl', md: '3xl'}} minWidth={0} flex={1}>
-          {children}
-        </Container>
+      <Flex minWidth={0} flex="1" direction="column">
+        {children}
       </Flex>
     </SettingsColumn>
   );

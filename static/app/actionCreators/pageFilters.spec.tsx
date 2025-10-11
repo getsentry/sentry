@@ -1,4 +1,7 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
@@ -12,6 +15,8 @@ import {
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
 import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
+import ConfigStore from 'sentry/stores/configStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import localStorage from 'sentry/utils/localStorage';
 
@@ -29,6 +34,8 @@ describe('PageFilters ActionCreators', () => {
     jest.spyOn(PageFiltersStore, 'updateProjects');
     jest.spyOn(PageFiltersStore, 'onInitializeUrlState').mockImplementation();
     jest.clearAllMocks();
+    OrganizationStore.onUpdate(organization, {replace: true});
+    ConfigStore.set('user', UserFixture());
   });
 
   describe('initializeUrlState', () => {
@@ -71,7 +78,6 @@ describe('PageFilters ActionCreators', () => {
           environments: [],
           projects: [1],
         }),
-        new Set(['projects', 'environments']),
         true
       );
       expect(router.replace).toHaveBeenCalledWith(
@@ -122,7 +128,6 @@ describe('PageFilters ActionCreators', () => {
           environments: [],
           projects: [],
         }),
-        new Set(['projects']),
         false
       );
 
@@ -162,7 +167,6 @@ describe('PageFilters ActionCreators', () => {
             utc: null,
           },
         }),
-        new Set(),
         true
       );
     });
@@ -194,7 +198,6 @@ describe('PageFilters ActionCreators', () => {
             utc: null,
           },
         }),
-        new Set(),
         true
       );
     });
@@ -285,7 +288,6 @@ describe('PageFilters ActionCreators', () => {
           projects: [1],
           environments: [],
         },
-        new Set(),
         true
       );
       expect(router.replace).toHaveBeenCalledWith(
@@ -319,7 +321,6 @@ describe('PageFilters ActionCreators', () => {
           projects: [-1],
           environments: [],
         },
-        new Set(),
         true
       );
     });
@@ -353,6 +354,45 @@ describe('PageFilters ActionCreators', () => {
       expect(router.replace).not.toHaveBeenCalled();
 
       pageFilterStorageMock.mockRestore();
+    });
+
+    it('defaults to all projects when user has no member projects but has accessible projects', () => {
+      const nonMemberProject = ProjectFixture({isMember: false});
+      initializeUrlState({
+        organization,
+        queryParams: {},
+        router,
+        memberProjects: [],
+        nonMemberProjects: [nonMemberProject],
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projects: [-1],
+        }),
+        true
+      );
+    });
+
+    it('does not set all projects when user has no member projects but is active superuser', () => {
+      const superuserOrg = OrganizationFixture({access: ['org:superuser']});
+      ConfigStore.set('user', UserFixture({isSuperuser: true}));
+      OrganizationStore.onUpdate(superuserOrg, {replace: true});
+
+      initializeUrlState({
+        organization: superuserOrg,
+        queryParams: {},
+        router,
+        memberProjects: [],
+        nonMemberProjects: [ProjectFixture({isMember: false})],
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projects: [],
+        }),
+        true
+      );
     });
 
     it('uses pinned filters for pages with new page filters', () => {
@@ -434,7 +474,6 @@ describe('PageFilters ActionCreators', () => {
             utc: null,
           },
         }),
-        new Set(['datetime', 'projects', 'environments']),
         true
       );
       expect(router.replace).toHaveBeenCalledWith(
@@ -500,7 +539,6 @@ describe('PageFilters ActionCreators', () => {
             utc: null,
           },
         }),
-        new Set(['datetime']),
         true
       );
       expect(router.replace).toHaveBeenCalledWith(
@@ -540,7 +578,6 @@ describe('PageFilters ActionCreators', () => {
           environments: [],
           projects: [1],
         }),
-        new Set(['projects', 'environments']),
         true
       );
       expect(router.replace).toHaveBeenCalledWith(
@@ -780,19 +817,16 @@ describe('PageFilters ActionCreators', () => {
           pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         });
 
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [2],
-          environments: ['prod'],
-          datetime: {
-            start: null,
-            end: null,
-            period: '1d',
-            utc: null,
-          },
+      PageFiltersStore.onInitializeUrlState({
+        projects: [2],
+        environments: ['prod'],
+        datetime: {
+          start: null,
+          end: null,
+          period: '1d',
+          utc: null,
         },
-        new Set()
-      );
+      });
       PageFiltersStore.updateDesyncedFilters(
         new Set(['projects', 'environments', 'datetime'])
       );

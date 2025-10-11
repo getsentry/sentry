@@ -54,6 +54,9 @@ class EventStream(Service):
         "_get_event_type",
     )
 
+    def __init__(self, **options: Any) -> None:
+        pass
+
     def _dispatch_post_process_group_task(
         self,
         event_id: str,
@@ -85,6 +88,7 @@ class EventStream(Service):
                     "project_id": project_id,
                     "eventstream_type": eventstream_type,
                 },
+                headers={"sentry-propagate-traces": False},
             )
 
     def _get_occurrence_data(self, event: Event | GroupEvent) -> MutableMapping[str, Any]:

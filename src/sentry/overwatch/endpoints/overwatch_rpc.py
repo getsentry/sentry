@@ -1,4 +1,3 @@
-import base64
 import hashlib
 import hmac
 import logging
@@ -38,27 +37,29 @@ def compare_signature(request: Request, signature: str) -> bool:
 
     - Header format: `Authorization: Rpcsignature rpc0:<hex>`
     - Input: raw body bytes
-    - Secret is base64-encoded in settings.OVERWATCH_RPC_SHARED_SECRET
+    - Secret exists in settings.OVERWATCH_RPC_SHARED_SECRET
     """
     if not settings.OVERWATCH_RPC_SHARED_SECRET:
         raise AuthenticationFailed("Missing OVERWATCH shared secret")
 
     if not signature.startswith("rpc0:"):
-        logger.error("Overwatch signature validation failed: invalid signature prefix")
-        return False
+        raise AuthenticationFailed("Invalid signature prefix: expected 'rpc0:'")
 
     try:
-        _, signature_data = signature.split(":", 2)
-        message = _signature_input_from_request(request)
-        for b64_secret in settings.OVERWATCH_RPC_SHARED_SECRET:
-            secret_bytes = base64.b64decode(b64_secret)
-            computed = hmac.new(secret_bytes, message, hashlib.sha256).hexdigest()
-            if hmac.compare_digest(computed.encode(), signature_data.encode()):
-                return True
-        return False
-    except Exception:
-        logger.exception("Overwatch signature validation failed")
-        return False
+        _, signature_data = signature.split(":", 1)
+    except ValueError:
+        raise AuthenticationFailed("Invalid Authorization format. Expected 'rpc0:<hex>'")
+
+    message = _signature_input_from_request(request)
+    for secret in settings.OVERWATCH_RPC_SHARED_SECRET:
+        computed = hmac.new(secret.encode(), message, hashlib.sha256).hexdigest()
+        if hmac.compare_digest(computed, signature_data):
+            return True
+
+    body_len = len(message)
+    sig_len = len(signature_data)
+
+    raise AuthenticationFailed(f"Signature mismatch. body_len={body_len} sig_len={sig_len}")
 
 
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
@@ -73,8 +74,7 @@ class OverwatchRpcSignatureAuthentication(StandardAuthentication):
         return auth[0].lower() == self.token_name
 
     def authenticate_token(self, request: Request, token: str) -> tuple[Any, Any]:
-        if not compare_signature(request, token):
-            raise AuthenticationFailed("Invalid signature")
+        compare_signature(request, token)
 
         sentry_sdk.get_isolation_scope().set_tag("overwatch_rpc_auth", True)
 
@@ -161,7 +161,12 @@ class PreventPrReviewSentryOrgEndpoint(Endpoint):
         return Response(
             data={
                 "organizations": [
-                    {"org_id": org.id, "has_consent": _can_use_prevent_ai_features(org)}
+                    {
+                        "org_id": org.id,
+                        "org_slug": org.slug,
+                        "org_name": org.name,
+                        "has_consent": _can_use_prevent_ai_features(org),
+                    }
                     for org in organizations
                 ]
             }

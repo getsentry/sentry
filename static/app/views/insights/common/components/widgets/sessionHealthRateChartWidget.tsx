@@ -16,6 +16,7 @@ export default function SessionHealthRateChartWidget(props: LoadableChartWidgetP
   const aliases = {
     healthy_session_rate: 'rate_healthy(session)',
     crashed_session_rate: 'rate_crashed(session)',
+    unhandled_session_rate: 'rate_unhandled(session)',
     errored_session_rate: 'rate_errored(session)',
     abnormal_session_rate: 'rate_abnormal(session)',
   };

@@ -30,6 +30,7 @@ import type {Environment, MinimalProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DAY} from 'sentry/utils/formatters';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
 type EnvironmentId = Environment['id'];
@@ -293,6 +294,19 @@ export function initializeUrlState({
     }
   }
 
+  const hasNoMemberProjects = memberProjects.length === 0;
+  const hasAccessibleProjects = nonMemberProjects.length > 0;
+  if (
+    hasNoMemberProjects &&
+    hasAccessibleProjects &&
+    pageFilters.projects.length === 0 &&
+    !isActiveSuperuser()
+  ) {
+    // The user has no projects they are a member of, but they could look at "all projects".
+    // We can attempt to be helpful and redirect them to the all projects view.
+    pageFilters.projects = [ALL_ACCESS_PROJECTS];
+  }
+
   const {projects, environments: environment, datetime} = pageFilters;
 
   let newProject: number[] | null = null;
@@ -335,11 +349,7 @@ export function initializeUrlState({
     }
   }
 
-  const pinnedFilters = organization.features.includes('new-page-filter')
-    ? new Set<PinnedPageFilter>(['projects', 'environments', 'datetime'])
-    : (storedPageFilters?.pinnedFilters ?? new Set());
-
-  PageFiltersStore.onInitializeUrlState(pageFilters, pinnedFilters, shouldPersist);
+  PageFiltersStore.onInitializeUrlState(pageFilters, shouldPersist);
   if (shouldUpdateLocalStorage) {
     setPageFiltersStorage(
       organization.slug,

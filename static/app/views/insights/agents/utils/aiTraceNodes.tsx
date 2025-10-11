@@ -1,7 +1,12 @@
 import type {EventTransaction} from 'sentry/types/event';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {getIsAiRunSpan, getIsAiSpan} from 'sentry/views/insights/agents/utils/query';
+import {
+  getIsAiGenerationSpan,
+  getIsAiRunSpan,
+  getIsAiSpan,
+  getIsExecuteToolSpan,
+} from 'sentry/views/insights/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {
   isEAPSpanNode,
@@ -64,7 +69,7 @@ export function getTraceNodeAttribute(
   node: TraceTreeNode<TraceTree.NodeValue>,
   event?: EventTransaction,
   attributes?: TraceItemResponseAttribute[]
-) {
+): string | number | boolean | undefined {
   const attributeObject = ensureAttributeObject(node, event, attributes);
   return attributeObject?.[name];
 }
@@ -82,3 +87,5 @@ function createGetIsAiNode(predicate: ({op}: {op?: string}) => boolean) {
 
 export const getIsAiNode = createGetIsAiNode(getIsAiSpan);
 export const getIsAiRunNode = createGetIsAiNode(getIsAiRunSpan);
+export const getIsAiGenerationNode = createGetIsAiNode(getIsAiGenerationSpan);
+export const getIsExecuteToolNode = createGetIsAiNode(getIsExecuteToolSpan);

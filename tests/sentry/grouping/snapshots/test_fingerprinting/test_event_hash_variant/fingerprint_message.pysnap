@@ -1,5 +1,5 @@
 ---
-created: '2025-09-24T19:48:24.343846+00:00'
+created: '2025-10-06T17:30:33.037388+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -20,6 +20,9 @@ fingerprint:
 title: Hello my sweet Love
 variants:
   custom_fingerprint:
+    contributes: true
+    hint: null
+    key: custom_fingerprint
     matched_rule: message:"*love*" -> "what-is-love{{ message }}"
     type: custom_fingerprint
     values:
@@ -29,4 +32,7 @@ variants:
     component:
       contributes: false
       hint: ignored because custom server fingerprint takes precedence
+    contributes: false
+    hint: ignored because custom server fingerprint takes precedence
+    key: message
     type: component

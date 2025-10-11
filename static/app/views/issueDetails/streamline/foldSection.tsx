@@ -157,6 +157,16 @@ export function FoldSection({
     }
   }, [sectionData, dispatch, sectionKey, initialCollapse, preventCollapse]);
 
+  // Unregister section when component unmounts
+  useLayoutEffect(() => {
+    return () => {
+      dispatch({
+        type: 'REMOVE_EVENT_SECTION',
+        key: sectionKey,
+      });
+    };
+  }, [dispatch, sectionKey]);
+
   const onExpandedChange = useCallback(() => {
     if (preventCollapse) {
       return;

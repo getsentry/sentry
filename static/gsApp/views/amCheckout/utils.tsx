@@ -28,20 +28,21 @@ import {
 } from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {
+  AddOnCategory,
   InvoiceItemType,
   PlanTier,
   type BillingDetails,
+  type CheckoutAddOns,
   type EventBucket,
-  type InvoiceItem,
   type OnDemandBudgets,
   type Plan,
   type PreviewData,
-  type PreviewInvoiceItem,
   type ReservedBudgetCategoryType,
   type Subscription,
 } from 'getsentry/types';
 import {
   getAmPlanTier,
+  getReservedBudgetCategoryForAddOn,
   getSlot,
   hasPartnerMigrationFeature,
   hasSomeBillingDetails,
@@ -54,11 +55,9 @@ import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
 import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
 import {
-  SelectableProduct,
   type CheckoutAPIData,
   type CheckoutFormData,
   type PlanContent,
-  type SelectedProductData,
 } from 'getsentry/views/amCheckout/types';
 import {
   normalizeOnDemandBudget,
@@ -206,17 +205,17 @@ export function getBucket({
 type ReservedTotalProps = {
   plan: Plan;
   reserved: Partial<Record<DataCategory, number>>;
+  addOns?: CheckoutAddOns;
   amount?: number;
   creditCategory?: InvoiceItemType;
   discountType?: string;
   maxDiscount?: number;
-  selectedProducts?: Record<SelectableProduct, SelectedProductData>;
 };
 
 /**
  * Returns the price for a reserved budget category (ie. Seer) in cents.
  */
-export function getReservedPriceForReservedBudgetCategory({
+function getReservedPriceForReservedBudgetCategory({
   plan,
   reservedBudgetCategory,
 }: {
@@ -246,7 +245,7 @@ export function getReservedPriceCents({
   discountType,
   maxDiscount,
   creditCategory,
-  selectedProducts,
+  addOns,
 }: ReservedTotalProps): number {
   let reservedCents = plan.basePrice;
 
@@ -267,16 +266,12 @@ export function getReservedPriceCents({
       }).price)
   );
 
-  Object.entries(selectedProducts ?? {}).forEach(([apiName, selectedProductData]) => {
-    if (selectedProductData.enabled) {
-      const budgetTypeInfo =
-        plan.availableReservedBudgetTypes[apiName as ReservedBudgetCategoryType];
-      if (budgetTypeInfo) {
-        reservedCents += getReservedPriceForReservedBudgetCategory({
-          plan,
-          reservedBudgetCategory: apiName as ReservedBudgetCategoryType,
-        });
-      }
+  Object.entries(addOns ?? {}).forEach(([apiName, {enabled}]) => {
+    if (enabled) {
+      reservedCents += getPrepaidPriceForAddOn({
+        plan,
+        addOnCategory: apiName as AddOnCategory,
+      });
     }
   });
 
@@ -299,7 +294,7 @@ export function getReservedTotal({
   discountType,
   maxDiscount,
   creditCategory,
-  selectedProducts,
+  addOns,
 }: ReservedTotalProps): string {
   return formatPrice({
     cents: getReservedPriceCents({
@@ -309,7 +304,7 @@ export function getReservedTotal({
       discountType,
       maxDiscount,
       creditCategory,
-      selectedProducts,
+      addOns,
     }),
   });
 }
@@ -406,12 +401,9 @@ function recordAnalytics(
     plan: data.plan,
   };
 
-  Object.keys(data).forEach(key => {
-    if (key.startsWith('reserved')) {
-      const targetKey = key.charAt(8).toLowerCase() + key.slice(9);
-      (currentData as any)[targetKey] = data[key as keyof CheckoutAPIData];
-    }
-  });
+  const productSelectAnalyticsData: Partial<
+    Record<AddOnCategory, {enabled: boolean; previously_enabled: boolean}>
+  > = {};
 
   const previousData: PreviousData = {
     previous_plan: subscription.plan,
@@ -427,19 +419,21 @@ function recordAnalytics(
     }
   });
 
-  // TODO(reserved budgets): in future, we should just be able to pass data.selectedProducts
-  const selectableProductData = {
-    [SelectableProduct.SEER]: {
-      enabled: data.seer ?? false,
-      previously_enabled: isTrialPlan(previousData.previous_plan) // don't count trial budgets
-        ? false
-        : (subscription.reservedBudgets?.some(
-            budget =>
-              (budget.apiName as string as SelectableProduct) ===
-                SelectableProduct.SEER && budget.reservedBudget > 0
-          ) ?? false),
-    },
-  };
+  Object.keys(data).forEach(key => {
+    if (key.startsWith('reserved')) {
+      const targetKey = key.charAt(8).toLowerCase() + key.slice(9);
+      (currentData as any)[targetKey] = data[key as keyof CheckoutAPIData];
+    }
+    if (key.startsWith('addOn')) {
+      const targetKey = (key.charAt(5).toLowerCase() + key.slice(6)) as AddOnCategory;
+      const previouslyEnabled = subscription.addOns?.[targetKey]?.enabled ?? false;
+      productSelectAnalyticsData[targetKey] = {
+        enabled: data[key as keyof CheckoutAPIData] as boolean,
+        // don't count trial addons
+        previously_enabled: !isTrialPlan(previousData.previous_plan) && previouslyEnabled,
+      };
+    }
+  });
 
   trackGetsentryAnalytics('checkout.upgrade', {
     organization,
@@ -452,7 +446,7 @@ function recordAnalytics(
   trackGetsentryAnalytics('checkout.product_select', {
     organization,
     subscription,
-    ...selectableProductData,
+    ...productSelectAnalyticsData,
     isNewCheckout,
   });
 
@@ -527,7 +521,6 @@ export function stripeHandleCardAction(
     });
 }
 
-/** @internal exported for tests only */
 export function getCheckoutAPIData({
   formData,
   onDemandBudget,
@@ -551,6 +544,15 @@ export function getCheckoutAPIData({
     ? (formData.onDemandMaxSpend ?? 0)
     : undefined;
 
+  const addOnData = Object.fromEntries(
+    Object.entries(formData.addOns ?? {}).map(([addOnName, {enabled}]) => [
+      `addOn${toTitleCase(addOnName, {
+        allowInnerUpperCase: true,
+      })}`,
+      enabled,
+    ])
+  ) satisfies Partial<Record<`addOn${Capitalize<AddOnCategory>}`, boolean>>;
+
   let data: CheckoutAPIData = {
     ...reservedData,
     onDemandBudget,
@@ -559,7 +561,7 @@ export function getCheckoutAPIData({
     referrer: referrer || 'billing',
     ...(previewToken && {previewToken}),
     ...(paymentIntent && {paymentIntent}),
-    seer: formData.selectedProducts?.seer?.enabled, // TODO: in future, we should just be able to pass selectedProducts
+    ...addOnData,
   };
 
   if (formData.applyNow) {
@@ -679,13 +681,8 @@ export function useSubmitCheckout({
 
       // seer automation alert
       const alreadyHasSeer =
-        !isTrialPlan(subscription.plan) &&
-        subscription.reservedBudgets?.some(
-          budget =>
-            (budget.apiName as string as SelectableProduct) === SelectableProduct.SEER &&
-            budget.reservedBudget > 0
-        );
-      const justBoughtSeer = _variables.data.seer && !alreadyHasSeer;
+        !isTrialPlan(subscription.plan) && subscription.addOns?.seer?.enabled;
+      const justBoughtSeer = _variables.data.addOnSeer && !alreadyHasSeer;
 
       // refresh org and subscription state
       // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
@@ -794,13 +791,8 @@ export async function submitCheckout(
     recordAnalytics(organization, subscription, data, isMigratingPartnerAccount);
 
     const alreadyHasSeer =
-      !isTrialPlan(subscription.plan) &&
-      subscription.reservedBudgets?.some(
-        budget =>
-          (budget.apiName as string as SelectableProduct) === SelectableProduct.SEER &&
-          budget.reservedBudget > 0
-      );
-    const justBoughtSeer = data.seer && !alreadyHasSeer;
+      !isTrialPlan(subscription.plan) && subscription.addOns?.seer?.enabled;
+    const justBoughtSeer = data.addOnSeer && !alreadyHasSeer;
 
     // refresh org and subscription state
     // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
@@ -930,64 +922,15 @@ export function invoiceItemTypeToDataCategory(
   ) as DataCategory;
 }
 
-export function invoiceItemTypeToProduct(
-  type: InvoiceItemType
-): SelectableProduct | null {
-  // TODO(checkout v3): update this to support more products
-  if (type !== InvoiceItemType.RESERVED_SEER_BUDGET) {
-    return null;
+export function invoiceItemTypeToAddOn(type: InvoiceItemType): AddOnCategory | null {
+  switch (type) {
+    case InvoiceItemType.RESERVED_SEER_BUDGET:
+      return AddOnCategory.SEER;
+    case InvoiceItemType.RESERVED_PREVENT_USERS:
+      return AddOnCategory.PREVENT;
+    default:
+      return null;
   }
-  return camelCase(
-    type.replace('reserved_', '').replace('_budget', '')
-  ) as SelectableProduct;
-}
-
-export function getFees({
-  invoiceItems,
-}: {
-  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
-}) {
-  return invoiceItems.filter(
-    item =>
-      [InvoiceItemType.CANCELLATION_FEE, InvoiceItemType.SALES_TAX].includes(item.type) ||
-      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount > 0)
-  );
-}
-
-export function getCredits({
-  invoiceItems,
-}: {
-  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
-}) {
-  return invoiceItems.filter(
-    item =>
-      [
-        InvoiceItemType.SUBSCRIPTION_CREDIT,
-        InvoiceItemType.CREDIT_APPLIED, // TODO(isabella): This is deprecated and replaced by BALANCE_CHANGE
-        InvoiceItemType.DISCOUNT,
-        InvoiceItemType.RECURRING_DISCOUNT,
-      ].includes(item.type) ||
-      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount < 0)
-  );
-}
-
-/**
- * Returns the credit applied to an invoice or preview data.
- * If the invoice items contain a BALANCE_CHANGE item with a negative amount,
- * the invoice/preview data already accounts for the credit applied, so we return 0.
- */
-export function getCreditApplied({
-  creditApplied,
-  invoiceItems,
-}: {
-  creditApplied: number;
-  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
-}) {
-  const credits = getCredits({invoiceItems});
-  if (credits.some(item => item.type === InvoiceItemType.BALANCE_CHANGE)) {
-    return 0;
-  }
-  return creditApplied;
 }
 
 // TODO(isabella): clean this up after GA
@@ -1007,4 +950,26 @@ export function hasBillingInfo(
     return !!subscription.paymentSource && hasSomeBillingDetails(billingDetails);
   }
   return !!subscription.paymentSource || hasSomeBillingDetails(billingDetails);
+}
+
+/**
+ * Get the prepaid price for an add-on
+ */
+export function getPrepaidPriceForAddOn({
+  addOnCategory,
+  plan,
+}: {
+  addOnCategory: AddOnCategory;
+  plan: Plan;
+}) {
+  const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(addOnCategory);
+  if (reservedBudgetCategory) {
+    return getReservedPriceForReservedBudgetCategory({
+      plan,
+      reservedBudgetCategory,
+    });
+  }
+
+  // if it's not a reserved budget add on, we assume it's a PAYG only add on (costs $0)
+  return 0;
 }

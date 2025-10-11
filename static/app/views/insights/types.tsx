@@ -127,6 +127,8 @@ export enum SpanFields {
   APP_START_WARM = 'measurements.app_start_warm',
   MOBILE_FRAMES_DELAY = 'mobile.frames_delay',
   APP_START_TYPE = 'app_start_type',
+  TTID = 'sentry.ttid',
+  TTFD = 'sentry.ttfd',
 
   // Messaging fields
   MESSAGING_MESSAGE_ID = 'messaging.message.id',
@@ -226,7 +228,9 @@ export type SpanNumberFields =
   | SpanFields.PRECISE_START_TS
   | SpanFields.PRECISE_FINISH_TS
   | SpanFields.THREAD_ID
-  | SpanFields.PROJECT_ID;
+  | SpanFields.PROJECT_ID
+  | SpanFields.TTID
+  | SpanFields.TTFD;
 
 // TODO: Enforce that these fields all come from SpanFields
 export type SpanStringFields =

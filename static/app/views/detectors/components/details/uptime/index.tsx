@@ -1,10 +1,11 @@
 import {useCallback, useState} from 'react';
 
+import {CodeBlock} from 'sentry/components/core/code';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import Section from 'sentry/components/workflowEngine/ui/section';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import getDuration from 'sentry/utils/duration/getDuration';
@@ -58,9 +59,24 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>
         <DetailLayout.Sidebar>
-          <Section title={t('Detect')}>{t('Three consecutive failed checks.')}</Section>
+          <Section title={t('Detect')}>
+            <div>
+              {tn(
+                '%s consecutive failed check.',
+                '%s consecutive failed checks.',
+                detector.config.downtimeThreshold
+              )}
+            </div>
+            <CodeBlock
+              hideCopyButton
+            >{`${dataSource.queryObj.method} ${dataSource.queryObj.url}`}</CodeBlock>
+          </Section>
           <Section title={t('Resolve')}>
-            {t('Three consecutive successful checks.')}
+            {tn(
+              '%s consecutive successful check.',
+              '%s consecutive successful checks.',
+              detector.config.recoveryThreshold
+            )}
           </Section>
           <Section title={t('Legend')}>
             <DetailsTimelineLegend showMissedLegend={showMissedLegend} />
@@ -72,12 +88,8 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
               value={t('Every %s', getDuration(dataSource.queryObj.intervalSeconds))}
             />
             <KeyValueTableRow
-              keyName={t('URL')}
-              value={detector.dataSources[0].queryObj.url}
-            />
-            <KeyValueTableRow
-              keyName={t('Method')}
-              value={detector.dataSources[0].queryObj.method}
+              keyName={t('Timeout')}
+              value={t('After %s', getDuration(dataSource.queryObj.timeoutMs / 1000, 2))}
             />
             <DetectorExtraDetails.Environment detector={detector} />
             <DetectorExtraDetails.DateCreated detector={detector} />

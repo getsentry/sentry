@@ -1,4 +1,4 @@
-import type {Location, Query} from 'history';
+import type {Location} from 'history';
 import * as Papa from 'papaparse';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
@@ -7,7 +7,6 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {
   NewQuery,
   Organization,
@@ -46,7 +45,6 @@ import {DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/typ
 import {getTitle} from 'sentry/utils/events';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {
   DEFAULT_WIDGET_NAME,
   DisplayType,
@@ -126,25 +124,6 @@ export function decodeColumnOrder(
   });
 }
 
-export function pushEventViewToLocation(props: {
-  location: Location;
-  navigate: ReactRouter3Navigate;
-  nextEventView: EventView;
-  extraQuery?: Query;
-}) {
-  const {navigate, location, nextEventView} = props;
-  const extraQuery = props.extraQuery || {};
-  const queryStringObject = nextEventView.generateQueryStringObject();
-
-  navigate({
-    ...location,
-    query: {
-      ...extraQuery,
-      ...queryStringObject,
-    },
-  });
-}
-
 export function generateTitle({
   eventView,
   event,
@@ -188,7 +167,7 @@ export function getPrebuiltQueries(organization: Organization) {
 }
 
 function disableMacros(value: string | null | boolean | number) {
-  const unsafeCharacterRegex = /^[\=\+\-\@]/;
+  const unsafeCharacterRegex = /^[=+\-@]/;
 
   if (typeof value === 'string' && `${value}`.match(unsafeCharacterRegex)) {
     return `'${value}`;
@@ -367,7 +346,7 @@ function generateAdditionalConditions(
       const shouldQuote =
         value === null || value === undefined
           ? false
-          : /[\s\(\)\\"]/g.test(String(value).trim());
+          : /[\s()\\"]/g.test(String(value).trim());
       const nextValue =
         value === null || value === undefined
           ? ''
@@ -658,7 +637,6 @@ export function handleAddQueryToDashboard({
   location,
   query,
   organization,
-  router,
   yAxis,
   widgetType,
   source,
@@ -666,7 +644,6 @@ export function handleAddQueryToDashboard({
   eventView: EventView;
   location: Location;
   organization: Organization;
-  router: InjectedRouter;
   source: DashboardWidgetSource;
   widgetType: WidgetType | undefined;
   query?: NewQuery;
@@ -729,7 +706,6 @@ export function handleAddQueryToDashboard({
       widgetType,
     },
     source,
-    router,
     location,
   });
   return;

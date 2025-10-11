@@ -2,6 +2,7 @@ import datetime
 import hashlib
 import hmac
 import logging
+import uuid
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, TypedDict
@@ -11,6 +12,7 @@ from cryptography.fernet import Fernet
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
+from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
 from rest_framework.exceptions import (
     AuthenticationFailed,
@@ -26,6 +28,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeValuesRequest,
 )
+from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     AttributeDistributionsRequest,
     StatsType,
@@ -42,6 +45,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.organization_trace_item_attributes import as_attribute_key
+from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.constants import (
     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
@@ -68,6 +72,7 @@ from sentry.seer.explorer.index_data import (
     rpc_get_trace_for_transaction,
     rpc_get_transactions_for_project,
 )
+from sentry.seer.explorer.tools import execute_trace_query_chart, execute_trace_query_table
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
@@ -175,6 +180,7 @@ class SeerRpcServiceEndpoint(Endpoint):
     permission_classes = ()
     enforce_rate_limit = False
 
+    @sentry_sdk.trace
     def _is_authorized(self, request: Request) -> bool:
         if request.auth and isinstance(
             request.successful_authenticator, SeerRpcSignatureAuthentication
@@ -182,6 +188,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             return True
         return False
 
+    @sentry_sdk.trace
     def _dispatch_to_local_method(self, method_name: str, arguments: dict[str, Any]) -> Any:
         if method_name not in seer_method_registry:
             raise RpcResolutionException(f"Unknown method {method_name}")
@@ -189,6 +196,7 @@ class SeerRpcServiceEndpoint(Endpoint):
         method = seer_method_registry[method_name]
         return method(**arguments)
 
+    @sentry_sdk.trace
     def post(self, request: Request, method_name: str) -> Response:
         if not self._is_authorized(request):
             raise PermissionDenied
@@ -225,6 +233,21 @@ class SeerRpcServiceEndpoint(Endpoint):
 def get_organization_slug(*, org_id: int) -> dict:
     org: Organization = Organization.objects.get(id=org_id)
     return {"slug": org.slug}
+
+
+def get_organization_project_ids(*, org_id: int) -> dict:
+    """Get all project IDs for an organization"""
+    from sentry.models.project import Project
+
+    try:
+        organization = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        return {"project_ids": []}
+
+    project_ids = list(
+        Project.objects.filter(organization=organization).values_list("id", flat=True)
+    )
+    return {"project_ids": project_ids}
 
 
 def _can_use_prevent_ai_features(org: Organization) -> bool:
@@ -576,6 +599,59 @@ def get_attributes_and_values(
     return {"attributes_and_values": attributes_and_values}
 
 
+def get_attributes_for_span(
+    *,
+    org_id: int,
+    project_id: int,
+    trace_id: str,
+    span_id: str,
+) -> dict[str, Any]:
+    """
+    Fetch all attributes for a given span.
+    """
+    start_datetime = datetime.datetime.fromtimestamp(0, tz=datetime.UTC)
+    end_datetime = datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=7)
+
+    start_timestamp_proto = ProtobufTimestamp()
+    start_timestamp_proto.FromDatetime(start_datetime)
+
+    end_timestamp_proto = ProtobufTimestamp()
+    end_timestamp_proto.FromDatetime(end_datetime)
+
+    trace_item_type = TraceItemType.TRACE_ITEM_TYPE_SPAN
+
+    request_meta = RequestMeta(
+        organization_id=org_id,
+        cogs_category="events_analytics_platform",
+        referrer=Referrer.SEER_RPC.value,
+        project_ids=[project_id],
+        start_timestamp=start_timestamp_proto,
+        end_timestamp=end_timestamp_proto,
+        trace_item_type=trace_item_type,
+        request_id=str(uuid.uuid4()),
+    )
+
+    request = TraceItemDetailsRequest(
+        item_id=span_id,
+        trace_id=trace_id,
+        meta=request_meta,
+    )
+
+    response = snuba_rpc.trace_item_details_rpc(request)
+    response_dict = MessageToDict(response)
+
+    attributes = convert_rpc_attribute_to_json(
+        response_dict.get("attributes", []),
+        SupportedTraceItemType.SPANS,
+        use_sentry_conventions=False,
+        include_internal=False,
+    )
+
+    return {
+        "attributes": attributes,
+    }
+
+
 def _parse_spans_response(
     response, columns: list[ColumnDict], resolver: SearchResolver
 ) -> list[dict[str, Any]]:
@@ -828,16 +904,22 @@ def get_github_enterprise_integration_config(
     installation = integration.get_installation(organization_id=organization_id)
     assert isinstance(installation, GitHubEnterpriseIntegration)
 
-    client = installation.get_client()
-    access_token_data = client.get_access_token()
+    integration = integration_service.refresh_github_access_token(
+        integration_id=integration.id,
+        organization_id=organization_id,
+    )
 
-    if not access_token_data:
+    assert integration is not None, "Integration should have existed given previous checks"
+
+    access_token = integration.metadata["access_token"]
+    permissions = integration.metadata["permissions"]
+
+    if not access_token:
         logger.error("No access token found for integration %s", integration.id)
         return {"success": False}
 
     try:
         fernet = Fernet(settings.SEER_GHE_ENCRYPT_KEY.encode("utf-8"))
-        access_token = access_token_data["access_token"]
         encrypted_access_token = fernet.encrypt(access_token.encode("utf-8")).decode("utf-8")
     except Exception:
         logger.exception("Failed to encrypt access token")
@@ -848,7 +930,7 @@ def get_github_enterprise_integration_config(
         "base_url": f"https://{installation.model.metadata['domain_name'].split('/')[0]}/api/v3",
         "verify_ssl": installation.model.metadata["installation"]["verify_ssl"],
         "encrypted_access_token": encrypted_access_token,
-        "permissions": access_token_data["permissions"],
+        "permissions": permissions,
     }
 
 
@@ -906,6 +988,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Common to Seer features
     "get_organization_seer_consent_by_org_name": get_organization_seer_consent_by_org_name,
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
+    "get_organization_project_ids": get_organization_project_ids,
     #
     # Autofix
     "get_organization_slug": get_organization_slug,
@@ -913,6 +996,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_error_event_details": get_error_event_details,
     "get_profile_details": get_profile_details,
     "send_seer_webhook": send_seer_webhook,
+    "get_attributes_for_span": get_attributes_for_span,
     #
     # Bug prediction
     "get_sentry_organization_ids": get_sentry_organization_ids,
@@ -932,6 +1016,8 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_trace_for_transaction": rpc_get_trace_for_transaction,
     "get_profiles_for_trace": rpc_get_profiles_for_trace,
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
+    "execute_trace_query_chart": execute_trace_query_chart,
+    "execute_trace_query_table": execute_trace_query_table,
     #
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,

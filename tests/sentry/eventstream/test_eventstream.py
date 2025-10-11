@@ -96,6 +96,11 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         # only return headers and body payload
         return produce_kwargs["headers"], payload2
 
+    def test_init_options(self):
+        # options in the constructor shouldn't cause errors
+        stream = KafkaEventStream(foo="bar")
+        assert stream
+
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test(self, mock_eventstream_insert: MagicMock) -> None:
         now = timezone.now()

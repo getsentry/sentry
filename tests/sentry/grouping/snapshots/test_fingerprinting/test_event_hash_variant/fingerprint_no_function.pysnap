@@ -1,5 +1,5 @@
 ---
-created: '2025-09-24T19:48:24.436876+00:00'
+created: '2025-10-06T17:30:33.128190+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -26,8 +26,14 @@ variants:
     component:
       contributes: false
       hint: ignored because custom server fingerprint takes precedence
+    contributes: false
+    hint: ignored because custom server fingerprint takes precedence
+    key: app_exception_message
     type: component
   custom_fingerprint:
+    contributes: true
+    hint: null
+    key: custom_fingerprint
     matched_rule: type:"DatabaseUnavailable" module:"io.sentry.example.*" -> "database-unavailable{{
       function }}"
     type: custom_fingerprint
@@ -38,4 +44,7 @@ variants:
     component:
       contributes: false
       hint: ignored because custom server fingerprint takes precedence
+    contributes: false
+    hint: ignored because custom server fingerprint takes precedence
+    key: system_exception_message
     type: component

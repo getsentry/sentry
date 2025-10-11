@@ -643,10 +643,6 @@ def create_alert_rule(
             **_owner_kwargs_from_actor(owner),
         )
 
-        if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
-            # NOTE: if adding a new metric alert type, take care to check that it's handled here
-            send_new_rule_data(alert_rule, projects[0], snuba_query)
-
         if user:
             create_audit_entry_from_user(
                 user,
@@ -663,6 +659,10 @@ def create_alert_rule(
 
         # NOTE: This constructs the query in snuba
         subscribe_projects_to_alert_rule(alert_rule, projects)
+
+        if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
+            # NOTE: if adding a new metric alert type, take care to check that it's handled here
+            send_new_rule_data(alert_rule, projects[0], snuba_query)
 
         # Activity is an audit log of what's happened with this alert rule
         AlertRuleActivity.objects.create(
@@ -1835,6 +1835,7 @@ EAP_FUNCTIONS = [
     "epm",
     "failure_rate",
     "eps",
+    "apdex",
 ]
 
 

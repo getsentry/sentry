@@ -1,10 +1,10 @@
 ---
-created: '2025-09-19T05:53:40.215420+00:00'
+created: '2025-10-07T22:42:56.045479+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_chained_exception_message": {
     "component": {
       "contributes": false,
       "hint": "ignored because system exception takes precedence",
@@ -27,7 +27,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   "contributes": false,
                   "hint": "ignored because it contains no in-app frames",
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": [
                     {
                       "contributes": false,
@@ -866,7 +866,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   "contributes": false,
                   "hint": "ignored because it contains no in-app frames",
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": [
                     {
                       "contributes": false,
@@ -1425,7 +1425,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   "contributes": false,
                   "hint": "ignored because it contains no in-app frames",
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": [
                     {
                       "contributes": false,
@@ -1963,12 +1963,14 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app",
+    "contributes": false,
+    "description": "chained exception messages",
     "hash": null,
-    "key": "app",
+    "hint": "ignored because system exception takes precedence",
+    "key": "app_chained_exception_message",
     "type": "component"
   },
-  "default": {
+  "message": {
     "component": {
       "contributes": false,
       "hint": "ignored because system exception takes precedence",
@@ -2006,12 +2008,14 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "default",
+    "contributes": false,
+    "description": "message",
     "hash": null,
-    "key": "default",
+    "hint": "ignored because system exception takes precedence",
+    "key": "message",
     "type": "component"
   },
-  "system": {
+  "system_chained_exception_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -2034,7 +2038,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   "contributes": true,
                   "hint": null,
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": [
                     {
                       "contributes": false,
@@ -2873,7 +2877,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   "contributes": true,
                   "hint": null,
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": [
                     {
                       "contributes": false,
@@ -3432,7 +3436,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   "contributes": true,
                   "hint": null,
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": [
                     {
                       "contributes": false,
@@ -3970,9 +3974,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "exception stack-trace",
+    "contributes": true,
+    "description": "chained exception stacktraces — all frames",
     "hash": "1959b227a7cf6acf7f3fd401b5d9f09b",
-    "key": "system",
+    "hint": null,
+    "key": "system_chained_exception_stacktrace",
     "type": "component"
   }
 }

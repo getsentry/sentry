@@ -98,7 +98,6 @@ import {
   DATA_TYPE as SESSIONS_DATA_TYPE,
   DATA_TYPE_PLURAL as SESSIONS_DATA_TYPE_PLURAL,
   MODULE_TITLE as SESSIONS_MODULE_TITLE,
-  MODULE_VISIBLE_FEATURES as SESSIONS_MODULE_VISIBLE_FEATURES,
 } from 'sentry/views/insights/sessions/settings';
 
 import type {SpanProperty} from './types';
@@ -223,11 +222,11 @@ export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.QUEUE]: ['insight-modules'],
   [ModuleName.AGENTS]: ['insight-modules'],
   [ModuleName.SCREEN_LOAD]: ['insight-modules'],
-  [ModuleName.MCP]: ['insight-modules', 'mcp-insights'],
+  [ModuleName.MCP]: ['insight-modules'],
   [ModuleName.MOBILE_UI]: ['insight-modules'],
   [ModuleName.MOBILE_VITALS]: ['insight-modules'],
   [ModuleName.SCREEN_RENDERING]: ['insight-modules'],
-  [ModuleName.SESSIONS]: ['insight-modules', ...SESSIONS_MODULE_VISIBLE_FEATURES],
+  [ModuleName.SESSIONS]: ['insight-modules'],
   [ModuleName.OTHER]: ['insight-modules'],
 };
 
@@ -236,7 +235,6 @@ export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
  */
 export const MODULES_CONSIDERED_NEW: Set<ModuleName> = new Set([
   ModuleName.MOBILE_VITALS,
-  ModuleName.SESSIONS,
   ModuleName.MCP,
 ]);
 
@@ -254,3 +252,6 @@ export const BASE_FIELD_ALIASES: Partial<Record<SpanProperty, string>> = {
   'epm()': t('Requests Per Minute'),
   'cache_miss_rate()': t('Cache Miss Rate'),
 };
+
+// Values within 3% of average are considered "near average"
+export const NEAR_AVERAGE_THRESHOLD_PERCENTAGE = 3;

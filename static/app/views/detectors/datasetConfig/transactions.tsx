@@ -1,4 +1,8 @@
-import type {EventsStats} from 'sentry/types/organization';
+import {t} from 'sentry/locale';
+import type {SelectValue} from 'sentry/types/core';
+import type {TagCollection} from 'sentry/types/group';
+import type {EventsStats, Organization} from 'sentry/types/organization';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isOnDemandAggregate, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
@@ -20,6 +24,7 @@ import {
   translateAggregateTag,
   translateAggregateTagBack,
 } from 'sentry/views/detectors/datasetConfig/utils/translateAggregateTag';
+import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 
 import type {DetectorDatasetConfig} from './base';
 import {parseEventTypesFromQuery} from './eventTypes';
@@ -28,12 +33,49 @@ type TransactionsSeriesResponse = EventsStats;
 
 const DEFAULT_EVENT_TYPES = [EventTypes.TRANSACTION];
 
+// Because we are not actually using the transactions dataset (we are using metrics_enhanced),
+// some of the fields are not supported. Apdex does not support the satisfaction parameter,
+// so we need to remove that from the config.
+// As the transaction dataset is deprecated, this entire config will be removed in the future.
+function getAggregateOptions(
+  organization: Organization,
+  tags?: TagCollection,
+  customMeasurements?: CustomMeasurementCollection
+): Record<string, SelectValue<FieldValue>> {
+  const base = TransactionsConfig.getTableFieldOptions(
+    organization,
+    tags,
+    customMeasurements
+  );
+
+  const apdex = base['function:apdex'];
+
+  if (!apdex) {
+    return base;
+  }
+
+  return {
+    ...base,
+    'function:apdex': {
+      ...apdex,
+      value: {
+        kind: FieldValueKind.FUNCTION,
+        meta: {
+          name: 'apdex',
+          parameters: [],
+        },
+      },
+    },
+  };
+}
+
 export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSeriesResponse> =
   {
+    name: t('Transactions'),
     SearchBar: TraceSearchBar,
     defaultEventTypes: DEFAULT_EVENT_TYPES,
     defaultField: TransactionsConfig.defaultField,
-    getAggregateOptions: TransactionsConfig.getTableFieldOptions,
+    getAggregateOptions,
     getSeriesQueryOptions: options => {
       // Force statsPeriod to be 9998m to avoid the 10k results limit.
       // This is specific to the transactions dataset, since it has 1m intervals and does not support 10k+ results.

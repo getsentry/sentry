@@ -109,7 +109,7 @@ describe('PreventAIOnboarding', () => {
     const learnMoreLink = screen.getByRole('link', {name: 'Learn more'});
     expect(learnMoreLink).toHaveAttribute(
       'href',
-      'https://docs.sentry.io/product/ai-in-sentry/sentry-prevent-ai/'
+      'https://docs.sentry.io/product/ai-in-sentry/ai-code-review/'
     );
   });
 

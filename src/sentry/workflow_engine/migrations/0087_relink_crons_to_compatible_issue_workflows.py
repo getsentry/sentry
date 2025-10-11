@@ -22,7 +22,13 @@ ALLOWED_CONDITIONS = {
     "reappeared_event",
     "every_event",
     "age_comparison",
+    "issue_priority_equals",
+    "issue_priority_greater_or_equal",
+    "issue_priority_deescalating",
+    "new_high_priority_issue",
+    "existing_high_priority_issue",
 }
+CRON_GROUP_CATEGORY = 4
 
 
 @dataclass(frozen=True)
@@ -108,6 +114,8 @@ class WorkflowData:
                 return monitor.owner_team_id is None and monitor.owner_user_id is None
             else:
                 return False
+        if condition.type == "issue_category":
+            return condition.comparison.get("value") == CRON_GROUP_CATEGORY
 
         return condition.type in ALLOWED_CONDITIONS
 

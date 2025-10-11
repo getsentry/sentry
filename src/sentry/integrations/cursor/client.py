@@ -42,7 +42,7 @@ class CursorAgentClient(CodingAgentClient):
             ),
             webhook=CursorAgentLaunchRequestWebhook(url=webhook_url, secret=self.webhook_secret),
             target=CursorAgentLaunchRequestTarget(
-                autoCreatePr=True, branchName=request.branch_name
+                autoCreatePr=True, branchName=request.branch_name, openAsCursorGithubApp=True
             ),
         )
 
@@ -71,7 +71,7 @@ class CursorAgentClient(CodingAgentClient):
             id=launch_response.id,
             status=CodingAgentStatus.RUNNING,  # Cursor agent doesn't send when it actually starts so we just assume it's running
             provider=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
-            name=launch_response.name,
+            name=launch_response.name or f"Cursor Agent {launch_response.id}",
             started_at=launch_response.createdAt,
             agent_url=launch_response.target.url,
         )

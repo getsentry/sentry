@@ -1,20 +1,23 @@
+import {useMemo} from 'react';
 import type {Location} from 'history';
+import qs from 'query-string';
 
 import {
   openAddToDashboardModal,
   openDashboardWidgetQuerySelectorModal,
 } from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Link} from 'sentry/components/core/link';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   MEPState,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {safeURL} from 'sentry/utils/url/safeURL';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
@@ -31,6 +34,7 @@ import {
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 
@@ -47,6 +51,61 @@ export const useIndexedEventsWarning = (): string | null => {
     : null;
 };
 
+export const useTransactionsDeprecationWarning = ({
+  widget,
+  selection,
+}: {
+  selection: PageFilters;
+  widget: Widget;
+}): React.JSX.Element | null => {
+  const organization = useOrganization();
+
+  // memoize the URL to avoid recalculating it on every render
+  const exploreUrl = useMemo(() => {
+    if (
+      !organization.features.includes('transaction-widget-deprecation-explore-view') ||
+      widget.widgetType !== WidgetType.TRANSACTIONS ||
+      !widget.exploreUrls ||
+      widget.exploreUrls.length === 0
+    ) {
+      return null;
+    }
+    return createExploreUrl(widget.exploreUrls[0]!, selection, organization);
+  }, [organization, widget.widgetType, widget.exploreUrls, selection]);
+
+  if (!exploreUrl) {
+    return null;
+  }
+
+  return tct(
+    'Transaction based widgets will soon be migrated to spans widgets. To see what your query could look like, open it in [explore:Explore].',
+    {
+      explore: <Link to={exploreUrl} />,
+    }
+  );
+};
+
+const createExploreUrl = (
+  baseUrl: string,
+  selection: PageFilters,
+  organization: Organization
+): string => {
+  const parsedUrl = safeURL(baseUrl);
+  const queryParams = qs.parse(parsedUrl?.search ?? '');
+
+  if (queryParams.aggregateField) {
+    // we need to parse the aggregateField because it comes in stringified but needs to be passed in JSON format
+    if (typeof queryParams.aggregateField === 'string') {
+      queryParams.aggregateField = JSON.parse(queryParams.aggregateField);
+    } else if (Array.isArray(queryParams.aggregateField)) {
+      queryParams.aggregateField = queryParams.aggregateField.map(item =>
+        JSON.parse(item)
+      );
+    }
+  }
+  return getExploreUrl({organization, selection, ...queryParams});
+};
+
 export function getMenuOptions(
   dashboardFilters: DashboardFilters | undefined,
   organization: Organization,
@@ -56,7 +115,6 @@ export function getMenuOptions(
   widgetLimitReached: boolean,
   hasEditAccess = true,
   location: Location,
-  router: InjectedRouter,
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void
@@ -95,11 +153,7 @@ export function getMenuOptions(
           : widget.queries.length === 1
             ? discoverPath
             : undefined,
-        tooltip: isUsingPerformanceScore(widget)
-          ? performanceScoreTooltip
-          : t(
-              'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
-            ),
+        tooltip: isUsingPerformanceScore(widget) ? performanceScoreTooltip : null,
         tooltipOptions: {disabled: !optionDisabled},
         disabled: optionDisabled,
         showDetailsInOverlay: true,
@@ -183,7 +237,6 @@ export function getMenuOptions(
         openAddToDashboardModal({
           organization,
           location,
-          router,
           selection,
           widget: {
             ...widget,

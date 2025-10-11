@@ -4,10 +4,12 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {
   AutofixStatus,
   AutofixStepType,
+  AutofixStoppingPoint,
   CodingAgentStatus,
   type AutofixData,
   type GroupWithAutofix,
 } from 'sentry/components/events/autofix/types';
+import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {
   fetchMutation,
@@ -235,7 +237,7 @@ export const useAiAutofix = (
   );
 
   const triggerAutofix = useCallback(
-    async (instruction: string) => {
+    async (instruction: string, stoppingPoint?: AutofixStoppingPoint) => {
       setIsReset(false);
       setCurrentRunId(null);
       setWaitingForNextRun(true);
@@ -253,6 +255,7 @@ export const useAiAutofix = (
             data: {
               event_id: event.id,
               instruction,
+              ...(stoppingPoint && {stopping_point: stoppingPoint}),
             },
           }
         );
@@ -341,7 +344,7 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
       });
     },
     onSuccess: (_, params) => {
-      addSuccessMessage(`${params.agentName} agent launched successfully`);
+      addSuccessMessage(t('%s launched successfully', params.agentName));
       queryClient.invalidateQueries({
         queryKey: makeAutofixQueryKey(organization.slug, groupId, false),
       });
@@ -350,7 +353,7 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
       });
     },
     onError: (_, params) => {
-      addErrorMessage(`Failed to launch ${params.agentName} agent`);
+      addErrorMessage(t('Failed to launch %s', params.agentName));
     },
   });
 }

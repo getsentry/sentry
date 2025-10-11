@@ -38,6 +38,7 @@ import {
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -227,6 +228,21 @@ export function SentryComponentInspector() {
     enabled: null,
     trace: [],
   });
+
+  useHotkeys([
+    {
+      match: 'command+i',
+      callback: () => {
+        if (NODE_ENV !== 'development' || !user?.isSuperuser) {
+          return;
+        }
+        setState(prev => ({
+          ...prev,
+          enabled: prev.enabled === 'inspector' ? null : 'inspector',
+        }));
+      },
+    },
+  ]);
 
   const contextMenu = useContextMenu({container: tooltipRef.current});
   const [contextMenuTrace, setContextMenuTrace] = useState<TraceElement[] | null>(null);

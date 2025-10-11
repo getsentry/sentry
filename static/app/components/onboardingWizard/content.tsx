@@ -27,6 +27,7 @@ import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {useStackedNavigationTour} from 'sentry/views/nav/tour/tour';
 
 /**
  * How long (in ms) to delay before beginning to mark tasks complete
@@ -179,6 +180,7 @@ function Task({task, hidePanel}: TaskProps) {
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
 
   const tours = useDemoTours();
+  const sidebarTour = useStackedNavigationTour();
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -194,6 +196,9 @@ function Task({task, hidePanel}: TaskProps) {
       if (isDemoModeActive()) {
         if (task.task === OnboardingTaskKey.PERFORMANCE_GUIDE) {
           tours?.[DemoTour.PERFORMANCE]?.startTour();
+        } else if (task.task === OnboardingTaskKey.SIDEBAR_GUIDE) {
+          // Demo mode uses existing sidebar tour
+          sidebarTour.startTour();
         } else if (task.task === OnboardingTaskKey.RELEASE_GUIDE) {
           tours?.[DemoTour.RELEASES]?.startTour();
         } else if (task.task === OnboardingTaskKey.ISSUE_GUIDE) {
@@ -222,7 +227,7 @@ function Task({task, hidePanel}: TaskProps) {
       }
       hidePanel();
     },
-    [task, organization, router, hidePanel, tours]
+    [task, organization, router, hidePanel, tours, sidebarTour]
   );
 
   const handleMarkSkipped = useCallback(() => {
@@ -416,6 +421,7 @@ function TaskGroup({
   }, [tasks]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setIsExpanded(expanded);
   }, [expanded]);
 
