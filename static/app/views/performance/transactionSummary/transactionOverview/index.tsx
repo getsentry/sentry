@@ -5,9 +5,7 @@ import type {Location} from 'history';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -28,10 +26,11 @@ import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
-import withProjects from 'sentry/utils/withProjects';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
 import {
   decodeFilterFromLocation,
@@ -55,17 +54,12 @@ import SummaryContent, {OTelSummaryContent} from './content';
 // as string | number
 type TotalValues = Record<string, number>;
 
-type Props = {
-  location: Location;
-  organization: Organization;
-  projects: Project[];
-  selection: PageFilters;
-};
-
-function TransactionOverview(props: Props) {
+export default function TransactionOverview() {
   const api = useApi();
-
-  const {location, selection, organization, projects} = props;
+  const location = useLocation();
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
 
   useEffect(() => {
     loadOrganizationTags(api, organization.slug, selection);
@@ -478,5 +472,3 @@ function getEAPTotalsEventView(
 
   return eventView.withColumns([...totalsColumns]);
 }
-
-export default withPageFilters(withProjects(withOrganization(TransactionOverview)));
