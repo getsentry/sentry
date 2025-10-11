@@ -6,7 +6,9 @@ from rest_framework import serializers
 from sentry import features, quotas
 from sentry.constants import ObjectStatus
 from sentry.incidents.logic import enable_disable_subscriptions
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
+from sentry.seer.anomaly_detection.store_data_workflow_engine import send_new_detector_data
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
@@ -222,6 +224,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
     def create(self, validated_data: dict[str, Any]):
         detector = super().create(validated_data)
+
+        if detector.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC.value:
+            send_new_detector_data(detector)
 
         schedule_update_project_config(detector)
         return detector
