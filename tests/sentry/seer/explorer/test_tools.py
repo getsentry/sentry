@@ -273,6 +273,7 @@ class TestExplorerTools(APITransactionTestCase, SnubaTestCase, SpanTestCase):
             group_by=["span.op"],
             y_axes=["count()"],
             per_page=10,
+            mode="aggregates",
         )
 
         assert result is not None
@@ -287,6 +288,57 @@ class TestExplorerTools(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         for row in rows:
             assert "span.op" in row
             assert "count()" in row
+
+    def test_execute_trace_query_table_aggregates_mode_basic(self):
+        """Test table query in aggregates mode without group_by"""
+        result = execute_trace_query_table(
+            org_id=self.organization.id,
+            query="",
+            stats_period="1h",
+            sort="-count()",
+            y_axes=["count()", "avg(span.duration)"],
+            per_page=10,
+            mode="aggregates",
+        )
+
+        assert result is not None
+        assert "data" in result
+        assert "meta" in result
+
+        rows = result["data"]
+        # Should have aggregate results
+        assert len(rows) > 0
+
+        # Each row should have the aggregate functions
+        for row in rows:
+            assert "count()" in row
+            assert "avg(span.duration)" in row
+
+    def test_execute_trace_query_table_aggregates_mode_multiple_functions(self):
+        """Test table query in aggregates mode with multiple aggregate functions"""
+        result = execute_trace_query_table(
+            org_id=self.organization.id,
+            query="span.op:db",  # Filter to only database operations
+            stats_period="1h",
+            sort="-sum(span.duration)",
+            y_axes=["count()", "sum(span.duration)", "avg(span.duration)"],
+            per_page=10,
+            mode="aggregates",
+        )
+
+        assert result is not None
+        assert "data" in result
+        assert "meta" in result
+
+        rows = result["data"]
+        # Should have aggregate results for database spans
+        assert len(rows) > 0
+
+        # Each row should have all the aggregate functions
+        for row in rows:
+            assert "count()" in row
+            assert "sum(span.duration)" in row
+            assert "avg(span.duration)" in row
 
     def test_get_organization_project_ids(self):
         """Test the get_organization_project_ids RPC method"""
