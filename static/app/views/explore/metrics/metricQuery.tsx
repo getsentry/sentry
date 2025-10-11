@@ -64,11 +64,16 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
 
   const aggregateFields = [...visualizes, ...groupBys];
 
+  const aggregateSortBys = json.aggregateSortBys;
+  if (!Array.isArray(aggregateSortBys)) {
+    return null;
+  }
+
   return {
     metric,
     queryParams: new ReadableQueryParams({
       extrapolate: true,
-      mode: Mode.AGGREGATE,
+      mode: json.mode,
       query,
 
       cursor: '',
@@ -77,7 +82,7 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
 
       aggregateCursor: '',
       aggregateFields,
-      aggregateSortBys: defaultAggregateSortBys(),
+      aggregateSortBys,
     }),
   };
 }
@@ -94,6 +99,8 @@ export function encodeMetricQueryParams(metricQuery: BaseMetricQuery): string {
       // Keep Group By as-is
       return field;
     }),
+    aggregateSortBys: metricQuery.queryParams.aggregateSortBys,
+    mode: metricQuery.queryParams.mode,
   });
 }
 
