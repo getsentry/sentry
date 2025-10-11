@@ -15,6 +15,9 @@ import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/trace
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 
 export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
+  id: string;
+  type: TraceTree.NodeType;
+
   searchPriority = 3;
   constructor(
     parent: BaseNode | null,
@@ -23,6 +26,8 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
   ) {
     super(parent, value, extra);
 
+    this.id = value.event_id;
+    this.type = 'error';
     this.isEAPEvent = isEAPError(value);
 
     if (value) {
@@ -35,10 +40,6 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
     }
 
     this.parent?.children.push(this);
-  }
-
-  get type(): TraceTree.NodeType {
-    return 'error';
   }
 
   get description(): string | undefined {
@@ -72,7 +73,6 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
-    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
     return <TraceErrorRow {...props} node={props.node} />;
   }
 

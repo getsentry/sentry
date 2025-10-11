@@ -406,7 +406,7 @@ describe('EapSpanNode', () => {
       const child = new EapSpanNode(parent, childValue, extra);
       parent.children = [child];
 
-      expect(parent.directChildren).toEqual([child]);
+      expect(parent.directVisibleChildren).toEqual([child]);
     });
 
     it('should filter directChildren for collapsed EAP transactions', () => {
@@ -432,7 +432,7 @@ describe('EapSpanNode', () => {
       transaction.expanded = false;
 
       // Should only return child transactions when collapsed
-      expect(transaction.directChildren).toEqual([childTransaction]);
+      expect(transaction.directVisibleChildren).toEqual([childTransaction]);
     });
 
     it('should return all children for expanded EAP transactions', () => {
@@ -457,7 +457,7 @@ describe('EapSpanNode', () => {
       transaction.children = [childTransaction, childSpan];
       transaction.expanded = true;
 
-      expect(transaction.directChildren).toEqual([childTransaction, childSpan]);
+      expect(transaction.directVisibleChildren).toEqual([childTransaction, childSpan]);
     });
   });
 
@@ -894,7 +894,7 @@ describe('EapSpanNode', () => {
       const node = new EapSpanNode(null, value, extra);
 
       expect(node.children).toEqual([]);
-      expect(node.directChildren).toEqual([]);
+      expect(node.directVisibleChildren).toEqual([]);
       expect(node.visibleChildren).toEqual([]);
     });
   });
