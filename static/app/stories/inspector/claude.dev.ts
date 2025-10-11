@@ -38,7 +38,7 @@ wss.on('connection', (ws, req) => {
     cwd: process.cwd(),
     stdio: ['pipe', 'pipe', 'pipe'], // Back to pipe for stdin to allow message forwarding
     env: {
-      ...process.env, // Inherit all environment variables including ANTHROPIC_API_KEY
+      ...process.env,
       ANTHROPIC_API_KEY: '',
     },
   });
