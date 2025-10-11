@@ -39,7 +39,7 @@ def test_process_recording_event_without_video() -> None:
 
     result = process_recording_event(message)
 
-    assert result.actions_event == ParsedEventMeta([], [], [], [], [], [], [])
+    assert result.actions_event == ParsedEventMeta([], [], [], [], [], [], [], [])
     assert result.context == message["context"]
     assert result.filename == "30/456/test-replay-id/42"
     assert result.filedata == payload_compressed
@@ -75,7 +75,7 @@ def test_process_recording_event_with_video() -> None:
 
     result = process_recording_event(message)
 
-    assert result.actions_event == ParsedEventMeta([], [], [], [], [], [], [])
+    assert result.actions_event == ParsedEventMeta([], [], [], [], [], [], [], [])
     assert result.context == message["context"]
     assert result.filename == "90/789/video-replay-id/1"
     assert result.recording_size_uncompressed == len(payload)
@@ -109,7 +109,7 @@ def test_parse_replay_events_empty() -> None:
             "replay_video": None,
         }
     )
-    assert result == ParsedEventMeta([], [], [], [], [], [], [])
+    assert result == ParsedEventMeta([], [], [], [], [], [], [], [])
     assert trace_items == []
 
 
