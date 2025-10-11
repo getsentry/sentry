@@ -39,6 +39,8 @@ class OurLogs(rpc_dataset_common.RPCBase):
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
         debug: bool = False,
+        ourlog_queries: list[str] | None = None,
+        span_queries: list[str] | None = None,
     ) -> EAPResponse:
         """timestamp_precise is always displayed in the UI in lieu of timestamp but since the TraceItem table isn't a DateTime64
         so we need to always order by it regardless of what is actually passed to the orderby.
@@ -76,6 +78,8 @@ class OurLogs(rpc_dataset_common.RPCBase):
                     config=config,
                 ),
                 page_token=page_token,
+                ourlog_queries=ourlog_queries,
+                span_queries=span_queries,
             ),
             debug=debug,
         )

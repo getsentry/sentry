@@ -42,6 +42,8 @@ class Spans(rpc_dataset_common.RPCBase):
         equations: list[str] | None = None,
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
+        ourlog_queries: list[str] | None = None,
+        span_queries: list[str] | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
@@ -55,6 +57,8 @@ class Spans(rpc_dataset_common.RPCBase):
                 sampling_mode=sampling_mode,
                 page_token=page_token,
                 resolver=search_resolver or cls.get_resolver(params, config),
+                ourlog_queries=ourlog_queries,
+                span_queries=span_queries,
             ),
             params.debug,
         )
