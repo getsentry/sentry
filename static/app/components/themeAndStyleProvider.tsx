@@ -13,7 +13,7 @@ import {useThemeSwitcher} from 'sentry/utils/theme/useThemeSwitcher';
 const SentryComponentInspector =
   NODE_ENV === 'development'
     ? lazy(() =>
-        import('sentry/components/core/inspector').then(module => ({
+        import('sentry/stories/inspector/inspector').then(module => ({
           default: module.SentryComponentInspector,
         }))
       )

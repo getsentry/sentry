@@ -1,5 +1,8 @@
-const {spawn} = require('node:child_process');
-const WebSocket = require('ws');
+/* eslint-disable import/no-nodejs-modules */
+
+import {spawn} from 'node:child_process';
+
+import WebSocket from 'ws';
 
 // https://docs.claude.com/en/docs/claude-code/sdk/sdk-headless
 
@@ -38,7 +41,7 @@ wss.on('connection', (ws, req) => {
     cwd: process.cwd(),
     stdio: ['pipe', 'pipe', 'pipe'], // Back to pipe for stdin to allow message forwarding
     env: {
-      ...process.env, // Inherit all environment variables including ANTHROPIC_API_KEY
+      ...process.env,
       ANTHROPIC_API_KEY: '',
     },
   });
