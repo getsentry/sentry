@@ -6,6 +6,7 @@ import {defined} from 'sentry/utils';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import type {ExploreQueryChangedReason} from 'sentry/views/explore/hooks/useSaveQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export type RawGroupBy = {
@@ -100,6 +101,7 @@ type ReadableSavedQuery = {
   projects: number[];
   query: [ReadableQuery, ...ReadableQuery[]];
   starred: boolean;
+  changedReason?: ExploreQueryChangedReason | null;
   createdBy?: User;
   end?: string;
   environment?: string[];
@@ -120,6 +122,7 @@ export class SavedQuery {
   query: [SavedQueryQuery, ...SavedQueryQuery[]];
   dataset: ReadableSavedQuery['dataset'];
   starred: boolean;
+  changedReason?: ExploreQueryChangedReason | null;
   createdBy?: User;
   end?: string | DateString;
   environment?: string[];
@@ -128,6 +131,7 @@ export class SavedQuery {
   start?: string | DateString;
 
   constructor(savedQuery: ReadableSavedQuery) {
+    this.changedReason = savedQuery.changedReason;
     this.dateAdded = savedQuery.dateAdded;
     this.dateUpdated = savedQuery.dateUpdated;
     this.id = savedQuery.id;
