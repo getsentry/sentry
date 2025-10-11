@@ -27,7 +27,7 @@ class NotificationServiceTest(TestCase):
 
     def test_basic_notify(self) -> None:
         service = NotificationService(data=MockNotification(message="this is a test notification"))
-        service.notify(targets=[self.target])
+        service.notify(targets=[self.target], sync_send=True)
 
     @mock.patch("sentry.notifications.platform.service.logger")
     def test_validation_on_notify(self, mock_logger: mock.MagicMock) -> None:
