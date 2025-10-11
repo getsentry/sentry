@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -14,9 +15,11 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import useIsLive from 'sentry/utils/replays/hooks/useIsLive';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import usePollReplayRecord from 'sentry/utils/replays/hooks/usePollReplayRecord';
+import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
@@ -32,12 +35,25 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const {slug: orgSlug} = organization;
   const replayId = readerResult.replayId;
   const isLive = useIsLive({replayReader});
-  const replayUpdated = usePollReplayRecord({
-    isLive,
+
+  const queryClient = useQueryClient();
+
+  const [showRefreshButton, setShowRefreshButton] = useState(false);
+
+  const countSegments = usePollReplayRecord({
+    enabled: isLive && !showRefreshButton,
     replayId,
     orgSlug,
-    replayReader,
   });
+
+  if (countSegments && replayRecord?.count_segments) {
+    if (countSegments > replayRecord.count_segments && !showRefreshButton) {
+      setShowRefreshButton(true);
+    } else if (countSegments <= replayRecord.count_segments && showRefreshButton) {
+      setShowRefreshButton(false);
+    }
+  }
+
   // Generate search query based on available user data
   const getUserSearchQuery = () => {
     if (!replayRecord?.user) {
@@ -57,9 +73,21 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
 
   const searchQuery = getUserSearchQuery();
   const userDisplayName = replayRecord?.user.display_name || t('Anonymous User');
+  const projectSlug = useReplayProjectSlug({replayRecord});
 
   const handleRefresh = () => {
-    window.location.reload();
+    setShowRefreshButton(false);
+    queryClient.refetchQueries({
+      queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
+      exact: true,
+      type: 'all',
+    });
+    queryClient.invalidateQueries({
+      queryKey: [
+        `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
+      ],
+      type: 'all',
+    });
   };
 
   const badge = replayRecord ? (
@@ -107,7 +135,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                 title={t('Replay is outdated. Refresh for latest activity.')}
                 size="xs"
                 onClick={handleRefresh}
-                replayUpdated={replayUpdated}
+                replayUpdated={showRefreshButton}
               >
                 <IconRefresh />
               </RefreshButton>
@@ -210,6 +238,6 @@ const LiveIndicator = styled('div')`
   }
 `;
 
-const RefreshButton = styled(Button)<{replayUpdated: boolean}>`
-  visibility: ${p => (p.replayUpdated ? 'visible' : 'hidden')};
+const RefreshButton = styled(Button)<{showRefreshButton: boolean}>`
+  visibility: ${p => (p.showRefreshButton ? 'visible' : 'hidden')};
 `;
