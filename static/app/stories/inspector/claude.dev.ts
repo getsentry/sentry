@@ -1,254 +1,240 @@
 /* eslint-disable import/no-nodejs-modules */
+import {ChildProcess, spawn} from 'node:child_process';
 
-import {spawn} from 'node:child_process';
+import * as WebSocket from 'ws';
 
-import WebSocket from 'ws';
+// The Orchestrator manages agent processes and relays messages between clients and agents.
+// - On 'initialize': If the sessionId is unused, spawn an agent and associate it. Otherwise, do nothing.
+// - On 'terminate': Stop the agent and close the connection for the given sessionId.
+// - On 'user': Forward the message to the agent and broadcast its response to all clients.
+// - On agent data: Broadcast to all clients.
+//
+// If an agent process crashes, the orchestrator will respawn it and retry the request, up to 3 times.
 
-// https://docs.claude.com/en/docs/claude-code/sdk/sdk-headless
+type SessionId = string;
 
-console.log('Starting Claude WebSocket server on port 8080...');
+interface BaseClientMessage {
+  sessionId: SessionId;
+  type: 'initialize' | 'terminate' | 'message';
+}
 
-// Connection counter for logging purposes
-let connectionCounter = 0;
+interface ClientInitializeMessage extends BaseClientMessage {
+  type: 'initialize';
+}
 
-const wss = new WebSocket.Server({port: 8080});
+interface ClientTerminateMessage extends BaseClientMessage {
+  type: 'terminate';
+}
 
-wss.on('connection', (ws, req) => {
-  // Generate unique connection ID for logging
-  const connectionId = ++connectionCounter;
-  console.log(`Claude WebSocket client connected (connection-${connectionId})`);
+interface ClientUserMessage extends BaseClientMessage {
+  message: string;
+  type: 'message';
+}
 
-  // Variable to store the Claude session UUID
-  let claudeSessionId = null;
+type ClientMessage = ClientInitializeMessage | ClientTerminateMessage | ClientUserMessage;
 
-  // Check if claude command exists first
-  const command = 'claude';
-  const args = [
-    '-p', // Use -p flag for multi-turn conversations
-    '--output-format',
-    'stream-json',
-    '--input-format',
-    'stream-json',
-    '--verbose',
-    '--dangerously-skip-permissions',
-  ];
+class Logger {
+  info(...args: any[]) {
+    // eslint-disable-next-line no-console
+    console.log(args);
+  }
 
-  console.log(`Attempting to spawn: ${command} ${args.join(' ')}`);
+  error(...args: any[]) {
+    // eslint-disable-next-line no-console
+    console.error(args);
+  }
+}
 
-  // Spawn agent process per connection (1:1 relationship)
-  // Using stream-json input format to potentially avoid Node.js spawn hanging issue
-  const agent = spawn(command, args, {
-    cwd: process.cwd(),
-    stdio: ['pipe', 'pipe', 'pipe'], // Back to pipe for stdin to allow message forwarding
-    env: {
-      ...process.env,
-      ANTHROPIC_API_KEY: '',
-    },
-  });
+const logger = new Logger();
 
-  console.log(`Claude agent process spawned with PID: ${agent.pid}`);
+export class Orchestrator {
+  private agents: Map<SessionId, ClaudeAgent> = new Map();
+  private wss: WebSocket.WebSocketServer;
 
-  agent.on('spawn', () => {
-    console.log('[Server] Claude agent process successfully spawned');
-    console.log('[Server] Waiting for stdout data from Claude CLI...');
-  });
-
-  agent.on('error', error => {
-    console.error('Failed to start claude process:', error);
-    console.error('Error details:', {
-      code: error.code,
-      errno: error.errno,
-      syscall: error.syscall,
-      path: error.path,
-      spawnargs: error.spawnargs,
+  constructor() {
+    this.wss = new WebSocket.WebSocketServer({
+      port: Number(process.env.AI_OVERLAY_PORT) || 8080,
     });
-    ws.close();
-  });
 
-  // Forward messages from WebSocket to agent stdin
-  ws.on('message', message => {
-    const messageText = message.toString();
-    console.log('Message from WebSocket:', messageText);
+    this.wss.on('connection', ws => {
+      ws.on('message', (message: ClientMessage) => {
+        logger.info('[Orchestrator] Received message:', message);
 
-    try {
-      // Parse incoming message - if not JSON, treat as plain text
-      let content;
-      try {
-        const parsed = JSON.parse(messageText);
-        content = parsed.message || parsed.content || messageText;
-      } catch {
-        content = messageText;
-      }
-
-      // Using stream-json format - wrap message in correct schema
-      const jsonMessage = {
-        type: 'user',
-        message: {
-          role: 'user',
-          content: [{type: 'text', text: content}],
-        },
-      };
-
-      agent.stdin.write(JSON.stringify(jsonMessage) + '\n');
-    } catch (error) {
-      console.error('Error writing to agent stdin:', error);
-    }
-  });
-
-  // Buffer to accumulate partial JSON objects
-  let buffer = '';
-  let hasReceivedData = false;
-
-  // Forward agent stdout back to WebSocket
-  agent.stdout.on('data', data => {
-    if (!hasReceivedData) {
-      console.log('[Server] ✓ First data received from Claude CLI stdout!');
-      hasReceivedData = true;
-    }
-
-    const output = data.toString();
-    buffer += output;
-
-    console.log('[Server] Received data chunk, buffer length:', buffer.length);
-    console.log('[Server] Current claudeSessionId:', claudeSessionId || 'null');
-
-    // Try to parse complete JSON objects from the buffer
-    const lines = buffer.split('\n');
-
-    // Keep the last incomplete line in the buffer
-    buffer = lines.pop() || '';
-
-    console.log(`[Server] Processing ${lines.length} complete lines`);
-
-    for (const line of lines) {
-      if (!line.trim()) continue;
-
-      console.log(
-        '[Server] Processing line:',
-        line.substring(0, 200) + (line.length > 200 ? '...' : '')
-      );
-
-      // Try to extract session_id if we don't have it yet
-      if (!claudeSessionId) {
-        try {
-          const parsed = JSON.parse(line);
-          console.log('[Server] ========== FULL JSON MESSAGE ==========');
-          console.log(JSON.stringify(parsed, null, 2));
-          console.log('[Server] ============================================');
-          console.log('[Server] Parsed object keys:', Object.keys(parsed));
-          console.log('[Server] Checking for session_id field...');
-          console.log('[Server] parsed.session_id value:', parsed.session_id);
-
-          if (parsed.session_id) {
-            claudeSessionId = parsed.session_id;
-            console.log(`[Server] ✓✓✓ Captured Claude session ID: ${claudeSessionId}`);
-
-            // Send the session ID to the client immediately
-            if (ws.readyState === WebSocket.OPEN) {
-              const sessionInfoMessage = JSON.stringify({
-                type: 'session_info',
-                session_id: claudeSessionId,
-              });
-              console.log(
-                '[Server] Sending session_info message to client:',
-                sessionInfoMessage
-              );
-              ws.send(sessionInfoMessage);
-            } else {
-              console.error('[Server] WebSocket not open, cannot send session_info');
-            }
-          } else {
-            console.log('[Server] ❌ JSON parsed but no session_id field found');
-          }
-        } catch (parseError) {
-          console.log('[Server] Line is not valid JSON:', parseError.message);
+        switch (message.type) {
+          case 'initialize':
+            this.initialize(message.sessionId);
+            break;
+          case 'terminate':
+            this.terminate(message.sessionId);
+            break;
+          case 'message':
+            this.agents.get(message.sessionId)?.send(message.message);
+            break;
+          default:
+            break;
         }
+      });
+    });
+
+    // Handle termination and related signals to gracefully shutdown
+    process.on('SIGTERM', this.close.bind(this));
+    process.on('SIGINT', this.close.bind(this));
+  }
+
+  initialize(sessionId: SessionId) {
+    logger.info('[Orchestrator] Initializing agent for session:', sessionId);
+
+    if (this.agents.has(sessionId)) {
+      logger.info('[Orchestrator] Agent already exists for session:', sessionId);
+      return;
+    }
+
+    const agent = new ClaudeAgent();
+    agent.initialize();
+
+    this.agents.set(sessionId, agent);
+  }
+
+  terminate(sessionId: SessionId) {
+    logger.info('[Orchestrator] Terminating agent for session:', sessionId);
+    this.agents.get(sessionId)?.close();
+    this.agents.delete(sessionId);
+  }
+
+  close() {
+    for (const [sessionId, agent] of this.agents.entries()) {
+      this.agents.delete(sessionId);
+      agent.close();
+    }
+
+    this.wss.close((err: unknown) => {
+      if (err) {
+        logger.error('Error closing WebSocket server:', err);
       }
 
-      // Forward the complete line to the client
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(line);
-      }
-    }
-  });
+      this.wss.clients.forEach(client => {
+        client.send(JSON.stringify({type: 'terminate'}));
+      });
+    });
+  }
+}
 
-  agent.stderr.on('data', data => {
-    const stderrOutput = data.toString();
-    console.error('[Server] Claude agent stderr:', stderrOutput);
+abstract class Agent {
+  status: 'initial' | 'pending' | 'error' | 'closed' = 'initial';
+  abstract send(message: string): void;
+  abstract close(): void;
+}
 
-    // Some CLIs output session info to stderr, check there too
-    if (!claudeSessionId && stderrOutput.includes('session')) {
-      console.log('[Server] Found "session" in stderr, checking for session_id...');
-      try {
-        const lines = stderrOutput.split('\n');
-        for (const line of lines) {
-          if (line.trim()) {
-            try {
-              const parsed = JSON.parse(line);
-              if (parsed.session_id) {
-                claudeSessionId = parsed.session_id;
-                console.log(
-                  `[Server] ✓✓✓ Captured session ID from stderr: ${claudeSessionId}`
-                );
-                if (ws.readyState === WebSocket.OPEN) {
-                  ws.send(
-                    JSON.stringify({
-                      type: 'session_info',
-                      session_id: claudeSessionId,
-                    })
-                  );
-                }
-              }
-            } catch {
-              // Not JSON
-            }
-          }
-        }
-      } catch (error) {
-        console.error('[Server] Error parsing stderr:', error);
-      }
-    }
-  });
+class ClaudeAgent extends Agent {
+  private agent: ChildProcess | null = null;
 
-  // Clean up on disconnect
-  ws.on('close', () => {
-    console.log(`Claude WebSocket client disconnected (connection-${connectionId})`);
+  constructor() {
+    super();
+    this.initialize();
+  }
 
-    if (agent && !agent.killed) {
-      agent.kill('SIGTERM');
-    }
-  });
+  initialize() {
+    const command = 'claude';
+    const args = [
+      '-p',
+      '--output-format',
+      'stream-json',
+      '--input-format',
+      'stream-json',
+      '--verbose',
+      '--dangerously-skip-permissions',
+    ];
 
-  agent.on('close', (code, signal) => {
-    console.log(`Claude agent process exited with code ${code}, signal: ${signal}`);
-    if (code === 143) {
-      console.log(
-        'Agent was terminated by SIGTERM (exit code 143) - this may be due to shell detection issues'
-      );
-    } else if (code !== 0) {
-      console.error(`Agent exited unexpectedly with code: ${code}`);
-    }
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.close();
-    }
-  });
-});
+    this.agent = spawn(command, args, {
+      cwd: process.cwd(),
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        ANTHROPIC_API_KEY: '',
+      },
+    });
 
-wss.on('listening', () => {
-  console.log('Claude WebSocket server listening on port 8080');
-});
+    this.status = 'pending';
+    logger.info('[ClaudeAgent] Initializing claude process');
 
-// Handle graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('Shutting down Claude WebSocket server...');
-  wss.close(() => {
-    process.exit(0);
-  });
-});
+    this.agent.on('spawn', () => {
+      this.status = 'initial';
+      logger.info('[ClaudeAgent] Started claude process');
+    });
 
-process.on('SIGINT', () => {
-  console.log('Shutting down Claude WebSocket server...');
-  wss.close(() => {
-    process.exit(0);
-  });
-});
+    this.agent.on('error', error => {
+      this.status = 'error';
+      logger.error('[ClaudeAgent] Failed to start claude process:', error);
+      // @TODO: restart the agent and retry the request
+    });
+
+    this.agent.stderr?.on('data', data => {
+      logger.info('[ClaudeAgent] Stderr:', data.toString());
+      // @TODO: attempt to handle errors from the agent
+    });
+
+    this.agent.stdout?.on('data', data => {
+      logger.info('[ClaudeAgent] Stdout:', data.toString());
+      // @TODO: handle stdout from the agent
+    });
+  }
+
+  send(message: string): void {}
+
+  close(): void {
+    this.agent?.kill();
+    this.status = 'closed';
+  }
+}
+
+const orchestrator = new Orchestrator();
+
+//   agent.stdout.on('data', data => {
+//     if (!hasReceivedData) {
+//       hasReceivedData = true;
+//     }
+
+//     const output = data.toString();
+//     buffer += output;
+
+//     const lines = buffer.split('\n');
+
+//     buffer = lines.pop() || '';
+
+//     for (const line of lines) {
+//       if (!line.trim()) continue;
+
+//         '[Server] Processing line:',
+//         line.substring(0, 200) + (line.length > 200 ? '...' : '')
+//       );
+
+//       if (!claudeSessionId) {
+//         try {
+//           const parsed = JSON.parse(line);
+
+//           if (parsed.session_id) {
+//             claudeSessionId = parsed.session_id;
+
+//             if (ws.readyState === WebSocket.OPEN) {
+//               const sessionInfoMessage = JSON.stringify({
+//                 type: 'session_info',
+//                 session_id: claudeSessionId,
+//               });
+//                 '[Server] Sending session_info message to client:',
+//                 sessionInfoMessage
+//               );
+//               ws.send(sessionInfoMessage);
+//             } else {
+//               console.error('[Server] WebSocket not open, cannot send session_info');
+//             }
+//           } else {
+//           }
+//         } catch (parseError) {
+//         }
+//       }
+
+//       if (ws.readyState === WebSocket.OPEN) {
+//         ws.send(line);
+//       }
+//     }
+//   });

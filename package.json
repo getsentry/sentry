@@ -198,6 +198,7 @@
     "@testing-library/user-event": "14.6.1",
     "@types/gettext-parser": "8.0.0",
     "@types/node": "^22.9.1",
+    "@types/ws": "^8.18.1",
     "babel-jest": "30.0.4",
     "eslint": "9.34.0",
     "eslint-config-prettier": "10.1.8",
