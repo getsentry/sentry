@@ -366,9 +366,12 @@ function hasError(node: AITraceSpanNode) {
     return true;
   }
 
-  // spans with status unknown are errors
   if (isEAPSpanNode(node)) {
-    return node.value.additional_attributes?.[SpanFields.SPAN_STATUS] === 'unknown';
+    const status = node.value.additional_attributes?.[SpanFields.SPAN_STATUS];
+    if (typeof status === 'string') {
+      return status.includes('error');
+    }
+    return false;
   }
 
   return false;

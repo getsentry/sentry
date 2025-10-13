@@ -1,10 +1,10 @@
 ---
-created: '2025-10-03T16:56:43.264226+00:00'
+created: '2025-10-06T21:57:33.051565+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_stacktrace": {
     "component": {
       "contributes": false,
       "hint": "ignored because custom server fingerprint takes precedence",
@@ -816,10 +816,10 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": false,
-    "description": "in-app exception stacktrace",
+    "description": "exception stacktrace — in-app frames",
     "hash": null,
     "hint": "ignored because custom server fingerprint takes precedence",
-    "key": "app",
+    "key": "app_exception_stacktrace",
     "type": "component"
   },
   "custom_fingerprint": {
@@ -839,7 +839,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       "soft-timelimit-exceeded"
     ]
   },
-  "system": {
+  "system_exception_stacktrace": {
     "component": {
       "contributes": false,
       "hint": "ignored because custom server fingerprint takes precedence",
@@ -1651,10 +1651,10 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": false,
-    "description": "exception stacktrace",
+    "description": "exception stacktrace — all frames",
     "hash": null,
     "hint": "ignored because custom server fingerprint takes precedence",
-    "key": "system",
+    "key": "system_exception_stacktrace",
     "type": "component"
   }
 }

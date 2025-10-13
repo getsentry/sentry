@@ -5,6 +5,8 @@ import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
+import type {Organization} from 'sentry/types/organization';
+
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
@@ -42,27 +44,71 @@ describe('SubscriptionHeader', () => {
       url: `/organizations/org-slug/prompts-activity/`,
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/customers/org-slug/subscription/next-bill/`,
+      method: 'GET',
+    });
   });
 
   async function assertNewHeaderCards({
+    organization,
+    hasNextBillCard,
     hasBillingInfoCard,
+    hasPaygCard,
   }: {
     hasBillingInfoCard: boolean;
+    hasNextBillCard: boolean;
+    hasPaygCard: boolean;
+    organization: Organization;
   }) {
     await screen.findByRole('heading', {name: 'Subscription'});
 
+    if (hasNextBillCard) {
+      await screen.findByRole('heading', {name: 'Next bill'});
+    } else {
+      expect(screen.queryByRole('heading', {name: 'Next bill'})).not.toBeInTheDocument();
+    }
+
     if (hasBillingInfoCard) {
-      await screen.findByText('Billing information');
+      await screen.findByRole('heading', {name: 'Billing information'});
       screen.getByRole('button', {name: 'Edit billing information'});
     } else {
-      expect(screen.queryByText('Billing information')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', {name: 'Billing information'})
+      ).not.toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: 'Edit billing information'})
       ).not.toBeInTheDocument();
     }
+
+    if (hasPaygCard) {
+      await screen.findByRole('heading', {name: 'Pay-as-you-go'});
+      screen.getByRole('button', {name: 'Set limit'});
+    } else {
+      expect(
+        screen.queryByRole('heading', {name: 'Pay-as-you-go'})
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Set limit'})).not.toBeInTheDocument();
+    }
+
+    const hasBillingPerms = organization.access?.includes('org:billing');
+
+    // all subscriptions have links card
+    if (hasBillingPerms) {
+      expect(
+        screen.getByRole('heading', {name: 'Receipts & notifications'})
+      ).toBeInTheDocument();
+    } else {
+      // users without billing perms only see activity log
+      expect(screen.getByRole('heading', {name: 'Activity log'})).toBeInTheDocument();
+
+      // assertions for args to catch user errors :)
+      expect(hasNextBillCard).toBe(false);
+      expect(hasBillingInfoCard).toBe(false);
+    }
   }
 
-  it('renders new header cards for self-serve customers', () => {
+  it('renders new header cards for self-serve customers', async () => {
     const organization = OrganizationFixture({
       features: ['subscriptions-v3'],
       access: ['org:billing'],
@@ -75,10 +121,15 @@ describe('SubscriptionHeader', () => {
     render(
       <SubscriptionHeader organization={organization} subscription={subscription} />
     );
-    assertNewHeaderCards({hasBillingInfoCard: true});
+    await assertNewHeaderCards({
+      organization,
+      hasNextBillCard: true,
+      hasBillingInfoCard: true,
+      hasPaygCard: true,
+    });
   });
 
-  it('renders new header cards for self-serve partner customers', () => {
+  it('renders new header cards for self-serve partner customers', async () => {
     const organization = OrganizationFixture({
       features: ['subscriptions-v3'],
       access: ['org:billing'],
@@ -92,10 +143,15 @@ describe('SubscriptionHeader', () => {
     render(
       <SubscriptionHeader organization={organization} subscription={subscription} />
     );
-    assertNewHeaderCards({hasBillingInfoCard: false});
+    await assertNewHeaderCards({
+      organization,
+      hasNextBillCard: true,
+      hasBillingInfoCard: false,
+      hasPaygCard: true,
+    });
   });
 
-  it('renders new header cards for managed customers', () => {
+  it('renders new header cards for managed customers', async () => {
     const organization = OrganizationFixture({
       features: ['subscriptions-v3'],
       access: ['org:billing'],
@@ -104,15 +160,21 @@ describe('SubscriptionHeader', () => {
       organization,
       plan: 'am3_f',
       canSelfServe: false,
+      supportsOnDemand: false,
     });
     SubscriptionStore.set(organization.slug, subscription);
     render(
       <SubscriptionHeader organization={organization} subscription={subscription} />
     );
-    assertNewHeaderCards({hasBillingInfoCard: false});
+    await assertNewHeaderCards({
+      organization,
+      hasNextBillCard: false,
+      hasBillingInfoCard: false,
+      hasPaygCard: false,
+    });
   });
 
-  it('renders new header cards for managed customers with legacy invoiced OD', () => {
+  it('renders new header cards for managed customers with OD supported', async () => {
     const organization = OrganizationFixture({
       features: ['subscriptions-v3'],
       access: ['org:billing'],
@@ -122,15 +184,21 @@ describe('SubscriptionHeader', () => {
       plan: 'am3_f',
       canSelfServe: false,
       onDemandInvoiced: true,
+      supportsOnDemand: true,
     });
     SubscriptionStore.set(organization.slug, subscription);
     render(
       <SubscriptionHeader organization={organization} subscription={subscription} />
     );
-    assertNewHeaderCards({hasBillingInfoCard: true});
+    await assertNewHeaderCards({
+      organization,
+      hasNextBillCard: false,
+      hasBillingInfoCard: true,
+      hasPaygCard: true,
+    });
   });
 
-  it('renders new header cards for self-serve customers and user without billing perms', () => {
+  it('renders new header cards for self-serve customers and user without billing perms', async () => {
     const organization = OrganizationFixture({
       features: ['subscriptions-v3'],
     });
@@ -142,7 +210,12 @@ describe('SubscriptionHeader', () => {
     render(
       <SubscriptionHeader organization={organization} subscription={subscription} />
     );
-    assertNewHeaderCards({hasBillingInfoCard: false});
+    await assertNewHeaderCards({
+      organization,
+      hasNextBillCard: false,
+      hasBillingInfoCard: false,
+      hasPaygCard: false,
+    });
   });
 
   it('does not render editable sections for YY partnership', async () => {

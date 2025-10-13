@@ -87,7 +87,6 @@ export function TransactionHighlights(props: HighlightProps) {
       bodyContent={bodyContent}
       hideNodeActions={props.hideNodeActions}
       highlightedAttributes={getHighlightedSpanAttributes({
-        organization: props.organization,
         attributes: props.event.contexts.trace?.data,
         op: props.node.value['transaction.op'],
       })}

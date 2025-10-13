@@ -1,10 +1,10 @@
 ---
-created: '2025-10-03T16:56:45.042943+00:00'
+created: '2025-10-07T22:42:55.988931+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_message_hybrid_fingerprint": {
     "client_values": [
       "{{ default }}",
       "adopt don't shop"
@@ -71,10 +71,10 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": true,
-    "description": "modified in-app exception",
+    "description": "exception message and custom fingerprint",
     "hash": "5b5ad5a0fbb4deb5e3fc631ce42681ae",
     "hint": null,
-    "key": "app",
+    "key": "app_exception_message_hybrid_fingerprint",
     "type": "salted_component",
     "values": [
       "{{ default }}",

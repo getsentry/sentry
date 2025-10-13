@@ -7,7 +7,7 @@ from urllib.robotparser import RobotFileParser
 from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
 
-from sentry import features
+from sentry import features, options
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -224,9 +224,9 @@ def process_candidate_url(
             "project": project.id,
         },
     )
-    if features.has(
-        "organizations:uptime-automatic-subscription-creation", project.organization
-    ) and features.has("organizations:uptime", project.organization):
+    if options.get("uptime.automatic-subscription-creation") and features.has(
+        "organizations:uptime", project.organization
+    ):
         # If we hit this point, then the url looks worth monitoring. Create an uptime subscription in monitor mode.
         monitor_url_for_project(project, url)
         # Disable auto-detection on this project and organization now that we've successfully found a hostname

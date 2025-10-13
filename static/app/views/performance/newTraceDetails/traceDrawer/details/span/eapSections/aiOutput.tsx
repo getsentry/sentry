@@ -2,10 +2,8 @@ import {Fragment} from 'react';
 
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
-import useOrganization from 'sentry/utils/useOrganization';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {getTraceNodeAttribute} from 'sentry/views/insights/agents/utils/aiTraceNodes';
-import {hasAgentInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {getIsAiSpan} from 'sentry/views/insights/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -51,11 +49,7 @@ export function AIOutputSection({
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {
-  const organization = useOrganization();
-  if (!hasAgentInsightsFeature(organization) && getIsAiSpan({op: node.op})) {
-    return null;
-  }
-  if (!hasAIOutputAttribute(node, attributes, event)) {
+  if (!getIsAiSpan({op: node.op}) || !hasAIOutputAttribute(node, attributes, event)) {
     return null;
   }
 

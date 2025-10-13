@@ -1,9 +1,7 @@
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
-import useOrganization from 'sentry/utils/useOrganization';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {ensureAttributeObject} from 'sentry/views/insights/agents/utils/aiTraceNodes';
-import {hasMCPInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {getIsMCPNode} from 'sentry/views/insights/mcp/utils/mcpTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -22,8 +20,7 @@ export function MCPOutputSection({
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {
-  const organization = useOrganization();
-  if (!hasMCPInsightsFeature(organization) && getIsMCPNode(node)) {
+  if (!getIsMCPNode(node)) {
     return null;
   }
   const attributeDict = ensureAttributeObject(node, event, attributes);

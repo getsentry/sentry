@@ -1,10 +1,10 @@
 ---
-created: '2025-10-03T16:56:42.910098+00:00'
+created: '2025-10-06T21:57:32.857244+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_thread_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -515,13 +515,13 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": true,
-    "description": "in-app thread stacktrace",
+    "description": "thread stacktrace — in-app frames",
     "hash": "7c8a196d16b94be382add324be2605ee",
     "hint": null,
-    "key": "app",
+    "key": "app_thread_stacktrace",
     "type": "component"
   },
-  "default": {
+  "message": {
     "component": {
       "contributes": false,
       "hint": "ignored because app/system threads take precedence",
@@ -560,13 +560,13 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": false,
-    "description": "default",
+    "description": "message",
     "hash": null,
     "hint": "ignored because app/system threads take precedence",
-    "key": "default",
+    "key": "message",
     "type": "component"
   },
-  "system": {
+  "system_thread_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -1077,10 +1077,10 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": true,
-    "description": "thread stacktrace",
+    "description": "thread stacktrace — all frames",
     "hash": "cd7f51d716fd57adc1a5ce1c112e538f",
     "hint": null,
-    "key": "system",
+    "key": "system_thread_stacktrace",
     "type": "component"
   }
 }
