@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import type {TagCollection} from 'sentry/types/group';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -30,6 +31,7 @@ export function useLogsSearchQueryBuilderProps({
   const oldLogsSearch = usePrevious(logsSearch);
   const fields = useQueryParamsFields();
   const setQueryParams = useSetQueryParams();
+  const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
   const onSearch = useCallback(
     (newQuery: string) => {
       const newSearch = new MutableSearch(newQuery);
@@ -58,6 +60,8 @@ export function useLogsSearchQueryBuilderProps({
     itemType: TraceItemDataset.LOGS as TraceItemDataset.LOGS,
     numberSecondaryAliases,
     stringSecondaryAliases,
+    caseInsensitive,
+    onCaseInsensitiveClick: setCaseInsensitive,
   };
 
   const searchQueryBuilderProviderProps = useSearchQueryBuilderProps(

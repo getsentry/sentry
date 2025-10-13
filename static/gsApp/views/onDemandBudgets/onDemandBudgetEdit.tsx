@@ -5,7 +5,9 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Input} from 'sentry/components/core/input';
+import {Container} from 'sentry/components/core/layout';
 import {Radio} from 'sentry/components/core/radio';
+import {Heading} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -13,6 +15,7 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategoryExact} from 'sentry/types/core';
+import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
@@ -21,8 +24,14 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {CronsOnDemandStepWarning} from 'getsentry/components/cronsOnDemandStepWarning';
 import type {OnDemandBudgets, Plan, Subscription} from 'getsentry/types';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
-import {displayBudgetName, getOnDemandCategories} from 'getsentry/utils/billing';
+import {
+  displayBudgetName,
+  getOnDemandCategories,
+  hasNewBillingUI,
+} from 'getsentry/utils/billing';
 import {getPlanCategoryName, listDisplayNames} from 'getsentry/utils/dataCategory';
+import {parseOnDemandBudgetsFromSubscription} from 'getsentry/views/onDemandBudgets/utils';
+import EmbeddedSpendLimitSettings from 'getsentry/views/spendLimits/embeddedSettings';
 
 function coerceValue(value: number): number {
   return value / 100;
@@ -224,7 +233,10 @@ class OnDemandBudgetEdit extends Component<Props> {
       setBudgetMode,
       activePlan,
       subscription,
+      organization,
     } = this.props;
+
+    const isNewBillingUI = hasNewBillingUI(organization);
 
     const selectedBudgetMode = onDemandBudget.budgetMode;
     const perCategoryCategories = listDisplayNames({
@@ -235,98 +247,132 @@ class OnDemandBudgetEdit extends Component<Props> {
       }),
     });
 
-    if (subscription.planDetails.budgetTerm === 'pay-as-you-go') {
+    if (!isNewBillingUI) {
+      if (subscription.planDetails.budgetTerm === 'pay-as-you-go') {
+        return (
+          <PaygBody>
+            <BudgetDetails>
+              <Description>
+                {t(
+                  "This budget ensures continued monitoring after you've used up your reserved event volume. We'll only charge you for actual usage, so this is your maximum charge for overage.%s",
+                  subscription.isSelfServePartner
+                    ? ` This will be part of your ${subscription.partner?.partnership.displayName} bill.`
+                    : ''
+                )}
+              </Description>
+              {this.renderInputFields(OnDemandBudgetMode.SHARED)}
+            </BudgetDetails>
+          </PaygBody>
+        );
+      }
+
       return (
-        <PaygBody>
-          <BudgetDetails>
-            <Description>
-              {t(
-                "This budget ensures continued monitoring after you've used up your reserved event volume. We'll only charge you for actual usage, so this is your maximum charge for overage.%s",
-                subscription.isSelfServePartner
-                  ? ` This will be part of your ${subscription.partner?.partnership.displayName} bill.`
-                  : ''
-              )}
-            </Description>
-            {this.renderInputFields(OnDemandBudgetMode.SHARED)}
-          </BudgetDetails>
-        </PaygBody>
+        <PanelBody>
+          <BudgetModeOption isSelected={selectedBudgetMode === OnDemandBudgetMode.SHARED}>
+            <Label aria-label={t('Shared')}>
+              <div>
+                <BudgetContainer>
+                  <StyledRadio
+                    readOnly
+                    id="shared"
+                    value="shared"
+                    data-test-id="shared-budget-radio"
+                    checked={selectedBudgetMode === OnDemandBudgetMode.SHARED}
+                    disabled={!onDemandSupported}
+                    onClick={() => {
+                      setBudgetMode(OnDemandBudgetMode.SHARED);
+                    }}
+                  />
+                  <BudgetDetails>
+                    <Title>
+                      <OnDemandType>{t('Shared')}</OnDemandType>
+                      {onDemandEnabled &&
+                        currentBudgetMode === OnDemandBudgetMode.SHARED && (
+                          <Tag>{t('Current Budget')}</Tag>
+                        )}
+                    </Title>
+                    <Description>
+                      {t(
+                        'The on-demand budget is shared among all categories on a first come, first serve basis. There are no restrictions for any single category consuming the entire budget.'
+                      )}
+                    </Description>
+                    {this.renderInputFields(OnDemandBudgetMode.SHARED)}
+                  </BudgetDetails>
+                </BudgetContainer>
+              </div>
+            </Label>
+          </BudgetModeOption>
+          <BudgetModeOption
+            isSelected={selectedBudgetMode === OnDemandBudgetMode.PER_CATEGORY}
+          >
+            <Label aria-label={t('Per-Category')}>
+              <div>
+                <BudgetContainer>
+                  <StyledRadio
+                    readOnly
+                    id="per_category"
+                    value="per_category"
+                    data-test-id="per-category-budget-radio"
+                    checked={selectedBudgetMode === OnDemandBudgetMode.PER_CATEGORY}
+                    disabled={!onDemandSupported}
+                    onClick={() => {
+                      setBudgetMode(OnDemandBudgetMode.PER_CATEGORY);
+                    }}
+                  />
+                  <BudgetDetails>
+                    <Title>
+                      <OnDemandType>{t('Per-Category')}</OnDemandType>
+                      {onDemandEnabled &&
+                        currentBudgetMode === OnDemandBudgetMode.PER_CATEGORY && (
+                          <Tag>{t('Current Budget')}</Tag>
+                        )}
+                    </Title>
+                    <Description>
+                      {t(
+                        'Dedicated on-demand budget for %s. Any overages in one category will not consume the budget of another category.',
+                        perCategoryCategories
+                      )}
+                    </Description>
+                    {this.renderInputFields(OnDemandBudgetMode.PER_CATEGORY)}
+                  </BudgetDetails>
+                </BudgetContainer>
+              </div>
+            </Label>
+          </BudgetModeOption>
+        </PanelBody>
       );
     }
 
+    const addOnDataCategories = Object.values(
+      subscription.planDetails.addOnCategories
+    ).flatMap(addOn => addOn.dataCategories);
+    const currentReserved = Object.fromEntries(
+      Object.entries(subscription.categories)
+        .filter(([category]) => !addOnDataCategories.includes(category as DataCategory))
+        .map(([category, categoryInfo]) => [category, categoryInfo.reserved ?? 0])
+    );
+
     return (
-      <PanelBody>
-        <BudgetModeOption isSelected={selectedBudgetMode === OnDemandBudgetMode.SHARED}>
-          <Label aria-label={t('Shared')}>
-            <div>
-              <BudgetContainer>
-                <StyledRadio
-                  readOnly
-                  id="shared"
-                  value="shared"
-                  data-test-id="shared-budget-radio"
-                  checked={selectedBudgetMode === OnDemandBudgetMode.SHARED}
-                  disabled={!onDemandSupported}
-                  onClick={() => {
-                    setBudgetMode(OnDemandBudgetMode.SHARED);
-                  }}
-                />
-                <BudgetDetails>
-                  <Title>
-                    <OnDemandType>{t('Shared')}</OnDemandType>
-                    {onDemandEnabled &&
-                      currentBudgetMode === OnDemandBudgetMode.SHARED && (
-                        <Tag>{t('Current Budget')}</Tag>
-                      )}
-                  </Title>
-                  <Description>
-                    {t(
-                      'The on-demand budget is shared among all categories on a first come, first serve basis. There are no restrictions for any single category consuming the entire budget.'
-                    )}
-                  </Description>
-                  {this.renderInputFields(OnDemandBudgetMode.SHARED)}
-                </BudgetDetails>
-              </BudgetContainer>
-            </div>
-          </Label>
-        </BudgetModeOption>
-        <BudgetModeOption
-          isSelected={selectedBudgetMode === OnDemandBudgetMode.PER_CATEGORY}
-        >
-          <Label aria-label={t('Per-Category')}>
-            <div>
-              <BudgetContainer>
-                <StyledRadio
-                  readOnly
-                  id="per_category"
-                  value="per_category"
-                  data-test-id="per-category-budget-radio"
-                  checked={selectedBudgetMode === OnDemandBudgetMode.PER_CATEGORY}
-                  disabled={!onDemandSupported}
-                  onClick={() => {
-                    setBudgetMode(OnDemandBudgetMode.PER_CATEGORY);
-                  }}
-                />
-                <BudgetDetails>
-                  <Title>
-                    <OnDemandType>{t('Per-Category')}</OnDemandType>
-                    {onDemandEnabled &&
-                      currentBudgetMode === OnDemandBudgetMode.PER_CATEGORY && (
-                        <Tag>{t('Current Budget')}</Tag>
-                      )}
-                  </Title>
-                  <Description>
-                    {t(
-                      'Dedicated on-demand budget for %s. Any overages in one category will not consume the budget of another category.',
-                      perCategoryCategories
-                    )}
-                  </Description>
-                  {this.renderInputFields(OnDemandBudgetMode.PER_CATEGORY)}
-                </BudgetDetails>
-              </BudgetContainer>
-            </div>
-          </Label>
-        </BudgetModeOption>
-      </PanelBody>
+      <Container padding="2xl">
+        <EmbeddedSpendLimitSettings
+          organization={organization}
+          subscription={subscription}
+          header={
+            <Heading as="h2" size="xl">
+              {tct('Set your [budgetTerm] limit', {
+                budgetTerm: displayBudgetName(subscription.planDetails),
+              })}
+            </Heading>
+          }
+          activePlan={subscription.planDetails}
+          initialOnDemandBudgets={parseOnDemandBudgetsFromSubscription(subscription)}
+          currentReserved={currentReserved}
+          addOns={subscription.addOns ?? {}}
+          onUpdate={({onDemandBudgets}) => {
+            this.props.setOnDemandBudget(onDemandBudgets);
+          }}
+        />
+      </Container>
     );
   }
 }

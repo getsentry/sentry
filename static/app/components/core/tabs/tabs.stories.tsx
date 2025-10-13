@@ -3,8 +3,8 @@ import range from 'lodash/range';
 
 import * as Storybook from 'sentry/stories';
 
-import type {TabListProps, TabsProps} from '.';
-import {TabList, TabPanels, Tabs} from '.';
+import type {TabListProps, TabsProps} from './tabs';
+import {TabList, TabPanels, Tabs} from './tabs';
 
 export default Storybook.story('Tabs', story => {
   const TABS = [
