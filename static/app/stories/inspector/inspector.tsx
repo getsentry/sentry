@@ -57,7 +57,7 @@ export function SentryComponentInspector() {
   const organization = useOrganization({allowNull: true});
 
   const [state, setState] = useState<{
-    enabled: null | 'inspector' | 'context-menu';
+    enabled: null | 'inspector' | 'context-menu' | 'ai-assistant';
     trace: TraceElement[] | null;
   }>({
     enabled: null,
@@ -101,6 +101,7 @@ export function SentryComponentInspector() {
     if (!user || !user.isSuperuser || NODE_ENV !== 'development') {
       return () => {};
     }
+
     const onMouseMove = (event: MouseEvent & {preventTrace?: boolean}) => {
       window.requestAnimationFrame(() => {
         if (tooltipRef.current) {
@@ -375,7 +376,7 @@ export function SentryComponentInspector() {
             )}
           </Flex>
         </Overlay>
-      ) : state.enabled === 'context-menu' && contextMenu.open ? (
+      ) : state.enabled === 'context-menu' ? (
         <Fragment>
           <ProfilingContextMenu
             data-inspector-skip
@@ -435,7 +436,7 @@ export function SentryComponentInspector() {
           />
         </Fragment>
       ) : null}
-      {state.enabled === 'context-menu' || state.enabled === 'inspector' ? (
+      {state.enabled === null ? null : (
         <style>
           {`
 
@@ -463,7 +464,7 @@ export function SentryComponentInspector() {
           }
         `}
         </style>
-      ) : null}
+      )}
     </Fragment>,
     document.body
   );
@@ -478,7 +479,6 @@ function MenuItem(props: {
   storybook: string | null;
   subMenuPortalRef: HTMLElement | null;
 }) {
-  // Load story to check for Figma link if it's an MDX file
   const [isOpen, _setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
@@ -512,6 +512,7 @@ function MenuItem(props: {
   );
 
   const currentTarget = useRef<Node | null>(null);
+
   useLayoutEffect(() => {
     const listener = (e: MouseEvent) => {
       window.requestAnimationFrame(() => {
@@ -580,79 +581,81 @@ function MenuItem(props: {
           </Flex>
         </Flex>
       </ProfilingContextMenuItemButton>
-      {isOpen &&
-        props.subMenuPortalRef &&
-        createPortal(
-          <ProfilingContextMenu
-            style={popper.styles.popper}
-            css={css`
-              max-height: 250px;
-              z-index: 1000000 !important;
-            `}
-          >
-            <ProfilingContextMenuGroup>
-              <ProfilingContextMenuHeading>{t('Actions')}</ProfilingContextMenuHeading>
-              {props.storybook ? (
+
+      {/* Submenu with copy and AI actions */}
+      {isOpen && props.subMenuPortalRef
+        ? createPortal(
+            <ProfilingContextMenu
+              style={popper.styles.popper}
+              css={css`
+                max-height: 250px;
+                z-index: 1000000 !important;
+              `}
+            >
+              <ProfilingContextMenuGroup>
+                <ProfilingContextMenuHeading>{t('Actions')}</ProfilingContextMenuHeading>
+                {props.storybook ? (
+                  <ProfilingContextMenuItemButton
+                    {...props.contextMenu.getMenuItemProps({
+                      onClick: () => {
+                        window.open(`/stories/?name=${props.storybook}`, '_blank');
+                        props.onAction();
+                      },
+                    })}
+                    icon={<IconLink size="xs" />}
+                  >
+                    {t('View Storybook')}
+                  </ProfilingContextMenuItemButton>
+                ) : null}
                 <ProfilingContextMenuItemButton
                   {...props.contextMenu.getMenuItemProps({
                     onClick: () => {
-                      window.open(`/stories/?name=${props.storybook}`, '_blank');
+                      if (figmaLink) {
+                        window.open(figmaLink, '_blank');
+                        props.onAction();
+                      }
+                    },
+                  })}
+                  disabled={storyQuery.isLoading || !figmaLink}
+                  icon={
+                    storyQuery.isLoading ? (
+                      <LoadingIndicator mini size={12} />
+                    ) : (
+                      <IconOpen size="xs" />
+                    )
+                  }
+                >
+                  {t('Open in Figma')}
+                </ProfilingContextMenuItemButton>
+                <ProfilingContextMenuItemButton
+                  {...props.contextMenu.getMenuItemProps({
+                    onClick: () => {
+                      copyToClipboard(props.componentName);
+                      addSuccessMessage(t('Component name copied to clipboard'));
                       props.onAction();
                     },
                   })}
-                  icon={<IconLink size="xs" />}
+                  icon={<IconCopy size="xs" />}
                 >
-                  {t('View Storybook')}
+                  {t('Copy Component Name')}
                 </ProfilingContextMenuItemButton>
-              ) : null}
-              <ProfilingContextMenuItemButton
-                {...props.contextMenu.getMenuItemProps({
-                  onClick: () => {
-                    if (figmaLink) {
-                      window.open(figmaLink, '_blank');
+                <ProfilingContextMenuItemButton
+                  {...props.contextMenu.getMenuItemProps({
+                    onClick: () => {
+                      copyToClipboard(props.sourcePath);
+                      addSuccessMessage(t('Component path copied to clipboard'));
                       props.onAction();
-                    }
-                  },
-                })}
-                disabled={storyQuery.isLoading || !figmaLink}
-                icon={
-                  storyQuery.isLoading ? (
-                    <LoadingIndicator mini size={12} />
-                  ) : (
-                    <IconOpen size="xs" />
-                  )
-                }
-              >
-                {t('Open in Figma')}
-              </ProfilingContextMenuItemButton>
-              <ProfilingContextMenuItemButton
-                {...props.contextMenu.getMenuItemProps({
-                  onClick: () => {
-                    copyToClipboard(props.componentName);
-                    addSuccessMessage(t('Component name copied to clipboard'));
-                    props.onAction();
-                  },
-                })}
-                icon={<IconCopy size="xs" />}
-              >
-                {t('Copy Component Name')}
-              </ProfilingContextMenuItemButton>
-              <ProfilingContextMenuItemButton
-                {...props.contextMenu.getMenuItemProps({
-                  onClick: () => {
-                    copyToClipboard(props.sourcePath);
-                    addSuccessMessage(t('Component path copied to clipboard'));
-                    props.onAction();
-                  },
-                })}
-                icon={<IconCopy size="xs" />}
-              >
-                {t('Copy Component Path')}
-              </ProfilingContextMenuItemButton>
-            </ProfilingContextMenuGroup>
-          </ProfilingContextMenu>,
-          props.subMenuPortalRef
-        )}
+                    },
+                  })}
+                  icon={<IconCopy size="xs" />}
+                >
+                  {t('Copy Component Path')}
+                </ProfilingContextMenuItemButton>
+              </ProfilingContextMenuGroup>
+            </ProfilingContextMenu>,
+            props.subMenuPortalRef
+          )
+        : null}
     </Fragment>
   );
 }
