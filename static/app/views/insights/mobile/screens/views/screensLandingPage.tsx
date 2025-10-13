@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -7,7 +7,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -22,17 +21,11 @@ import {InsightsProjectSelector} from 'sentry/views/insights/common/components/p
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useMobileVitalsDrawer} from 'sentry/views/insights/common/utils/useMobileVitalsDrawer';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {SETUP_CONTENT as TTFD_SETUP} from 'sentry/views/insights/mobile/screenload/data/setupContent';
 import {ScreensOverview} from 'sentry/views/insights/mobile/screens/components/screensOverview';
 import VitalCard from 'sentry/views/insights/mobile/screens/components/vitalCard';
 import {VitalDetailPanel} from 'sentry/views/insights/mobile/screens/components/vitalDetailPanel';
 import {Referrer} from 'sentry/views/insights/mobile/screens/referrers';
-import {
-  MODULE_DESCRIPTION,
-  MODULE_DOC_LINK,
-  MODULE_TITLE,
-} from 'sentry/views/insights/mobile/screens/settings';
 import {
   getColdAppStartPerformance,
   getDefaultMetricPerformance,
@@ -42,7 +35,6 @@ import {
   type VitalItem,
   type VitalStatus,
 } from 'sentry/views/insights/mobile/screens/utils';
-import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 
 function ScreensLandingPage() {
@@ -254,19 +246,6 @@ function ScreensLandingPage() {
     <ModulePageProviders moduleName={ModuleName.MOBILE_VITALS}>
       <Layout.Page>
         <PageAlertProvider>
-          <MobileHeader
-            headerTitle={
-              <Fragment>
-                {MODULE_TITLE}
-                <PageHeadingQuestionTooltip
-                  docsUrl={MODULE_DOC_LINK}
-                  title={MODULE_DESCRIPTION}
-                />
-              </Fragment>
-            }
-            headerActions={isProjectCrossPlatform && <PlatformSelector />}
-            module={moduleName}
-          />
           <ModuleFeature moduleName={moduleName}>
             <Layout.Body>
               <Layout.Main fullWidth>
