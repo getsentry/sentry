@@ -793,13 +793,9 @@ class JiraIntegration(IssueSyncIntegration):
         project_id = params.get("project", defaults.get("project"))
         client = self.get_client()
         try:
-            jira_projects = (
-                client.get_projects_paginated({"maxResults": MAX_PER_PROJECT_QUERIES})["values"]
-                if features.has(
-                    "organizations:jira-paginated-projects", self.organization, actor=user
-                )
-                else client.get_projects_list()
-            )
+            jira_projects = client.get_projects_paginated({"maxResults": MAX_PER_PROJECT_QUERIES})[
+                "values"
+            ]
         except ApiError as e:
             logger.info(
                 "jira.get-create-issue-config.no-projects",
@@ -841,11 +837,10 @@ class JiraIntegration(IssueSyncIntegration):
             "updatesForm": True,
             "required": True,
         }
-        if features.has("organizations:jira-paginated-projects", self.organization, actor=user):
-            paginated_projects_url = reverse(
-                "sentry-extensions-jira-search", args=[self.organization.slug, self.model.id]
-            )
-            projects_form_field["url"] = paginated_projects_url
+        paginated_projects_url = reverse(
+            "sentry-extensions-jira-search", args=[self.organization.slug, self.model.id]
+        )
+        projects_form_field["url"] = paginated_projects_url
 
         fields = [
             projects_form_field,
