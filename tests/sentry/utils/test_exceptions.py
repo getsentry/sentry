@@ -36,7 +36,7 @@ class TestExceptionGroupingContext:
         )
 
         with patch(
-            "sentry.workflow_engine.utils.exception_grouping.current_task",
+            "sentry.utils.exceptions.current_task",
             return_value=mock_task_state,
         ):
             with patch("sentry_sdk.new_scope") as mock_scope:
@@ -87,7 +87,7 @@ class TestExceptionGroupingContext:
         )
 
         with patch(
-            "sentry.workflow_engine.utils.exception_grouping.current_task",
+            "sentry.utils.exceptions.current_task",
             return_value=mock_task_state,
         ):
             with patch("sentry_sdk.new_scope") as mock_scope:
@@ -158,7 +158,7 @@ class TestExceptionGroupingContext:
         )
 
         with patch(
-            "sentry.workflow_engine.utils.exception_grouping.current_task",
+            "sentry.utils.exceptions.current_task",
             return_value=mock_task_state,
         ):
             with patch("sentry_sdk.new_scope") as mock_scope:
@@ -195,10 +195,8 @@ class TestExceptionGroupingContext:
 
     def test_without_task_state(self) -> None:
         """Test that the context works when no task state is available."""
-        with patch(
-            "sentry.workflow_engine.utils.exception_grouping.current_task", return_value=None
-        ):
-            with patch("sentry.workflow_engine.utils.exception_grouping.logger") as mock_logger:
+        with patch("sentry.utils.exceptions.current_task", return_value=None):
+            with patch("sentry.utils.exceptions.logger") as mock_logger:
                 exception_mapping: dict[type[BaseException], str] = {
                     CustomError: "custom.error.fingerprint"
                 }
@@ -212,9 +210,7 @@ class TestExceptionGroupingContext:
     def test_context_manager_yields_correctly(self) -> None:
         """Test that the context manager yields correctly."""
         executed = False
-        with patch(
-            "sentry.workflow_engine.utils.exception_grouping.current_task", return_value=None
-        ):
+        with patch("sentry.utils.exceptions.current_task", return_value=None):
             exception_mapping: dict[type[BaseException], str] = {
                 CustomError: "custom.error.fingerprint"
             }
@@ -241,7 +237,7 @@ class TestExceptionGroupingContext:
             pass
 
         with patch(
-            "sentry.workflow_engine.utils.exception_grouping.current_task",
+            "sentry.utils.exceptions.current_task",
             return_value=mock_task_state,
         ):
             with patch("sentry_sdk.new_scope") as mock_scope:
@@ -291,7 +287,7 @@ class TestExceptionGroupingContext:
         )
 
         with patch(
-            "sentry.workflow_engine.utils.exception_grouping.current_task",
+            "sentry.utils.exceptions.current_task",
             return_value=mock_task_state,
         ):
             with patch("sentry_sdk.new_scope") as mock_scope:
@@ -341,7 +337,7 @@ class TestTimeoutGroupingContext:
         )
 
         with patch(
-            "sentry.workflow_engine.utils.exception_grouping.current_task",
+            "sentry.utils.exceptions.current_task",
             return_value=mock_task_state,
         ):
             with patch("sentry_sdk.new_scope") as mock_scope:
@@ -389,7 +385,7 @@ class TestTimeoutGroupingContext:
         )
 
         with patch(
-            "sentry.workflow_engine.utils.exception_grouping.current_task",
+            "sentry.utils.exceptions.current_task",
             return_value=mock_task_state,
         ):
             with patch("sentry_sdk.new_scope") as mock_scope:
