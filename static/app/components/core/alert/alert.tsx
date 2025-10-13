@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
 
+import type {DistributiveOmit} from '@sentry/scraps/types';
+
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -326,10 +328,6 @@ const Container = styled('div')`
 `;
 
 Alert.Container = Container;
-
-type DistributiveOmit<TObject, TKey extends keyof TObject> = TObject extends unknown
-  ? Omit<TObject, TKey>
-  : never;
 
 function AlertButton(props: DistributiveOmit<ButtonProps, 'size'>) {
   const theme = useTheme();
