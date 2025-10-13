@@ -62,111 +62,110 @@ export function PrimaryNavigationHelp() {
   const chonkPrompt = useChonkPrompt();
 
   return (
-    <StackedNavigationTourReminder>
-      <SidebarMenu
-        onOpen={() => {
-          chonkPrompt.dismissDotIndicatorPrompt();
-          chonkPrompt.dismissBannerPrompt();
-        }}
-        items={[
-          {
-            key: 'search',
-            label: t('Search support, docs and more'),
-            onAction() {
-              openHelpSearchModal({organization});
+    <SidebarMenu
+      triggerWrap={StackedNavigationTourReminder}
+      onOpen={() => {
+        chonkPrompt.dismissDotIndicatorPrompt();
+        chonkPrompt.dismissBannerPrompt();
+      }}
+      items={[
+        {
+          key: 'search',
+          label: t('Search support, docs and more'),
+          onAction() {
+            openHelpSearchModal({organization});
+          },
+        },
+        {
+          key: 'resources',
+          label: t('Resources'),
+          children: [
+            {
+              key: 'help-center',
+              label: t('Help Center'),
+              externalHref: 'https://sentry.zendesk.com/hc/en-us',
             },
-          },
-          {
-            key: 'resources',
-            label: t('Resources'),
-            children: [
-              {
-                key: 'help-center',
-                label: t('Help Center'),
-                externalHref: 'https://sentry.zendesk.com/hc/en-us',
+            {
+              key: 'docs',
+              label: t('Documentation'),
+              externalHref: 'https://docs.sentry.io',
+            },
+          ],
+        },
+        {
+          key: 'help',
+          label: t('Get Help'),
+          children: [
+            ...(contactSupportItem ? [contactSupportItem] : []),
+            {
+              key: 'github',
+              label: t('Sentry on GitHub'),
+              externalHref: 'https://github.com/getsentry/sentry/issues',
+            },
+            {
+              key: 'discord',
+              label: t('Join our Discord'),
+              externalHref: 'https://discord.com/invite/sentry',
+            },
+          ],
+        },
+        {
+          key: 'actions',
+          children: [
+            {
+              key: 'give-feedback',
+              label: t('Give feedback'),
+              onAction() {
+                openForm?.({
+                  tags: {
+                    ['feedback.source']: 'navigation_sidebar',
+                  },
+                });
               },
-              {
-                key: 'docs',
-                label: t('Documentation'),
-                externalHref: 'https://docs.sentry.io',
+              hidden: !openForm,
+            },
+            {
+              key: 'tour',
+              label: t('Tour the new navigation'),
+              onAction() {
+                startTour();
               },
-            ],
-          },
-          {
-            key: 'help',
-            label: t('Get Help'),
-            children: [
-              ...(contactSupportItem ? [contactSupportItem] : []),
-              {
-                key: 'github',
-                label: t('Sentry on GitHub'),
-                externalHref: 'https://github.com/getsentry/sentry/issues',
-              },
-              {
-                key: 'discord',
-                label: t('Join our Discord'),
-                externalHref: 'https://discord.com/invite/sentry',
-              },
-            ],
-          },
-          {
-            key: 'actions',
-            children: [
-              {
-                key: 'give-feedback',
-                label: t('Give feedback'),
-                onAction() {
-                  openForm?.({
-                    tags: {
-                      ['feedback.source']: 'navigation_sidebar',
+            },
+            organization?.features?.includes('chonk-ui')
+              ? user.options.prefersChonkUI
+                ? {
+                    key: 'new-chonk-ui',
+                    label: t('Switch back to our old look'),
+                    onAction() {
+                      mutateUserOptions({prefersChonkUI: false});
+                      trackAnalytics('navigation.help_menu_opt_out_chonk_ui_clicked', {
+                        organization,
+                      });
                     },
-                  });
-                },
-                hidden: !openForm,
-              },
-              {
-                key: 'tour',
-                label: t('Tour the new navigation'),
-                onAction() {
-                  startTour();
-                },
-              },
-              organization?.features?.includes('chonk-ui')
-                ? user.options.prefersChonkUI
-                  ? {
-                      key: 'new-chonk-ui',
-                      label: t('Switch back to our old look'),
-                      onAction() {
-                        mutateUserOptions({prefersChonkUI: false});
-                        trackAnalytics('navigation.help_menu_opt_out_chonk_ui_clicked', {
-                          organization,
-                        });
-                      },
-                    }
-                  : {
-                      key: 'new-chonk-ui',
-                      label: (
-                        <Fragment>
-                          {t('Try our new look')} <FeatureBadge type="beta" />
-                        </Fragment>
-                      ),
-                      textValue: 'Try our new look',
-                      onAction() {
-                        mutateUserOptions({prefersChonkUI: true});
-                        trackAnalytics('navigation.help_menu_opt_in_chonk_ui_clicked', {
-                          organization,
-                        });
-                      },
-                    }
-                : null,
-            ].filter(n => !!n),
-          },
-        ]}
-        analyticsKey="help"
-        label={t('Help')}
-      >
-        <IconQuestion />
-      </SidebarMenu>
-    </StackedNavigationTourReminder>
+                  }
+                : {
+                    key: 'new-chonk-ui',
+                    label: (
+                      <Fragment>
+                        {t('Try our new look')} <FeatureBadge type="beta" />
+                      </Fragment>
+                    ),
+                    textValue: 'Try our new look',
+                    onAction() {
+                      mutateUserOptions({prefersChonkUI: true});
+                      trackAnalytics('navigation.help_menu_opt_in_chonk_ui_clicked', {
+                        organization,
+                      });
+                    },
+                  }
+              : null,
+          ].filter(n => !!n),
+        },
+      ]}
+      analyticsKey="help"
+      label={t('Help')}
+    >
+      <IconQuestion />
+    </SidebarMenu>
   );
 }

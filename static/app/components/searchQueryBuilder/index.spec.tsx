@@ -35,6 +35,7 @@ import {
   FieldValueType,
   getFieldDefinition,
 } from 'sentry/utils/fields';
+import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
 import {getHasTag} from 'sentry/utils/tag';
 
 const FILTER_KEYS: TagCollection = {
@@ -933,10 +934,8 @@ describe('SearchQueryBuilder', () => {
       expect(await screen.findByRole('row', {name: 'foo'})).toBeInTheDocument();
       expect(await screen.findByRole('row', {name: 'a:b'})).toBeInTheDocument();
 
-      await waitFor(() => {
-        expect(mockOnChange).toHaveBeenCalledWith('foo a:b', expect.anything());
-      });
-      expect(mockOnChange).toHaveBeenCalledTimes(2);
+      expect(mockOnChange).toHaveBeenCalledTimes(1);
+      expect(mockOnChange).toHaveBeenCalledWith('foo a:b', expect.anything());
     });
 
     it('adds default value for filter when typing <filter>:', async () => {
@@ -1003,7 +1002,7 @@ describe('SearchQueryBuilder', () => {
       expect(screen.getByRole('row', {name: 'browser.name:Firefox'})).toBeInTheDocument();
 
       // Now we call onChange
-      expect(mockOnChange).toHaveBeenCalledTimes(2);
+      expect(mockOnChange).toHaveBeenCalledTimes(1);
       expect(mockOnChange).toHaveBeenCalledWith(
         'browser.name:Firefox',
         expect.anything()
@@ -4137,6 +4136,23 @@ describe('SearchQueryBuilder', () => {
     });
   });
 
+  describe('case sensitivity', () => {
+    it('renders the case sensitivity toggle when the feature is enabled', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          caseInsensitive={1}
+          onCaseInsensitiveClick={() => Promise.resolve(new URLSearchParams())}
+        />,
+        {organization: {features: ['search-query-builder-case-insensitivity']}}
+      );
+
+      expect(
+        await screen.findByRole('button', {name: 'Toggle case sensitivity'})
+      ).toBeInTheDocument();
+    });
+  });
+
   describe('replaceRawSearchKeys', () => {
     it('should replace raw search keys with defined key:value', async () => {
       render(
@@ -4361,19 +4377,6 @@ describe('SearchQueryBuilder', () => {
 
     describe('user clicks on ask seer button', () => {
       it('renders the seer combobox', async () => {
-        function AskSeerTestComponent({children}: {children: React.ReactNode}) {
-          const {displayAskSeer, query} = useSearchQueryBuilder();
-          return displayAskSeer ? <AskSeerComboBox initialQuery={query} /> : children;
-        }
-
-        function AskSeerWrapper({children}: {children: React.ReactNode}) {
-          return (
-            <SearchQueryBuilderProvider {...defaultProps} enableAISearch>
-              <AskSeerTestComponent>{children}</AskSeerTestComponent>
-            </SearchQueryBuilderProvider>
-          );
-        }
-
         MockApiClient.addMockResponse({
           url: `/organizations/org-slug/prompts-activity/`,
           method: 'PUT',
@@ -4408,6 +4411,62 @@ describe('SearchQueryBuilder', () => {
             ],
           },
         });
+
+        function AskSeerTestComponent({children}: {children: React.ReactNode}) {
+          const {displayAskSeer, query} = useSearchQueryBuilder();
+          return displayAskSeer ? (
+            <AskSeerComboBox
+              initialQuery={query}
+              applySeerSearchQuery={() => {}}
+              askSeerMutationOptions={mutationOptions({
+                mutationFn: async (_value: string) => {
+                  const data = await fetchMutation<{
+                    queries: Array<{
+                      group_by: string[];
+                      mode: string;
+                      query: string;
+                      sort: string;
+                      stats_period: string;
+                      visualization: Array<{chart_type: number; y_axes: string[]}>;
+                    }>;
+                    status: string;
+                    unsupported_reason: string | null;
+                  }>({
+                    url: `/organizations/org-slug/trace-explorer-ai/query/`,
+                    method: 'POST',
+                    data: {},
+                  });
+
+                  return {
+                    ...data,
+                    queries: data.queries.map(q => ({
+                      visualizations:
+                        q?.visualization?.map((v: any) => ({
+                          chartType: v?.chart_type,
+                          yAxes: v?.y_axes,
+                        })) ?? [],
+                      query: q?.query,
+                      sort: q?.sort ?? '',
+                      groupBys: q?.group_by ?? [],
+                      statsPeriod: q?.stats_period ?? '',
+                      mode: q?.mode ?? 'spans',
+                    })),
+                  };
+                },
+              })}
+            />
+          ) : (
+            children
+          );
+        }
+
+        function AskSeerWrapper({children}: {children: React.ReactNode}) {
+          return (
+            <SearchQueryBuilderProvider {...defaultProps} enableAISearch>
+              <AskSeerTestComponent>{children}</AskSeerTestComponent>
+            </SearchQueryBuilderProvider>
+          );
+        }
 
         render(
           <AskSeerWrapper>

@@ -595,14 +595,17 @@ class SentryAppStatus:
 class SentryAppInstallationStatus:
     PENDING = 0
     INSTALLED = 1
+    PENDING_DELETION = 2
     PENDING_STR = "pending"
     INSTALLED_STR = "installed"
+    PENDING_DELETION_STR = "pending_deletion"
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, str]]:
         return (
             (cls.PENDING, cls.PENDING_STR),
             (cls.INSTALLED, cls.INSTALLED_STR),
+            (cls.PENDING_DELETION, cls.PENDING_DELETION_STR),
         )
 
     @classmethod
@@ -611,6 +614,8 @@ class SentryAppInstallationStatus:
             return cls.PENDING_STR
         elif status == cls.INSTALLED:
             return cls.INSTALLED_STR
+        elif status == cls.PENDING_DELETION:
+            return cls.PENDING_DELETION_STR
         else:
             raise ValueError(f"Not a SentryAppInstallationStatus int: {status!r}")
 

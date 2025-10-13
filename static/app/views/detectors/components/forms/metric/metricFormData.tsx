@@ -65,10 +65,10 @@ interface MetricDetectorConditionFormData {
   conditionValue?: string;
   /**
    * Strategy for how an issue should be resolved
-   * - automatic: resolves based on the primary condition value
-   * - manual: resolves based on a custom resolution value
+   * - default: resolves based on the primary condition value
+   * - custom: resolves based on a custom resolution value
    */
-  resolutionStrategy?: 'automatic' | 'manual';
+  resolutionStrategy?: 'default' | 'custom';
   resolutionValue?: string;
 }
 
@@ -143,7 +143,7 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   initialPriorityLevel: DetectorPriorityLevel.HIGH,
   conditionType: DataConditionType.GREATER,
   conditionValue: '',
-  resolutionStrategy: 'automatic',
+  resolutionStrategy: 'default',
   resolutionValue: '',
   conditionComparisonAgo: 60 * 60, // One hour in seconds
 
@@ -224,7 +224,7 @@ export function createConditions(
 
   // Optionally add explicit resolution (OK) condition when manual strategy is chosen
   if (
-    data.resolutionStrategy === 'manual' &&
+    data.resolutionStrategy === 'custom' &&
     defined(data.resolutionValue) &&
     data.resolutionValue !== ''
   ) {
@@ -399,6 +399,14 @@ function processDetectorConditions(
     conditionType = mainCondition.type;
   }
 
+  // Determine resolution strategy: automatic if OK threshold matches warning or critical
+  const resolutionValue = okCondition?.comparison ?? undefined;
+  const computedResolutionStrategy: 'default' | 'custom' =
+    defined(resolutionValue) &&
+    ![mainCondition?.comparison, highCondition?.comparison].includes(resolutionValue)
+      ? 'custom'
+      : 'default';
+
   return {
     initialPriorityLevel,
     conditionValue:
@@ -410,8 +418,7 @@ function processDetectorConditions(
       typeof highCondition?.comparison === 'number'
         ? highCondition.comparison.toString()
         : '',
-    resolutionStrategy:
-      typeof okCondition?.comparison === 'number' ? 'manual' : 'automatic',
+    resolutionStrategy: computedResolutionStrategy,
     resolutionValue:
       typeof okCondition?.comparison === 'number'
         ? okCondition.comparison.toString()

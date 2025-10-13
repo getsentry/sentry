@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
+import {CodeBlock} from 'sentry/components/core/code';
 import {DateTime} from 'sentry/components/dateTime';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {Timeline} from 'sentry/components/timeline';
@@ -17,9 +17,9 @@ import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('Timeline', story => {
   story('Usage', () => (
-    <CodeSnippet language="js">
+    <CodeBlock language="js">
       import Timeline from 'sentry/components/timeline';
-    </CodeSnippet>
+    </CodeBlock>
   ));
 
   story('<Timeline.Text />', () => (
@@ -29,11 +29,11 @@ export default Storybook.story('Timeline', story => {
         <code>{'<Timeline.Item />'}</code>. It generally contains descriptive text.
       </p>
       <p>
-        <CodeSnippet language="jsx">
+        <CodeBlock language="jsx">
           {`<Timeline.Item ...>
   <Timeline.Text>{someText}</Timeline.Text>
 </Timeline.Item>`}
-        </CodeSnippet>
+        </CodeBlock>
       </p>
       <h6>Example</h6>
       <Timeline.Item
@@ -60,13 +60,13 @@ export default Storybook.story('Timeline', story => {
         payloads.
       </p>
       <p>
-        <CodeSnippet language="jsx">
+        <CodeBlock language="jsx">
           {`<Timeline.Item ...>
   <Timeline.Data>
     <StructuredData value={someJson} ... />
   </Timeline.Data>
 </Timeline.Item>`}
-        </CodeSnippet>
+        </CodeBlock>
       </p>
       <h6>Example</h6>
       <Timeline.Item

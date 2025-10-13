@@ -4,6 +4,7 @@ import {Flex} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
 
 import type {OnDemandBudgets} from 'getsentry/types';
+import {displayBudgetName} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import ReserveAdditionalVolume from 'getsentry/views/amCheckout/reserveAdditionalVolume';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
@@ -53,9 +54,10 @@ function SetSpendCap({
     <Flex direction="column" gap="2xl">
       <SpendLimitSettings
         organization={organization}
+        subscription={subscription}
         header={
           <StepHeader
-            title={t('Set your %s limit', activePlan.budgetTerm)}
+            title={t('Set your %s limit', displayBudgetName(activePlan))}
             isActive
             stepNumber={stepNumber}
             isCompleted={false}
