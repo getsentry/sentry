@@ -1,32 +1,17 @@
 import type {Location} from 'history';
 
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import withOrganization from 'sentry/utils/withOrganization';
-import withProjects from 'sentry/utils/withProjects';
 import PageLayout from 'sentry/views/performance/transactionSummary/pageLayout';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
 
 import TagsPageContent from './content';
 
-type Props = {
-  location: Location;
-  organization: Organization;
-  projects: Project[];
-};
-
-function TransactionTags(props: Props) {
-  const {location, organization, projects} = props;
-
+function TransactionTags() {
   return (
     <PageLayout
-      location={location}
-      organization={organization}
-      projects={projects}
       tab={Tab.TAGS}
       getDocumentTitle={getDocumentTitle}
       generateEventView={generateEventView}
@@ -74,4 +59,4 @@ function generateEventView({
   return eventView;
 }
 
-export default withProjects(withOrganization(TransactionTags));
+export default TransactionTags;

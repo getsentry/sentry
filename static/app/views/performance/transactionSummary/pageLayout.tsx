@@ -30,6 +30,9 @@ import {
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
@@ -84,9 +87,6 @@ type Props = {
     transactionName: string;
   }) => EventView;
   getDocumentTitle: (name: string) => string;
-  location: Location;
-  organization: Organization;
-  projects: Project[];
   tab: Tab;
   features?: string[];
   fillSpace?: boolean;
@@ -94,15 +94,15 @@ type Props = {
 
 function PageLayout(props: Props) {
   const {
-    location,
-    organization,
-    projects,
     tab,
     getDocumentTitle,
     generateEventView,
     childComponent: ChildComponent,
     features = [],
   } = props;
+  const location = useLocation();
+  const {projects} = useProjects();
+  const organization = useOrganization();
 
   let projectId: string | undefined;
   const filterProjects = location.query.project;

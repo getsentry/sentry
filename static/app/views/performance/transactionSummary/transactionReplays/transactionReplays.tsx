@@ -24,8 +24,6 @@ import {
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import type {ChildProps} from 'sentry/views/performance/transactionSummary/pageLayout';
 import PageLayout from 'sentry/views/performance/transactionSummary/pageLayout';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
@@ -37,15 +35,8 @@ import useReplaysFromTransaction from './useReplaysFromTransaction';
 import useReplaysWithTxData from './useReplaysWithTxData';
 
 function TransactionReplays() {
-  const location = useLocation<ReplayListLocationQuery>();
-  const organization = useOrganization();
-  const {projects} = useProjects();
-
   return (
     <PageLayout
-      location={location}
-      organization={organization}
-      projects={projects}
       tab={Tab.REPLAYS}
       getDocumentTitle={getDocumentTitle}
       generateEventView={generateEventView}
