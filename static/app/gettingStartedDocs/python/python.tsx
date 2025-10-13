@@ -588,6 +588,7 @@ sentry_sdk.init(
           language: 'python',
           code: `
 import sentry_sdk
+from sentry_sdk.integrations.google_genai import GoogleGenAIIntegration
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
@@ -595,6 +596,9 @@ sentry_sdk.init(
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
+    integrations=[
+        GoogleGenAIIntegration(),
+    ],
 )`,
         },
       ],
@@ -1021,7 +1025,7 @@ print(response.choices[0].message.content)
 from google.genai import Client
 
 client = Client()
-client.models.generate_content(
+response = client.models.generate_content(
         model="gemini-2.0-flash-exp",
         contents="What's the weather like in San Francisco?"
 )
