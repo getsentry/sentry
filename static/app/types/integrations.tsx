@@ -17,6 +17,7 @@ import type {User} from './user';
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
 
 export type Permissions = {
+  Distribution: PermissionValue;
   Event: PermissionValue;
   Member: PermissionValue;
   Organization: PermissionValue;

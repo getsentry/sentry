@@ -17,6 +17,7 @@ describe('Resource Subscriptions', () => {
               Release: 'admin',
               Organization: 'admin',
               Member: 'admin',
+              Distribution: 'no-access',
             }}
             onChange={jest.fn()}
           />
@@ -42,6 +43,7 @@ describe('Resource Subscriptions', () => {
               Release: 'admin',
               Organization: 'admin',
               Member: 'admin',
+              Distribution: 'no-access',
             }}
             onChange={jest.fn()}
           />
@@ -67,6 +69,7 @@ describe('Resource Subscriptions', () => {
               Release: 'admin',
               Organization: 'admin',
               Member: 'admin',
+              Distribution: 'no-access',
             }}
             onChange={jest.fn()}
           />
@@ -90,6 +93,7 @@ describe('Resource Subscriptions', () => {
               Release: 'admin',
               Organization: 'admin',
               Member: 'admin',
+              Distribution: 'no-access',
             }}
             onChange={jest.fn()}
           />

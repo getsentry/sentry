@@ -33,6 +33,8 @@ class ApiScopes(Sequence):
 
     alerts = (("alerts:read"), ("alerts:write"))
 
+    distribution = (("distribution:read"),)
+
     def __init__(self):
         self.scopes = (
             self.__class__.project
@@ -41,6 +43,7 @@ class ApiScopes(Sequence):
             + self.__class__.org
             + self.__class__.member
             + self.__class__.alerts
+            + self.__class__.distribution
         )
 
     def __getitem__(self, value):
@@ -85,6 +88,7 @@ class HasApiScopes(models.Model):
             "alerts:read": bool,
             "alerts:write": bool,
             "member:invite": bool,
+            "distribution:read": bool,
         },
     )
     assert set(ScopesDict.__annotations__) == set(ApiScopes())

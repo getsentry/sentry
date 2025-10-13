@@ -19,6 +19,7 @@ const HUMAN_RESOURCE_NAMES = {
   org: 'Organization',
   member: 'Member',
   alerts: 'Alerts',
+  distribution: 'Distribution',
 };
 
 const DEFAULT_RESOURCE_PERMISSIONS: Permissions = {
@@ -29,6 +30,7 @@ const DEFAULT_RESOURCE_PERMISSIONS: Permissions = {
   Organization: 'no-access',
   Member: 'no-access',
   Alerts: 'no-access',
+  Distribution: 'no-access',
 };
 
 const PROJECT_RELEASES = 'project:releases';
