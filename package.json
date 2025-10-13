@@ -266,6 +266,7 @@
     "dev-ui": "NODE_OPTIONS='--experimental-transform-types' SENTRY_UI_DEV_ONLY=1 SENTRY_WEBPACK_PROXY_PORT=7999 SENTRY_UI_HOT_RELOAD=1 rspack serve",
     "dev-ui-admin": "SENTRY_ADMIN_UI_DEV=1 pnpm run dev-ui",
     "dev-ui-storybook": "STORYBOOK_TYPES=1 pnpm run dev-ui",
+    "dev-claude": "node --experimental-transform-types static/app/stories/inspector/claude.dev.ts",
     "dev-acceptance": "NODE_OPTIONS='--experimental-transform-types' NO_DEV_SERVER=1 NODE_ENV=development rspack --watch",
     "install-api-docs": "pnpm install --frozen-lockfile --dir ./api-docs",
     "build-deprecated-docs": "pnpm run install-api-docs && node --experimental-transform-types api-docs/index.ts api-docs/openapi.json tests/apidocs/openapi-deprecated.json",

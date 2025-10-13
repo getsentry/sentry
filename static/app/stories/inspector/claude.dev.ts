@@ -169,8 +169,8 @@ class ClaudeAgent extends Agent {
     });
 
     this.agent.stderr?.on('data', data => {
-      logger.info('[ClaudeAgent] Stderr:', data.toString());
-      // @TODO: attempt to handle errors from the agent
+      // @TODO: attempt to understand and do some type of recovery if possible
+      logger.error('[ClaudeAgent] Stderr:', data.toString());
     });
 
     this.agent.stdout?.on('data', data => {
@@ -179,7 +179,9 @@ class ClaudeAgent extends Agent {
     });
   }
 
-  send(message: string): void {}
+  send(message: string): void {
+    throw new Error('Method not implemented.');
+  }
 
   close(): void {
     this.agent?.kill();
