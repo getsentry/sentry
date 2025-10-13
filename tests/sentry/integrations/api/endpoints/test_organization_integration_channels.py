@@ -1,6 +1,8 @@
+from typing import cast
 from unittest.mock import patch
 
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
 class OrganizationIntegrationChannelsTest(APITestCase):
@@ -12,6 +14,7 @@ class OrganizationIntegrationChannelsTest(APITestCase):
         self.login_as(user=self.user)
 
 
+@control_silo_test
 class OrganizationIntegrationChannelsSlackTest(OrganizationIntegrationChannelsTest):
     def setUp(self) -> None:
         super().setUp()
@@ -68,6 +71,7 @@ class OrganizationIntegrationChannelsSlackTest(OrganizationIntegrationChannelsTe
         assert results[-1]["type"] == "private"
 
 
+@control_silo_test
 class OrganizationIntegrationChannelsDiscordTest(OrganizationIntegrationChannelsTest):
     def setUp(self) -> None:
         super().setUp()
@@ -95,18 +99,20 @@ class OrganizationIntegrationChannelsDiscordTest(OrganizationIntegrationChannels
         }
         expected = []
         for ch in mock_channels:
+            channel_type = cast(int, ch["type"])  # mypy: ensure int key for map lookup
             expected.append(
                 {
                     "id": ch["id"],
                     "name": ch["name"],
                     "display": f"#{ch['name']}",
-                    "type": DISCORD_CHANNEL_TYPES.get(ch["type"], "unknown"),
+                    "type": DISCORD_CHANNEL_TYPES.get(channel_type, "unknown"),
                 }
             )
         assert results == expected
         mock_get.assert_called_once()
 
 
+@control_silo_test
 class OrganizationIntegrationChannelsMsTeamsTest(OrganizationIntegrationChannelsTest):
     def setUp(self) -> None:
         super().setUp()
@@ -152,6 +158,7 @@ class OrganizationIntegrationChannelsMsTeamsTest(OrganizationIntegrationChannels
         mock_get.assert_called_once()
 
 
+@control_silo_test
 class OrganizationIntegrationChannelsErrorTest(OrganizationIntegrationChannelsTest):
     def test_integration_not_found(self):
         response = self.get_error_response(self.organization.slug, 9999, status_code=404)

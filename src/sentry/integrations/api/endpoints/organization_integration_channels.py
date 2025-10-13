@@ -7,14 +7,15 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import control_silo_endpoint
 from sentry.integrations.api.bases.organization_integrations import (
-    RegionOrganizationIntegrationBaseEndpoint,
+    OrganizationIntegrationBaseEndpoint,
 )
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.msteams.client import MsTeamsClient
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.models.organization import Organization
+from sentry.organizations.services.organization import RpcUserOrganizationContext
 from sentry.shared_integrations.exceptions import ApiError
 
 
@@ -121,7 +122,8 @@ def _msteams_list_channels(*, integration_id: int, team_id: str) -> list[dict[st
     return results
 
 
-class OrganizationIntegrationChannelsEndpoint(RegionOrganizationIntegrationBaseEndpoint):
+@control_silo_endpoint
+class OrganizationIntegrationChannelsEndpoint(OrganizationIntegrationBaseEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -130,7 +132,7 @@ class OrganizationIntegrationChannelsEndpoint(RegionOrganizationIntegrationBaseE
     def get(
         self,
         request: Request,
-        organization: Organization,
+        organization_context: RpcUserOrganizationContext,
         integration_id: int,
         **kwargs: Any,
     ) -> Response:
@@ -138,7 +140,7 @@ class OrganizationIntegrationChannelsEndpoint(RegionOrganizationIntegrationBaseE
         List all messaging channels for an integration.
         """
 
-        integration = self.get_integration(organization.id, integration_id)
+        integration = self.get_integration(organization_context.organization.id, integration_id)
 
         try:
             match integration.provider:
