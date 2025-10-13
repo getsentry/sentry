@@ -460,6 +460,8 @@ export const agentMonitoringOnboarding: OnboardingConfig = {
       packageName = 'sentry-sdk[langgraph]';
     } else if (selected === 'litellm') {
       packageName = 'sentry-sdk[litellm]';
+    } else if (selected === 'google_genai') {
+      packageName = 'sentry-sdk[google_genai]';
     }
 
     return [
@@ -571,18 +573,14 @@ sentry_sdk.init(
       ],
     };
 
-    const manualStep: OnboardingStep = {
+    const googleGenAIStep: OnboardingStep = {
       type: StepType.CONFIGURE,
       content: [
         {
           type: 'text',
           text: tct(
-            'If you are not using a supported SDK integration, you can instrument your AI calls manually. See [link:manual instrumentation docs] for details.',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
-              ),
-            }
+            'Import and initialize the Sentry SDK - the GoogleGenAIIntegration will be enabled automatically:',
+            {code: <code />}
           ),
         },
         {
@@ -591,8 +589,13 @@ sentry_sdk.init(
           code: `
 import sentry_sdk
 
-sentry_sdk.init(dsn="${params.dsn.public}", traces_sample_rate=1.0)
-`,
+sentry_sdk.init(
+    dsn="${params.dsn.public}",
+    traces_sample_rate=1.0,
+    # Add data like inputs and responses to/from LLMs and tools;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+)`,
         },
       ],
     };
@@ -724,6 +727,32 @@ sentry_sdk.init(
       ],
     };
 
+    const manualStep: OnboardingStep = {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'If you are not using a supported SDK integration, you can instrument your AI calls manually. See [link:manual instrumentation docs] for details.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+import sentry_sdk
+
+sentry_sdk.init(dsn="${params.dsn.public}", traces_sample_rate=1.0)
+`,
+        },
+      ],
+    };
+
     const selected = (params.platformOptions as any)?.integration ?? 'openai_agents';
     if (selected === 'openai') {
       return [openaiSdkStep];
@@ -739,6 +768,9 @@ sentry_sdk.init(
     }
     if (selected === 'litellm') {
       return [liteLLMStep];
+    }
+    if (selected === 'google_genai') {
+      return [googleGenAIStep];
     }
     if (selected === 'manual') {
       return [manualStep];
@@ -973,6 +1005,34 @@ print(response.choices[0].message.content)
       ],
     };
 
+    const googleGenAIVerifyStep: OnboardingStep = {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that agent monitoring is working correctly by making a simple Google Gen AI API call:'
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+from google.genai import Client
+
+client = Client()
+client.models.generate_content(
+        model="gemini-2.0-flash-exp",
+        contents="What's the weather like in San Francisco?"
+)
+
+print(response)
+
+`,
+        },
+      ],
+    };
+
     const manualVerifyStep: OnboardingStep = {
       type: StepType.VERIFY,
       content: [
@@ -1024,6 +1084,9 @@ with sentry_sdk.start_span(op="gen_ai.chat", name="chat o3-mini") as span:
     }
     if (selected === 'litellm') {
       return [liteLLMVerifyStep];
+    }
+    if (selected === 'google_genai') {
+      return [googleGenAIVerifyStep];
     }
     if (selected === 'manual') {
       return [manualVerifyStep];
