@@ -22,21 +22,21 @@ export default function BuildComparison() {
     headArtifactId: string;
     // eslint-disable-next-line typescript-sort-keys/interface
     baseArtifactId: string | undefined;
-    projectId: string;
+    projectSlug: string;
   }>();
 
   const headArtifactId = params.headArtifactId;
   const baseArtifactId = params.baseArtifactId;
-  const projectId = params.projectId;
+  const projectSlug = params.projectSlug;
 
   const headBuildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError> =
     useApiQuery<BuildDetailsApiResponse>(
       [
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/${headArtifactId}/build-details/`,
+        `/projects/${organization.slug}/${projectSlug}/preprodartifacts/${headArtifactId}/build-details/`,
       ],
       {
         staleTime: 0,
-        enabled: !!projectId && !!headArtifactId,
+        enabled: !!projectSlug && !!headArtifactId,
       }
     );
 
@@ -87,7 +87,7 @@ export default function BuildComparison() {
         <Layout.Header>
           <BuildCompareHeaderContent
             buildDetails={headBuildDetailsQuery.data}
-            projectId={projectId}
+            projectSlug={projectSlug}
           />
         </Layout.Header>
 

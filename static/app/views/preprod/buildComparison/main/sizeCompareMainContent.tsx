@@ -47,20 +47,20 @@ export function SizeCompareMainContent() {
   const [isFilesExpanded, setIsFilesExpanded] = useState(true);
   const [hideSmallChanges, setHideSmallChanges] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const {baseArtifactId, headArtifactId, projectId} = useParams<{
+  const {baseArtifactId, headArtifactId, projectSlug} = useParams<{
     baseArtifactId: string;
     headArtifactId: string;
-    projectId: string;
+    projectSlug: string;
   }>();
 
   const sizeComparisonQuery: UseApiQueryResult<SizeComparisonApiResponse, RequestError> =
     useApiQuery<SizeComparisonApiResponse>(
       [
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
+        `/projects/${organization.slug}/${projectSlug}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
       ],
       {
         staleTime: 0,
-        enabled: !!projectId && !!headArtifactId && !!baseArtifactId,
+        enabled: !!projectSlug && !!headArtifactId && !!baseArtifactId,
       }
     );
 
@@ -71,7 +71,7 @@ export function SizeCompareMainContent() {
   // Query the comparison download endpoint to get detailed data
   const comparisonDataQuery = useApiQuery<SizeAnalysisComparisonResults>(
     [
-      `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${mainArtifactComparison?.head_size_metric_id}/${mainArtifactComparison?.base_size_metric_id}/download/`,
+      `/projects/${organization.slug}/${projectSlug}/preprodartifacts/size-analysis/compare/${mainArtifactComparison?.head_size_metric_id}/${mainArtifactComparison?.base_size_metric_id}/download/`,
     ],
     {
       staleTime: 0,
@@ -90,13 +90,13 @@ export function SizeCompareMainContent() {
   >({
     mutationFn: () => {
       return fetchMutation({
-        url: `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
+        url: `/projects/${organization.slug}/${projectSlug}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
         method: 'POST',
       });
     },
     onSuccess: () => {
       navigate(
-        `/organizations/${organization.slug}/preprod/${projectId}/compare/${headArtifactId}/${baseArtifactId}/`
+        `/organizations/${organization.slug}/preprod/${projectSlug}/compare/${headArtifactId}/${baseArtifactId}/`
       );
     },
     onError: error => {
@@ -280,7 +280,7 @@ export function SizeCompareMainContent() {
         isComparing={false}
         onClearBaseBuild={() => {
           navigate(
-            `/organizations/${organization.slug}/preprod/${projectId}/compare/${headArtifactId}/`
+            `/organizations/${organization.slug}/preprod/${projectSlug}/compare/${headArtifactId}/`
           );
         }}
       />

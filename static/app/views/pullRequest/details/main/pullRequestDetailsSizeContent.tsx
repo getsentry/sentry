@@ -90,7 +90,6 @@ export function PullRequestDetailsSizeContent({
             <BuildDetailsSidebarContent
               buildDetailsData={selectedBuildDetail}
               artifactId={selectedBuildId}
-              projectSlug={undefined}
             />
           )}
         </Flex>

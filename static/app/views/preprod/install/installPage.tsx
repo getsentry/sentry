@@ -132,9 +132,9 @@ function InstallContent({
 
 export default function InstallPage() {
   const organization = useOrganization();
-  const params = useParams<{artifactId: string; projectId: string}>();
+  const params = useParams<{artifactId: string; projectSlug: string}>();
   const artifactId = params.artifactId;
-  const projectId = params.projectId;
+  const projectSlug = params.projectSlug;
 
   const {
     data: installDetails,
@@ -144,7 +144,7 @@ export default function InstallPage() {
     refetch,
   } = useApiQuery<InstallDetailsApiResponse>(
     [
-      `/projects/${organization.slug}/${projectId}/preprodartifacts/${artifactId}/install-details/`,
+      `/projects/${organization.slug}/${projectSlug}/preprodartifacts/${artifactId}/install-details/`,
     ],
     {
       staleTime: 0,

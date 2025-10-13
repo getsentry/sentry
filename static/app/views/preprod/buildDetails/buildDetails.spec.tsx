@@ -10,7 +10,7 @@ describe('BuildDetails', () => {
     organization: OrganizationFixture(),
     router: {
       params: {
-        projectId: 'project-1',
+        projectSlug: 'project-1',
         artifactId: 'artifact-1',
       },
     },
@@ -20,7 +20,7 @@ describe('BuildDetails', () => {
     location: {
       pathname: `/organizations/${organization.slug}/projects/project-1/preprod/artifacts/artifact-1/`,
     },
-    route: '/organizations/:orgId/projects/:projectId/preprod/artifacts/:artifactId/',
+    route: '/organizations/:orgId/projects/:projectSlug/preprod/artifacts/:artifactId/',
   };
 
   beforeEach(() => {

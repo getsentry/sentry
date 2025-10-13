@@ -19,12 +19,12 @@ interface BuildButtonProps {
 
 function BuildButton({buildDetails, icon, label, onRemove}: BuildButtonProps) {
   const organization = useOrganization();
-  const {projectId} = useParams<{projectId: string}>();
+  const {projectSlug} = useParams<{projectSlug: string}>();
   const sha = buildDetails.vcs_info?.head_sha?.substring(0, 7);
   const branchName = buildDetails.vcs_info?.head_ref;
   const buildId = buildDetails.id;
 
-  const buildUrl = `/organizations/${organization.slug}/preprod/${projectId}/${buildId}/`;
+  const buildUrl = `/organizations/${organization.slug}/preprod/${projectSlug}/${buildId}/`;
 
   return (
     <LinkButton to={buildUrl}>

@@ -23,11 +23,11 @@ import {
 
 interface BuildCompareHeaderContentProps {
   buildDetails: BuildDetailsApiResponse;
-  projectId: string;
+  projectSlug: string;
 }
 
 export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps) {
-  const {buildDetails, projectId} = props;
+  const {buildDetails, projectSlug} = props;
   const organization = useOrganization();
   const theme = useTheme();
 
@@ -37,7 +37,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
       label: 'Releases',
     },
     {
-      to: `/organizations/${organization.slug}/preprod/${projectId}/${buildDetails.id}/`,
+      to: `/organizations/${organization.slug}/preprod/${projectSlug}/${buildDetails.id}/`,
       label: buildDetails.app_info.version,
     },
     {

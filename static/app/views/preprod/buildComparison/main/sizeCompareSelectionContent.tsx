@@ -54,8 +54,8 @@ export function SizeCompareSelectionContent({
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
-  const {projectId} = useParams<{
-    projectId: string;
+  const {projectSlug} = useParams<{
+    projectSlug: string;
   }>();
   const [selectedBaseBuild, setSelectedBaseBuild] = useState<
     BuildDetailsApiResponse | undefined
@@ -80,12 +80,12 @@ export function SizeCompareSelectionContent({
   const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =
     useApiQuery<ListBuildsApiResponse>(
       [
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/list-builds/`,
+        `/projects/${organization.slug}/${projectSlug}/preprodartifacts/list-builds/`,
         {query: queryParams},
       ],
       {
         staleTime: 0,
-        enabled: !!projectId,
+        enabled: !!projectSlug,
       }
     );
 
@@ -98,7 +98,7 @@ export function SizeCompareSelectionContent({
   >({
     mutationFn: ({headArtifactId, baseArtifactId}) => {
       return api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
+        `/projects/${organization.slug}/${projectSlug}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
         {
           method: 'POST',
         }
@@ -106,7 +106,7 @@ export function SizeCompareSelectionContent({
     },
     onSuccess: () => {
       navigate(
-        `/organizations/${organization.slug}/preprod/${projectId}/compare/${headBuildDetails.id}/${selectedBaseBuild?.id}/`
+        `/organizations/${organization.slug}/preprod/${projectSlug}/compare/${headBuildDetails.id}/${selectedBaseBuild?.id}/`
       );
     },
     onError: error => {
@@ -148,7 +148,7 @@ export function SizeCompareSelectionContent({
             // Clear cursor when search query changes to avoid pagination issues
             if (cursor) {
               navigate(
-                `/organizations/${organization.slug}/preprod/${projectId}/compare/${headBuildDetails.id}/`,
+                `/organizations/${organization.slug}/preprod/${projectSlug}/compare/${headBuildDetails.id}/`,
                 {replace: true}
               );
             }

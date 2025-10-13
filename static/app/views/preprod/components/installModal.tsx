@@ -18,10 +18,10 @@ import type {InstallDetailsApiResponse} from 'sentry/views/preprod/types/install
 interface InstallModalProps {
   artifactId: string;
   closeModal: () => void;
-  projectId: string;
+  projectSlug: string;
 }
 
-function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
+function InstallModal({projectSlug, artifactId, closeModal}: InstallModalProps) {
   const organization = useOrganization();
 
   const {
@@ -32,7 +32,7 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
     refetch,
   } = useApiQuery<InstallDetailsApiResponse>(
     [
-      `/projects/${organization.slug}/${projectId}/preprodartifacts/${artifactId}/install-details/`,
+      `/projects/${organization.slug}/${projectSlug}/preprodartifacts/${artifactId}/install-details/`,
     ],
     {
       staleTime: 0,
@@ -195,11 +195,11 @@ const Divider = styled(Flex)`
   }
 `;
 
-export function openInstallModal(projectId: string, artifactId: string) {
+export function openInstallModal(projectSlug: string, artifactId: string) {
   openModal(
     ({closeModal}) => (
       <InstallModal
-        projectId={projectId}
+        projectSlug={projectSlug}
         artifactId={artifactId}
         closeModal={closeModal}
       />

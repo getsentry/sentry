@@ -12,8 +12,8 @@ import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsT
 
 export default function BuildList() {
   const organization = useOrganization();
-  const params = useParams<{projectId: string}>();
-  const projectId = params.projectId;
+  const params = useParams<{projectSlug: string}>();
+  const projectSlug = params.projectSlug;
 
   const {cursor} = useLocationQuery({
     fields: {
@@ -32,12 +32,12 @@ export default function BuildList() {
   const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =
     useApiQuery<ListBuildsApiResponse>(
       [
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/list-builds/`,
+        `/projects/${organization.slug}/${projectSlug}/preprodartifacts/list-builds/`,
         {query: queryParams},
       ],
       {
         staleTime: 0,
-        enabled: !!projectId,
+        enabled: !!projectSlug,
       }
     );
 
@@ -62,7 +62,7 @@ export default function BuildList() {
                 error={!!error}
                 pageLinks={pageLinks}
                 organizationSlug={organization.slug}
-                projectSlug={projectId}
+                projectSlug={projectSlug}
               />
             </Flex>
           </Layout.Main>

@@ -24,29 +24,29 @@ import {BuildDetailsSidebarContent} from './sidebar/buildDetailsSidebarContent';
 
 export default function BuildDetails() {
   const organization = useOrganization();
-  const params = useParams<{artifactId: string; projectId: string}>();
+  const params = useParams<{artifactId: string; projectSlug: string}>();
   const artifactId = params.artifactId;
-  const projectId = params.projectId;
+  const projectSlug = params.projectSlug;
 
   const buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError> =
     useApiQuery<BuildDetailsApiResponse>(
       [
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/${artifactId}/build-details/`,
+        `/projects/${organization.slug}/${projectSlug}/preprodartifacts/${artifactId}/build-details/`,
       ],
       {
         staleTime: 0,
-        enabled: !!projectId && !!artifactId,
+        enabled: !!projectSlug && !!artifactId,
       }
     );
 
   const appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError> =
     useApiQuery<AppSizeApiResponse>(
       [
-        `/projects/${organization.slug}/${projectId}/files/preprodartifacts/${artifactId}/size-analysis/`,
+        `/projects/${organization.slug}/${projectSlug}/files/preprodartifacts/${artifactId}/size-analysis/`,
       ],
       {
         staleTime: 0,
-        enabled: !!projectId && !!artifactId,
+        enabled: !!projectSlug && !!artifactId,
       }
     );
 
@@ -56,7 +56,7 @@ export default function BuildDetails() {
   >({
     mutationFn: () => {
       return fetchMutation({
-        url: `/projects/${organization.slug}/${projectId}/preprod-artifact/rerun-analysis/${artifactId}/`,
+        url: `/projects/${organization.slug}/${projectSlug}/preprod-artifact/rerun-analysis/${artifactId}/`,
         method: 'POST',
       });
     },
@@ -113,7 +113,7 @@ export default function BuildDetails() {
         <Layout.Header>
           <BuildDetailsHeaderContent
             buildDetailsQuery={buildDetailsQuery}
-            projectSlug={projectId}
+            projectSlug={projectSlug}
             artifactId={artifactId}
           />
         </Layout.Header>
@@ -125,7 +125,7 @@ export default function BuildDetails() {
                 buildDetailsData={buildDetailsQuery.data}
                 isBuildDetailsPending={buildDetailsQuery.isPending}
                 artifactId={artifactId}
-                projectSlug={projectId}
+                projectSlug={projectSlug}
               />
             </BuildDetailsSide>
             <BuildDetailsMain>
