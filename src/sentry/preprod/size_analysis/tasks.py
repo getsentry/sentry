@@ -6,6 +6,7 @@ from io import BytesIO
 from django.db import router, transaction
 from django.utils import timezone
 
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.files.file import File
 from sentry.preprod.models import (
     PreprodArtifact,
@@ -20,7 +21,8 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import attachments_tasks
 from sentry.utils import metrics
-from sentry.utils.json import dumps_htmlsafe
+from sentry.utils.json import dumps_htmlsafe, load
+from .issues import insight_to_occurrences
 
 logger = logging.getLogger(__name__)
 
@@ -481,3 +483,76 @@ def _run_size_analysis_comparison(
         "preprod.size_analysis.compare.success",
         extra={"comparison_id": comparison.id},
     )
+
+
+class AnalysisFileMissing(Exception):
+    pass
+
+
+@instrumented_task(
+    name="sentry.preprod.tasks.produce_size_analysis_occurrences",
+    namespace=attachments_tasks,
+    processing_deadline_duration=30,
+    silo_mode=SiloMode.REGION,
+)
+def produce_size_analysis_occurrences(
+    size_metrics_id: int,
+    project_id: str,
+):
+    try:
+        inner_produce_size_analysis_occurrences(
+            size_metrics_id=size_metrics_id, project_id=project_id
+        )
+    except Exception:
+        logger.exception("produce_size_analysis_occurrences failed")
+
+
+def inner_produce_size_analysis_occurrences(
+    size_metrics_id: int,
+    project_id: str,
+):
+    extra = {
+        "size_metrics_id": size_metrics_id,
+    }
+    logger.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    logger.info("preprod.size_analysis.produce_size_analysis_occurrences", extra=extra)
+
+    size_metrics = PreprodArtifactSizeMetrics.objects.get(
+        id=size_metrics_id,
+    )
+
+    analysis_file_id = size_metrics.analysis_file_id
+    if analysis_file_id is None:
+        raise AnalysisFileMissing
+
+    logger.info("!!! - Foo")
+
+    file_obj = File.objects.get(id=analysis_file_id)
+    fp = file_obj.getfile()
+    logger.info("!!! - Bar")
+    j = load(fp)
+    logger.info("!!! - Baz")
+    print(list(j["insights"]))
+    insights = j["insights"]
+    for insight_name, insight_body in insights.items():
+        print(f"??? {insight_name} {insight_body}")
+        # if insight_body is None:
+        #    continue
+        for builder in insight_to_occurrences(insight_name, insight_body):
+            builder.project_id = project_id
+            occurrence, event_data = builder.build()
+            print("??? - bar")
+            produce_occurrence_to_kafka(
+                payload_type=PayloadType.OCCURRENCE,
+                occurrence=occurrence,
+                event_data=event_data,
+            )
+
+    #  id = uuid4()
+    #  occurrence = IssueOccurrence(
+    #      id=id,
+    #      event_id=id
+    #      project_id=project_id,
+    #      issue_title=f"Size bad {insight}",
+    #      type=,
+    #  )
