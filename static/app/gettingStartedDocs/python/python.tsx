@@ -1045,6 +1045,8 @@ sentry_sdk.init(dsn="${params.dsn.public}", traces_sample_rate=1.0)`,
           code: `
 import sentry_sdk
 from sentry_sdk.integrations.pydantic_ai import PydanticAiIntegration
+from sentry_sdk.integrations.openai import OpenAIIntegration
+
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
