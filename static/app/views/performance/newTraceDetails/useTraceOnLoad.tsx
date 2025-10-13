@@ -51,6 +51,10 @@ async function maybeAutoExpandTrace(
   // or just expanding in place. Note that spans are always expanded by default.
   const promises: Array<Promise<any>> = [];
   for (const c of collapsedNodes) {
+    if (!c.canAutoExpandOnLoad) {
+      continue;
+    }
+
     if (c.canFetchChildren) {
       promises.push(tree.fetchNodeSubTree(true, c, options));
     } else {

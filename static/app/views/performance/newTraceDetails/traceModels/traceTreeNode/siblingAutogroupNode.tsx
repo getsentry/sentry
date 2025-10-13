@@ -31,6 +31,7 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
     this.type = 'ag';
 
     this.expanded = false;
+    this.canAutoExpandOnLoad = false;
   }
 
   get op(): string {

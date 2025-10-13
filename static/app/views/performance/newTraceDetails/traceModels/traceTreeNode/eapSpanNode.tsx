@@ -35,9 +35,8 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   ) {
     // For eap transactions, on load we only display the embedded transactions children.
     // Mimics the behavior of non-eap traces, enabling a less noisy/summarized view of the trace
-    const parentNode = value.is_transaction
-      ? (parent?.findParent(p => isEAPTransaction(p.value)) ?? parent)
-      : parent;
+    const eapParent = parent?.findParent(p => isEAPTransaction(p.value));
+    const parentNode = value.is_transaction ? (eapParent ?? parent) : parent;
 
     super(parentNode, value, extra);
 
@@ -51,17 +50,17 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     this.allowNoInstrumentationNodes = !value.is_transaction;
 
     if (!value.is_transaction) {
-      if (this.parent) {
+      if (eapParent) {
         // Propagate errors to the closest EAP transaction for visibility in the initially collapsed
         // eap-transactions only view, on load
         for (const error of value.errors) {
-          this.parent.errors.add(error);
+          eapParent.errors.add(error);
         }
 
         // Propagate occurrences to the closest EAP transaction for visibility in the initially collapsed
         // eap-transactions only view, on load
         for (const occurrence of value.occurrences) {
-          this.parent.occurrences.add(occurrence);
+          eapParent.occurrences.add(occurrence);
         }
       }
     }

@@ -34,6 +34,7 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
     this.id = this.head.id || this.tail.id;
     this.type = 'ag';
     this.expanded = false;
+    this.canAutoExpandOnLoad = false;
   }
 
   get autogroupedSegments(): Array<[number, number]> {

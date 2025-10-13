@@ -76,6 +76,11 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   canShowDetails = true;
 
   /**
+   * Whether this node should be automatically expanded when the trace count is below a threshold.
+   */
+  canAutoExpandOnLoad = true;
+
+  /**
    * The errors associated with the node.
    */
   errors = new Set<TraceTree.TraceErrorIssue>();
