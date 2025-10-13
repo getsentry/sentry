@@ -19,18 +19,18 @@ import {createActionMenuItems} from './buildDetailsActionItems';
 import {useBuildDetailsActions} from './useBuildDetailsActions';
 
 function makeReleasesUrl(
-  projectId: string | undefined,
+  projectSlug: string | undefined,
   query: {appId?: string; version?: string}
 ): string {
   const {appId, version} = query;
 
-  // Not knowing the projectId should be transient.
-  if (projectId === undefined) {
+  // Not knowing the projectSlug should be transient.
+  if (projectSlug === undefined) {
     return '#';
   }
 
   const params = new URLSearchParams();
-  params.set('project', projectId);
+  params.set('project', projectSlug);
   const parts = [];
   if (appId) {
     parts.push(`release.package:${appId}`);
@@ -47,16 +47,16 @@ function makeReleasesUrl(
 interface BuildDetailsHeaderContentProps {
   artifactId: string;
   buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
-  projectId: string;
+  projectSlug: string;
 }
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
   const organization = useOrganization();
   const isSentryEmployee = useIsSentryEmployee();
-  const {buildDetailsQuery, projectId, artifactId} = props;
+  const {buildDetailsQuery, projectSlug, artifactId} = props;
   const {isDeletingArtifact, handleDeleteAction, handleDownloadAction} =
     useBuildDetailsActions({
-      projectId,
+      projectSlug,
       artifactId,
     });
 
@@ -84,7 +84,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     );
   }
 
-  const project = ProjectsStore.getBySlug(projectId);
+  const project = ProjectsStore.getBySlug(projectSlug);
 
   const breadcrumbs: Crumb[] = [
     {
@@ -124,7 +124,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
         </Heading>
         <Flex align="center" gap="sm" flexShrink={0}>
           <Link
-            to={`/organizations/${organization.slug}/preprod/${projectId}/compare/${buildDetailsData.id}/`}
+            to={`/organizations/${organization.slug}/preprod/${projectSlug}/compare/${buildDetailsData.id}/`}
           >
             <Button size="sm" priority="default" icon={<IconTelescope />}>
               {t('Compare Build')}

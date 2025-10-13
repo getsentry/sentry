@@ -65,7 +65,7 @@ function getLabels(platform: Platform | undefined): Labels {
 interface BuildDetailsSidebarAppInfoProps {
   appInfo: BuildDetailsAppInfo;
   artifactId: string;
-  projectId: string | null;
+  projectSlug?: string;
   sizeInfo?: BuildDetailsSizeInfo;
 }
 
@@ -157,10 +157,10 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
             <IconLink />
           </InfoIcon>
           <Text>
-            {props.projectId && props.appInfo.is_installable ? (
+            {props.projectSlug && props.appInfo.is_installable ? (
               <InstallableLink
                 onClick={() => {
-                  openInstallModal(props.projectId!, props.artifactId);
+                  openInstallModal(props.projectSlug!, props.artifactId);
                 }}
               >
                 Installable

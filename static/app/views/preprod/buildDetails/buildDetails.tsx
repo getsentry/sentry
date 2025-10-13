@@ -113,7 +113,7 @@ export default function BuildDetails() {
         <Layout.Header>
           <BuildDetailsHeaderContent
             buildDetailsQuery={buildDetailsQuery}
-            projectId={projectId}
+            projectSlug={projectId}
             artifactId={artifactId}
           />
         </Layout.Header>
@@ -125,7 +125,7 @@ export default function BuildDetails() {
                 buildDetailsData={buildDetailsQuery.data}
                 isBuildDetailsPending={buildDetailsQuery.isPending}
                 artifactId={artifactId}
-                projectId={projectId}
+                projectSlug={projectId}
               />
             </BuildDetailsSide>
             <BuildDetailsMain>
