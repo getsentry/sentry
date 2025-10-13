@@ -456,7 +456,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         node = new EapSpanNode(parent, value, {
           organization: options.organization,
           replayTraceSlug: options.replayTraceSlug,
-        }) as EapSpanNode;
+        });
 
         tree.eap_spans_count++;
 
