@@ -22,7 +22,14 @@ import {
 interface ContainerLayoutProps {
   background?: Responsive<keyof Theme['tokens']['background']>;
   display?: Responsive<
-    'block' | 'inline' | 'inline-block' | 'flex' | 'inline-flex' | 'grid' | 'inline-grid'
+    | 'block'
+    | 'inline'
+    | 'inline-block'
+    | 'flex'
+    | 'inline-flex'
+    | 'grid'
+    | 'inline-grid'
+    | 'none'
   >;
 
   padding?: Responsive<Shorthand<SpacingSize, 4>>;
