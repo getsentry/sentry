@@ -142,9 +142,9 @@ def get_open_periods_for_group(
     query_start: datetime | None = None,
     query_end: datetime | None = None,
     limit: int | None = None,
-) -> BaseQuerySet[GroupOpenPeriod] | list[None]:
+) -> BaseQuerySet[GroupOpenPeriod]:
     if not should_create_open_periods(group.type):
-        return []
+        return GroupOpenPeriod.objects.none()
 
     if not query_start:
         # use whichever date is more recent to reduce the query range. first_seen could be > 90 days ago

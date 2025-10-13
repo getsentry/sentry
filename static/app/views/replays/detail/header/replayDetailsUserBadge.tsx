@@ -103,15 +103,14 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                   <Live />
                 </Tooltip>
               ) : null}
-              {replayUpdated ? (
-                <Button
-                  title={t('Replay is outdated. Refresh for latest activity.')}
-                  size="xs"
-                  onClick={handleRefresh}
-                >
-                  <IconRefresh />
-                </Button>
-              ) : null}
+              <RefreshButton
+                title={t('Replay is outdated. Refresh for latest activity.')}
+                size="xs"
+                onClick={handleRefresh}
+                replayUpdated={replayUpdated}
+              >
+                <IconRefresh />
+              </RefreshButton>
             </TimeContainer>
           ) : null}
         </DisplayHeader>
@@ -209,4 +208,8 @@ const LiveIndicator = styled('div')`
     top: -6px;
     left: -6px;
   }
+`;
+
+const RefreshButton = styled(Button)<{replayUpdated: boolean}>`
+  visibility: ${p => (p.replayUpdated ? 'visible' : 'hidden')};
 `;
