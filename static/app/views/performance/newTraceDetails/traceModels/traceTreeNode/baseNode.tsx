@@ -319,7 +319,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       return false;
     }
 
-    const visibleChildren = this.parent.visibleChildren;
+    const visibleChildren = this.parent.directVisibleChildren;
     return visibleChildren[visibleChildren.length - 1] === this;
   }
 

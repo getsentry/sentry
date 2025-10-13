@@ -291,7 +291,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
         queryStringAnimationTimeoutRef.current = requestAnimationTimeout(() => {
           const currentQueryStringPath = qs.parse(location.search).node;
-          const nextNodePath = node.pathToNode;
+          const nextNodePath = node.pathToNode();
           // Updating the query string with the same path is problematic because it causes
           // the entire sentry app to rerender, which is enough to cause jank and drop frames
           if (JSON.stringify(currentQueryStringPath) === JSON.stringify(nextNodePath)) {

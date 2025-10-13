@@ -842,7 +842,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
         throw new Error('Parent node is missing, this should be unreachable code');
       }
 
-      const children = node.parent.directVisibleChildren;
+      const children = isParentAutogroupedNode(node.parent)
+        ? node.parent.tail.children
+        : node.parent.children;
       const index = children.indexOf(node);
       if (index === -1) {
         throw new Error('Node is not a child of its parent');
