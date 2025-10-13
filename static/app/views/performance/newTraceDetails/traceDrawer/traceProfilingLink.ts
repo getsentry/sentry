@@ -6,29 +6,16 @@ import {
   generateContinuousProfileFlamechartRouteWithQuery,
   generateProfileFlamechartRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
-import {
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
-
-function getNodeId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
-  if (isTransactionNode(node)) {
-    return node.value.event_id;
-  }
-  if (isSpanNode(node)) {
-    return node.value.span_id;
-  }
-  return undefined;
-}
+import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
 // In the current version, a segment is a parent transaction
-function getEventId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
+function getEventId(node: BaseNode): string | undefined {
   if (isTransactionNode(node)) {
     return node.value.event_id;
   }
-  return TraceTree.ParentTransaction(node)?.value?.event_id;
+  return node.findParent<TransactionNode>(p => isTransactionNode(p))?.value?.event_id;
 }
 
 export function makeTransactionProfilingLink(
@@ -54,7 +41,7 @@ export function makeTransactionProfilingLink(
  * Generates a link to a continuous profile for a given trace element type
  */
 export function makeTraceContinuousProfilingLink(
-  node: TraceTreeNode<TraceTree.NodeValue>,
+  node: BaseNode,
   profilerId: string,
   options: {
     organization: Organization;
@@ -70,7 +57,9 @@ export function makeTraceContinuousProfilingLink(
 
   // We compute a time offset based on the duration of the span so that
   // users can see some context of things that occurred before and after the span.
-  const transaction = isTransactionNode(node) ? node : TraceTree.ParentTransaction(node);
+  const transaction = isTransactionNode(node)
+    ? node
+    : node.findParent<TransactionNode>(p => isTransactionNode(p));
   if (!transaction) {
     return null;
   }
@@ -116,7 +105,7 @@ export function makeTraceContinuousProfilingLink(
     queryWithEventData.tid = options.threadId;
   }
 
-  const spanId = getNodeId(node);
+  const spanId = node.id;
   if (spanId) {
     queryWithEventData.spanId = spanId;
   }

@@ -16,7 +16,6 @@ import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLoca
 import {useNodeDetailsLink} from 'sentry/views/insights/agents/hooks/useNodeDetailsLink';
 import {useUrlTraceDrawer} from 'sentry/views/insights/agents/hooks/useUrlTraceDrawer';
 import {getDefaultSelectedNode} from 'sentry/views/insights/agents/utils/getDefaultSelectedNode';
-import {getNodeId} from 'sentry/views/insights/agents/utils/getNodeId';
 import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {DrawerUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
 import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -53,7 +52,7 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
 
   const handleSelectNode = useCallback(
     (node: AITraceSpanNode) => {
-      const uniqueKey = getNodeId(node);
+      const uniqueKey = node.id;
       setSelectedNodeKey(uniqueKey);
 
       trackAnalytics('agent-monitoring.drawer.span-select', {
@@ -64,7 +63,7 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
   );
 
   const selectedNode =
-    (selectedNodeKey && nodes.find(node => getNodeId(node) === selectedNodeKey)) ||
+    (selectedNodeKey && nodes.find(node => node.id === selectedNodeKey)) ||
     getDefaultSelectedNode(nodes);
 
   const nodeDetailsLink = useNodeDetailsLink({
@@ -183,7 +182,7 @@ function AITraceView({
         <SpansHeader>{t('AI Spans')}</SpansHeader>
         <AISpanList
           nodes={nodes}
-          selectedNodeKey={getNodeId(selectedNode!)}
+          selectedNodeKey={selectedNode!.id}
           onSelectNode={onSelectNode}
         />
       </LeftPanel>

@@ -94,15 +94,13 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<T>
   ): React.ReactNode {
-    return <TraceSpanRow {...props} node={props.node} />;
+    return <TraceSpanRow {...props} node={this} />;
   }
 
   renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(
     props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
-    return (
-      <SpanNodeDetails {...props} node={props.node as TraceTreeNode<TraceTree.Span>} />
-    );
+    return <SpanNodeDetails {...props} node={this} />;
   }
 
   matchWithFreeText(query: string): boolean {

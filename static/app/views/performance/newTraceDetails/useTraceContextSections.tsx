@@ -3,8 +3,8 @@ import {useMemo} from 'react';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import {getIsAiNode} from 'sentry/views/insights/agents/utils/aiTraceNodes';
 import {hasAgentInsightsFeature} from 'sentry/views/insights/agents/utils/features';
+import {getIsAiSpan} from 'sentry/views/insights/agents/utils/query';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 export function useTraceContextSections({
@@ -28,7 +28,8 @@ export function useTraceContextSections({
 
   const hasSummary: boolean = organization.features.includes('single-trace-summary');
   const hasAiSpans: boolean =
-    hasAgentInsightsFeature(organization) && !!TraceTree.Find(tree.root, getIsAiNode);
+    hasAgentInsightsFeature(organization) &&
+    !!tree.root.findChild(c => getIsAiSpan({op: c.op}));
 
   return useMemo(
     () => ({

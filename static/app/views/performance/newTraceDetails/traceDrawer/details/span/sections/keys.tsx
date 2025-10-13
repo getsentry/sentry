@@ -24,8 +24,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {TraceDrawerActionValueKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {isSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
 const SIZE_DATA_KEYS = [
@@ -71,13 +70,13 @@ function partitionSizes(data: RawSpanType['data']): {
   };
 }
 
-function getSpanAggregateMeasurements(node: TraceTreeNode<TraceTree.Span>) {
+function getSpanAggregateMeasurements(node: SpanNode) {
   if (!/^ai\.pipeline($|\.)/.test(node.value.op ?? '')) {
     return [];
   }
 
   let sum = 0;
-  TraceTree.ForEachChild(node, n => {
+  node.forEachChild(n => {
     if (
       isSpanNode(n) &&
       typeof n?.value?.measurements?.ai_total_tokens_used?.value === 'number'
@@ -94,7 +93,7 @@ function getSpanAggregateMeasurements(node: TraceTreeNode<TraceTree.Span>) {
   ];
 }
 
-export function hasSpanKeys(node: TraceTreeNode<TraceTree.Span>, theme: Theme) {
+export function hasSpanKeys(node: SpanNode, theme: Theme) {
   const span = node.value;
   const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
   const allZeroSizes = SIZE_DATA_KEYS.map(key => sizeKeys[key]).every(
@@ -117,7 +116,7 @@ export function hasSpanKeys(node: TraceTreeNode<TraceTree.Span>, theme: Theme) {
   );
 }
 
-export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
+export function SpanKeys({node}: {node: SpanNode}) {
   const theme = useTheme();
   const span = node.value;
   const projectIds = node.event?.projectID;

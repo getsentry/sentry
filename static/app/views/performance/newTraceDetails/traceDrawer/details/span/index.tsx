@@ -50,7 +50,9 @@ import {
   isEAPTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
+import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
@@ -72,8 +74,8 @@ function SpanNodeDetailHeader({
   onTabScrollToNode,
   hideNodeActions,
 }: {
-  node: TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>;
-  onTabScrollToNode: (node: TraceTreeNode<any>) => void;
+  node: EapSpanNode | SpanNode;
+  onTabScrollToNode: (node: BaseNode) => void;
   organization: Organization;
   hideNodeActions?: boolean;
 }) {
@@ -107,8 +109,8 @@ function SpanSections({
   onParentClick,
 }: {
   location: Location;
-  node: TraceTreeNode<TraceTree.Span>;
-  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  node: SpanNode;
+  onParentClick: (node: BaseNode) => void;
   organization: Organization;
   project: Project | undefined;
 }) {
@@ -149,30 +151,25 @@ function SpanSections({
 }
 
 export function SpanNodeDetails(
-  props: TraceTreeNodeDetailsProps<
-    TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>
-  >
+  props: TraceTreeNodeDetailsProps<SpanNode | EapSpanNode>
 ) {
   const {node, organization} = props;
   const location = useLocation();
   const theme = useTheme();
   const {projects} = useProjects();
-  const issues = TraceTree.UniqueIssues(node);
+  const issues = node.uniqueIssues;
 
-  const parentTransaction = isEAPSpanNode(node)
-    ? isEAPTransactionNode(node)
-      ? node
-      : TraceTree.ParentEAPTransaction(node)
-    : TraceTree.ParentTransaction(node);
-  const profileId = parentTransaction?.value.profile_id;
-  const profilerId = parentTransaction?.value.profiler_id;
+  const parentWithProfile = node.findParent(p => p.profiles.size > 0);
 
-  const profilerStart = parentTransaction?.value.start_timestamp;
-  const profilerEnd = parentTransaction
-    ? 'timestamp' in parentTransaction.value
-      ? parentTransaction.value.timestamp
-      : parentTransaction.value.end_timestamp
-    : undefined;
+  // TODO Abdullah Khan: Clean this up, by storing both profile_id and profiler_id separately in the node.
+  const firstProfile = Array.from(node.profiles)[0];
+  const profileId =
+    firstProfile && 'profile_id' in firstProfile ? firstProfile.profile_id : undefined;
+  const profilerId =
+    firstProfile && 'profiler_id' in firstProfile ? firstProfile.profiler_id : undefined;
+
+  const profilerStart = parentWithProfile?.startTimestamp;
+  const profilerEnd = parentWithProfile?.endTimestamp;
 
   const profileMeta = useMemo(() => {
     if (profileId) {
@@ -190,9 +187,7 @@ export function SpanNodeDetails(
     return '';
   }, [profileId, profilerId, profilerStart, profilerEnd]);
 
-  const project = projects.find(
-    proj => proj.slug === (node.value.project_slug ?? node.event?.projectSlug)
-  );
+  const project = projects.find(proj => proj.slug === node.projectSlug);
 
   const spanId = isEAPSpanNode(node) ? node.value.event_id : node.value.span_id;
 
@@ -258,7 +253,7 @@ function SpanNodeDetailsContent({
   issues,
   location,
   onParentClick,
-}: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Span>> & {
+}: TraceTreeNodeDetailsProps<SpanNode> & {
   issues: TraceTree.TraceIssue[];
   location: Location;
   project: Project | undefined;
@@ -350,9 +345,7 @@ function useAvgSpanDuration(
   return result.data?.[0]?.['avg(span.duration)'];
 }
 
-type EAPSpanNodeDetailsProps = TraceTreeNodeDetailsProps<
-  TraceTreeNode<TraceTree.EAPSpan>
-> & {
+type EAPSpanNodeDetailsProps = TraceTreeNodeDetailsProps<EapSpanNode> & {
   issues: TraceTree.TraceIssue[];
   location: Location;
   project: Project | undefined;
@@ -368,7 +361,7 @@ function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
   } = useTraceItemDetails({
     traceItemId: node.value.event_id,
     projectId: node.value.project_id.toString(),
-    traceId: node.metadata.replayTraceSlug ?? traceId,
+    traceId: node.extra?.replayTraceSlug ?? traceId,
     traceItemType: TraceItemDataset.SPANS,
     referrer: 'api.explore.log-item-details', // TODO: change to span details
     enabled: true,
@@ -378,7 +371,7 @@ function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
   // In that case we use the transaction id attached to the direct parent EAP span where is_transaction=true.
   const transaction_event_id =
     node.value.transaction_id ??
-    TraceTree.ParentEAPTransaction(node)?.value.transaction_id;
+    node.findParent<EapSpanNode>(p => isEAPTransactionNode(p))?.value.transaction_id;
   const {data: eventTransaction, isLoading: isEventTransactionLoading} = useTransaction({
     event_id: transaction_event_id,
     project_slug: node.value.project_slug,
@@ -504,7 +497,7 @@ function EAPSpanNodeDetailsContent({
             theme={theme}
             location={location}
             organization={organization}
-            traceId={node.metadata.replayTraceSlug ?? traceId}
+            traceId={node.extra?.replayTraceSlug ?? traceId}
             onTabScrollToNode={onTabScrollToNode}
           />
         ) : null}

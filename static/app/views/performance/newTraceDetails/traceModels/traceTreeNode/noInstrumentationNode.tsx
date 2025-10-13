@@ -4,7 +4,6 @@ import {uuid4} from '@sentry/core';
 import {t} from 'sentry/locale';
 import {MissingInstrumentationNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/missingInstrumentation';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import type {MissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/missingInstrumentationNode';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {TraceMissingInstrumentationRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceMissingInstrumentationRow';
@@ -66,19 +65,14 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
-    return <TraceMissingInstrumentationRow {...props} node={props.node} />;
+    return <TraceMissingInstrumentationRow {...props} node={this} />;
   }
 
   renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
     // Won't need this cast once we use BaseNode type for props.node
-    return (
-      <MissingInstrumentationNodeDetails
-        {...props}
-        node={props.node as unknown as MissingInstrumentationNode}
-      />
-    );
+    return <MissingInstrumentationNodeDetails {...props} node={this} />;
   }
 
   matchById(id: string): boolean {

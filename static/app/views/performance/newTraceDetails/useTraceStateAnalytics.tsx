@@ -70,7 +70,7 @@ function useTraceStateAnalytics({
       const traceAge = defined(traceTimestamp)
         ? getRelativeDate(traceTimestamp, 'ago')
         : 'unknown';
-      const issuesCount = TraceTree.UniqueIssues(traceNode).length;
+      const issuesCount = traceNode.uniqueIssues.length;
 
       traceAnalytics.trackTraceSuccessState(
         tree,

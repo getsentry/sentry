@@ -12,15 +12,14 @@ import type {EventTransaction} from 'sentry/types/event';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {getTraceNodeAttribute} from 'sentry/views/insights/agents/utils/aiTraceNodes';
 import {
-  getIsAiGenerationNode,
-  getIsExecuteToolNode,
-  getTraceNodeAttribute,
-} from 'sentry/views/insights/agents/utils/aiTraceNodes';
+  getIsAiGenerationSpan,
+  getIsExecuteToolSpan,
+} from 'sentry/views/insights/agents/utils/query';
+import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {hasAIInputAttribute} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {hasAIOutputAttribute} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 type SupportedSDKLanguage = 'javascript' | 'python';
 
@@ -70,7 +69,7 @@ export function AIIOAlert({
   attributes,
   event,
 }: {
-  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>;
+  node: AITraceSpanNode;
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {
@@ -78,7 +77,8 @@ export function AIIOAlert({
   const isChonk = isChonkTheme(theme);
   const {dismiss, isDismissed} = useDismissAlert({key: 'genai-io-alert-dismissed'});
 
-  const isSupportedNodeType = getIsAiGenerationNode(node) || getIsExecuteToolNode(node);
+  const isSupportedNodeType =
+    getIsAiGenerationSpan({op: node.op}) || getIsExecuteToolSpan({op: node.op});
   const hasData =
     hasAIInputAttribute(node, attributes, event) ||
     hasAIOutputAttribute(node, attributes, event);

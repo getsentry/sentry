@@ -42,6 +42,10 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
     this.parent?.children.push(this);
   }
 
+  get startTimestamp(): number {
+    return this.space[0];
+  }
+
   get description(): string | undefined {
     return isTraceError(this.value)
       ? this.value.title || this.value.message
@@ -73,22 +77,13 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
-    return <TraceErrorRow {...props} node={props.node} />;
+    return <TraceErrorRow {...props} node={this} />;
   }
 
   renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(
     props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
-    return (
-      <ErrorNodeDetails
-        {...props}
-        node={
-          props.node as
-            | TraceTreeNode<TraceTree.TraceError>
-            | TraceTreeNode<TraceTree.EAPError>
-        }
-      />
-    );
+    return <ErrorNodeDetails {...props} node={this} />;
   }
 
   matchWithFreeText(query: string): boolean {

@@ -10,16 +10,13 @@ import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {
-  getIsAiNode,
-  getTraceNodeAttribute,
-} from 'sentry/views/insights/agents/utils/aiTraceNodes';
+import {getTraceNodeAttribute} from 'sentry/views/insights/agents/utils/aiTraceNodes';
 import {hasAgentInsightsFeature} from 'sentry/views/insights/agents/utils/features';
+import {getIsAiSpan} from 'sentry/views/insights/agents/utils/query';
+import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 interface AIMessage {
   content: React.ReactNode;
@@ -125,7 +122,7 @@ function transformPrompt(prompt: string) {
 }
 
 export function hasAIInputAttribute(
-  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>,
+  node: AITraceSpanNode,
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ) {
@@ -142,12 +139,12 @@ export function AIInputSection({
   attributes,
   event,
 }: {
-  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>;
+  node: AITraceSpanNode;
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {
   const organization = useOrganization();
-  if (!hasAgentInsightsFeature(organization) && getIsAiNode(node)) {
+  if (!hasAgentInsightsFeature(organization) && getIsAiSpan({op: node.op})) {
     return null;
   }
 

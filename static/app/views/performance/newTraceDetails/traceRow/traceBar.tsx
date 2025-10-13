@@ -1,63 +1,16 @@
 import {Fragment, useCallback} from 'react';
-import type {Theme} from '@emotion/react';
 
-import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
-import {getStylingSliceName} from 'sentry/views/explore/tables/tracesTable/utils';
-import {
-  isAutogroupedNode,
-  isEAPErrorNode,
-  isEAPSpanNode,
-  isMissingInstrumentationNode,
-  isSpanNode,
-  isTraceErrorNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import {TraceBackgroundPatterns} from 'sentry/views/performance/newTraceDetails/traceRow/traceBackgroundPatterns';
 import {
   TraceErrorIcons,
   TraceOccurenceIcons,
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
-
-export function makeTraceNodeBarColor(
-  theme: Theme,
-  node: TraceTreeNode<TraceTree.NodeValue>
-): string {
-  if (isTransactionNode(node)) {
-    return pickBarColor(
-      getStylingSliceName(node.value.project_slug, node.value.sdk_name) ??
-        node.value['transaction.op'],
-      theme
-    );
-  }
-  if (isSpanNode(node) || isEAPSpanNode(node)) {
-    return pickBarColor(node.value.op, theme);
-  }
-  if (isAutogroupedNode(node)) {
-    if (node.errors.size > 0) {
-      return theme.red300;
-    }
-    return theme.blue300;
-  }
-  if (isMissingInstrumentationNode(node)) {
-    return theme.gray300;
-  }
-
-  if (isTraceErrorNode(node) || isEAPErrorNode(node)) {
-    // Theme defines this as orange, yet everywhere in our product we show red for errors
-    if (node.value.level === 'error' || node.value.level === 'fatal') {
-      return theme.red300;
-    }
-    if (node.value.level) {
-      return theme.level[node.value.level] ?? theme.red300;
-    }
-    return theme.red300;
-  }
-  return pickBarColor('default', theme);
-}
 
 interface InvisibleTraceBarProps {
   children: React.ReactNode;
@@ -154,7 +107,7 @@ interface TraceBarProps {
   color: string;
   errors: TraceTreeNode<TraceTree.Transaction>['errors'];
   manager: VirtualizedViewManager;
-  node: TraceTreeNode<TraceTree.NodeValue>;
+  node: BaseNode;
   node_space: [number, number] | null;
   occurrences: TraceTreeNode<TraceTree.Transaction>['occurrences'];
   profiles: TraceTreeNode<TraceTree.NodeValue>['profiles'];
@@ -242,7 +195,7 @@ interface AutogroupedTraceBarProps {
   entire_space: [number, number] | null;
   errors: TraceTreeNode<TraceTree.Transaction>['errors'];
   manager: VirtualizedViewManager;
-  node: TraceTreeNode<TraceTree.NodeValue>;
+  node: BaseNode;
   node_spaces: Array<[number, number]>;
   occurrences: TraceTreeNode<TraceTree.Transaction>['occurrences'];
   profiles: TraceTreeNode<TraceTree.NodeValue>['profiles'];

@@ -17,27 +17,15 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {IssueTraceWaterfallOverlay} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfallOverlay';
-import {
-  isEAPErrorNode,
-  isEAPSpanNode,
-  isEAPTransactionNode,
-  isNonTransactionEAPSpanNode,
-  isSpanNode,
-  isTraceErrorNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isTraceErrorNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 
-import type {TraceTreeNode} from './traceModels/traceTreeNode';
+import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
 import {Trace} from './trace';
-import {
-  traceNodeAdjacentAnalyticsProperties,
-  traceNodeAnalyticsName,
-} from './traceTreeAnalytics';
+import {traceNodeAdjacentAnalyticsProperties} from './traceTreeAnalytics';
 import type {TraceWaterfallProps} from './traceWaterfall';
 import {TraceGrid} from './traceWaterfall';
 import {TraceWaterfallState} from './traceWaterfallState';
@@ -80,9 +68,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     });
   }, [props.organization, props.source]);
 
-  const previouslyFocusedNodeRef = useRef<TraceTreeNode<TraceTree.NodeValue> | null>(
-    null
-  );
+  const previouslyFocusedNodeRef = useRef<BaseNode | null>(null);
 
   const {viewManager, traceScheduler, traceView} = useTraceWaterfallModels();
 
@@ -95,17 +81,13 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
   }, [props.tree.list.length, traceDispatch]);
 
   const onRowClick = useCallback(
-    (
-      node: TraceTreeNode<TraceTree.NodeValue>,
-      _event: React.MouseEvent<HTMLElement>,
-      index: number
-    ) => {
+    (node: BaseNode, _event: React.MouseEvent<HTMLElement>, index: number) => {
       trackAnalytics('trace.trace_layout.span_row_click', {
         organization,
         num_children: node.children.length,
-        type: traceNodeAnalyticsName(node),
+        type: node.analyticsName(),
         project_platform:
-          projects.find(p => p.slug === node.metadata.project_slug)?.platform || 'other',
+          projects.find(p => p.slug === node.projectSlug)?.platform || 'other',
         ...traceNodeAdjacentAnalyticsProperties(node),
       });
 
@@ -134,73 +116,19 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
 
     // Find all the nodes that match the event id from the error so that we can try and
     // link the user to the most specific one.
-    const nodes = IssuesTraceTree.FindAll(props.tree.root, n => {
-      if (isTraceErrorNode(n) || isEAPErrorNode(n)) {
-        return n.value.event_id === props.event.eventID;
-      }
-      if (isTransactionNode(n)) {
-        if (n.value.event_id === props.event.eventID) {
-          return true;
-        }
-
-        for (const e of n.errors) {
-          if (e.event_id === props.event.eventID) {
-            return true;
-          }
-        }
-
-        for (const o of n.occurrences) {
-          if (o.event_id === props.event.eventID) {
-            return true;
-          }
-        }
-      }
-      if (isSpanNode(n)) {
-        if (n.value.span_id === props.event.eventID) {
-          return true;
-        }
-        for (const e of n.errors) {
-          if (e.event_id === props.event.eventID) {
-            return true;
-          }
-        }
-        for (const o of n.occurrences) {
-          if (o.event_id === props.event.eventID) {
-            return true;
-          }
-        }
-      }
-
-      if (isEAPSpanNode(n)) {
-        if (n.value.event_id === props.event.eventID) {
-          return true;
-        }
-        for (const e of n.errors) {
-          if (e.event_id === props.event.eventID) {
-            return true;
-          }
-        }
-        for (const o of n.occurrences) {
-          if (o.event_id === props.event.eventID) {
-            return true;
-          }
-        }
-      }
-      return false;
-    });
+    const nodes = props.tree.root.findAllChildren(node =>
+      node.matchById(props.event.eventID)
+    );
 
     // By order of priority, we want to find the error node, then the span node, then the transaction node.
     // This is because the error node as standalone is the most specific one, otherwise we look for the span that
     // the error may have been attributed to, otherwise we look at the transaction.
-    const node =
-      nodes?.find(n => isTraceErrorNode(n) || isEAPErrorNode(n)) ||
-      nodes?.find(n => isSpanNode(n) || isNonTransactionEAPSpanNode(n)) ||
-      nodes?.find(n => isTransactionNode(n) || isEAPTransactionNode(n));
+    const node = nodes.sort((a, b) => a.searchPriority - b.searchPriority)[0];
 
     const index = node ? IssuesTraceTree.EnforceVisibility(props.tree, node) : -1;
 
     if (node) {
-      const preserveNodes: Array<TraceTreeNode<TraceTree.NodeValue>> = [node];
+      const preserveNodes: BaseNode[] = [node];
 
       let start = index;
       while (--start > 0) {

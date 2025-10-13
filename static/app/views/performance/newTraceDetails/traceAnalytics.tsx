@@ -28,7 +28,7 @@ const trackTraceSuccessState = (
   const trace_duration_seconds = (tree.root.space?.[1] ?? 0) / 1000;
   const projectSlugs = [
     ...new Set(
-      tree.list.map(node => node.metadata.project_slug).filter(slug => slug !== undefined)
+      tree.list.map(node => node.projectSlug).filter(slug => slug !== undefined)
     ),
   ];
 

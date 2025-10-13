@@ -75,13 +75,13 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
-    return <TraceAutogroupedRow {...props} node={props.node} />;
+    return <TraceAutogroupedRow {...props} node={this} />;
   }
 
   renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
-    return <AutogroupNodeDetails {...props} node={props.node} />;
+    return <AutogroupNodeDetails {...props} node={this} />;
   }
 
   matchById(_id: string): boolean {

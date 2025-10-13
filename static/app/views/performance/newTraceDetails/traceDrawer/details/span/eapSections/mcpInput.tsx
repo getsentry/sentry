@@ -4,12 +4,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {ensureAttributeObject} from 'sentry/views/insights/agents/utils/aiTraceNodes';
 import {hasMCPInsightsFeature} from 'sentry/views/insights/agents/utils/features';
+import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {getIsMCPNode} from 'sentry/views/insights/mcp/utils/mcpTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
 const ARGUMENTS_KEY_PREFIX = 'mcp.request.argument.';
 
@@ -21,7 +21,7 @@ function shortenKey(key: string) {
 }
 
 function getInputAttributes(
-  node: TraceTreeNode<TraceTree.NodeValue>,
+  node: BaseNode,
   event?: EventTransaction,
   attributes?: TraceItemResponseAttribute[]
 ): Array<[string, string | number | boolean]> {
@@ -41,7 +41,7 @@ export function MCPInputSection({
   attributes,
   event,
 }: {
-  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>;
+  node: AITraceSpanNode;
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {

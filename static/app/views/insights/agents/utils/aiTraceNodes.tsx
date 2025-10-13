@@ -2,19 +2,11 @@ import type {EventTransaction} from 'sentry/types/event';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
-  getIsAiGenerationSpan,
-  getIsAiRunSpan,
-  getIsAiSpan,
-  getIsExecuteToolSpan,
-} from 'sentry/views/insights/agents/utils/query';
-import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
-import {
   isEAPSpanNode,
   isSpanNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
 // TODO(aknaus): Remove the special handling for tags once the endpoint returns the correct type
 function getAttributeValue(
@@ -37,7 +29,7 @@ function getAttributeValue(
 }
 
 export function ensureAttributeObject(
-  node: TraceTreeNode<TraceTree.NodeValue>,
+  node: BaseNode,
   event?: EventTransaction,
   attributes?: TraceItemResponseAttribute[]
 ) {
@@ -66,26 +58,10 @@ export function ensureAttributeObject(
 
 export function getTraceNodeAttribute(
   name: string,
-  node: TraceTreeNode<TraceTree.NodeValue>,
+  node: BaseNode,
   event?: EventTransaction,
   attributes?: TraceItemResponseAttribute[]
 ): string | number | boolean | undefined {
   const attributeObject = ensureAttributeObject(node, event, attributes);
   return attributeObject?.[name];
 }
-
-function createGetIsAiNode(predicate: ({op}: {op?: string}) => boolean) {
-  return (node: TraceTreeNode<TraceTree.NodeValue>): node is AITraceSpanNode => {
-    if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
-      return false;
-    }
-
-    const op = isTransactionNode(node) ? node.value?.['transaction.op'] : node.value?.op;
-    return predicate({op});
-  };
-}
-
-export const getIsAiNode = createGetIsAiNode(getIsAiSpan);
-export const getIsAiRunNode = createGetIsAiNode(getIsAiRunSpan);
-export const getIsAiGenerationNode = createGetIsAiNode(getIsAiGenerationSpan);
-export const getIsExecuteToolNode = createGetIsAiNode(getIsExecuteToolSpan);

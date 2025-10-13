@@ -346,14 +346,16 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return this.children;
   }
 
-  findChild(predicate: (child: BaseNode) => boolean): BaseNode | null {
+  findChild<NodeType extends BaseNode = BaseNode>(
+    predicate: (child: BaseNode) => boolean
+  ): NodeType | null {
     const queue: BaseNode[] = [...this.getNextTraversalNodes()];
 
     while (queue.length > 0) {
       const next = queue.pop()!;
 
       if (predicate(next)) {
-        return next;
+        return next as NodeType;
       }
 
       const children = next.getNextTraversalNodes();
@@ -400,11 +402,13 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     }
   }
 
-  findParent(predicate: (parent: BaseNode) => boolean): BaseNode | null {
+  findParent<NodeType extends BaseNode = BaseNode>(
+    predicate: (parent: BaseNode) => boolean
+  ): NodeType | null {
     let current = this.parent;
     while (current) {
       if (predicate(current)) {
-        return current;
+        return current as NodeType;
       }
       current = current.parent;
     }

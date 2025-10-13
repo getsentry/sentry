@@ -45,7 +45,7 @@ import {
   TraceDrawerActionKind,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
@@ -64,13 +64,13 @@ export function SpanDescription({
   attributes: TraceItemResponseAttribute[];
   avgSpanDuration: number | undefined;
   location: Location;
-  node: TraceTreeNode<TraceTree.EAPSpan>;
+  node: EapSpanNode;
   organization: Organization;
   project: Project | undefined;
   hideNodeActions?: boolean;
 }) {
   const {data: event} = useEventDetails({
-    eventId: node.event?.eventID,
+    eventId: node.value.transaction_id,
     projectSlug: project?.slug,
   });
   const span = node.value;
@@ -139,7 +139,7 @@ export function SpanDescription({
           to={getSearchInExploreTarget(
             organization,
             location,
-            node.event?.projectID,
+            node.projectId?.toString(),
             exploreAttributeName,
             exploreAttributeValue,
             TraceDrawerActionKind.INCLUDE
@@ -176,7 +176,7 @@ export function SpanDescription({
         </StyledCodeSnippet>
         {codeFilepath ? (
           <StackTraceMiniFrame
-            projectId={node.event?.projectID}
+            projectId={node.projectId?.toString()}
             event={event}
             frame={{
               filename: codeFilepath,
@@ -266,7 +266,7 @@ function ResourceImageDescription({
 }: {
   attributes: TraceItemResponseAttribute[];
   formattedDescription: string;
-  node: TraceTreeNode<TraceTree.EAPSpan>;
+  node: EapSpanNode;
 }) {
   const span = node.value;
 
@@ -292,7 +292,7 @@ function ResourceImageDescription({
       ) : (
         <DisabledImages
           onClickShowLinks={() => setShowLinks(true)}
-          projectSlug={span.project_slug ?? node.event?.projectSlug}
+          projectSlug={span.project_slug ?? node.projectSlug}
         />
       )}
     </StyledDescriptionWrapper>

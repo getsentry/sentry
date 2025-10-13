@@ -1,11 +1,7 @@
 import {t} from 'sentry/locale';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
-import {
-  makeTraceNodeBarColor,
-  MissingInstrumentationTraceBar,
-} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
+import type {NoInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/noInstrumentationNode';
+import {MissingInstrumentationTraceBar} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TraceRowConnectors,
@@ -13,7 +9,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 export function TraceMissingInstrumentationRow(
-  props: TraceRowProps<TraceTreeNode<TraceTree.MissingInstrumentationSpan>>
+  props: TraceRowProps<NoInstrumentationNode>
 ) {
   return (
     <div
@@ -49,7 +45,7 @@ export function TraceMissingInstrumentationRow(
         <MissingInstrumentationTraceBar
           virtualized_index={props.virtualized_index}
           manager={props.manager}
-          color={makeTraceNodeBarColor(props.theme, props.node)}
+          color={props.node.makeBarColor(props.theme)}
           node_space={props.node.space}
         />
         <button
