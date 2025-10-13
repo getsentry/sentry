@@ -1995,26 +1995,6 @@ function buildRoutes(): RouteObject[] {
         },
       ],
     },
-    {
-      path: `${MODULE_BASE_URLS[ModuleName.AGENTS]}/`,
-      children: [
-        {
-          index: true,
-          handle: {module: ModuleName.AGENTS},
-          component: make(() => import('sentry/views/insights/agents/views/overview')),
-        },
-      ],
-    },
-    {
-      path: `${MODULE_BASE_URLS[ModuleName.MCP]}/`,
-      children: [
-        {
-          index: true,
-          handle: {module: ModuleName.MCP},
-          component: make(() => import('sentry/views/insights/mcp/views/overview')),
-        },
-      ],
-    },
   ];
 
   const domainViewChildRoutes: SentryRouteObject[] = [
@@ -2096,7 +2076,28 @@ function buildRoutes(): RouteObject[] {
           children: transactionSummaryChildren,
         },
         traceView,
-        ...moduleRoutes,
+        {
+          path: `${MODULE_BASE_URLS[ModuleName.AGENTS]}/`,
+          children: [
+            {
+              index: true,
+              handle: {module: ModuleName.AGENTS},
+              component: make(
+                () => import('sentry/views/insights/agents/views/overview')
+              ),
+            },
+          ],
+        },
+        {
+          path: `${MODULE_BASE_URLS[ModuleName.MCP]}/`,
+          children: [
+            {
+              index: true,
+              handle: {module: ModuleName.MCP},
+              component: make(() => import('sentry/views/insights/mcp/views/overview')),
+            },
+          ],
+        },
       ],
     },
     {
@@ -2512,7 +2513,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/feedback/index')),
     withOrgPath: true,
     children: feedbackV2Children,
-    deprecatedRouteProps: true,
   };
 
   const issueTabs: SentryRouteObject[] = [
@@ -2640,7 +2640,6 @@ function buildRoutes(): RouteObject[] {
       path: 'feedback/',
       component: make(() => import('sentry/views/feedback/index')),
       children: feedbackV2Children,
-      deprecatedRouteProps: true,
     },
     {
       path: 'alerts/',

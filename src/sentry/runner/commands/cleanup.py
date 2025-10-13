@@ -185,101 +185,117 @@ def _cleanup(
     # before we import or configure the app
     pool, task_queue = _start_pool(concurrency)
 
-    try:
-        from sentry.runner import configure
+    # Start transaction AFTER creating the multiprocessing pool to avoid
+    # transaction context issues in child processes. This ensures only the
+    # main process tracks the overall cleanup operation performance.
+    with sentry_sdk.start_transaction(op="cleanup", name="cleanup") as transaction:
+        transaction.set_tag("router", router)
+        transaction.set_tag("model", model)
+        try:
+            from sentry.runner import configure
 
-        configure()
+            configure()
 
-        from sentry.utils import metrics
+            from sentry.utils import metrics
 
-        start_time = None
-        if timed:
-            start_time = time.time()
+            start_time = None
+            if timed:
+                start_time = time.time()
 
-        transaction = None
-        # Making sure we're not running in local dev to prevent a local error
-        if not os.environ.get("SENTRY_DEVENV_HOME"):
-            transaction = sentry_sdk.start_transaction(op="cleanup", name="cleanup")
-            transaction.__enter__()
-            transaction.set_tag("router", router)
-            transaction.set_tag("model", model)
+            # list of models which this query is restricted to
+            model_list = {m.lower() for m in model}
+            # Track which models were attempted for deletion
+            models_attempted: set[str] = set()
+            # Track which models were filtered out for legitimate reasons (silo/router)
+            models_legitimately_filtered: set[str] = set()
 
-        # list of models which this query is restricted to
-        model_list = {m.lower() for m in model}
-        # Track which models were attempted for deletion
-        models_attempted: set[str] = set()
-        # Track which models were filtered out for legitimate reasons (silo/router)
-        models_legitimately_filtered: set[str] = set()
+            def is_filtered(model: type[Model]) -> bool:
+                model_name = model.__name__.lower()
+                silo_limit = getattr(model._meta, "silo_limit", None)
+                if isinstance(silo_limit, SiloLimit) and not silo_limit.is_available():
+                    models_legitimately_filtered.add(model_name)
+                    return True
+                if router is not None and db_router.db_for_write(model) != router:
+                    models_legitimately_filtered.add(model_name)
+                    return True
+                if not model_list:
+                    return False
+                return model.__name__.lower() not in model_list
 
-        def is_filtered(model: type[Model]) -> bool:
-            model_name = model.__name__.lower()
-            silo_limit = getattr(model._meta, "silo_limit", None)
-            if isinstance(silo_limit, SiloLimit) and not silo_limit.is_available():
-                models_legitimately_filtered.add(model_name)
-                return True
-            if router is not None and db_router.db_for_write(model) != router:
-                models_legitimately_filtered.add(model_name)
-                return True
-            if not model_list:
-                return False
-            return model.__name__.lower() not in model_list
+            deletes = models_which_use_deletions_code_path()
 
-        deletes = models_which_use_deletions_code_path()
+            # Track timing for each deletion stage to monitor execution progress and identify bottlenecks
+            with metrics.timer(
+                "cleanup.stage", instance=router, tags={"stage": "specialized_cleanups"}
+            ):
+                _run_specialized_cleanups(is_filtered, days, silent, models_attempted)
 
-        _run_specialized_cleanups(is_filtered, days, silent, models_attempted)
+                # Handle project/organization specific logic
+                project_id, organization_id = _handle_project_organization_cleanup(
+                    project, organization, days, deletes
+                )
+                if organization_id is not None:
+                    transaction.set_tag("organization_id", organization_id)
+                if project_id is not None:
+                    transaction.set_tag("project_id", project_id)
 
-        # Handle project/organization specific logic
-        project_id, organization_id = _handle_project_organization_cleanup(
-            project, organization, days, deletes
-        )
+            # This does not use the deletions code path, but rather uses the BulkDeleteQuery class
+            # to delete records in bulk (i.e. does not need to worry about child relations)
+            with metrics.timer(
+                "cleanup.stage", instance=router, tags={"stage": "bulk_query_deletes"}
+            ):
+                run_bulk_query_deletes(
+                    is_filtered,
+                    days,
+                    project,
+                    project_id,
+                    models_attempted,
+                )
 
-        # This does not use the deletions code path, but rather uses the BulkDeleteQuery class
-        # to delete records in bulk (i.e. does not need to worry about child relations)
-        run_bulk_query_deletes(
-            is_filtered,
-            days,
-            project,
-            project_id,
-            models_attempted,
-        )
+            with metrics.timer(
+                "cleanup.stage", instance=router, tags={"stage": "bulk_deletes_in_deletes"}
+            ):
+                run_bulk_deletes_in_deletes(
+                    task_queue,
+                    deletes,
+                    is_filtered,
+                    days,
+                    project,
+                    project_id,
+                    models_attempted,
+                )
 
-        run_bulk_deletes_in_deletes(
-            task_queue,
-            deletes,
-            is_filtered,
-            days,
-            project,
-            project_id,
-            models_attempted,
-        )
+            with metrics.timer(
+                "cleanup.stage", instance=router, tags={"stage": "bulk_deletes_by_project"}
+            ):
+                run_bulk_deletes_by_project(
+                    task_queue, project, project_id, is_filtered, days, models_attempted
+                )
 
-        run_bulk_deletes_by_project(
-            task_queue, project, project_id, is_filtered, days, models_attempted
-        )
+            with metrics.timer(
+                "cleanup.stage", instance=router, tags={"stage": "bulk_deletes_by_organization"}
+            ):
+                run_bulk_deletes_by_organization(
+                    task_queue, organization_id, is_filtered, days, models_attempted
+                )
 
-        run_bulk_deletes_by_organization(
-            task_queue, organization_id, is_filtered, days, models_attempted
-        )
+            with metrics.timer("cleanup.stage", instance=router, tags={"stage": "file_blobs"}):
+                remove_file_blobs(is_filtered, silent, models_attempted)
 
-        remove_file_blobs(is_filtered, silent, models_attempted)
+        finally:
+            # Shut down our pool
+            _stop_pool(pool, task_queue)
 
-    finally:
-        # Shut down our pool
-        _stop_pool(pool, task_queue)
+            if timed and start_time:
+                duration = int(time.time() - start_time)
+                metrics.timing("cleanup.duration", duration, instance=router, sample_rate=1.0)
+                click.echo("Clean up took %s second(s)." % duration)
 
-        if timed and start_time:
-            duration = int(time.time() - start_time)
-            metrics.timing("cleanup.duration", duration, instance=router, sample_rate=1.0)
-            click.echo("Clean up took %s second(s)." % duration)
-
-        # Check for models that were specified but never attempted
-        if model_list:
-            _report_models_never_attempted(
-                model_list, models_attempted, models_legitimately_filtered
-            )
-
-        if transaction:
-            transaction.__exit__(None, None, None)
+            # Check for models that were specified but never attempted
+            if model_list:
+                _report_models_never_attempted(
+                    model_list, models_attempted, models_legitimately_filtered
+                )
 
 
 def _validate_and_setup_environment(concurrency: int, silent: bool) -> None:

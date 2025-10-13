@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import merge from 'lodash/merge';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {ExternalLink} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 
@@ -48,7 +48,7 @@ def tell_the_world(msg):
           }
         )}
       </div>
-      <CodeSnippet language="python">{code}</CodeSnippet>
+      <CodeBlock language="python">{code}</CodeBlock>
     </Fragment>
   );
 }
@@ -89,9 +89,9 @@ def tell_the_world(msg):
           }
         )}
       </div>
-      <CodeSnippet language="python">{setupCode}</CodeSnippet>
+      <CodeBlock language="python">{setupCode}</CodeBlock>
       <div>{t('Link your Celery task to your Monitor:')}</div>
-      <CodeSnippet language="python">{linkTaskCode}</CodeSnippet>
+      <CodeBlock language="python">{linkTaskCode}</CodeBlock>
     </Fragment>
   );
 }
@@ -113,7 +113,7 @@ sentry-cli monitors run ${slug} -- python path/to/file`;
           }
         )}
       </div>
-      <CodeSnippet language="bash">{script}</CodeSnippet>
+      <CodeBlock language="bash">{script}</CodeBlock>
     </Fragment>
   );
 }
@@ -139,9 +139,9 @@ curl "\${SENTRY_CRONS}?status=error"`;
 
   return (
     <Fragment>
-      <CodeSnippet language="bash">{checkInSuccessCode}</CodeSnippet>
+      <CodeBlock language="bash">{checkInSuccessCode}</CodeBlock>
       <div>{t('To notify Sentry if your job execution fails')}</div>
-      <CodeSnippet language="bash">{checkInFailCode}</CodeSnippet>
+      <CodeBlock language="bash">{checkInFailCode}</CodeBlock>
     </Fragment>
   );
 }
@@ -181,9 +181,9 @@ $checkInId = \\Sentry\\captureCheckIn(
           }
         )}
       </div>
-      <CodeSnippet language="php">{checkInSuccessCode}</CodeSnippet>
+      <CodeBlock language="php">{checkInSuccessCode}</CodeBlock>
       <div>{t('To notify Sentry if your job execution fails')}</div>
-      <CodeSnippet language="php">{checkInFailCode}</CodeSnippet>
+      <CodeBlock language="php">{checkInFailCode}</CodeBlock>
     </Fragment>
   );
 }
@@ -212,7 +212,7 @@ export function PHPLaravelCronQuickStart(props: QuickStartProps) {
           }
         )}
       </div>
-      <CodeSnippet language="php">{code}</CodeSnippet>
+      <CodeBlock language="php">{code}</CodeBlock>
     </Fragment>
   );
 }
@@ -254,9 +254,9 @@ Sentry.captureCheckIn({
           }
         )}
       </div>
-      <CodeSnippet language="javascript">{checkInSuccessCode}</CodeSnippet>
+      <CodeBlock language="javascript">{checkInSuccessCode}</CodeBlock>
       <div>{t('To notify Sentry if your job execution fails')}</div>
-      <CodeSnippet language="javascript">{checkInFailCode}</CodeSnippet>
+      <CodeBlock language="javascript">{checkInFailCode}</CodeBlock>
     </Fragment>
   );
 }
@@ -305,9 +305,9 @@ sentry.CaptureCheckIn(
           }
         )}
       </div>
-      <CodeSnippet language="go">{checkInSuccessCode}</CodeSnippet>
+      <CodeBlock language="go">{checkInSuccessCode}</CodeBlock>
       <div>{t('To notify Sentry if your job execution fails')}</div>
-      <CodeSnippet language="go">{checkInFailCode}</CodeSnippet>
+      <CodeBlock language="go">{checkInFailCode}</CodeBlock>
     </Fragment>
   );
 }
@@ -332,7 +332,7 @@ String result = CheckInUtils.withCheckIn("${slug}", () -> {
           }
         )}
       </div>
-      <CodeSnippet language="java">{checkInSuccessCode}</CodeSnippet>
+      <CodeBlock language="java">{checkInSuccessCode}</CodeBlock>
     </Fragment>
   );
 }
@@ -364,7 +364,7 @@ public class CustomJob {
           }
         )}
       </div>
-      <CodeSnippet language="java">{code}</CodeSnippet>
+      <CodeBlock language="java">{code}</CodeBlock>
     </Fragment>
   );
 }
@@ -395,7 +395,7 @@ trigger.setJobDataAsMap(Collections.singletonMap(SENTRY_SLUG_KEY, "${slug}"));`;
           }
         )}
       </div>
-      <CodeSnippet language="java">{code}</CodeSnippet>
+      <CodeBlock language="java">{code}</CodeBlock>
     </Fragment>
   );
 }
@@ -433,7 +433,7 @@ def init_sentry(**kwargs):
         )}
       </div>
       <div>{t('Make sure to set monitor_beat_tasks=True in CeleryIntegration:')}</div>
-      <CodeSnippet language="python">{code}</CodeSnippet>
+      <CodeBlock language="python">{code}</CodeBlock>
     </Fragment>
   );
 }
@@ -483,8 +483,8 @@ $checkInId = \\Sentry\\captureCheckIn(
           }
         )}
       </div>
-      <CodeSnippet language="php">{scheduleCode}</CodeSnippet>
-      <CodeSnippet language="php">{upsertCode}</CodeSnippet>
+      <CodeBlock language="php">{scheduleCode}</CodeBlock>
+      <CodeBlock language="php">{upsertCode}</CodeBlock>
     </Fragment>
   );
 }
@@ -528,13 +528,13 @@ export function LaravelUpsertPlatformGuide() {
           'To set up, add the "sentryMonitor()" macro to your scheduled tasks defined in your "app/Console/Kernel.php" file:'
         )}
       </div>
-      <CodeSnippet language="php">{basicConfigCode}</CodeSnippet>
+      <CodeBlock language="php">{basicConfigCode}</CodeBlock>
       <div>
         {t(
           'By default, the Laravel SDK will infer various parameters of your scheduled task. For greater control, we expose some optional parameters on the sentryMonitor() macro.'
         )}
       </div>
-      <CodeSnippet language="php">{advancedConfigCode}</CodeSnippet>
+      <CodeBlock language="php">{advancedConfigCode}</CodeBlock>
     </Fragment>
   );
 }
@@ -574,7 +574,7 @@ Sentry.captureCheckIn({
           }
         )}
       </div>
-      <CodeSnippet language="javascript">{upsertCode}</CodeSnippet>
+      <CodeBlock language="javascript">{upsertCode}</CodeBlock>
     </Fragment>
   );
 }
@@ -627,8 +627,8 @@ sentry.CaptureCheckIn(
           }
         )}
       </div>
-      <CodeSnippet language="go">{scheduleCode}</CodeSnippet>
-      <CodeSnippet language="go">{upsertCode}</CodeSnippet>
+      <CodeBlock language="go">{scheduleCode}</CodeBlock>
+      <CodeBlock language="go">{upsertCode}</CodeBlock>
     </Fragment>
   );
 }
@@ -669,8 +669,8 @@ String result = CheckInUtils.withCheckIn("<monitor-slug>", monitorConfig, () -> 
           }
         )}
       </div>
-      <CodeSnippet language="java">{scheduleCode}</CodeSnippet>
-      <CodeSnippet language="java">{upsertCode}</CodeSnippet>
+      <CodeBlock language="java">{scheduleCode}</CodeBlock>
+      <CodeBlock language="java">{upsertCode}</CodeBlock>
     </Fragment>
   );
 }
@@ -722,8 +722,8 @@ Sentry.capture_check_in(
           }
         )}
       </div>
-      <CodeSnippet language="ruby">{configCode}</CodeSnippet>
-      <CodeSnippet language="ruby">{upsertCode}</CodeSnippet>
+      <CodeBlock language="ruby">{configCode}</CodeBlock>
+      <CodeBlock language="ruby">{upsertCode}</CodeBlock>
     </Fragment>
   );
 }
@@ -771,15 +771,15 @@ sentry_monitor_check_ins slug: 'custom', monitor_config: Sentry::Cron::MonitorCo
         )}
       </div>
       <div>{t('ActiveJob Example:')}</div>
-      <CodeSnippet language="ruby">{activeJobCode}</CodeSnippet>
+      <CodeBlock language="ruby">{activeJobCode}</CodeBlock>
       <div>{t('Sidekiq Example:')}</div>
-      <CodeSnippet language="ruby">{sidekiqJobCode}</CodeSnippet>
+      <CodeBlock language="ruby">{sidekiqJobCode}</CodeBlock>
       <div>
         {t(
           'You must pass in the monitor config explicity for upserts or you must create a new monitor explicitly in the UI.'
         )}
       </div>
-      <CodeSnippet language="ruby">{customCode}</CodeSnippet>
+      <CodeBlock language="ruby">{customCode}</CodeBlock>
     </Fragment>
   );
 }
@@ -818,7 +818,7 @@ end`;
           }
         )}
       </div>
-      <CodeSnippet language="ruby">{sidekiqCronCode}</CodeSnippet>
+      <CodeBlock language="ruby">{sidekiqCronCode}</CodeBlock>
     </Fragment>
   );
 }
@@ -847,9 +847,9 @@ Sentry.capture_check_in('${slug}', :error, check_in_id: check_in_id)`;
           }
         )}
       </div>
-      <CodeSnippet language="ruby">{checkInSuccessCode}</CodeSnippet>
+      <CodeBlock language="ruby">{checkInSuccessCode}</CodeBlock>
       <div>{t('To notify Sentry if your job execution fails')}</div>
-      <CodeSnippet language="ruby">{checkInFailCode}</CodeSnippet>
+      <CodeBlock language="ruby">{checkInFailCode}</CodeBlock>
     </Fragment>
   );
 }
@@ -886,9 +886,9 @@ sentry_monitor_check_ins slug: '${slug}', monitor_config: Sentry::Cron::MonitorC
           }
         )}
       </div>
-      <CodeSnippet language="ruby">{mixinCode}</CodeSnippet>
+      <CodeBlock language="ruby">{mixinCode}</CodeBlock>
       <div>{t('You can pass in optional attributes as follows:')}</div>
-      <CodeSnippet language="ruby">{customCode}</CodeSnippet>
+      <CodeBlock language="ruby">{customCode}</CodeBlock>
     </Fragment>
   );
 }
@@ -926,9 +926,9 @@ sentry_monitor_check_ins slug: '${slug}', monitor_config: Sentry::Cron::MonitorC
           }
         )}
       </div>
-      <CodeSnippet language="ruby">{mixinCode}</CodeSnippet>
+      <CodeBlock language="ruby">{mixinCode}</CodeBlock>
       <div>{t('You can pass in optional attributes as follows:')}</div>
-      <CodeSnippet language="ruby">{customCode}</CodeSnippet>
+      <CodeBlock language="ruby">{customCode}</CodeBlock>
     </Fragment>
   );
 }
@@ -957,9 +957,9 @@ SentrySdk.CaptureCheckIn("${slug}", CheckInStatus.Error, checkInId);`;
           }
         )}
       </div>
-      <CodeSnippet language="csharp">{checkInSuccessCode}</CodeSnippet>
+      <CodeBlock language="csharp">{checkInSuccessCode}</CodeBlock>
       <div>{t('To notify Sentry if your job execution fails')}</div>
-      <CodeSnippet language="csharp">{checkInFailCode}</CodeSnippet>
+      <CodeBlock language="csharp">{checkInFailCode}</CodeBlock>
     </Fragment>
   );
 }
@@ -1018,8 +1018,8 @@ SentrySdk.CaptureCheckIn("<monitor-slug>", CheckInStatus.Ok, checkInId);`;
           }
         )}
       </div>
-      <CodeSnippet language="csharp">{scheduleCode}</CodeSnippet>
-      <CodeSnippet language="csharp">{upsertCode}</CodeSnippet>
+      <CodeBlock language="csharp">{scheduleCode}</CodeBlock>
+      <CodeBlock language="csharp">{upsertCode}</CodeBlock>
     </Fragment>
   );
 }
@@ -1055,7 +1055,7 @@ public class PricingUpdateWorker
           }
         )}
       </div>
-      <CodeSnippet language="csharp">{code}</CodeSnippet>
+      <CodeBlock language="csharp">{code}</CodeBlock>
       <div>
         {tct(
           'For more examples see the [docsLink:Sentry Hangfire Cron Monitor documentation].',

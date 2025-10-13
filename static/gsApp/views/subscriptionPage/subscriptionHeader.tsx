@@ -24,8 +24,6 @@ import {
   hasAccessToSubscriptionOverview,
   hasNewBillingUI,
   hasPartnerMigrationFeature,
-  hasPerformance,
-  isBizPlanFamily,
 } from 'getsentry/utils/billing';
 import {isDisabledByPartner} from 'getsentry/utils/partnerships';
 import PartnershipNote from 'getsentry/views/subscriptionPage/partnershipNote';
@@ -252,7 +250,13 @@ const TabsContainer = styled('div')`
  * owners and billing admins have the billing scope, everyone else including managers, admins, and members lack that
  * scope.
  */
-function BodyWithBillingPerms({organization, subscription}: any) {
+function BodyWithBillingPerms({
+  organization,
+  subscription,
+}: {
+  organization: Organization;
+  subscription: Subscription;
+}) {
   return (
     <Flex direction="column" gap="xl">
       {subscription.pendingChanges ? (
@@ -271,19 +275,21 @@ function BodyWithBillingPerms({organization, subscription}: any) {
   );
 }
 
-function BodyWithoutBillingPerms({organization, subscription}: any) {
-  // if a current tier self serve business plan, we have nothing to render in this section
-  if (
-    isBizPlanFamily(subscription?.planDetails) &&
-    hasPerformance(subscription.planDetails) &&
-    subscription.canSelfServe
-  ) {
-    return null;
-  }
+function BodyWithoutBillingPerms({
+  organization,
+  subscription,
+}: {
+  organization: Organization;
+  subscription: Subscription;
+}) {
+  const isNewBillingUI = hasNewBillingUI(organization);
   return (
     <Fragment>
       <TrialAlert subscription={subscription} organization={organization} />
       <ManagedNote subscription={subscription} />
+      {isNewBillingUI && (
+        <HeaderCards organization={organization} subscription={subscription} />
+      )}
     </Fragment>
   );
 }

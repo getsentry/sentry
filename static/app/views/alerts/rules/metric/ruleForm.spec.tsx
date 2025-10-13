@@ -663,16 +663,12 @@ describe('Incident Rules Form', () => {
 
       await userEvent.hover(screen.getAllByText('Throughput')[1]!);
       expect(
-        await screen.findByText(
-          'Transaction based alerts are no longer supported. Create span alerts instead.'
-        )
+        await screen.findByText(/The transaction dataset is being deprecated./)
       ).toBeInTheDocument();
 
       await userEvent.hover(screen.getByText('project-slug'));
       expect(
-        await screen.findByText(
-          'Transaction based alerts are no longer supported. Create span alerts instead.'
-        )
+        await screen.findByText(/The transaction dataset is being deprecated./)
       ).toBeInTheDocument();
 
       const radio = screen.getByRole('radio', {

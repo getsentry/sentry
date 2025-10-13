@@ -533,6 +533,52 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             assert params["field"].sort() == ["id", "transaction"].sort()
             assert "aggregateField" not in params
 
+    def test_explore_url_for_widget_with_discover_split_param(self) -> None:
+        with self.feature("organizations:transaction-widget-deprecation-explore-view"):
+            dashboard_deprecation = Dashboard.objects.create(
+                title="Dashboard With Transaction Widget",
+                created_by_id=self.user.id,
+                organization=self.organization,
+                filters={
+                    "release": ["1.0.0", "2.0.0"],
+                },
+            )
+            widget_deprecation = DashboardWidget.objects.create(
+                dashboard=dashboard_deprecation,
+                title="transaction widget",
+                display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+                widget_type=DashboardWidgetTypes.DISCOVER,
+                discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,
+                interval="1d",
+                detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            )
+
+            DashboardWidgetQuery.objects.create(
+                widget=widget_deprecation,
+                fields=["count()", "transaction"],
+                columns=["transaction"],
+                aggregates=["count()"],
+                conditions="count():>50",
+                orderby="-count",
+                order=0,
+            )
+
+            response = self.do_request("get", self.url(dashboard_deprecation.id))
+            assert response.status_code == 200
+            explore_url = response.data["widgets"][0]["exploreUrls"][0]
+            assert "http://testserver/explore/traces/" in explore_url
+
+            params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
+            assert params["query"] == [
+                "(count(span.duration):>50) AND is_transaction:1 AND release:1.0.0,2.0.0"
+            ]
+            assert params["sort"] == ["-count(span.duration)"]
+            assert params["mode"] == ["aggregate"]
+            assert params["aggregateField"] == [
+                '{"groupBy":"transaction"}',
+                '{"yAxes":["count(span.duration)"],"chartType":1}',
+            ]
+
     def test_explore_url_for_deformed_widget(self) -> None:
         with self.feature("organizations:transaction-widget-deprecation-explore-view"):
             dashboard_deprecation = Dashboard.objects.create(
@@ -575,6 +621,59 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
                 '{"groupBy":"query.dataset"}',
                 '{"yAxes":["p95(span.duration)"],"chartType":1}',
             ]
+
+    def test_changed_reason_response(self) -> None:
+        response = self.do_request("get", self.url(self.dashboard.id))
+        assert response.status_code == 200
+        widget = response.data["widgets"][0]
+        assert widget["changedReason"] is None
+
+    def test_changed_reason_response_with_data(self) -> None:
+        dashboard_deprecation = Dashboard.objects.create(
+            title="Dashboard With Transaction Widget",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+
+        widget_deprecation = DashboardWidget.objects.create(
+            dashboard=dashboard_deprecation,
+            title="line widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            changed_reason=[
+                {
+                    "orderby": [
+                        {"orderby": "total.count", "reason": "fields were dropped: total.count"}
+                    ],
+                    "equations": [],
+                    "columns": ["total.count"],
+                }
+            ],
+        )
+
+        DashboardWidgetQuery.objects.create(
+            widget=widget_deprecation,
+            fields=["query.dataset"],
+            columns=["query.dataset"],
+            aggregates=["p95(transaction.duration)"],
+            orderby="-p95(transaction.duration)",
+            conditions="transaction:/api/0/organizations/{organization_id_or_slug}/events/",
+            order=0,
+        )
+
+        response = self.do_request("get", self.url(dashboard_deprecation.id))
+        assert response.status_code == 200
+        widget = response.data["widgets"][0]
+        assert widget["changedReason"] is not None
+        assert isinstance(widget["changedReason"], list)
+        assert len(widget["changedReason"]) == 1
+        assert widget["changedReason"][0]["orderby"] == [
+            {"orderby": "total.count", "reason": "fields were dropped: total.count"}
+        ]
+        assert widget["changedReason"][0]["equations"] == []
+        assert widget["changedReason"][0]["columns"] == ["total.count"]
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):

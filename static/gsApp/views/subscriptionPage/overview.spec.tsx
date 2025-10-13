@@ -87,6 +87,15 @@ describe('Subscription > Overview', () => {
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
     });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/next-bill/`,
+      method: 'GET',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/history/current/`,
+      method: 'GET',
+    });
 
     SubscriptionStore.set(organization.slug, {});
   });
@@ -160,6 +169,7 @@ describe('Subscription > Overview', () => {
     expect(
       await screen.findByRole('heading', {name: 'Subscription'})
     ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Next bill'})).toBeInTheDocument();
     expect(
       screen.getByRole('heading', {name: 'Billing information'})
     ).toBeInTheDocument();
