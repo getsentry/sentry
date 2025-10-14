@@ -8,20 +8,8 @@ import PageLayout from 'sentry/views/performance/transactionSummary/pageLayout';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import {generateTransactionEventsEventView} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {generateTransactionOverviewEventView} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {generateTransactionReplaysEventView} from 'sentry/views/performance/transactionSummary/transactionReplays/utils';
 import {generateTransactionTagsEventView} from 'sentry/views/performance/transactionSummary/transactionTags/utils';
-
-/**
- * <PageLayout
- *       location={location}
- *       organization={organization}
- *       projects={projects}
- *       tab={Tab.TAGS}
- *       getDocumentTitle={getDocumentTitle}
- *       generateEventView={generateEventView}
- *       childComponent={TagsPageContent}
- *     />
- * @constructor
- */
 
 function TransactionSummaryLayout() {
   const location = useLocation();
@@ -54,6 +42,8 @@ function makeGenerateEventView(tab: Tab) {
       return generateTransactionEventsEventView;
     case Tab.TAGS:
       return generateTransactionTagsEventView;
+    case Tab.REPLAYS:
+      return generateTransactionReplaysEventView;
     default:
       throw new Error('Unknown tab');
   }
@@ -70,6 +60,9 @@ function makeGetDocumentTitle(tab: Tab) {
       break;
     case Tab.TAGS:
       name = t('Tags');
+      break;
+    case Tab.REPLAYS:
+      name = t('Replays');
       break;
     default:
       name = '';

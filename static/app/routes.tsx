@@ -1833,6 +1833,7 @@ function buildRoutes(): RouteObject[] {
       traceView,
       {
         path: 'replays/',
+        handle: {tab: TransactionSummaryTab.REPLAYS},
         component: make(
           () => import('sentry/views/performance/transactionSummary/transactionReplays')
         ),
