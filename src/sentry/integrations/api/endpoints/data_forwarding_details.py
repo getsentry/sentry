@@ -45,15 +45,11 @@ class OrganizationDataForwardingDetailsPermission(OrganizationPermission):
         view: APIView,
         organization: Organization | RpcOrganization | RpcUserOrganizationContext,
     ) -> bool:
-        # Check if user has org:write permission first
         if super().has_object_permission(request, view, organization):
             return True
 
-        # For PUT requests, also allow users with team membership (project-level access)
         if request.method == "PUT":
             self.determine_access(request, organization)
-            # Allow if user has any team membership in the organization
-            # The endpoint will handle project-specific permission checks
             return len(request.access.team_ids_with_membership) > 0
 
         return False
