@@ -9,12 +9,12 @@ import {
   render,
   screen,
   userEvent,
+  waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
-import * as utils from 'sentry/utils/useNavigate';
 import TransactionSummaryLayout from 'sentry/views/performance/transactionSummary/layout';
 import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionVitals from 'sentry/views/performance/transactionSummary/transactionVitals';
@@ -291,9 +291,6 @@ describe('Performance > Web Vitals', () => {
     });
 
     it('resets view properly', async () => {
-      const mockNavigate = jest.fn();
-      jest.spyOn(utils, 'useNavigate').mockReturnValue(mockNavigate);
-
       const data = initialize({
         query: {
           fidStart: '20',
@@ -305,17 +302,23 @@ describe('Performance > Web Vitals', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Reset View'}));
 
-      expect(mockNavigate).toHaveBeenCalledWith({
-        pathname: '/performance/summary/vitals/',
-        query: expect.not.objectContaining(
-          makeZoomKeys().reduce(
-            (obj, key) => {
-              obj[key] = expect.anything();
-              return obj;
-            },
-            {} as Record<string, unknown>
+      expect(data.router.location.query).toMatchObject({
+        fidStart: '20',
+        lcpEnd: '20',
+      });
+
+      await waitFor(() => {
+        expect(data.router.location.query).toMatchObject(
+          expect.not.objectContaining(
+            makeZoomKeys().reduce(
+              (obj, key) => {
+                obj[key] = expect.anything();
+                return obj;
+              },
+              {} as Record<string, unknown>
+            )
           )
-        ),
+        );
       });
     });
 
