@@ -79,12 +79,7 @@ class TokenizerWrapper:
                         logger.info("Loading tokenizer from local model: %s", TOKENIZER_MODEL_PATH)
                         self._tokenizer = Tokenizer.from_file(TOKENIZER_MODEL_PATH)
                     else:
-                        logger.info(
-                            "Loading tokenizer from remote: jinaai/jina-embeddings-v2-base-en"
-                        )
-                        self._tokenizer = Tokenizer.from_pretrained(
-                            "jinaai/jina-embeddings-v2-base-en"
-                        )
+                        raise ValueError("Tokenizer model not found")
 
         return self._tokenizer
 
