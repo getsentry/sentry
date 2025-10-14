@@ -45,9 +45,7 @@ class NotificationService[T: NotificationData]:
     def __init__(self, *, data: T):
         self.data: Final[T] = data
 
-    def notify_target(
-        self, *, target: NotificationTarget
-    ) -> None | dict[NotificationProviderKey, list[str]]:
+    def notify_target(self, *, target: NotificationTarget) -> None:
         """
         Send a notification directly to a target synchronously.
         NOTE: This method ignores notification settings. When possible, consider using a strategy instead of
