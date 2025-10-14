@@ -567,12 +567,6 @@ function useAsciiSnapshot() {
     // Top line: full URL of the current page
     const url = window.location.href;
     const result = url + '\n' + grid.map(row => row.join('')).join('\n');
-    try {
-      // eslint-disable-next-line no-console
-      console.log('[seer] ascii snapshot', result);
-    } catch (e) {
-      /* noop */
-    }
     return result;
   }, []);
 
