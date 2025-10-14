@@ -1,4 +1,5 @@
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {
   useMetricVisualize,
@@ -80,6 +81,9 @@ export function AggregateDropdown({type}: {type: string | undefined}) {
 
   return (
     <CompactSelect
+      triggerProps={{
+        prefix: t('Agg'),
+      }}
       options={
         defined(type) && defined(OPTIONS_BY_TYPE[type]) ? OPTIONS_BY_TYPE[type] : []
       }

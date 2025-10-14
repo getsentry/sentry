@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -16,6 +14,7 @@ import {
 } from 'sentry/views/explore/logs/styles';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
+import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {
   MultiMetricsQueryParamsProvider,
   useAddMetricQuery,
@@ -74,11 +73,32 @@ function MetricsTabBodySection() {
   return (
     <BottomSectionBody>
       <Flex direction="column" gap="lg">
-        {metricQueries.map((metricQuery, index) => {
+        {metricQueries.map(metricQuery => {
           return (
-            // TODO: figure out a better `key`
             <MetricsQueryParamsProvider
-              key={index}
+              key={metricQuery.metric.id}
+              queryParams={metricQuery.queryParams}
+              setQueryParams={metricQuery.setQueryParams}
+              setTraceMetric={metricQuery.setTraceMetric}
+              removeMetric={metricQuery.removeMetric}
+            >
+              <MetricToolbar traceMetric={metricQuery.metric} />
+            </MetricsQueryParamsProvider>
+          );
+        })}
+        <Button
+          size="sm"
+          priority="default"
+          icon={<IconAdd />}
+          onClick={addMetricQuery}
+          style={{width: 'fit-content'}}
+        >
+          {t('Add Metric')}
+        </Button>
+        {metricQueries.map(metricQuery => {
+          return (
+            <MetricsQueryParamsProvider
+              key={metricQuery.metric.id}
               queryParams={metricQuery.queryParams}
               setQueryParams={metricQuery.setQueryParams}
               setTraceMetric={metricQuery.setTraceMetric}
@@ -88,23 +108,7 @@ function MetricsTabBodySection() {
             </MetricsQueryParamsProvider>
           );
         })}
-        <AddMetricButtonContainer>
-          <Button
-            size="sm"
-            priority="default"
-            icon={<IconAdd />}
-            onClick={addMetricQuery}
-          >
-            {t('Add Metric')}
-          </Button>
-        </AddMetricButtonContainer>
       </Flex>
     </BottomSectionBody>
   );
 }
-
-const AddMetricButtonContainer = styled('div')`
-  button {
-    width: 100%;
-  }
-`;

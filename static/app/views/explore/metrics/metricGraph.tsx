@@ -10,6 +10,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
+import {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   useMetricVisualize,
   useSetMetricVisualize,
@@ -25,9 +26,10 @@ import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/use
 
 interface MetricsGraphProps {
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  traceMetric: TraceMetric;
 }
 
-export function MetricsGraph({timeseriesResult}: MetricsGraphProps) {
+export function MetricsGraph({timeseriesResult, traceMetric}: MetricsGraphProps) {
   const visualize = useMetricVisualize();
   const setVisualize = useSetMetricVisualize();
 
@@ -40,16 +42,23 @@ export function MetricsGraph({timeseriesResult}: MetricsGraphProps) {
       visualize={visualize}
       timeseriesResult={timeseriesResult}
       onChartTypeChange={handleChartTypeChange}
+      traceMetric={traceMetric}
     />
   );
 }
 
 interface GraphProps extends MetricsGraphProps {
   onChartTypeChange: (chartType: ChartType) => void;
+  traceMetric: TraceMetric;
   visualize: ReturnType<typeof useMetricVisualize>;
 }
 
-function Graph({onChartTypeChange, timeseriesResult, visualize}: GraphProps) {
+function Graph({
+  onChartTypeChange,
+  timeseriesResult,
+  visualize,
+  traceMetric,
+}: GraphProps) {
   const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
 
@@ -74,7 +83,9 @@ function Graph({onChartTypeChange, timeseriesResult, visualize}: GraphProps) {
   }, [visualize.chartType, timeseriesResult, aggregate, topEventsLimit]);
 
   const Title = (
-    <Widget.WidgetTitle title={prettifyAggregation(aggregate) ?? aggregate} />
+    <Widget.WidgetTitle
+      title={`${traceMetric.id}: ${prettifyAggregation(aggregate) ?? aggregate}`}
+    />
   );
 
   const chartIcon =

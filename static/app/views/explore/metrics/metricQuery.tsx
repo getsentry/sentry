@@ -14,6 +14,7 @@ import {
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export interface TraceMetric {
+  id: string;
   name: string;
   type: string;
 }
@@ -104,9 +105,9 @@ export function encodeMetricQueryParams(metricQuery: BaseMetricQuery): string {
   });
 }
 
-export function defaultMetricQuery(): BaseMetricQuery {
+export function defaultMetricQuery(id?: string): BaseMetricQuery {
   return {
-    metric: {name: '', type: ''},
+    metric: {id: id ?? 'a', name: '', type: ''},
     queryParams: new ReadableQueryParams({
       extrapolate: true,
       mode: Mode.AGGREGATE,

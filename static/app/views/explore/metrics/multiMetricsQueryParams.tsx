@@ -128,7 +128,7 @@ function getMultiMetricsQueryParamsFromLocation(location: Location): BaseMetricQ
   if (metricQueries.length) {
     return metricQueries;
   }
-  return [defaultMetricQuery()];
+  return [defaultMetricQuery('a')];
 }
 
 export function useMultiMetricsQueryParams() {
@@ -143,8 +143,12 @@ export function useAddMetricQuery() {
 
   return function () {
     const target = {...location, query: {...location.query}};
+    const lastMetricId = metricQueries[metricQueries.length - 1]?.metric.id;
 
-    const newMetricQueries: string[] = [...metricQueries, defaultMetricQuery()]
+    const newMetricQueries: string[] = [
+      ...metricQueries,
+      defaultMetricQuery(getNextMetricId(lastMetricId)),
+    ]
       .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
       .filter(defined)
       .filter(Boolean);
@@ -152,4 +156,11 @@ export function useAddMetricQuery() {
 
     navigate(target);
   };
+}
+
+export function getNextMetricId(lastMetricId: string | undefined): string {
+  if (lastMetricId === undefined || lastMetricId === '') {
+    return 'a';
+  }
+  return String.fromCharCode(lastMetricId.charCodeAt(0) + 1);
 }
