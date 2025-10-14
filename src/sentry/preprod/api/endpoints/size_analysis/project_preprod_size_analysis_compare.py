@@ -373,13 +373,49 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             body = SizeAnalysisComparePOSTResponse(
                 status="exists",
                 message="A comparison already exists for the head and base size metrics.",
-                existing_comparisons=comparison_models,
+                comparisons=comparison_models,
             )
             return Response(body.dict(), status=200)
 
         logger.info(
-            "preprod.size_analysis.compare.api.post.running_comparison",
+            "preprod.size_analysis.compare.api.post.creating_pending_comparisons",
             extra={"head_artifact_id": head_artifact.id, "base_artifact_id": base_artifact.id},
+        )
+
+        # Create PENDING comparison records for each matching head/base metric pair
+        head_metrics_map = build_size_metrics_map(head_size_metrics)
+        base_metrics_map = build_size_metrics_map(base_size_metrics)
+
+        created_comparisons = []
+        for key, head_metric in head_metrics_map.items():
+            base_metric = base_metrics_map.get(key)
+            if base_metric:
+                comparison = PreprodArtifactSizeComparison.objects.create(
+                    head_size_analysis=head_metric,
+                    base_size_analysis=base_metric,
+                    organization_id=project.organization_id,
+                    state=PreprodArtifactSizeComparison.State.PENDING,
+                )
+                created_comparisons.append(
+                    SizeAnalysisComparison(
+                        head_size_metric_id=head_metric.id,
+                        base_size_metric_id=base_metric.id,
+                        metrics_artifact_type=head_metric.metrics_artifact_type,
+                        identifier=head_metric.identifier,
+                        state=PreprodArtifactSizeComparison.State.PENDING,
+                        comparison_id=None,
+                        error_code=None,
+                        error_message=None,
+                    )
+                )
+
+        logger.info(
+            "preprod.size_analysis.compare.api.post.running_comparison",
+            extra={
+                "head_artifact_id": head_artifact.id,
+                "base_artifact_id": base_artifact.id,
+                "pending_comparisons_count": len(created_comparisons),
+            },
         )
 
         manual_size_analysis_comparison.apply_async(
@@ -393,6 +429,16 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
 
         logger.info(
             "preprod.size_analysis.compare.api.post.success",
-            extra={"head_artifact_id": head_artifact_id, "base_artifact_id": base_artifact_id},
+            extra={
+                "head_artifact_id": head_artifact_id,
+                "base_artifact_id": base_artifact_id,
+                "created_comparisons_count": len(created_comparisons),
+            },
         )
-        return Response(status=200)
+
+        body = SizeAnalysisComparePOSTResponse(
+            status="created",
+            message="Comparison records created and processing started.",
+            comparisons=created_comparisons,
+        )
+        return Response(body.dict(), status=200)

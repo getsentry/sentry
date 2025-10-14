@@ -153,6 +153,31 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         assert comparison_data["error_message"] == "Comparison failed due to processing error"
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
+    def test_get_comparison_success_with_pending_comparison(self):
+        """Test GET endpoint returns processing state for pending comparison"""
+        # Create a pending comparison (which should be shown as PROCESSING to frontend)
+        comparison = PreprodArtifactSizeComparison.objects.create(
+            head_size_analysis=self.head_size_metric,
+            base_size_analysis=self.base_size_metric,
+            organization_id=self.organization.id,
+            state=PreprodArtifactSizeComparison.State.PENDING,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            self.head_artifact.id,
+            self.base_artifact.id,
+        )
+        data = response.data
+        comparison_data = data["comparisons"][0]
+        # GET endpoint shows PENDING as PROCESSING to frontend
+        assert comparison_data["state"] == PreprodArtifactSizeComparison.State.PROCESSING
+        assert comparison_data["comparison_id"] == comparison.id
+        assert comparison_data["error_code"] is None
+        assert comparison_data["error_message"] is None
+
+    @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_get_comparison_success_with_processing_comparison(self):
         """Test GET endpoint returns processing comparison when comparison is in progress"""
         # Create a processing comparison
@@ -415,14 +440,16 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     @patch("sentry.preprod.size_analysis.tasks.manual_size_analysis_comparison.apply_async")
     def test_post_comparison_success(self, mock_apply_async):
-        """Test POST endpoint successfully triggers comparison"""
-        self.get_success_response(
+        """Test POST endpoint successfully triggers comparison and creates PENDING records"""
+        response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
             self.head_artifact.id,
             self.base_artifact.id,
             method="post",
         )
+
+        # Verify task was enqueued
         mock_apply_async.assert_called_once_with(
             kwargs={
                 "project_id": self.project.id,
@@ -431,6 +458,27 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
                 "base_artifact_id": self.base_artifact.id,
             }
         )
+
+        # Verify response contains created comparisons
+        data = response.data
+        assert data["status"] == "created"
+        assert "Comparison records created and processing started" in data["message"]
+        assert len(data["comparisons"]) == 1
+
+        # Verify comparison is in PENDING state
+        comparison_data = data["comparisons"][0]
+        assert comparison_data["state"] == PreprodArtifactSizeComparison.State.PENDING
+        assert comparison_data["head_size_metric_id"] == self.head_size_metric.id
+        assert comparison_data["base_size_metric_id"] == self.base_size_metric.id
+        assert comparison_data["comparison_id"] is None
+
+        # Verify PENDING record was created in database
+        comparison = PreprodArtifactSizeComparison.objects.get(
+            head_size_analysis=self.head_size_metric,
+            base_size_analysis=self.base_size_metric,
+        )
+        assert comparison.state == PreprodArtifactSizeComparison.State.PENDING
+        assert comparison.organization_id == self.organization.id
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_post_comparison_head_artifact_not_found(self):
@@ -548,8 +596,8 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         data = response.json()
         assert data["status"] == "exists"
         assert "A comparison already exists for the head and base size metrics" in data["message"]
-        assert len(data["existing_comparisons"]) == 1
-        assert data["existing_comparisons"][0]["comparison_id"] == comparison.id
+        assert len(data["comparisons"]) == 1
+        assert data["comparisons"][0]["comparison_id"] == comparison.id
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_post_comparison_existing_failed_comparison(self):
@@ -569,8 +617,8 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "exists"
-        assert len(data["existing_comparisons"]) == 1
-        comparison_data = data["existing_comparisons"][0]
+        assert len(data["comparisons"]) == 1
+        comparison_data = data["comparisons"][0]
         assert comparison_data["state"] == comparison.state
         assert comparison_data["error_code"] == str(comparison.error_code)
         assert comparison_data["error_message"] == comparison.error_message
@@ -596,9 +644,9 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     @patch("sentry.preprod.size_analysis.tasks.manual_size_analysis_comparison.apply_async")
     def test_post_comparison_multiple_metrics(self, mock_apply_async):
-        """Test POST endpoint handles multiple size metrics correctly"""
+        """Test POST endpoint handles multiple size metrics correctly and creates PENDING records"""
         # Create additional size metrics
-        PreprodArtifactSizeMetrics.objects.create(
+        head_watch_metric = PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=self.head_artifact,
             analysis_file_id=self.head_analysis_file.id,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
@@ -606,7 +654,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
 
-        PreprodArtifactSizeMetrics.objects.create(
+        base_watch_metric = PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=self.base_artifact,
             analysis_file_id=self.base_analysis_file.id,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
@@ -617,6 +665,29 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         response = self.client.post(self._get_url())
 
         assert response.status_code == 200
+        data = response.json()
+
+        # Verify response
+        assert data["status"] == "created"
+        assert len(data["comparisons"]) == 2
+
+        # Verify both comparisons are PENDING
+        for comparison_data in data["comparisons"]:
+            assert comparison_data["state"] == PreprodArtifactSizeComparison.State.PENDING
+            assert comparison_data["comparison_id"] is None
+
+        # Verify both PENDING records were created in database
+        main_comparison = PreprodArtifactSizeComparison.objects.get(
+            head_size_analysis=self.head_size_metric,
+            base_size_analysis=self.base_size_metric,
+        )
+        assert main_comparison.state == PreprodArtifactSizeComparison.State.PENDING
+
+        watch_comparison = PreprodArtifactSizeComparison.objects.get(
+            head_size_analysis=head_watch_metric,
+            base_size_analysis=base_watch_metric,
+        )
+        assert watch_comparison.state == PreprodArtifactSizeComparison.State.PENDING
 
         mock_apply_async.assert_called_once_with(
             kwargs={
