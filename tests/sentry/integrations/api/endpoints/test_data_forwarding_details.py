@@ -7,7 +7,7 @@ from sentry.testutils.silo import region_silo_test
 
 @region_silo_test
 class DataForwardingDetailsEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-organization-forwarding-config"
+    endpoint = "sentry-api-0-organization-forwarding-details"
 
     def setUp(self) -> None:
         super().setUp()

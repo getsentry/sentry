@@ -208,6 +208,7 @@ class DataForwarderSerializerTest(TestCase):
                         "organization_id": self.organization.id,
                         "provider": DataForwarderProviderSlug.SQS,
                         "config": config,
+                        "project_ids": [],
                     }
                 )
                 assert serializer.is_valid(), f"Region {region} should be valid"
@@ -452,6 +453,7 @@ class DataForwarderSerializerTest(TestCase):
                 "organization_id": self.organization.id,
                 "provider": DataForwarderProviderSlug.SEGMENT,
                 "config": {"write_key": "new_key"},
+                "project_ids": [],
             }
         )
         assert not serializer.is_valid()
