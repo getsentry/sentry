@@ -25,23 +25,17 @@ class NotificationServiceError(Exception):
     pass
 
 
+def _render_template[T: NotificationData, RenderableT](
+    data: T, template: NotificationTemplate[T], provider: type[NotificationProvider[RenderableT]]
+) -> RenderableT:
+    rendered_template = template.render(data=data)
+    renderer = provider.get_renderer(data=data, category=template.category)
+    return renderer.render(data=data, rendered_template=rendered_template)
+
+
 class NotificationService[T: NotificationData]:
     def __init__(self, *, data: T):
         self.data: Final[T] = data
-
-    def _get_and_validate_provider(
-        self, target: NotificationTarget
-    ) -> type[NotificationProvider[T]]:
-        provider = provider_registry.get(target.provider_key)
-        provider.validate_target(target=target)
-        return provider
-
-    def _render_template[RenderableT](
-        self, template: NotificationTemplate[T], provider: type[NotificationProvider[RenderableT]]
-    ) -> RenderableT:
-        rendered_template = template.render(data=self.data)
-        renderer = provider.get_renderer(data=self.data, category=template.category)
-        return renderer.render(data=self.data, rendered_template=rendered_template)
 
     def notify_target(
         self, *, target: NotificationTarget
@@ -64,12 +58,13 @@ class NotificationService[T: NotificationData]:
             notification_provider=target.provider_key,
         ).capture() as lifecycle:
             # Step 1: Get the provider, and validate the target against it
-            provider = self._get_and_validate_provider(target=target)
+            provider = provider_registry.get(target.provider_key)
+            provider.validate_target(target=target)
 
             # Step 2: Render the template
             template_cls = template_registry.get(self.data.source)
             template = template_cls()
-            renderable = self._render_template(template=template, provider=provider)
+            renderable = _render_template(data=self.data, template=template, provider=provider)
 
             # Step 3: Send the notification
             try:
