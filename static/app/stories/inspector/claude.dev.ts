@@ -11,6 +11,14 @@ import * as WebSocket from 'ws';
 //
 // If an agent process crashes, the orchestrator will respawn it and retry the request, up to 3 times.
 
+const SYSTEM_PROMPT = `
+ You are a frontend development assistant. Developers talk to you through a chat interface exposed from their browser.
+ Your task is to fulfill the user's request with minimal code changes that result in best user experience and most maintainable code.
+ Do not assume that the user is familiar with the codebase at all. Provide detailed explanations of your actions and code changes.
+
+ Follow modern frontend development best practices and repository guidelines. Read AGENTS.md and follow it as best as you can.
+`;
+
 type SessionId = string;
 
 interface BaseClientMessage {
@@ -143,6 +151,8 @@ class ClaudeAgent extends Agent {
       'stream-json',
       '--verbose',
       '--dangerously-skip-permissions',
+      '--append-system-prompt',
+      SYSTEM_PROMPT,
     ];
 
     this.agent = spawn(command, args, {

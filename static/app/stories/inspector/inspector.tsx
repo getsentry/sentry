@@ -3,6 +3,7 @@ import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import {css, useTheme} from '@emotion/react';
 import color from 'color';
+import {AnimatePresence} from 'framer-motion';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -19,6 +20,7 @@ import {
 } from 'sentry/components/profiling/profilingContextMenu';
 import {NODE_ENV} from 'sentry/constants';
 import {IconChevron, IconCopy, IconDocs, IconLink, IconOpen} from 'sentry/icons';
+import {IconBot} from 'sentry/icons/iconBot';
 import {t} from 'sentry/locale';
 import {
   isMDXStory,
@@ -31,6 +33,7 @@ import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
+import {AIChat} from './ai-overlay';
 import {
   getComponentName,
   getComponentStorybookFile,
@@ -321,7 +324,7 @@ export function SentryComponentInspector() {
   }
 
   return createPortal(
-    <Fragment>
+    <AnimatePresence>
       {state.enabled === 'inspector' ? (
         <Overlay
           ref={tooltipRef}
@@ -411,6 +414,12 @@ export function SentryComponentInspector() {
                           sourcePath={sourcePath}
                           el={el}
                           storybook={getComponentStorybookFile(el, storybookFilesLookup)}
+                          onAIAssistant={() => {
+                            setState(prev => ({
+                              ...prev,
+                              enabled: 'ai-assistant',
+                            }));
+                          }}
                           onAction={() => {
                             contextMenu.setOpen(false);
 
@@ -435,6 +444,11 @@ export function SentryComponentInspector() {
             id="sub-menu-portal"
           />
         </Fragment>
+      ) : state.enabled === 'ai-assistant' ? (
+        <AIChat
+          onClose={() => setState(prev => ({...prev, enabled: 'inspector'}))}
+          onSubmit={() => {}}
+        />
       ) : null}
       {state.enabled === null ? null : (
         <style>
@@ -465,7 +479,7 @@ export function SentryComponentInspector() {
         `}
         </style>
       )}
-    </Fragment>,
+    </AnimatePresence>,
     document.body
   );
 }
@@ -474,6 +488,7 @@ function MenuItem(props: {
   componentName: string;
   contextMenu: ReturnType<typeof useContextMenu>;
   el: TraceElement;
+  onAIAssistant: () => void;
   onAction: () => void;
   sourcePath: string;
   storybook: string | null;
@@ -607,6 +622,14 @@ function MenuItem(props: {
                     {t('View Storybook')}
                   </ProfilingContextMenuItemButton>
                 ) : null}
+                <ProfilingContextMenuItemButton
+                  {...props.contextMenu.getMenuItemProps({
+                    onClick: props.onAIAssistant,
+                  })}
+                  icon={<IconBot size="xs" />}
+                >
+                  {t('Edit with AI Assistant')}
+                </ProfilingContextMenuItemButton>
                 <ProfilingContextMenuItemButton
                   {...props.contextMenu.getMenuItemProps({
                     onClick: () => {
