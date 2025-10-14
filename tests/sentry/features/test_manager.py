@@ -44,12 +44,6 @@ class MockBatchHandler(features.BatchFeatureHandler):
 
         return {"unscoped": feature_results}
 
-    def has_batch_for_organizations(self, feature_names, actor, organizations):
-        feature_results = {
-            feature_name: True for feature_name in feature_names if feature_name in self.features
-        }
-        return {f"organization:{org.id}": feature_results for org in organizations}
-
     def _check_for_batch(self, feature_name, organization, actor):
         raise NotImplementedError
 
