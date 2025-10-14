@@ -146,6 +146,7 @@ function ReceiptGrid({
 }) {
   const theme = useTheme();
   const isMobile = useMedia(`(width < ${theme.breakpoints.md})`);
+  const isNewBillingUI = hasNewBillingUI(organization);
 
   const getTag = (payment: InvoiceBase) => {
     const status = payment.amountRefunded
@@ -234,7 +235,11 @@ function ReceiptGrid({
                 {payment.id}
               </Text>
               <Flex justify="end">
-                <LinkButton icon={<IconDownload />} href={payment.receipt.url}>
+                <LinkButton
+                  analyticsParams={{isNewBillingUI}}
+                  icon={<IconDownload />}
+                  href={payment.receipt.url}
+                >
                   {isMobile ? undefined : t('Download PDF')}
                 </LinkButton>
               </Flex>

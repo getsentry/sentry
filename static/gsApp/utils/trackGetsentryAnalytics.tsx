@@ -196,10 +196,20 @@ type GetsentryEventParameters = {
   'subscription_page.display_mode.changed': {
     display_mode: 'usage' | 'cost';
   } & HasSub;
-  'subscription_page.usagelog_filter.clicked': {selection: string};
-  'subscription_page.viewed': {
-    page_tab: string;
+  'subscription_page.download_reports.clicked': {
+    reportType: 'summary' | 'project_breakdown';
+  };
+  'subscription_page.usage_overview.add_on_toggled': {
+    addOnCategory: AddOnCategory;
+    isOpen: boolean;
   } & HasSub;
+  'subscription_page.usage_overview.row_clicked': {
+    dataCategory: DataCategory;
+  } & HasSub;
+  'subscription_page.usage_overview.transform_changed': {
+    transform: string;
+  } & HasSub;
+  'subscription_page.usagelog_filter.clicked': {selection: string};
   'trial_ended_notice.dismissed_understood': HasSub;
   'trial_reset_notification.modal_dismissed': HasSub;
   'upgrade_now.alert.dismiss': UpdateProps;
@@ -299,7 +309,8 @@ export const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
   'billing_failure.updated_cc': 'Billing Failure: Updated CC',
   'add_event_cta.clicked_cta': 'Add Event CTA: Clicked CTA',
   'subscription_page.usagelog_filter.clicked': 'Usage Log Filter: Clicked',
-  'subscription_page.viewed': 'Subscription Page: Viewed',
+  'subscription_page.download_reports.clicked':
+    'Subscription Page: Download Reports Clicked',
   'sales.contact_us_clicked': 'Clicked Contact Sales',
   'disabled_member_view.loaded': 'Disabled Member View: Loaded',
   'disabled_member_view.clicked_upgrade_request':
@@ -348,6 +359,12 @@ export const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
   'gen_ai_consent.in_drawer_clicked': 'Gen AI Consent: Clicked In Drawer',
   'gen_ai_consent.view_in_settings_clicked': 'Gen AI Consent: View in Settings Clicked',
   'subscription_page.display_mode.changed': 'Subscription Page: Display Mode Changed',
+  'subscription_page.usage_overview.row_clicked':
+    'Subscription Page: Usage Overview Row Clicked',
+  'subscription_page.usage_overview.transform_changed':
+    'Subscription Page: Usage Overview Transform Changed',
+  'subscription_page.usage_overview.add_on_toggled':
+    'Subscription Page: Usage Overview Add On Toggled',
 };
 
 const trackGetsentryAnalytics = makeAnalyticsFunction<

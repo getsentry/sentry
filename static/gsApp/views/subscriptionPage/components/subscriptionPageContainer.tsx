@@ -32,7 +32,7 @@ function SubscriptionPageContainer({
 
   const isNewBillingUI = hasNewBillingUI(organization);
   useRouteAnalyticsParams({
-    is_new_billing_ui: isNewBillingUI,
+    isNewBillingUI,
   });
 
   if (!isNewBillingUI) {

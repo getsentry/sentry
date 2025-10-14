@@ -151,6 +151,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
           />
           <NotificationsFooter>
             <NotificationButtons
+              isNewBillingUI={isNewBillingUI}
               onDemandEnabled={subscription.planDetails.allowOnDemand}
               backendThresholds={backendThresholds}
               notificationThresholds={notificationThresholds}
@@ -185,6 +186,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
         )}
         action={
           <NotificationButtons
+            isNewBillingUI={isNewBillingUI}
             onDemandEnabled={subscription.planDetails.allowOnDemand}
             backendThresholds={backendThresholds}
             notificationThresholds={notificationThresholds}
@@ -344,7 +346,9 @@ function NotificationButtons({
   setNotificationThresholds,
   onSubmit,
   onDemandEnabled,
+  isNewBillingUI,
 }: {
+  isNewBillingUI: boolean;
   onDemandEnabled: boolean;
   onSubmit: () => void;
   setNotificationThresholds: (newThresholds: ThresholdsType) => void;
@@ -365,6 +369,7 @@ function NotificationButtons({
           }
           setNotificationThresholds(backendThresholds);
         }}
+        analyticsParams={{isNewBillingUI}}
       >
         {t('Reset')}
       </Button>
@@ -380,6 +385,7 @@ function NotificationButtons({
             notificationThresholds.perProductOndemandPercent.length === 0)
         }
         onClick={onSubmit}
+        analyticsParams={{isNewBillingUI}}
       >
         {t('Save changes')}
       </Button>

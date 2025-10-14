@@ -53,6 +53,7 @@ import {
   getPlanCategoryName,
   sortCategories,
 } from 'getsentry/utils/dataCategory';
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
 import CategoryUsageDrawer from 'getsentry/views/subscriptionPage/components/categoryUsageDrawer';
 import {EMPTY_STAT_TOTAL} from 'getsentry/views/subscriptionPage/usageTotals';
@@ -486,9 +487,18 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
                           ? t('Collapse %s details', product)
                           : t('Expand %s details', product)
                       }
-                      onClick={() =>
-                        setOpenState(prev => ({...prev, [toggleKey as string]: !isOpen}))
-                      }
+                      onClick={() => {
+                        setOpenState(prev => ({...prev, [toggleKey as string]: !isOpen}));
+                        trackGetsentryAnalytics(
+                          'subscription_page.usage_overview.add_on_toggled',
+                          {
+                            organization,
+                            subscription,
+                            addOnCategory: toggleKey as AddOnCategory,
+                            isOpen: !!isOpen,
+                          }
+                        );
+                      }}
                     >
                       {title}
                     </StyledButton>
@@ -657,6 +667,11 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
         if (row.dataCategory) {
           const categoryInfo = getCategoryInfoFromPlural(row.dataCategory);
           if (categoryInfo?.tallyType === 'usage') {
+            trackGetsentryAnalytics('subscription_page.usage_overview.row_clicked', {
+              organization,
+              subscription,
+              dataCategory: row.dataCategory,
+            });
             navigate({
               pathname: location.pathname,
               query: {...location.query, drawer: row.dataCategory},
@@ -722,6 +737,10 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
               aria-label={t('Download as CSV')}
               disabled={isPending || isError}
               onClick={() => {
+                trackGetsentryAnalytics('subscription_page.download_reports.clicked', {
+                  organization,
+                  reportType: 'summary',
+                });
                 if (currentHistory) {
                   window.open(currentHistory.links.csv, '_blank');
                 }

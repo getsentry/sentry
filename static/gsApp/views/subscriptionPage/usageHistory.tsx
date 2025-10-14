@@ -42,6 +42,7 @@ import {
   hasNewBillingUI,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
@@ -183,6 +184,7 @@ type RowProps = {
 };
 
 function UsageHistoryRow({history, subscription}: RowProps) {
+  const organization = useOrganization();
   const [expanded, setExpanded] = useState<boolean>(history.isCurrent);
 
   function renderOnDemandUsage({
@@ -292,6 +294,13 @@ function UsageHistoryRow({history, subscription}: RowProps) {
                   key: 'summary',
                   label: t('Summary'),
                   onAction: () => {
+                    trackGetsentryAnalytics(
+                      'subscription_page.download_reports.clicked',
+                      {
+                        organization,
+                        reportType: 'summary',
+                      }
+                    );
                     window.open(history.links.csv, '_blank');
                   },
                 },
@@ -299,6 +308,13 @@ function UsageHistoryRow({history, subscription}: RowProps) {
                   key: 'project-breakdown',
                   label: t('Project Breakdown'),
                   onAction: () => {
+                    trackGetsentryAnalytics(
+                      'subscription_page.download_reports.clicked',
+                      {
+                        organization,
+                        reportType: 'project_breakdown',
+                      }
+                    );
                     window.open(history.links.csvPerProject, '_blank');
                   },
                 },
