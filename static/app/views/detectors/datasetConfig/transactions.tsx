@@ -115,17 +115,7 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
     getTimePeriods: interval => getStandardTimePeriodsForInterval(interval),
     separateEventTypesFromQuery: query =>
       parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
-    toSnubaQueryString: snubaQuery => {
-      if (!snubaQuery) {
-        return '';
-      }
-
-      if (snubaQuery.query.includes('event.type:transaction')) {
-        return snubaQuery.query;
-      }
-
-      return `event.type:transaction ${snubaQuery.query}`;
-    },
+    toSnubaQueryString: snubaQuery => snubaQuery?.query ?? '',
     transformSeriesQueryData: (data, aggregate) => {
       return [transformEventsStatsToSeries(data, aggregate)];
     },
