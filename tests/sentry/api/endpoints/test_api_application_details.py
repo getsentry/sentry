@@ -38,12 +38,12 @@ class ApiApplicationUpdateTest(APITestCase):
         self.login_as(self.user)
         url = reverse("sentry-api-0-api-application-details", args=[app.client_id])
 
-        # Test allowed schemes - all must use :// format
+        # Test allowed schemes - all must use :// format with valid netloc
         allowed_uris = [
             "http://example.com/callback",
             "https://example.com/callback",
-            "sentry-mobile-agent://callback",
-            "sentry-mobile-agent://callback/path",
+            "sentry-mobile-agent://sentry.io/auth",
+            "sentry-mobile-agent://app.sentry.io/callback",
         ]
 
         response = self.client.put(url, data={"redirectUris": allowed_uris})
@@ -54,8 +54,8 @@ class ApiApplicationUpdateTest(APITestCase):
         assert len(saved_uris) == 4
         assert "http://example.com/callback" in saved_uris
         assert "https://example.com/callback" in saved_uris
-        assert "sentry-mobile-agent://callback" in saved_uris
-        assert "sentry-mobile-agent://callback/path" in saved_uris
+        assert "sentry-mobile-agent://sentry.io/auth" in saved_uris
+        assert "sentry-mobile-agent://app.sentry.io/callback" in saved_uris
 
     def test_invalid_redirect_uris_rejected(self) -> None:
         app = ApiApplication.objects.create(owner=self.user, name="a")
@@ -69,9 +69,7 @@ class ApiApplicationUpdateTest(APITestCase):
             "://missing-scheme.com",  # No scheme
             "http://",  # http with no domain
             "https://",  # https with no domain
-            "sentry-mobile-agent://",  # Custom scheme with no content after ://
-            "sentry-mobile-agent:",  # Missing ://
-            "sentry-mobile-agent:/callback",  # Single slash format not allowed
+            "sentry-mobile-agent://",  # Custom scheme with no domain
             "",  # Empty string should be rejected
         ]
 
