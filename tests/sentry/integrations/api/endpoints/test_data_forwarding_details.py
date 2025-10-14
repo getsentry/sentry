@@ -46,6 +46,38 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         assert data_forwarder.is_enabled is False
         assert data_forwarder.enroll_new_projects is True
 
+    def test_update_reenrolls_previously_enrolled_project(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "test_key"},
+        )
+
+        project = self.create_project(organization=self.organization)
+
+        # Enroll project initially with is_enabled=False
+        DataForwarderProject.objects.create(
+            data_forwarder=data_forwarder,
+            project=project,
+            is_enabled=False,
+        )
+
+        # Update the data forwarder with the same project in project_ids
+        payload = {
+            "provider": DataForwarderProviderSlug.SEGMENT,
+            "config": {"write_key": "test_key"},
+            "project_ids": [project.id],
+        }
+
+        self.get_success_response(
+            self.organization.slug, data_forwarder.id, status_code=200, **payload
+        )
+
+        # Verify the project is now enabled (update_or_create should update it)
+        project_config = DataForwarderProject.objects.get(
+            data_forwarder=data_forwarder, project=project
+        )
+        assert project_config.is_enabled is True
+
     def test_update_with_project_ids(self) -> None:
         data_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
@@ -283,6 +315,115 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
             "config": {"write_key": "new_key"},
+        }
+
+        self.get_error_response(
+            self.organization.slug, data_forwarder.id, status_code=403, **payload
+        )
+
+    def test_update_with_missing_project_ids_for_project_write(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "test_key"},
+        )
+
+        user = self.create_user()
+        self.create_member(
+            user=user,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+            teamRole="admin",
+        )
+        self.login_as(user=user)
+
+        # project:write path requires project_ids
+        payload = {
+            "overrides": {"custom": "value"},
+        }
+
+        response = self.get_error_response(
+            self.organization.slug, data_forwarder.id, status_code=400, **payload
+        )
+        assert "project_ids" in response.data
+
+    def test_update_with_mixed_valid_and_invalid_project_ids(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "test_key"},
+        )
+
+        project = self.create_project(organization=self.organization)
+
+        user = self.create_user()
+        self.create_member(
+            user=user,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+            teamRole="admin",
+        )
+        self.login_as(user=user)
+
+        payload = {
+            "project_ids": [project.id, 99999],
+            "overrides": {"custom": "value"},
+        }
+
+        response = self.get_error_response(
+            self.organization.slug, data_forwarder.id, status_code=400, **payload
+        )
+        assert "invalid project ids" in str(response.data).lower()
+        assert "99999" in str(response.data)
+
+    def test_update_with_project_from_different_organization(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "test_key"},
+        )
+
+        # Create a project in a different organization
+        other_org = self.create_organization(name="Other Org")
+        other_project = self.create_project(organization=other_org)
+
+        user = self.create_user()
+        self.create_member(
+            user=user,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+            teamRole="admin",
+        )
+        self.login_as(user=user)
+
+        payload = {
+            "project_ids": [other_project.id],
+            "overrides": {"custom": "value"},
+        }
+
+        response = self.get_error_response(
+            self.organization.slug, data_forwarder.id, status_code=400, **payload
+        )
+        assert "invalid project ids" in str(response.data).lower()
+
+    def test_update_without_team_membership_denies_access(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "test_key"},
+        )
+
+        user = self.create_user()
+        self.create_member(
+            user=user,
+            organization=self.organization,
+            role="member",
+            teams=[],  # No team membership
+        )
+        self.login_as(user=user)
+
+        payload = {
+            "project_ids": [],
+            "overrides": {"custom": "value"},
         }
 
         self.get_error_response(

@@ -232,16 +232,13 @@ class DataForwarderSerializer(Serializer):
                 f"Invalid project IDs for this organization: {', '.join(map(str, invalid_ids))}"
             )
 
-        # Enroll specified projects
-        project_configs = [
-            DataForwarderProject(
+        # Enroll or update specified projects
+        for project_id in valid_project_ids:
+            DataForwarderProject.objects.update_or_create(
                 data_forwarder=instance,
                 project_id=project_id,
-                is_enabled=True,
+                defaults={"is_enabled": True},
             )
-            for project_id in valid_project_ids
-        ]
-        DataForwarderProject.objects.bulk_create(project_configs, ignore_conflicts=True)
 
         # Unenroll projects not in the list
         DataForwarderProject.objects.filter(data_forwarder=instance).exclude(
