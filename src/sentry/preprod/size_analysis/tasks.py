@@ -283,6 +283,7 @@ def _run_size_analysis_comparison(
     head_size_metric: PreprodArtifactSizeMetrics,
     base_size_metric: PreprodArtifactSizeMetrics,
 ):
+    comparison = None
     try:
         comparison = PreprodArtifactSizeComparison.objects.get(
             head_size_analysis=head_size_metric,
@@ -290,7 +291,7 @@ def _run_size_analysis_comparison(
             organization_id=org_id,
         )
 
-        # Existing comparison exists or is already running,
+        # Skip if comparison is already complete or currently running
         if comparison.state in [
             PreprodArtifactSizeComparison.State.PROCESSING,
             PreprodArtifactSizeComparison.State.SUCCESS,
@@ -301,9 +302,20 @@ def _run_size_analysis_comparison(
                 extra={
                     "head_artifact_size_metric_id": head_size_metric.id,
                     "base_artifact_size_metric_id": base_size_metric.id,
+                    "state": comparison.state,
                 },
             )
             return
+
+        # PENDING state - transition to PROCESSING
+        if comparison.state == PreprodArtifactSizeComparison.State.PENDING:
+            logger.info(
+                "preprod.size_analysis.compare.transitioning_pending_to_processing",
+                extra={
+                    "head_artifact_size_metric_id": head_size_metric.id,
+                    "base_artifact_size_metric_id": base_size_metric.id,
+                },
+            )
 
     except PreprodArtifactSizeComparison.DoesNotExist:
         logger.info(
@@ -350,12 +362,17 @@ def _run_size_analysis_comparison(
         },
     )
 
-    comparison = PreprodArtifactSizeComparison.objects.create(
-        head_size_analysis=head_size_metric,
-        base_size_analysis=base_size_metric,
-        organization_id=org_id,
-        state=PreprodArtifactSizeComparison.State.PROCESSING,
-    )
+    # Update existing PENDING comparison or create new one
+    if comparison:
+        comparison.state = PreprodArtifactSizeComparison.State.PROCESSING
+        comparison.save()
+    else:
+        comparison = PreprodArtifactSizeComparison.objects.create(
+            head_size_analysis=head_size_metric,
+            base_size_analysis=base_size_metric,
+            organization_id=org_id,
+            state=PreprodArtifactSizeComparison.State.PROCESSING,
+        )
 
     comparison_results = compare_size_analysis(
         head_size_analysis=head_size_metric,
