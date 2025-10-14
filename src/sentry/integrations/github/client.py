@@ -153,7 +153,8 @@ class GithubProxyClient(IntegrationProxyClient):
         )
         data = self.post(f"/app/installations/{self._get_installation_id()}/access_tokens")
         access_token = data["token"]
-        expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
+        expiration_time = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ")
+        expires_at = expiration_time.isoformat()
         permissions = data.get("permissions")
         integration.metadata.update(
             {
@@ -176,7 +177,7 @@ class GithubProxyClient(IntegrationProxyClient):
         return {
             "access_token": access_token,
             "permissions": permissions,
-            "expires_at": expires_at,
+            "expires_at": expiration_time,
         }
 
     @control_silo_function

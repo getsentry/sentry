@@ -46,7 +46,7 @@ class CredentialLeasable(ABC):
 class CredentialLease:
     access_token: str
     permissions: dict[str, str] | None
-    expires_at: datetime
+    expires_at: datetime | None
 
 
 class InvalidCredentialLeaseTarget(Exception):
