@@ -12,8 +12,10 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.parameters import GlobalParams
+from sentry.integrations.api.serializers.models.data_forwarder import (
+    DataForwarderSerializer as DataForwarderModelSerializer,
+)
 from sentry.integrations.api.serializers.rest_framework.data_forwarder import (
-    DataForwarderModelSerializer,
     DataForwarderSerializer,
 )
 from sentry.integrations.models.data_forwarder import DataForwarder
