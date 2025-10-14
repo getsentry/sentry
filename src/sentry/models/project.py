@@ -641,7 +641,6 @@ class Project(Model):
 
         # Delete code mappings to prevent them from being stuck on the old org
         ProjectCodeOwners.objects.filter(project_id=self.id).delete()
-        # Delete code mappings to prevent them from being stuck on the old org
         RepositoryProjectPathConfig.objects.filter(project_id=self.id).delete()
 
         for external_issues in chunked(
