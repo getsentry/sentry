@@ -41,35 +41,6 @@ export const vitalStateIcons: Record<VitalState, React.ReactNode> = {
   [VitalState.GOOD]: <IconHappy color={vitalStateColors[VitalState.GOOD]} />,
 };
 
-export function vitalNameFromLocation(location: Location): WebVital {
-  const _vitalName = decodeScalar(location.query.vitalName);
-
-  const vitalName = Object.values(WebVital).find(v => v === _vitalName);
-
-  if (vitalName) {
-    return vitalName;
-  }
-  return WebVital.LCP;
-}
-
-export function getVitalDetailTablePoorStatusFunction(vitalName: WebVital): string {
-  // @ts-expect-error TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
-  const vitalThreshold = webVitalPoor[vitalName];
-  const statusFunction = `compare_numeric_aggregate(${getAggregateAlias(
-    `p75(${vitalName})`
-  )},greater,${vitalThreshold})`;
-  return statusFunction;
-}
-
-export function getVitalDetailTableMehStatusFunction(vitalName: WebVital): string {
-  // @ts-expect-error TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
-  const vitalThreshold = webVitalMeh[vitalName];
-  const statusFunction = `compare_numeric_aggregate(${getAggregateAlias(
-    `p75(${vitalName})`
-  )},greater,${vitalThreshold})`;
-  return statusFunction;
-}
-
 export const vitalSupportedBrowsers: Partial<Record<WebVital, Browser[]>> = {
   [WebVital.LCP]: [Browser.CHROME, Browser.EDGE, Browser.OPERA, Browser.FIREFOX],
   [WebVital.FID]: [
