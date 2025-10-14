@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -39,21 +38,16 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
 
   const queryClient = useQueryClient();
 
-  const [showRefreshButton, setShowRefreshButton] = useState(false);
-
   const countSegments = usePollReplayRecord({
-    enabled: isLive && !showRefreshButton,
+    enabled: isLive,
     replayId,
     orgSlug,
   });
 
-  if (countSegments && replayRecord?.count_segments) {
-    if (countSegments > replayRecord.count_segments && !showRefreshButton) {
-      setShowRefreshButton(true);
-    } else if (countSegments <= replayRecord.count_segments && showRefreshButton) {
-      setShowRefreshButton(false);
-    }
-  }
+  const showRefreshButton =
+    countSegments && replayRecord?.count_segments
+      ? countSegments > replayRecord.count_segments
+      : false;
 
   // Generate search query based on available user data
   const getUserSearchQuery = () => {
@@ -79,7 +73,6 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const {startSummaryRequest} = useReplaySummaryContext();
 
   const handleRefresh = () => {
-    setShowRefreshButton(false);
     queryClient
       .refetchQueries({
         queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
