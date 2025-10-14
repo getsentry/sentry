@@ -2,8 +2,10 @@ import {useMemo} from 'react';
 
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {NewQuery} from 'sentry/types/organization';
+import {useDiscoverQuery, type TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
@@ -13,6 +15,7 @@ interface UseTraceTelemetryOptions {
 }
 
 interface TraceTelemetryData {
+  errorsCount: number;
   logsCount: number;
   spansCount: number;
   trace: string;
@@ -27,7 +30,34 @@ export function useTraceTelemetry({
   enabled,
   traceIds,
 }: UseTraceTelemetryOptions): TraceTelemetryResult {
+  const organization = useOrganization();
   const {selection} = usePageFilters();
+
+  // Query for error count
+  const errorsEventView = useMemo(() => {
+    const traceFilter = new MutableSearch('').addFilterValueList('trace', traceIds);
+    const discoverQuery: NewQuery = {
+      id: undefined,
+      name: 'Error Count',
+      fields: ['trace', 'count()'],
+      orderby: '-count',
+      query: traceFilter.formatString(),
+      version: 2,
+      dataset: DiscoverDatasets.ERRORS,
+    };
+    return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
+  }, [traceIds, selection]);
+
+  const errorsResult = useDiscoverQuery({
+    eventView: errorsEventView,
+    limit: traceIds.length,
+    referrer: 'api.explore.trace-errors-count',
+    orgSlug: organization.slug,
+    location,
+    options: {
+      enabled: enabled && errorsEventView !== null,
+    },
+  });
 
   // Query for spans count
   const spansEventView = useMemo(() => {
@@ -90,6 +120,7 @@ export function useTraceTelemetry({
         trace: traceId,
         spansCount: 0,
         logsCount: 0,
+        errorsCount: 0,
       });
     });
 
@@ -115,8 +146,19 @@ export function useTraceTelemetry({
       });
     }
 
+    // Populate errors count
+    if (errorsResult.data) {
+      errorsResult.data.data.forEach((row: TableDataRow) => {
+        const traceId = row.trace as string;
+        const count = row['count(id)'] as number;
+        if (dataMap.has(traceId)) {
+          dataMap.get(traceId)!.errorsCount = count;
+        }
+      });
+    }
+
     return dataMap;
-  }, [traceIds, spansResult.data, logsResult.data]);
+  }, [traceIds, spansResult.data, logsResult.data, errorsResult.data]);
 
   return {
     data: telemetryData,
