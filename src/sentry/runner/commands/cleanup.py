@@ -478,7 +478,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]
         (RuleFireHistory, "date_added", "date_added"),
         (Release, "date_added", "date_added"),
         (File, "timestamp", "timestamp"),
-        (Commit, "date_added", "id"),
+        (Commit, "date_added", "date_added"),
     ]
 
 
