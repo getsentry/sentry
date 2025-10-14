@@ -3,6 +3,7 @@ import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import {css, useTheme} from '@emotion/react';
 import color from 'color';
+import {AnimatePresence} from 'framer-motion';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -19,6 +20,7 @@ import {
 } from 'sentry/components/profiling/profilingContextMenu';
 import {NODE_ENV} from 'sentry/constants';
 import {IconChevron, IconCopy, IconDocs, IconLink, IconOpen} from 'sentry/icons';
+import {IconBot} from 'sentry/icons/iconBot';
 import {t} from 'sentry/locale';
 import {
   isMDXStory,
@@ -31,7 +33,17 @@ import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
-type TraceElement = HTMLElement | SVGElement;
+import {AIChat} from './ai-overlay';
+import {
+  getComponentName,
+  getComponentStorybookFile,
+  getSourcePath,
+  getSourcePathFromMouseEvent,
+  isCoreComponent,
+  isTraceElement,
+  isViewComponent,
+  type TraceElement,
+} from './componentTrace';
 
 const CURSOR_OFFSET_RIGHT = 4;
 const CURSOR_OFFSET_LEFT = 8;
@@ -46,8 +58,9 @@ export function SentryComponentInspector() {
 
   const user: ReturnType<typeof useUser> | null = useUser();
   const organization = useOrganization({allowNull: true});
+
   const [state, setState] = useState<{
-    enabled: null | 'inspector' | 'context-menu';
+    enabled: null | 'inspector' | 'context-menu' | 'ai-assistant';
     trace: TraceElement[] | null;
   }>({
     enabled: null,
@@ -83,18 +96,6 @@ export function SentryComponentInspector() {
     top: number;
   } | null>(null);
 
-  const copyToClipboard = useCallback((text: string) => {
-    navigator.clipboard?.writeText(text).catch(() => {
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-    });
-  }, []);
-
   // Store the state in a ref to avoid re-rendering inside the listeners
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -103,6 +104,7 @@ export function SentryComponentInspector() {
     if (!user || !user.isSuperuser || NODE_ENV !== 'development') {
       return () => {};
     }
+
     const onMouseMove = (event: MouseEvent & {preventTrace?: boolean}) => {
       window.requestAnimationFrame(() => {
         if (tooltipRef.current) {
@@ -322,7 +324,7 @@ export function SentryComponentInspector() {
   }
 
   return createPortal(
-    <Fragment>
+    <AnimatePresence>
       {state.enabled === 'inspector' ? (
         <Overlay
           ref={tooltipRef}
@@ -355,7 +357,7 @@ export function SentryComponentInspector() {
                           {getComponentStorybookFile(el, storybookFilesLookup) ? (
                             <IconDocs size="xs" />
                           ) : null}
-                          <ComponentTag el={el} />
+                          <ComponentTraceTag el={el} />
                         </Flex>
                       </Flex>
                       <Text size="xs" variant="muted" ellipsis monospace>
@@ -377,7 +379,7 @@ export function SentryComponentInspector() {
             )}
           </Flex>
         </Overlay>
-      ) : state.enabled === 'context-menu' && contextMenu.open ? (
+      ) : state.enabled === 'context-menu' ? (
         <Fragment>
           <ProfilingContextMenu
             data-inspector-skip
@@ -412,15 +414,21 @@ export function SentryComponentInspector() {
                           sourcePath={sourcePath}
                           el={el}
                           storybook={getComponentStorybookFile(el, storybookFilesLookup)}
+                          onAIAssistant={() => {
+                            setState(prev => ({
+                              ...prev,
+                              enabled: 'ai-assistant',
+                            }));
+                          }}
                           onAction={() => {
                             contextMenu.setOpen(false);
+
                             setState(prev => ({
                               ...prev,
                               enabled: 'inspector',
                               trace: null,
                             }));
                           }}
-                          copyToClipboard={copyToClipboard}
                           subMenuPortalRef={contextMenu.subMenuRef.current}
                         />
                       );
@@ -436,8 +444,13 @@ export function SentryComponentInspector() {
             id="sub-menu-portal"
           />
         </Fragment>
+      ) : state.enabled === 'ai-assistant' ? (
+        <AIChat
+          onClose={() => setState(prev => ({...prev, enabled: 'inspector'}))}
+          onSubmit={() => {}}
+        />
       ) : null}
-      {state.enabled === 'context-menu' || state.enabled === 'inspector' ? (
+      {state.enabled === null ? null : (
         <style>
           {`
 
@@ -465,8 +478,8 @@ export function SentryComponentInspector() {
           }
         `}
         </style>
-      ) : null}
-    </Fragment>,
+      )}
+    </AnimatePresence>,
     document.body
   );
 }
@@ -474,14 +487,16 @@ export function SentryComponentInspector() {
 function MenuItem(props: {
   componentName: string;
   contextMenu: ReturnType<typeof useContextMenu>;
-  copyToClipboard: (text: string) => void;
   el: TraceElement;
+  onAIAssistant: () => void;
   onAction: () => void;
   sourcePath: string;
   storybook: string | null;
   subMenuPortalRef: HTMLElement | null;
 }) {
-  // Load story to check for Figma link if it's an MDX file
+  const [isOpen, _setIsOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+
   const storyQuery = useStoriesLoader({
     files: props.storybook?.endsWith('.mdx') ? [props.storybook] : [],
   });
@@ -491,8 +506,6 @@ function MenuItem(props: {
   const figmaLink =
     story && isMDXStory(story) ? story.exports.frontmatter?.resources?.figma : null;
 
-  const [isOpen, _setIsOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
     placement: 'right-start',
     modifiers: [
@@ -514,6 +527,7 @@ function MenuItem(props: {
   );
 
   const currentTarget = useRef<Node | null>(null);
+
   useLayoutEffect(() => {
     const listener = (e: MouseEvent) => {
       window.requestAnimationFrame(() => {
@@ -521,6 +535,7 @@ function MenuItem(props: {
         if (!currentTarget.current) {
           return;
         }
+
         if (
           !triggerRef.current?.contains(currentTarget.current) &&
           !props.subMenuPortalRef?.contains(currentTarget.current)
@@ -529,7 +544,9 @@ function MenuItem(props: {
         }
       });
     };
+
     document.addEventListener('mouseover', listener);
+
     return () => {
       document.removeEventListener('mouseover', listener);
     };
@@ -567,7 +584,7 @@ function MenuItem(props: {
               </Text>
               <Flex direction="row" gap="xs" align="center">
                 {props.storybook ? <IconDocs size="xs" /> : null}
-                <ComponentTag el={props.el} />
+                <ComponentTraceTag el={props.el} />
               </Flex>
             </Flex>
             <Text size="xs" variant="muted" ellipsis align="left" monospace>
@@ -579,84 +596,94 @@ function MenuItem(props: {
           </Flex>
         </Flex>
       </ProfilingContextMenuItemButton>
-      {isOpen &&
-        props.subMenuPortalRef &&
-        createPortal(
-          <ProfilingContextMenu
-            style={popper.styles.popper}
-            css={css`
-              max-height: 250px;
-              z-index: 1000000 !important;
-            `}
-          >
-            <ProfilingContextMenuGroup>
-              <ProfilingContextMenuHeading>{t('Actions')}</ProfilingContextMenuHeading>
-              {props.storybook ? (
+
+      {/* Submenu with copy and AI actions */}
+      {isOpen && props.subMenuPortalRef
+        ? createPortal(
+            <ProfilingContextMenu
+              style={popper.styles.popper}
+              css={css`
+                max-height: 250px;
+                z-index: 1000000 !important;
+              `}
+            >
+              <ProfilingContextMenuGroup>
+                <ProfilingContextMenuHeading>{t('Actions')}</ProfilingContextMenuHeading>
+                {props.storybook ? (
+                  <ProfilingContextMenuItemButton
+                    {...props.contextMenu.getMenuItemProps({
+                      onClick: () => {
+                        window.open(`/stories/?name=${props.storybook}`, '_blank');
+                        props.onAction();
+                      },
+                    })}
+                    icon={<IconLink size="xs" />}
+                  >
+                    {t('View Storybook')}
+                  </ProfilingContextMenuItemButton>
+                ) : null}
+                <ProfilingContextMenuItemButton
+                  {...props.contextMenu.getMenuItemProps({
+                    onClick: props.onAIAssistant,
+                  })}
+                  icon={<IconBot size="xs" />}
+                >
+                  {t('Edit with AI Assistant')}
+                </ProfilingContextMenuItemButton>
                 <ProfilingContextMenuItemButton
                   {...props.contextMenu.getMenuItemProps({
                     onClick: () => {
-                      window.open(`/stories/?name=${props.storybook}`, '_blank');
+                      if (figmaLink) {
+                        window.open(figmaLink, '_blank');
+                        props.onAction();
+                      }
+                    },
+                  })}
+                  disabled={storyQuery.isLoading || !figmaLink}
+                  icon={
+                    storyQuery.isLoading ? (
+                      <LoadingIndicator mini size={12} />
+                    ) : (
+                      <IconOpen size="xs" />
+                    )
+                  }
+                >
+                  {t('Open in Figma')}
+                </ProfilingContextMenuItemButton>
+                <ProfilingContextMenuItemButton
+                  {...props.contextMenu.getMenuItemProps({
+                    onClick: () => {
+                      copyToClipboard(props.componentName);
+                      addSuccessMessage(t('Component name copied to clipboard'));
                       props.onAction();
                     },
                   })}
-                  icon={<IconLink size="xs" />}
+                  icon={<IconCopy size="xs" />}
                 >
-                  {t('View Storybook')}
+                  {t('Copy Component Name')}
                 </ProfilingContextMenuItemButton>
-              ) : null}
-              <ProfilingContextMenuItemButton
-                {...props.contextMenu.getMenuItemProps({
-                  onClick: () => {
-                    if (figmaLink) {
-                      window.open(figmaLink, '_blank');
+                <ProfilingContextMenuItemButton
+                  {...props.contextMenu.getMenuItemProps({
+                    onClick: () => {
+                      copyToClipboard(props.sourcePath);
+                      addSuccessMessage(t('Component path copied to clipboard'));
                       props.onAction();
-                    }
-                  },
-                })}
-                disabled={storyQuery.isLoading || !figmaLink}
-                icon={
-                  storyQuery.isLoading ? (
-                    <LoadingIndicator mini size={12} />
-                  ) : (
-                    <IconOpen size="xs" />
-                  )
-                }
-              >
-                {t('Open in Figma')}
-              </ProfilingContextMenuItemButton>
-              <ProfilingContextMenuItemButton
-                {...props.contextMenu.getMenuItemProps({
-                  onClick: () => {
-                    props.copyToClipboard(props.componentName);
-                    addSuccessMessage(t('Component name copied to clipboard'));
-                    props.onAction();
-                  },
-                })}
-                icon={<IconCopy size="xs" />}
-              >
-                {t('Copy Component Name')}
-              </ProfilingContextMenuItemButton>
-              <ProfilingContextMenuItemButton
-                {...props.contextMenu.getMenuItemProps({
-                  onClick: () => {
-                    props.copyToClipboard(props.sourcePath);
-                    addSuccessMessage(t('Component path copied to clipboard'));
-                    props.onAction();
-                  },
-                })}
-                icon={<IconCopy size="xs" />}
-              >
-                {t('Copy Component Path')}
-              </ProfilingContextMenuItemButton>
-            </ProfilingContextMenuGroup>
-          </ProfilingContextMenu>,
-          props.subMenuPortalRef
-        )}
+                    },
+                  })}
+                  icon={<IconCopy size="xs" />}
+                >
+                  {t('Copy Component Path')}
+                </ProfilingContextMenuItemButton>
+              </ProfilingContextMenuGroup>
+            </ProfilingContextMenu>,
+            props.subMenuPortalRef
+          )
+        : null}
     </Fragment>
   );
 }
 
-function ComponentTag({el}: {el: TraceElement}) {
+function ComponentTraceTag({el}: {el: TraceElement}) {
   if (isCoreComponent(el)) {
     return (
       <Tag type="success">
@@ -707,81 +734,14 @@ function computeTooltipPosition(
   };
 }
 
-function isTraceElement(el: unknown): el is TraceElement {
-  return el instanceof HTMLElement || el instanceof SVGElement;
-}
-
-function getComponentName(el: unknown): string {
-  if (!isTraceElement(el)) return 'unknown';
-  return el.dataset.sentryComponent || el.dataset.sentryElement || 'unknown';
-}
-
-function getSourcePath(el: unknown): string {
-  if (!isTraceElement(el)) return 'unknown path';
-  return el.dataset.sentrySourcePath?.split(/static\//)[1] || 'unknown path';
-}
-
-const getFileName = (path: string) => {
-  return (path.split('/').pop()?.toLowerCase() || '')
-    .replace(/\.stories\.tsx$/, '')
-    .replace(/\.tsx$/, '')
-    .replace(/\.mdx$/, '');
-};
-
-function getComponentStorybookFile(
-  el: unknown,
-  stories: Record<string, string>
-): string | null {
-  const sourcePath = getSourcePath(el);
-  if (!sourcePath) return null;
-
-  const mdxSourcePath = sourcePath.replace(/\.tsx$/, '.mdx');
-
-  if (stories[mdxSourcePath] && getFileName(mdxSourcePath) === getFileName(sourcePath)) {
-    return mdxSourcePath;
-  }
-
-  const tsxSourcePath = sourcePath.replace(/\.tsx$/, '.stories.tsx');
-  if (stories[tsxSourcePath] && getFileName(tsxSourcePath) === getFileName(sourcePath)) {
-    return tsxSourcePath;
-  }
-
-  return stories[sourcePath] || null;
-}
-
-function getSourcePathFromMouseEvent(event: MouseEvent): TraceElement[] | null {
-  if (!event.target || !isTraceElement(event.target)) return null;
-
-  const target = event.target;
-
-  let head = target.dataset.sentrySourcePath
-    ? target
-    : target.closest('[data-sentry-source-path]');
-
-  if (!head) return null;
-
-  const trace: TraceElement[] = [head as TraceElement];
-
-  head = head.parentElement;
-
-  while (head) {
-    const next = head.parentElement?.closest(
-      '[data-sentry-source-path]'
-    ) as TraceElement | null;
-    if (!next || next === head) break;
-    trace.push(next);
-    head = next;
-  }
-
-  return trace;
-}
-
-function isCoreComponent(el: unknown): boolean {
-  if (!isTraceElement(el)) return false;
-  return el.dataset.sentrySourcePath?.includes('app/components/core') ?? false;
-}
-
-function isViewComponent(el: unknown): boolean {
-  if (!isTraceElement(el)) return false;
-  return el.dataset.sentrySourcePath?.includes('app/views') ?? false;
+function copyToClipboard(text: string) {
+  navigator.clipboard?.writeText(text).catch(() => {
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+  });
 }
