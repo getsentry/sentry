@@ -6,7 +6,6 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -221,7 +220,7 @@ const LeftPanel = styled('div')`
   flex: 1;
   min-width: ${LEFT_PANEL_WIDTH}px;
   min-height: 0;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   border-right: 1px solid ${p => p.theme.border};
   overflow-y: auto;
   overflow-x: hidden;
@@ -252,7 +251,7 @@ const LoadingContainer = styled('div')`
 `;
 
 const StyledDrawerHeader = styled(DrawerHeader)`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   display: flex;
 `;
 
@@ -266,5 +265,5 @@ const HeaderContent = styled('div')`
 const SpansHeader = styled('h6')`
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;

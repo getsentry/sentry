@@ -14,7 +14,6 @@ import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/use
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -325,7 +324,7 @@ const BodyCell = memo(function BodyCell({
 
 const GridEditableContainer = styled('div')`
   position: relative;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const LoadingOverlay = styled('div')`
@@ -351,7 +350,7 @@ const HeadCell = styled('div')<{align: 'left' | 'right'}>`
   display: flex;
   flex: 1;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   justify-content: ${p => (p.align === 'right' ? 'flex-end' : 'flex-start')};
 `;
 
