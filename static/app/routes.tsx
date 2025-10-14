@@ -1864,6 +1864,7 @@ function buildRoutes(): RouteObject[] {
       },
       {
         path: 'profiles/',
+        handle: {tab: TransactionSummaryTab.PROFILING},
         component: make(
           () => import('sentry/views/performance/transactionSummary/transactionProfiles')
         ),

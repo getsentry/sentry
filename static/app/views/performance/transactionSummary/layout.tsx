@@ -1,6 +1,9 @@
 import {useMatches} from 'react-router-dom';
+import * as Sentry from '@sentry/react';
+import type {Location} from 'history';
 
 import {t} from 'sentry/locale';
+import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -31,6 +34,7 @@ function TransactionSummaryLayout() {
       tab={handle.tab}
       getDocumentTitle={makeGetDocumentTitle(handle.tab)}
       generateEventView={makeGenerateEventView(handle.tab)}
+      fillSpace={handle.tab === Tab.PROFILING}
     />
   );
 }
@@ -47,12 +51,19 @@ function makeGenerateEventView(tab: Tab) {
       return generateTransactionReplaysEventView;
     case Tab.WEB_VITALS:
       return generateTransactionVitalsEventView;
+    case Tab.PROFILING:
+      return ({location}: {location: Location}) => EventView.fromLocation(location);
     default:
-      throw new Error('Unknown tab');
+      Sentry.captureException(new Error('Unknown Transaction Summary Tab: ' + tab));
+      return ({location}: {location: Location}) => EventView.fromLocation(location);
   }
 }
 
 function makeGetDocumentTitle(tab: Tab) {
+  if (tab === Tab.PROFILING) {
+    return (transactionName: string) => t('Profile: %s', transactionName);
+  }
+
   let name = '';
   switch (tab) {
     case Tab.TRANSACTION_SUMMARY:
@@ -71,6 +82,7 @@ function makeGetDocumentTitle(tab: Tab) {
       name = t('Vitals');
       break;
     default:
+      Sentry.captureException(new Error('Unknown Transaction Summary Tab: ' + tab));
       name = '';
   }
 
