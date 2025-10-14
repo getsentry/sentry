@@ -9,10 +9,8 @@ from sentry.seer.explorer.index_data import (
     get_issues_for_transaction,
     get_profiles_for_trace,
     get_trace_for_transaction,
-    get_trace_waterfall,
     get_transactions_for_project,
 )
-from sentry.seer.sentry_data_models import EAPTrace
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.search.test_backend import SharedSnubaMixin
@@ -777,99 +775,3 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
         issue2 = result2.issues[0]
         assert issue2.id == event2.group.id
         assert issue2.transaction == transaction_name_in
-
-    def _test_get_trace_waterfall(self, use_short_id: bool) -> None:
-        transaction_name = "api/users/profile"
-        trace_id = uuid.uuid4().hex
-        spans: list[dict] = []
-        for i in range(5):
-            # Create a span tree for this trace
-            span = self.create_span(
-                {
-                    **({"description": f"span-{i}"} if i != 4 else {}),
-                    "sentry_tags": {"transaction": transaction_name},
-                    "trace_id": trace_id,
-                    "parent_span_id": (None if i == 0 else spans[i // 2]["span_id"]),
-                    "is_segment": i == 0,  # First span is the root
-                },
-                start_ts=self.ten_mins_ago + timedelta(minutes=i),
-            )
-            spans.append(span)
-
-        self.store_spans(spans, is_eap=True)
-        result = get_trace_waterfall(
-            trace_id[:8] if use_short_id else trace_id, self.organization.id
-        )
-        assert isinstance(result, EAPTrace)
-        assert result.trace_id == trace_id
-        assert result.org_id == self.organization.id
-
-        seen_span_ids = []
-        root_span_ids = []
-
-        def check_span(s):
-            if "parent_span_id" not in s:
-                # Not a span.
-                return
-
-            # Basic assertions and ID collection for returned spans.
-            assert "op" in s
-            assert "description" in s
-            assert "children" in s
-            assert s["transaction"] == transaction_name
-            assert s["project_id"] == self.project.id
-
-            desc = s["description"]
-            assert isinstance(desc, str)
-            if desc:
-                assert desc.startswith("span-")
-
-            seen_span_ids.append(s["event_id"])
-
-            # Is root
-            if s["parent_span_id"] is None:
-                assert s["is_transaction"]
-                root_span_ids.append(s["event_id"])
-
-            # Recurse
-            for child in s["children"]:
-                check_span(child)
-
-        for event in result.trace:
-            check_span(event)
-
-        assert set(seen_span_ids) == {s["span_id"] for s in spans}
-        assert len(root_span_ids) == 1
-
-    def test_get_trace_waterfall_short_id(self) -> None:
-        self._test_get_trace_waterfall(use_short_id=True)
-
-    def test_get_trace_waterfall_full_id(self) -> None:
-        self._test_get_trace_waterfall(use_short_id=False)
-
-    def test_get_trace_waterfall_wrong_project(self) -> None:
-        transaction_name = "api/users/profile"
-        trace_id = uuid.uuid4().hex
-        other_org = self.create_organization()
-        other_project = self.create_project(organization=other_org)
-
-        spans: list[dict] = []
-        for i in range(2):
-            span = self.create_span(
-                {
-                    "project_id": other_project.id,
-                    "description": f"span-{i}",
-                    "sentry_tags": {"transaction": transaction_name},
-                    "trace_id": trace_id,
-                    "parent_span_id": None if i == 0 else spans[0]["span_id"],
-                    "is_segment": i == 0,
-                },
-                start_ts=self.ten_mins_ago + timedelta(minutes=i),
-            )
-            spans.append(span)
-
-        self.store_spans(spans, is_eap=True)
-
-        # Call with short ID and wrong org
-        result = get_trace_waterfall(trace_id[:8], self.organization.id)
-        assert result is None

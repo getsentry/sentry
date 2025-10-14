@@ -2,9 +2,16 @@ import logging
 from typing import Any, Literal
 
 from sentry.api import client
+from sentry.api.endpoints.organization_traces import TracesExecutor
+from sentry.api.utils import default_start_end_dates, handle_query_errors
+from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.search.events.types import SnubaParams
+from sentry.seer.sentry_data_models import EAPTrace
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.trace import Dataset, query_trace_data
 
 logger = logging.getLogger(__name__)
 
@@ -136,3 +143,77 @@ def execute_trace_query_table(
         params=params,
     )
     return resp.data
+
+
+def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
+    """
+    Get the full span waterfall and connected errors for a trace.
+
+    Args:
+        trace_id: The ID of the trace to fetch. Can be shortened to the first 8 or 16 characters.
+        organization_id: The ID of the trace's organization
+
+    Returns:
+        The spans and errors in the trace, along with the full 32-character trace ID.
+    """
+
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.exception(
+            "get_trace_waterfall: Organization does not exist",
+            extra={"organization_id": organization_id, "trace_id": trace_id},
+        )
+        return None
+
+    projects = list(Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE))
+    start, end = default_start_end_dates()  # Last 90 days.
+    snuba_params = SnubaParams(
+        start=start,
+        end=end,
+        projects=projects,
+        organization=organization,
+    )
+
+    # Get full trace id if a short id is provided.
+    if len(trace_id) < 32:
+        with handle_query_errors():
+            executor = TracesExecutor(
+                dataset=Dataset.SpansIndexed,
+                snuba_params=snuba_params,
+                user_queries=[f"trace:{trace_id}"],
+                sort=None,
+                limit=1,
+                breakdown_slices=1,
+                get_all_projects=lambda: projects,
+            )
+            subquery_result = executor.execute(0, 1)
+            full_trace_id = (
+                subquery_result["data"][0]["trace"] if subquery_result.get("data") else None
+            )
+    else:
+        full_trace_id = trace_id
+
+    if not isinstance(full_trace_id, str):
+        logger.info(
+            "get_trace_waterfall: Trace not found from short id",
+            extra={
+                "organization_id": organization_id,
+                "trace_id": trace_id,
+            },
+        )
+        return None
+
+    # Get full trace data.
+    events = query_trace_data(snuba_params, full_trace_id, referrer=Referrer.SEER_RPC)
+
+    return EAPTrace(
+        trace_id=full_trace_id,
+        org_id=organization_id,
+        trace=events,
+    )
+
+
+def rpc_get_trace_waterfall(trace_id: str, organization_id: int) -> dict[str, Any]:
+    trace = get_trace_waterfall(trace_id, organization_id)
+    return trace.dict() if trace else {}
