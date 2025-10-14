@@ -904,6 +904,13 @@ register(
 )
 
 register(
+    "auto_source_code_config.multi_module_java",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "issues.severity.first-event-severity-calculation-projects-allowlist",
     type=Sequence,
     default=[],
