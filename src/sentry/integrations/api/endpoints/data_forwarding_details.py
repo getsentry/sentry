@@ -6,6 +6,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -25,14 +26,37 @@ from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.organizations.services.organization.model import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+)
 from sentry.web.decorators import set_referrer_policy
 
 
 class OrganizationDataForwardingDetailsPermission(OrganizationPermission):
     scope_map = {
-        "PUT": ["org:write", "project:write"],
+        "PUT": ["org:write"],
         "DELETE": ["org:write"],
     }
+
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+    ) -> bool:
+        # Check if user has org:write permission first
+        if super().has_object_permission(request, view, organization):
+            return True
+
+        # For PUT requests, also allow users with team membership (project-level access)
+        if request.method == "PUT":
+            self.determine_access(request, organization)
+            # Allow if user has any team membership in the organization
+            # The endpoint will handle project-specific permission checks
+            return len(request.access.team_ids_with_membership) > 0
+
+        return False
 
 
 @region_silo_endpoint

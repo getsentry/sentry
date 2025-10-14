@@ -137,8 +137,9 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         self.create_member(
             user=user,
             organization=self.organization,
-            role="admin",
+            role="member",
             teams=[self.team],
+            teamRole="admin",
         )
         self.login_as(user=user)
 
@@ -183,8 +184,9 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         self.create_member(
             user=user,
             organization=self.organization,
-            role="admin",
+            role="member",
             teams=[self.team],
+            teamRole="admin",
         )
         self.login_as(user=user)
 
@@ -224,8 +226,9 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         self.create_member(
             user=user,
             organization=self.organization,
-            role="admin",
+            role="member",
             teams=[self.team],
+            teamRole="admin",
         )
         self.login_as(user=user)
 
@@ -255,8 +258,9 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         self.create_member(
             user=user,
             organization=self.organization,
-            role="admin",
+            role="member",
             teams=[team1],
+            teamRole="admin",
         )
         self.login_as(user=user)
 
