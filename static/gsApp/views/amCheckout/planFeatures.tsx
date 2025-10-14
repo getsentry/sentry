@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconCheckmark, IconClose, IconLightning, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';

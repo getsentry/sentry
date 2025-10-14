@@ -51,8 +51,6 @@ function StepHeader({
   checkoutTier,
   organization,
   isNewCheckout,
-  isOpen,
-  onToggleStep,
 }: Props) {
   const canEdit = !isActive && (isCompleted || canSkip);
   const toggleTier = getToggleTier(checkoutTier);

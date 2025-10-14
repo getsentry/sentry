@@ -8,7 +8,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron, IconLightning, IconLock, IconSentry} from 'sentry/icons';
@@ -35,8 +35,6 @@ import {
   getCredits,
   getFees,
   getOnDemandItems,
-  getPlanIcon,
-  getProductIcon,
   getReservedBudgetCategoryForAddOn,
   hasPartnerMigrationFeature,
   isBizPlanFamily,

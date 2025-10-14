@@ -3,8 +3,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import upperFirst from 'lodash/upperFirst';
 
-import {Badge} from '@sentry/scraps/badge';
-
+import {Tag} from 'sentry/components/core/badge';
 import {Input} from 'sentry/components/core/input';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
@@ -221,13 +220,13 @@ export function SharedSpendLimitPriceTable({
             <Flex gap="xs" align="center" paddingRight="xs">
               <Text>{pluralName}</Text>
               {reserved > 0 && (
-                <Badge type="info">
+                <Tag type="info">
                   {tct('([formattedReserved] included)', {
                     formattedReserved: formatReservedWithUnits(reserved, category, {
                       isAbbreviated: true,
                     }),
                   })}
-                </Badge>
+                </Tag>
               )}
               {showPerformanceUnits
                 ? renderPerformanceHovercard()
@@ -278,11 +277,11 @@ export function SharedSpendLimitPriceTable({
             <Flex gap="xs" align="center" paddingRight="xs">
               <Text bold>{capitalize(addOnInfo.productName)}</Text>
               {includedBudget && (
-                <Badge type="info">
+                <Tag type="info">
                   {tct(' ([formattedIncludedBudget] included)', {
                     formattedIncludedBudget: displayPrice({cents: includedBudget}),
                   })}
-                </Badge>
+                </Tag>
               )}
               {tooltipText && (
                 <QuestionTooltip title={tooltipText} position="top" size="xs" />
