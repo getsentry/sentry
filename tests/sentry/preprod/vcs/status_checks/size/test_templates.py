@@ -196,8 +196,8 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         assert title == "Size Analysis"
         assert subtitle == "1 app analyzed, 1 app processing"
         # Should have two rows - main app shows sizes, watch shows processing
-        assert "`com.example.app`" in summary
-        assert "`com.example.app (Watch)`" in summary
+        assert "com.example.app" in summary
+        assert "`-- (Watch)`" in summary
         assert "1.0 MB" in summary  # Main app completed
         assert "Processing..." in summary  # Watch app processing
 
@@ -231,7 +231,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         assert subtitle == "1 app processing"
 
         # Verify processing state is shown in table
-        assert "`com.example.processing`" in summary
+        assert "com.example.processing" in summary
         assert "2.1.0 (15)" in summary
         assert "Processing..." in summary
 
