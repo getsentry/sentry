@@ -311,17 +311,6 @@ describe('DetectorDetails', () => {
   });
 
   describe('cron detectors', () => {
-    beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/monitors/test-monitor/checkins/',
-        body: [],
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/detectors/${cronDetector.id}/`,
-        body: cronDetector,
-      });
-    });
-
     const cronMonitorDataSource = CronMonitorDataSourceFixture({
       queryObj: {
         ...CronMonitorDataSourceFixture().queryObj,
@@ -339,6 +328,21 @@ describe('DetectorDetails', () => {
       owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
       workflowIds: ['1', '2'],
       dataSources: [cronMonitorDataSource],
+    });
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/monitors/test-monitor/checkins/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${cronDetector.id}/`,
+        body: cronDetector,
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${project.id}/monitors/${cronMonitorDataSource.queryObj.slug}/processing-errors/`,
+        body: [],
+      });
     });
 
     it('displays correct detector details', async () => {

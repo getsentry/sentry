@@ -1,4 +1,5 @@
 import {CheckInFixture} from 'sentry-fixture/checkIn';
+import {CheckinProcessingErrorFixture} from 'sentry-fixture/checkinProcessingError';
 import {
   CronDetectorFixture,
   CronMonitorDataSourceFixture,
@@ -62,6 +63,10 @@ describe('CronDetectorDetails - check-ins', () => {
       url: `/organizations/org-slug/issues/1/`,
       body: GroupFixture(),
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.id}/monitors/${cronDataSource.queryObj.slug}/processing-errors/`,
+      body: [],
+    });
   });
 
   it('should show onboarding when the monitor has never checked in', async () => {
@@ -86,6 +91,11 @@ describe('CronDetectorDetails - check-ins', () => {
       id: '2',
       projectId: project.id,
       dataSources: [noCheckInDataSource],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.id}/monitors/${noCheckInDataSource.queryObj.slug}/processing-errors/`,
+      body: [],
     });
 
     render(<CronDetectorDetails detector={noCheckInDetector} project={project} />);
@@ -154,6 +164,11 @@ describe('CronDetectorDetails - check-ins', () => {
       MockApiClient.addMockResponse({
         url: `/projects/org-slug/${project.slug}/monitors/${detectorWithCheckIn.dataSources[0].queryObj.slug}/checkins/`,
         body: [CheckInFixture()],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${project.id}/monitors/${detectorWithCheckIn.dataSources[0].queryObj.slug}/processing-errors/`,
+        body: [],
       });
 
       // Set user timezone to New York EST/EDT (UTC-4)
@@ -247,6 +262,11 @@ describe('CronDetectorDetails - check-ins', () => {
         body: ProjectKeysFixture(),
       });
 
+      MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${project.id}/monitors/${noCheckInDataSource.queryObj.slug}/processing-errors/`,
+        body: [],
+      });
+
       render(<CronDetectorDetails detector={noCheckInDetector} project={project} />);
 
       // Wait for onboarding to load
@@ -256,6 +276,29 @@ describe('CronDetectorDetails - check-ins', () => {
       expect(
         screen.queryByRole('button', {name: 'Show Setup Docs'})
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('processing errors', () => {
+    const expectedText =
+      'Errors were encountered while ingesting check-ins for this monitor';
+
+    it('displays processing errors when they exist', async () => {
+      MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${project.id}/monitors/${cronDataSource.queryObj.slug}/processing-errors/`,
+        body: [CheckinProcessingErrorFixture()],
+      });
+
+      render(<CronDetectorDetails detector={detector} project={project} />);
+
+      expect(await screen.findByText(expectedText)).toBeInTheDocument();
+    });
+
+    it('does not display processing errors when none exist', async () => {
+      render(<CronDetectorDetails detector={detector} project={project} />);
+
+      await screen.findByText('Recent Check-Ins');
+      expect(screen.queryByText(expectedText)).not.toBeInTheDocument();
     });
   });
 });
