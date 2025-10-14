@@ -169,7 +169,7 @@ def parse_replay_events(message: Event):
             # We're parsing with msgspec (if we can) and then transforming to the type that
             # JSON.loads returns.
             events = [
-                {"data": {"tag": e.data.tag, "payload": e.data.payload}}
+                {"type": 5, "data": {"tag": e.data.tag, "payload": e.data.payload}}
                 for e in msgspec.json.decode(message["payload"], type=list[RRWebEvent])
                 if isinstance(e, CustomEvent)
             ]
