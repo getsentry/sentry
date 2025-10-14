@@ -22,6 +22,7 @@ function usePollReplayRecord({
     refetchInterval: pollInterval,
     enabled,
     refetchIntervalInBackground: true,
+    staleTime: Infinity,
   });
 
   const polledReplayRecord = replayData?.data;
