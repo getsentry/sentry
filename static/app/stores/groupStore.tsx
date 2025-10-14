@@ -366,7 +366,7 @@ const storeConfig: GroupStoreDefinition = {
     const ids = this.itemIdsOrAll(itemIds);
 
     if (itemIds === undefined) {
-      showAlert(t('Deleted all selected issues'), 'success');
+      showAlert(t('Deleted selected issues'), 'success');
     } else if (ids.length > 1) {
       showAlert(t('Deleted %d Issues', ids.length), 'success');
     } else {
