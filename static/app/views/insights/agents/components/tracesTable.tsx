@@ -123,7 +123,7 @@ export function TracesTable() {
   const traceErrorRequest = useSpans(
     {
       // Get all spans with error status
-      search: `has:span.status span.status:*error trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
+      search: `span.status:internal_error trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
       fields: ['trace', 'count(span.duration)'],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
@@ -288,7 +288,7 @@ const BodyCell = memo(function BodyCell({
         <ErrorCell
           value={dataRow.errors}
           target={getExploreUrl({
-            query: `${query} span.status:*error trace:[${dataRow.traceId}]`,
+            query: `${query} span.status:internal_error trace:[${dataRow.traceId}]`,
             organization,
             selection,
             referrer: Referrer.TRACES_TABLE,

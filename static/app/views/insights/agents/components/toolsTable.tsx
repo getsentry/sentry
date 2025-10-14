@@ -47,14 +47,14 @@ const EMPTY_ARRAY: never[] = [];
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'tool', name: t('Tool Name'), width: COL_WIDTH_UNDEFINED},
   {key: 'count()', name: t('Requests'), width: 120},
-  {key: 'count_if(span.status,equals,unknown)', name: t('Errors'), width: 120},
+  {key: 'count_if(span.status,equals,internal_error)', name: t('Errors'), width: 120},
   {key: 'avg(span.duration)', name: t('Avg'), width: 100},
   {key: 'p95(span.duration)', name: t('P95'), width: 100},
 ];
 
 const rightAlignColumns = new Set([
   'count()',
-  'count_if(span.status,equals,unknown)',
+  'count_if(span.status,equals,internal_error)',
   'avg(span.duration)',
   'p95(span.duration)',
 ]);
@@ -95,7 +95,7 @@ export function ToolsTable() {
         'avg(span.duration)',
         'p95(span.duration)',
         'failure_rate()',
-        'count_if(span.status,equals,unknown)', // spans with status unknown are errors
+        'count_if(span.status,equals,internal_error)',
       ],
       sorts: [{field: sortField, kind: sortOrder}],
       search: fullQuery,
@@ -116,7 +116,7 @@ export function ToolsTable() {
       requests: Number(span['count()']),
       avg: Number(span['avg(span.duration)']),
       p95: Number(span['p95(span.duration)']),
-      errors: Number(span['count_if(span.status,equals,unknown)']),
+      errors: Number(span['count_if(span.status,equals,internal_error)']),
     }));
   }, [toolsRequest.data]);
 
@@ -204,7 +204,7 @@ const BodyCell = memo(function BodyCell({
         yAxes: ['avg(span.duration)'],
       },
     ],
-    query: `gen_ai.tool.name:${dataRow.tool}`,
+    query: `gen_ai.tool.name:"${dataRow.tool}"`,
     field: ['span.description', 'gen_ai.tool.output', 'span.duration', 'timestamp'],
   });
 
@@ -217,12 +217,12 @@ const BodyCell = memo(function BodyCell({
       return <DurationCell milliseconds={dataRow.avg} />;
     case 'p95(span.duration)':
       return <DurationCell milliseconds={dataRow.p95} />;
-    case 'count_if(span.status,equals,unknown)':
+    case 'count_if(span.status,equals,internal_error)':
       return (
         <ErrorCell
           value={dataRow.errors}
           target={getExploreUrl({
-            query: `${query} span.status:unknown gen_ai.tool.name:${dataRow.tool}`,
+            query: `${query} span.status:internal_error gen_ai.tool.name:"${dataRow.tool}"`,
             organization,
             selection,
             referrer: Referrer.TOOLS_TABLE,

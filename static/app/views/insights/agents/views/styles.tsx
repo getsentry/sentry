@@ -30,7 +30,7 @@ const StyledGrid = styled('div')<{rowHeight: number; paddingBottom?: number}>`
 const TwoColumnStyledGrid = styled('div')<{rowHeight: number; paddingBottom?: number}>`
   display: grid;
   gap: ${p => p.theme.space.xl};
-  padding-bottom: ${p => p.paddingBottom ?? p.theme.space.md};
+  padding-bottom: ${p => p.paddingBottom ?? p.theme.space.xl};
 
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: ${p => p.rowHeight}px ${p => p.rowHeight}px;
