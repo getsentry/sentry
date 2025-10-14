@@ -91,8 +91,8 @@ export default function FiltersBar({
   const updateGlobalFilters = (newGlobalFilters: GlobalFilter[]) => {
     setActiveGlobalFilters(newGlobalFilters);
     onDashboardFilterChange({
-      release: selectedReleases,
-      globalFilter: newGlobalFilters,
+      [DashboardFilterKeys.RELEASE]: selectedReleases,
+      [DashboardFilterKeys.GLOBAL_FILTER]: newGlobalFilters,
     });
   };
 
@@ -134,7 +134,7 @@ export default function FiltersBar({
               handleChangeFilter={activeFilters => {
                 onDashboardFilterChange({
                   ...activeFilters,
-                  globalFilter: activeGlobalFilters,
+                  [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
                 });
                 trackAnalytics('dashboards2.filter.change', {
                   organization,
