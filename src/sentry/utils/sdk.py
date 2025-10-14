@@ -308,6 +308,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
         transport_http2=True,
         before_send_log=before_send_log,
         enable_logs=True,
+        enable_metrics=True,
     )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
