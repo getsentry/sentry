@@ -117,6 +117,12 @@ class TestFrameInfo:
                 "foo/bar/Baz",  # The path does not use the abs_path
                 id="invalid_abs_path_dollar_sign",
             ),
+            pytest.param(
+                {"module": "foo.Baz", "abs_path": "foo"},
+                "foo/",  # Single-depth stack root
+                "foo/Baz",
+                id="granularity_1",
+            ),
         ],
     )
     def test_java_valid_frames(
