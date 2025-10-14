@@ -2,16 +2,17 @@ import logging
 from typing import Any, Literal
 
 from sentry.api import client
-from sentry.api.endpoints.organization_traces import TracesExecutor
-from sentry.api.utils import default_start_end_dates, handle_query_errors
+from sentry.api.utils import default_start_end_dates
 from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.trace import Dataset, query_trace_data
+from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace import query_trace_data
 
 logger = logging.getLogger(__name__)
 
@@ -175,22 +176,24 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
         organization=organization,
     )
 
-    # Get full trace id if a short id is provided.
+    # Get full trace id if a short id is provided. Queries EAP for a single span.
     if len(trace_id) < 32:
-        with handle_query_errors():
-            executor = TracesExecutor(
-                dataset=Dataset.SpansIndexed,
-                snuba_params=snuba_params,
-                user_queries=[f"trace:{trace_id}"],
-                sort=None,
-                limit=1,
-                breakdown_slices=1,
-                get_all_projects=lambda: projects,
-            )
-            subquery_result = executor.execute(0, 1)
-            full_trace_id = (
-                subquery_result["data"][0]["trace"] if subquery_result.get("data") else None
-            )
+        subquery_result = Spans.run_table_query(
+            params=snuba_params,
+            query_string=f"trace:{trace_id}",
+            selected_columns=[
+                "trace",
+            ],
+            orderby=None,
+            offset=0,
+            limit=1,
+            referrer=Referrer.SEER_RPC,
+            config=SearchResolverConfig(),
+            sampling_mode="NORMAL",
+        )
+        full_trace_id = (
+            subquery_result["data"][0].get("trace") if subquery_result.get("data") else None
+        )
     else:
         full_trace_id = trace_id
 
