@@ -484,3 +484,67 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             expected_message="Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
         ):
             validator.save()
+
+    @with_feature("organizations:discover-saved-queries-deprecation")
+    def test_update_allowed_even_with_deprecated_dataset(self) -> None:
+        # Updates should be allowed even when the feature flag is enabled
+        # The deprecation only applies to creation, not updates
+        validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        # Update other fields (like name) should work fine
+        update_data = {
+            "name": "Updated Detector Name",
+        }
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        updated_detector = update_validator.save()
+        assert updated_detector.name == "Updated Detector Name"
+
+    @with_feature("organizations:mep-rollout-flag")
+    def test_transaction_dataset_deprecation_generic_metrics_update(self) -> None:
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.PerformanceMetrics.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+                },
+            ],
+        }
+        data.pop("dataSource", None)
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        update_data = {
+            "dataSource": {
+                "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                "dataset": Dataset.PerformanceMetrics.value,
+                "query": "updated query",
+                "aggregate": "count()",
+                "timeWindow": 3600,
+                "environment": self.environment.name,
+                "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+            },
+        }
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        with (
+            self.assertRaisesMessage(
+                ValidationError,
+                expected_message="Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
+            ),
+            with_feature("organizations:discover-saved-queries-deprecation"),
+        ):
+            update_validator.save()

@@ -196,6 +196,18 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 raise serializers.ValidationError("SnubaQuery not found, can't update")
 
         event_types = SnubaQueryEventType.objects.filter(snuba_query_id=snuba_query.id)
+
+        if data_source.get("dataset") in [Dataset.PerformanceMetrics, Dataset.Transactions] and (
+            data_source.get("dataset", Dataset(snuba_query.dataset)) != Dataset(snuba_query.dataset)
+            or data_source.get("query", snuba_query.query) != snuba_query.query
+            or data_source.get("aggregate", snuba_query.aggregate) != snuba_query.aggregate
+            or data_source.get("time_window", snuba_query.time_window) != snuba_query.time_window
+            or data_source.get("event_types", snuba_query.event_types) != snuba_query.event_types
+        ):
+            raise serializers.ValidationError(
+                "Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
+            )
+
         update_snuba_query(
             snuba_query=snuba_query,
             query_type=data_source.get("query_type", snuba_query.type),
@@ -234,11 +246,13 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
     def create(self, validated_data: dict[str, Any]):
         if "data_source" in validated_data:
-            self._validate_transaction_dataset_deprecation(validated_data["data_source"]["dataset"])
+            self._validate_transaction_dataset_deprecation(
+                validated_data["data_source"].get("dataset")
+            )
 
         if "data_sources" in validated_data:
             for validated_data_source in validated_data["data_sources"]:
-                self._validate_transaction_dataset_deprecation(validated_data_source["dataset"])
+                self._validate_transaction_dataset_deprecation(validated_data_source.get("dataset"))
 
         detector = super().create(validated_data)
 
