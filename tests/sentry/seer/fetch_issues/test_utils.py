@@ -64,22 +64,19 @@ class TestGetRepoAndProjects(TestCase):
         assert project_ids == {self.project.id, project2.id}
 
     def test_get_repo_and_projects_no_configs(self):
-        repo = self.create_repo(
+        self.create_repo(
             project=self.project,
             name="getsentry/sentry",
             provider="integrations:github",
             external_id="123",
         )
 
-        result = get_repo_and_projects(
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123",
-        )
-
-        assert result.repo == repo
-        assert len(result.repo_configs) == 0
-        assert len(result.projects) == 0
+        with pytest.raises(ValueError, match="No Sentry projects found for repo"):
+            get_repo_and_projects(
+                organization_id=self.organization.id,
+                provider="integrations:github",
+                external_id="123",
+            )
 
     def test_get_repo_and_projects_repo_not_found(self):
         from sentry.models.repository import Repository
@@ -90,31 +87,6 @@ class TestGetRepoAndProjects(TestCase):
                 provider="integrations:github",
                 external_id="nonexistent",
             )
-
-    @patch("sentry_sdk.set_tags")
-    def test_get_repo_and_projects_sets_sentry_tags(self, mock_set_tags):
-        self.create_repo(
-            project=self.project,
-            name="getsentry/sentry",
-            provider="integrations:github",
-            external_id="123",
-        )
-
-        get_repo_and_projects(
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123",
-            run_id=456,
-        )
-
-        mock_set_tags.assert_called_once_with(
-            {
-                "organization_id": self.organization.id,
-                "provider": "integrations:github",
-                "external_id": "123",
-                "run_id": 456,
-            }
-        )
 
 
 class TestAsIssueDetails(TestCase):
