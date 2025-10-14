@@ -148,13 +148,13 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
             self.organization.slug, data_forwarder.id, status_code=200, **payload
         )
 
-        project_config1 = self.create_data_forwarder_project(
+        project_config1 = DataForwarderProject.objects.get(
             data_forwarder=data_forwarder, project=project1
         )
         assert project_config1.overrides == {"custom": "value"}
         assert project_config1.is_enabled is True
 
-        project_config2 = self.create_data_forwarder_project(
+        project_config2 = DataForwarderProject.objects.get(
             data_forwarder=data_forwarder, project=project2
         )
         assert project_config2.overrides == {"custom": "value"}

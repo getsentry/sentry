@@ -1,5 +1,7 @@
 from typing import Any
 
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
@@ -22,7 +24,7 @@ from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.web.decorators import method_decorator, never_cache, set_referrer_policy
+from sentry.web.decorators import set_referrer_policy
 
 
 class OrganizationDataForwardingDetailsPermission(OrganizationPermission):
