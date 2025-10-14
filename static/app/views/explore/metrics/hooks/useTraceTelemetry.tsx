@@ -5,6 +5,7 @@ import type {NewQuery} from 'sentry/types/organization';
 import {useDiscoverQuery, type TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
@@ -32,6 +33,7 @@ export function useTraceTelemetry({
 }: UseTraceTelemetryOptions): TraceTelemetryResult {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const location = useLocation();
 
   // Query for error count
   const errorsEventView = useMemo(() => {
