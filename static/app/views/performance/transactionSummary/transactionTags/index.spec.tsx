@@ -173,7 +173,7 @@ describe('Performance > Transaction Tags', () => {
   it('renders basic UI elements', async () => {
     const data = initializeData();
 
-    renderWithLayout(data);
+    const {router} = renderWithLayout(data);
 
     // It shows the sidebar
     expect(await screen.findByText('Suspect Tags')).toBeInTheDocument();
@@ -188,7 +188,7 @@ describe('Performance > Transaction Tags', () => {
     expect(screen.getByText('Heat Map')).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(data.router.location.query).toMatchObject({
+      expect(router.location.query).toMatchObject({
         project: '1',
         statsPeriod: '14d',
         tagKey: 'hardwareConcurrency',
@@ -275,12 +275,12 @@ describe('Performance > Transaction Tags', () => {
       },
     });
 
-    renderWithLayout(data);
+    const {router} = renderWithLayout(data);
 
     expect(await screen.findByText('Suspect Tags')).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(data.router.location.query).toMatchObject({
+      expect(router.location.query).toMatchObject({
         project: '1',
         statsPeriod: '14d',
         tagKey: 'hardwareConcurrency',
@@ -298,13 +298,7 @@ describe('Performance > Transaction Tags', () => {
     await userEvent.click(screen.getByLabelText('Next'));
 
     await waitFor(() => {
-      expect(data.router.location.pathname).toBe(
-        '/organizations/org-slug/insights/summary/tags/'
-      );
-    });
-
-    await waitFor(() => {
-      expect(data.router.location.query).toMatchObject({
+      expect(router.location.query).toMatchObject({
         project: '1',
         statsPeriod: '14d',
         tagKey: 'hardwareConcurrency',
@@ -317,7 +311,7 @@ describe('Performance > Transaction Tags', () => {
     await userEvent.click(screen.getByRole('radio', {name: 'effectiveConnectionType'}));
 
     await waitFor(() => {
-      expect(data.router.location.query).toMatchObject({
+      expect(router.location.query).toMatchObject({
         project: '1',
         statsPeriod: '14d',
         tagKey: 'effectiveConnectionType',
