@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 from django.db import router, transaction
 from rest_framework import serializers
 from rest_framework.authentication import SessionAuthentication
+from rest_framework.fields import empty
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
@@ -36,7 +37,7 @@ class CustomSchemeURLField(serializers.CharField):
         "disallowed_scheme": "This URL scheme is not allowed. Only http, https, and sentry-mobile-agent schemes are permitted.",
     }
 
-    def run_validation(self, data):
+    def run_validation(self, data: object | None = empty) -> object | None:
         # First run the standard CharField validations
         data = super().run_validation(data)
 
