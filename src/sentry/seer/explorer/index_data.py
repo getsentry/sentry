@@ -63,11 +63,12 @@ def get_transactions_for_project(project_id: int) -> list[Transaction]:
         )
         return []
 
-    start, end = default_start_end_dates()  # Last 90 days.
+    end_time = datetime.now(UTC)
+    start_time = end_time - timedelta(hours=24)
 
     snuba_params = SnubaParams(
-        start=start,
-        end=end,
+        start=start_time,
+        end=end_time,
         projects=[project],
         organization=project.organization,
     )
@@ -576,8 +577,7 @@ def get_trace_details(trace_id: str, organization_id: int) -> EAPTrace | None:
         return None
 
     projects = list(Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE))
-    end = datetime.now(UTC)
-    start = end - timedelta(hours=24)
+    start, end = default_start_end_dates()  # Last 90 days.
     snuba_params = SnubaParams(
         start=start,
         end=end,
@@ -585,6 +585,7 @@ def get_trace_details(trace_id: str, organization_id: int) -> EAPTrace | None:
         organization=organization,
     )
 
+    # Get full trace id if a short id is provided.
     if len(trace_id) < 32:
         with handle_query_errors():
             executor = TracesExecutor(
@@ -613,6 +614,7 @@ def get_trace_details(trace_id: str, organization_id: int) -> EAPTrace | None:
         )
         return None
 
+    # Get full trace data.
     events = query_trace_data(snuba_params, full_trace_id, referrer=Referrer.SEER_RPC)
 
     return EAPTrace(
