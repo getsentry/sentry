@@ -1,4 +1,4 @@
-import {createContext} from 'react';
+import {createContext, useContext} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -22,7 +22,7 @@ export const TransactionSummaryContext = createContext<TransactionSummaryContext
 );
 
 export const useTransactionSummaryContext = (): TransactionSummaryContext => {
-  const context = React.useContext(TransactionSummaryContext);
+  const context = useContext(TransactionSummaryContext);
   if (!context) {
     throw new Error(
       'useTransactionSummaryContext must be used within a TransactionSummaryContext.Provider'
