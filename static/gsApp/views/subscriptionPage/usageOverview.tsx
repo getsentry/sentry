@@ -337,7 +337,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
                 budget => (budget.apiName as string) === reservedBudgetCategory
               )
             : undefined;
-          const percentUsed = reservedBudget?.totalReservedSpend
+          const percentUsed = reservedBudget?.reservedBudget
             ? getPercentage(
                 reservedBudget?.totalReservedSpend,
                 reservedBudget?.reservedBudget
