@@ -419,6 +419,14 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         queryset = self.filter_detectors(request, organization)
 
+        if request.GET.getlist("id") and len(queryset) != len(request.GET.getlist("id")):
+            return Response(
+                {
+                    "detail": "Some detectors were not found or you do not have permission to update them."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         if not queryset:
             return Response(
                 {"detail": "No detectors found."},
@@ -481,6 +489,14 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             )
 
         queryset = self.filter_detectors(request, organization)
+
+        if request.GET.getlist("id") and len(queryset) != len(request.GET.getlist("id")):
+            return Response(
+                {
+                    "detail": "Some detectors were not found or you do not have permission to delete them."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if not queryset:
             return Response(

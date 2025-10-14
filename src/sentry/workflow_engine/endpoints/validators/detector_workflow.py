@@ -35,10 +35,8 @@ def can_edit_detectors(detectors: QuerySet[Detector], request: Request) -> bool:
     """
     Determine if the requesting user has access to edit the given detectors.
     """
-    if can_edit_error_detectors(request):
-        return True
-    elif any(detector.type == ErrorGroupType.slug for detector in detectors):
-        return False
+    if any(detector.type == ErrorGroupType.slug for detector in detectors):
+        return can_edit_error_detectors(request)
 
     projects = Project.objects.filter(
         id__in=detectors.values_list("project_id", flat=True).distinct()
