@@ -4,9 +4,12 @@ import type {SkipToken} from '@tanstack/react-query';
 import type {ApiResult} from 'sentry/api';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ExtractPathParams, OptionalPathParams} from 'sentry/utils/api/getApiUrl';
-import type {KnownApiUrls} from 'sentry/utils/api/knownSentryApiUrls.generated';
+import type {KnownGetsentryApiUrls} from 'sentry/utils/api/knownGetsentryApiUrls';
+import type {KnownSentryApiUrls} from 'sentry/utils/api/knownSentryApiUrls.generated';
 import type {QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
 import {fetchDataQuery} from 'sentry/utils/queryClient';
+
+type KnownApiUrls = KnownGetsentryApiUrls | KnownSentryApiUrls;
 
 type Options = QueryKeyEndpointOptions & {staleTime: number};
 

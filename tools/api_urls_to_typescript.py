@@ -1,11 +1,12 @@
 # flake8: noqa: S002
 
 import re
+from typing import Any
 
 from django.urls import URLPattern, URLResolver
 
 
-def snake_to_camel_case(value):
+def snake_to_camel_case(value: str) -> str:
     """
     Converts a string from snake_case to camelCase
     """
@@ -13,7 +14,7 @@ def snake_to_camel_case(value):
     return words[0].lower() + "".join(word.capitalize() for word in words[1:])
 
 
-def urls_to_routes(prefix: str, urlpatterns: list[URLPattern | URLResolver]) -> list[str]:
+def urls_to_routes(prefix: str, urlpatterns: list[Any]) -> list[str]:
     routes = []
     for urlpattern in urlpatterns:
         if isinstance(urlpattern, URLResolver):
@@ -115,7 +116,7 @@ def _process_single_pattern(pattern: str) -> str:
     # This regex matches (?P<name>...) and captures the name, handling nested groups
     named_group_pattern = r"\(\?P<([^>]+)>([^)]*(?:\([^)]*\)[^)]*)*)\)"
 
-    def replace_named_group(match):
+    def replace_named_group(match: re.Match[str]) -> str:
         group_name = snake_to_camel_case(match.group(1))
         return f"${group_name}"
 
