@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from rest_framework.request import Request
@@ -18,45 +19,71 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization import RpcUserOrganizationContext
 from sentry.shared_integrations.exceptions import ApiError
 
+logger = logging.getLogger(__name__)
+
 
 def _slack_list_channels(*, integration_id: int) -> list[dict[str, Any]]:
     """
     List Slack channels for a given integration.
 
-    NOTE: We are NOT using pagination here because some organizations have
-    more than 1000 channels. Searching client-side might miss channels beyond
-    the first 1000, so we fetch the maximum allowed by Slack and rely on
-    validation when saving.
+    Fetches up to the Slack API limit (1000 channels).
+    Handles authentication via integration context and validates responses.
     """
-
     from sentry.integrations.slack.sdk_client import SlackSdkClient
 
-    client = SlackSdkClient(integration_id=integration_id)
-    resp = client.conversations_list(
-        exclude_archived=True,
-        types="public_channel,private_channel",
-        limit=1000,  # Max Slack allows (see https://docs.slack.dev/reference/methods/conversations.list/)
-    ).data
+    integration = integration_service.get_integration(integration_id=integration_id)
+    if not integration:
+        raise ApiError("Slack integration not found")
 
-    resp_data: dict[str, Any] = resp if isinstance(resp, dict) else {}
-    channels = resp_data.get("channels", []) or []
+    client = SlackSdkClient(integration=integration)
+
+    try:
+        response = client.conversations_list(
+            exclude_archived=True,
+            types="public_channel,private_channel",
+            limit=1000,  # Max allowed by Slack API
+        )
+        resp_data: dict[str, Any] = response.data if isinstance(response.data, dict) else {}
+    except Exception as e:
+        logger.warning("Slack API request failed for integration_id=%s: %s", integration_id, e)
+        return []
+
+    # Validate structure
+    raw_channels = resp_data.get("channels")
+    if not isinstance(raw_channels, list):
+        logger.warning(
+            "Unexpected Slack API response structure for integration_id=%s: %r",
+            integration_id,
+            resp_data,
+        )
+        return []
 
     results: list[dict[str, Any]] = []
-    for ch in channels:
-        name = ch.get("name")
+    for ch in raw_channels:
+        if not isinstance(ch, dict):
+            continue
+
+        ch_id = ch.get("id")
+        ch_name = ch.get("name")
+        if not ch_id or not ch_name:
+            continue
+
+        is_private = bool(ch.get("is_private"))
+        name_str = str(ch_name)
+
         results.append(
             {
-                "id": ch.get("id"),
-                "name": name,
-                "display": f"#{name}",
-                "type": "private" if bool(ch.get("is_private")) else "public",
+                "id": str(ch_id),
+                "name": name_str,
+                "display": f"#{name_str}",
+                "type": "private" if is_private else "public",
             }
         )
 
     return results
 
 
-def _discord_list_channels(*, guild_id: str) -> list[dict[str, Any]]:
+def _discord_list_channels(*, integration_id: int, guild_id: str) -> list[dict[str, Any]]:
     """
     List Discord channels for a given guild that can receive messages.
 
@@ -70,22 +97,57 @@ def _discord_list_channels(*, guild_id: str) -> list[dict[str, Any]]:
         15: "forum",
     }
 
-    client = DiscordClient()
-    channels = (
-        client.get(f"/guilds/{guild_id}/channels", headers=client.prepare_auth_header()) or []
-    )
+    integration = integration_service.get_integration(integration_id=integration_id)
+    if not integration:
+        raise ApiError("Discord integration not found")
 
-    selectable_types = DISCORD_CHANNEL_TYPES.keys()
-    filtered = [ch for ch in channels if ch.get("type") in selectable_types]
+    client = DiscordClient(integration=integration)
 
+    try:
+        raw_resp = client.get(
+            f"/guilds/{guild_id}/channels",
+            headers=client.prepare_auth_header(),
+        )
+    except Exception as e:
+        logger.warning(
+            "Discord API request failed for integration_id=%s, guild_id=%s: %s",
+            integration_id,
+            guild_id,
+            e,
+        )
+        return []
+
+    if not isinstance(raw_resp, list):
+        logger.warning(
+            "Unexpected Discord API response for integration_id=%s, guild_id=%s: %r",
+            integration_id,
+            guild_id,
+            raw_resp,
+        )
+        return []
+
+    selectable_types = set(DISCORD_CHANNEL_TYPES.keys())
     results: list[dict[str, Any]] = []
-    for ch in filtered:
+
+    for item in raw_resp:
+        if not isinstance(item, dict):
+            continue
+
+        ch_type = item.get("type")
+        if not isinstance(ch_type, int) or ch_type not in selectable_types:
+            continue
+
+        ch_id = item.get("id")
+        ch_name = item.get("name")
+        if not ch_id or not ch_name:
+            continue
+
         results.append(
             {
-                "id": ch["id"],
-                "name": ch["name"],
-                "display": f"#{ch['name']}",
-                "type": DISCORD_CHANNEL_TYPES.get(ch["type"], "unknown"),
+                "id": str(ch_id),
+                "name": str(ch_name),
+                "display": f"#{ch_name}",
+                "type": DISCORD_CHANNEL_TYPES.get(ch_type, "unknown"),
             }
         )
 
@@ -94,28 +156,66 @@ def _discord_list_channels(*, guild_id: str) -> list[dict[str, Any]]:
 
 def _msteams_list_channels(*, integration_id: int, team_id: str) -> list[dict[str, Any]]:
     """
-    List Microsoft Teams channels for a team.
+    List Microsoft Teams channels for a given team.
 
     The Teams API returns all channels at once.
     Only standard and private channels are included.
     """
 
     integration = integration_service.get_integration(integration_id=integration_id)
-    if integration is None:
+    if not integration:
         raise ApiError("Microsoft Teams integration not found")
 
     client = MsTeamsClient(integration)
-    channels_resp = client.get(client.CHANNEL_URL % team_id) or {}
-    channels = channels_resp.get("conversations") or []
+
+    try:
+        raw_resp = client.get(client.CHANNEL_URL % team_id)
+    except Exception as e:
+        logger.warning(
+            "Microsoft Teams API request failed for integration_id=%s, team_id=%s: %s",
+            integration_id,
+            team_id,
+            e,
+        )
+        return []
+
+    if not isinstance(raw_resp, dict):
+        logger.warning(
+            "Unexpected Microsoft Teams API response for integration_id=%s, team_id=%s: %r",
+            integration_id,
+            team_id,
+            raw_resp,
+        )
+        return []
+
+    raw_channels = raw_resp.get("conversations")
+    if not isinstance(raw_channels, list):
+        logger.warning(
+            "Missing or invalid 'conversations' in Teams API response for integration_id=%s, team_id=%s: %r",
+            integration_id,
+            team_id,
+            raw_resp,
+        )
+        return []
 
     results: list[dict[str, Any]] = []
-    for ch in channels:
+    for item in raw_channels:
+        if not isinstance(item, dict):
+            continue
+
+        ch_id = item.get("id")
+        display_name = item.get("displayName")
+        if not ch_id or not display_name:
+            continue
+
+        ch_type = str(item.get("membershipType") or "standard")
+
         results.append(
             {
-                "id": ch["id"],
-                "name": ch["displayName"],
-                "display": ch["displayName"],
-                "type": ch.get("membershipType", "standard"),  # "standard" or "private"
+                "id": str(ch_id),
+                "name": str(display_name),
+                "display": str(display_name),
+                "type": ch_type,  # "standard" or "private"
             }
         )
 
@@ -147,7 +247,9 @@ class OrganizationIntegrationChannelsEndpoint(OrganizationIntegrationBaseEndpoin
                 case IntegrationProviderSlug.SLACK.value:
                     results = _slack_list_channels(integration_id=integration.id)
                 case IntegrationProviderSlug.DISCORD.value:
-                    results = _discord_list_channels(guild_id=str(integration.external_id))
+                    results = _discord_list_channels(
+                        integration_id=integration.id, guild_id=str(integration.external_id)
+                    )
                 case IntegrationProviderSlug.MSTEAMS.value:
                     results = _msteams_list_channels(
                         integration_id=integration.id,
