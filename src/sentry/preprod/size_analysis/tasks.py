@@ -102,9 +102,7 @@ def compare_preprod_artifact_size_analysis(
                             ),
                         },
                     )
-                    _run_size_analysis_comparison(
-                        project_id, org_id, matching_head_size_metric, base_metric
-                    )
+                    _run_size_analysis_comparison(org_id, matching_head_size_metric, base_metric)
                 else:
                     logger.info(
                         "preprod.size_analysis.compare.no_matching_base_size_metric",
