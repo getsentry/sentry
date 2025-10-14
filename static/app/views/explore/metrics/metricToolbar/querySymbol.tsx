@@ -10,8 +10,8 @@ export default QuerySymbol;
 
 export const Symbol = styled('span')`
   display: flex;
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   line-height: 16px;
   padding: ${space(0.5)};
   justify-content: center;
