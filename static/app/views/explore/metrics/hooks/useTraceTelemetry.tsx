@@ -162,6 +162,6 @@ export function useTraceTelemetry({
 
   return {
     data: telemetryData,
-    isLoading: spansResult.isPending || logsResult.isPending,
+    isLoading: spansResult.isPending || logsResult.isPending || errorsResult.isPending,
   };
 }
