@@ -56,7 +56,6 @@ class SentryAppInstallationTokenCreator:
             self._check_token_limit()
             api_token = self._create_api_token()
             self._create_sentry_app_installation_token(api_token=api_token)
-            self.audit(request, api_token)
         self.record_analytics(user)
         return api_token
 
